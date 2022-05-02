@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidApp.Builder;
 import com.android.tools.r8.utils.InternalOptions;
@@ -28,7 +29,10 @@ public class CfVerifierTool {
     options.testing.verifyInputs = true;
     DexApplication dexApplication =
         new ApplicationReader(builder.build(), options, Timing.empty()).read();
-    AppView<AppInfo> appView = AppView.createForD8(AppInfo.createInitialAppInfo(dexApplication));
+    AppView<AppInfo> appView =
+        AppView.createForD8(
+            AppInfo.createInitialAppInfo(
+                dexApplication, GlobalSyntheticsStrategy.forNonSynthesizing()));
     appView.setAppServices(AppServices.builder(appView).build());
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       clazz.forEachProgramMethod(

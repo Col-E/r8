@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 
 public interface IRCodeProvider {
 
@@ -44,7 +45,9 @@ public interface IRCodeProvider {
       // of the class initializers without applying the unapplied code rewritings, to avoid that we
       // apply the lens more than once to the same piece of code.
       AppView<AppInfo> appViewForConversion =
-          AppView.createForD8(AppInfo.createInitialAppInfo(appView.appInfo().app()));
+          AppView.createForD8(
+              AppInfo.createInitialAppInfo(
+                  appView.appInfo().app(), GlobalSyntheticsStrategy.forNonSynthesizing()));
       appViewForConversion.setGraphLens(appView.graphLens());
       appViewForConversion.setCodeLens(appView.codeLens());
       this.appViewForConversion = appViewForConversion;

@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.Timing;
@@ -47,7 +48,8 @@ public class DebugByteCodeWriterTest {
             AppInfo.createInitialAppInfo(
                 DexApplication.builder(
                         new InternalOptions(new DexItemFactory(), new Reporter()), null)
-                    .build()));
+                    .build(),
+                GlobalSyntheticsStrategy.forNonSynthesizing()));
     return new ObjectToOffsetMapping(
         appView,
         NamingLens.getIdentityLens(),

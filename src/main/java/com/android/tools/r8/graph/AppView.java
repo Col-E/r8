@@ -43,6 +43,7 @@ import com.android.tools.r8.shaking.ProguardCompatibilityActions;
 import com.android.tools.r8.shaking.RootSetUtils.MainDexRootSet;
 import com.android.tools.r8.shaking.RootSetUtils.RootSet;
 import com.android.tools.r8.synthesis.SyntheticItems;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.OptionalBool;
@@ -202,7 +203,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
         ClassToFeatureSplitMap.createInitialClassToFeatureSplitMap(application.options);
     AppInfoWithClassHierarchy appInfo =
         AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
-            application, classToFeatureSplitMap, mainDexInfo);
+            application,
+            classToFeatureSplitMap,
+            mainDexInfo,
+            GlobalSyntheticsStrategy.forSingleOutputMode());
     return new AppView<>(appInfo, WholeProgramOptimizations.ON, defaultTypeRewriter(appInfo));
   }
 

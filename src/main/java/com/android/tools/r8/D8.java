@@ -38,6 +38,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.synthesis.SyntheticFinalization;
 import com.android.tools.r8.synthesis.SyntheticItems;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -180,7 +181,13 @@ public final class D8 {
     AppInfo appInfo =
         timing.time(
             "Create app-info",
-            () -> AppInfo.createInitialAppInfo(app, applicationReader.readMainDexClasses(app)));
+            () ->
+                AppInfo.createInitialAppInfo(
+                    app,
+                    options.isGeneratingDexFilePerClassFile()
+                        ? GlobalSyntheticsStrategy.forPerFileMode()
+                        : GlobalSyntheticsStrategy.forSingleOutputMode(),
+                    applicationReader.readMainDexClasses(app)));
     return timing.time("Create app-view", () -> AppView.createForD8(appInfo, typeRewriter, timing));
   }
 

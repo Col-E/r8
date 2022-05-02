@@ -15,6 +15,7 @@ import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.shaking.MissingClasses;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.synthesis.SyntheticItems;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.TriConsumer;
@@ -46,9 +47,10 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   public static AppInfoWithClassHierarchy createInitialAppInfoWithClassHierarchy(
       DexApplication application,
       ClassToFeatureSplitMap classToFeatureSplitMap,
-      MainDexInfo mainDexInfo) {
+      MainDexInfo mainDexInfo,
+      GlobalSyntheticsStrategy globalSyntheticsStrategy) {
     return new AppInfoWithClassHierarchy(
-        SyntheticItems.createInitialSyntheticItems(application),
+        SyntheticItems.createInitialSyntheticItems(application, globalSyntheticsStrategy),
         classToFeatureSplitMap,
         mainDexInfo,
         MissingClasses.empty());

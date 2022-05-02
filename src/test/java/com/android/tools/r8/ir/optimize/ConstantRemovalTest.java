@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodC
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.LinkedList;
 import org.junit.Test;
@@ -136,7 +137,10 @@ public class ConstantRemovalTest {
 
     InternalOptions options = new InternalOptions();
     options.debug = true;
-    AppInfo appInfo = AppInfo.createInitialAppInfo(DexApplication.builder(options, null).build());
+    AppInfo appInfo =
+        AppInfo.createInitialAppInfo(
+            DexApplication.builder(options, null).build(),
+            GlobalSyntheticsStrategy.forNonSynthesizing());
     AppView<?> appView = AppView.createForD8(appInfo);
     IRCode code =
         new IRCode(

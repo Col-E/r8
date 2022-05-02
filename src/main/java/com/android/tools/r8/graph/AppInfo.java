@@ -9,6 +9,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.synthesis.SyntheticItems;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collection;
@@ -27,12 +28,18 @@ public class AppInfo implements DexDefinitionSupplier {
   // current instance is not obsolete, to ensure that we almost use the most recent AppInfo.
   private final BooleanBox obsolete;
 
-  public static AppInfo createInitialAppInfo(DexApplication application) {
-    return createInitialAppInfo(application, MainDexInfo.none());
+  public static AppInfo createInitialAppInfo(
+      DexApplication application, GlobalSyntheticsStrategy globalSyntheticsStrategy) {
+    return createInitialAppInfo(application, globalSyntheticsStrategy, MainDexInfo.none());
   }
 
-  public static AppInfo createInitialAppInfo(DexApplication application, MainDexInfo mainDexInfo) {
-    return new AppInfo(SyntheticItems.createInitialSyntheticItems(application), mainDexInfo);
+  public static AppInfo createInitialAppInfo(
+      DexApplication application,
+      GlobalSyntheticsStrategy globalSyntheticsStrategy,
+      MainDexInfo mainDexInfo) {
+    return new AppInfo(
+        SyntheticItems.createInitialSyntheticItems(application, globalSyntheticsStrategy),
+        mainDexInfo);
   }
 
   public AppInfo(CommittedItems committedItems, MainDexInfo mainDexInfo) {

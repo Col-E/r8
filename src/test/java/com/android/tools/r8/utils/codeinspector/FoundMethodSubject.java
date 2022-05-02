@@ -36,6 +36,7 @@ import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.LocalVariableTable.LocalVariableTableEntry;
 import com.google.common.base.Predicates;
@@ -64,7 +65,10 @@ public class FoundMethodSubject extends MethodSubject {
 
   @Override
   public IRCode buildIR() {
-    return buildIR(AppView.createForD8(AppInfo.createInitialAppInfo(codeInspector.application)));
+    return buildIR(
+        AppView.createForD8(
+            AppInfo.createInitialAppInfo(
+                codeInspector.application, GlobalSyntheticsStrategy.forNonSynthesizing())));
   }
 
   @Override

@@ -68,6 +68,7 @@ import com.android.tools.r8.shaking.ProguardMemberType;
 import com.android.tools.r8.shaking.ProguardTypeMatcher;
 import com.android.tools.r8.shaking.RootSetUtils.RootSet;
 import com.android.tools.r8.shaking.serviceloader.ServiceLoaderMultipleTest.Greeter;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.transformers.ClassFileTransformer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -763,7 +764,9 @@ public class TestBase {
 
   protected static AppView<AppInfo> computeAppView(AndroidApp app) throws Exception {
     AppInfo appInfo =
-        AppInfo.createInitialAppInfo(readApplicationForDexOutput(app, new InternalOptions()));
+        AppInfo.createInitialAppInfo(
+            readApplicationForDexOutput(app, new InternalOptions()),
+            GlobalSyntheticsStrategy.forNonSynthesizing());
     return AppView.createForD8(appInfo);
   }
 
@@ -772,7 +775,8 @@ public class TestBase {
     return AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
         readApplicationForDexOutput(app, new InternalOptions()),
         ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
-        MainDexInfo.none());
+        MainDexInfo.none(),
+        GlobalSyntheticsStrategy.forSingleOutputMode());
   }
 
   protected static AppView<AppInfoWithClassHierarchy> computeAppViewWithClassHierarchy(

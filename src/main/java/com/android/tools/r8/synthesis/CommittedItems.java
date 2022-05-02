@@ -6,6 +6,7 @@ package com.android.tools.r8.synthesis;
 import com.android.tools.r8.graph.ClassResolutionResult;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.synthesis.SyntheticItems.State;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -29,16 +30,19 @@ public class CommittedItems implements SyntheticDefinitionsProvider {
   final SyntheticItems.State state;
   final CommittedSyntheticsCollection committed;
   final ImmutableList<DexType> committedProgramTypes;
+  final GlobalSyntheticsStrategy globalSyntheticsStrategy;
 
   CommittedItems(
       State state,
       DexApplication application,
       CommittedSyntheticsCollection committed,
-      ImmutableList<DexType> committedProgramTypes) {
+      ImmutableList<DexType> committedProgramTypes,
+      GlobalSyntheticsStrategy globalSyntheticsStrategy) {
     this.state = state;
     this.application = application;
     this.committed = committed;
     this.committedProgramTypes = committedProgramTypes;
+    this.globalSyntheticsStrategy = globalSyntheticsStrategy;
     assert committed.verifyTypesAreInApp(application);
   }
 

@@ -29,6 +29,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.LinkedList;
 import java.util.List;
@@ -444,7 +445,9 @@ public class RegisterMoveSchedulerTest {
     InternalOptions options = new InternalOptions();
     AppView<AppInfo> appInfo =
         AppView.createForD8(
-            AppInfo.createInitialAppInfo(DexApplication.builder(options, null).build()));
+            AppInfo.createInitialAppInfo(
+                DexApplication.builder(options, null).build(),
+                GlobalSyntheticsStrategy.forNonSynthesizing()));
     TypeElement objectType =
         TypeElement.fromDexType(options.itemFactory.objectType, Nullability.maybeNull(), appInfo);
     CollectMovesIterator moves = new CollectMovesIterator();

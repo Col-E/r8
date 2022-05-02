@@ -70,6 +70,7 @@ import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.SynthesizedOrigin;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -888,7 +889,9 @@ public class MainDexListTests extends TestBase {
     DirectMappedDexApplication application = builder.build().toDirect();
     ApplicationWriter writer =
         new ApplicationWriter(
-            AppView.createForD8(AppInfo.createInitialAppInfo(application)),
+            AppView.createForD8(
+                AppInfo.createInitialAppInfo(
+                    application, GlobalSyntheticsStrategy.forNonSynthesizing())),
             null,
             NamingLens.getIdentityLens());
     ExecutorService executor = ThreadUtils.getExecutorService(options);

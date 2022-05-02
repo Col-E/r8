@@ -40,6 +40,7 @@ import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.MainDexInfo;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.tracereferences.TraceReferencesConsumer.TracedReference;
 import com.android.tools.r8.tracereferences.internal.TracedClassImpl;
 import com.android.tools.r8.tracereferences.internal.TracedFieldImpl;
@@ -69,7 +70,8 @@ public class Tracer {
             AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
                 new ApplicationReader(inputApp, options, Timing.empty()).read().toDirect(),
                 ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
-                MainDexInfo.none())),
+                MainDexInfo.none(),
+                GlobalSyntheticsStrategy.forSingleOutputMode())),
         diagnostics,
         type -> targetDescriptors.contains(type.toDescriptorString()));
   }

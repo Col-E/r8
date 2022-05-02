@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.contexts.CompilationContext.UniqueContext;
 import com.android.tools.r8.errors.MissingGlobalSyntheticsConsumerDiagnostic;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
@@ -46,6 +47,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -54,16 +56,85 @@ import org.objectweb.asm.ClassWriter;
 
 public class SyntheticItems implements SyntheticDefinitionsProvider {
 
+  public interface GlobalSyntheticsStrategy {
+    ContextsForGlobalSynthetics getStrategy();
+
+    static GlobalSyntheticsStrategy forNonSynthesizing() {
+      ContextsForGlobalSyntheticsInSingleOutputMode instance =
+          new ContextsForGlobalSyntheticsInSingleOutputMode() {
+            @Override
+            public void addGlobalContexts(
+                DexType globalType, Collection<ProgramDefinition> contexts) {
+              throw new Unreachable("Unexpected attempt to add globals to non-desugaring build.");
+            }
+          };
+      return () -> instance;
+    }
+
+    static GlobalSyntheticsStrategy forSingleOutputMode() {
+      ContextsForGlobalSynthetics instance = new ContextsForGlobalSyntheticsInSingleOutputMode();
+      return () -> instance;
+    }
+
+    static GlobalSyntheticsStrategy forPerFileMode() {
+      // Allocate a new context set as the new pending set.
+      return ContextsForGlobalSyntheticsInPerFileMode::new;
+    }
+  }
+
+  interface ContextsForGlobalSynthetics {
+    boolean isEmpty();
+
+    void forEach(BiConsumer<DexType, Set<DexType>> fn);
+
+    void addGlobalContexts(DexType globalType, Collection<ProgramDefinition> contexts);
+  }
+
+  private static class ContextsForGlobalSyntheticsInSingleOutputMode
+      implements ContextsForGlobalSynthetics {
+
+    @Override
+    public boolean isEmpty() {
+      return true;
+    }
+
+    @Override
+    public void forEach(BiConsumer<DexType, Set<DexType>> fn) {
+      // nothing to do.
+    }
+
+    @Override
+    public void addGlobalContexts(DexType globalType, Collection<ProgramDefinition> contexts) {
+      // contexts are ignored in single output modes.
+    }
+  }
+
+  private static class ContextsForGlobalSyntheticsInPerFileMode
+      implements ContextsForGlobalSynthetics {
+    private final ConcurrentHashMap<DexType, Set<DexType>> globalContexts =
+        new ConcurrentHashMap<>();
+
+    @Override
+    public boolean isEmpty() {
+      return globalContexts.isEmpty();
+    }
+
+    @Override
+    public void forEach(BiConsumer<DexType, Set<DexType>> fn) {
+      globalContexts.forEach(fn);
+    }
+
+    @Override
+    public void addGlobalContexts(DexType globalType, Collection<ProgramDefinition> contexts) {
+      Set<DexType> contextReferences =
+          globalContexts.computeIfAbsent(globalType, k -> ConcurrentHashMap.newKeySet());
+      contexts.forEach(definition -> contextReferences.add(definition.getContextType()));
+    }
+  }
+
   enum State {
     OPEN,
     FINALIZED
-  }
-
-  private final State state;
-  private final SyntheticNaming naming;
-
-  public SyntheticNaming getNaming() {
-    return naming;
   }
 
   /** Collection of pending items. */
@@ -102,33 +173,62 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     }
   }
 
+  private final State state;
+  private final SyntheticNaming naming;
   private final CommittedSyntheticsCollection committed;
-
   private final PendingSynthetics pending = new PendingSynthetics();
+  private final ContextsForGlobalSynthetics globalContexts;
+  private final GlobalSyntheticsStrategy globalSyntheticsStrategy;
+
+  public SyntheticNaming getNaming() {
+    return naming;
+  }
+
+  public GlobalSyntheticsStrategy getGlobalSyntheticsStrategy() {
+    return globalSyntheticsStrategy;
+  }
 
   // Empty collection for use only in tests and utilities.
   public static SyntheticItems empty() {
-    return new SyntheticItems(State.FINALIZED, CommittedSyntheticsCollection.empty(null));
+    return new SyntheticItems(
+        State.FINALIZED,
+        CommittedSyntheticsCollection.empty(null),
+        GlobalSyntheticsStrategy.forNonSynthesizing());
   }
 
   // Only for use from initial AppInfo/AppInfoWithClassHierarchy create functions. */
-  public static CommittedItems createInitialSyntheticItems(DexApplication application) {
+  public static CommittedItems createInitialSyntheticItems(
+      DexApplication application, GlobalSyntheticsStrategy globalSyntheticsStrategy) {
     return new CommittedItems(
         State.OPEN,
         application,
         CommittedSyntheticsCollection.empty(application.dexItemFactory().getSyntheticNaming()),
-        ImmutableList.of());
+        ImmutableList.of(),
+        globalSyntheticsStrategy);
   }
 
   // Only for conversion to a mutable synthetic items collection.
   SyntheticItems(CommittedItems commit) {
-    this(commit.state, commit.committed);
+    this(commit.state, commit.committed, commit.globalSyntheticsStrategy);
   }
 
-  private SyntheticItems(State state, CommittedSyntheticsCollection committed) {
+  private SyntheticItems(
+      State state,
+      CommittedSyntheticsCollection committed,
+      GlobalSyntheticsStrategy globalSyntheticsStrategy) {
     this.state = state;
     this.committed = committed;
     this.naming = committed.getNaming();
+    this.globalContexts = globalSyntheticsStrategy.getStrategy();
+    this.globalSyntheticsStrategy = globalSyntheticsStrategy;
+  }
+
+  public Set<DexType> getFinalGlobalSyntheticContexts(DexType globalSynthetic) {
+    assert isFinalized();
+    assert isSynthetic(globalSynthetic);
+    Set<DexType> contexts = committed.getContextsForGlobal(globalSynthetic);
+    assert !contexts.isEmpty();
+    return contexts;
   }
 
   public static void collectSyntheticInputs(AppView<?> appView) {
@@ -171,7 +271,11 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     }
     CommittedItems commit =
         new CommittedItems(
-            synthetics.state, appView.appInfo().app(), committed, ImmutableList.of());
+            synthetics.state,
+            appView.appInfo().app(),
+            committed,
+            ImmutableList.of(),
+            synthetics.globalSyntheticsStrategy);
     if (appView.appInfo().hasClassHierarchy()) {
       appView
           .withClassHierarchy()
@@ -787,6 +891,30 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       Supplier<MissingGlobalSyntheticsConsumerDiagnostic> diagnosticSupplier,
       SyntheticKindSelector kindSelector,
       DexType globalType,
+      Collection<ProgramDefinition> contexts,
+      AppView<?> appView,
+      Consumer<SyntheticProgramClassBuilder> fn,
+      Consumer<DexProgramClass> onCreationConsumer) {
+    SyntheticKind kind = kindSelector.select(naming);
+    assert kind.isGlobal();
+    assert !contexts.isEmpty();
+    if (appView.options().intermediate && !appView.options().hasGlobalSyntheticsConsumer()) {
+      appView.reporter().fatalError(diagnosticSupplier.get());
+    }
+    // A global type is its own context.
+    SynthesizingContext outerContext = SynthesizingContext.fromType(globalType);
+    DexProgramClass globalSynthetic =
+        internalEnsureFixedProgramClass(kind, fn, onCreationConsumer, outerContext, appView);
+    addGlobalContexts(globalSynthetic.getType(), contexts);
+    return globalSynthetic;
+  }
+
+  // TODO(b/230445931): Remove this once possible.
+  @Deprecated
+  public DexProgramClass legacyEnsureGlobalClass(
+      Supplier<MissingGlobalSyntheticsConsumerDiagnostic> diagnosticSupplier,
+      SyntheticKindSelector kindSelector,
+      DexType globalType,
       AppView<?> appView,
       Consumer<SyntheticProgramClassBuilder> fn,
       Consumer<DexProgramClass> onCreationConsumer) {
@@ -839,6 +967,10 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     pending.definitions.put(definition.getHolder().getType(), definition);
   }
 
+  private void addGlobalContexts(DexType globalType, Collection<ProgramDefinition> contexts) {
+    globalContexts.addGlobalContexts(globalType, contexts);
+  }
+
   // Commit of the synthetic items to a new fully populated application.
 
   public CommittedItems commit(DexApplication application) {
@@ -846,20 +978,28 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   }
 
   public CommittedItems commitPrunedItems(PrunedItems prunedItems) {
-    return commit(prunedItems, pending, committed, state);
+    return commit(prunedItems, pending, globalContexts, committed, state, globalSyntheticsStrategy);
   }
 
   public CommittedItems commitRewrittenWithLens(
       DexApplication application, NonIdentityGraphLens lens) {
     assert pending.verifyNotRewritten(lens);
-    return commit(PrunedItems.empty(application), pending, committed.rewriteWithLens(lens), state);
+    return commit(
+        PrunedItems.empty(application),
+        pending,
+        globalContexts,
+        committed.rewriteWithLens(lens),
+        state,
+        globalSyntheticsStrategy);
   }
 
   private static CommittedItems commit(
       PrunedItems prunedItems,
       PendingSynthetics pending,
+      ContextsForGlobalSynthetics globalContexts,
       CommittedSyntheticsCollection committed,
-      State state) {
+      State state,
+      GlobalSyntheticsStrategy globalSyntheticsStrategy) {
     DexApplication application = prunedItems.getPrunedApp();
     Set<DexType> removedClasses = prunedItems.getNoLongerSyntheticItems();
     CommittedSyntheticsCollection.Builder builder = committed.builder();
@@ -889,11 +1029,16 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
           builder.addItem(definition);
         }
       }
+      builder.addGlobalContexts(globalContexts);
       committedProgramTypes = committedProgramTypesBuilder.build();
       amendedApplication = appBuilder.build();
     }
     return new CommittedItems(
-        state, amendedApplication, builder.build().pruneItems(prunedItems), committedProgramTypes);
+        state,
+        amendedApplication,
+        builder.build().pruneItems(prunedItems),
+        committedProgramTypes,
+        globalSyntheticsStrategy);
   }
 
   public void writeAttributeIfIntermediateSyntheticClass(

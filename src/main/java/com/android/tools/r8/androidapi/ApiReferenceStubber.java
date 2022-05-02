@@ -234,7 +234,7 @@ public class ApiReferenceStubber {
     appView
         .appInfo()
         .getSyntheticItems()
-        .ensureGlobalClass(
+        .legacyEnsureGlobalClass(
             () -> new MissingGlobalSyntheticsConsumerDiagnostic("API stubbing"),
             kinds -> kinds.API_MODEL_STUB,
             libraryClass.getType(),

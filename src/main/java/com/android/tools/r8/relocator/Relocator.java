@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -78,7 +79,8 @@ public class Relocator {
     Timing timing = Timing.create("Relocator", options);
     try {
       DexApplication app = new ApplicationReader(inputApp, options, timing).read(executor);
-      AppInfo appInfo = AppInfo.createInitialAppInfo(app);
+      AppInfo appInfo =
+          AppInfo.createInitialAppInfo(app, GlobalSyntheticsStrategy.forNonSynthesizing());
       AppView<?> appView = AppView.createForRelocator(appInfo);
       appView.setAppServices(AppServices.builder(appView).build());
 

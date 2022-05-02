@@ -270,8 +270,13 @@ public class SyntheticFinalization {
             State.FINALIZED,
             application,
             new CommittedSyntheticsCollection(
-                synthetics.getNaming(), finalMethods, finalClasses, finalInputSynthetics),
-            ImmutableList.of()),
+                synthetics.getNaming(),
+                finalMethods,
+                finalClasses,
+                committed.getGlobalContexts(),
+                finalInputSynthetics),
+            ImmutableList.of(),
+            synthetics.getGlobalSyntheticsStrategy()),
         syntheticFinalizationGraphLens,
         PrunedItems.builder().setPrunedApp(application).addRemovedClasses(prunedSynthetics).build(),
         mainDexInfoBuilder.build());

@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
@@ -79,7 +80,11 @@ public class CatchSuccessorFallthroughTest extends SmaliTestBase {
 
     ProgramMethod method = getProgramMethod(originalApplication, methodSig);
     // Get the IR pre-optimization.
-    IRCode code = method.buildIR(AppView.createForD8(AppInfo.createInitialAppInfo(application)));
+    IRCode code =
+        method.buildIR(
+            AppView.createForD8(
+                AppInfo.createInitialAppInfo(
+                    application, GlobalSyntheticsStrategy.forNonSynthesizing())));
 
     // Find the exit block and assert that the value is a phi merging the exceptional edge
     // with the normal edge.

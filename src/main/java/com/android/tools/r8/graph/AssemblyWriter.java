@@ -14,6 +14,7 @@ import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.kotlin.KotlinMetadataWriter;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
@@ -48,7 +49,9 @@ public class AssemblyWriter extends DexByteCodeWriter {
     this.writeIR = writeIR;
     this.writeCode = writeCode;
     if (writeIR) {
-      this.appInfo = AppInfo.createInitialAppInfo(application.toDirect());
+      this.appInfo =
+          AppInfo.createInitialAppInfo(
+              application.toDirect(), GlobalSyntheticsStrategy.forNonSynthesizing());
       if (options.programConsumer == null) {
         // Use class-file backend, since the CF frontend for testing does not support desugaring of
         // synchronized methods for the DEX backend (b/109789541).

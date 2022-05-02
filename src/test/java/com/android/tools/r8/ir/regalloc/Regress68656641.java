@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.smali.SmaliTestBase;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -57,7 +58,10 @@ public class Regress68656641 extends SmaliTestBase {
   @Test
   public void splitOverlappingInactiveIntervalWithNoNextUse() {
     InternalOptions options = new InternalOptions();
-    AppInfo appInfo = AppInfo.createInitialAppInfo(DexApplication.builder(options, null).build());
+    AppInfo appInfo =
+        AppInfo.createInitialAppInfo(
+            DexApplication.builder(options, null).build(),
+            GlobalSyntheticsStrategy.forNonSynthesizing());
     AppView<?> appView = AppView.createForD8(appInfo);
     IRCode code = simpleCode();
     MyRegisterAllocator allocator = new MyRegisterAllocator(appView, code);

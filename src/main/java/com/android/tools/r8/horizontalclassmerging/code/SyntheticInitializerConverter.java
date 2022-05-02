@@ -11,6 +11,7 @@ import com.android.tools.r8.horizontalclassmerging.IRCodeProvider;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.util.ArrayList;
@@ -68,7 +69,9 @@ public class SyntheticInitializerConverter {
     // the class initializers without applying the unapplied code rewritings, to avoid that we apply
     // the lens more than once to the same piece of code.
     AppView<AppInfo> appViewForConversion =
-        AppView.createForD8(AppInfo.createInitialAppInfo(appView.appInfo().app()));
+        AppView.createForD8(
+            AppInfo.createInitialAppInfo(
+                appView.appInfo().app(), GlobalSyntheticsStrategy.forNonSynthesizing()));
     appViewForConversion.setGraphLens(appView.graphLens());
     appViewForConversion.setCodeLens(appView.codeLens());
     return appViewForConversion;

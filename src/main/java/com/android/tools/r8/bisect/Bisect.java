@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.InternalOptions;
@@ -188,7 +189,8 @@ public class Bisect {
     AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
     ApplicationWriter writer =
         new ApplicationWriter(
-            AppView.createForD8(AppInfo.createInitialAppInfo(app)),
+            AppView.createForD8(
+                AppInfo.createInitialAppInfo(app, GlobalSyntheticsStrategy.forNonSynthesizing())),
             null,
             NamingLens.getIdentityLens());
     writer.write(executor);

@@ -34,6 +34,7 @@ import com.android.tools.r8.ir.desugar.backports.ObjectsMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.OptionalMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.SparseArrayMethodRewrites;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeter;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -107,7 +108,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       DexApplication app =
           new ApplicationReader(androidApp, options, Timing.empty()).read(executor);
       options.loadMachineDesugaredLibrarySpecification(Timing.empty(), app);
-      appInfo = AppInfo.createInitialAppInfo(app);
+      appInfo = AppInfo.createInitialAppInfo(app, GlobalSyntheticsStrategy.forNonSynthesizing());
     }
     TypeRewriter typeRewriter = options.getTypeRewriter();
     AppView<?> appView = AppView.createForD8(appInfo, typeRewriter, Timing.empty());

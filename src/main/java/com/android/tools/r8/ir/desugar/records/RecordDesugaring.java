@@ -374,7 +374,7 @@ public class RecordDesugaring
     checkRecordTagNotPresent(factory);
     appView
         .getSyntheticItems()
-        .ensureGlobalClass(
+        .legacyEnsureGlobalClass(
             () -> new MissingGlobalSyntheticsConsumerDiagnostic("Record desugaring"),
             kinds -> kinds.RECORD_TAG,
             factory.recordType,

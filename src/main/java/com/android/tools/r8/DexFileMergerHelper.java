@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -92,7 +93,10 @@ public class DexFileMergerHelper {
 
         AppView<AppInfo> appView =
             AppView.createForD8(
-                AppInfo.createInitialAppInfo(app, applicationReader.readMainDexClasses(app)));
+                AppInfo.createInitialAppInfo(
+                    app,
+                    GlobalSyntheticsStrategy.forNonSynthesizing(),
+                    applicationReader.readMainDexClasses(app)));
 
         D8.optimize(appView, options, timing, executor);
 

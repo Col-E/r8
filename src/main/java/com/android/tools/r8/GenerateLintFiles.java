@@ -40,6 +40,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.Mac
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -343,7 +344,10 @@ public class GenerateLintFiles {
         lintFile(compilationApiLevel, minApiLevel, ".txt"), desugaredApisSignatures);
 
     // Write a header jar with the desugared APIs.
-    AppView<?> appView = AppView.createForD8(AppInfo.createInitialAppInfo(builder.build()));
+    AppView<?> appView =
+        AppView.createForD8(
+            AppInfo.createInitialAppInfo(
+                builder.build(), GlobalSyntheticsStrategy.forNonSynthesizing()));
     CfApplicationWriter writer =
         new CfApplicationWriter(
             appView,

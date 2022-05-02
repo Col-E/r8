@@ -23,6 +23,7 @@ import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.shaking.AnnotationRemover;
 import com.android.tools.r8.shaking.L8TreePruner;
 import com.android.tools.r8.synthesis.SyntheticFinalization;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -169,7 +170,9 @@ public class L8 {
     TypeRewriter typeRewriter = options.getTypeRewriter();
 
     DexApplication app = new L8TreePruner(options).prune(lazyApp, typeRewriter);
-    return AppView.createForL8(AppInfo.createInitialAppInfo(app), typeRewriter);
+    return AppView.createForL8(
+        AppInfo.createInitialAppInfo(app, GlobalSyntheticsStrategy.forSingleOutputMode()),
+        typeRewriter);
   }
 
   private static void run(String[] args) throws CompilationFailedException {
