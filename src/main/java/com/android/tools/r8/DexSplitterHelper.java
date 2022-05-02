@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.MainDexInfo;
+import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FeatureClassMapping;
 import com.android.tools.r8.utils.FeatureClassMapping.FeatureMappingException;
@@ -92,8 +93,10 @@ public final class DexSplitterHelper {
         // If this is the base, we add the main dex list.
         AppInfo appInfo =
             feature.equals(featureClassMapping.getBaseName())
-                ? AppInfo.createInitialAppInfo(featureApp, mainDexInfo)
-                : AppInfo.createInitialAppInfo(featureApp);
+                ? AppInfo.createInitialAppInfo(
+                    featureApp, GlobalSyntheticsStrategy.forNonSynthesizing(), mainDexInfo)
+                : AppInfo.createInitialAppInfo(
+                    featureApp, GlobalSyntheticsStrategy.forNonSynthesizing());
         AppView<AppInfo> appView = AppView.createForD8(appInfo);
 
         // Run d8 optimize to ensure jumbo strings are handled.
