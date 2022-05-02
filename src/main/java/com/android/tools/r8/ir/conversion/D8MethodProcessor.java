@@ -77,7 +77,7 @@ public class D8MethodProcessor extends MethodProcessor {
     // TODO(b/179755192): By building up waves of methods in the class converter, we can avoid the
     //  following check and always process the method asynchronously.
     if (!scheduled.contains(method.getHolderType())
-        && !converter.appView.getSyntheticItems().isNonLegacySynthetic(method.getHolder())) {
+        && !converter.appView.getSyntheticItems().isSynthetic(method.getHolder())) {
       // The non-synthetic holder is not scheduled. It will be processed once holder is scheduled.
       return;
     }
@@ -98,7 +98,7 @@ public class D8MethodProcessor extends MethodProcessor {
     // TODO(b/179755192): By building up waves of methods in the class converter, we can avoid the
     //  following check and always process the method asynchronously.
     if (!scheduled.contains(method.getHolderType())
-        && !converter.appView.getSyntheticItems().isNonLegacySynthetic(method.getHolder())) {
+        && !converter.appView.getSyntheticItems().isSynthetic(method.getHolder())) {
       // The non-synthetic holder is not scheduled. It will be processed once holder is scheduled.
       return;
     }
