@@ -314,7 +314,7 @@ public class Tracer {
         assert lookupResult.getType().isStatic();
         DexMethod rewrittenMethod = lookupResult.getReference();
         handleRewrittenMethodResolution(
-            rewrittenMethod, appInfo().unsafeResolveMethodDueToDexFormatLegacy(rewrittenMethod));
+            rewrittenMethod, appInfo().unsafeResolveMethodDueToDexFormat(rewrittenMethod));
       }
 
       @Override
@@ -352,23 +352,25 @@ public class Tracer {
         handleRewrittenMethodResolution(
             method,
             lookupResult.getType().isInterface()
-                ? appInfo().resolveMethodOnInterfaceHolderLegacy(method)
-                : appInfo().resolveMethodOnClassHolderLegacy(method));
+                ? appInfo().resolveMethodOnInterfaceHolder(method)
+                : appInfo().resolveMethodOnClassHolder(method));
       }
 
       private void handleRewrittenMethodResolution(
           DexMethod method, MethodResolutionResult resolutionResult) {
-        if (resolutionResult.isFailedResolution()
-            && resolutionResult.asFailedResolution().hasMethodsCausingError()) {
-          resolutionResult
-              .asFailedResolution()
-              .forEachFailureDependency(
-                  type -> addType(type, referencedFrom),
-                  methodCausingFailure ->
-                      handleRewrittenMethodReference(method, methodCausingFailure));
-          return;
-        }
-        handleRewrittenMethodReference(method, resolutionResult.getResolutionPair());
+        resolutionResult.forEachMethodResolutionResult(
+            result -> {
+              if (result.isSingleResolution()) {
+                handleRewrittenMethodReference(method, result.getResolutionPair());
+              } else {
+                result
+                    .asFailedResolution()
+                    .forEachFailureDependency(
+                        type -> addType(type, referencedFrom),
+                        methodCausingFailure ->
+                            handleRewrittenMethodReference(method, methodCausingFailure));
+              }
+            });
       }
 
       private void handleRewrittenMethodReference(
