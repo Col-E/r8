@@ -53,7 +53,7 @@ public class PackagePrivateChainTest extends TestBase {
 
   @Test
   public void testResolution() throws Exception {
-    assumeTrue(parameters.useRuntimeAsNoneRuntime());
+    assumeTrue(parameters.isOrSimulateNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
             buildClasses(Top.class, Middle.class, Bottom.class, TopRunner.class, Main.class)

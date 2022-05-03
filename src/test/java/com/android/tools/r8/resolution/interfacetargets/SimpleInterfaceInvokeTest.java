@@ -51,7 +51,7 @@ public class SimpleInterfaceInvokeTest extends TestBase {
   @Test
   public void testResolution() throws Exception {
     // The resolution is runtime independent, so just run it on the default CF VM.
-    assumeTrue(parameters.useRuntimeAsNoneRuntime());
+    assumeTrue(parameters.isOrSimulateNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
             buildClassesWithTestingAnnotations(I.class, A.class, B.class, Main.class)

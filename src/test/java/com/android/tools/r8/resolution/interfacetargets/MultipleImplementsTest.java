@@ -50,7 +50,7 @@ public class MultipleImplementsTest extends TestBase {
 
   @Test
   public void testResolution() throws Exception {
-    assumeTrue(parameters.useRuntimeAsNoneRuntime());
+    assumeTrue(parameters.isOrSimulateNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
             buildClassesWithTestingAnnotations(

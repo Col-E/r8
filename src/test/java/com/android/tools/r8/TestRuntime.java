@@ -39,7 +39,7 @@ public abstract class TestRuntime {
     ;
 
     /** This should generally be the latest checked in CF runtime we fully support. */
-    private static final CfVm DEFAULT = JDK9;
+    private static final CfVm DEFAULT = JDK11;
 
     private final String name;
     private final int classfileVersion;

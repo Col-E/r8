@@ -69,7 +69,7 @@ public class MaximallySpecificSingleProgramPartialTest extends TestBase {
 
   @Test
   public void testResolution() throws Exception {
-    assumeTrue(parameters.useRuntimeAsNoneRuntime());
+    assumeTrue(parameters.isOrSimulateNoneRuntime());
     AndroidApp.Builder builder = AndroidApp.builder();
     builder.addClassProgramData(getMainImplementingI()).addClassProgramData(getIProgram());
     builder.addLibraryFiles(parameters.getDefaultRuntimeLibrary(), libraryClasses);

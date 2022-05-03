@@ -113,8 +113,9 @@ public class TestParameters {
     return runtime;
   }
 
-  public boolean useRuntimeAsNoneRuntime() {
-    return isNoneRuntime() || (runtime != null && runtime.equals(TestRuntime.getCheckedInJdk9()));
+  public boolean isOrSimulateNoneRuntime() {
+    return isNoneRuntime()
+        || (runtime != null && runtime.equals(TestRuntime.getDefaultCfRuntime()));
   }
 
   // Helper function to get the "backend" for a given runtime target.

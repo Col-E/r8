@@ -51,7 +51,7 @@ public class DefaultWithoutTopTest extends TestBase {
 
   @Test
   public void testDynamicLookupTargets() throws Exception {
-    assumeTrue(parameters.useRuntimeAsNoneRuntime());
+    assumeTrue(parameters.isOrSimulateNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
         TestAppViewBuilder.builder()
             .addProgramClasses(I.class, J.class, Main.class)
@@ -100,7 +100,7 @@ public class DefaultWithoutTopTest extends TestBase {
 
   @Test
   public void testDynamicLookupTargetsWithIndirectDefault() throws Exception {
-    assumeTrue(parameters.useRuntimeAsNoneRuntime());
+    assumeTrue(parameters.isOrSimulateNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
         TestAppViewBuilder.builder()
             .addTestingAnnotations()

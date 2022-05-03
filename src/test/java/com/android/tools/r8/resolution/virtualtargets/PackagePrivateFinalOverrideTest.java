@@ -58,7 +58,7 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
 
   @Test
   public void testResolution() throws Exception {
-    assumeTrue(parameters.useRuntimeAsNoneRuntime());
+    assumeTrue(parameters.isOrSimulateNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
             buildClassesWithTestingAnnotations(
@@ -109,7 +109,7 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
 
   @Test
   public void testResolutionWithInvalidInvoke() throws Exception {
-    assumeTrue(parameters.useRuntimeAsNoneRuntime());
+    assumeTrue(parameters.isOrSimulateNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
             buildClassesWithTestingAnnotations(
@@ -157,7 +157,7 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
 
   @Test
   public void testResolutionWithAmbiguousInvoke() throws Exception {
-    assumeTrue(parameters.useRuntimeAsNoneRuntime());
+    assumeTrue(parameters.isOrSimulateNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
             buildClassesWithTestingAnnotations(

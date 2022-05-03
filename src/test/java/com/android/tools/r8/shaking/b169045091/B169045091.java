@@ -80,7 +80,7 @@ public class B169045091 extends TestBase {
 
   @Test
   public void testAccessibility() throws Exception {
-    assumeTrue(parameters.useRuntimeAsNoneRuntime());
+    assumeTrue(parameters.isOrSimulateNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
             buildClassesWithTestingAnnotations(getProgramClasses())

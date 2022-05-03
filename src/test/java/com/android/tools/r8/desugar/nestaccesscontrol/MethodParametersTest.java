@@ -109,7 +109,7 @@ public class MethodParametersTest extends TestBase {
 
   @Test
   public void testJavacBridges() throws Exception {
-    assumeTrue(parameters.useRuntimeAsNoneRuntime());
+    assumeTrue(parameters.isCfRuntime());
     verifyNoAnnotationsOnSyntheticConstructors(
         new CodeInspector(ToolHelper.getClassFileForTestClass(Outer.Inner.class)));
   }

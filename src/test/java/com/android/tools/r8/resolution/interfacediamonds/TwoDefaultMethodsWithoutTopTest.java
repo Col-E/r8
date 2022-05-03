@@ -45,7 +45,7 @@ public class TwoDefaultMethodsWithoutTopTest extends TestBase {
   @Test
   public void testResolution() throws Exception {
     // The resolution is runtime independent, so just run it on the default CF VM.
-    assumeTrue(parameters.useRuntimeAsNoneRuntime());
+    assumeTrue(parameters.isOrSimulateNoneRuntime());
     for (AndroidApiLevel minApi :
         ImmutableList.of(AndroidApiLevel.B, apiLevelWithDefaultInterfaceMethodsSupport())) {
       AppInfoWithLiveness appInfo =

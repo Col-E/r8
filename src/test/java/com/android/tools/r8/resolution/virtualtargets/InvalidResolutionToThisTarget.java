@@ -45,7 +45,7 @@ public class InvalidResolutionToThisTarget extends TestBase {
 
   @Test
   public void testResolution() throws Exception {
-    assumeTrue(parameters.useRuntimeAsNoneRuntime());
+    assumeTrue(parameters.isOrSimulateNoneRuntime());
     AssertionError foo =
         assertThrows(
             AssertionError.class,

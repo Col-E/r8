@@ -45,7 +45,7 @@ public class ProtectedDifferentPackageLookupTest extends TestBase {
 
   @Test
   public void testResolution() throws Exception {
-    assumeTrue(parameters.useRuntimeAsNoneRuntime());
+    assumeTrue(parameters.isOrSimulateNoneRuntime());
     AndroidApp.Builder builder = AndroidApp.builder();
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(A.class));
     builder.addClassProgramData(

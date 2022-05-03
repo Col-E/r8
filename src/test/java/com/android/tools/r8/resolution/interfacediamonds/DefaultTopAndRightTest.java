@@ -40,7 +40,7 @@ public class DefaultTopAndRightTest extends TestBase {
   @Test
   public void testResolution() throws Exception {
     // The resolution is runtime independent, so just run it on the default CF VM.
-    assumeTrue(parameters.useRuntimeAsNoneRuntime());
+    assumeTrue(parameters.isOrSimulateNoneRuntime());
     AppInfoWithLiveness appInfo =
         TestAppViewBuilder.builder()
             .addProgramClasses(CLASSES)
