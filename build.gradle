@@ -421,7 +421,7 @@ def getDownloadDepsTaskName(entryKey, entryFile) {
 
 cloudDependencies.each { entry ->
     entry.value.each { entryFile ->
-        task "${getDownloadDepsTaskName(entry.key, entryFile)}"(type: DownloadDependency) {
+        task (getDownloadDepsTaskName(entry.key, entryFile), type: DownloadDependency) {
             type DownloadDependency.Type.GOOGLE_STORAGE
             dependency "${entry.key}/${entryFile}"
         }
