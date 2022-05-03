@@ -5,7 +5,6 @@ package com.android.tools.r8.resolution.interfacediamonds;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestAppViewBuilder;
@@ -56,10 +55,13 @@ public class DefaultTopAndBothTest extends TestBase {
     DexMethod method = buildNullaryVoidMethod(B.class, "f", appInfo.dexItemFactory());
     MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolderLegacy(method);
     Set<String> holders = new HashSet<>();
+    Set<String> failedTypes = new HashSet<>();
     resolutionResult
         .asFailedResolution()
         .forEachFailureDependency(
-            type -> fail(), target -> holders.add(target.getHolderType().toSourceString()));
+            type -> failedTypes.add(type.toSourceString()),
+            target -> holders.add(target.getHolderType().toSourceString()));
+    assertEquals(holders, failedTypes);
     assertEquals(ImmutableSet.of(L.class.getTypeName(), R.class.getTypeName()), holders);
   }
 

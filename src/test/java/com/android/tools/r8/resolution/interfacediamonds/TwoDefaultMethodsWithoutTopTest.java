@@ -6,7 +6,6 @@ package com.android.tools.r8.resolution.interfacediamonds;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestAppViewBuilder;
@@ -80,10 +79,13 @@ public class TwoDefaultMethodsWithoutTopTest extends TestBase {
         // When not desugaring resolution should fail. Check the failure dependencies are the two
         // default methods in conflict.
         Set<String> holders = new HashSet<>();
+        Set<String> failedTypes = new HashSet<>();
         resolutionResult
             .asFailedResolution()
             .forEachFailureDependency(
-                type -> fail(), m -> holders.add(m.getHolderType().toSourceString()));
+                type -> failedTypes.add(type.toSourceString()),
+                m -> holders.add(m.getHolderType().toSourceString()));
+        assertEquals(holders, failedTypes);
         assertEquals(ImmutableSet.of(I.class.getTypeName(), J.class.getTypeName()), holders);
       }
     }

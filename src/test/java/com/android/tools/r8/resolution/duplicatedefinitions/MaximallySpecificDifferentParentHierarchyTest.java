@@ -6,6 +6,7 @@ package com.android.tools.r8.resolution.duplicatedefinitions;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.R8FullTestBuilder;
@@ -83,19 +84,28 @@ public class MaximallySpecificDifferentParentHierarchyTest extends TestBase {
         appInfo.unsafeResolveMethodDueToDexFormat(method);
     assertTrue(methodResolutionResult.isMultiMethodResolutionResult());
     Set<String> methodResults = new HashSet<>();
+    Set<String> failedTypes = new HashSet<>();
     methodResolutionResult.forEachMethodResolutionResult(
         result -> {
-          assertTrue(result.isSingleResolution());
-          SingleResolutionResult<?> resolution = result.asSingleResolution();
-          methodResults.add(
-              (resolution.getResolvedHolder().isProgramClass() ? "Program: " : "Library: ")
-                  + resolution.getResolvedMethod().getReference().toString());
+          if (result.isSingleResolution()) {
+            SingleResolutionResult<?> resolution = result.asSingleResolution();
+            methodResults.add(
+                (resolution.getResolvedHolder().isProgramClass() ? "Program: " : "Library: ")
+                    + resolution.getResolvedMethod().getReference().toString());
+          } else {
+            assertTrue(result.isFailedResolution());
+            result
+                .asFailedResolution()
+                .forEachFailureDependency(
+                    type -> failedTypes.add(type.toDescriptorString()), m -> fail());
+          }
         });
     assertEquals(
         ImmutableSet.of(
             "Library: void " + typeName(I.class) + ".foo()",
             "Program: void " + typeName(J.class) + ".foo()"),
         methodResults);
+    assertEquals(ImmutableSet.of(descriptor(J.class)), failedTypes);
   }
 
   @Test
