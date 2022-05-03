@@ -23,6 +23,9 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestState;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.DesugaredLibraryTestBuilder;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
@@ -120,11 +123,19 @@ public class DesugaredLibraryTestBase extends TestBase {
             : AndroidApiLevel.N_MR1.getLevel());
   }
 
-  protected L8TestBuilder testForL8(AndroidApiLevel apiLevel) {
+  protected DesugaredLibraryTestBuilder<?> testForDesugaredLibrary(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification runSpecification) {
+    return new DesugaredLibraryTestBuilder<>(
+        this, parameters, libraryDesugaringSpecification, runSpecification);
+  }
+
+  public L8TestBuilder testForL8(AndroidApiLevel apiLevel) {
     return L8TestBuilder.create(apiLevel, Backend.DEX, new TestState(temp));
   }
 
-  protected L8TestBuilder testForL8(AndroidApiLevel apiLevel, Backend backend) {
+  public L8TestBuilder testForL8(AndroidApiLevel apiLevel, Backend backend) {
     return L8TestBuilder.create(apiLevel, backend, new TestState(temp));
   }
 
@@ -173,7 +184,7 @@ public class DesugaredLibraryTestBase extends TestBase {
               },
               L8TestBuilder::setDebug)
           .addOptionsModifier(optionsModifier)
-          .setDesugarJDKLibsConfiguration(ToolHelper.DESUGAR_LIB_CONVERSIONS)
+          .setDesugarJDKLibsCustomConversions(ToolHelper.DESUGAR_LIB_CONVERSIONS)
           // If we compile extended library here, it means we use TestNG. TestNG requires
           // annotations, hence we disable annotation removal. This implies that extra warnings are
           // generated.

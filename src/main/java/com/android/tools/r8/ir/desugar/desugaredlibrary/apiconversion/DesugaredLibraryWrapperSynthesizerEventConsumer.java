@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 
 public interface DesugaredLibraryWrapperSynthesizerEventConsumer {
 
-  void acceptArrayConversion(ProgramMethod arrayConversion);
+  void acceptCollectionConversion(ProgramMethod arrayConversion);
 
   interface DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer
       extends DesugaredLibraryWrapperSynthesizerEventConsumer {

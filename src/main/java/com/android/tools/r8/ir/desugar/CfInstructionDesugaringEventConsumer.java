@@ -112,7 +112,7 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
-    public void acceptArrayConversion(ProgramMethod arrayConversion) {
+    public void acceptCollectionConversion(ProgramMethod arrayConversion) {
       methodProcessor.scheduleMethodForProcessing(arrayConversion, this);
     }
 
@@ -336,7 +336,7 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
-    public void acceptArrayConversion(ProgramMethod arrayConversion) {
+    public void acceptCollectionConversion(ProgramMethod arrayConversion) {
       // Intentionally empty. The method will be hit by tracing if required.
     }
 

@@ -209,11 +209,11 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
       DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer,
       Supplier<UniqueContext> contextSupplier,
       DexMethod conversion) {
-    ProgramMethod arrayConversion =
+    ProgramMethod collectionConversion =
         appView
             .getSyntheticItems()
             .createMethod(
-                kinds -> kinds.ARRAY_CONVERSION,
+                kinds -> kinds.COLLECTION_CONVERSION,
                 contextSupplier.get(),
                 appView,
                 builder ->
@@ -228,8 +228,8 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
                                         collectionType,
                                         conversion)
                                     .generateCfCode()));
-    eventConsumer.acceptArrayConversion(arrayConversion);
-    return arrayConversion.getReference();
+    eventConsumer.acceptCollectionConversion(collectionConversion);
+    return collectionConversion.getReference();
   }
 
   private DexMethod ensureArrayConversionMethod(
@@ -276,7 +276,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
         appView
             .getSyntheticItems()
             .createMethod(
-                kinds -> kinds.ARRAY_CONVERSION,
+                kinds -> kinds.COLLECTION_CONVERSION,
                 contextSupplier.get(),
                 appView,
                 builder ->
@@ -292,7 +292,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
                                         destType,
                                         conversion)
                                     .generateCfCode()));
-    eventConsumer.acceptArrayConversion(arrayConversion);
+    eventConsumer.acceptCollectionConversion(arrayConversion);
     return arrayConversion.getReference();
   }
 

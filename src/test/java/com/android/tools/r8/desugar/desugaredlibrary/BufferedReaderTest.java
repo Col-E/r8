@@ -4,19 +4,17 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import static org.junit.Assert.assertEquals;
-
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.io.BufferedReader;
 import java.io.StringReader;
 import java.io.UncheckedIOException;
-import java.nio.file.Path;
 import java.util.List;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -26,22 +24,28 @@ import org.junit.runners.Parameterized.Parameters;
 public class BufferedReaderTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(),
         getTestParameters()
             .withAllRuntimes()
             .withAllApiLevelsAlsoForCf()
             .withApiLevel(AndroidApiLevel.N)
-            .build());
+            .build(),
+        ImmutableList.of(LibraryDesugaringSpecification.JDK11),
+        CompilationSpecification.SPECIFICATIONS_WITH_CF2CF);
   }
 
-  public BufferedReaderTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public BufferedReaderTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   private String expectedOutput() {
@@ -49,97 +53,11 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
   }
 
   @Test
-  public void testBufferedReaderD8Cf() throws Exception {
-    Assume.assumeTrue(
-        "The alternative 3 configuration is available only in JDK 11 desugared library.",
-        isJDK11DesugaredLibrary());
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    // Use D8 to desugar with Java classfile output.
-    Path jar =
-        testForD8(Backend.CF)
-            .addInnerClasses(BufferedReaderTest.class)
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .compile()
-            // .inspect(this::checkRewrittenInvokes)
-            .writeToZip();
-
-    if (parameters.getRuntime().isDex()) {
-      // Collection keep rules is only implemented in the DEX writer.
-      String desugaredLibraryKeepRules = keepRuleConsumer.get();
-      if (desugaredLibraryKeepRules != null) {
-        assertEquals(0, desugaredLibraryKeepRules.length());
-        desugaredLibraryKeepRules = "-keep class * { *; }";
-      }
-
-      // Convert to DEX without desugaring and run.
-      testForD8()
-          .addProgramFiles(jar)
-          .setMinApi(parameters.getApiLevel())
-          .disableDesugaring()
-          .compile()
-          .addDesugaredCoreLibraryRunClassPath(
-              this::buildDesugaredLibrary,
-              parameters.getApiLevel(),
-              desugaredLibraryKeepRules,
-              shrinkDesugaredLibrary)
-          .run(parameters.getRuntime(), TestClass.class)
-          .assertSuccessWithOutput(expectedOutput());
-    } else {
-      // Build the desugared library in class file format.
-      Path desugaredLib = getDesugaredLibraryInCF(parameters, opt -> {});
-
-      // Run on the JVM with desugared library on classpath.
-      testForJvm()
-          .addProgramFiles(jar)
-          .addRunClasspathFiles(desugaredLib)
-          .run(parameters.getRuntime(), TestClass.class)
-          .assertSuccessWithOutput(expectedOutput());
-    }
-  }
-
-  @Test
-  public void testBufferedReaderD8() throws Exception {
-    Assume.assumeTrue(parameters.getRuntime().isDex());
-    Assume.assumeTrue(
-        "The alternative 3 configuration is available only in JDK 11 desugared library.",
-        isJDK11DesugaredLibrary());
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
-        .addInnerClasses(BufferedReaderTest.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(expectedOutput());
-  }
-
-  @Test
-  public void testBufferedReaderR8() throws Exception {
-    Assume.assumeTrue(parameters.getRuntime().isDex());
-    Assume.assumeTrue(
-        "The alternative 3 configuration is available only in JDK 11 desugared library.",
-        isJDK11DesugaredLibrary());
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForR8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
+  public void test() throws Exception {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addInnerClasses(BufferedReaderTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .enableInliningAnnotations()
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput());
   }

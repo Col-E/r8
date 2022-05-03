@@ -51,7 +51,7 @@ public class CfClassSynthesizerDesugaringEventConsumer
   }
 
   @Override
-  public void acceptArrayConversion(ProgramMethod arrayConversion) {
+  public void acceptCollectionConversion(ProgramMethod arrayConversion) {
     synthesizedClasses.add(arrayConversion.getHolder());
   }
 }

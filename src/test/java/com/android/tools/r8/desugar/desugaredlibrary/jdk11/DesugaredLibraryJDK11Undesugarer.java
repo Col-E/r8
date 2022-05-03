@@ -48,26 +48,29 @@ public class DesugaredLibraryJDK11Undesugarer extends DesugaredLibraryTestBase {
     if (!isJDK11DesugaredLibrary()) {
       return ToolHelper.getDesugarJDKLibsBazelGeneratedFile();
     }
-    Path desugaredLibJDK11Undesugared = Paths.get("build/libs/desugar_jdk_libs_11_undesugared.jar");
-    return generateUndesugaredJar(desugaredLibJDK11Undesugared);
+    return undesugaredJarJDK11(ToolHelper.getDesugarJDKLibsBazelGeneratedFile());
   }
 
-  private static synchronized Path generateUndesugaredJar(Path desugaredLibJDK11Undesugared) {
-    if (Files.exists(desugaredLibJDK11Undesugared)) {
-      return desugaredLibJDK11Undesugared;
+  public static Path undesugaredJarJDK11(Path jdk11Jar) {
+    String string = jdk11Jar.toString();
+    Path desugaredLibJDK11Undesugared =
+        Paths.get(string.substring(0, string.length() - 4) + "_undesugared.jar");
+    return generateUndesugaredJar(jdk11Jar, desugaredLibJDK11Undesugared);
+  }
+
+  private static synchronized Path generateUndesugaredJar(Path from, Path to) {
+    if (Files.exists(to)) {
+      return to;
     }
     OpenOption[] options =
         new OpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING};
     try (ZipOutputStream out =
-        new ZipOutputStream(
-            new BufferedOutputStream(
-                Files.newOutputStream(desugaredLibJDK11Undesugared, options)))) {
-      new DesugaredLibraryJDK11Undesugarer()
-          .undesugar(ToolHelper.getDesugarJDKLibsBazelGeneratedFile(), out);
+        new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(to, options)))) {
+      new DesugaredLibraryJDK11Undesugarer().undesugar(from, out);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    return desugaredLibJDK11Undesugared;
+    return to;
   }
 
   private void undesugar(Path desugaredLibraryFiles, ZipOutputStream out) throws IOException {

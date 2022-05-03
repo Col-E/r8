@@ -234,7 +234,7 @@ public class LibraryDesugaringTestConfiguration {
       return L8TestBuilder.create(minApiLevel, Backend.DEX, state)
           .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
           .setDesugarJDKLibs(desugarJdkLibs)
-          .setDesugarJDKLibsConfiguration(customConversions)
+          .setDesugarJDKLibsCustomConversions(customConversions)
           .setDesugaredLibraryConfiguration(desugaredLibrarySpecificationResources.get(0))
           .applyIf(
               mode == CompilationMode.RELEASE,
@@ -260,7 +260,7 @@ public class LibraryDesugaringTestConfiguration {
   }
 
   private static KeepRuleConsumer createKeepRuleConsumer(AndroidApiLevel apiLevel) {
-      return new PresentKeepRuleConsumer();
+    return new PresentKeepRuleConsumer();
   }
 
   public static class PresentKeepRuleConsumer implements KeepRuleConsumer {

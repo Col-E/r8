@@ -27,8 +27,9 @@ public class L8TestCompileResult extends TestCompileResult<L8TestCompileResult, 
       AndroidApiLevel apiLevel,
       String generatedKeepRules,
       Path mapping,
-      TestState state) {
-    super(state, app, apiLevel.getLevel(), OutputMode.DexIndexed);
+      TestState state,
+      OutputMode outputMode) {
+    super(state, app, apiLevel.getLevel(), outputMode);
     this.generatedKeepRules = generatedKeepRules;
     this.mapping = mapping;
   }

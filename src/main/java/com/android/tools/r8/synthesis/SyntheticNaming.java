@@ -81,7 +81,8 @@ public class SyntheticNaming {
   public final SyntheticKind API_CONVERSION = generator.forSingleMethod("APIConversion");
   public final SyntheticKind API_CONVERSION_PARAMETERS =
       generator.forSingleMethod("APIConversionParameters");
-  public final SyntheticKind ARRAY_CONVERSION = generator.forSingleMethod("$ArrayConversion");
+  public final SyntheticKind COLLECTION_CONVERSION =
+      generator.forSingleMethod("$CollectionConversion");
   public final SyntheticKind API_MODEL_OUTLINE = generator.forSingleMethod("ApiModelOutline");
 
   private final List<SyntheticKind> ALL_KINDS;

@@ -39,7 +39,7 @@ public class L8TestBuilder {
   private List<byte[]> additionalProgramClassFileData = new ArrayList<>();
   private Consumer<InternalOptions> optionsModifier = ConsumerUtils.emptyConsumer();
   private Path desugarJDKLibs = ToolHelper.getDesugarJDKLibs();
-  private Path desugarJDKLibsConfiguration = null;
+  private Path customConversions = null;
   private StringResource desugaredLibrarySpecification =
       StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting());
   private List<Path> libraryFiles = new ArrayList<>();
@@ -128,8 +128,8 @@ public class L8TestBuilder {
     return this;
   }
 
-  public L8TestBuilder setDesugarJDKLibsConfiguration(Path desugarJDKLibsConfiguration) {
-    this.desugarJDKLibsConfiguration = desugarJDKLibsConfiguration;
+  public L8TestBuilder setDesugarJDKLibsCustomConversions(Path desugarJDKLibsConfiguration) {
+    this.customConversions = desugarJDKLibsConfiguration;
     return this;
   }
 
@@ -180,7 +180,13 @@ public class L8TestBuilder {
           .setProguardMapOutputPath(mapping);
     }
     ToolHelper.runL8(l8Builder.build(), optionsModifier);
-    return new L8TestCompileResult(sink.build(), apiLevel, generatedKeepRules, mapping, state)
+    return new L8TestCompileResult(
+            sink.build(),
+            apiLevel,
+            generatedKeepRules,
+            mapping,
+            state,
+            backend.isCf() ? OutputMode.ClassFile : OutputMode.DexIndexed)
         .inspect(
             inspector ->
                 inspector.forAllClasses(
@@ -195,8 +201,8 @@ public class L8TestBuilder {
     if (desugarJDKLibs != null) {
       builder.add(desugarJDKLibs);
     }
-    if (desugarJDKLibsConfiguration != null) {
-      builder.add(desugarJDKLibsConfiguration);
+    if (customConversions != null) {
+      builder.add(customConversions);
     }
     return builder.addAll(additionalProgramFiles).build();
   }

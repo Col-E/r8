@@ -92,7 +92,7 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     }
 
     @Override
-    public void acceptArrayConversion(ProgramMethod method) {
+    public void acceptCollectionConversion(ProgramMethod method) {
       addMethodToReprocess(method);
     }
 
@@ -170,7 +170,7 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     }
 
     @Override
-    public void acceptArrayConversion(ProgramMethod method) {
+    public void acceptCollectionConversion(ProgramMethod method) {
       additions.addLiveMethod(method);
     }
 

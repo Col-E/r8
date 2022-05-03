@@ -4354,6 +4354,9 @@ public class Enqueuer {
   }
 
   private void postProcessingDesugaring() throws ExecutionException {
+    desugaring.withDesugaredLibraryAPIConverter(
+        DesugaredLibraryAPIConverter::generateTrackingWarnings);
+
     SyntheticAdditions syntheticAdditions =
         new SyntheticAdditions(appView.createProcessorContext());
 
