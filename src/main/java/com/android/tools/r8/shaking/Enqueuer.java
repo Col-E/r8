@@ -1140,13 +1140,16 @@ public class Enqueuer {
   }
 
   private void disableClosedWorldReasoning(DexMethod reference, ProgramMethod context) {
-    SingleResolutionResult<?> resolutionResult =
-        resolveMethod(reference, context, KeepReason.methodHandleReferencedIn(context));
-    if (resolutionResult != null && resolutionResult.getResolvedHolder().isProgramClass()) {
-      applyMinimumKeepInfoWhenLiveOrTargeted(
-          resolutionResult.getResolvedProgramMethod(),
-          KeepMethodInfo.newEmptyJoiner().disallowClosedWorldReasoning());
-    }
+    resolveMethod(reference, context, KeepReason.methodHandleReferencedIn(context))
+        .forEachMethodResolutionResult(
+            resolutionResult -> {
+              if (resolutionResult.isSingleResolution()
+                  && resolutionResult.asSingleResolution().getResolvedHolder().isProgramClass()) {
+                applyMinimumKeepInfoWhenLiveOrTargeted(
+                    resolutionResult.getResolvedProgramMethod(),
+                    KeepMethodInfo.newEmptyJoiner().disallowClosedWorldReasoning());
+              }
+            });
   }
 
   void traceCheckCast(DexType type, ProgramMethod currentMethod, boolean ignoreCompatRules) {
@@ -2296,56 +2299,68 @@ public class Enqueuer {
     return fieldResolutionResult;
   }
 
-  private SingleResolutionResult<?> resolveMethod(
+  private MethodResolutionResult resolveMethod(
       DexMethod method, ProgramDefinition context, KeepReason reason) {
     // Record the references in case they are not program types.
     MethodResolutionResult resolutionResult =
         appInfo.unsafeResolveMethodDueToDexFormatLegacy(method);
-    if (resolutionResult.isFailedResolution()) {
-      markFailedMethodResolutionTargets(
-          method, resolutionResult.asFailedResolution(), context, reason);
-      recordMethodReference(method, context, this::recordFoundClass, this::reportMissingClass);
-    } else {
-      recordMethodReference(method, context);
-    }
-    return resolutionResult.asSingleResolution();
+    resolutionResult.visitMethodResolutionResults(
+        result -> recordMethodReference(method, context),
+        failedResult -> {
+          markFailedMethodResolutionTargets(
+              method, resolutionResult.asFailedResolution(), context, reason);
+          recordMethodReference(method, context, this::recordFoundClass, this::reportMissingClass);
+        });
+    return resolutionResult;
   }
 
-  private SingleResolutionResult<?> resolveMethod(
+  private MethodResolutionResult resolveMethod(
       DexMethod method, ProgramDefinition context, KeepReason reason, boolean interfaceInvoke) {
     // Record the references in case they are not program types.
-    MethodResolutionResult resolutionResult = appInfo.resolveMethodLegacy(method, interfaceInvoke);
-    if (resolutionResult.isSingleResolution()) {
-      recordMethodReference(
-          method, resolutionResult.getResolutionPair().asProgramDerivedContext(context));
-    } else {
-      assert resolutionResult.isFailedResolution();
-      markFailedMethodResolutionTargets(
-          method, resolutionResult.asFailedResolution(), context, reason);
-      recordMethodReference(method, context, this::recordFoundClass, this::reportMissingClass);
-    }
-    return resolutionResult.asSingleResolution();
+    MethodResolutionResult methodResolutionResult =
+        appInfo.resolveMethodLegacy(method, interfaceInvoke);
+    methodResolutionResult.forEachMethodResolutionResult(
+        resolutionResult -> {
+          if (resolutionResult.isSingleResolution()) {
+            recordMethodReference(
+                method, resolutionResult.getResolutionPair().asProgramDerivedContext(context));
+          } else {
+            assert resolutionResult.isFailedResolution();
+            markFailedMethodResolutionTargets(
+                method, resolutionResult.asFailedResolution(), context, reason);
+            recordMethodReference(
+                method, context, this::recordFoundClass, this::reportMissingClass);
+          }
+        });
+    return methodResolutionResult;
   }
 
   private void handleInvokeOfStaticTarget(
       DexMethod reference, ProgramDefinition context, KeepReason reason) {
-    SingleResolutionResult<?> resolution = resolveMethod(reference, context, reason);
-    if (resolution == null || resolution.getResolvedHolder().isNotProgramClass()) {
-      return;
-    }
-    DexProgramClass clazz = resolution.getResolvedHolder().asProgramClass();
-    DexEncodedMethod encodedMethod = resolution.getResolvedMethod();
+    resolveMethod(reference, context, reason)
+        .forEachMethodResolutionResult(
+            resolutionResult -> {
+              if (!resolutionResult.isSingleResolution()) {
+                return;
+              }
+              SingleResolutionResult<?> resolution = resolutionResult.asSingleResolution();
+              if (resolution.getResolvedHolder().isNotProgramClass()) {
+                return;
+              }
+              DexProgramClass clazz = resolution.getResolvedHolder().asProgramClass();
+              DexEncodedMethod encodedMethod = resolution.getResolvedMethod();
 
-    // We have to mark the resolved method as targeted even if it cannot actually be invoked
-    // to make sure the invocation will keep failing in the appropriate way.
-    ProgramMethod method = new ProgramMethod(clazz, encodedMethod);
-    markMethodAsTargeted(method, reason);
+              // We have to mark the resolved method as targeted even if it cannot actually be
+              // invoked to make sure the invocation will keep failing in the appropriate way.
+              ProgramMethod method = new ProgramMethod(clazz, encodedMethod);
+              markMethodAsTargeted(method, reason);
 
-    // Only mark methods for which invocation will succeed at runtime live.
-    if (encodedMethod.isStatic()) {
-      markDirectAndIndirectClassInitializersAsLive(clazz);
-      markDirectStaticOrConstructorMethodAsLive(method, reason);
-    }
+              // Only mark methods for which invocation will succeed at runtime live.
+              if (encodedMethod.isStatic()) {
+                markDirectAndIndirectClassInitializersAsLive(clazz);
+                markDirectStaticOrConstructorMethodAsLive(method, reason);
+              }
+            });
   }
 
   void markDirectAndIndirectClassInitializersAsLive(DexProgramClass clazz) {
@@ -2793,55 +2808,61 @@ public class Enqueuer {
     getReachableVirtualTargets(currentClass)
         .forEach(
             (resolutionSearchKey, contexts) -> {
-              SingleResolutionResult<?> singleResolution =
-                  appInfo
-                      .resolveMethodLegacy(
-                          resolutionSearchKey.method, resolutionSearchKey.isInterface)
-                      .asSingleResolution();
-              if (singleResolution == null) {
-                assert false : "Should not be null";
-                return;
-              }
               Map<DexProgramClass, List<ProgramMethod>> contextsByClass = new IdentityHashMap<>();
               for (ProgramMethod context : contexts) {
                 contextsByClass
                     .computeIfAbsent(context.getHolder(), ignoreKey(ArrayList::new))
                     .add(context);
               }
-              contextsByClass.forEach(
-                  (contextHolder, contextsInHolder) -> {
-                    LookupResult lookupResult =
-                        singleResolution.lookupVirtualDispatchTargets(
-                            contextHolder,
-                            appInfo,
-                            (type, subTypeConsumer, lambdaConsumer) -> {
-                              assert appInfo.isSubtype(currentClass.type, type);
-                              instantiation.apply(subTypeConsumer, lambdaConsumer);
-                            },
-                            definition ->
-                                keepInfo.isPinned(definition.getReference(), appInfo, options));
-                    lookupResult.forEach(
-                        target ->
-                            markVirtualDispatchTargetAsLive(
-                                target,
-                                programMethod ->
-                                    graphReporter.reportReachableMethodAsLive(
-                                        singleResolution.getResolvedMethod().getReference(),
-                                        programMethod)));
-                    lookupResult.forEachFailureDependency(
-                        method -> {
-                          DexProgramClass clazz =
-                              getProgramClassOrNull(method.getHolderType(), contextHolder);
-                          if (clazz != null) {
-                            failedMethodResolutionTargets.add(method.getReference());
-                            for (ProgramMethod context : contextsInHolder) {
-                              markMethodAsTargeted(
-                                  new ProgramMethod(clazz, method),
-                                  KeepReason.invokedFrom(context));
-                            }
-                          }
-                        });
-                  });
+              appInfo
+                  .resolveMethodLegacy(resolutionSearchKey.method, resolutionSearchKey.isInterface)
+                  .forEachMethodResolutionResult(
+                      resolutionResult -> {
+                        SingleResolutionResult<?> singleResolution =
+                            resolutionResult.asSingleResolution();
+                        if (singleResolution == null) {
+                          assert false : "Should not be null";
+                          return;
+                        }
+                        contextsByClass.forEach(
+                            (contextHolder, contextsInHolder) -> {
+                              LookupResult lookupResult =
+                                  singleResolution.lookupVirtualDispatchTargets(
+                                      contextHolder,
+                                      appInfo,
+                                      (type, subTypeConsumer, lambdaConsumer) -> {
+                                        assert appInfo.isSubtype(currentClass.type, type);
+                                        instantiation.apply(subTypeConsumer, lambdaConsumer);
+                                      },
+                                      definition ->
+                                          keepInfo.isPinned(
+                                              definition.getReference(), appInfo, options));
+                              lookupResult.forEach(
+                                  target ->
+                                      markVirtualDispatchTargetAsLive(
+                                          target,
+                                          programMethod ->
+                                              graphReporter.reportReachableMethodAsLive(
+                                                  singleResolution
+                                                      .getResolvedMethod()
+                                                      .getReference(),
+                                                  programMethod)));
+                              lookupResult.forEachFailureDependency(
+                                  method -> {
+                                    DexProgramClass clazz =
+                                        getProgramClassOrNull(
+                                            method.getHolderType(), contextHolder);
+                                    if (clazz != null) {
+                                      failedMethodResolutionTargets.add(method.getReference());
+                                      for (ProgramMethod context : contextsInHolder) {
+                                        markMethodAsTargeted(
+                                            new ProgramMethod(clazz, method),
+                                            KeepReason.invokedFrom(context));
+                                      }
+                                    }
+                                  });
+                            });
+                      });
             });
   }
 
@@ -3245,76 +3266,82 @@ public class Enqueuer {
       return;
     }
 
-    SingleResolutionResult<?> resolution = resolveMethod(method, context, reason, interfaceInvoke);
-    if (resolution == null) {
-      return;
-    }
+    resolveMethod(method, context, reason, interfaceInvoke)
+        .forEachMethodResolutionResult(
+            resolutionResult -> {
+              if (!resolutionResult.isSingleResolution()) {
+                return;
+              }
+              SingleResolutionResult<?> resolution = resolutionResult.asSingleResolution();
+              // Note that all virtual methods derived from library methods are kept regardless of
+              // being reachable, so the following only needs to consider reachable targets in the
+              // program.
+              // TODO(b/70160030): Revise this to support tree shaking library methods on
+              //  non-escaping types.
+              DexProgramClass initialResolutionHolder =
+                  resolution.getInitialResolutionHolder().asProgramClass();
+              if (initialResolutionHolder == null) {
+                recordMethodReference(method, context);
+                return;
+              }
 
-    // Note that all virtual methods derived from library methods are kept regardless of being
-    // reachable, so the following only needs to consider reachable targets in the program.
-    // TODO(b/70160030): Revise this to support tree shaking library methods on non-escaping types.
-    DexProgramClass initialResolutionHolder =
-        resolution.getInitialResolutionHolder().asProgramClass();
-    if (initialResolutionHolder == null) {
-      recordMethodReference(method, context);
-      return;
-    }
+              if (resolution.getResolvedHolder().isNotProgramClass()) {
+                // TODO(b/70160030): If the resolution is on a library method, then the keep edge
+                //  needs to go directly to the target method in the program. Thus this method will
+                //  need to ensure that 'reason' is not already reported (eg, must be delayed /
+                //  non-witness) and report that for each possible target edge below.
+                return;
+              }
 
-    if (resolution.getResolvedHolder().isNotProgramClass()) {
-      // TODO(b/70160030): If the resolution is on a library method, then the keep edge needs to go
-      // directly to the target method in the program. Thus this method will need to ensure that
-      // 'reason' is not already reported (eg, must be delayed / non-witness) and report that for
-      // each possible target edge below.
-      return;
-    }
+              DexProgramClass contextHolder = context.getContextClass();
+              // If the method has already been marked, just report the new reason for the resolved
+              // target and save the context to ensure correct lookup of virtual dispatch targets.
+              ResolutionSearchKey resolutionSearchKey =
+                  new ResolutionSearchKey(method, interfaceInvoke);
+              ProgramMethodSet seenContexts =
+                  getReachableVirtualTargets(initialResolutionHolder).get(resolutionSearchKey);
+              if (seenContexts != null) {
+                seenContexts.add(context);
+                graphReporter.registerMethod(resolution.getResolvedMethod(), reason);
+                return;
+              }
 
-    DexProgramClass contextHolder = context.getContextClass();
-    // If the method has already been marked, just report the new reason for the resolved target and
-    // save the context to ensure correct lookup of virtual dispatch targets.
-    ResolutionSearchKey resolutionSearchKey = new ResolutionSearchKey(method, interfaceInvoke);
-    ProgramMethodSet seenContexts =
-        getReachableVirtualTargets(initialResolutionHolder).get(resolutionSearchKey);
-    if (seenContexts != null) {
-      seenContexts.add(context);
-      graphReporter.registerMethod(resolution.getResolvedMethod(), reason);
-      return;
-    }
+              if (Log.ENABLED) {
+                Log.verbose(getClass(), "Marking virtual method `%s` as reachable.", method);
+              }
 
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Marking virtual method `%s` as reachable.", method);
-    }
+              // We have to mark the resolution targeted, even if it does not become live, we
+              // need at least an abstract version of it so that it can be targeted.
+              DexProgramClass resolvedHolder = resolution.getResolvedHolder().asProgramClass();
+              DexEncodedMethod resolvedMethod = resolution.getResolvedMethod();
+              markMethodAsTargeted(new ProgramMethod(resolvedHolder, resolvedMethod), reason);
+              if (resolution.isAccessibleForVirtualDispatchFrom(contextHolder, appInfo).isFalse()) {
+                // Not accessible from this context, so this call will cause a runtime exception.
+                return;
+              }
 
-    // We have to mark the resolution targeted, even if it does not become live, we
-    // need at least an abstract version of it so that it can be targeted.
-    DexProgramClass resolvedHolder = resolution.getResolvedHolder().asProgramClass();
-    DexEncodedMethod resolvedMethod = resolution.getResolvedMethod();
-    markMethodAsTargeted(new ProgramMethod(resolvedHolder, resolvedMethod), reason);
-    if (resolution.isAccessibleForVirtualDispatchFrom(contextHolder, appInfo).isFalse()) {
-      // Not accessible from this context, so this call will cause a runtime exception.
-      return;
-    }
+              // The method resolved and is accessible, so currently live overrides become live.
+              reachableVirtualTargets
+                  .computeIfAbsent(initialResolutionHolder, ignoreArgument(HashMap::new))
+                  .computeIfAbsent(resolutionSearchKey, ignoreArgument(ProgramMethodSet::create))
+                  .add(context);
 
-    // The method resolved and is accessible, so currently live overrides become live.
-    reachableVirtualTargets
-        .computeIfAbsent(initialResolutionHolder, ignoreArgument(HashMap::new))
-        .computeIfAbsent(resolutionSearchKey, ignoreArgument(ProgramMethodSet::create))
-        .add(context);
-
-    resolution
-        .lookupVirtualDispatchTargets(
-            contextHolder,
-            appInfo,
-            (type, subTypeConsumer, lambdaConsumer) ->
-                objectAllocationInfoCollection.forEachInstantiatedSubType(
-                    type, subTypeConsumer, lambdaConsumer, appInfo),
-            definition -> keepInfo.isPinned(definition.getReference(), appInfo, options))
-        .forEach(
-            target ->
-                markVirtualDispatchTargetAsLive(
-                    target,
-                    programMethod ->
-                        graphReporter.reportReachableMethodAsLive(
-                            resolvedMethod.getReference(), programMethod)));
+              resolution
+                  .lookupVirtualDispatchTargets(
+                      contextHolder,
+                      appInfo,
+                      (type, subTypeConsumer, lambdaConsumer) ->
+                          objectAllocationInfoCollection.forEachInstantiatedSubType(
+                              type, subTypeConsumer, lambdaConsumer, appInfo),
+                      definition -> keepInfo.isPinned(definition.getReference(), appInfo, options))
+                  .forEach(
+                      target ->
+                          markVirtualDispatchTargetAsLive(
+                              target,
+                              programMethod ->
+                                  graphReporter.reportReachableMethodAsLive(
+                                      resolvedMethod.getReference(), programMethod)));
+            });
   }
 
   private void markVirtualDispatchTargetAsLive(
@@ -3392,49 +3419,59 @@ public class Enqueuer {
   // Package protected due to entry point from worklist.
   void markSuperMethodAsReachable(DexMethod reference, ProgramMethod from) {
     KeepReason reason = KeepReason.targetedBySuperFrom(from);
-    SingleResolutionResult<?> resolution = resolveMethod(reference, from, reason);
-    if (resolution == null) {
-      return;
-    }
-    // If the resolution is in the program, mark it targeted.
-    if (resolution.getResolvedHolder().isProgramClass()) {
-      markMethodAsTargeted(
-          new ProgramMethod(
-              resolution.getResolvedHolder().asProgramClass(), resolution.getResolvedMethod()),
-          reason);
-    }
-    // If invoke target is invalid (inaccessible or not an instance-method) record it and stop.
-    DexClassAndMethod target = resolution.lookupInvokeSuperTarget(from.getHolder(), appInfo);
-    if (target == null) {
-      failedMethodResolutionTargets.add(resolution.getResolvedMethod().getReference());
-      analyses.forEach(
-          analyses ->
-              analyses.notifyFailedMethodResolutionTarget(
-                  resolution.getResolvedMethod(), workList));
-      return;
-    }
+    resolveMethod(reference, from, reason)
+        .forEachMethodResolutionResult(
+            resolutionResult -> {
+              if (!resolutionResult.isSingleResolution()) {
+                return;
+              }
+              SingleResolutionResult<?> resolution = resolutionResult.asSingleResolution();
+              // If the resolution is in the program, mark it targeted.
+              if (resolution.getResolvedHolder().isProgramClass()) {
+                markMethodAsTargeted(
+                    new ProgramMethod(
+                        resolution.getResolvedHolder().asProgramClass(),
+                        resolution.getResolvedMethod()),
+                    reason);
+              }
+              // If invoke target is invalid (inaccessible or not an instance-method) record it and
+              // stop.
+              DexClassAndMethod target =
+                  resolution.lookupInvokeSuperTarget(from.getHolder(), appInfo);
+              if (target == null) {
+                failedMethodResolutionTargets.add(resolution.getResolvedMethod().getReference());
+                analyses.forEach(
+                    analyses ->
+                        analyses.notifyFailedMethodResolutionTarget(
+                            resolution.getResolvedMethod(), workList));
+                return;
+              }
 
-    DexProgramClass clazz = target.getHolder().asProgramClass();
-    if (clazz == null) {
-      return;
-    }
+              DexProgramClass clazz = target.getHolder().asProgramClass();
+              if (clazz == null) {
+                return;
+              }
 
-    ProgramMethod method = target.asProgramMethod();
+              ProgramMethod method = target.asProgramMethod();
 
-    if (Log.ENABLED) {
-      Log.verbose(
-          getClass(), "Adding super constraint from `%s` to `%s`", from, target.getReference());
-    }
-    if (superInvokeDependencies
-        .computeIfAbsent(from.getDefinition(), ignore -> ProgramMethodSet.create())
-        .add(method)) {
-      if (liveMethods.contains(from)) {
-        markMethodAsTargeted(method, KeepReason.invokedViaSuperFrom(from));
-        if (!target.getAccessFlags().isAbstract()) {
-          markVirtualMethodAsLive(method, KeepReason.invokedViaSuperFrom(from));
-        }
-      }
-    }
+              if (Log.ENABLED) {
+                Log.verbose(
+                    getClass(),
+                    "Adding super constraint from `%s` to `%s`",
+                    from,
+                    target.getReference());
+              }
+              if (superInvokeDependencies
+                  .computeIfAbsent(from.getDefinition(), ignore -> ProgramMethodSet.create())
+                  .add(method)) {
+                if (liveMethods.contains(from)) {
+                  markMethodAsTargeted(method, KeepReason.invokedViaSuperFrom(from));
+                  if (!target.getAccessFlags().isAbstract()) {
+                    markVirtualMethodAsLive(method, KeepReason.invokedViaSuperFrom(from));
+                  }
+                }
+              }
+            });
   }
 
   // Returns the set of live types.

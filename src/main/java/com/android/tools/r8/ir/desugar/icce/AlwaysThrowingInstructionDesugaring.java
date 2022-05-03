@@ -80,7 +80,8 @@ public class AlwaysThrowingInstructionDesugaring implements CfInstructionDesugar
 
   private boolean shouldRewriteInvokeToThrow(
       CfInvoke invoke, MethodResolutionResult resolutionResult) {
-    if (resolutionResult.isArrayCloneMethodResult()) {
+    if (resolutionResult.isArrayCloneMethodResult()
+        || resolutionResult.isMultiMethodResolutionResult()) {
       return false;
     }
     if (resolutionResult.isFailedResolution()) {
