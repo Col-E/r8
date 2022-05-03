@@ -15,7 +15,7 @@ import java.util.function.Consumer;
 
 public class AssertUtils {
 
-  public static void assertFailsCompilation(ThrowingAction<CompilationFailedException> action) {
+  public static void assertFailsCompilation(ThrowingAction<Exception> action) throws Exception {
     try {
       assertFailsCompilationIf(true, action);
       return;
