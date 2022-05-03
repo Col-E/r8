@@ -1439,6 +1439,17 @@ public class CodeRewriter {
       }
     }
 
+    // If casting to an array of an interface type elimination may lead to verification errors.
+    // See b/132420510 and b/223424356.
+    if (options.canHaveIncorrectJoinForArrayOfInterfacesBug()) {
+      if (castType.isArrayType()) {
+        DexType baseType = castType.toBaseType(dexItemFactory);
+        if (baseType.isClassType() && baseType.isInterface(appViewWithLiveness)) {
+          return RemoveCheckCastInstructionIfTrivialResult.NO_REMOVALS;
+        }
+      }
+    }
+
     TypeElement inTypeLattice = inValue.getType();
     TypeElement outTypeLattice = outValue.getType();
     TypeElement castTypeLattice = castType.toTypeElement(appView, inTypeLattice.nullability());

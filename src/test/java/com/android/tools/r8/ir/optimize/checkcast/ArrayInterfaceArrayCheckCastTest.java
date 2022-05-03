@@ -49,10 +49,7 @@ public class ArrayInterfaceArrayCheckCastTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .allowStdoutMessages()
         .run(parameters.getRuntime(), TestClass.class)
-        .applyIf(
-            parameters.isCfRuntime(),
-            r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT),
-            r -> r.assertFailureWithErrorThatThrows(VerifyError.class));
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   // See b/223424356 (and basically the code back from b/69826014#comment3).
