@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -403,7 +404,9 @@ class MethodNameMinifier {
     assert resolutionResult.isFailedResolution();
 
     List<DexEncodedMethod> targets = new ArrayList<>();
-    resolutionResult.asFailedResolution().forEachFailureDependency(targets::add);
+    resolutionResult
+        .asFailedResolution()
+        .forEachFailureDependency(ConsumerUtils.emptyConsumer(), targets::add);
     if (!targets.isEmpty()) {
       DexString newName = renaming.get(targets.get(0).getReference());
       assert targets.stream().allMatch(target -> renaming.get(target.getReference()) == newName);

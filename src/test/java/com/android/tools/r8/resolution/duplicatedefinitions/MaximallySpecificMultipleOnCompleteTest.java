@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.resolution.duplicatedefinitions;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -12,19 +11,15 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.MethodResolutionResult;
-import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,12 +32,15 @@ import org.junit.runners.Parameterized.Parameters;
  * This is testing resolving Main.f for:
  *
  * <pre>
- * I: I_L { f }, I_P { f }
- * J: J_L { f }, J_P { f }
- * class Main implements I,J
+ * I: I_L { f }
+ * J: J_L extends I { f }, J_P extends I { f }
+ * K: K_P extends J { f }
+ * L: L_L { f }
+ * M: M_L extends L { }, M_P extends L { }
+ * class Main implements I,J,K,M
  * </pre>
  */
-public class MaximallySpecificMultiplePathsICCETest extends TestBase {
+public class MaximallySpecificMultipleOnCompleteTest extends TestBase {
 
   @Parameter() public TestParameters parameters;
 
@@ -60,7 +58,9 @@ public class MaximallySpecificMultiplePathsICCETest extends TestBase {
         .addFilesRelative(
             ToolHelper.getClassPathForTests(),
             ToolHelper.getClassFileForTestClass(J.class),
-            ToolHelper.getClassFileForTestClass(I.class))
+            ToolHelper.getClassFileForTestClass(I.class),
+            ToolHelper.getClassFileForTestClass(L.class),
+            ToolHelper.getClassFileForTestClass(M.class))
         .build();
   }
 
@@ -70,9 +70,9 @@ public class MaximallySpecificMultiplePathsICCETest extends TestBase {
     AndroidApp.Builder builder = AndroidApp.builder();
     builder
         .addProgramFiles(
-            ToolHelper.getClassFileForTestClass(I.class),
-            ToolHelper.getClassFileForTestClass(J.class))
-        .addClassProgramData(getMainWithInterfacesIAndJ());
+            ToolHelper.getClassFileForTestClass(K.class),
+            ToolHelper.getClassFileForTestClass(M.class))
+        .addClassProgramData(ImmutableList.of(getJOnProgram(), getMainWithAllImplements()));
     builder.addLibraryFiles(parameters.getDefaultRuntimeLibrary(), libraryClasses);
     AppView<AppInfoWithClassHierarchy> appView =
         computeAppViewWithClassHierarchy(
@@ -81,23 +81,7 @@ public class MaximallySpecificMultiplePathsICCETest extends TestBase {
     DexMethod method = buildNullaryVoidMethod(Main.class, "foo", appInfo.dexItemFactory());
     MethodResolutionResult methodResolutionResult =
         appInfo.unsafeResolveMethodDueToDexFormat(method);
-    assertTrue(methodResolutionResult.isMultiMethodResolutionResult());
-    Set<String> methodResults = new HashSet<>();
-    methodResolutionResult.forEachMethodResolutionResult(
-        result -> {
-          assertTrue(result.isSingleResolution());
-          SingleResolutionResult<?> resolution = result.asSingleResolution();
-          methodResults.add(
-              (resolution.getResolvedHolder().isProgramClass() ? "Program: " : "Library: ")
-                  + resolution.getResolvedMethod().getReference().toString());
-        });
-    assertEquals(
-        ImmutableSet.of(
-            "Library: void " + typeName(I.class) + ".foo()",
-            "Program: void " + typeName(I.class) + ".foo()",
-            "Library: void " + typeName(J.class) + ".foo()",
-            "Program: void " + typeName(J.class) + ".foo()"),
-        methodResults);
+    assertTrue(methodResolutionResult.isIncompatibleClassChangeErrorResult());
   }
 
   @Test
@@ -105,8 +89,8 @@ public class MaximallySpecificMultiplePathsICCETest extends TestBase {
     assumeTrue(parameters.isCfRuntime());
     testForJvm()
         .addRunClasspathFiles(libraryClasses)
-        .addProgramClasses(I.class, J.class)
-        .addProgramClassFileData(getMainWithInterfacesIAndJ())
+        .addProgramClasses(K.class, M.class)
+        .addProgramClassFileData(getJOnProgram(), getMainWithAllImplements())
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
   }
@@ -114,32 +98,34 @@ public class MaximallySpecificMultiplePathsICCETest extends TestBase {
   @Test
   public void testD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
-    runTest(testForD8(parameters.getBackend()))
-        .assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
+    runTest(testForD8(parameters.getBackend()));
   }
 
   @Test
   public void testR8() throws Exception {
-    runTest(testForR8(parameters.getBackend()).addKeepMainRule(Main.class))
-        .assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
+    runTest(testForR8(parameters.getBackend()).addKeepMainRule(Main.class));
   }
 
-  private TestRunResult<?> runTest(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder)
-      throws Exception {
-    return testBuilder
-        .addProgramClasses(I.class, J.class)
-        .addProgramClassFileData(getMainWithInterfacesIAndJ())
+  private void runTest(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) throws Exception {
+    testBuilder
+        .addProgramClasses(K.class, M.class)
+        .addProgramClassFileData(getJOnProgram(), getMainWithAllImplements())
         .addDefaultRuntimeLibrary(parameters)
         .addLibraryFiles(libraryClasses)
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(options -> options.loadAllClassDefinitions = true)
         .compile()
         .addBootClasspathFiles(buildOnDexRuntime(parameters, libraryClasses))
-        .run(parameters.getRuntime(), Main.class);
+        .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
   }
 
-  private byte[] getMainWithInterfacesIAndJ() throws Exception {
-    return transformer(Main.class).setImplements(I.class, J.class).transform();
+  private byte[] getJOnProgram() throws Exception {
+    return transformer(JProgram.class).setClassDescriptor(descriptor(J.class)).transform();
+  }
+
+  private byte[] getMainWithAllImplements() throws Exception {
+    return transformer(Main.class).setImplements(I.class, J.class, K.class, M.class).transform();
   }
 
   public interface I {
@@ -148,13 +134,41 @@ public class MaximallySpecificMultiplePathsICCETest extends TestBase {
     }
   }
 
-  public interface J {
+  /* Present on both library and program */
+  public interface JProgram extends I {
+    @Override
+    default void foo() {
+      System.out.println("J_Program::foo");
+      ;
+    }
+  }
+
+  public interface J extends I {
+    @Override
+    default void foo() {
+      System.out.println("J_Library::foo");
+      ;
+    }
+  }
+
+  public interface K extends J {
+
+    @Override
     default void foo() {
       System.out.println("J::foo");
     }
   }
 
-  public static class Main implements I /*, J */ {
+  public interface L {
+
+    default void foo() {
+      System.out.println("L::foo");
+    }
+  }
+
+  public interface M extends L {}
+
+  public static class Main implements I, J, K /*, M */ {
 
     public static void main(String[] args) {
       new Main().foo();

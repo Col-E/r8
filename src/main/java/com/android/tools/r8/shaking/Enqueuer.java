@@ -3354,6 +3354,7 @@ public class Enqueuer {
       KeepReason reason) {
     failedMethodResolutionTargets.add(symbolicMethod);
     failedResolution.forEachFailureDependency(
+        type -> recordTypeReference(type, context),
         method -> {
           DexProgramClass clazz = getProgramClassOrNull(method.getHolderType(), context);
           if (clazz != null) {

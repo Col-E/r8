@@ -4,22 +4,27 @@
 
 package com.android.tools.r8.resolution.duplicatedefinitions;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.MethodResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
+import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -74,12 +79,23 @@ public class MaximallySpecificDifferentParentHierarchyTest extends TestBase {
             builder.build(), null, options -> options.loadAllClassDefinitions = true);
     AppInfoWithClassHierarchy appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(Main.class, "foo", appInfo.dexItemFactory());
-    // TODO(b/214382176): Extend resolution to support multiple definition results.
-    assertThrows(
-        Unreachable.class,
-        () -> {
-          appInfo.unsafeResolveMethodDueToDexFormat(method);
+    MethodResolutionResult methodResolutionResult =
+        appInfo.unsafeResolveMethodDueToDexFormat(method);
+    assertTrue(methodResolutionResult.isMultiMethodResolutionResult());
+    Set<String> methodResults = new HashSet<>();
+    methodResolutionResult.forEachMethodResolutionResult(
+        result -> {
+          assertTrue(result.isSingleResolution());
+          SingleResolutionResult<?> resolution = result.asSingleResolution();
+          methodResults.add(
+              (resolution.getResolvedHolder().isProgramClass() ? "Program: " : "Library: ")
+                  + resolution.getResolvedMethod().getReference().toString());
         });
+    assertEquals(
+        ImmutableSet.of(
+            "Library: void " + typeName(I.class) + ".foo()",
+            "Program: void " + typeName(J.class) + ".foo()"),
+        methodResults);
   }
 
   @Test
@@ -96,8 +112,12 @@ public class MaximallySpecificDifferentParentHierarchyTest extends TestBase {
   @Test
   public void testD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
-    runTest(testForD8(parameters.getBackend()))
-        // TODO(b/214382176): Extend resolution to support multiple definition results.
+    testForD8(parameters.getBackend())
+        .apply(this::setupTestBuilder)
+        .compile()
+        .addBootClasspathFiles(buildOnDexRuntime(parameters, libraryClasses))
+        .run(parameters.getRuntime(), Main.class)
+        // TODO(b/230289235): Extend to support multiple definition results.
         .assertFailureWithErrorThatThrowsIf(
             !parameters.canUseDefaultAndStaticInterfaceMethods(),
             IncompatibleClassChangeError.class)
@@ -107,23 +127,24 @@ public class MaximallySpecificDifferentParentHierarchyTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    // TODO(b/214382176): Extend resolution to support multiple definition results.
-    runTest(testForR8(parameters.getBackend()).addKeepMainRule(Main.class))
+    // TODO(b/230289235): Extend to support multiple definition results.
+    R8FullTestBuilder testBuilder = testForR8(parameters.getBackend()).addKeepMainRule(Main.class);
+    testBuilder
+        .apply(this::setupTestBuilder)
+        .compile()
+        .addBootClasspathFiles(buildOnDexRuntime(parameters, libraryClasses))
+        .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
   }
 
-  private TestRunResult<?> runTest(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder)
-      throws Exception {
-    return testBuilder
+  private void setupTestBuilder(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) throws Exception {
+    testBuilder
         .addProgramClasses(Main.class)
         .addProgramClassFileData(getJProgram())
         .addDefaultRuntimeLibrary(parameters)
         .addLibraryFiles(libraryClasses)
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(options -> options.loadAllClassDefinitions = true)
-        .compile()
-        .addBootClasspathFiles(buildOnDexRuntime(parameters, libraryClasses))
-        .run(parameters.getRuntime(), Main.class);
+        .addOptionsModification(options -> options.loadAllClassDefinitions = true);
   }
 
   private byte[] getJProgram() throws Exception {

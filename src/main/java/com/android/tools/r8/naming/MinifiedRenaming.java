@@ -137,6 +137,9 @@ class MinifiedRenaming extends NonIdentityNamingLens {
     resolution
         .asFailedResolution()
         .forEachFailureDependency(
+            type -> {
+              assert type.descriptor == lookupDescriptor(type);
+            },
             failureDependence -> {
               assert lookupName(method) == lookupName(failureDependence.getReference());
             });

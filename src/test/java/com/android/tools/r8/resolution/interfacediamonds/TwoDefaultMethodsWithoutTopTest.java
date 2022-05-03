@@ -6,6 +6,7 @@ package com.android.tools.r8.resolution.interfacediamonds;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestAppViewBuilder;
@@ -81,7 +82,8 @@ public class TwoDefaultMethodsWithoutTopTest extends TestBase {
         Set<String> holders = new HashSet<>();
         resolutionResult
             .asFailedResolution()
-            .forEachFailureDependency(m -> holders.add(m.getHolderType().toSourceString()));
+            .forEachFailureDependency(
+                type -> fail(), m -> holders.add(m.getHolderType().toSourceString()));
         assertEquals(ImmutableSet.of(I.class.getTypeName(), J.class.getTypeName()), holders);
       }
     }

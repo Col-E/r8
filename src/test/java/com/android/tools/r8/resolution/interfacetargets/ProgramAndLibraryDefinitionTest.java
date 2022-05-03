@@ -71,6 +71,7 @@ public class ProgramAndLibraryDefinitionTest extends TestBase {
             .setMinApi(parameters.getApiLevel())
             .addDontWarn(A.class, B.class)
             .addKeepMainRule(Main.class)
+            .addOptionsModification(options -> options.loadAllClassDefinitions = true)
             .noMinification()
             .allowUnusedDontWarnPatterns();
     byte[] libraryA = getAFromClassTestParam(this.aInLibrary);
@@ -89,10 +90,10 @@ public class ProgramAndLibraryDefinitionTest extends TestBase {
     R8TestRunResult runResult = compileResult.run(parameters.getRuntime(), Main.class);
     if (isExpectedToFailWithNoClassDefError()) {
       runResult.assertFailureWithErrorThatThrows(NoClassDefFoundError.class);
-    } else if (isExpectedToFailWithNoSuchMethodError()) {
-      runResult.assertFailureWithErrorThatThrows(NoSuchMethodError.class);
     } else if (isExpectedToFailWithICCE()) {
       runResult.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
+    } else if (isExpectedToFailWithNoSuchMethodError()) {
+      runResult.assertFailureWithErrorThatThrows(NoSuchMethodError.class);
     } else if (isDefinedOnAProgram() || (isDefinedOnALibrary() && !isAInProgram())) {
       runResult.assertSuccessWithOutputLines("A::foo");
     } else {
@@ -144,7 +145,7 @@ public class ProgramAndLibraryDefinitionTest extends TestBase {
       return true;
     }
     if (notDefinedInProgram) {
-      // TODO(b/214382176): Currently, a program definition will shadow the library definition and
+      // TODO(b/230289235): Currently, a program definition will shadow the library definition and
       //  R8 will optimize the interfaces away.
       if (isDefinedOnALibrary() && isDefinedOnBLibrary()) {
         return isAInProgram() && isBInProgram();
@@ -153,6 +154,15 @@ public class ProgramAndLibraryDefinitionTest extends TestBase {
       } else {
         assert isDefinedOnBLibrary();
         return isBInProgram();
+      }
+    } else {
+      // if the library definition is overriding the program definition and there is no definition
+      // then we also fail.
+      if (isDefinedOnAProgram() && isAInLibrary() && !isDefinedOnALibrary()) {
+        return true;
+      }
+      if (isDefinedOnBProgram() && isBInLibrary() && !isDefinedOnBLibrary()) {
+        return true;
       }
     }
     return false;

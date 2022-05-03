@@ -14,6 +14,7 @@ import com.android.tools.r8.shaking.InstantiatedObject;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ConsumerUtils;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OptionalBool;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
@@ -81,6 +82,14 @@ public abstract class MethodResolutionResult
 
   public boolean isArrayCloneMethodResult() {
     return false;
+  }
+
+  public boolean isMultiMethodResolutionResult() {
+    return false;
+  }
+
+  public final void forEachMethodResolutionResult(Consumer<MethodResolutionResult> resultConsumer) {
+    visitMethodResolutionResults(resultConsumer, resultConsumer, resultConsumer, resultConsumer);
   }
 
   /** Returns non-null if isFailedResolution() is true, otherwise null. */
@@ -162,13 +171,22 @@ public abstract class MethodResolutionResult
   public abstract LookupTarget lookupVirtualDispatchTarget(
       LambdaDescriptor lambdaInstance,
       AppInfoWithClassHierarchy appInfo,
+      Consumer<DexType> typeCausingFailureConsumer,
       Consumer<? super DexEncodedMethod> methodCausingFailureConsumer);
 
   public abstract void visitMethodResolutionResults(
-      Consumer<? super SingleResolutionResult<?>> programOrClasspathConsumer,
+      Consumer<? super SingleResolutionResult<? extends ProgramOrClasspathClass>>
+          programOrClasspathConsumer,
       Consumer<? super SingleLibraryResolutionResult> libraryResultConsumer,
       Consumer<? super ArrayCloneMethodResult> cloneResultConsumer,
       Consumer<? super FailedResolutionResult> failedResolutionConsumer);
+
+  public void visitMethodResolutionResults(
+      Consumer<? super MethodResolutionResult> resultConsumer,
+      Consumer<? super FailedResolutionResult> failedResolutionConsumer) {
+    visitMethodResolutionResults(
+        resultConsumer, resultConsumer, resultConsumer, failedResolutionConsumer);
+  }
 
   public boolean hasProgramResult() {
     return false;
@@ -502,7 +520,11 @@ public abstract class MethodResolutionResult
             incompleteness.checkClass(subClass);
             LookupMethodTarget lookupTarget =
                 lookupVirtualDispatchTarget(
-                    subClass, appInfo, resolvedHolder.type, resultBuilder::addMethodCausingFailure);
+                    subClass,
+                    appInfo,
+                    resolvedHolder.type,
+                    resultBuilder::addTypeCausingFailure,
+                    resultBuilder::addMethodCausingFailure);
             if (lookupTarget != null) {
               incompleteness.checkDexClassAndMethod(lookupTarget);
               addVirtualDispatchTarget(lookupTarget, resolvedHolder.isInterface(), resultBuilder);
@@ -513,7 +535,10 @@ public abstract class MethodResolutionResult
                 || resolvedHolder.type == appInfo.dexItemFactory().objectType;
             LookupTarget target =
                 lookupVirtualDispatchTarget(
-                    lambda, appInfo, resultBuilder::addMethodCausingFailure);
+                    lambda,
+                    appInfo,
+                    resultBuilder::addTypeCausingFailure,
+                    resultBuilder::addMethodCausingFailure);
             if (target != null) {
               if (target.isLambdaTarget()) {
                 resultBuilder.addLambdaTarget(target.asLambdaTarget());
@@ -639,20 +664,22 @@ public abstract class MethodResolutionResult
         InstantiatedObject instance, AppInfoWithClassHierarchy appInfo) {
       return instance.isClass()
           ? lookupVirtualDispatchTarget(instance.asClass(), appInfo)
-          : lookupVirtualDispatchTarget(instance.asLambda(), appInfo, emptyConsumer());
+          : lookupVirtualDispatchTarget(
+              instance.asLambda(), appInfo, emptyConsumer(), emptyConsumer());
     }
 
     @Override
     public LookupMethodTarget lookupVirtualDispatchTarget(
         DexClass dynamicInstance, AppInfoWithClassHierarchy appInfo) {
       return lookupVirtualDispatchTarget(
-          dynamicInstance, appInfo, initialResolutionHolder.type, emptyConsumer());
+          dynamicInstance, appInfo, initialResolutionHolder.type, emptyConsumer(), emptyConsumer());
     }
 
     @Override
     public LookupTarget lookupVirtualDispatchTarget(
         LambdaDescriptor lambdaInstance,
         AppInfoWithClassHierarchy appInfo,
+        Consumer<DexType> typeCausingFailureConsumer,
         Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
       if (lambdaInstance.getMainMethod().match(resolvedMethod)) {
         DexMethod methodReference = lambdaInstance.implHandle.asMethod();
@@ -665,13 +692,14 @@ public abstract class MethodResolutionResult
         return new LookupLambdaTarget(lambdaInstance, method);
       }
       return lookupMaximallySpecificDispatchTarget(
-          lambdaInstance, appInfo, methodCausingFailureConsumer);
+          lambdaInstance, appInfo, typeCausingFailureConsumer, methodCausingFailureConsumer);
     }
 
     private LookupMethodTarget lookupVirtualDispatchTarget(
         DexClass dynamicInstance,
         AppInfoWithClassHierarchy appInfo,
         DexType resolutionHolder,
+        Consumer<DexType> typeCausingFailureConsumer,
         Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
       assert appInfo.isSubtype(dynamicInstance.type, resolutionHolder)
           : dynamicInstance.type + " is not a subtype of " + resolutionHolder;
@@ -714,12 +742,13 @@ public abstract class MethodResolutionResult
         return null;
       }
       return lookupMaximallySpecificDispatchTarget(
-          dynamicInstance, appInfo, methodCausingFailureConsumer);
+          dynamicInstance, appInfo, typeCausingFailureConsumer, methodCausingFailureConsumer);
     }
 
     private DexClassAndMethod lookupMaximallySpecificDispatchTarget(
         DexClass dynamicInstance,
         AppInfoWithClassHierarchy appInfo,
+        Consumer<DexType> typeCausingFailureConsumer,
         Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
       MethodResolutionResult maximallySpecificResolutionResult =
           appInfo.resolveMaximallySpecificTarget(dynamicInstance, resolvedMethod.getReference());
@@ -729,7 +758,7 @@ public abstract class MethodResolutionResult
       if (maximallySpecificResolutionResult.isFailedResolution()) {
         maximallySpecificResolutionResult
             .asFailedResolution()
-            .forEachFailureDependency(methodCausingFailureConsumer);
+            .forEachFailureDependency(typeCausingFailureConsumer, methodCausingFailureConsumer);
         return null;
       }
       assert maximallySpecificResolutionResult.isArrayCloneMethodResult();
@@ -739,6 +768,7 @@ public abstract class MethodResolutionResult
     private DexClassAndMethod lookupMaximallySpecificDispatchTarget(
         LambdaDescriptor lambdaDescriptor,
         AppInfoWithClassHierarchy appInfo,
+        Consumer<DexType> typeCausingFailureConsumer,
         Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
       MethodResolutionResult maximallySpecificResolutionResult =
           appInfo.resolveMaximallySpecificTarget(lambdaDescriptor, resolvedMethod.getReference());
@@ -748,7 +778,7 @@ public abstract class MethodResolutionResult
       if (maximallySpecificResolutionResult.isFailedResolution()) {
         maximallySpecificResolutionResult
             .asFailedResolution()
-            .forEachFailureDependency(methodCausingFailureConsumer);
+            .forEachFailureDependency(typeCausingFailureConsumer, methodCausingFailureConsumer);
         return null;
       }
       assert maximallySpecificResolutionResult.isArrayCloneMethodResult();
@@ -833,7 +863,8 @@ public abstract class MethodResolutionResult
 
     @Override
     public void visitMethodResolutionResults(
-        Consumer<? super SingleResolutionResult<?>> programOrClasspathConsumer,
+        Consumer<? super SingleResolutionResult<? extends ProgramOrClasspathClass>>
+            programOrClasspathConsumer,
         Consumer<? super SingleLibraryResolutionResult> libraryResultConsumer,
         Consumer<? super ArrayCloneMethodResult> cloneResultConsumer,
         Consumer<? super FailedResolutionResult> failedResolutionConsumer) {
@@ -872,7 +903,8 @@ public abstract class MethodResolutionResult
 
     @Override
     public void visitMethodResolutionResults(
-        Consumer<? super SingleResolutionResult<?>> programOrClasspathConsumer,
+        Consumer<? super SingleResolutionResult<? extends ProgramOrClasspathClass>>
+            programOrClasspathConsumer,
         Consumer<? super SingleLibraryResolutionResult> libraryResultConsumer,
         Consumer<? super ArrayCloneMethodResult> cloneResultConsumer,
         Consumer<? super FailedResolutionResult> failedResolutionConsumer) {
@@ -906,7 +938,8 @@ public abstract class MethodResolutionResult
 
     @Override
     public void visitMethodResolutionResults(
-        Consumer<? super SingleResolutionResult<?>> programOrClasspathConsumer,
+        Consumer<? super SingleResolutionResult<? extends ProgramOrClasspathClass>>
+            programOrClasspathConsumer,
         Consumer<? super SingleLibraryResolutionResult> libraryResultConsumer,
         Consumer<? super ArrayCloneMethodResult> cloneResultConsumer,
         Consumer<? super FailedResolutionResult> failedResolutionConsumer) {
@@ -974,6 +1007,7 @@ public abstract class MethodResolutionResult
     public LookupTarget lookupVirtualDispatchTarget(
         LambdaDescriptor lambdaInstance,
         AppInfoWithClassHierarchy appInfo,
+        Consumer<DexType> typeCausingFailureConsumer,
         Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
       return null;
     }
@@ -1007,7 +1041,8 @@ public abstract class MethodResolutionResult
 
     @Override
     public void visitMethodResolutionResults(
-        Consumer<? super SingleResolutionResult<?>> programOrClasspathConsumer,
+        Consumer<? super SingleResolutionResult<? extends ProgramOrClasspathClass>>
+            programOrClasspathConsumer,
         Consumer<? super SingleLibraryResolutionResult> libraryResultConsumer,
         Consumer<? super ArrayCloneMethodResult> cloneResultConsumer,
         Consumer<? super FailedResolutionResult> failedResolutionConsumer) {
@@ -1023,6 +1058,12 @@ public abstract class MethodResolutionResult
   /** Base class for all types of failed resolutions. */
   public abstract static class FailedResolutionResult extends EmptyResult {
 
+    protected final Collection<DexType> typesCausingError;
+
+    private FailedResolutionResult(Collection<DexType> typesCausingError) {
+      this.typesCausingError = typesCausingError;
+    }
+
     @Override
     public boolean isFailedResolution() {
       return true;
@@ -1034,8 +1075,11 @@ public abstract class MethodResolutionResult
     }
 
     public void forEachFailureDependency(
+        Consumer<DexType> typesCausingFailureConsumer,
         Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
-      // Default failure has no dependencies.
+      if (typesCausingError != null) {
+        typesCausingError.forEach(typesCausingFailureConsumer);
+      }
     }
 
     @Override
@@ -1061,7 +1105,8 @@ public abstract class MethodResolutionResult
 
     @Override
     public void visitMethodResolutionResults(
-        Consumer<? super SingleResolutionResult<?>> programOrClasspathConsumer,
+        Consumer<? super SingleResolutionResult<? extends ProgramOrClasspathClass>>
+            programOrClasspathConsumer,
         Consumer<? super SingleLibraryResolutionResult> libraryResultConsumer,
         Consumer<? super ArrayCloneMethodResult> cloneResultConsumer,
         Consumer<? super FailedResolutionResult> failedResolutionConsumer) {
@@ -1073,7 +1118,7 @@ public abstract class MethodResolutionResult
     static final ClassNotFoundResult INSTANCE = new ClassNotFoundResult();
 
     private ClassNotFoundResult() {
-      // Intentionally left empty.
+      super(null);
     }
 
     @Override
@@ -1087,12 +1132,15 @@ public abstract class MethodResolutionResult
     private final Collection<DexEncodedMethod> methodsCausingError;
 
     private FailedResolutionWithCausingMethods(Collection<DexEncodedMethod> methodsCausingError) {
+      super(ListUtils.map(methodsCausingError, DexEncodedMember::getHolderType));
       this.methodsCausingError = methodsCausingError;
     }
 
     @Override
     public void forEachFailureDependency(
+        Consumer<DexType> typesCausingFailureConsumer,
         Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
+      super.forEachFailureDependency(typesCausingFailureConsumer, methodCausingFailureConsumer);
       this.methodsCausingError.forEach(methodCausingFailureConsumer);
     }
 
@@ -1124,7 +1172,11 @@ public abstract class MethodResolutionResult
 
   public static class NoSuchMethodResult extends FailedResolutionResult {
 
-    static final NoSuchMethodResult INSTANCE = new NoSuchMethodResult();
+    static final NoSuchMethodResult INSTANCE = new NoSuchMethodResult(null);
+
+    public NoSuchMethodResult(Collection<DexType> typesCausingError) {
+      super(typesCausingError);
+    }
 
     @Override
     public boolean isNoSuchMethodErrorResult(DexClass context, AppInfoWithClassHierarchy appInfo) {
@@ -1155,9 +1207,21 @@ public abstract class MethodResolutionResult
       }
       BooleanBox seenNoAccess = new BooleanBox(false);
       forEachFailureDependency(
+          type -> {
+            appInfo
+                .contextIndependentDefinitionForWithResolutionResult(type)
+                .forEachClassResolutionResult(
+                    clazz -> {
+                      AccessControl.isClassAccessible(
+                          clazz,
+                          context,
+                          appInfo.getClassToFeatureSplitMap(),
+                          appInfo.getSyntheticItems());
+                    });
+          },
           method -> {
-            DexClassAndMethod classAndMethod =
-                DexClassAndMethod.create(appInfo.definitionFor(method.getHolderType()), method);
+            DexClass holder = appInfo.definitionFor(method.getHolderType());
+            DexClassAndMethod classAndMethod = DexClassAndMethod.create(holder, method);
             seenNoAccess.or(
                 AccessControl.isMemberAccessible(
                         classAndMethod, initialResolutionHolder, context, appInfo)
@@ -1184,6 +1248,9 @@ public abstract class MethodResolutionResult
     private boolean verifyInvalidSymbolicReference() {
       BooleanBox invalidSymbolicReference = new BooleanBox(true);
       forEachFailureDependency(
+          type -> {
+            // Intentionally empty
+          },
           method -> {
             invalidSymbolicReference.and(
                 method.getHolderType() != initialResolutionHolder.getType());
@@ -1197,14 +1264,18 @@ public abstract class MethodResolutionResult
       extends MethodResolutionResult {
 
     protected final T programOrClasspathResult;
+    protected final List<SingleResolutionResult<? extends ProgramOrClasspathClass>>
+        otherProgramOrClasspathResults;
     protected final List<SingleLibraryResolutionResult> libraryResolutionResults;
     protected final List<FailedResolutionResult> failedResolutionResults;
 
-    public MultipleMethodResolutionResult(
+    protected MultipleMethodResolutionResult(
         T programOrClasspathResult,
+        List<SingleResolutionResult<? extends ProgramOrClasspathClass>> programOrClasspathResults,
         List<SingleLibraryResolutionResult> libraryResolutionResults,
         List<FailedResolutionResult> failedResolutionResults) {
       this.programOrClasspathResult = programOrClasspathResult;
+      this.otherProgramOrClasspathResults = programOrClasspathResults;
       this.libraryResolutionResults = libraryResolutionResults;
       this.failedResolutionResults = failedResolutionResults;
     }
@@ -1284,21 +1355,31 @@ public abstract class MethodResolutionResult
     public LookupTarget lookupVirtualDispatchTarget(
         LambdaDescriptor lambdaInstance,
         AppInfoWithClassHierarchy appInfo,
+        Consumer<DexType> typeCausingFailureConsumer,
         Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
       throw new Unreachable("Should not be called on MultipleFieldResolutionResult");
     }
 
     @Override
     public void visitMethodResolutionResults(
-        Consumer<? super SingleResolutionResult<?>> programOrClasspathConsumer,
+        Consumer<? super SingleResolutionResult<? extends ProgramOrClasspathClass>>
+            programOrClasspathConsumer,
         Consumer<? super SingleLibraryResolutionResult> libraryResultConsumer,
         Consumer<? super ArrayCloneMethodResult> cloneResultConsumer,
         Consumer<? super FailedResolutionResult> failedResolutionConsumer) {
       if (programOrClasspathResult != null) {
         programOrClasspathConsumer.accept(programOrClasspathResult);
       }
+      if (otherProgramOrClasspathResults != null) {
+        otherProgramOrClasspathResults.forEach(programOrClasspathConsumer);
+      }
       libraryResolutionResults.forEach(libraryResultConsumer);
       failedResolutionResults.forEach(failedResolutionConsumer);
+    }
+
+    @Override
+    public boolean isMultiMethodResolutionResult() {
+      return true;
     }
   }
 
@@ -1309,7 +1390,11 @@ public abstract class MethodResolutionResult
         SingleProgramResolutionResult programOrClasspathResult,
         List<SingleLibraryResolutionResult> libraryResolutionResults,
         List<FailedResolutionResult> failedOrUnknownResolutionResults) {
-      super(programOrClasspathResult, libraryResolutionResults, failedOrUnknownResolutionResults);
+      super(
+          programOrClasspathResult,
+          null,
+          libraryResolutionResults,
+          failedOrUnknownResolutionResults);
     }
   }
 
@@ -1320,7 +1405,11 @@ public abstract class MethodResolutionResult
         SingleClasspathResolutionResult programOrClasspathResult,
         List<SingleLibraryResolutionResult> libraryResolutionResults,
         List<FailedResolutionResult> failedOrUnknownResolutionResults) {
-      super(programOrClasspathResult, libraryResolutionResults, failedOrUnknownResolutionResults);
+      super(
+          programOrClasspathResult,
+          null,
+          libraryResolutionResults,
+          failedOrUnknownResolutionResults);
     }
   }
 
@@ -1330,7 +1419,18 @@ public abstract class MethodResolutionResult
     public MultipleLibraryMethodResolutionResult(
         List<SingleLibraryResolutionResult> libraryResolutionResults,
         List<FailedResolutionResult> failedOrUnknownResolutionResults) {
-      super(null, libraryResolutionResults, failedOrUnknownResolutionResults);
+      super(null, null, libraryResolutionResults, failedOrUnknownResolutionResults);
+    }
+  }
+
+  public static class MultipleMaximallySpecificResolutionResult
+      extends MultipleMethodResolutionResult<DexProgramClass, SingleProgramResolutionResult> {
+
+    public MultipleMaximallySpecificResolutionResult(
+        List<SingleResolutionResult<? extends ProgramOrClasspathClass>> programOrClasspathResult,
+        List<SingleLibraryResolutionResult> libraryResolutionResults,
+        List<FailedResolutionResult> failedResolutionResults) {
+      super(null, programOrClasspathResult, libraryResolutionResults, failedResolutionResults);
     }
   }
 
@@ -1342,6 +1442,7 @@ public abstract class MethodResolutionResult
 
     private MethodResolutionResult possiblySingleResult = null;
     private List<MethodResolutionResult> allResults = null;
+    private boolean allowMultipleProgramResults = false;
 
     private Builder() {}
 
@@ -1357,26 +1458,29 @@ public abstract class MethodResolutionResult
       allResults.add(result);
     }
 
+    public Builder allowMultipleProgramResults() {
+      allowMultipleProgramResults = true;
+      return this;
+    }
+
     public MethodResolutionResult buildOrIfEmpty(MethodResolutionResult emptyResult) {
       if (possiblySingleResult == null) {
         return emptyResult;
       } else if (allResults == null) {
         return possiblySingleResult;
       }
-      Box<SingleResolutionResult<?>> singleResult = new Box<>();
+      List<SingleResolutionResult<? extends ProgramOrClasspathClass>> programOrClasspathResults =
+          new ArrayList<>();
       List<SingleLibraryResolutionResult> libraryResults = new ArrayList<>();
       List<FailedResolutionResult> failedResults = new ArrayList<>();
       allResults.forEach(
           otherResult -> {
             otherResult.visitMethodResolutionResults(
                 otherProgramOrClasspathResult -> {
-                  if (singleResult.isSet()) {
+                  if (!programOrClasspathResults.isEmpty() && !allowMultipleProgramResults) {
                     assert false : "Unexpected multiple results between program and classpath";
-                    if (singleResult.get().hasProgramResult()) {
-                      return;
-                    }
                   }
-                  singleResult.set(otherProgramOrClasspathResult);
+                  programOrClasspathResults.add(otherProgramOrClasspathResult);
                 },
                 newLibraryResult -> {
                   if (!Iterables.any(
@@ -1396,7 +1500,7 @@ public abstract class MethodResolutionResult
                   }
                 });
           });
-      if (!singleResult.isSet()) {
+      if (programOrClasspathResults.isEmpty()) {
         if (libraryResults.size() == 1 && failedResults.isEmpty()) {
           return libraryResults.get(0);
         } else if (libraryResults.isEmpty() && failedResults.size() == 1) {
@@ -1404,17 +1508,27 @@ public abstract class MethodResolutionResult
         } else {
           return new MultipleLibraryMethodResolutionResult(libraryResults, failedResults);
         }
-      } else if (libraryResults.isEmpty() && failedResults.isEmpty()) {
-        return singleResult.get();
-      } else if (singleResult.get().hasProgramResult()) {
-        return new MultipleProgramWithLibraryResolutionResult(
-            singleResult.get().asSingleProgramResolutionResult(), libraryResults, failedResults);
+      } else if (libraryResults.isEmpty()
+          && failedResults.isEmpty()
+          && programOrClasspathResults.size() == 1) {
+        return programOrClasspathResults.get(0);
+      } else if (programOrClasspathResults.size() == 1) {
+        SingleResolutionResult<?> singleResult = programOrClasspathResults.get(0);
+        if (singleResult.hasProgramResult()) {
+          return new MultipleProgramWithLibraryResolutionResult(
+              singleResult.asSingleProgramResolutionResult(), libraryResults, failedResults);
+        } else {
+          SingleClasspathResolutionResult classpathResult =
+              singleResult.asSingleClasspathResolutionResult();
+          assert classpathResult != null;
+          return new MultipleClasspathWithLibraryResolutionResult(
+              classpathResult, libraryResults, failedResults);
+        }
       } else {
-        SingleClasspathResolutionResult classpathResult =
-            singleResult.get().asSingleClasspathResolutionResult();
-        assert classpathResult != null;
-        return new MultipleClasspathWithLibraryResolutionResult(
-            classpathResult, libraryResults, failedResults);
+        // This must be a maximally specific result since we have multiple program or classpath
+        // values.
+        return new MultipleMaximallySpecificResolutionResult(
+            programOrClasspathResults, libraryResults, failedResults);
       }
     }
   }

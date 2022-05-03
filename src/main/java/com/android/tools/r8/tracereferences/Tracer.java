@@ -363,9 +363,9 @@ public class Tracer {
           resolutionResult
               .asFailedResolution()
               .forEachFailureDependency(
-                  methodCausingFailure -> {
-                    handleRewrittenMethodReference(method, methodCausingFailure);
-                  });
+                  type -> addType(type, referencedFrom),
+                  methodCausingFailure ->
+                      handleRewrittenMethodReference(method, methodCausingFailure));
           return;
         }
         handleRewrittenMethodReference(method, resolutionResult.getResolutionPair());

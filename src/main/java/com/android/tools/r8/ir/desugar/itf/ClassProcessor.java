@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.Der
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.OptionalBool;
@@ -696,7 +697,8 @@ final class ClassProcessor {
       if (resolutionResult.isFailedResolution()) {
         resolutionResult
             .asFailedResolution()
-            .forEachFailureDependency(target -> staticTarget.and(target.isStatic()));
+            .forEachFailureDependency(
+                ConsumerUtils.emptyConsumer(), target -> staticTarget.and(target.isStatic()));
       } else if (resolutionResult.isSuccessfulMemberResolutionResult()) {
         staticTarget.set(
             resolutionResult.asSuccessfulMemberResolutionResult().getResolvedMember().isStatic());

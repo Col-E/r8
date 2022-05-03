@@ -5,11 +5,13 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.graph.LookupResult.LookupResultSuccess.LookupResultCollectionState;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public abstract class LookupResult {
@@ -163,6 +165,7 @@ public abstract class LookupResult {
       private final Map<DexMethod, LookupMethodTarget> methodTargets = new IdentityHashMap<>();
       private final List<LookupLambdaTarget> lambdaTargets = new ArrayList<>();
       private final List<DexEncodedMethod> methodsCausingFailure = new ArrayList<>();
+      private final Set<DexType> typesCausingFailure = Sets.newIdentityHashSet();
       private LookupResultCollectionState state;
 
       public Builder addMethodTarget(LookupMethodTarget methodTarget) {
@@ -178,6 +181,11 @@ public abstract class LookupResult {
 
       public Builder addMethodCausingFailure(DexEncodedMethod methodCausingFailure) {
         methodsCausingFailure.add(methodCausingFailure);
+        return this;
+      }
+
+      public Builder addTypeCausingFailure(DexType typeCausingFailure) {
+        typesCausingFailure.add(typeCausingFailure);
         return this;
       }
 
