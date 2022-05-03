@@ -314,7 +314,7 @@ public class Tracer {
         assert lookupResult.getType().isStatic();
         DexMethod rewrittenMethod = lookupResult.getReference();
         handleRewrittenMethodResolution(
-            rewrittenMethod, appInfo().unsafeResolveMethodDueToDexFormat(rewrittenMethod));
+            rewrittenMethod, appInfo().unsafeResolveMethodDueToDexFormatLegacy(rewrittenMethod));
       }
 
       @Override
@@ -352,25 +352,23 @@ public class Tracer {
         handleRewrittenMethodResolution(
             method,
             lookupResult.getType().isInterface()
-                ? appInfo().resolveMethodOnInterfaceHolder(method)
-                : appInfo().resolveMethodOnClassHolder(method));
+                ? appInfo().resolveMethodOnInterfaceHolderLegacy(method)
+                : appInfo().resolveMethodOnClassHolderLegacy(method));
       }
 
       private void handleRewrittenMethodResolution(
           DexMethod method, MethodResolutionResult resolutionResult) {
-        resolutionResult.forEachMethodResolutionResult(
-            result -> {
-              if (result.isSingleResolution()) {
-                handleRewrittenMethodReference(method, result.getResolutionPair());
-              } else {
-                result
-                    .asFailedResolution()
-                    .forEachFailureDependency(
-                        type -> addType(type, referencedFrom),
-                        methodCausingFailure ->
-                            handleRewrittenMethodReference(method, methodCausingFailure));
-              }
-            });
+        if (resolutionResult.isFailedResolution()
+            && resolutionResult.asFailedResolution().hasMethodsCausingError()) {
+          resolutionResult
+              .asFailedResolution()
+              .forEachFailureDependency(
+                  type -> addType(type, referencedFrom),
+                  methodCausingFailure ->
+                      handleRewrittenMethodReference(method, methodCausingFailure));
+          return;
+        }
+        handleRewrittenMethodReference(method, resolutionResult.getResolutionPair());
       }
 
       private void handleRewrittenMethodReference(
