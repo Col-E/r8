@@ -17,6 +17,7 @@ import com.android.tools.r8.compilerapi.mockdata.MockClass;
 import com.android.tools.r8.compilerapi.mockdata.MockClassWithAssertion;
 import com.android.tools.r8.compilerapi.sourcefile.CustomSourceFileTest;
 import com.android.tools.r8.compilerapi.testsetup.ApiTestingSetUpTest;
+import com.android.tools.r8.compilerapi.wrappers.CommandLineParserTest;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -40,7 +41,7 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
           DesugarDependenciesTest.ApiTest.class);
 
   private static final List<Class<? extends CompilerApiTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
-      ImmutableList.of(GlobalSyntheticsTest.ApiTest.class);
+      ImmutableList.of(GlobalSyntheticsTest.ApiTest.class, CommandLineParserTest.ApiTest.class);
 
   private final TemporaryFolder temp;
 

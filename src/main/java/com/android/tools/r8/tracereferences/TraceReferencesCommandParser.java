@@ -3,9 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.tracereferences;
 
+
 import com.android.tools.r8.BaseCompilerCommandParser;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.JdkClassFileProvider;
+import com.android.tools.r8.ParseFlagInfo;
+import com.android.tools.r8.ParseFlagInfoImpl;
+import com.android.tools.r8.ParseFlagPrinter;
 import com.android.tools.r8.StringConsumer.FileConsumer;
 import com.android.tools.r8.StringConsumer.WriterConsumer;
 import com.android.tools.r8.errors.Unreachable;
@@ -13,14 +17,15 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 class TraceReferencesCommandParser {
@@ -28,35 +33,69 @@ class TraceReferencesCommandParser {
   private static final Set<String> OPTIONS_WITH_PARAMETER =
       ImmutableSet.of("--lib", "--target", "--source", "--output");
 
-  static final String USAGE_MESSAGE =
-      String.join(
-          "\n",
-          Iterables.concat(
-              Arrays.asList(
-                  "Usage: tracereferences <command> [<options>] [@<argfile>]",
-                  " Where <command> is one of:",
-                  "  --check                 # Run emitting only diagnostics messages.",
-                  "  --keep-rules [<keep-rules-options>]",
-                  "                          # Traced references will be output in the keep-rules",
-                  "                          # format.",
-                  " and each <argfile> is a file containing additional options (one per line)",
-                  " and options are:",
-                  "  --lib <file|jdk-home>   # Add <file|jdk-home> runtime library.",
-                  "  --source <file>         # Add <file> as a source for tracing references.",
-                  "  [--target <file>]       # Add <file> as a target for tracing references. When",
-                  "                          # target is not specified all references from source",
-                  "                          # outside of library are treated as a missing",
-                  "                          # references.",
-                  "  --output <file>         # Output result in <outfile>. If not passed the",
-                  "                          # result will go to standard out."),
-              BaseCompilerCommandParser.MAP_DIAGNOSTICS_USAGE_MESSAGE,
-              Arrays.asList(
-                  "  --version               # Print the version of tracereferences.",
-                  "  --help                  # Print this message.",
-                  " and <keep-rule-options> are:",
-                  "  --allowobfuscation      # Output keep rules with the allowobfuscation",
-                  "                          # modifier (defaults to rules without the"
-                      + " modifier)")));
+  static String getUsageMessage() {
+    StringBuilder builder = new StringBuilder();
+    StringUtils.appendLines(
+        builder,
+        "Usage: tracereferences <command> [<options>] [@<argfile>]",
+        " Where <command> is one of:");
+    new ParseFlagPrinter().addFlags(getCommandFlags()).appendLinesToBuilder(builder);
+    StringUtils.appendLines(
+        builder,
+        " and each <argfile> is a file containing additional options (one per line)",
+        " and options are:");
+    new ParseFlagPrinter().addFlags(getOptionFlags()).appendLinesToBuilder(builder);
+    StringUtils.appendLines(builder, " and <keep-rule-options> are:");
+    new ParseFlagPrinter().addFlags(getKeepRuleFlags()).appendLinesToBuilder(builder);
+    return builder.toString();
+  }
+
+  static List<ParseFlagInfo> getCommandFlags() {
+    return ImmutableList.of(
+        ParseFlagInfoImpl.flag0("--check", "Run emitting only diagnostics messages."),
+        ParseFlagInfoImpl.flag1(
+            "--keep-rules",
+            "[<keep-rules-options>]",
+            "Traced references will be output in the keep-rules",
+            "format."));
+  }
+
+  static List<ParseFlagInfo> getOptionFlags() {
+    return ImmutableList.<ParseFlagInfo>builder()
+        .add(
+            ParseFlagInfoImpl.flag1(
+                "--lib", "<file|jdk-home>", "Add <file|jdk-home> runtime library."))
+        .add(
+            ParseFlagInfoImpl.flag1(
+                "--source", "<file>", "Add <file> as a source for tracing references."))
+        .add(
+            ParseFlagInfoImpl.flag1(
+                "--target",
+                "<file>",
+                "Add <file> as a target for tracing references. When",
+                "target is not specified all references from source",
+                "outside of library are treated as a missing",
+                "references."))
+        .add(
+            ParseFlagInfoImpl.flag1(
+                "--output",
+                "<file>",
+                "Output result in <outfile>. If not passed the",
+                "result will go to standard out."))
+        .add(ParseFlagInfoImpl.getMapDiagnostics())
+        .add(ParseFlagInfoImpl.getVersion("tracereferences"))
+        .add(ParseFlagInfoImpl.getHelp())
+        .build();
+  }
+
+  static List<ParseFlagInfo> getKeepRuleFlags() {
+    return ImmutableList.of(
+        ParseFlagInfoImpl.flag0(
+            "--allowobfuscation",
+            "Output keep rules with the allowobfuscation",
+            "modifier (defaults to rules without the modifier)"));
+  }
+
   /**
    * Parse the tracereferences command-line.
    *

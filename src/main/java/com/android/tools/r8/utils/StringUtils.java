@@ -124,6 +124,13 @@ public class StringUtils {
     return builder;
   }
 
+  public static StringBuilder appendLines(StringBuilder builder, String... lines) {
+    for (String line : lines) {
+      builder.append(line).append(LINE_SEPARATOR);
+    }
+    return builder;
+  }
+
   public static String join(String separator, String... strings) {
     return join(separator, Arrays.asList(strings));
   }

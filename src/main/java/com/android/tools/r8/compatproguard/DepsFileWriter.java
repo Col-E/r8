@@ -56,7 +56,7 @@ public class DepsFileWriter implements InputDependencyGraphConsumer {
     }
   }
 
-  public static String escape(String filepath) {
+  private static String escape(String filepath) {
     return filepath.replace(" ", "\\ ");
   }
 }

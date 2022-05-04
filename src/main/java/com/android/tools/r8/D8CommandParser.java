@@ -5,20 +5,18 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -37,6 +35,45 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
           "--main-dex-list-output",
           "--desugared-lib",
           THREAD_COUNT_FLAG);
+
+  public static List<ParseFlagInfo> getFlags() {
+    return ImmutableList.<ParseFlagInfo>builder()
+        .add(ParseFlagInfoImpl.getDebug(true))
+        .add(ParseFlagInfoImpl.getRelease(false))
+        .add(ParseFlagInfoImpl.getOutput())
+        .add(ParseFlagInfoImpl.getLib())
+        .add(ParseFlagInfoImpl.getClasspath())
+        .add(ParseFlagInfoImpl.getMinApi())
+        .add(
+            ParseFlagInfoImpl.flag1(
+                "--pg-map", "<file>", "Use <file> as a mapping file for distribution."))
+        // TODO(b/183125319): Add help info once supported.
+        // "  --pg-map-output <file>  # Enable line optimization and output mapping to <file>.",
+        .add(
+            ParseFlagInfoImpl.flag0(
+                "--intermediate", "Compile an intermediate result intended for later", "merging."))
+        .add(
+            ParseFlagInfoImpl.flag0(
+                "--file-per-class",
+                "Produce a separate dex file per class.",
+                "Synthetic classes are in their own file."))
+        .add(
+            ParseFlagInfoImpl.flag0(
+                "--file-per-class-file",
+                "Produce a separate dex file per input .class file.",
+                "Synthetic classes are with their originating class."))
+        .add(ParseFlagInfoImpl.flag0("--no-desugaring", "Force disable desugaring."))
+        .add(ParseFlagInfoImpl.getDesugaredLib())
+        .add(ParseFlagInfoImpl.getMainDexRules())
+        .add(ParseFlagInfoImpl.getMainDexList())
+        .add(ParseFlagInfoImpl.getMainDexListOutput())
+        .addAll(ParseFlagInfoImpl.getAssertionsFlags())
+        .add(ParseFlagInfoImpl.getThreadCount())
+        .add(ParseFlagInfoImpl.getMapDiagnostics())
+        .add(ParseFlagInfoImpl.getVersion("d8"))
+        .add(ParseFlagInfoImpl.getHelp())
+        .build();
+  }
 
   private static final String APK_EXTENSION = ".apk";
   private static final String JAR_EXTENSION = ".jar";
@@ -104,57 +141,24 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
   public static void main(String[] args) throws CompilationFailedException {
     D8Command command = parse(args, Origin.root()).build();
     if (command.isPrintHelp()) {
-      System.out.println(USAGE_MESSAGE);
+      System.out.println(getUsageMessage());
     } else {
       D8.run(command);
     }
   }
 
-  static final String USAGE_MESSAGE =
-      String.join(
-          "\n",
-          Iterables.concat(
-              Arrays.asList(
-                  "Usage: d8 [options] [@<argfile>] <input-files>",
-                  " where <input-files> are any combination of dex, class, zip, jar, or apk files",
-                  " and each <argfile> is a file containing additional arguments (one per line)",
-                  " and options are:",
-                  "  --debug                 # Compile with debugging information (default).",
-                  "  --release               # Compile without debugging information.",
-                  "  --output <file>         # Output result in <outfile>.",
-                  "                          # <file> must be an existing directory or a zip file.",
-                  "  --lib <file|jdk-home>   # Add <file|jdk-home> as a library resource.",
-                  "  --classpath <file>      # Add <file> as a classpath resource.",
-                  "  "
-                      + MIN_API_FLAG
-                      + " <number>      "
-                      + "# Minimum Android API level compatibility, default: "
-                      + AndroidApiLevel.getDefault().getLevel()
-                      + ".",
-                  "  --pg-map <file>         # Use <file> as a mapping file for distribution.",
-                  // TODO(b/183125319): Add help info once supported.
-                  // "  --pg-map-output <file>  # Enable line optimization and output mapping to"
-                  //     +" <file>.",
-                  "  --intermediate          # Compile an intermediate result intended for later",
-                  "                          # merging.",
-                  "  --file-per-class        # Produce a separate dex file per class.",
-                  "                          # Synthetic classes are in their own file.",
-                  "  --file-per-class-file   # Produce a separate dex file per input .class file.",
-                  "                          # Synthetic classes are with their originating class.",
-                  "  --no-desugaring         # Force disable desugaring.",
-                  "  --desugared-lib <file>  # Specify desugared library configuration.",
-                  "                          # <file> is a desugared library configuration (json).",
-                  "  --main-dex-rules <file> # Proguard keep rules for classes to place in the",
-                  "                          # primary dex file.",
-                  "  --main-dex-list <file>  # List of classes to place in the primary dex file.",
-                  "  --main-dex-list-output <file>",
-                  "                          # Output resulting main dex list in <file>."),
-              ASSERTIONS_USAGE_MESSAGE,
-              THREAD_COUNT_USAGE_MESSAGE,
-              MAP_DIAGNOSTICS_USAGE_MESSAGE,
-              Arrays.asList(
-                  "  --version               # Print the version of d8.",
-                  "  --help                  # Print this message.")));
+  static String getUsageMessage() {
+    StringBuilder builder = new StringBuilder();
+    StringUtils.appendLines(
+        builder,
+        "Usage: d8 [options] [@<argfile>] <input-files>",
+        " where <input-files> are any combination of dex, class, zip, jar, or apk files",
+        " and each <argfile> is a file containing additional arguments (one per line)",
+        " and options are:");
+    new ParseFlagPrinter().addFlags(ImmutableList.copyOf(getFlags())).appendLinesToBuilder(builder);
+    return builder.toString();
+  }
+
   /**
    * Parse the D8 command-line.
    *

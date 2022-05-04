@@ -6,14 +6,14 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.D8CommandParser.OrderedClassFileResourceProvider;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Command.Builder> {
@@ -31,66 +31,64 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
   public static void main(String[] args) throws CompilationFailedException {
     L8Command command = parse(args, Origin.root()).build();
     if (command.isPrintHelp()) {
-      System.out.println(USAGE_MESSAGE);
+      System.out.println(getUsageMessage());
     } else {
       L8.run(command);
     }
   }
 
-  static final String USAGE_MESSAGE =
-      String.join(
-          "\n",
-          Iterables.concat(
-              Arrays.asList(
-                  "Usage: l8 [options] <input-files>",
-                  " where <input-files> are any combination of dex, class, zip, jar, or apk files",
-                  " and options are:",
-                  "  --debug                 # Compile with debugging information (default).",
-                  "  --release               # Compile without debugging information.",
-                  "  --output <file>         # Output result in <outfile>.",
-                  "                          # <file> must be an existing directory or a zip file.",
-                  "  --lib <file|jdk-home>   # Add <file|jdk-home> as a library resource.",
-                  "  "
-                      + MIN_API_FLAG
-                      + " <number>      "
-                      + "# Minimum Android API level compatibility, default: "
-                      + AndroidApiLevel.getDefault().getLevel()
-                      + ".",
-                  "  --pg-conf <file>        # Proguard configuration <file>.",
-                  "  --pg-map-output <file>  # Output the resulting name and line mapping to"
-                      + " <file>.",
-                  "  --desugared-lib <file>  # Specify desugared library configuration.",
-                  "                          # <file> is a desugared library configuration"
-                      + " (json)."),
-              ASSERTIONS_USAGE_MESSAGE,
-              THREAD_COUNT_USAGE_MESSAGE,
-              MAP_DIAGNOSTICS_USAGE_MESSAGE,
-              Arrays.asList(
-                  "  --version               # Print the version of l8.",
-                  "  --help                  # Print this message.")));
+  static String getUsageMessage() {
+    StringBuilder builder = new StringBuilder();
+    StringUtils.appendLines(
+        builder,
+        "Usage: l8 [options] <input-files>",
+        " where <input-files> are any combination class, zip, or jar files",
+        " where <input-files> are any combination of dex, class, zip, jar, or apk files",
+        " and options are:");
+    new ParseFlagPrinter().addFlags(getFlags()).appendLinesToBuilder(builder);
+    return builder.toString();
+  }
+
+  static List<ParseFlagInfo> getFlags() {
+    return ImmutableList.<ParseFlagInfo>builder()
+        .add(ParseFlagInfoImpl.getDebug(true))
+        .add(ParseFlagInfoImpl.getRelease(false))
+        .add(ParseFlagInfoImpl.getOutput())
+        .add(ParseFlagInfoImpl.getLib())
+        .add(ParseFlagInfoImpl.getMinApi())
+        .add(ParseFlagInfoImpl.getPgConf())
+        .add(ParseFlagInfoImpl.getPgMapOutput())
+        .add(ParseFlagInfoImpl.getDesugaredLib())
+        .addAll(ParseFlagInfoImpl.getAssertionsFlags())
+        .add(ParseFlagInfoImpl.getThreadCount())
+        .add(ParseFlagInfoImpl.getMapDiagnostics())
+        .add(ParseFlagInfoImpl.getVersion("l8"))
+        .add(ParseFlagInfoImpl.getHelp())
+        .build();
+  }
 
   /**
-   * Parse the D8 command-line.
+   * Parse the L8 command-line.
    *
    * <p>Parsing will set the supplied options or their default value if they have any.
    *
    * @param args Command-line arguments array.
    * @param origin Origin description of the command-line arguments.
-   * @return D8 command builder with state set up according to parsed command line.
+   * @return L8 command builder with state set up according to parsed command line.
    */
   public static L8Command.Builder parse(String[] args, Origin origin) {
     return new L8CommandParser().parse(args, origin, L8Command.builder());
   }
 
   /**
-   * Parse the D8 command-line.
+   * Parse the L8 command-line.
    *
    * <p>Parsing will set the supplied options or their default value if they have any.
    *
    * @param args Command-line arguments array.
    * @param origin Origin description of the command-line arguments.
    * @param handler Custom defined diagnostics handler.
-   * @return D8 command builder with state set up according to parsed command line.
+   * @return L8 command builder with state set up according to parsed command line.
    */
   public static L8Command.Builder parse(String[] args, Origin origin, DiagnosticsHandler handler) {
     return new L8CommandParser().parse(args, origin, L8Command.builder(handler));

@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import static com.android.tools.r8.R8Command.USAGE_MESSAGE;
 import static com.android.tools.r8.utils.AssertionUtils.forTesting;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
@@ -1096,7 +1095,7 @@ public class R8 {
     R8Command command = R8Command.parse(args, CommandLineOrigin.INSTANCE).build();
     if (command.isPrintHelp()) {
       SelfRetraceTest.test();
-      System.out.println(USAGE_MESSAGE);
+      System.out.println(R8Command.getUsageMessage());
       return;
     }
     if (command.isPrintVersion()) {
@@ -1116,11 +1115,12 @@ public class R8 {
   /**
    * Command-line entry to R8.
    *
-   * See {@link R8Command#USAGE_MESSAGE} or run {@code r8 --help} for usage information.
+   * <p>See {@link R8Command#getUsageMessage()} or run {@code r8 --help} for usage information.
    */
   public static void main(String[] args) {
     if (args.length == 0) {
-      throw new RuntimeException(StringUtils.joinLines("Invalid invocation.", USAGE_MESSAGE));
+      throw new RuntimeException(
+          StringUtils.joinLines("Invalid invocation.", R8Command.getUsageMessage()));
     }
     ExceptionUtils.withMainProgramHandler(() -> run(args));
   }

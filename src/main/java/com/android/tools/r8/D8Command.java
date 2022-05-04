@@ -415,8 +415,6 @@ public final class D8Command extends BaseCompilerCommand {
     }
   }
 
-  static final String USAGE_MESSAGE = D8CommandParser.USAGE_MESSAGE;
-
   private final boolean intermediate;
   private final GlobalSyntheticsConsumer globalSyntheticsConsumer;
   private final DesugarGraphConsumer desugarGraphConsumer;
@@ -468,6 +466,11 @@ public final class D8Command extends BaseCompilerCommand {
    */
   public static Builder parse(String[] args, Origin origin, DiagnosticsHandler handler) {
     return D8CommandParser.parse(args, origin, handler);
+  }
+
+  /** Get the help description for the D8 supported flags. */
+  public static List<ParseFlagInfo> getParseFlagsInformation() {
+    return D8CommandParser.getFlags();
   }
 
   private D8Command(

@@ -3,19 +3,22 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.ParseFlagInfoImpl.flag0;
+import static com.android.tools.r8.ParseFlagInfoImpl.flag1;
+import static com.android.tools.r8.ParseFlagInfoImpl.flag2;
+
 import com.android.tools.r8.StringConsumer.FileConsumer;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.MapIdTemplateProvider;
 import com.android.tools.r8.utils.SourceFileTemplateProvider;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +26,7 @@ import java.util.Set;
 
 public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Command.Builder> {
 
+  // Note: this must be a super-set of OPTIONS_WITH_TWO_PARAMETERS.
   private static final Set<String> OPTIONS_WITH_PARAMETER =
       ImmutableSet.of(
           "--output",
@@ -42,15 +46,78 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
           "--source-file-template",
           THREAD_COUNT_FLAG);
 
+  // Note: this must be a subset of OPTIONS_WITH_ONE_PARAMETER.
   private static final Set<String> OPTIONS_WITH_TWO_PARAMETERS = ImmutableSet.of("--feature");
 
-  public static void main(String[] args) throws CompilationFailedException {
-    R8Command command = parse(args, Origin.root()).build();
-    if (command.isPrintHelp()) {
-      System.out.println(USAGE_MESSAGE);
-    } else {
-      R8.run(command);
-    }
+  // Due to the family of flags (for assertions and diagnostics) we can't base the one/two args
+  // on this setup of flags. Thus, the flag collection just encodes the descriptive content.
+  static List<ParseFlagInfoImpl> getFlags() {
+    return ImmutableList.<ParseFlagInfoImpl>builder()
+        .add(ParseFlagInfoImpl.getRelease(true))
+        .add(ParseFlagInfoImpl.getDebug(false))
+        .add(ParseFlagInfoImpl.getDex(true))
+        .add(ParseFlagInfoImpl.getClassfile())
+        .add(ParseFlagInfoImpl.getOutput())
+        .add(ParseFlagInfoImpl.getLib())
+        .add(ParseFlagInfoImpl.getClasspath())
+        .add(ParseFlagInfoImpl.getMinApi())
+        .add(flag0("--pg-compat", "Compile with R8 in Proguard compatibility mode."))
+        .add(ParseFlagInfoImpl.getPgConf())
+        .add(flag1("--pg-conf-output", "<file>", "Output the collective configuration to <file>."))
+        .add(ParseFlagInfoImpl.getPgMapOutput())
+        .add(ParseFlagInfoImpl.getDesugaredLib())
+        .add(
+            flag1(
+                "--desugared-lib-pg-conf-output",
+                "<file>",
+                "Output the Proguard configuration for L8 to <file>."))
+        .add(flag0("--no-tree-shaking", "Force disable tree shaking of unreachable classes."))
+        .add(flag0("--no-minification", "Force disable minification of names."))
+        .add(flag0("--no-data-resources", "Ignore all data resources."))
+        .add(flag0("--no-desugaring", "Force disable desugaring."))
+        .add(ParseFlagInfoImpl.getMainDexRules())
+        .add(ParseFlagInfoImpl.getMainDexList())
+        .add(
+            flag2(
+                "--feature",
+                "<input>",
+                "<output>",
+                "Add feature <input> file to <output> file. Several ",
+                "occurrences can map to the same output."))
+        .add(flag1("--main-dex-list-output", "<file>", "Output the full main-dex list in <file>."))
+        .addAll(ParseFlagInfoImpl.getAssertionsFlags())
+        .add(ParseFlagInfoImpl.getThreadCount())
+        .add(ParseFlagInfoImpl.getMapDiagnostics())
+        .add(
+            flag1(
+                "--map-id-template",
+                "<template>",
+                "Set the map-id to <template>.",
+                "The <template> can reference the variables:",
+                "  %MAP_HASH: compiler generated mapping hash."))
+        .add(
+            flag1(
+                "--source-file-template",
+                "<template>",
+                "Set all source-file attributes to <template>",
+                "The <template> can reference the variables:",
+                "  %MAP_ID: map id (e.g., value of --map-id-template).",
+                "  %MAP_HASH: compiler generated mapping hash."))
+        .add(ParseFlagInfoImpl.getVersion("r8"))
+        .add(ParseFlagInfoImpl.getHelp())
+        .build();
+  }
+
+  static String getUsageMessage() {
+    StringBuilder builder = new StringBuilder();
+    StringUtils.appendLines(
+        builder,
+        "Usage: r8 [options] [@<argfile>] <input-files>",
+        " where <input-files> are any combination class, zip, or jar files",
+        " and each <argfile> is a file containing additional arguments (one per line)",
+        " and options are:");
+    new ParseFlagPrinter().addFlags(ImmutableList.copyOf(getFlags())).appendLinesToBuilder(builder);
+    return builder.toString();
   }
 
   // Internal state to verify parsing properties not enforced by the builder.
@@ -62,56 +129,6 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
     private boolean includeDataResources = true;
   }
 
-  static final String USAGE_MESSAGE =
-      String.join(
-          "\n",
-          Iterables.concat(
-              Arrays.asList(
-                  "Usage: r8 [options] [@<argfile>] <input-files>",
-                  " where <input-files> are any combination of dex, class, zip, jar, or apk files",
-                  " and each <argfile> is a file containing additional arguments (one per line)",
-                  " and options are:",
-                  "  --release               # Compile without debugging information (default).",
-                  "  --debug                 # Compile with debugging information.",
-                  "  --dex                   # Compile program to DEX file format (default).",
-                  "  --classfile             # Compile program to Java classfile format.",
-                  "  --output <file>         # Output result in <file>.",
-                  "                          # <file> must be an existing directory or a zip file.",
-                  "  --lib <file|jdk-home>   # Add <file|jdk-home> as a library resource.",
-                  "  --classpath <file>      # Add <file> as a classpath resource.",
-                  "  "
-                      + MIN_API_FLAG
-                      + " <number>      "
-                      + "# Minimum Android API level compatibility, default: "
-                      + AndroidApiLevel.getDefault().getLevel()
-                      + ".",
-                  "  --pg-compat             # Compile with R8 in Proguard compatibility mode.",
-                  "  --pg-conf <file>        # Proguard configuration <file>.",
-                  "  --pg-conf-output <file> # Output the collective configuration to <file>.",
-                  "  --pg-map-output <file>  # Output the resulting name and line mapping to"
-                      + " <file>.",
-                  "  --desugared-lib <file>  # Specify desugared library configuration.",
-                  "                          # <file> is a desugared library configuration (json).",
-                  "  --desugared-lib-pg-conf-output <file>  # Output the Proguard configuration ",
-                  "                          # needed by L8 to <file>.",
-                  "  --no-tree-shaking       # Force disable tree shaking of unreachable classes.",
-                  "  --no-minification       # Force disable minification of names.",
-                  "  --no-data-resources     # Ignore all data resources.",
-                  "  --no-desugaring         # Force disable desugaring.",
-                  "  --main-dex-rules <file> # Proguard keep rules for classes to place in the",
-                  "                          # primary dex file.",
-                  "  --main-dex-list <file>  # List of classes to place in the primary dex file.",
-                  "  --feature <input> <output> ",
-                  "                          # Add feature <input> file to <output> file. Several ",
-                  "                          # occurrences can map to the same output.",
-                  "  --main-dex-list-output <file>  ",
-                  "                          # Output the full main-dex list in <file>."),
-              ASSERTIONS_USAGE_MESSAGE,
-              THREAD_COUNT_USAGE_MESSAGE,
-              MAP_DIAGNOSTICS_USAGE_MESSAGE,
-              Arrays.asList(
-                  "  --version               # Print the version of r8.",
-                  "  --help                  # Print this message.")));
   /**
    * Parse the R8 command-line.
    *

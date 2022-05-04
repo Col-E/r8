@@ -38,8 +38,6 @@ import java.util.function.Consumer;
 @Keep
 public final class L8Command extends BaseCompilerCommand {
 
-  static final String USAGE_MESSAGE = L8CommandParser.USAGE_MESSAGE;
-
   private final D8Command d8Command;
   private final R8Command r8Command;
   private final DesugaredLibrarySpecification desugaredLibrarySpecification;

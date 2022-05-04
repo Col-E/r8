@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.function.Consumer;
 
 public class BaseCompilerCommandParser<
@@ -26,49 +25,6 @@ public class BaseCompilerCommandParser<
   protected static final String MAP_DIAGNOSTICS = "--map-diagnostics";
   protected static final String DUMP_INPUT_TO_FILE = "--dumpinputtofile";
   protected static final String DUMP_INPUT_TO_DIRECTORY = "--dumpinputtodirectory";
-
-  static final Iterable<String> ASSERTIONS_USAGE_MESSAGE =
-      Arrays.asList(
-          "  --force-enable-assertions[:[<class name>|<package name>...]]",
-          "  --force-ea[:[<class name>|<package name>...]]",
-          "                          # Forcefully enable javac generated assertion code.",
-          "  --force-disable-assertions[:[<class name>|<package name>...]]",
-          "  --force-da[:[<class name>|<package name>...]]",
-          "                          # Forcefully disable javac generated assertion code. This",
-          "                          # is the default handling of javac assertion code when",
-          "                          # generating DEX file format.",
-          "  --force-passthrough-assertions[:[<class name>|<package name>...]]",
-          "  --force-pa[:[<class name>|<package name>...]]",
-          "                          # Don't change javac generated assertion code. This",
-          "                          # is the default handling of javac assertion code when",
-          "                          # generating class file format.",
-          "  --force-assertions-handler:<handler method>[:[<class name>|<package name>...]]",
-          "  --force-ah:<handler method>[:[<class name>|<package name>...]]",
-          "                          # Change javac and kotlinc generated assertion code to invoke",
-          "                          # the method <handler method> with each assertion error",
-          "                          # instead of throwing it. The <handler method> is specified"
-              + " as",
-          "                          # a class name followed by a dot and the method name. The",
-          "                          # handler method must take a single argument of type",
-          "                          # java.lang.Throwable and have return type void.");
-
-  static final Iterable<String> THREAD_COUNT_USAGE_MESSAGE =
-      Arrays.asList(
-          "  " + THREAD_COUNT_FLAG + " <number of threads>",
-          "                          # Number of threads to use for compilation. If not specified",
-          "                          # the number will be based on heuristics taking the number",
-          "                          # of cores into account.");
-
-  public static final Iterable<String> MAP_DIAGNOSTICS_USAGE_MESSAGE =
-      Arrays.asList(
-          "  " + MAP_DIAGNOSTICS + "[:<type>] <from-level> <to-level>",
-          "                          # Map diagnostics of <type> (default any) reported as",
-          "                          # <from-level> to <to-level> where <from-level> and",
-          "                          # <to-level> are one of 'info', 'warning', or 'error' and the",
-          "                          # optional <type> is either the simple or fully qualified",
-          "                          # Java type name of a diagnostic. If <type> is unspecified,",
-          "                          # all diagnostics at <from-level> will be mapped.",
-          "                          # Note that fatal compiler errors cannot be mapped.");
 
   public static void parsePositiveIntArgument(
       Consumer<Diagnostic> errorConsumer,

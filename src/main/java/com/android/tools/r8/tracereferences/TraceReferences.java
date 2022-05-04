@@ -77,7 +77,7 @@ public class TraceReferences {
     TraceReferencesCommand command =
         TraceReferencesCommand.parse(args, CommandLineOrigin.INSTANCE).build();
     if (command.isPrintHelp()) {
-      System.out.println(TraceReferencesCommandParser.USAGE_MESSAGE);
+      System.out.println(TraceReferencesCommandParser.getUsageMessage());
       return;
     }
     if (command.isPrintVersion()) {
@@ -90,13 +90,14 @@ public class TraceReferences {
   /**
    * Command-line entry to tracereferences.
    *
-   * <p>See {@link TraceReferencesCommandParser#USAGE_MESSAGE} or run {@code tracereferences --help}
-   * for usage information.
+   * <p>See {@link TraceReferencesCommandParser#getUsageMessage()} or run {@code tracereferences
+   * --help} for usage information.
    */
   public static void main(String[] args) {
     if (args.length == 0) {
       throw new RuntimeException(
-          StringUtils.joinLines("Invalid invocation.", TraceReferencesCommandParser.USAGE_MESSAGE));
+          StringUtils.joinLines(
+              "Invalid invocation.", TraceReferencesCommandParser.getUsageMessage()));
     }
     ExceptionUtils.withMainProgramHandler(() -> run(args));
   }

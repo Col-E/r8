@@ -681,7 +681,9 @@ public final class R8Command extends BaseCompilerCommand {
     }
   }
 
-  static final String USAGE_MESSAGE = R8CommandParser.USAGE_MESSAGE;
+  static String getUsageMessage() {
+    return R8CommandParser.getUsageMessage();
+  }
 
   private final List<ProguardConfigurationRule> mainDexKeepRules;
   private final ProguardConfiguration proguardConfiguration;
@@ -748,6 +750,11 @@ public final class R8Command extends BaseCompilerCommand {
    */
   public static Builder parse(String[] args, Origin origin, DiagnosticsHandler handler) {
     return R8CommandParser.parse(args, origin, handler);
+  }
+
+  /** Get the help description for the R8 supported flags. */
+  public static List<ParseFlagInfo> getParseFlagsInformation() {
+    return ImmutableList.copyOf(R8CommandParser.getFlags());
   }
 
   private R8Command(
