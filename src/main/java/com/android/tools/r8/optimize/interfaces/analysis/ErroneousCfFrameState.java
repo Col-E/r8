@@ -24,6 +24,11 @@ public class ErroneousCfFrameState extends CfFrameState {
   }
 
   @Override
+  public CfFrameState clear() {
+    return this;
+  }
+
+  @Override
   public CfFrameState markInitialized(FrameType uninitializedType, DexType initializedType) {
     return this;
   }

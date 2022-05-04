@@ -6,7 +6,6 @@ package com.android.tools.r8.cf.code;
 
 import static com.android.tools.r8.utils.BiPredicateUtils.or;
 
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -71,7 +70,7 @@ public class CfInstanceFieldWrite extends CfFieldInstruction {
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
     // ..., objectref, value →
-    // ...,
+    // ...
     frameBuilder
         .popAndDiscardInitialized(getField().getType())
         .pop(
@@ -87,7 +86,14 @@ public class CfInstanceFieldWrite extends CfFieldInstruction {
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
-    // TODO(b/214496607): Implement this.
-    throw new Unimplemented();
+    // ..., objectref, value →
+    // ...
+    return frame
+        .popInitialized(appView, getField().getType())
+        .popObject(
+            appView,
+            getField().getHolderType(),
+            context,
+            (state, head) -> head.isUninitializedNew() ? CfFrameState.error() : state);
   }
 }

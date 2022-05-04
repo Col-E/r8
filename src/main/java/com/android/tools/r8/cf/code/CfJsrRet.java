@@ -5,7 +5,6 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCodeStackMapValidatingException;
@@ -101,8 +100,7 @@ public class CfJsrRet extends CfInstruction {
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
-    // TODO(b/214496607): Implement this.
-    throw new Unimplemented();
+    return CfFrameState.error();
   }
 
   public int getLocal() {

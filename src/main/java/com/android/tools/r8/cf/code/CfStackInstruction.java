@@ -6,7 +6,6 @@ package com.android.tools.r8.cf.code;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -26,6 +25,7 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
+import com.android.tools.r8.utils.FunctionUtils;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -526,57 +526,97 @@ public class CfStackInstruction extends CfInstruction {
         {
           // ..., value →
           // ...
-          return frame.pop(appView, FrameType.oneWord());
+          return frame.popSingle();
         }
       case Pop2:
         {
-          // TODO(b/214496607): Implement this.
-          throw new Unimplemented();
+          // ..., value2, value1 →
+          // ...
+          // or, for double and long:
+          // ..., value →
+          // ...
+          return frame.popSingleSingleOrWide(FunctionUtils::getFirst, FunctionUtils::getFirst);
         }
       case Dup:
         // ..., value →
         // ..., value, value
-        return frame.pop(
-            appView,
-            FrameType.oneWord(),
-            (newFrame, frameType) -> newFrame.push(frameType).push(frameType));
+        return frame.popSingle((state, single) -> state.push(single, single));
       case DupX1:
         {
-          // TODO(b/214496607): Implement this.
-          throw new Unimplemented();
+          // ..., value2, value1 →
+          // ..., value1, value2, value1
+          return frame.popSingles(
+              (state, single2, single1) -> state.push(single1, single2, single1));
         }
       case DupX2:
         {
-          // TODO(b/214496607): Implement this.
-          throw new Unimplemented();
+          // ..., value3, value2, value1 →
+          // ..., value1, value3, value2, value1
+          // or, if value2 is double or long:
+          // ..., value2, value1 →
+          // ..., value1, value2, value1
+          return frame.popSingle(
+              (state1, single1) ->
+                  state1.popSingleSingleOrWide(
+                      (state2, single3, single2) -> state2.push(single1, single3, single2, single1),
+                      (state2, wide2) -> state2.push(single1, wide2, single1)));
         }
       case Dup2:
         {
-          // TODO(b/214496607): Implement this.
-          throw new Unimplemented();
+          // ..., value2, value1 →
+          // ..., value2, value1, value2, value1
+          // or, for value1 being long or double:
+          // ..., value →
+          // ..., value, value
+          return frame.popSingleSingleOrWide(
+              (state, single2, single1) -> state.push(single2, single1, single2, single1),
+              (state, wide) -> state.push(wide, wide));
         }
       case Dup2X1:
         {
-          // TODO(b/214496607): Implement this.
-          throw new Unimplemented();
+          // ..., value3, value2, value1 →
+          // ..., value2, value1, value3, value2, value1
+          // or, for value1 being a long or double:
+          // ..., value2, value1 →
+          // ..., value1, value2, value1
+          return frame.popSingleSingleOrWide(
+              (state1, single2, single1) ->
+                  state1.popSingle(
+                      (state2, single3) ->
+                          state2.push(single2, single1, single3, single2, single1)),
+              (state1, wide1) ->
+                  state1.popSingle((state2, single2) -> state2.push(wide1, single2, wide1)));
         }
       case Dup2X2:
         {
-          // TODO(b/214496607): Implement this.
-          throw new Unimplemented();
+          // (1)
+          // ..., value4, value3, value2, value1 →
+          // ..., value2, value1, value4, value3, value2, value1
+          // (2) OR, if value1 is long or double
+          // ..., value3, value2, value1 →
+          // ..., value1, value3, value2, value1
+          // (3) OR if value3 is long or double
+          // ..., value3, value2, value1 →
+          // ..., value2, value1, value3, value2, value1
+          // (4) OR, where value1 and value2 is double or long:
+          // ..., value2, value1 →
+          // ..., value1, value2, value1
+          return frame.popSingleSingleOrWide(
+              (state1, single2, single1) ->
+                  state1.popSingleSingleOrWide(
+                      (state2, single4, single3) ->
+                          state2.push(single2, single1, single4, single3, single2, single1),
+                      (state2, wide3) -> state2.push(single2, single1, wide3, single2, single1)),
+              (state1, wide1) ->
+                  state1.popSingleSingleOrWide(
+                      (state2, single3, single2) -> state2.push(wide1, single3, single2, wide1),
+                      (state2, wide2) -> state2.push(wide1, wide2, wide1)));
         }
       case Swap:
         {
           // ..., value2, value1 →
           // ..., value1, value2
-          return frame.pop(
-              appView,
-              FrameType.oneWord(),
-              (newFrame1, frameType1) ->
-                  newFrame1.pop(
-                      appView,
-                      FrameType.oneWord(),
-                      (newFrame2, frameType2) -> newFrame2.push(frameType1).push(frameType2)));
+          return frame.popSingles((state, single2, single1) -> state.push(single1, single2));
         }
       default:
         throw new Unreachable("Invalid opcode for CfStackInstruction");

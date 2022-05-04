@@ -72,6 +72,15 @@ public class CfFrame extends CfInstruction {
       return false;
     }
 
+    public DexType getObjectType(ProgramMethod context) {
+      assert false : "Unexpected use of getObjectType() for non-object FrameType";
+      return null;
+    }
+
+    public final boolean isSingle() {
+      return !isWide();
+    }
+
     public boolean isWide() {
       return false;
     }
@@ -238,12 +247,18 @@ public class CfFrame extends CfInstruction {
     }
 
     @Override
+    public DexType getInitializedType() {
+      return type;
+    }
+
+    @Override
     public boolean isObject() {
       return type.isReferenceType();
     }
 
     @Override
-    public DexType getInitializedType() {
+    public DexType getObjectType(ProgramMethod context) {
+      assert isObject() : "Unexpected use of getObjectType() for non-object FrameType";
       return type;
     }
   }
@@ -293,6 +308,11 @@ public class CfFrame extends CfInstruction {
     }
 
     @Override
+    public DexType getObjectType(ProgramMethod context) {
+      return type;
+    }
+
+    @Override
     public boolean isUninitializedNew() {
       return true;
     }
@@ -330,6 +350,11 @@ public class CfFrame extends CfInstruction {
     @Override
     public boolean isObject() {
       return true;
+    }
+
+    @Override
+    public DexType getObjectType(ProgramMethod context) {
+      return context.getHolderType();
     }
 
     @Override

@@ -36,6 +36,11 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   @Override
+  public CfFrameState clear() {
+    return bottom();
+  }
+
+  @Override
   public CfFrameState markInitialized(FrameType uninitializedType, DexType initializedType) {
     if (uninitializedType.isInitialized()) {
       return error();

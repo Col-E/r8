@@ -4,7 +4,6 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -140,7 +139,7 @@ public class CfReturn extends CfInstruction {
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
-    // TODO(b/214496607): Implement this.
-    throw new Unimplemented();
+    assert !context.getReturnType().isVoidType();
+    return frame.popInitialized(appView, context.getReturnType()).clear();
   }
 }

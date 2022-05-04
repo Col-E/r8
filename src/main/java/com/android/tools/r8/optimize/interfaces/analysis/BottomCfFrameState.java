@@ -23,6 +23,11 @@ public class BottomCfFrameState extends CfFrameState {
   }
 
   @Override
+  public CfFrameState clear() {
+    return this;
+  }
+
+  @Override
   public CfFrameState markInitialized(FrameType uninitializedType, DexType initializedType) {
     return error();
   }
