@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.SPECIFICATIONS_WITH_CF2CF;
+
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
@@ -36,7 +38,7 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
             .withApiLevel(AndroidApiLevel.N)
             .build(),
         ImmutableList.of(LibraryDesugaringSpecification.JDK11),
-        CompilationSpecification.SPECIFICATIONS_WITH_CF2CF);
+        SPECIFICATIONS_WITH_CF2CF);
   }
 
   public BufferedReaderTest(

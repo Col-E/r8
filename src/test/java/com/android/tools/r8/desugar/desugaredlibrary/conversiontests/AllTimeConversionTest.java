@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.fail;
 
@@ -50,8 +52,8 @@ public class AllTimeConversionTest extends DesugaredLibraryTestBase {
   public static List<Object[]> data() {
     return buildParameters(
         getConversionParametersUpToExcluding(MIN_SUPPORTED),
-        LibraryDesugaringSpecification.getJdk8Jdk11(),
-        CompilationSpecification.DEFAULT_SPECIFICATIONS);
+        getJdk8Jdk11(),
+        DEFAULT_SPECIFICATIONS);
   }
 
   public AllTimeConversionTest(

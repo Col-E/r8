@@ -69,8 +69,12 @@ public class LibraryDesugaringSpecification {
   private final Set<Path> desugarJdkLibs;
   private final Path specification;
 
-  public LibraryDesugaringSpecification(String name, Path desugarJdkLibs, Path specification) {
+  LibraryDesugaringSpecification(String name, Path desugarJdkLibs, Path specification) {
     this(name, ImmutableSet.of(desugarJdkLibs, ToolHelper.DESUGAR_LIB_CONVERSIONS), specification);
+  }
+
+  public LibraryDesugaringSpecification(String name, Path specification) {
+    this(name, DESUGARED_JDK_11_LIB_JAR, specification);
   }
 
   public LibraryDesugaringSpecification(String name, Set<Path> desugarJdkLibs, Path specification) {
@@ -79,7 +83,7 @@ public class LibraryDesugaringSpecification {
     this.specification = specification;
   }
 
-  public LibraryDesugaringSpecification(String version) {
+  LibraryDesugaringSpecification(String version) {
     this(
         "Release_" + version,
         ImmutableSet.of(
