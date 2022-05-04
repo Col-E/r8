@@ -4,19 +4,22 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
-import static junit.framework.TestCase.assertEquals;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CustomLibrarySpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import java.nio.file.Path;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -26,78 +29,40 @@ import org.junit.runners.Parameterized.Parameters;
 public class DuplicateAPIProgramTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
-  private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.N;
-  private static Path CUSTOM_LIB;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
 
-  @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
+  private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.N;
+  private static final String EXPECTED_RESULT = StringUtils.lines("ForEach 1 1.1", "ForEach 1 1.1");
+
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        getConversionParametersUpToExcluding(MIN_SUPPORTED), BooleanUtils.values());
+        getConversionParametersUpToExcluding(MIN_SUPPORTED),
+        getJdk8Jdk11(),
+        DEFAULT_SPECIFICATIONS);
   }
 
-  public DuplicateAPIProgramTest(TestParameters parameters, boolean shrinkDesugaredLibrary) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public DuplicateAPIProgramTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
-  }
-
-  @BeforeClass
-  public static void compileCustomLib() throws Exception {
-    CUSTOM_LIB =
-        testForD8(getStaticTemp())
-            .addProgramClasses(CustomLibClass.class)
-            .setMinApi(MIN_SUPPORTED)
-            .compile()
-            .writeToZip();
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   @Test
-  public void testMapD8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    String stdOut =
-        testForD8()
-            .addLibraryFiles(getLibraryFile())
-            .setMinApi(parameters.getApiLevel())
-            .addProgramClasses(Executor.class, MyMap.class)
-            .addLibraryClasses(CustomLibClass.class)
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .compile()
-            .inspect(this::assertDupMethod)
-            .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibrary,
-                parameters.getApiLevel(),
-                keepRuleConsumer.get(),
-                shrinkDesugaredLibrary)
-            .addRunClasspathFiles(CUSTOM_LIB)
-            .run(parameters.getRuntime(), Executor.class)
-            .assertSuccess()
-            .getStdOut();
-    assertLines2By2Correct(stdOut);
-  }
-
-  @Test
-  public void testMapR8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    String stdOut =
-        testForR8(parameters.getBackend())
-            .addLibraryFiles(getLibraryFile())
-            .setMinApi(parameters.getApiLevel())
-            .addKeepMainRule(Executor.class)
-            .addProgramClasses(Executor.class, MyMap.class)
-            .addLibraryClasses(CustomLibClass.class)
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .compile()
-            .inspect(this::assertDupMethod)
-            .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibrary,
-                parameters.getApiLevel(),
-                keepRuleConsumer.get(),
-                shrinkDesugaredLibrary)
-            .addRunClasspathFiles(CUSTOM_LIB)
-            .run(parameters.getRuntime(), Executor.class)
-            .assertSuccess()
-            .getStdOut();
-    assertLines2By2Correct(stdOut);
+  public void testMap() throws Throwable {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+        .addProgramClasses(Executor.class, MyMap.class)
+        .setCustomLibrarySpecification(
+            new CustomLibrarySpecification(CustomLibClass.class, MIN_SUPPORTED))
+        .addKeepMainRule(Executor.class)
+        .compile()
+        .inspect(this::assertDupMethod)
+        .run(parameters.getRuntime(), Executor.class)
+        .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
   private void assertDupMethod(CodeInspector i) {
@@ -113,11 +78,11 @@ public class DuplicateAPIProgramTest extends DesugaredLibraryTestBase {
     public static void main(String[] args) {
       IdentityHashMap<Integer, Double> map = new MyMap<>();
       map.put(1, 1.1);
-      map.put(2, 2.2);
       BiConsumer<Integer, Double> biConsumer = (x, y) -> System.out.print(" " + x + " " + y);
       map.forEach(biConsumer);
       System.out.println();
       CustomLibClass.javaForEach(map, biConsumer);
+      System.out.println();
     }
   }
 

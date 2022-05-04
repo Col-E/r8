@@ -39,7 +39,7 @@ public class DuplicateAPIDesugaredLibTest extends DesugaredLibraryTestBase {
   private final boolean supportCallbacks;
 
   private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.O;
-  private static final String EXPECTED_RESULT = StringUtils.lines(" 1 1.1 2 2.2", " 1 1.1 2 2.2");
+  private static final String EXPECTED_RESULT = StringUtils.lines(" 1 1.1", " 1 1.1");
 
   @Parameters(name = "{0}, spec: {1}, {2}, callbacks: {3}")
   public static List<Object[]> data() {
@@ -94,7 +94,6 @@ public class DuplicateAPIDesugaredLibTest extends DesugaredLibraryTestBase {
     public static void main(String[] args) {
       Map<Integer, Double> map = new ConcurrentHashMap<>();
       map.put(1, 1.1);
-      map.put(2, 2.2);
       BiConsumer<Integer, Double> biConsumer = (x, y) -> System.out.print(" " + x + " " + y);
       map.forEach(biConsumer);
       System.out.println();

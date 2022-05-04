@@ -4,25 +4,21 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanTopLevelFlags;
-import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CustomLibrarySpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
-import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.util.List;
-import org.junit.Assume;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -32,116 +28,46 @@ import org.junit.runners.Parameterized.Parameters;
 public class FileTimeConversionTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
 
   private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.O;
   private static final String EXPECTED_RESULT = StringUtils.lines("1970-01-01T00:00:01.234Z");
 
-  private static Path CUSTOM_LIB;
-
-  @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        getConversionParametersUpToExcluding(MIN_SUPPORTED), BooleanUtils.values());
+        getConversionParametersUpToExcluding(MIN_SUPPORTED),
+        ImmutableList.of(JDK11_PATH),
+        DEFAULT_SPECIFICATIONS);
   }
 
-  public FileTimeConversionTest(TestParameters parameters, boolean shrinkDesugaredLibrary) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public FileTimeConversionTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
-  }
-
-  @BeforeClass
-  public static void compileCustomLib() throws Exception {
-    CUSTOM_LIB =
-        testForD8(getStaticTemp())
-            .addProgramClasses(CustomLibClass.class)
-            .setMinApi(MIN_SUPPORTED)
-            .compile()
-            .writeToZip();
-  }
-
-  private void configureDesugaredLibrary(InternalOptions options, boolean l8Compilation) {
-    HumanRewritingFlags rewritingFlags =
-        HumanRewritingFlags.builder(options.reporter, Origin.unknown())
-            .putRewritePrefix("java.nio.file.attribute.FileTime", "j$.nio.file.attribute.FileTime")
-            .putRewritePrefix(
-                "java.nio.file.attribute.FileAttributeConversions",
-                "j$.nio.file.attribute.FileAttributeConversions")
-            .putRewriteDerivedPrefix(
-                "java.nio.file.attribute.FileTime",
-                "j$.nio.file.attribute.FileTime",
-                "java.nio.file.attribute.FileTime")
-            .putCustomConversion(
-                options.dexItemFactory().createType("Ljava/nio/file/attribute/FileTime;"),
-                options
-                    .dexItemFactory()
-                    .createType("Ljava/nio/file/attribute/FileAttributeConversions;"))
-            .build();
-    HumanDesugaredLibrarySpecification specification =
-        new HumanDesugaredLibrarySpecification(
-            HumanTopLevelFlags.testing(), rewritingFlags, l8Compilation);
-    setDesugaredLibrarySpecificationForTesting(options, specification);
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   @Test
-  public void testD8() throws Exception {
-    Assume.assumeTrue(isJDK11DesugaredLibrary());
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
-        .setMinApi(parameters.getApiLevel())
+  public void test() throws Throwable {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClasses(Executor.class)
-        .addLibraryClasses(CustomLibClass.class)
-        .addOptionsModification(opt -> opt.desugaredLibraryKeepRuleConsumer = keepRuleConsumer)
-        .addOptionsModification(opt -> this.configureDesugaredLibrary(opt, false))
+        .setCustomLibrarySpecification(
+            new CustomLibrarySpecification(CustomLibClass.class, MIN_SUPPORTED))
+        .addKeepMainRule(Executor.class)
         .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            (apiLevel, keepRules, shrink) ->
-                this.buildDesugaredLibrary(
-                    apiLevel,
-                    keepRules,
-                    shrink,
-                    ImmutableList.of(),
-                    opt -> this.configureDesugaredLibrary(opt, true)),
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .addRunClasspathFiles(CUSTOM_LIB)
         .inspect(this::assertCallsToConversion)
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
-  @Test
-  public void testR8() throws Exception {
-    Assume.assumeTrue(isJDK11DesugaredLibrary());
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForR8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
-        .setMinApi(parameters.getApiLevel())
-        .addKeepMainRule(Executor.class)
-        .addProgramClasses(Executor.class)
-        .addLibraryClasses(CustomLibClass.class)
-        .addOptionsModification(opt -> opt.desugaredLibraryKeepRuleConsumer = keepRuleConsumer)
-        .addOptionsModification(opt -> this.configureDesugaredLibrary(opt, false))
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            (apiLevel, keepRules, shrink) ->
-                this.buildDesugaredLibrary(
-                    apiLevel,
-                    keepRules,
-                    shrink,
-                    ImmutableList.of(),
-                    opt -> this.configureDesugaredLibrary(opt, true)),
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .addRunClasspathFiles(CUSTOM_LIB)
-        .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
-  }
-
   private void assertCallsToConversion(CodeInspector codeInspector) {
+    if (compilationSpecification.isProgramShrink()) {
+      return;
+    }
     assertTrue(
         codeInspector
             .clazz(Executor.class)
