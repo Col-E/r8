@@ -4,48 +4,61 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
+
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.TimeZone;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class ConversionAndMergeTest extends DesugaredLibraryTestBase {
 
-  private static final String GMT = StringUtils.lines("GMT");
-
   private final TestParameters parameters;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getConversionParametersUpToExcluding(AndroidApiLevel.O);
+  private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.O;
+  private static final String EXPECTED_RESULT = StringUtils.lines("GMT");
+
+  @Parameters(name = "{0}, spec: {1}, {2}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getConversionParametersUpToExcluding(MIN_SUPPORTED),
+        getJdk8Jdk11(),
+        ImmutableList.of(D8_L8DEBUG));
   }
 
-  public ConversionAndMergeTest(TestParameters parameters) {
+  public ConversionAndMergeTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   @Test
   public void testMerge() throws Exception {
     Path extra = buildClass(ExtraClass.class);
     Path convClass = buildClass(APIConversionClass.class);
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
-        .setMinApi(parameters.getApiLevel())
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramFiles(extra, convClass)
-        .enableCoreLibraryDesugaring(
-            LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
-        .compile()
         .run(parameters.getRuntime(), APIConversionClass.class)
-        .assertSuccessWithOutput(GMT);
+        .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
   private Path buildClass(Class<?> cls) throws Exception {

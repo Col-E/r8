@@ -4,13 +4,19 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
-import com.android.tools.r8.LibraryDesugaringTestConfiguration;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
+
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.IntUnaryOperator;
 import org.junit.Assume;
 import org.junit.Test;
@@ -22,14 +28,26 @@ import org.junit.runners.Parameterized.Parameters;
 public class ConversionErrorMessageTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.O;
+
+  @Parameters(name = "{0}, spec: {1}, {2}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getConversionParametersUpToExcluding(MIN_SUPPORTED),
+        getJdk8Jdk11(),
+        ImmutableList.of(D8_L8DEBUG));
   }
 
-  public ConversionErrorMessageTest(TestParameters parameters) {
+  public ConversionErrorMessageTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   public String getExpectedResult() {
@@ -63,6 +81,7 @@ public class ConversionErrorMessageTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testExceptionNoDesugaring() throws Exception {
+    Assume.assumeTrue("No need to run the same test twice", libraryDesugaringSpecification == JDK8);
     testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
         .addProgramClasses(Executor.class, MyIntUnaryOperator.class)
         .run(parameters.getRuntime(), Executor.class)
@@ -75,13 +94,8 @@ public class ConversionErrorMessageTest extends DesugaredLibraryTestBase {
     // TODO(b/143275651): Raise the right error, NoClassDefFoundError on Function or
     //  NoSuchMethodError instead of NoClassDefFoundError on the wrapper.
     Assume.assumeTrue(hasRequiredAPI());
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClasses(Executor.class, MyIntUnaryOperator.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(
-            LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
-        .compile()
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(getExpectedResult());
   }

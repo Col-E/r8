@@ -14,8 +14,10 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.function.Consumer;
 import org.junit.Assume;
 
@@ -97,6 +99,11 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
+  public DesugaredLibraryTestBuilder<T> addProgramFiles(Path... files) {
+    builder.addProgramFiles(files);
+    return this;
+  }
+
   private void withR8TestBuilder(Consumer<R8TestBuilder<?>> consumer) {
     if (!builder.isTestShrinkerBuilder()) {
       return;
@@ -139,5 +146,22 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   public TestRunResult<?> run(TestRuntime runtime, String mainClass, String... args)
       throws Exception {
     return compile().run(runtime, mainClass, args);
+  }
+
+  public DesugaredLibraryTestBuilder<T> supportAllCallbacksFromLibrary(
+      boolean supportAllCallbacksFromLibrary) {
+    builder.addOptionsModification(
+        opt ->
+            opt.setDesugaredLibrarySpecification(
+                DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecificationforTesting(
+                    StringResource.fromFile(libraryDesugaringSpecification.getSpecification()),
+                    opt.dexItemFactory(),
+                    opt.reporter,
+                    false,
+                    parameters.getApiLevel().getLevel(),
+                    builder ->
+                        builder.setSupportAllCallbacksFromLibrary(
+                            supportAllCallbacksFromLibrary))));
+    return this;
   }
 }

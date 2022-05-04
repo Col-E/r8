@@ -5,25 +5,28 @@
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
 import static com.android.tools.r8.CollectorsUtils.toSingle;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CustomLibrarySpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
-import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -33,7 +36,8 @@ import org.junit.runners.Parameterized.Parameters;
 public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
   private final boolean supportAllCallbacksFromLibrary;
 
   private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.N;
@@ -46,60 +50,40 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
   private static final String FAILING_EXPECTED_RESULT =
       StringUtils.lines(
           "action called from j$ consumer", "forEach called", "action called from java consumer");
-  private static Path CUSTOM_LIB;
 
-  @Parameters(name = "{0}, shrink: {1}, supportCallbacks: {2}")
+  @Parameters(name = "{0}, spec: {1}, {2}, supportCallbacks: {3}")
   public static List<Object[]> data() {
     return buildParameters(
         getConversionParametersUpToExcluding(MIN_SUPPORTED),
-        BooleanUtils.values(),
+        getJdk8Jdk11(),
+        DEFAULT_SPECIFICATIONS,
         BooleanUtils.values());
   }
 
   public ConversionIntroduceInterfaceMethodTest(
       TestParameters parameters,
-      boolean shrinkDesugaredLibrary,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification,
       boolean supportAllCallbacksFromLibrary) {
-    this.supportAllCallbacksFromLibrary = supportAllCallbacksFromLibrary;
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
     this.parameters = parameters;
-  }
-
-  @BeforeClass
-  public static void compileCustomLib() throws Exception {
-    CUSTOM_LIB =
-        testForD8(getStaticTemp())
-            .setMinApi(MIN_SUPPORTED)
-            .addProgramClasses(CustomLibClass.class)
-            .compile()
-            .writeToZip();
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
+    this.supportAllCallbacksFromLibrary = supportAllCallbacksFromLibrary;
   }
 
   @Test
-  public void testNoInterfaceMethodsD8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
-        .setMinApi(parameters.getApiLevel())
+  public void testInterfaceMethod() throws Throwable {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClasses(MyCollectionInterface.class, MyCollection.class, Executor.class)
-        .addLibraryClasses(CustomLibClass.class)
+        .setCustomLibrarySpecification(
+            new CustomLibrarySpecification(CustomLibClass.class, MIN_SUPPORTED))
         .addOptionsModification(opt -> opt.testing.trackDesugaredAPIConversions = true)
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .addOptionsModification(
-            opt ->
-                setDesugaredLibrarySpecificationForTesting(
-                    opt,
-                    configurationWithSupportAllCallbacksFromLibrary(
-                        opt, false, parameters, supportAllCallbacksFromLibrary)))
+        .supportAllCallbacksFromLibrary(supportAllCallbacksFromLibrary)
+        .addKeepMainRule(Executor.class)
+        .allowDiagnosticWarningMessages()
         .compile()
         .inspect(this::assertDoubleForEach)
         .inspect(this::assertWrapperMethodsPresent)
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .addRunClasspathFiles(CUSTOM_LIB)
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(
             supportAllCallbacksFromLibrary ? EXPECTED_RESULT : FAILING_EXPECTED_RESULT);
@@ -138,36 +122,6 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
     for (FoundClassSubject wrapper : wrappers) {
       assertTrue(wrapper.virtualMethods().size() > 0);
     }
-  }
-
-  @Test
-  public void testNoInterfaceMethodsR8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForR8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
-        .setMinApi(parameters.getApiLevel())
-        .addProgramClasses(MyCollectionInterface.class, MyCollection.class, Executor.class)
-        .addKeepMainRule(Executor.class)
-        .addLibraryClasses(CustomLibClass.class)
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .addOptionsModification(
-            opt ->
-                setDesugaredLibrarySpecificationForTesting(
-                    opt,
-                    configurationWithSupportAllCallbacksFromLibrary(
-                        opt, false, parameters, supportAllCallbacksFromLibrary)))
-        .compile()
-        .inspect(this::assertDoubleForEach)
-        .inspect(this::assertWrapperMethodsPresent)
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .addRunClasspathFiles(CUSTOM_LIB)
-        .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutput(
-            supportAllCallbacksFromLibrary ? EXPECTED_RESULT : FAILING_EXPECTED_RESULT);
   }
 
   static class CustomLibClass {
