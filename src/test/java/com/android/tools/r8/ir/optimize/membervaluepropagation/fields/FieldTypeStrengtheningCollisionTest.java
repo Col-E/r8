@@ -4,12 +4,19 @@
 
 package com.android.tools.r8.ir.optimize.membervaluepropagation.fields;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ir.optimize.membervaluepropagation.fields.FieldTypeStrengtheningTest.A;
+import com.android.tools.r8.ir.optimize.membervaluepropagation.fields.FieldTypeStrengtheningTest.Main;
 import com.android.tools.r8.transformers.ClassFileTransformer.FieldPredicate;
-import com.android.tools.r8.utils.codeinspector.AssertUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import java.io.IOException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,21 +37,36 @@ public class FieldTypeStrengtheningCollisionTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    AssertUtils.assertFailsCompilation(
-        () ->
-            testForR8(parameters.getBackend())
-                .addProgramClasses(A.class)
-                .addProgramClassFileData(getTransformedMain())
-                .addKeepMainRule(Main.class)
-                .addKeepRules(
-                    "-keep class "
-                        + Main.class.getTypeName()
-                        + " { "
-                        + A.class.getTypeName()
-                        + " f; }")
-                .enableInliningAnnotations()
-                .setMinApi(parameters.getApiLevel())
-                .compile());
+    testForR8(parameters.getBackend())
+        .addProgramClasses(A.class)
+        .addProgramClassFileData(getTransformedMain())
+        .addKeepMainRule(Main.class)
+        .addKeepRules(
+            "-keep class " + Main.class.getTypeName() + " { " + A.class.getTypeName() + " f; }")
+        .enableInliningAnnotations()
+        .noMinification()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(
+            inspector -> {
+              ClassSubject mainClassSubject = inspector.clazz(Main.class);
+              assertThat(mainClassSubject, isPresent());
+
+              ClassSubject aClassSubject = inspector.clazz(A.class);
+              assertThat(aClassSubject, isPresent());
+
+              FieldSubject keptFieldSubject = mainClassSubject.uniqueFieldWithFinalName("f");
+              assertEquals(
+                  aClassSubject.getFinalName(),
+                  keptFieldSubject.getField().getType().getTypeName());
+
+              FieldSubject optimizedFieldSubject = mainClassSubject.uniqueFieldWithFinalName("f$1");
+              assertEquals(
+                  aClassSubject.getFinalName(),
+                  optimizedFieldSubject.getField().getType().getTypeName());
+            })
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("A");
   }
 
   private static byte[] getTransformedMain() throws IOException {

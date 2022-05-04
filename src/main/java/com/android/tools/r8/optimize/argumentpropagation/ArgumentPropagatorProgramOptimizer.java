@@ -66,6 +66,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -569,10 +570,24 @@ public class ArgumentPropagatorProgramOptimizer {
         DexMethodSignatureSet interfaceDispatchOutsideProgram,
         ArgumentPropagatorGraphLens.Builder partialGraphLensBuilder) {
       BooleanBox affected = new BooleanBox();
+      Set<DexField> newFieldSignatures = Sets.newIdentityHashSet();
+      Map<DexField, DexType> newFieldTypes = new IdentityHashMap<>();
       clazz.forEachProgramFieldMatching(
           field -> field.getType().isClassType(),
           field -> {
-            DexField newFieldSignature = getNewFieldSignature(field);
+            DexType newFieldType = getNewFieldType(field);
+            if (newFieldType != field.getType()) {
+              newFieldTypes.put(field.getReference(), newFieldType);
+            } else {
+              // Reserve field signature.
+              newFieldSignatures.add(field.getReference());
+            }
+          });
+      clazz.forEachProgramFieldMatching(
+          field -> field.getType().isClassType(),
+          field -> {
+            DexField newFieldSignature =
+                getNewFieldSignature(field, newFieldSignatures, newFieldTypes);
             if (newFieldSignature != field.getReference()) {
               partialGraphLensBuilder.recordMove(field.getReference(), newFieldSignature);
               affected.set();
@@ -625,10 +640,10 @@ public class ArgumentPropagatorProgramOptimizer {
       return affected.get();
     }
 
-    private DexField getNewFieldSignature(ProgramField field) {
+    private DexType getNewFieldType(ProgramField field) {
       DynamicType dynamicType = field.getOptimizationInfo().getDynamicType();
       if (dynamicType.isUnknown()) {
-        return field.getReference();
+        return field.getType();
       }
 
       KeepFieldInfo keepInfo = appView.getKeepInfo(field);
@@ -637,17 +652,17 @@ public class ArgumentPropagatorProgramOptimizer {
       assert !keepInfo.isPinned(options);
 
       if (!keepInfo.isFieldTypeStrengtheningAllowed(options)) {
-        return field.getReference();
+        return field.getType();
       }
 
       if (dynamicType.isNullType()) {
         // Don't optimize always null fields; these will be optimized anyway.
-        return field.getReference();
+        return field.getType();
       }
 
       if (dynamicType.isNotNullType()) {
         // We don't have a more specific type.
-        return field.getReference();
+        return field.getType();
       }
 
       DynamicTypeWithUpperBound dynamicTypeWithUpperBound =
@@ -658,12 +673,12 @@ public class ArgumentPropagatorProgramOptimizer {
       ClassTypeElement staticFieldType = field.getType().toTypeElement(appView).asClassType();
       if (dynamicUpperBoundType.equalUpToNullability(staticFieldType)) {
         // We don't have more precise type information.
-        return field.getReference();
+        return field.getType();
       }
 
       if (!dynamicUpperBoundType.strictlyLessThan(staticFieldType, appView)) {
         assert options.testing.allowTypeErrors;
-        return field.getReference();
+        return field.getType();
       }
 
       DexType newStaticFieldType;
@@ -674,7 +689,7 @@ public class ArgumentPropagatorProgramOptimizer {
             newStaticFieldType =
                 dynamicUpperBoundClassType.getInterfaces().getSingleKnownInterface();
           } else {
-            return field.getReference();
+            return field.getType();
           }
         } else {
           newStaticFieldType = dynamicUpperBoundClassType.getClassType();
@@ -684,10 +699,24 @@ public class ArgumentPropagatorProgramOptimizer {
       }
 
       if (!AccessUtils.isAccessibleInSameContextsAs(newStaticFieldType, field.getType(), appView)) {
-        return field.getReference();
+        return field.getType();
       }
 
-      return field.getReference().withType(newStaticFieldType, dexItemFactory);
+      return newStaticFieldType;
+    }
+
+    private DexField getNewFieldSignature(
+        ProgramField field,
+        Set<DexField> newFieldSignatures,
+        Map<DexField, DexType> newFieldTypes) {
+      DexType newFieldType = newFieldTypes.getOrDefault(field.getReference(), field.getType());
+      if (newFieldType == field.getType()) {
+        assert newFieldSignatures.contains(field.getReference());
+        return field.getReference();
+      }
+      // Find a new name for this field if the signature is already occupied.
+      return dexItemFactory.createFreshFieldNameWithoutHolder(
+          field.getHolderType(), newFieldType, field.getName().toString(), newFieldSignatures::add);
     }
 
     private DexMethod getNewMethodSignature(
