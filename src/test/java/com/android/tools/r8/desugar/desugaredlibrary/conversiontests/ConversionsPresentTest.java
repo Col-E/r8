@@ -4,55 +4,53 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 
-import com.android.tools.r8.L8Command;
-import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.StringResource;
-import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class ConversionsPresentTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+  private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.O;
+
+  @Parameters(name = "{0}, spec: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(getConversionParametersUpToExcluding(MIN_SUPPORTED), getJdk8Jdk11());
   }
 
-  public ConversionsPresentTest(TestParameters parameters) {
+  public ConversionsPresentTest(
+      TestParameters parameters, LibraryDesugaringSpecification libraryDesugaringSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   @Test
   public void testConversionsDex() throws Exception {
-    TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
-    Path desugaredLib = temp.newFolder().toPath().resolve("conversion_dex.zip");
-    L8Command.Builder l8Builder =
-        L8Command.builder(diagnosticsHandler)
-            .addLibraryFiles(getLibraryFile())
-            .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
-            .addProgramFiles(ToolHelper.getDesugarJDKLibs())
-            .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
-            .setMinApiLevel(parameters.getApiLevel().getLevel())
-            .setOutput(desugaredLib, OutputMode.DexIndexed);
-    ToolHelper.runL8(l8Builder.build(), x -> {});
-    this.checkConversionGeneratedDex(new CodeInspector(desugaredLib));
+    testForL8(parameters.getApiLevel())
+        .addLibraryFiles(libraryDesugaringSpecification.getAndroidJar())
+        .noDefaultDesugarJDKLibs()
+        .addProgramFiles(libraryDesugaringSpecification.getDesugarJdkLibs())
+        .setDesugaredLibraryConfiguration(
+            StringResource.fromFile(libraryDesugaringSpecification.getSpecification()))
+        .compile()
+        .apply(c -> checkConversionGeneratedDex(c.inspector()));
   }
 
   private void checkConversionGeneratedDex(CodeInspector inspector) {

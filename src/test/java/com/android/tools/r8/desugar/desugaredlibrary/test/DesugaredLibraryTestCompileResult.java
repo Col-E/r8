@@ -4,15 +4,13 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.test;
 
-import com.android.tools.r8.L8TestBuilder;
+import com.android.tools.r8.L8TestCompileResult;
 import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
-import com.android.tools.r8.utils.ConsumerUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Path;
@@ -26,8 +24,7 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
   private final CompilationSpecification compilationSpecification;
   private final CustomLibrarySpecification customLibrarySpecification;
-  private Consumer<InternalOptions> l8OptionModifier;
-  private final String keepRule;
+  private final L8TestCompileResult l8Compile;
 
   public DesugaredLibraryTestCompileResult(
       T test,
@@ -36,17 +33,20 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
       LibraryDesugaringSpecification libraryDesugaringSpecification,
       CompilationSpecification compilationSpecification,
       CustomLibrarySpecification customLibrarySpecification,
-      Consumer<InternalOptions> l8OptionModifier,
-      String keepRule) {
+      L8TestCompileResult l8Compile) {
     this.test = test;
     this.compileResult = compileResult;
     this.parameters = parameters;
     this.libraryDesugaringSpecification = libraryDesugaringSpecification;
     this.compilationSpecification = compilationSpecification;
     this.customLibrarySpecification = customLibrarySpecification;
-    this.l8OptionModifier =
-        l8OptionModifier != null ? l8OptionModifier : ConsumerUtils.emptyConsumer();
-    this.keepRule = keepRule;
+    this.l8Compile = l8Compile;
+  }
+
+  public <E extends Throwable> DesugaredLibraryTestCompileResult<T> inspectL8(
+      ThrowingConsumer<CodeInspector, E> consumer) throws Throwable {
+    l8Compile.inspect(consumer);
+    return this;
   }
 
   public <E extends Throwable> DesugaredLibraryTestCompileResult<T> inspect(
@@ -69,27 +69,11 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
   public TestRunResult<?> run(TestRuntime runtime, String mainClassName, String... args)
       throws Exception {
 
-    Path desugaredLib =
-        test.testForL8(parameters.getApiLevel(), runtime.getBackend())
-            .addProgramFiles(libraryDesugaringSpecification.getDesugarJdkLibs())
-            .addLibraryFiles(libraryDesugaringSpecification.getAndroidJar())
-            .setDesugaredLibraryConfiguration(libraryDesugaringSpecification.getSpecification())
-            .noDefaultDesugarJDKLibs()
-            .applyIf(
-                compilationSpecification.isL8Shrink(),
-                builder -> {
-                  if (keepRule != null && !keepRule.trim().isEmpty()) {
-                    builder.addGeneratedKeepRules(keepRule);
-                  }
-                },
-                L8TestBuilder::setDebug)
-            .addOptionsModifier(l8OptionModifier)
-            .compile()
-            .writeToZip();
+    Path desugaredLibrary = l8Compile.writeToZip();
 
     if (runtime.getBackend().isCf()) {
       assert compilationSpecification.isCfToCf();
-      return compileResult.addRunClasspathFiles(desugaredLib).run(runtime, mainClassName);
+      return compileResult.addRunClasspathFiles(desugaredLibrary).run(runtime, mainClassName);
     }
 
     TestCompileResult<?, ?> actualCompileResult =
@@ -105,7 +89,7 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
       actualCompileResult.addRunClasspathFiles(customLib);
     }
 
-    actualCompileResult.addRunClasspathFiles(desugaredLib);
+    actualCompileResult.addRunClasspathFiles(desugaredLibrary);
 
     return actualCompileResult.run(runtime, mainClassName, args);
   }

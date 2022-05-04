@@ -5,19 +5,24 @@
 package com.android.tools.r8.desugar.desugaredlibrary.test;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.L8TestBuilder;
+import com.android.tools.r8.L8TestCompileResult;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
+import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import org.junit.Assume;
 
@@ -30,7 +35,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   private final TestCompilerBuilder<?, ?, ?, ?, ?> builder;
 
   private CustomLibrarySpecification customLibrarySpecification = null;
-  private Consumer<InternalOptions> l8OptionModifier = null;
+  private Consumer<InternalOptions> l8OptionModifier = ConsumerUtils.emptyConsumer();
   private TestingKeepRuleConsumer keepRuleConsumer = null;
 
   public DesugaredLibraryTestBuilder(
@@ -83,6 +88,12 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
+  public DesugaredLibraryTestBuilder<T> addL8OptionsModification(
+      Consumer<InternalOptions> optionModifier) {
+    l8OptionModifier = l8OptionModifier.andThen(optionModifier);
+    return this;
+  }
+
   public DesugaredLibraryTestBuilder<T> addOptionsModification(
       Consumer<InternalOptions> optionModifier) {
     builder.addOptionsModification(optionModifier);
@@ -126,16 +137,38 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
-  public DesugaredLibraryTestCompileResult<T> compile() throws CompilationFailedException {
+  public DesugaredLibraryTestCompileResult<T> compile() throws Exception {
+    // We compile first to generate the keep rules for the l8 compilation.
+    TestCompileResult<?, ?> compile = builder.compile();
+    String keepRule = keepRuleConsumer == null ? null : keepRuleConsumer.get();
+    L8TestCompileResult l8Compile = compileDesugaredLibrary(keepRule);
     return new DesugaredLibraryTestCompileResult<>(
         test,
-        builder.compile(),
+        compile,
         parameters,
         libraryDesugaringSpecification,
         compilationSpecification,
         customLibrarySpecification,
-        l8OptionModifier,
-        keepRuleConsumer == null ? null : keepRuleConsumer.get());
+        l8Compile);
+  }
+
+  private L8TestCompileResult compileDesugaredLibrary(String keepRule)
+      throws IOException, CompilationFailedException, ExecutionException {
+    return test.testForL8(parameters.getApiLevel(), parameters.getBackend())
+        .addProgramFiles(libraryDesugaringSpecification.getDesugarJdkLibs())
+        .addLibraryFiles(libraryDesugaringSpecification.getAndroidJar())
+        .setDesugaredLibraryConfiguration(libraryDesugaringSpecification.getSpecification())
+        .noDefaultDesugarJDKLibs()
+        .applyIf(
+            compilationSpecification.isL8Shrink(),
+            builder -> {
+              if (keepRule != null && !keepRule.trim().isEmpty()) {
+                builder.addGeneratedKeepRules(keepRule);
+              }
+            },
+            L8TestBuilder::setDebug)
+        .addOptionsModifier(l8OptionModifier)
+        .compile();
   }
 
   public TestRunResult<?> run(TestRuntime runtime, Class<?> mainClass, String... args)
@@ -150,18 +183,23 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
 
   public DesugaredLibraryTestBuilder<T> supportAllCallbacksFromLibrary(
       boolean supportAllCallbacksFromLibrary) {
+    addL8OptionsModification(supportLibraryCallbackConsumer(supportAllCallbacksFromLibrary, true));
     builder.addOptionsModification(
-        opt ->
-            opt.setDesugaredLibrarySpecification(
-                DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecificationforTesting(
-                    StringResource.fromFile(libraryDesugaringSpecification.getSpecification()),
-                    opt.dexItemFactory(),
-                    opt.reporter,
-                    false,
-                    parameters.getApiLevel().getLevel(),
-                    builder ->
-                        builder.setSupportAllCallbacksFromLibrary(
-                            supportAllCallbacksFromLibrary))));
+        supportLibraryCallbackConsumer(supportAllCallbacksFromLibrary, false));
     return this;
+  }
+
+  private Consumer<InternalOptions> supportLibraryCallbackConsumer(
+      boolean supportAllCallbacksFromLibrary, boolean libraryCompilation) {
+    return opt ->
+        opt.setDesugaredLibrarySpecification(
+            DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecificationforTesting(
+                StringResource.fromFile(libraryDesugaringSpecification.getSpecification()),
+                opt.dexItemFactory(),
+                opt.reporter,
+                libraryCompilation,
+                parameters.getApiLevel().getLevel(),
+                builder ->
+                    builder.setSupportAllCallbacksFromLibrary(supportAllCallbacksFromLibrary)));
   }
 }

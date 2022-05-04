@@ -4,19 +4,23 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static junit.framework.TestCase.assertEquals;
 
-import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRuntime.DexRuntime;
-import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CustomLibrarySpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.Box;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import java.nio.file.Path;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,75 +28,62 @@ import java.util.function.BiConsumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class DuplicateAPIDesugaredLibTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
-  private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.N;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
+  private final boolean supportCallbacks;
 
-  @Parameterized.Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
+  private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.O;
+  private static final String EXPECTED_RESULT = StringUtils.lines(" 1 1.1 2 2.2", " 1 1.1 2 2.2");
+
+  @Parameters(name = "{0}, spec: {1}, {2}, callbacks: {3}")
   public static List<Object[]> data() {
     return buildParameters(
-        getConversionParametersUpToExcluding(MIN_SUPPORTED), BooleanUtils.values());
+        getTestParameters()
+            .withDexRuntimesStartingFromIncluding(Version.V8_1_0)
+            .withApiLevel(AndroidApiLevel.B)
+            .build(),
+        getJdk8Jdk11(),
+        ImmutableList.of(D8_L8DEBUG),
+        BooleanUtils.values());
   }
 
-  public DuplicateAPIDesugaredLibTest(TestParameters parameters, boolean shrinkDesugaredLibrary) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public DuplicateAPIDesugaredLibTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification,
+      boolean supportCallbacks) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
+    this.supportCallbacks = supportCallbacks;
   }
 
   @Test
-  public void testLib() throws Exception {
-    for (Boolean supportAllCallbacksFromLibrary : BooleanUtils.values()) {
-      Box<Path> desugaredLibBox = new Box<>();
-      Path customLib =
-          testForD8()
-              .addProgramClasses(CustomLibClass.class)
-              .setMinApi(AndroidApiLevel.B)
-              .compile()
-              .writeToZip();
-      String stdOut =
-          testForD8()
-              .addLibraryFiles(getLibraryFile())
-              .setMinApi(AndroidApiLevel.B)
-              .addProgramClasses(Executor.class)
-              .addLibraryClasses(CustomLibClass.class)
-              .enableCoreLibraryDesugaring(
-                  LibraryDesugaringTestConfiguration.builder()
-                      .setMinApi(AndroidApiLevel.B)
-                      .dontAddRunClasspath()
-                      .build())
-              .compile()
-              .addDesugaredCoreLibraryRunClassPath(
-                  (AndroidApiLevel api) -> {
-                    desugaredLibBox.set(
-                        this.buildDesugaredLibrary(
-                            api,
-                            opt ->
-                                setDesugaredLibrarySpecificationForTesting(
-                                    opt,
-                                    configurationWithSupportAllCallbacksFromLibrary(
-                                        opt, true, parameters, supportAllCallbacksFromLibrary))));
-                    return desugaredLibBox.get();
-                  },
-                  AndroidApiLevel.B)
-              .addRunClasspathFiles(customLib)
-              .run(new DexRuntime(DexVm.ART_9_0_0_HOST), Executor.class)
-              .assertSuccess()
-              .getStdOut();
-      assertDupMethod(new CodeInspector(desugaredLibBox.get()), supportAllCallbacksFromLibrary);
-      assertLines2By2Correct(stdOut);
-    }
+  public void testLib() throws Throwable {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+        .addProgramClasses(Executor.class)
+        .setCustomLibrarySpecification(
+            new CustomLibrarySpecification(CustomLibClass.class, MIN_SUPPORTED))
+        .addKeepMainRule(Executor.class)
+        .supportAllCallbacksFromLibrary(supportCallbacks)
+        .compile()
+        .inspectL8(this::assertDupMethod)
+        .run(parameters.getRuntime(), Executor.class)
+        .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
-  private void assertDupMethod(CodeInspector inspector, boolean supportAllCallbacksFromLibrary) {
+  private void assertDupMethod(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz("j$.util.concurrent.ConcurrentHashMap");
     int numForEachMethods =
-        isJDK11DesugaredLibrary()
-            ? supportAllCallbacksFromLibrary ? 4 : 3
-            : supportAllCallbacksFromLibrary ? 2 : 1;
+        libraryDesugaringSpecification == JDK8
+            ? supportCallbacks ? 2 : 1
+            : supportCallbacks ? 4 : 3;
     assertEquals(
         numForEachMethods,
         clazz.virtualMethods().stream().filter(m -> m.getOriginalName().equals("forEach")).count());
@@ -108,6 +99,7 @@ public class DuplicateAPIDesugaredLibTest extends DesugaredLibraryTestBase {
       map.forEach(biConsumer);
       System.out.println();
       CustomLibClass.javaForEach(map, biConsumer);
+      System.out.println();
     }
   }
 
