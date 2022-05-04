@@ -4,23 +4,22 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.SPECIFICATIONS_WITH_CF2CF;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 
-import com.android.tools.r8.LibraryDesugaringTestConfiguration.AbsentKeepRuleConsumer;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CustomLibrarySpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -30,186 +29,66 @@ import org.junit.runners.Parameterized.Parameters;
 public class CallBackConversionTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
 
   private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.N;
   private static final String EXPECTED_RESULT = StringUtils.lines("0", "1", "0", "1");
-  private static Path CUSTOM_LIB;
 
-  @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        getConversionParametersUpToExcluding(MIN_SUPPORTED), BooleanUtils.values());
+        getConversionParametersUpToExcluding(MIN_SUPPORTED),
+        getJdk8Jdk11(),
+        SPECIFICATIONS_WITH_CF2CF);
   }
 
-  public CallBackConversionTest(TestParameters parameters, boolean shrinkDesugaredLibrary) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public CallBackConversionTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
-  @BeforeClass
-  public static void compileCustomLib() throws Exception {
-    CUSTOM_LIB =
-        testForD8(getStaticTemp())
-            .setMinApi(MIN_SUPPORTED)
-            .addProgramClasses(CustomLibClass.class)
-            .compile()
-            .writeToZip();
-  }
-
-  private static void assertDuplicatedAPI(CodeInspector i) {
+  private void assertDuplicatedAPI(CodeInspector i) {
     List<FoundMethodSubject> virtualMethods = i.clazz(Impl.class).virtualMethods();
     assertEquals(2, virtualMethods.size());
+    assertTrue(anyVirtualMethodFirstParameterMatches(virtualMethods, "j$.util.function.Consumer"));
     assertTrue(
-        virtualMethods.stream()
-            .anyMatch(
-                m ->
-                    m.getMethod()
-                        .getReference()
-                        .proto
-                        .parameters
-                        .values[0]
-                        .toString()
-                        .equals("j$.util.function.Consumer")));
-    assertTrue(
-        virtualMethods.stream()
-            .anyMatch(
-                m ->
-                    m.getMethod()
-                        .getReference()
-                        .proto
-                        .parameters
-                        .values[0]
-                        .toString()
-                        .equals("java.util.function.Consumer")));
+        anyVirtualMethodFirstParameterMatches(virtualMethods, "java.util.function.Consumer"));
+  }
+
+  private boolean anyVirtualMethodFirstParameterMatches(
+      List<FoundMethodSubject> virtualMethods, String anObject) {
+    return virtualMethods.stream()
+        .anyMatch(
+            m ->
+                m.getMethod()
+                    .getReference()
+                    .proto
+                    .parameters
+                    .values[0]
+                    .toString()
+                    .equals(anObject));
   }
 
   @Test
-  public void testCallBack() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
-        .setMinApi(parameters.getApiLevel())
+  public void testCallBack() throws Throwable {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClasses(Impl.class)
-        .addLibraryClasses(CustomLibClass.class)
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .inspect(CallBackConversionTest::assertDuplicatedAPI)
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .addRunClasspathFiles(CUSTOM_LIB)
-        .run(parameters.getRuntime(), Impl.class)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
-  }
-
-  @Test
-  public void testCallBackD8Cf() throws Exception {
-    // Use D8 to desugar with Java classfile output.
-    Path firstJar =
-        testForD8(Backend.CF)
-            .addLibraryFiles(getLibraryFile())
-            .setMinApi(parameters.getApiLevel())
-            .addProgramClasses(Impl.class)
-            .addLibraryClasses(CustomLibClass.class)
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), new AbsentKeepRuleConsumer())
-            .compile()
-            .inspect(CallBackConversionTest::assertDuplicatedAPI)
-            .writeToZip();
-
-    ClassFileInfo info =
-        extractClassFileInfo(
-            ZipUtils.readSingleEntry(firstJar, ZipUtils.zipEntryNameForClass(Impl.class)));
-    assertEquals(
-        Impl.class.getTypeName(),
-        DescriptorUtils.getJavaTypeFromBinaryName(info.getClassBinaryName()));
-    assertEquals(2, info.getMethodNames().stream().filter(name -> name.equals("foo")).count());
-
-    // Use D8 to desugar with Java classfile output.
-    Path secondJar =
-        testForD8(Backend.CF)
-            .addLibraryFiles(getLibraryFile())
-            .addOptionsModification(
-                options -> options.desugarSpecificOptions().allowAllDesugaredInput = true)
-            .setMinApi(parameters.getApiLevel())
-            .addProgramFiles(firstJar)
-            .addLibraryClasses(CustomLibClass.class)
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), new AbsentKeepRuleConsumer())
-            .compile()
-            .inspect(CallBackConversionTest::assertDuplicatedAPI)
-            .writeToZip();
-
-    info =
-        extractClassFileInfo(
-            ZipUtils.readSingleEntry(secondJar, ZipUtils.zipEntryNameForClass(Impl.class)));
-    assertEquals(
-        Impl.class.getTypeName(),
-        DescriptorUtils.getJavaTypeFromBinaryName(info.getClassBinaryName()));
-    assertEquals(2, info.getMethodNames().stream().filter(name -> name.equals("foo")).count());
-
-    // Convert to DEX without desugaring and run.
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
-        .addProgramFiles(firstJar)
-        .setMinApi(parameters.getApiLevel())
-        .disableDesugaring()
-        .compile()
-        .inspect(CallBackConversionTest::assertDuplicatedAPI)
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            collectKeepRulesWithTraceReferences(
-                firstJar, buildDesugaredLibraryClassFile(parameters.getApiLevel())),
-            shrinkDesugaredLibrary)
-        .addRunClasspathFiles(CUSTOM_LIB)
-        .run(parameters.getRuntime(), Impl.class)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
-  }
-
-  @Test
-  public void testCallBackR8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForR8(Backend.DEX)
-        .addLibraryFiles(getLibraryFile())
+        .setCustomLibrarySpecification(
+            new CustomLibrarySpecification(CustomLibClass.class, MIN_SUPPORTED))
         .addKeepMainRule(Impl.class)
-        .noMinification()
-        .setMinApi(parameters.getApiLevel())
-        .addProgramClasses(Impl.class)
-        .addLibraryClasses(CustomLibClass.class)
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
-        .inspect(this::assertLibraryOverridesThere)
-        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, parameters.getApiLevel())
-        .addRunClasspathFiles(CUSTOM_LIB)
+        .inspect(this::assertDuplicatedAPI)
+        .inspect(this::assertLibraryOverridesPresent)
         .run(parameters.getRuntime(), Impl.class)
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
-  @Test
-  public void testCallBackR8Minifying() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForR8(Backend.DEX)
-        .addLibraryFiles(getLibraryFile())
-        .addKeepMainRule(Impl.class)
-        .setMinApi(parameters.getApiLevel())
-        .addProgramClasses(Impl.class)
-        .addLibraryClasses(CustomLibClass.class)
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .inspect(this::assertLibraryOverridesThere)
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .addRunClasspathFiles(CUSTOM_LIB)
-        .run(parameters.getRuntime(), Impl.class)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
-  }
-
-  private void assertLibraryOverridesThere(CodeInspector i) {
+  private void assertLibraryOverridesPresent(CodeInspector i) {
     // The j$ method can be optimized, but the java method should be present to be called
     // through the library.
     List<FoundMethodSubject> virtualMethods = i.clazz(Impl.class).virtualMethods();
