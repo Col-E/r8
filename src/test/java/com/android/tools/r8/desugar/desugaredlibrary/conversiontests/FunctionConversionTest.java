@@ -59,7 +59,7 @@ public class FunctionConversionTest extends DesugaredLibraryTestBase {
   }
 
   @Test
-  public void testClock() throws Throwable {
+  public void testFunction() throws Throwable {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClasses(
             Executor.class, Executor.Object1.class, Executor.Object2.class, Executor.Object3.class)

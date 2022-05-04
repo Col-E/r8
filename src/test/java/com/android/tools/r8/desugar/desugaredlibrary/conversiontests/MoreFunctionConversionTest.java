@@ -4,22 +4,24 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CustomLibrarySpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.DesugaredLibraryTestCompileResult;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.google.common.collect.Sets;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -28,74 +30,40 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class MoreFunctionConversionTest extends DesugaredLibraryTestBase {
 
+
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
+
   private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.N;
   private static final String EXPECTED_RESULT = StringUtils.lines("6", "6", "6", "6", "6");
-  private static Path CUSTOM_LIB;
 
-  @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        getConversionParametersUpToExcluding(MIN_SUPPORTED), BooleanUtils.values());
+        getConversionParametersUpToExcluding(MIN_SUPPORTED),
+        getJdk8Jdk11(),
+        DEFAULT_SPECIFICATIONS);
   }
 
-  public MoreFunctionConversionTest(TestParameters parameters, boolean shrinkDesugaredLibrary) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public MoreFunctionConversionTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
-  }
-
-  @BeforeClass
-  public static void compileCustomLib() throws Exception {
-    CUSTOM_LIB =
-        testForD8(getStaticTemp())
-            .addProgramClasses(CustomLibClass.class)
-            .setMinApi(MIN_SUPPORTED)
-            .compile()
-            .writeToZip();
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   @Test
-  public void testFunctionD8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    D8TestCompileResult compileResult =
-        testForD8()
-            .addLibraryFiles(getLibraryFile())
-            .setMinApi(parameters.getApiLevel())
-            .addProgramClasses(Executor.class)
-            .addLibraryClasses(CustomLibClass.class)
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .compile();
-    Path program = compileResult.writeToZip();
-    assertNoDuplicateLambdas(program, CUSTOM_LIB);
-    compileResult
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .addRunClasspathFiles(CUSTOM_LIB)
-        .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
-  }
-
-  @Test
-  public void testFunctionR8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForR8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
-        .setMinApi(parameters.getApiLevel())
+  public void testFunction() throws Throwable {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClasses(Executor.class)
+        .setCustomLibrarySpecification(
+            new CustomLibrarySpecification(CustomLibClass.class, MIN_SUPPORTED))
         .addKeepMainRule(Executor.class)
-        .addLibraryClasses(CustomLibClass.class)
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .addRunClasspathFiles(CUSTOM_LIB)
+        .apply(this::assertNoDuplicateLambdas)
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
@@ -103,9 +71,10 @@ public class MoreFunctionConversionTest extends DesugaredLibraryTestBase {
   // If we have the exact same lambda in both, but one implements j$..Function and the other
   // java..Function, ART is obviously very confused.
   // This happens for instance when String::length function is used both in CustomLib and Executor.
-  private void assertNoDuplicateLambdas(Path program, Path customLib) throws Exception {
-    CodeInspector programInspector = new CodeInspector(program);
-    CodeInspector customLibInspector = new CodeInspector(customLib);
+  private void assertNoDuplicateLambdas(DesugaredLibraryTestCompileResult<?> builder)
+      throws Throwable {
+    CodeInspector programInspector = builder.inspector();
+    CodeInspector customLibInspector = builder.customLibInspector();
     int programSize = programInspector.allClasses().size();
     int customLibSize = customLibInspector.allClasses().size();
     Set<String> foundClassSubjects = Sets.newHashSet();

@@ -5,6 +5,7 @@
 package com.android.tools.r8.desugar.desugaredlibrary.test;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.L8TestBuilder;
 import com.android.tools.r8.L8TestCompileResult;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
@@ -142,14 +143,25 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     TestCompileResult<?, ?> compile = builder.compile();
     String keepRule = keepRuleConsumer == null ? null : keepRuleConsumer.get();
     L8TestCompileResult l8Compile = compileDesugaredLibrary(keepRule);
+    D8TestCompileResult customLibCompile = compileCustomLib();
     return new DesugaredLibraryTestCompileResult<>(
         test,
         compile,
         parameters,
         libraryDesugaringSpecification,
         compilationSpecification,
-        customLibrarySpecification,
+        customLibCompile,
         l8Compile);
+  }
+
+  private D8TestCompileResult compileCustomLib() throws CompilationFailedException {
+    if (compilationSpecification == null) {
+      return null;
+    }
+    return test.testForD8()
+        .addProgramClasses(customLibrarySpecification.getClasses())
+        .setMinApi(customLibrarySpecification.getMinApi())
+        .compile();
   }
 
   private L8TestCompileResult compileDesugaredLibrary(String keepRule)

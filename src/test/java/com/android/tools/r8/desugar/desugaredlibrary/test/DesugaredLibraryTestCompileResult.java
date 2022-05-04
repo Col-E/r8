@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.test;
 
+import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.L8TestCompileResult;
 import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestDiagnosticMessages;
@@ -23,7 +24,7 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
   private final TestParameters parameters;
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
   private final CompilationSpecification compilationSpecification;
-  private final CustomLibrarySpecification customLibrarySpecification;
+  private final D8TestCompileResult customLibCompile;
   private final L8TestCompileResult l8Compile;
 
   public DesugaredLibraryTestCompileResult(
@@ -32,15 +33,22 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
       TestParameters parameters,
       LibraryDesugaringSpecification libraryDesugaringSpecification,
       CompilationSpecification compilationSpecification,
-      CustomLibrarySpecification customLibrarySpecification,
+      D8TestCompileResult customLibCompile,
       L8TestCompileResult l8Compile) {
     this.test = test;
     this.compileResult = compileResult;
     this.parameters = parameters;
     this.libraryDesugaringSpecification = libraryDesugaringSpecification;
     this.compilationSpecification = compilationSpecification;
-    this.customLibrarySpecification = customLibrarySpecification;
+    this.customLibCompile = customLibCompile;
     this.l8Compile = l8Compile;
+  }
+
+  public <E extends Throwable> DesugaredLibraryTestCompileResult<T> inspectCustomLib(
+      ThrowingConsumer<CodeInspector, E> consumer) throws Throwable {
+    assert customLibCompile != null;
+    customLibCompile.inspect(consumer);
+    return this;
   }
 
   public <E extends Throwable> DesugaredLibraryTestCompileResult<T> inspectL8(
@@ -53,6 +61,25 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
       ThrowingConsumer<CodeInspector, E> consumer) throws Throwable {
     compileResult.inspect(consumer);
     return this;
+  }
+
+  public <E extends Throwable> DesugaredLibraryTestCompileResult<T> apply(
+      ThrowingConsumer<DesugaredLibraryTestCompileResult<T>, E> consumer) throws Throwable {
+    consumer.accept(this);
+    return this;
+  }
+
+  public CodeInspector customLibInspector() throws Throwable {
+    assert customLibCompile != null;
+    return customLibCompile.inspector();
+  }
+
+  public CodeInspector l8Inspector() throws Throwable {
+    return l8Compile.inspector();
+  }
+
+  public CodeInspector inspector() throws Throwable {
+    return compileResult.inspector();
   }
 
   public DesugaredLibraryTestCompileResult<T> inspectDiagnosticMessages(
@@ -79,14 +106,8 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
     TestCompileResult<?, ?> actualCompileResult =
         compilationSpecification.isCfToCf() ? convertCompileResultToDex() : compileResult;
 
-    if (customLibrarySpecification != null) {
-      Path customLib =
-          test.testForD8()
-              .addProgramClasses(customLibrarySpecification.getClasses())
-              .setMinApi(customLibrarySpecification.getMinApi())
-              .compile()
-              .writeToZip();
-      actualCompileResult.addRunClasspathFiles(customLib);
+    if (customLibCompile != null) {
+      actualCompileResult.addRunClasspathFiles(customLibCompile.writeToZip());
     }
 
     actualCompileResult.addRunClasspathFiles(desugaredLibrary);
