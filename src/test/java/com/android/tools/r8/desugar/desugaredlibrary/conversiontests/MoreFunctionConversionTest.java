@@ -30,7 +30,6 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class MoreFunctionConversionTest extends DesugaredLibraryTestBase {
 
-
   private final TestParameters parameters;
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
   private final CompilationSpecification compilationSpecification;

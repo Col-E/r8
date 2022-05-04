@@ -3,17 +3,21 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
+
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CustomLibrarySpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.BooleanUtils;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
 import org.junit.Assume;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -23,36 +27,33 @@ import org.junit.runners.Parameterized.Parameters;
 public class SuperAPIConversionTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
 
   private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.N;
 
-  private static Path CUSTOM_LIB;
-
-  @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        getConversionParametersUpToExcluding(MIN_SUPPORTED), BooleanUtils.values());
+        getConversionParametersUpToExcluding(MIN_SUPPORTED),
+        getJdk8Jdk11(),
+        DEFAULT_SPECIFICATIONS);
   }
 
-  public SuperAPIConversionTest(TestParameters parameters, boolean shrinkDesugaredLibrary) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public SuperAPIConversionTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
-  }
-
-  @BeforeClass
-  public static void compileCustomLib() throws Exception {
-    CUSTOM_LIB =
-        testForD8(getStaticTemp())
-            .addProgramClasses(CustomLibClass.class)
-            .setMinApi(MIN_SUPPORTED)
-            .compile()
-            .writeToZip();
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   @Test
   public void testAPIConversionNoDesugaring() throws Exception {
-    Assume.assumeTrue("No need to test twice", shrinkDesugaredLibrary);
+    Assume.assumeTrue(
+        "No need to test twice",
+        libraryDesugaringSpecification == JDK8 && compilationSpecification.isProgramShrink());
     testForD8()
         .addInnerClasses(SuperAPIConversionTest.class)
         .setMinApi(parameters.getApiLevel())
@@ -61,83 +62,23 @@ public class SuperAPIConversionTest extends DesugaredLibraryTestBase {
   }
 
   @Test
-  public void testAPIConversionDesugaringD8() throws Exception {
-    Assume.assumeFalse("TODO(b/189435770): fix", shrinkDesugaredLibrary);
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
+  public void testAPIConversion() throws Exception {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClasses(Executor.class, ParallelRandom.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutputLines("IntStream$VivifiedWrapper");
-  }
-
-  @Test
-  public void testAPIConversionDesugaringR8() throws Exception {
-    Assume.assumeFalse("TODO(b/189435770): fix", shrinkDesugaredLibrary);
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForR8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
-        .addProgramClasses(Executor.class, ParallelRandom.class)
-        .setMinApi(parameters.getApiLevel())
+        .setCustomLibrarySpecification(
+            new CustomLibrarySpecification(CustomLibClass.class, MIN_SUPPORTED))
         .addKeepMainRule(Executor.class)
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutputLines("IntStream$VivifiedWrapper");
   }
 
   @Test
-  public void testAPIConversionDesugaringD8B192351030() throws Exception {
-    Assume.assumeFalse("TODO(b/189435770): fix", shrinkDesugaredLibrary);
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
-        .addLibraryClasses(CustomLibClass.class)
+  public void testAPIConversionB192351030() throws Exception {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClasses(ExecutorB192351030.class, A.class, B.class, C.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .addRunClasspathFiles(CUSTOM_LIB)
-        .run(parameters.getRuntime(), ExecutorB192351030.class)
-        .assertSuccessWithOutputLines("Hello, ", "world!", "C");
-  }
-
-  @Test
-  public void testAPIConversionDesugaringR8B192351030() throws Exception {
-    Assume.assumeFalse("TODO(b/189435770): fix", shrinkDesugaredLibrary);
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForR8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
-        .addLibraryClasses(CustomLibClass.class)
-        .addProgramClasses(ExecutorB192351030.class, A.class, B.class, C.class)
-        .setMinApi(parameters.getApiLevel())
+        .setCustomLibrarySpecification(
+            new CustomLibrarySpecification(CustomLibClass.class, MIN_SUPPORTED))
         .addKeepMainRule(ExecutorB192351030.class)
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .addRunClasspathFiles(CUSTOM_LIB)
         .run(parameters.getRuntime(), ExecutorB192351030.class)
         .assertSuccessWithOutputLines("Hello, ", "world!", "C");
   }
