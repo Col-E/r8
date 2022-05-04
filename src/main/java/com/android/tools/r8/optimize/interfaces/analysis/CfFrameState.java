@@ -11,11 +11,12 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.AbstractState;
+import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.utils.FunctionUtils;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 public abstract class CfFrameState extends AbstractState<CfFrameState> {
 
@@ -37,21 +38,28 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
 
   public abstract CfFrameState pop();
 
-  public abstract CfFrameState pop(Function<FrameType, CfFrameState> fn);
+  public abstract CfFrameState pop(BiFunction<CfFrameState, FrameType, CfFrameState> fn);
 
   public abstract CfFrameState pop(AppView<?> appView, FrameType expectedType);
+
+  public abstract CfFrameState pop(AppView<?> appView, FrameType... expectedTypes);
 
   public abstract CfFrameState pop(
       AppView<?> appView,
       FrameType expectedType,
       BiFunction<CfFrameState, FrameType, CfFrameState> fn);
 
-  public abstract CfFrameState pop(AppView<?> appView, FrameType... expectedTypes);
-
   public abstract CfFrameState popAndInitialize(
       AppView<?> appView, DexMethod constructor, ProgramMethod context);
 
-  public abstract CfFrameState popInitialized(AppView<?> appView, DexType expectedType);
+  public final CfFrameState popInitialized(AppView<?> appView, DexType expectedType) {
+    return popInitialized(appView, expectedType, FunctionUtils::getFirst);
+  }
+
+  public abstract CfFrameState popInitialized(
+      AppView<?> appView,
+      DexType expectedType,
+      BiFunction<CfFrameState, FrameType, CfFrameState> fn);
 
   public abstract CfFrameState popInitialized(AppView<?> appView, DexType... expectedTypes);
 
@@ -61,6 +69,17 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
 
   public final CfFrameState popInitialized(AppView<?> appView, NumericType expectedType) {
     return popInitialized(appView, expectedType.toDexType(appView.dexItemFactory()));
+  }
+
+  public final CfFrameState popInitialized(
+      AppView<?> appView,
+      ValueType valueType,
+      BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
+    return popInitialized(appView, valueType.toDexType(appView.dexItemFactory()), fn);
+  }
+
+  public CfFrameState popObject(BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
+    return pop((state, head) -> head.isObject() ? fn.apply(state, head) : error());
   }
 
   // TODO(b/214496607): Pushing a value should return an error if the stack grows larger than the
@@ -81,6 +100,24 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
 
   public final CfFrameState push(AppView<?> appView, ValueType valueType) {
     return push(valueType.toDexType(appView.dexItemFactory()));
+  }
+
+  public abstract CfFrameState readLocal(
+      AppView<?> appView,
+      int localIndex,
+      ValueType expectedType,
+      BiFunction<CfFrameState, FrameType, CfFrameState> consumer);
+
+  public abstract CfFrameState storeLocal(int localIndex, FrameType frameType);
+
+  public final CfFrameState storeLocal(
+      int localIndex, PrimitiveTypeElement primitiveType, AppView<?> appView) {
+    assert primitiveType.isInt()
+        || primitiveType.isFloat()
+        || primitiveType.isLong()
+        || primitiveType.isDouble();
+    return storeLocal(
+        localIndex, FrameType.initialized(primitiveType.toDexType(appView.dexItemFactory())));
   }
 
   @Override

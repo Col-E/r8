@@ -4,7 +4,6 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCompareHelper;
@@ -14,6 +13,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.NumericType;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.IRBuilder;
@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
+import com.android.tools.r8.utils.FunctionUtils;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import org.objectweb.asm.MethodVisitor;
@@ -111,7 +112,6 @@ public class CfIinc extends CfInstruction {
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
-    // TODO(b/214496607): Implement this.
-    throw new Unimplemented();
+    return frame.readLocal(appView, getLocalIndex(), ValueType.INT, FunctionUtils::getFirst);
   }
 }

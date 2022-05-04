@@ -68,11 +68,19 @@ public class CfFrame extends CfInstruction {
 
     abstract Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens);
 
+    public boolean isObject() {
+      return false;
+    }
+
     public boolean isWide() {
       return false;
     }
 
     public boolean isUninitializedNew() {
+      return false;
+    }
+
+    public boolean isUninitializedObject() {
       return false;
     }
 
@@ -230,6 +238,11 @@ public class CfFrame extends CfInstruction {
     }
 
     @Override
+    public boolean isObject() {
+      return type.isReferenceType();
+    }
+
+    @Override
     public DexType getInitializedType() {
       return type;
     }
@@ -275,7 +288,17 @@ public class CfFrame extends CfInstruction {
     }
 
     @Override
+    public boolean isObject() {
+      return true;
+    }
+
+    @Override
     public boolean isUninitializedNew() {
+      return true;
+    }
+
+    @Override
+    public boolean isUninitializedObject() {
       return true;
     }
 
@@ -302,6 +325,16 @@ public class CfFrame extends CfInstruction {
     @Override
     public String toString() {
       return "uninitialized this";
+    }
+
+    @Override
+    public boolean isObject() {
+      return true;
+    }
+
+    @Override
+    public boolean isUninitializedObject() {
+      return true;
     }
 
     @Override

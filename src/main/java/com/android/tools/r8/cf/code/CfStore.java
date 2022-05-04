@@ -7,7 +7,6 @@ import static com.android.tools.r8.utils.BiPredicateUtils.or;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -181,7 +180,16 @@ public class CfStore extends CfInstruction {
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
-    // TODO(b/214496607): Implement this.
-    throw new Unimplemented();
+    // ..., ref →
+    // ...
+    if (type.isObject()) {
+      return frame.popObject((state, head) -> state.storeLocal(getLocalIndex(), head));
+    } else {
+      assert type.isPrimitive();
+      return frame.popInitialized(
+          appView,
+          type,
+          (state, head) -> state.storeLocal(getLocalIndex(), type.toPrimitiveType(), appView));
+    }
   }
 }

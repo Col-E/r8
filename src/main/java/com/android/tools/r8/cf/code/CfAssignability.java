@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.MemberType;
+import com.android.tools.r8.ir.code.ValueType;
 
 public class CfAssignability {
 
@@ -80,6 +81,10 @@ public class CfAssignability {
     }
     // TODO(b/166570659): Do a sub-type check that allows for missing classes in hierarchy.
     return MemberType.fromDexType(source) == MemberType.fromDexType(target);
+  }
+
+  public static boolean isAssignable(DexType source, ValueType target, AppView<?> appView) {
+    return isAssignable(source, target.toDexType(appView.dexItemFactory()), appView);
   }
 
   private static DexType byteCharShortOrBooleanToInt(DexType type, DexItemFactory factory) {

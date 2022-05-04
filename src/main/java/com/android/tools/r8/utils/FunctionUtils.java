@@ -30,6 +30,10 @@ public class FunctionUtils {
     }
   }
 
+  public static <S, T> S getFirst(S s, T t) {
+    return s;
+  }
+
   public static <T, R> Function<T, R> ignoreArgument(Supplier<R> supplier) {
     return ignore -> supplier.get();
   }

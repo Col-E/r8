@@ -322,7 +322,7 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
   }
 
   public boolean isReferenceType() {
-    boolean isReferenceType = isArrayType() || isClassType();
+    boolean isReferenceType = isArrayType() || isClassType() || isNullValueType();
     assert isReferenceType != isPrimitiveType() || isVoidType();
     return isReferenceType;
   }

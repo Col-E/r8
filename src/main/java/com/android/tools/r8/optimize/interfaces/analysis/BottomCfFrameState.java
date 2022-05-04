@@ -9,8 +9,8 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.code.ValueType;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 public class BottomCfFrameState extends CfFrameState {
 
@@ -33,7 +33,7 @@ public class BottomCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState pop(Function<FrameType, CfFrameState> fn) {
+  public CfFrameState pop(BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
     return error();
   }
 
@@ -62,7 +62,10 @@ public class BottomCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState popInitialized(AppView<?> appView, DexType expectedType) {
+  public CfFrameState popInitialized(
+      AppView<?> appView,
+      DexType expectedType,
+      BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
     return error();
   }
 
@@ -79,6 +82,20 @@ public class BottomCfFrameState extends CfFrameState {
   @Override
   public CfFrameState push(FrameType frameType) {
     return new ConcreteCfFrameState().push(frameType);
+  }
+
+  @Override
+  public CfFrameState readLocal(
+      AppView<?> appView,
+      int localIndex,
+      ValueType expectedType,
+      BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
+    return error();
+  }
+
+  @Override
+  public CfFrameState storeLocal(int localIndex, FrameType frameType) {
+    return new ConcreteCfFrameState().storeLocal(localIndex, frameType);
   }
 
   @Override

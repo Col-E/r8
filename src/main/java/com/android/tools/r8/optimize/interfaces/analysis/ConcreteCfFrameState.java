@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.code.ValueType;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
@@ -19,7 +20,6 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Objects;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 public class ConcreteCfFrameState extends CfFrameState {
 
@@ -67,12 +67,12 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState pop(Function<FrameType, CfFrameState> fn) {
+  public CfFrameState pop(BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
     if (stack.isEmpty()) {
       return error();
     }
     FrameType frameType = stack.removeLast();
-    return fn.apply(frameType);
+    return fn.apply(this, frameType);
   }
 
   @Override
@@ -86,9 +86,9 @@ public class ConcreteCfFrameState extends CfFrameState {
       FrameType expectedType,
       BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
     return pop(
-        frameType ->
+        (state, frameType) ->
             CfAssignability.isAssignable(frameType, expectedType, appView)
-                ? fn.apply(this, frameType)
+                ? fn.apply(state, frameType)
                 : error());
   }
 
@@ -105,16 +105,16 @@ public class ConcreteCfFrameState extends CfFrameState {
   public CfFrameState popAndInitialize(
       AppView<?> appView, DexMethod constructor, ProgramMethod context) {
     return pop(
-        frameType -> {
+        (state, frameType) -> {
           if (frameType.isUninitializedThis()) {
             if (constructor.getHolderType() == context.getHolderType()
                 || constructor.getHolderType() == context.getHolder().getSuperType()) {
-              return markInitialized(frameType, context.getHolderType());
+              return state.markInitialized(frameType, context.getHolderType());
             }
           } else if (frameType.isUninitializedNew()) {
             DexType uninitializedNewType = frameType.getUninitializedNewType();
             if (constructor.getHolderType() == uninitializedNewType) {
-              return markInitialized(frameType, uninitializedNewType);
+              return state.markInitialized(frameType, uninitializedNewType);
             }
           }
           return error();
@@ -122,13 +122,16 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState popInitialized(AppView<?> appView, DexType expectedType) {
+  public CfFrameState popInitialized(
+      AppView<?> appView,
+      DexType expectedType,
+      BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
     return pop(
-        frameType ->
+        (state, frameType) ->
             frameType.isInitialized()
                     && CfAssignability.isAssignable(
                         frameType.getInitializedType(), expectedType, appView)
-                ? this
+                ? fn.apply(state, frameType)
                 : error());
   }
 
@@ -149,6 +152,35 @@ public class ConcreteCfFrameState extends CfFrameState {
   @Override
   public CfFrameState push(FrameType frameType) {
     stack.push(frameType);
+    return this;
+  }
+
+  @Override
+  public CfFrameState readLocal(
+      AppView<?> appView,
+      int localIndex,
+      ValueType expectedType,
+      BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
+    FrameType frameType = locals.get(localIndex);
+    if (frameType == null) {
+      return error();
+    }
+    if (frameType.isInitialized()
+        && CfAssignability.isAssignable(frameType.getInitializedType(), expectedType, appView)) {
+      return fn.apply(this, frameType);
+    }
+    if (frameType.isUninitializedObject() && expectedType.isObject()) {
+      return fn.apply(this, frameType);
+    }
+    return error();
+  }
+
+  @Override
+  public CfFrameState storeLocal(int localIndex, FrameType frameType) {
+    locals.put(localIndex, frameType);
+    if (frameType.isWide()) {
+      locals.put(localIndex + 1, frameType);
+    }
     return this;
   }
 
