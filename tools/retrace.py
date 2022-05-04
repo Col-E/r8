@@ -110,6 +110,13 @@ def get_map_file(args, temp):
 
   if r8_source_file:
     (header, r8_version_or_hash, maphash) = r8_source_file.split('_')
+    # If the command-line specified --exclude-deps then assume it is as previous
+    # versions will not be marked as such in the source-file line.
+    is_excldeps = args.exclude_deps
+    excldeps_start = r8_version_or_hash.find('+excldeps')
+    if (excldeps_start > 0):
+      is_excldeps = True
+      r8_version_or_hash = r8_version_or_hash[0:excldeps_start]
     if len(r8_version_or_hash) < 40:
       args.version = r8_version_or_hash
     else:
@@ -117,7 +124,7 @@ def get_map_file(args, temp):
     map_path = None
     try:
       map_path = utils.find_cloud_storage_file_from_options(
-        'r8lib' + ('-exclude-deps' if args.exclude_deps else '' ) + '.jar.map', args)
+        'r8lib' + ('-exclude-deps' if is_excldeps else '') + '.jar.map', args)
     except Exception as e:
       print(e)
       print('WARNING: Falling back to using local mapping file.')

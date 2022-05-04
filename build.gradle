@@ -967,7 +967,7 @@ def d8CfCommandLine(input, output, args = ["--release"], libs = []) {
     return baseD8CommandLine(allArgs)
 }
 
-def r8LibCreateTask(name, pgConfs = [], r8Task, output, libs = [], classpath = []) {
+def r8LibCreateTask(name, pgConfs = [], r8Task, output, libs = [], classpath = [], excldeps=false) {
     return tasks.create("r8Lib${name}", Exec) {
         inputs.files ([pgConfs, r8WithRelocatedDeps.outputs, r8Task.outputs])
         outputs.file output
@@ -978,6 +978,7 @@ def r8LibCreateTask(name, pgConfs = [], r8Task, output, libs = [], classpath = [
                 "python3", "tools/create_r8lib.py",
                 "--r8jar", r8Task.outputs.files[0],
                 "--output", output]
+                + (excldeps ? ['--excldeps-variant'] : [])
                 + (pgConfs.collectMany { ["--pg-conf", it] })
                 + (libs.collectMany { ["--lib", it] })
                 + (classpath.collectMany { ["--classpath", it] }))
@@ -1070,7 +1071,8 @@ task R8LibNoDeps {
             r8NoManifestWithoutDeps,
             r8LibExludeDepsPath,
             [],
-            repackageDeps.outputs.files
+            repackageDeps.outputs.files,
+            true,
     ).dependsOn(repackageDeps)
     inputs.files ([r8NoManifestWithoutDeps.outputs, repackageDeps.outputs])
     outputs.file r8LibExludeDepsPath
@@ -1107,7 +1109,8 @@ task R8RetraceNoDeps {
             R8LibNoDeps,
             r8RetraceExludeDepsPath,
             [],
-            repackageDeps.outputs.files
+            repackageDeps.outputs.files,
+            true,
     ).dependsOn(R8LibNoDeps)
     outputs.file r8RetraceExludeDepsPath
 }

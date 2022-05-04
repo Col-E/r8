@@ -42,6 +42,11 @@ def parse_options():
       '--classpath',
       action='append',
       help='Dependencies to add to classpath')
+  parser.add_argument(
+      '--excldeps-variant',
+      action='store_true',
+      default=False,
+      help='Mark this artifact as an "excldeps" variant of the compiler')
   return parser.parse_args()
 
 def get_r8_version(r8jar):
@@ -72,7 +77,8 @@ def main():
     print("Could not find jar: " + args.r8jar)
     return 1
   version = get_r8_version(args.r8jar)
-  map_id_template = version
+  variant = '+excldeps' if args.excldeps_variant else ''
+  map_id_template = version + variant
   source_file_template = 'R8_%MAP_ID_%MAP_HASH'
   # TODO(b/139725780): See if we can remove or lower the heap size (-Xmx8g).
   cmd = [jdk.GetJavaExecutable(), '-Xmx8g', '-ea']
