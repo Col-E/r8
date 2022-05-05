@@ -6,7 +6,9 @@ package com.android.tools.r8.horizontalclassmerging.code;
 
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.IRCodeProvider;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.IRConverter;
@@ -14,8 +16,10 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -27,22 +31,28 @@ public class SyntheticInitializerConverter {
 
   private final AppView<?> appView;
   private final IRCodeProvider codeProvider;
+  private final Mode mode;
+
   private final List<ProgramMethod> classInitializers;
-  private final List<ProgramMethod> instanceInitializers;
+
+  // Classes with one or more instance initializers that need to have their code processed into dex.
+  private final Set<DexProgramClass> instanceInitializers;
 
   private SyntheticInitializerConverter(
       AppView<?> appView,
       IRCodeProvider codeProvider,
+      Mode mode,
       List<ProgramMethod> classInitializers,
-      List<ProgramMethod> instanceInitializers) {
+      Set<DexProgramClass> instanceInitializers) {
     this.appView = appView;
     this.codeProvider = codeProvider;
+    this.mode = mode;
     this.classInitializers = classInitializers;
     this.instanceInitializers = instanceInitializers;
   }
 
-  public static Builder builder(AppView<?> appView, IRCodeProvider codeProvider) {
-    return new Builder(appView, codeProvider);
+  public static Builder builder(AppView<?> appView, IRCodeProvider codeProvider, Mode mode) {
+    return new Builder(appView, codeProvider, mode);
   }
 
   public void convertClassInitializers(ExecutorService executorService) throws ExecutionException {
@@ -58,8 +68,21 @@ public class SyntheticInitializerConverter {
     if (!instanceInitializers.isEmpty()) {
       IRConverter converter = new IRConverter(createAppViewForConversion(), Timing.empty());
       ThreadUtils.processItems(
-          instanceInitializers, method -> processMethod(method, converter), executorService);
+          instanceInitializers,
+          clazz -> processInstanceInitializers(clazz, converter),
+          executorService);
     }
+  }
+
+  private void processInstanceInitializers(DexProgramClass clazz, IRConverter converter) {
+    assert appView.options().isGeneratingDex();
+    assert mode.isFinal();
+    clazz.forEachProgramInstanceInitializerMatching(
+        method -> !method.getCode().isDexCode(),
+        method -> {
+          processMethod(method, converter);
+          assert method.getDefinition().getCode().isDexCode();
+        });
   }
 
   private AppView<AppInfo> createAppViewForConversion() {
@@ -91,12 +114,15 @@ public class SyntheticInitializerConverter {
 
     private final AppView<?> appView;
     private final IRCodeProvider codeProvider;
-    private final List<ProgramMethod> classInitializers = new ArrayList<>();
-    private final List<ProgramMethod> instanceInitializers = new ArrayList<>();
+    private final Mode mode;
 
-    private Builder(AppView<?> appView, IRCodeProvider codeProvider) {
+    private final List<ProgramMethod> classInitializers = new ArrayList<>();
+    private final Set<DexProgramClass> instanceInitializers = Sets.newIdentityHashSet();
+
+    private Builder(AppView<?> appView, IRCodeProvider codeProvider, Mode mode) {
       this.appView = appView;
       this.codeProvider = codeProvider;
+      this.mode = mode;
     }
 
     public Builder addClassInitializer(ProgramMethod method) {
@@ -105,13 +131,16 @@ public class SyntheticInitializerConverter {
     }
 
     public Builder addInstanceInitializer(ProgramMethod method) {
-      this.instanceInitializers.add(method);
+      // Record that the holder has an instance initializer that needs processing to dex. We avoid
+      // storing the collection of exact initializers that need processing, since that requires lens
+      // code rewriting after the fixup has been made.
+      this.instanceInitializers.add(method.getHolder());
       return this;
     }
 
     public SyntheticInitializerConverter build() {
       return new SyntheticInitializerConverter(
-          appView, codeProvider, classInitializers, instanceInitializers);
+          appView, codeProvider, mode, classInitializers, instanceInitializers);
     }
   }
 }

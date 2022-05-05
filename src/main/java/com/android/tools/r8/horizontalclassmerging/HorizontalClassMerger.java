@@ -127,7 +127,7 @@ public class HorizontalClassMerger {
             ? new SyntheticArgumentClass.Builder(appView.withLiveness()).build(groups)
             : null;
     SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder =
-        SyntheticInitializerConverter.builder(appView, codeProvider);
+        SyntheticInitializerConverter.builder(appView, codeProvider, mode);
     List<VirtuallyMergedMethodsKeepInfo> virtuallyMergedMethodsKeepInfos = new ArrayList<>();
     PrunedItems prunedItems =
         applyClassMergers(
