@@ -14,7 +14,11 @@ import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Consumer;
 
 public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBase> {
@@ -26,6 +30,7 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
   private final CompilationSpecification compilationSpecification;
   private final D8TestCompileResult customLibCompile;
   private final L8TestCompileResult l8Compile;
+  private final List<Path> runClasspathFiles = new ArrayList<>();
 
   public DesugaredLibraryTestCompileResult(
       T test,
@@ -110,7 +115,9 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
       actualCompileResult.addRunClasspathFiles(customLibCompile.writeToZip());
     }
 
-    actualCompileResult.addRunClasspathFiles(desugaredLibrary);
+    actualCompileResult
+        .addRunClasspathFiles(desugaredLibrary)
+        .addRunClasspathFiles(runClasspathFiles);
 
     return actualCompileResult.run(runtime, mainClassName, args);
   }
@@ -121,5 +128,14 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
         .setMinApi(parameters.getApiLevel())
         .disableDesugaring()
         .compile();
+  }
+
+  public Path writeToZip() throws IOException {
+    return compileResult.writeToZip();
+  }
+
+  public DesugaredLibraryTestCompileResult<T> addRunClasspathFiles(Path... classpathFiles) {
+    Collections.addAll(runClasspathFiles, classpathFiles);
+    return this;
   }
 }

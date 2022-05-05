@@ -4,24 +4,29 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
-import java.io.IOException;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Stream;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -30,22 +35,36 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class WrapperPlacementTest extends DesugaredLibraryTestBase {
 
+  private final TestParameters parameters;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
+
   private static final String EXPECTED = StringUtils.lines("[1, 2, 3]", "[2, 3, 4]");
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  @Parameters(name = "{0}, spec: {1}, {2}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        getJdk8Jdk11(),
+        ImmutableList.of(D8_L8DEBUG));
   }
 
-  private final TestParameters parameters;
-
-  public WrapperPlacementTest(TestParameters parameters) {
+  public WrapperPlacementTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   @Test
   public void testReference() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
+    Assume.assumeTrue(
+        "No need to test twice",
+        parameters.isCfRuntime()
+            && libraryDesugaringSpecification == JDK8
+            && compilationSpecification.isProgramShrink());
     testForJvm()
         .addAndroidBuildVersion()
         .addProgramClassesAndInnerClasses(MyArrays1.class)
@@ -56,44 +75,27 @@ public class WrapperPlacementTest extends DesugaredLibraryTestBase {
   }
 
   @Test
-  public void testNoWrappers() throws Exception {
+  public void testNoWrappers() throws Throwable {
     assumeTrue(parameters.isDexRuntime());
     // No wrappers are made during program compilation.
     Path path1 = compileWithCoreLibraryDesugaring(MyArrays1.class);
     Path path2 = compileWithCoreLibraryDesugaring(MyArrays2.class);
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
+
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClasses(TestClass.class)
         .addAndroidBuildVersion()
-        .enableCoreLibraryDesugaring(
-            LibraryDesugaringTestConfiguration.builder()
-                .setMinApi(parameters.getApiLevel())
-                .dontAddRunClasspath()
-                .build())
-        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::assertNoWrappers)
-        .apply(
-            b -> {
-              if (!hasNativeIntUnaryOperator()) {
-                Path coreLib = buildDesugaredLibrary(parameters.getApiLevel());
-                assertCoreLibContainsWrappers(coreLib);
-                b.addRunClasspathFiles(coreLib);
-              }
-            })
-        // The previous compilations are appended to the classpath (no merge).
+        .inspectL8(this::assertCoreLibContainsWrappers)
         .addRunClasspathFiles(path1, path2)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }
 
-  private Path compileWithCoreLibraryDesugaring(Class<?> clazz) throws Exception {
-    return testForD8()
-        .addLibraryFiles(getLibraryFile())
+  private Path compileWithCoreLibraryDesugaring(Class<?> clazz) throws Throwable {
+    return testForDesugaredLibrary(
+            parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClassesAndInnerClasses(clazz)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(
-            LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
         .compile()
         .inspect(this::assertNoWrappers)
         .writeToZip();
@@ -103,10 +105,11 @@ public class WrapperPlacementTest extends DesugaredLibraryTestBase {
     return parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N);
   }
 
-  private void assertCoreLibContainsWrappers(Path coreLib) throws IOException {
-    CodeInspector inspector = new CodeInspector(coreLib);
-    Stream<FoundClassSubject> wrappers = getWrappers(inspector);
-    assertNotEquals(0, wrappers.count());
+  private void assertCoreLibContainsWrappers(CodeInspector inspector) {
+    if (!hasNativeIntUnaryOperator()) {
+      Stream<FoundClassSubject> wrappers = getWrappers(inspector);
+      assertNotEquals(0, wrappers.count());
+    }
   }
 
   private void assertNoWrappers(CodeInspector inspector) {

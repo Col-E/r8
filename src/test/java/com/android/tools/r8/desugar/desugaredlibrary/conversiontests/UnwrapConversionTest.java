@@ -4,16 +4,19 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
+
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CustomLibrarySpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.function.DoubleConsumer;
 import java.util.function.IntConsumer;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -23,69 +26,36 @@ import org.junit.runners.Parameterized.Parameters;
 public class UnwrapConversionTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
+
   private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.N;
   private static final String EXPECTED_RESULT = StringUtils.lines("true", "true");
-  private static Path CUSTOM_LIB;
 
-  @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        getConversionParametersUpToExcluding(MIN_SUPPORTED), BooleanUtils.values());
+        getConversionParametersUpToExcluding(MIN_SUPPORTED),
+        getJdk8Jdk11(),
+        DEFAULT_SPECIFICATIONS);
   }
 
-  public UnwrapConversionTest(TestParameters parameters, boolean shrinkDesugaredLibrary) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public UnwrapConversionTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
-  }
-
-  @BeforeClass
-  public static void compileCustomLib() throws Exception {
-    CUSTOM_LIB =
-        testForD8(getStaticTemp())
-            .addProgramClasses(CustomLibClass.class)
-            .setMinApi(MIN_SUPPORTED)
-            .compile()
-            .writeToZip();
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   @Test
-  public void testUnwrapD8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
-        .setMinApi(parameters.getApiLevel())
-        .addProgramClasses(Executor.class)
-        .addLibraryClasses(CustomLibClass.class)
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .addRunClasspathFiles(CUSTOM_LIB)
-        .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
-  }
-
-  @Test
-  public void testUnwrapR8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForR8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
-        .setMinApi(parameters.getApiLevel())
+  public void testUnwrap() throws Exception {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClasses(Executor.class)
         .addKeepMainRule(Executor.class)
-        .addLibraryClasses(CustomLibClass.class)
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .addRunClasspathFiles(CUSTOM_LIB)
+        .setCustomLibrarySpecification(
+            new CustomLibrarySpecification(CustomLibClass.class, MIN_SUPPORTED))
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }

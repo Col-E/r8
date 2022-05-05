@@ -23,7 +23,6 @@ import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import org.junit.Assume;
 
@@ -101,6 +100,12 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
+  public DesugaredLibraryTestBuilder<T> addProgramClassesAndInnerClasses(Class<?>... clazz)
+      throws IOException {
+    builder.addProgramClassesAndInnerClasses(clazz);
+    return this;
+  }
+
   public DesugaredLibraryTestBuilder<T> addInnerClasses(Class<?>... clazz) throws IOException {
     builder.addInnerClasses(clazz);
     return this;
@@ -155,7 +160,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   }
 
   private D8TestCompileResult compileCustomLib() throws CompilationFailedException {
-    if (compilationSpecification == null) {
+    if (customLibrarySpecification == null) {
       return null;
     }
     return test.testForD8()
@@ -164,8 +169,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
         .compile();
   }
 
-  private L8TestCompileResult compileDesugaredLibrary(String keepRule)
-      throws IOException, CompilationFailedException, ExecutionException {
+  private L8TestCompileResult compileDesugaredLibrary(String keepRule) throws Exception {
     return test.testForL8(parameters.getApiLevel(), parameters.getBackend())
         .addProgramFiles(libraryDesugaringSpecification.getDesugarJdkLibs())
         .addLibraryFiles(libraryDesugaringSpecification.getAndroidJar())
@@ -213,5 +217,10 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
                 parameters.getApiLevel().getLevel(),
                 builder ->
                     builder.setSupportAllCallbacksFromLibrary(supportAllCallbacksFromLibrary)));
+  }
+
+  public DesugaredLibraryTestBuilder<T> addAndroidBuildVersion() {
+    builder.addAndroidBuildVersion();
+    return this;
   }
 }
