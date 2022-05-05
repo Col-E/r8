@@ -10,7 +10,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8TestCompileResult;
@@ -19,7 +18,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.errors.DuplicateTypesDiagnostic;
 import com.android.tools.r8.errors.MissingGlobalSyntheticsConsumerDiagnostic;
-import com.android.tools.r8.synthesis.globals.GlobalSyntheticsTestingConsumer;
+import com.android.tools.r8.synthesis.globals.GlobalSyntheticsConsumerAndProvider;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Path;
@@ -73,10 +72,7 @@ public class RecordMergeTest extends TestBase {
 
   @Test
   public void testMergeDesugaredInputs() throws Exception {
-    // TODO(b/230445931): Records do not yet have contexts so per-file modes fail.
-    //  This test should be extended or duplicated to also test the pre-file-dex modes.
-    assumeTrue("b/230445931", parameters.isDexRuntime());
-    GlobalSyntheticsTestingConsumer globals1 = new GlobalSyntheticsTestingConsumer();
+    GlobalSyntheticsConsumerAndProvider globals1 = new GlobalSyntheticsConsumerAndProvider();
     Path output1 =
         testForD8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA_1)
@@ -87,7 +83,7 @@ public class RecordMergeTest extends TestBase {
             .inspect(this::assertDoesNotHaveRecordTag)
             .writeToZip();
 
-    GlobalSyntheticsTestingConsumer globals2 = new GlobalSyntheticsTestingConsumer();
+    GlobalSyntheticsConsumerAndProvider globals2 = new GlobalSyntheticsConsumerAndProvider();
     Path output2 =
         testForD8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA_2)
@@ -98,17 +94,13 @@ public class RecordMergeTest extends TestBase {
             .inspect(this::assertDoesNotHaveRecordTag)
             .writeToZip();
 
-    assertTrue(globals1.hasGlobals());
-    assertTrue(globals2.hasGlobals());
+    assertTrue(globals1.hasBytes());
+    assertTrue(globals2.hasBytes());
 
     D8TestCompileResult result =
         testForD8(parameters.getBackend())
             .addProgramFiles(output1, output2)
-            .apply(
-                b ->
-                    b.getBuilder()
-                        .addGlobalSyntheticsResourceProviders(
-                            globals1.getIndexedModeProvider(), globals2.getIndexedModeProvider()))
+            .apply(b -> b.getBuilder().addGlobalSyntheticsResourceProviders(globals1, globals2))
             .setMinApi(parameters.getApiLevel())
             .compile()
             .inspect(this::assertHasRecordTag);
@@ -119,7 +111,7 @@ public class RecordMergeTest extends TestBase {
 
   @Test
   public void testMergeDesugaredAndNonDesugaredInputs() throws Exception {
-    GlobalSyntheticsTestingConsumer globals1 = new GlobalSyntheticsTestingConsumer();
+    GlobalSyntheticsConsumerAndProvider globals1 = new GlobalSyntheticsConsumerAndProvider();
     Path output1 =
         testForD8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA_1)
@@ -132,10 +124,7 @@ public class RecordMergeTest extends TestBase {
     D8TestCompileResult result =
         testForD8(parameters.getBackend())
             .addProgramFiles(output1)
-            .apply(
-                b ->
-                    b.getBuilder()
-                        .addGlobalSyntheticsResourceProviders(globals1.getIndexedModeProvider()))
+            .apply(b -> b.getBuilder().addGlobalSyntheticsResourceProviders(globals1))
             .addProgramClassFileData(PROGRAM_DATA_2)
             .setMinApi(parameters.getApiLevel())
             .compile();

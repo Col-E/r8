@@ -169,7 +169,7 @@ public class CfApplicationWriter {
     }
     if (!globalSyntheticClasses.isEmpty()) {
       InternalGlobalSyntheticsCfConsumer globalsConsumer =
-          new InternalGlobalSyntheticsCfConsumer(options.getGlobalSyntheticsConsumer(), appView);
+          new InternalGlobalSyntheticsCfConsumer(options.getGlobalSyntheticsConsumer());
       for (DexProgramClass clazz : globalSyntheticClasses) {
         writeClassCatchingErrors(
             clazz, globalsConsumer, rewriter, markerString, sourceFileEnvironment);
