@@ -1127,6 +1127,11 @@ public abstract class MethodResolutionResult
         Consumer<? super FailedResolutionResult> failedResolutionConsumer) {
       failedResolutionConsumer.accept(this);
     }
+
+    public boolean hasTypesOrMethodsCausingError() {
+      return (typesCausingError != null && !typesCausingError.isEmpty())
+          || hasMethodsCausingError();
+    }
   }
 
   public static class ClassNotFoundResult extends FailedResolutionResult {
