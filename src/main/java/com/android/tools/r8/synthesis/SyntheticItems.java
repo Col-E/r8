@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
@@ -32,19 +33,24 @@ import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
+import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.synthesis.SyntheticFinalization.Result;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
@@ -223,12 +229,21 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     this.globalSyntheticsStrategy = globalSyntheticsStrategy;
   }
 
-  public Set<DexType> getFinalGlobalSyntheticContexts(DexType globalSynthetic) {
+  public Map<DexType, Set<DexType>> getFinalGlobalSyntheticContexts(
+      AppView appView, NamingLens namingLens) {
     assert isFinalized();
-    assert isSynthetic(globalSynthetic);
-    Set<DexType> contexts = committed.getContextsForGlobal(globalSynthetic);
-    assert !contexts.isEmpty();
-    return contexts;
+    DexItemFactory factory = appView.dexItemFactory();
+    ImmutableMap<DexType, Set<DexType>> globalContexts = committed.getGlobalContexts();
+    Map<DexType, Set<DexType>> rewritten = new IdentityHashMap<>(globalContexts.size());
+    globalContexts.forEach(
+        (global, contexts) -> {
+          Set<DexType> old =
+              rewritten.put(
+                  namingLens.lookupType(global, factory),
+                  SetUtils.mapIdentityHashSet(contexts, c -> namingLens.lookupType(c, factory)));
+          assert old == null;
+        });
+    return rewritten;
   }
 
   public static void collectSyntheticInputs(AppView<?> appView) {

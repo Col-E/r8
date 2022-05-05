@@ -185,9 +185,9 @@ public final class D8 {
             () ->
                 AppInfo.createInitialAppInfo(
                     app,
-                    options.isGeneratingDexFilePerClassFile()
-                        ? GlobalSyntheticsStrategy.forPerFileMode()
-                        : GlobalSyntheticsStrategy.forSingleOutputMode(),
+                    options.isGeneratingDexIndexed()
+                        ? GlobalSyntheticsStrategy.forSingleOutputMode()
+                        : GlobalSyntheticsStrategy.forPerFileMode(),
                     applicationReader.readMainDexClasses(app)));
     return timing.time("Create app-view", () -> AppView.createForD8(appInfo, typeRewriter, timing));
   }
