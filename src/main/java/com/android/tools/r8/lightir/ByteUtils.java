@@ -35,4 +35,16 @@ public class ByteUtils {
     writer.put(truncateToU1(value >> 8));
     writer.put(truncateToU1(value));
   }
+
+  public static boolean isU2(int value) {
+    return value >= 0 && value <= 0xFFFF;
+  }
+
+  public static int unsetBitAtIndex(int value, int index) {
+    return value & ~(1 << index - 1);
+  }
+
+  public static int setBitAtIndex(int value, int index) {
+    return value | (1 << index - 1);
+  }
 }

@@ -4,77 +4,81 @@
 
 package com.android.tools.r8.apimodel;
 
+import static com.android.tools.r8.androidapi.AndroidApiDataAccess.constantPoolHash;
+import static com.android.tools.r8.androidapi.AndroidApiLevelHashingDatabaseImpl.getNonExistingDescriptor;
+import static com.android.tools.r8.androidapi.AndroidApiLevelHashingDatabaseImpl.getUniqueDescriptorForReference;
+import static com.android.tools.r8.lightir.ByteUtils.isU2;
+import static com.android.tools.r8.lightir.ByteUtils.setBitAtIndex;
+import static com.android.tools.r8.utils.MapUtils.ignoreKey;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.androidapi.AndroidApiLevelHashingDatabaseImpl;
+import com.android.tools.r8.androidapi.AndroidApiDataAccess;
 import com.android.tools.r8.apimodel.AndroidApiVersionsXmlParser.ParsedApiClass;
+import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMember;
+import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.LibraryClass;
 import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.Pair;
-import com.android.tools.r8.utils.structural.DefaultHashingVisitor;
-import com.android.tools.r8.utils.structural.HasherWrapper;
-import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.ThrowingBiConsumer;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.FileOutputStream;
-import java.io.ObjectOutputStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.function.BiConsumer;
 
 public class AndroidApiHashingDatabaseBuilderGenerator extends TestBase {
 
   /**
    * Generate the information needed for looking up api level of references in the android.jar. This
-   * method will generate three different files and store them in the passed paths. pathToIndices
-   * will be an int array with hashcode entries for each DexReference. The pathToApiLevels is a byte
-   * array with a byte describing the api level that the index in pathToIndices has. To ensure that
-   * this lookup work the generate algorithm tracks all colliding hash codes such and stores them in
-   * another format. The indices map is populated with all colliding entries and a -1 is inserted
-   * for the api level.
+   * method will generate one single database file where the format is as follows (uX is X number of
+   * unsigned bytes):
+   *
+   * <pre>
+   * constant_pool_size: u4
+   * constant_pool:      [constant_pool_size * payload_entry]
+   * constant_pool_map:  [0..max_hash(DexString) * payload_entry]
+   * api_map:            [0..max_hash(DexReference) * payload_entry]
+   * payload             raw data.
+   *
+   * payload_entry: u4:relative_offset_from_payload_start + u2:length
+   * </pre>
+   *
+   * For hash_definitions and entries see {@code AndroidApiDataAccess}.
    */
   public static void generate(
-      List<ParsedApiClass> apiClasses,
-      Path pathToIndices,
-      Path pathToApiLevels,
-      Path ambiguousDefinitions,
-      AndroidApiLevel androidJarApiLevel)
+      List<ParsedApiClass> apiClasses, Path pathToApiLevels, AndroidApiLevel androidJarApiLevel)
       throws Exception {
     Map<ClassReference, Map<DexMethod, AndroidApiLevel>> methodMap = new HashMap<>();
     Map<ClassReference, Map<DexField, AndroidApiLevel>> fieldMap = new HashMap<>();
     Map<ClassReference, ParsedApiClass> lookupMap = new HashMap<>();
-    Path androidJar = ToolHelper.getAndroidJar(androidJarApiLevel);
-    AppView<AppInfoWithLiveness> appView =
-        computeAppViewWithLiveness(AndroidApp.builder().addLibraryFile(androidJar).build());
-    DexItemFactory factory = appView.dexItemFactory();
 
-    Map<Integer, AndroidApiLevel> apiLevelMap = new HashMap<>();
-    Map<Integer, Pair<DexReference, AndroidApiLevel>> reverseMap = new HashMap<>();
-    Map<AndroidApiLevel, Set<DexReference>> ambiguousMap = new HashMap<>();
-    // Populate maps for faster lookup.
-    for (ParsedApiClass apiClass : apiClasses) {
-      DexType type = factory.createType(apiClass.getClassReference().getDescriptor());
-      AndroidApiLevel existing = apiLevelMap.put(type.hashCode(), apiClass.getApiLevel());
-      assert existing == null;
-      reverseMap.put(type.hashCode(), Pair.create(type, apiClass.getApiLevel()));
-    }
+    Map<DexReference, AndroidApiLevel> referenceMap = new HashMap<>();
+
+    Path androidJar = ToolHelper.getAndroidJar(androidJarApiLevel);
+    AppView<AppInfoWithClassHierarchy> appView =
+        computeAppViewWithClassHierarchy(AndroidApp.builder().addLibraryFile(androidJar).build());
+    DexItemFactory factory = appView.dexItemFactory();
 
     for (ParsedApiClass apiClass : apiClasses) {
       Map<DexMethod, AndroidApiLevel> methodsForApiClass = new HashMap<>();
@@ -91,27 +95,44 @@ public class AndroidApiHashingDatabaseBuilderGenerator extends TestBase {
       methodMap.put(apiClass.getClassReference(), methodsForApiClass);
       fieldMap.put(apiClass.getClassReference(), fieldsForApiClass);
       lookupMap.put(apiClass.getClassReference(), apiClass);
-    }
 
-    BiConsumer<DexReference, AndroidApiLevel> addConsumer =
-        addReferenceToMaps(apiLevelMap, reverseMap, ambiguousMap);
+      referenceMap.put(
+          factory.createType(apiClass.getClassReference().getDescriptor()), apiClass.getApiLevel());
+    }
 
     for (ParsedApiClass apiClass : apiClasses) {
       computeAllReferencesInHierarchy(
-              lookupMap,
-              factory,
-              factory.createType(apiClass.getClassReference().getDescriptor()),
-              apiClass,
-              AndroidApiLevel.B,
-              new IdentityHashMap<>())
-          .forEach(addConsumer);
+          lookupMap,
+          factory,
+          factory.createType(apiClass.getClassReference().getDescriptor()),
+          apiClass,
+          AndroidApiLevel.B,
+          referenceMap);
     }
 
+    assert ensureAllPublicMethodsAreMapped(
+        appView, lookupMap, methodMap, fieldMap, referenceMap, androidJar);
+
+    try (FileOutputStream fileOutputStream = new FileOutputStream(pathToApiLevels.toFile())) {
+      DataOutputStream dataOutputStream = new DataOutputStream(fileOutputStream);
+      generateDatabase(referenceMap, dataOutputStream);
+    }
+  }
+
+  private static boolean ensureAllPublicMethodsAreMapped(
+      AppView<AppInfoWithClassHierarchy> appView,
+      Map<ClassReference, ParsedApiClass> lookupMap,
+      Map<ClassReference, Map<DexMethod, AndroidApiLevel>> methodMap,
+      Map<ClassReference, Map<DexField, AndroidApiLevel>> fieldMap,
+      Map<DexReference, AndroidApiLevel> referenceMap,
+      Path androidJar) {
     Map<DexType, String> missingMemberInformation = new IdentityHashMap<>();
-    for (LibraryClass clazz : appView.app().asDirect().libraryClasses()) {
+    for (DexLibraryClass clazz : appView.app().asDirect().libraryClasses()) {
       ParsedApiClass parsedApiClass = lookupMap.get(clazz.getClassReference());
       if (parsedApiClass == null) {
-        missingMemberInformation.put(clazz.getType(), "Could not be found in " + androidJar);
+        if (clazz.isPublic()) {
+          missingMemberInformation.put(clazz.getType(), "Could not be found in " + androidJar);
+        }
         continue;
       }
       StringBuilder classBuilder = new StringBuilder();
@@ -120,8 +141,8 @@ public class AndroidApiHashingDatabaseBuilderGenerator extends TestBase {
       clazz.forEachClassField(
           field -> {
             if (field.getAccessFlags().isPublic()
-                && getApiLevelFromReference(field.getReference(), apiLevelMap, ambiguousMap) == null
-                && field.toSourceString().contains("this$0")) {
+                && referenceMap.get(field.getReference()) == null
+                && !field.toSourceString().contains("this$0")) {
               classBuilder.append("  ").append(field).append(" is missing\n");
             }
           });
@@ -130,9 +151,8 @@ public class AndroidApiHashingDatabaseBuilderGenerator extends TestBase {
       clazz.forEachClassMethod(
           method -> {
             if (method.getAccessFlags().isPublic()
-                && getApiLevelFromReference(method.getReference(), apiLevelMap, ambiguousMap)
-                    == null
-                && !factory.objectMembers.isObjectMember(method.getReference())) {
+                && referenceMap.get(method.getReference()) == null
+                && !appView.dexItemFactory().objectMembers.isObjectMember(method.getReference())) {
               classBuilder.append("  ").append(method).append(" is missing\n");
             }
           });
@@ -143,141 +163,205 @@ public class AndroidApiHashingDatabaseBuilderGenerator extends TestBase {
 
     // api-versions.xml do not encode all members of StringBuffers and StringBuilders, check that we
     // only have missing definitions for those two classes.
-    assert missingMemberInformation.size() == 2;
-    assert missingMemberInformation.containsKey(factory.stringBufferType);
-    assert missingMemberInformation.containsKey(factory.stringBuilderType);
-
-    int[] indices = new int[apiLevelMap.size()];
-    byte[] apiLevel = new byte[apiLevelMap.size()];
-    ArrayList<Integer> integers = new ArrayList<>(apiLevelMap.keySet());
-    for (int i = 0; i < integers.size(); i++) {
-      indices[i] = integers.get(i);
-      AndroidApiLevel androidApiLevel = apiLevelMap.get(integers.get(i));
-      assert androidApiLevel != null;
-      apiLevel[i] =
-          (byte)
-              (androidApiLevel == AndroidApiLevel.ANDROID_PLATFORM
-                  ? -1
-                  : androidApiLevel.getLevel());
-    }
-
-    try (FileOutputStream fileOutputStream = new FileOutputStream(pathToIndices.toFile());
-        ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream)) {
-      objectOutputStream.writeObject(indices);
-    }
-
-    try (FileOutputStream fileOutputStream = new FileOutputStream(pathToApiLevels.toFile());
-        ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream)) {
-      objectOutputStream.writeObject(apiLevel);
-    }
-
-    String ambiguousMapSerialized = serializeAmbiguousMap(ambiguousMap);
-    Files.write(ambiguousDefinitions, ambiguousMapSerialized.getBytes(StandardCharsets.UTF_8));
+    assert missingMemberInformation.size() == 7;
+    assert missingMemberInformation.containsKey(appView.dexItemFactory().stringBufferType);
+    assert missingMemberInformation.containsKey(appView.dexItemFactory().stringBuilderType);
+    // TODO(b/231126636): api-versions.xml has missing definitions for the below classes.
+    assert missingMemberInformation.containsKey(
+        appView.dexItemFactory().createType("Ljava/util/concurrent/ConcurrentHashMap$KeySetView;"));
+    assert missingMemberInformation.containsKey(
+        appView.dexItemFactory().createType("Ljava/time/chrono/ThaiBuddhistDate;"));
+    assert missingMemberInformation.containsKey(
+        appView.dexItemFactory().createType("Ljava/time/chrono/HijrahDate;"));
+    assert missingMemberInformation.containsKey(
+        appView.dexItemFactory().createType("Ljava/time/chrono/JapaneseDate;"));
+    assert missingMemberInformation.containsKey(
+        appView.dexItemFactory().createType("Ljava/time/chrono/MinguoDate;"));
+    return true;
   }
 
-  /** This will serialize a collection of DexReferences with the api level they correspond to. */
-  private static String serializeAmbiguousMap(
-      Map<AndroidApiLevel, Set<DexReference>> ambiguousMap) {
-    Set<String> seen = new HashSet<>();
-    StringBuilder sb = new StringBuilder();
-    ambiguousMap.forEach(
-        (apiLevel, references) -> {
-          references.forEach(
-              reference -> {
-                HasherWrapper defaultHasher = AndroidApiLevelHashingDatabaseImpl.getDefaultHasher();
-                reference.accept(
-                    type -> DefaultHashingVisitor.run(type, defaultHasher, DexType::acceptHashing),
-                    field ->
-                        DefaultHashingVisitor.run(
-                            field, defaultHasher, StructuralItem::acceptHashing),
-                    method ->
-                        DefaultHashingVisitor.run(
-                            method, defaultHasher, StructuralItem::acceptHashing));
-                String referenceHash = defaultHasher.hash().toString();
-                if (!seen.add(referenceHash)) {
-                  throw new RuntimeException(
-                      "More than one item with key: <"
-                          + referenceHash
-                          + ">. The choice of key encoding will need to change to generate a valid"
-                          + " api database");
-                }
-                sb.append(referenceHash).append(":").append(apiLevel.getLevel()).append("\n");
-              });
+  private static class ConstantPool {
+
+    private final IntBox intBox = new IntBox(0);
+    private final Map<DexString, Integer> pool = new LinkedHashMap<>();
+
+    public int getOrAdd(DexString string) {
+      return pool.computeIfAbsent(string, ignored -> intBox.getAndIncrement());
+    }
+
+    public void forEach(ThrowingBiConsumer<DexString, Integer, IOException> consumer)
+        throws IOException {
+      for (Entry<DexString, Integer> entry : pool.entrySet()) {
+        consumer.accept(entry.getKey(), entry.getValue());
+      }
+    }
+
+    public int size() {
+      return pool.size();
+    }
+  }
+
+  private static int setUniqueConstantPoolEntry(int id) {
+    return setBitAtIndex(id, 32);
+  }
+
+  public static void generateDatabase(
+      Map<DexReference, AndroidApiLevel> referenceMap, DataOutputStream outputStream)
+      throws Exception {
+    Map<Integer, List<Pair<DexReference, AndroidApiLevel>>> generationMap = new HashMap<>();
+    ConstantPool constantPool = new ConstantPool();
+
+    int constantPoolMapSize = 1 << AndroidApiDataAccess.entrySizeInBitsForConstantPoolMap();
+    int apiMapSize = 1 << AndroidApiDataAccess.entrySizeInBitsForApiLevelMap();
+
+    for (Entry<DexReference, AndroidApiLevel> entry : referenceMap.entrySet()) {
+      int newCode = AndroidApiDataAccess.apiLevelHash(entry.getKey());
+      assert newCode >= 0 && newCode <= apiMapSize;
+      generationMap
+          .computeIfAbsent(newCode, ignoreKey(ArrayList::new))
+          .add(Pair.create(entry.getKey(), entry.getValue()));
+    }
+
+    Set<String> uniqueHashes = new HashSet<>();
+    Map<Integer, Pair<Integer, Integer>> offsetMap = new HashMap<>();
+    ByteArrayOutputStream payload = new ByteArrayOutputStream();
+
+    // Serialize api map into payload. This will also generate the entire needed constant pool.
+    for (Entry<Integer, List<Pair<DexReference, AndroidApiLevel>>> entry :
+        generationMap.entrySet()) {
+      int startingOffset = payload.size();
+      int length = serializeIntoPayload(entry.getValue(), payload, constantPool, uniqueHashes);
+      offsetMap.put(entry.getKey(), Pair.create(startingOffset, length));
+    }
+
+    // Write constant pool size <u4:size>.
+    outputStream.writeInt(constantPool.size());
+
+    // Write constant pool consisting of <u4:payload_offset><u2:length>.
+    IntBox lastReadIndex = new IntBox(-1);
+    constantPool.forEach(
+        (string, id) -> {
+          assert id > lastReadIndex.getAndIncrement();
+          outputStream.writeInt(payload.size());
+          outputStream.writeShort(string.content.length);
+          payload.write(string.content);
         });
-    return sb.toString();
-  }
 
-  private static AndroidApiLevel getApiLevelFromReference(
-      DexReference reference,
-      Map<Integer, AndroidApiLevel> apiLevelMap,
-      Map<AndroidApiLevel, Set<DexReference>> ambiguousMap) {
-    int hashCode = reference.hashCode();
-    AndroidApiLevel androidApiLevel = apiLevelMap.get(hashCode);
-    if (androidApiLevel == null) {
-      return null;
-    }
-    if (androidApiLevel == AndroidApiLevel.ANDROID_PLATFORM) {
-      for (Entry<AndroidApiLevel, Set<DexReference>> apiAmbiguousSet : ambiguousMap.entrySet()) {
-        if (apiAmbiguousSet.getValue().contains(reference)) {
-          return apiAmbiguousSet.getKey();
-        }
-      }
-      return null;
-    } else {
-      return androidApiLevel;
-    }
-  }
+    // Serialize hash lookup table for constant pool.
+    Map<Integer, List<Integer>> constantPoolLookupTable = new HashMap<>();
+    constantPool.forEach(
+        (string, id) -> {
+          int constantPoolHash = constantPoolHash(string);
+          assert constantPoolHash >= 0 && constantPoolHash <= constantPoolMapSize;
+          constantPoolLookupTable
+              .computeIfAbsent(constantPoolHash, ignoreKey(ArrayList::new))
+              .add(id);
+        });
 
-  private static BiConsumer<DexReference, AndroidApiLevel> addReferenceToMaps(
-      Map<Integer, AndroidApiLevel> apiLevelMap,
-      Map<Integer, Pair<DexReference, AndroidApiLevel>> reverseMap,
-      Map<AndroidApiLevel, Set<DexReference>> ambiguousMap) {
-    return ((reference, apiLevel) -> {
-      AndroidApiLevel existingMethod = apiLevelMap.put(reference.hashCode(), apiLevel);
-      if (existingMethod == AndroidApiLevel.ANDROID_PLATFORM) {
-        addAmbiguousEntry(apiLevel, reference, ambiguousMap);
-      } else if (existingMethod != null) {
-        apiLevelMap.put(reference.hashCode(), AndroidApiLevel.ANDROID_PLATFORM);
-        Pair<DexReference, AndroidApiLevel> existingPair = reverseMap.get(reference.hashCode());
-        addAmbiguousEntry(existingPair.getSecond(), existingPair.getFirst(), ambiguousMap);
-        addAmbiguousEntry(apiLevel, reference, ambiguousMap);
+    int[] constantPoolEntries = new int[constantPoolMapSize];
+    int[] constantPoolEntryLengths = new int[constantPoolMapSize];
+    for (Entry<Integer, List<Integer>> entry : constantPoolLookupTable.entrySet()) {
+      // Tag if we have a unique value
+      if (entry.getValue().size() == 1) {
+        int id = entry.getValue().get(0);
+        constantPoolEntries[entry.getKey()] = setUniqueConstantPoolEntry(id);
       } else {
-        reverseMap.put(reference.hashCode(), Pair.create(reference, apiLevel));
+        constantPoolEntries[entry.getKey()] = payload.size();
+        ByteArrayOutputStream temp = new ByteArrayOutputStream();
+        for (Integer id : entry.getValue()) {
+          temp.write(intToShortEncodedByteArray(id));
+        }
+        payload.write(temp.toByteArray());
+        constantPoolEntryLengths[entry.getKey()] = temp.size();
       }
-    });
+    }
+    // Write constant pool lookup entries consisting of <u4:payload_offset><u2:length>
+    for (int i = 0; i < constantPoolEntries.length; i++) {
+      outputStream.writeInt(constantPoolEntries[i]);
+      outputStream.writeShort(constantPoolEntryLengths[i]);
+    }
+
+    int[] apiOffsets = new int[apiMapSize];
+    int[] apiOffsetLengths = new int[apiMapSize];
+    for (Entry<Integer, Pair<Integer, Integer>> hashIndexAndOffset : offsetMap.entrySet()) {
+      assert apiOffsets[hashIndexAndOffset.getKey()] == 0;
+      Pair<Integer, Integer> value = hashIndexAndOffset.getValue();
+      int offset = value.getFirst();
+      int length = value.getSecond();
+      apiOffsets[hashIndexAndOffset.getKey()] = offset;
+      apiOffsetLengths[hashIndexAndOffset.getKey()] = length;
+    }
+
+    // Write api lookup entries consisting of <u4:payload_offset><u2:length>
+    for (int i = 0; i < apiOffsets.length; i++) {
+      outputStream.writeInt(apiOffsets[i]);
+      outputStream.writeShort(apiOffsetLengths[i]);
+    }
+
+    // Write the payload.
+    outputStream.write(payload.toByteArray());
   }
 
-  private static void addAmbiguousEntry(
-      AndroidApiLevel apiLevel,
-      DexReference reference,
-      Map<AndroidApiLevel, Set<DexReference>> ambiguousMap) {
-    ambiguousMap.computeIfAbsent(apiLevel, ignored -> new HashSet<>()).add(reference);
+  /** This will serialize a collection of DexReferences and apis into a byte stream. */
+  private static int serializeIntoPayload(
+      List<Pair<DexReference, AndroidApiLevel>> pairs,
+      ByteArrayOutputStream payload,
+      ConstantPool constantPool,
+      Set<String> seen)
+      throws IOException {
+    ByteArrayOutputStream temp = new ByteArrayOutputStream();
+    for (Pair<DexReference, AndroidApiLevel> pair : pairs) {
+      byte[] uniqueDescriptorForReference =
+          getUniqueDescriptorForReference(pair.getFirst(), constantPool::getOrAdd);
+      assert uniqueDescriptorForReference != getNonExistingDescriptor();
+      if (!seen.add(Arrays.toString(uniqueDescriptorForReference))) {
+        throw new Unreachable("Hash is not unique");
+      }
+      temp.write(intToShortEncodedByteArray(uniqueDescriptorForReference.length));
+      temp.write(uniqueDescriptorForReference);
+      temp.write((byte) pair.getSecond().getLevel());
+    }
+    byte[] tempArray = temp.toByteArray();
+    payload.write(tempArray);
+    return tempArray.length;
   }
 
-  @SuppressWarnings("unchecked")
-  private static <T extends DexMember<?, ?>>
-      Map<T, AndroidApiLevel> computeAllReferencesInHierarchy(
-          Map<ClassReference, ParsedApiClass> lookupMap,
-          DexItemFactory factory,
-          DexType holder,
-          ParsedApiClass apiClass,
-          AndroidApiLevel linkLevel,
-          Map<T, AndroidApiLevel> additionMap) {
+  public static byte[] intToShortEncodedByteArray(int value) {
+    assert isU2(value);
+    byte[] bytes = new byte[2];
+    bytes[0] = (byte) (value >> 8);
+    bytes[1] = (byte) value;
+    return bytes;
+  }
+
+  private static void computeAllReferencesInHierarchy(
+      Map<ClassReference, ParsedApiClass> lookupMap,
+      DexItemFactory factory,
+      DexType holder,
+      ParsedApiClass apiClass,
+      AndroidApiLevel linkLevel,
+      Map<DexReference, AndroidApiLevel> additionMap) {
     if (!apiClass.getClassReference().getDescriptor().equals(factory.objectDescriptor.toString())) {
       apiClass.visitMethodReferences(
           (apiLevel, methodReferences) -> {
             methodReferences.forEach(
                 methodReference -> {
-                  T member = (T) factory.createMethod(methodReference).withHolder(holder, factory);
-                  addIfNewOrApiLevelIsLower(linkLevel, additionMap, apiLevel, member);
+                  addIfNewOrApiLevelIsLower(
+                      linkLevel,
+                      additionMap,
+                      apiLevel,
+                      factory.createMethod(methodReference).withHolder(holder, factory));
                 });
           });
       apiClass.visitFieldReferences(
           (apiLevel, fieldReferences) -> {
             fieldReferences.forEach(
                 fieldReference -> {
-                  T member = (T) factory.createField(fieldReference).withHolder(holder, factory);
-                  addIfNewOrApiLevelIsLower(linkLevel, additionMap, apiLevel, member);
+                  addIfNewOrApiLevelIsLower(
+                      linkLevel,
+                      additionMap,
+                      apiLevel,
+                      factory.createField(fieldReference).withHolder(holder, factory));
                 });
           });
       apiClass.visitSuperType(
@@ -301,14 +385,13 @@ public class AndroidApiHashingDatabaseBuilderGenerator extends TestBase {
                 additionMap);
           });
     }
-    return additionMap;
   }
 
-  private static <T extends DexMember<?, ?>> void addIfNewOrApiLevelIsLower(
+  private static void addIfNewOrApiLevelIsLower(
       AndroidApiLevel linkLevel,
-      Map<T, AndroidApiLevel> additionMap,
+      Map<DexReference, AndroidApiLevel> additionMap,
       AndroidApiLevel apiLevel,
-      T member) {
+      DexReference member) {
     AndroidApiLevel currentApiLevel = apiLevel.max(linkLevel);
     AndroidApiLevel existingApiLevel = additionMap.get(member);
     if (existingApiLevel == null || currentApiLevel.isLessThanOrEqualTo(existingApiLevel)) {
