@@ -7,7 +7,7 @@ package com.android.tools.r8.lightir;
 public class ByteUtils {
 
   public static boolean isU1(int value) {
-    return 0 <= value && value <= 0xFF;
+    return (0 <= value) && (value <= 0xFF);
   }
 
   // Lossy truncation of an integer value to its lowest byte.
@@ -37,14 +37,14 @@ public class ByteUtils {
   }
 
   public static boolean isU2(int value) {
-    return value >= 0 && value <= 0xFFFF;
+    return (value >= 0) && (value <= 0xFFFF);
   }
 
   public static int unsetBitAtIndex(int value, int index) {
-    return value & ~(1 << index - 1);
+    return value & ~(1 << (index - 1));
   }
 
   public static int setBitAtIndex(int value, int index) {
-    return value | (1 << index - 1);
+    return value | (1 << (index - 1));
   }
 }
