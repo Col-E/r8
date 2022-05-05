@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.references.ClassReference;
+
 /**
  * Consumer receiving the data representing global synthetics for the program.
  *
@@ -25,7 +27,23 @@ public interface GlobalSyntheticsConsumer {
    * <p>The encoding of the global synthetics is compiler internal and may vary between compiler
    * versions. The data received here is thus only valid as inputs to the same compiler version.
    *
-   * @param bytes Opaque encoding of the global synthetics for the program.
+   * <p>The context class is the class for which the global synthetic data is needed. If compiling
+   * in DexIndexed mode, the context class will be null.
+   *
+   * <p>The accept method will be called at most once for a given context class (any only once at
+   * all for a DexIndexed mode compilation). The global data for that class may be the same as for
+   * other context classes, but it will be provided for each context.
+   *
+   * @param data Opaque encoding of the global synthetics for the program.
+   * @param context The class giving rise to the global synthetics. Null in DexIndexed mode.
+   * @param handler Diagnostics handler for reporting.
    */
-  void accept(byte[] bytes);
+  void accept(ByteDataView data, ClassReference context, DiagnosticsHandler handler);
+
+  /**
+   * Callback indicating that no more global synthetics will be reported for the compilation unit.
+   *
+   * @param handler Diagnostics handler for reporting.
+   */
+  default void finished(DiagnosticsHandler handler) {}
 }

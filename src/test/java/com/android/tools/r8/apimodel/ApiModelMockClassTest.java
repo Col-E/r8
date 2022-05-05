@@ -7,18 +7,26 @@ package com.android.tools.r8.apimodel;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.synthesis.globals.GlobalSyntheticsTestingConsumer;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import java.nio.file.Path;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -41,16 +49,24 @@ public class ApiModelMockClassTest extends TestBase {
     return parameters.isDexRuntime() && parameters.getApiLevel().isGreaterThanOrEqualTo(mockLevel);
   }
 
-  private void setupTestBuilder(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) {
+  private void setupTestCompileBuilder(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) {
     testBuilder
         .addProgramClasses(Main.class, TestClass.class)
         .addLibraryClasses(LibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
         .setMinApi(parameters.getApiLevel())
-        .addAndroidBuildVersion()
         .apply(ApiModelingTestHelper::enableStubbingOfClasses)
         .apply(setMockApiLevelForClass(LibraryClass.class, mockLevel))
         .apply(setMockApiLevelForDefaultInstanceInitializer(LibraryClass.class, mockLevel));
+  }
+
+  private void setupTestRuntimeBuilder(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) {
+    testBuilder.setMinApi(parameters.getApiLevel()).addAndroidBuildVersion();
+  }
+
+  private void setupTestBuilder(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) {
+    setupTestCompileBuilder(testBuilder);
+    setupTestRuntimeBuilder(testBuilder);
   }
 
   private boolean addToBootClasspath() {
@@ -79,6 +95,63 @@ public class ApiModelMockClassTest extends TestBase {
         // TODO(b/213552119): Remove when enabled by default.
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(this::setupTestBuilder)
+        .compile()
+        .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
+        .run(parameters.getRuntime(), Main.class)
+        .apply(this::checkOutput)
+        .inspect(this::inspect);
+  }
+
+  @Test
+  public void testD8MergeIndexed() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    testD8Merge(OutputMode.DexIndexed);
+  }
+
+  @Test
+  public void testD8MergeFilePerClass() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    testD8Merge(OutputMode.DexFilePerClass);
+  }
+
+  @Test
+  public void testD8MergeFilePerClassFile() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    testD8Merge(OutputMode.DexFilePerClassFile);
+  }
+
+  public void testD8Merge(OutputMode outputMode) throws Exception {
+    GlobalSyntheticsTestingConsumer globals = new GlobalSyntheticsTestingConsumer();
+    Path incrementalOut =
+        testForD8()
+            .debug()
+            .setOutputMode(outputMode)
+            .setIntermediate(true)
+            .apply(b -> b.getBuilder().setGlobalSyntheticsConsumer(globals))
+            // TODO(b/213552119): Remove when enabled by default.
+            .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+            .apply(this::setupTestCompileBuilder)
+            .compile()
+            .writeToZip();
+
+    if (isGreaterOrEqualToMockLevel()) {
+      assertFalse(globals.hasGlobals());
+    } else if (outputMode == OutputMode.DexIndexed) {
+      assertTrue(globals.hasGlobals());
+      assertTrue(globals.isSingleGlobal());
+    } else {
+      assertTrue(globals.hasGlobals());
+      // The TestClass does reference the mock and should have globals.
+      assertNotNull(globals.getProvider(Reference.classFromClass(TestClass.class)));
+      // The Main class does not have references to the mock and should have no globals.
+      assertNull(globals.getProvider(Reference.classFromClass(Main.class)));
+    }
+
+    testForD8()
+        .debug()
+        .addProgramFiles(incrementalOut)
+        .apply(b -> b.getBuilder().addGlobalSyntheticsResourceProviders(globals.getProviders()))
+        .apply(this::setupTestRuntimeBuilder)
         .compile()
         .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)

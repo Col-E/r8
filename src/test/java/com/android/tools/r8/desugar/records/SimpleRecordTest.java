@@ -11,7 +11,7 @@ import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.synthesis.globals.GlobalSyntheticsConsumerAndProvider;
+import com.android.tools.r8.synthesis.globals.GlobalSyntheticsTestingConsumer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
@@ -75,11 +75,14 @@ public class SimpleRecordTest extends TestBase {
   @Test
   public void testD8Intermediate() throws Exception {
     assumeTrue(parameters.isDexRuntime());
-    GlobalSyntheticsConsumerAndProvider globals = new GlobalSyntheticsConsumerAndProvider();
+    GlobalSyntheticsTestingConsumer globals = new GlobalSyntheticsTestingConsumer();
     Path path = compileIntermediate(globals);
     testForD8()
         .addProgramFiles(path)
-        .apply(b -> b.getBuilder().addGlobalSyntheticsResourceProviders(globals))
+        .apply(
+            b ->
+                b.getBuilder()
+                    .addGlobalSyntheticsResourceProviders(globals.getIndexedModeProvider()))
         .setMinApi(parameters.getApiLevel())
         .setIncludeClassesChecksum(true)
         .run(parameters.getRuntime(), MAIN_TYPE)
@@ -89,12 +92,15 @@ public class SimpleRecordTest extends TestBase {
   @Test
   public void testD8IntermediateNoDesugaringInStep2() throws Exception {
     assumeTrue(parameters.isDexRuntime());
-    GlobalSyntheticsConsumerAndProvider globals = new GlobalSyntheticsConsumerAndProvider();
+    GlobalSyntheticsTestingConsumer globals = new GlobalSyntheticsTestingConsumer();
     Path path = compileIntermediate(globals);
     // In Android Studio they disable desugaring at this point to improve build speed.
     testForD8()
         .addProgramFiles(path)
-        .apply(b -> b.getBuilder().addGlobalSyntheticsResourceProviders(globals))
+        .apply(
+            b ->
+                b.getBuilder()
+                    .addGlobalSyntheticsResourceProviders(globals.getIndexedModeProvider()))
         .setMinApi(parameters.getApiLevel())
         .setIncludeClassesChecksum(true)
         .disableDesugaring()

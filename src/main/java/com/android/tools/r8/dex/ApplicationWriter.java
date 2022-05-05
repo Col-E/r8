@@ -52,7 +52,8 @@ import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
-import com.android.tools.r8.utils.InternalGlobalSyntheticsProgramConsumer.InternalGlobalSyntheticsDexConsumer;
+import com.android.tools.r8.utils.InternalGlobalSyntheticsProgramConsumer.InternalGlobalSyntheticsDexIndexedConsumer;
+import com.android.tools.r8.utils.InternalGlobalSyntheticsProgramConsumer.InternalGlobalSyntheticsDexPerFileConsumer;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OriginalSourceFiles;
 import com.android.tools.r8.utils.PredicateUtils;
@@ -90,7 +91,7 @@ public class ApplicationWriter {
   public Set<VirtualFile> globalSyntheticFiles;
 
   public DexIndexedConsumer programConsumer;
-  public InternalGlobalSyntheticsDexConsumer globalsSyntheticsConsumer;
+  public DexFilePerClassFileConsumer globalsSyntheticsConsumer;
 
   private static class SortAnnotations extends MixedSectionCollection {
 
@@ -221,7 +222,11 @@ public class ApplicationWriter {
       globalSyntheticFiles = new HashSet<>(files);
       virtualFiles.addAll(globalSyntheticFiles);
       globalsSyntheticsConsumer =
-          new InternalGlobalSyntheticsDexConsumer(options.getGlobalSyntheticsConsumer());
+          options.isGeneratingDexFilePerClassFile()
+              ? new InternalGlobalSyntheticsDexPerFileConsumer(
+                  options.getGlobalSyntheticsConsumer(), appView)
+              : new InternalGlobalSyntheticsDexIndexedConsumer(
+                  options.getGlobalSyntheticsConsumer());
     }
     return virtualFiles;
   }

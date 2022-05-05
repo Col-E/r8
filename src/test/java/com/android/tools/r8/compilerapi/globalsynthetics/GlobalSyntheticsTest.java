@@ -3,9 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.compilerapi.globalsynthetics;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.GlobalSyntheticsConsumer;
 import com.android.tools.r8.GlobalSyntheticsResourceProvider;
 import com.android.tools.r8.ResourceException;
@@ -13,6 +15,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.compilerapi.CompilerApiTest;
 import com.android.tools.r8.compilerapi.CompilerApiTestRunner;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.references.ClassReference;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -71,9 +74,15 @@ public class GlobalSyntheticsTest extends CompilerApiTestRunner {
               .setGlobalSyntheticsConsumer(
                   new GlobalSyntheticsConsumer() {
                     @Override
-                    public void accept(byte[] bytes) {
+                    public void accept(
+                        ByteDataView data, ClassReference context, DiagnosticsHandler handler) {
                       // Nothing is actually received here as MockClass does not give rise to
                       // globals.
+                    }
+
+                    @Override
+                    public void finished(DiagnosticsHandler handler) {
+                      // Nothing to do, just checking we can override finished.
                     }
                   })
               .build());
