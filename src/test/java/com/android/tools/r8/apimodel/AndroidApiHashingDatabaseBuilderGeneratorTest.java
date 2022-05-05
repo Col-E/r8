@@ -6,7 +6,6 @@ package com.android.tools.r8.apimodel;
 
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -21,14 +20,10 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.IntBox;
 import com.google.common.collect.ImmutableList;
-import java.io.FileInputStream;
-import java.io.ObjectInputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
@@ -39,12 +34,13 @@ import org.junit.runners.Parameterized.Parameters;
 public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
 
   protected final TestParameters parameters;
-  private static final Path API_DATABASE_HASH_LOOKUP =
-      Paths.get(ToolHelper.RESOURCES_DIR, "api_database", "api_database_hash_lookup.ser");
-  private static final Path API_DATABASE_API_LEVEL =
-      Paths.get(ToolHelper.RESOURCES_DIR, "api_database", "api_database_api_level.ser");
-  private static final Path API_DATABASE_AMBIGUOUS =
-      Paths.get(ToolHelper.RESOURCES_DIR, "api_database", "api_database_ambiguous.txt");
+  private static final Path API_DATABASE_FOLDER =
+      Paths.get(ToolHelper.THIRD_PARTY_DIR, "api_database");
+  private static final Path API_DATABASE =
+      API_DATABASE_FOLDER
+          .resolve("api_database")
+          .resolve("resources")
+          .resolve("new_api_database.ser");
 
   // Update the API_LEVEL below to have the database generated for a new api level.
   private static final AndroidApiLevel API_LEVEL = AndroidApiLevel.S;
@@ -60,14 +56,10 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
 
   private static class GenerateDatabaseResourceFilesResult {
 
-    private final Path indices;
     private final Path apiLevels;
-    private final Path ambiguous;
 
-    public GenerateDatabaseResourceFilesResult(Path indices, Path apiLevels, Path ambiguous) {
-      this.indices = indices;
+    public GenerateDatabaseResourceFilesResult(Path apiLevels) {
       this.apiLevels = apiLevels;
-      this.ambiguous = ambiguous;
     }
   }
 
@@ -82,12 +74,9 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
       List<ParsedApiClass> apiClasses, AndroidApiLevel androidJarApiLevel) throws Exception {
     TemporaryFolder temp = new TemporaryFolder();
     temp.create();
-    Path indices = temp.newFile("indices.ser").toPath();
-    Path apiLevels = temp.newFile("apiLevels.ser").toPath();
-    Path ambiguous = temp.newFile("ambiguous.ser").toPath();
-    AndroidApiHashingDatabaseBuilderGenerator.generate(
-        apiClasses, indices, apiLevels, ambiguous, androidJarApiLevel);
-    return new GenerateDatabaseResourceFilesResult(indices, apiLevels, ambiguous);
+    Path apiLevels = temp.newFile("new_api_levels.ser").toPath();
+    AndroidApiHashingDatabaseBuilderGenerator.generate(apiClasses, apiLevels, androidJarApiLevel);
+    return new GenerateDatabaseResourceFilesResult(apiLevels);
   }
 
   @Test
@@ -119,9 +108,7 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
   @Test
   public void testDatabaseGenerationUpToDate() throws Exception {
     GenerateDatabaseResourceFilesResult result = generateResourcesFiles();
-    TestBase.filesAreEqual(result.indices, API_DATABASE_HASH_LOOKUP);
-    TestBase.filesAreEqual(result.apiLevels, API_DATABASE_API_LEVEL);
-    TestBase.filesAreEqual(result.ambiguous, API_DATABASE_AMBIGUOUS);
+    TestBase.filesAreEqual(result.apiLevels, API_DATABASE);
   }
 
   @Test
@@ -169,27 +156,21 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
    *
    * <p>The generated jar depends on r8NoManifestWithoutDeps.
    *
-   * <p>If the generated jar passes tests it will be moved to third_party/android_jar/api-database/
-   * and override the current file in there.
+   * <p>If the generated jar passes tests it will be moved and overwrite
+   * third_party/api_database/new_api_database.ser.
    */
   public static void main(String[] args) throws Exception {
     GenerateDatabaseResourceFilesResult result = generateResourcesFiles();
-    verifyNoDuplicateHashes(result.indices);
-    Files.move(result.indices, API_DATABASE_HASH_LOOKUP, REPLACE_EXISTING);
-    Files.move(result.apiLevels, API_DATABASE_API_LEVEL, REPLACE_EXISTING);
-    Files.move(result.ambiguous, API_DATABASE_AMBIGUOUS, REPLACE_EXISTING);
-  }
-
-  private static void verifyNoDuplicateHashes(Path indicesPath) throws Exception {
-    Set<Integer> elements = new HashSet<>();
-    int[] indices;
-    try (FileInputStream fileInputStream = new FileInputStream(indicesPath.toFile());
-        ObjectInputStream indicesObjectStream = new ObjectInputStream(fileInputStream)) {
-      indices = (int[]) indicesObjectStream.readObject();
-      for (int index : indices) {
-        assertTrue(elements.add(index));
-      }
-    }
-    assertEquals(elements.size(), indices.length);
+    API_DATABASE.toFile().mkdirs();
+    Files.move(result.apiLevels, API_DATABASE, REPLACE_EXISTING);
+    System.out.println(
+        "Updated file in: "
+            + API_DATABASE
+            + "\nRemember to upload to cloud storage:"
+            + "\n(cd "
+            + API_DATABASE_FOLDER
+            + " && upload_to_google_storage.py -a --bucket r8-deps "
+            + API_DATABASE_FOLDER.getFileName()
+            + ")");
   }
 }

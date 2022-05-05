@@ -62,12 +62,20 @@ if (project.hasProperty('with_code_coverage')) {
 
 // Custom source set for example tests and generated tests.
 sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java']
+        }
+        resources {
+            srcDirs "third_party/api_database/api_database"
+        }
+    }
     main11 {
         java {
             srcDirs = ['src/main/java']
         }
         resources {
-            srcDirs = ['src/main/resources']
+            srcDirs "third_party/api_database/api_database"
         }
     }
     test {
@@ -311,6 +319,7 @@ def cloudDependencies = [
                 "android_jar/lib-v31",
                 "android_jar/lib-v32",
                 "android_jar/lib-v33",
+                "api_database/api_database",
                 "api-outlining/simple-app-dump",
                 "binary_compatibility_tests/compiler_api_tests",
                 "core-lambda-stubs",

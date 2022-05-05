@@ -47,11 +47,7 @@ public class SanityCheck extends TestBase {
     }
     boolean licenseSeen = false;
     final Enumeration<? extends ZipEntry> entries = zipFile.entries();
-    Set<String> apiDatabaseFiles =
-        Sets.newHashSet(
-            "api_database/api_database_ambiguous.txt",
-            "api_database/api_database_api_level.ser",
-            "api_database/api_database_hash_lookup.ser");
+    Set<String> apiDatabaseFiles = Sets.newHashSet("resources/new_api_database.ser");
     while (entries.hasMoreElements()) {
       ZipEntry entry = entries.nextElement();
       String name = entry.getName();
