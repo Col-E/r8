@@ -16,11 +16,14 @@ import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OptionalBool;
+import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
@@ -68,7 +71,15 @@ public abstract class MethodResolutionResult
     return false;
   }
 
+  public boolean isNoSuchMethodResultDueToMultipleClassDefinitions() {
+    return false;
+  }
+
   public boolean isNoSuchMethodErrorResult(DexClass context, AppInfoWithClassHierarchy appInfo) {
+    return false;
+  }
+
+  public boolean internalIsInstanceOfNoSuchMethodResult() {
     return false;
   }
 
@@ -94,6 +105,10 @@ public abstract class MethodResolutionResult
 
   /** Returns non-null if isFailedResolution() is true, otherwise null. */
   public FailedResolutionResult asFailedResolution() {
+    return null;
+  }
+
+  public NoSuchMethodResult asNoSuchMethodResult() {
     return null;
   }
 
@@ -1172,14 +1187,40 @@ public abstract class MethodResolutionResult
 
   public static class NoSuchMethodResult extends FailedResolutionResult {
 
-    static final NoSuchMethodResult INSTANCE = new NoSuchMethodResult(null);
+    static final NoSuchMethodResult INSTANCE = new NoSuchMethodResult();
 
-    public NoSuchMethodResult(Collection<DexType> typesCausingError) {
+    private NoSuchMethodResult() {
+      super(null);
+    }
+
+    protected NoSuchMethodResult(Collection<DexType> typesCausingError) {
       super(typesCausingError);
     }
 
     @Override
     public boolean isNoSuchMethodErrorResult(DexClass context, AppInfoWithClassHierarchy appInfo) {
+      return true;
+    }
+
+    @Override
+    public boolean internalIsInstanceOfNoSuchMethodResult() {
+      return true;
+    }
+
+    @Override
+    public NoSuchMethodResult asNoSuchMethodResult() {
+      return this;
+    }
+  }
+
+  public static class NoSuchMethodResultDueToMultipleClassDefinitions extends NoSuchMethodResult {
+
+    public NoSuchMethodResultDueToMultipleClassDefinitions(Collection<DexType> typesCausingError) {
+      super(typesCausingError);
+    }
+
+    @Override
+    public boolean isNoSuchMethodResultDueToMultipleClassDefinitions() {
       return true;
     }
   }
@@ -1463,7 +1504,15 @@ public abstract class MethodResolutionResult
       return this;
     }
 
-    public MethodResolutionResult buildOrIfEmpty(MethodResolutionResult emptyResult) {
+    public MethodResolutionResult buildOrIfEmpty(
+        MethodResolutionResult emptyResult, DexType responsibleTypeForNoSuchMethodResult) {
+      return buildOrIfEmpty(
+          emptyResult, Collections.singletonList(responsibleTypeForNoSuchMethodResult));
+    }
+
+    public MethodResolutionResult buildOrIfEmpty(
+        MethodResolutionResult emptyResult,
+        Collection<DexType> responsibleTypesForNoSuchMethodResult) {
       if (possiblySingleResult == null) {
         return emptyResult;
       } else if (allResults == null) {
@@ -1473,6 +1522,7 @@ public abstract class MethodResolutionResult
           new ArrayList<>();
       List<SingleLibraryResolutionResult> libraryResults = new ArrayList<>();
       List<FailedResolutionResult> failedResults = new ArrayList<>();
+      Set<NoSuchMethodResult> noSuchMethodResults = Sets.newIdentityHashSet();
       allResults.forEach(
           otherResult -> {
             otherResult.visitMethodResolutionResults(
@@ -1492,14 +1542,25 @@ public abstract class MethodResolutionResult
                 },
                 ConsumerUtils.emptyConsumer(),
                 newFailedResult -> {
-                  if (!Iterables.any(
-                      failedResults,
-                      existing ->
-                          existing.isFailedResolution() == newFailedResult.isFailedResolution())) {
+                  if (newFailedResult.internalIsInstanceOfNoSuchMethodResult()) {
+                    noSuchMethodResults.add(newFailedResult.asNoSuchMethodResult());
+                  }
+                  if (!Iterables.any(failedResults, existing -> existing == newFailedResult)) {
                     failedResults.add(newFailedResult);
                   }
                 });
           });
+      // If we have seen a NoSuchMethod and also a successful result it must be because we have
+      // multiple definitions of a type. Here we compute a single NoSuchMethodResult with root types
+      // that must be preserved to still observe the NoSuchMethodError.
+      if (!noSuchMethodResults.isEmpty()) {
+        if (!libraryResults.isEmpty() || !programOrClasspathResults.isEmpty()) {
+          failedResults.add(
+              mergeNoSuchMethodErrors(noSuchMethodResults, responsibleTypesForNoSuchMethodResult));
+        } else {
+          failedResults.add(NoSuchMethodResult.INSTANCE);
+        }
+      }
       if (programOrClasspathResults.isEmpty()) {
         if (libraryResults.size() == 1 && failedResults.isEmpty()) {
           return libraryResults.get(0);
@@ -1530,6 +1591,22 @@ public abstract class MethodResolutionResult
         return new MultipleMaximallySpecificResolutionResult(
             programOrClasspathResults, libraryResults, failedResults);
       }
+    }
+
+    private NoSuchMethodResult mergeNoSuchMethodErrors(
+        Set<NoSuchMethodResult> noSuchMethodErrors, Collection<DexType> typesCausingErrorsHere) {
+      Set<DexType> typesCausingError = SetUtils.newIdentityHashSet(typesCausingErrorsHere);
+      noSuchMethodErrors.forEach(
+          failedResolutionResult -> {
+            assert failedResolutionResult == NoSuchMethodResult.INSTANCE
+                || failedResolutionResult.isNoSuchMethodResultDueToMultipleClassDefinitions();
+            if (failedResolutionResult.typesCausingError != null) {
+              typesCausingError.addAll(failedResolutionResult.typesCausingError);
+            }
+          });
+      return typesCausingError.isEmpty()
+          ? NoSuchMethodResult.INSTANCE
+          : new NoSuchMethodResultDueToMultipleClassDefinitions(typesCausingError);
     }
   }
 }

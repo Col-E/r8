@@ -93,15 +93,12 @@ public class MethodResolution {
     definitionFor(holder)
         .forEachClassResolutionResult(
             clazz -> {
-              if (clazz.isInterface()) {
-                builder.addResolutionResult(
-                    resolveMethodOnInterface(clazz, method.getProto(), method.getName()));
-              } else {
-                builder.addResolutionResult(
-                    resolveMethodOnClass(clazz, method.getProto(), method.getName()));
-              }
+              builder.addResolutionResult(
+                  clazz.isInterface()
+                      ? resolveMethodOnInterface(clazz, method.getProto(), method.getName())
+                      : resolveMethodOnClass(clazz, method.getProto(), method.getName()));
             });
-    return builder.buildOrIfEmpty(ClassNotFoundResult.INSTANCE);
+    return builder.buildOrIfEmpty(ClassNotFoundResult.INSTANCE, holder);
   }
 
   /**
@@ -148,7 +145,7 @@ public class MethodResolution {
                 builder.addResolutionResult(resolveMethodOnClass(clazz, methodProto, methodName));
               }
             });
-    return builder.buildOrIfEmpty(ClassNotFoundResult.INSTANCE);
+    return builder.buildOrIfEmpty(ClassNotFoundResult.INSTANCE, holder);
   }
 
   public MethodResolutionResult resolveMethodOnClass(
@@ -197,8 +194,8 @@ public class MethodResolution {
           initialResolutionHolder, clazz, result);
     }
     // Pt 3: Apply step two to direct superclass of holder.
-    MethodResolutionResult.Builder builder = MethodResolutionResult.builder();
     if (clazz.superType != null) {
+      MethodResolutionResult.Builder builder = MethodResolutionResult.builder();
       definitionFor(clazz.superType)
           .forEachClassResolutionResult(
               superClass -> {
@@ -212,8 +209,9 @@ public class MethodResolution {
                     resolveMethodOnClassStep2(
                         superClass, methodProto, methodName, initialResolutionHolder));
               });
+      return builder.buildOrIfEmpty(null, clazz.superType);
     }
-    return builder.buildOrIfEmpty(null);
+    return null;
   }
 
   /**
@@ -522,7 +520,7 @@ public class MethodResolution {
                     resolveMethodOnInterface(definition, proto, methodName));
               }
             });
-    return builder.buildOrIfEmpty(ClassNotFoundResult.INSTANCE);
+    return builder.buildOrIfEmpty(ClassNotFoundResult.INSTANCE, holder);
   }
 
   public MethodResolutionResult resolveMethodOnInterface(
@@ -552,7 +550,7 @@ public class MethodResolution {
                     resolveMethodStep3(definition, methodProto, methodName));
               }
             });
-    return builder.buildOrIfEmpty(ClassNotFoundResult.INSTANCE);
+    return builder.buildOrIfEmpty(ClassNotFoundResult.INSTANCE, Collections.emptySet());
   }
 
   static class MaximallySpecificMethodsBuilder {
@@ -674,7 +672,7 @@ public class MethodResolution {
             MethodResolutionResult.builder().allowMultipleProgramResults();
         if (nonAbstractOnComplete.isEmpty()) {
           assert !typesWithMultipleDefinitions.isEmpty();
-          builder.addResolutionResult(new NoSuchMethodResult(typesWithMultipleDefinitions));
+          builder.addResolutionResult(NoSuchMethodResult.INSTANCE);
         } else {
           nonAbstractOnComplete.forEach(
               entry ->
@@ -683,7 +681,7 @@ public class MethodResolution {
         nonAbstractOnIncomplete.forEach(
             entry ->
                 builder.addResolutionResult(singleResultHelper(initialResolutionHolder, entry)));
-        return builder.buildOrIfEmpty(NoSuchMethodResult.INSTANCE);
+        return builder.buildOrIfEmpty(NoSuchMethodResult.INSTANCE, typesWithMultipleDefinitions);
       }
     }
 
