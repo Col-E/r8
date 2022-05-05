@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.apimodel;
 
+import static org.junit.Assert.assertNull;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -11,9 +13,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.testing.AndroidBuildVersion;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -53,11 +53,9 @@ public class ApiModelNoLibraryReferenceTest extends TestBase {
             ApiModelingTestHelper.addTracedApiReferenceLevelCallBack(
                 (methodReference, apiLevel) -> {
                   if (methodReference.equals(main)) {
-                    Assert.assertEquals(
-                        parameters.isCfRuntime()
-                            ? AndroidApiLevel.R
-                            : AndroidApiLevel.R.max(parameters.getApiLevel()),
-                        apiLevel);
+                    // The library passed to the compilation do not define the reference thus the
+                    // api level assigned is unknown.
+                    assertNull(apiLevel);
                   }
                 }))
         .compile();

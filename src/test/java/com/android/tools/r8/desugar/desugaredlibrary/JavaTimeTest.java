@@ -162,8 +162,9 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
           CodeMatchers.invokesMethod(null, holder, "query", null));
     }
     if (parameters
-        .getApiLevel()
-        .isGreaterThanOrEqualTo(TestBase.apiLevelWithDefaultInterfaceMethodsSupport())) {
+            .getApiLevel()
+            .isGreaterThanOrEqualTo(TestBase.apiLevelWithDefaultInterfaceMethodsSupport())
+        || isR8) {
       assertThat(
           inspector.clazz(TemporalAccessorImpl.class).uniqueMethodWithName("query"),
           not(isPresent()));

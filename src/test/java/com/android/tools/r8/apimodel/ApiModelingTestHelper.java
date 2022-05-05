@@ -11,7 +11,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
@@ -159,9 +158,11 @@ public abstract class ApiModelingTestHelper {
           options -> {
             options.apiModelingOptions().tracedMethodApiLevelCallback =
                 (methodReference, computedApiLevel) -> {
-                  assertTrue(computedApiLevel.isKnownApiLevel());
                   consumer.accept(
-                      methodReference, computedApiLevel.asKnownApiLevel().getApiLevel());
+                      methodReference,
+                      computedApiLevel.isKnownApiLevel()
+                          ? computedApiLevel.asKnownApiLevel().getApiLevel()
+                          : null);
                 };
           });
     };

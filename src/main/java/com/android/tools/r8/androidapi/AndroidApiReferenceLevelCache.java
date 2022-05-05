@@ -66,7 +66,10 @@ public class AndroidApiReferenceLevelCache {
       return appView.computedMinApiLevel();
     }
     DexClass clazz = appView.definitionFor(contextType);
-    if (clazz != null && clazz.isProgramClass()) {
+    if (clazz == null) {
+      return unknownValue;
+    }
+    if (!clazz.isLibraryClass()) {
       return appView.computedMinApiLevel();
     }
     if (reference.getContextType() == factory.objectType) {
@@ -80,18 +83,11 @@ public class AndroidApiReferenceLevelCache {
     if (reference.isDexMethod()
         && !reference.asDexMethod().isInstanceInitializer(factory)
         && factory.objectMembers.isObjectMember(reference.asDexMethod())) {
-      // If we can lookup the method it was introduced/overwritten later. Take for example
-      // a default toString that was not available before some api level. If unknown we default
-      // back to the static holder.
-      AndroidApiLevel methodApiLevel =
-          androidApiLevelDatabase.getMethodApiLevel(reference.asDexMethod());
-      if (methodApiLevel != null) {
-        return apiLevelCompute.of(methodApiLevel);
-      }
       AndroidApiLevel typeApiLevel =
           androidApiLevelDatabase.getTypeApiLevel(reference.getContextType());
-      // TODO(b/207452750): Investigate if we can return minApi here.
-      return typeApiLevel == null ? ComputedApiLevel.unknown() : apiLevelCompute.of(typeApiLevel);
+      return typeApiLevel == null
+          ? appView.computedMinApiLevel()
+          : apiLevelCompute.of(typeApiLevel);
     }
     AndroidApiLevel foundApiLevel =
         reference.apply(
