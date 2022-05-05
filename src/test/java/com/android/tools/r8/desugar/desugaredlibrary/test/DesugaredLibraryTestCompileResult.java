@@ -6,10 +6,10 @@ package com.android.tools.r8.desugar.desugaredlibrary.test;
 
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.L8TestCompileResult;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.ThrowingConsumer;
@@ -24,7 +24,7 @@ import java.util.function.Consumer;
 public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBase> {
 
   private final T test;
-  private final TestCompileResult<?, ?> compileResult;
+  private final TestCompileResult<?, ? extends SingleTestRunResult<?>> compileResult;
   private final TestParameters parameters;
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
   private final CompilationSpecification compilationSpecification;
@@ -34,7 +34,7 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
 
   public DesugaredLibraryTestCompileResult(
       T test,
-      TestCompileResult<?, ?> compileResult,
+      TestCompileResult<?, ? extends SingleTestRunResult<?>> compileResult,
       TestParameters parameters,
       LibraryDesugaringSpecification libraryDesugaringSpecification,
       CompilationSpecification compilationSpecification,
@@ -93,12 +93,12 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
     return this;
   }
 
-  public TestRunResult<?> run(TestRuntime runtime, Class<?> mainClass, String... args)
+  public SingleTestRunResult<?> run(TestRuntime runtime, Class<?> mainClass, String... args)
       throws Exception {
     return run(runtime, mainClass.getTypeName(), args);
   }
 
-  public TestRunResult<?> run(TestRuntime runtime, String mainClassName, String... args)
+  public SingleTestRunResult<?> run(TestRuntime runtime, String mainClassName, String... args)
       throws Exception {
 
     Path desugaredLibrary = l8Compile.writeToZip();
@@ -108,7 +108,7 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
       return compileResult.addRunClasspathFiles(desugaredLibrary).run(runtime, mainClassName);
     }
 
-    TestCompileResult<?, ?> actualCompileResult =
+    TestCompileResult<?, ? extends SingleTestRunResult<?>> actualCompileResult =
         compilationSpecification.isCfToCf() ? convertCompileResultToDex() : compileResult;
 
     if (customLibCompile != null) {
@@ -122,7 +122,8 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
     return actualCompileResult.run(runtime, mainClassName, args);
   }
 
-  private TestCompileResult<?, ?> convertCompileResultToDex() throws Exception {
+  private TestCompileResult<?, ? extends SingleTestRunResult<?>> convertCompileResultToDex()
+      throws Exception {
     return test.testForD8()
         .addProgramFiles(compileResult.writeToZip())
         .setMinApi(parameters.getApiLevel())
@@ -136,6 +137,11 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
 
   public DesugaredLibraryTestCompileResult<T> addRunClasspathFiles(Path... classpathFiles) {
     Collections.addAll(runClasspathFiles, classpathFiles);
+    return this;
+  }
+
+  public DesugaredLibraryTestCompileResult<T> withArt6Plus64BitsLib() {
+    compileResult.withArt6Plus64BitsLib();
     return this;
   }
 }

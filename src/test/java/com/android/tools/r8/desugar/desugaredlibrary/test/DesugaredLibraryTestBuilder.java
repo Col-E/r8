@@ -10,6 +10,7 @@ import com.android.tools.r8.L8TestBuilder;
 import com.android.tools.r8.L8TestCompileResult;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.R8TestBuilder;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.TestCompileResult;
@@ -32,7 +33,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   private final TestParameters parameters;
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
   private final CompilationSpecification compilationSpecification;
-  private final TestCompilerBuilder<?, ?, ?, ?, ?> builder;
+  private final TestCompilerBuilder<?, ?, ?, ? extends SingleTestRunResult<?>, ?> builder;
 
   private CustomLibrarySpecification customLibrarySpecification = null;
   private Consumer<InternalOptions> l8OptionModifier = ConsumerUtils.emptyConsumer();
@@ -68,7 +69,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     builder.enableCoreLibraryDesugaring(libraryConfBuilder.build());
   }
 
-  private TestCompilerBuilder<?, ?, ?, ?, ?> generateBuilder() {
+  private TestCompilerBuilder<?, ?, ?, ? extends SingleTestRunResult<?>, ?> generateBuilder() {
     if (compilationSpecification.isCfToCf()) {
       assert !compilationSpecification.isProgramShrink();
       return test.testForD8(Backend.CF);
@@ -128,6 +129,21 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     consumer.accept((R8TestBuilder<?>) builder);
   }
 
+  public DesugaredLibraryTestBuilder<T> allowUnusedDontWarnPatterns() {
+    withR8TestBuilder(R8TestBuilder::allowUnusedDontWarnPatterns);
+    return this;
+  }
+
+  public DesugaredLibraryTestBuilder<T> allowUnusedProguardConfigurationRules() {
+    withR8TestBuilder(R8TestBuilder::allowUnusedProguardConfigurationRules);
+    return this;
+  }
+
+  public DesugaredLibraryTestBuilder<T> allowDiagnosticMessages() {
+    withR8TestBuilder(R8TestBuilder::allowDiagnosticMessages);
+    return this;
+  }
+
   public DesugaredLibraryTestBuilder<T> allowDiagnosticWarningMessages() {
     withR8TestBuilder(R8TestBuilder::allowDiagnosticWarningMessages);
     return this;
@@ -138,14 +154,24 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
+  public DesugaredLibraryTestBuilder<T> addKeepRuleFiles(Path... files) {
+    withR8TestBuilder(b -> b.addKeepRuleFiles(files));
+    return this;
+  }
+
   public DesugaredLibraryTestBuilder<T> enableInliningAnnotations() {
     withR8TestBuilder(R8TestBuilder::enableInliningAnnotations);
     return this;
   }
 
+  public DesugaredLibraryTestBuilder<T> noMinification() {
+    withR8TestBuilder(R8TestBuilder::noMinification);
+    return this;
+  }
+
   public DesugaredLibraryTestCompileResult<T> compile() throws Exception {
     // We compile first to generate the keep rules for the l8 compilation.
-    TestCompileResult<?, ?> compile = builder.compile();
+    TestCompileResult<?, ? extends SingleTestRunResult<?>> compile = builder.compile();
     String keepRule = keepRuleConsumer == null ? null : keepRuleConsumer.get();
     L8TestCompileResult l8Compile = compileDesugaredLibrary(keepRule);
     D8TestCompileResult customLibCompile = compileCustomLib();

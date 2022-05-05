@@ -4,12 +4,15 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.gson;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import dalvik.system.PathClassLoader;
 import java.sql.SQLDataException;
 import java.util.ArrayList;
@@ -33,57 +36,34 @@ import org.junit.runners.Parameterized.Parameters;
 public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        DEFAULT_SPECIFICATIONS);
   }
 
-  public GetGenericInterfaceTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public GetGenericInterfaceTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   @Test
-  public void testCustomCollectionD8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+  public void testGeneric() throws Exception {
     String stdOut =
-        testForD8()
-            .addLibraryFiles(getLibraryFile())
-            .addInnerClasses(GetGenericInterfaceTest.class)
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .compile()
-            .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibrary,
-                parameters.getApiLevel(),
-                keepRuleConsumer.get(),
-                shrinkDesugaredLibrary)
-            .run(parameters.getRuntime(), Executor.class)
-            .assertSuccess()
-            .getStdOut();
-    assertValidInterfaces(stdOut);
-  }
-
-  @Test
-  public void testCustomCollectionR8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    String stdOut =
-        testForR8(Backend.DEX)
-            .addLibraryFiles(getLibraryFile())
+        testForDesugaredLibrary(
+                parameters, libraryDesugaringSpecification, compilationSpecification)
             .addInnerClasses(GetGenericInterfaceTest.class)
             .addKeepMainRule(Executor.class)
-            .noMinification()
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
-            .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibrary,
-                parameters.getApiLevel(),
-                keepRuleConsumer.get(),
-                shrinkDesugaredLibrary)
             .run(parameters.getRuntime(), Executor.class)
             .assertSuccess()
             .getStdOut();

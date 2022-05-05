@@ -3,57 +3,50 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.desugaredlibrary.gson;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
+
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.android.tools.r8.utils.StringUtils;
 import java.util.List;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class GsonOptionalTest extends GsonDesugaredLibraryTestBase {
-  private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
 
-  @Parameterized.Parameters(name = "shrinkDesugaredLibrary: {0}, runtime: {1}")
+  private final TestParameters parameters;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
+
+  private static final String EXPECTED_RESULT = StringUtils.lines("true", "true");
+
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        DEFAULT_SPECIFICATIONS);
   }
 
-  public GsonOptionalTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public GsonOptionalTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   @Test
-  public void testGsonOptionalD8() throws Exception {
+  public void testGson() throws Exception {
     Assume.assumeTrue(requiresEmulatedInterfaceCoreLibDesugaring(parameters));
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForD8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
-        .addProgramClassesAndInnerClasses(OptionalTestClass.class)
-        .addProgramFiles(GSON_2_8_1_JAR)
-        .addOptionsModification(opt -> opt.ignoreMissingClasses = true)
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .setMinApi(parameters.getApiLevel())
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .run(parameters.getRuntime(), OptionalTestClass.class)
-        .assertSuccessWithOutputLines("true", "true");
-  }
-
-  @Test
-  public void testGsonOptionalR8() throws Exception {
-    Assume.assumeTrue(requiresEmulatedInterfaceCoreLibDesugaring(parameters));
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForR8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClassesAndInnerClasses(OptionalTestClass.class)
         .addProgramFiles(GSON_2_8_1_JAR)
         .addKeepMainRule(OptionalTestClass.class)
@@ -62,15 +55,7 @@ public class GsonOptionalTest extends GsonDesugaredLibraryTestBase {
         .allowUnusedProguardConfigurationRules()
         .addOptionsModification(opt -> opt.ignoreMissingClasses = true)
         .allowDiagnosticMessages()
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .setMinApi(parameters.getApiLevel())
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), OptionalTestClass.class)
-        .assertSuccessWithOutputLines("true", "true");
+        .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 }
