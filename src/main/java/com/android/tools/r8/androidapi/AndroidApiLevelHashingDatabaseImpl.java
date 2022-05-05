@@ -4,152 +4,107 @@
 
 package com.android.tools.r8.androidapi;
 
-import static com.android.tools.r8.lightir.ByteUtils.isU2;
 import static com.android.tools.r8.utils.AndroidApiLevel.ANDROID_PLATFORM;
 
-import com.android.tools.r8.androidapi.AndroidApiDataAccess.AndroidApiDataAccessInMemory;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.ThrowingFunction;
-import java.io.ByteArrayOutputStream;
+import com.android.tools.r8.utils.structural.DefaultHashingVisitor;
+import com.android.tools.r8.utils.structural.HasherWrapper;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class AndroidApiLevelHashingDatabaseImpl implements AndroidApiLevelDatabase {
 
-  private static final byte TYPE_IDENTIFIER = 0;
-  private static final byte FIELD_IDENTIFIER = 1;
-  private static final byte METHOD_IDENTIFIER = 2;
-
-  private static final byte[] NON_EXISTING_DESCRIPTOR = new byte[0];
-
-  public static byte[] getNonExistingDescriptor() {
-    return NON_EXISTING_DESCRIPTOR;
+  public static HasherWrapper getDefaultHasher() {
+    return HasherWrapper.murmur3128Hasher();
   }
 
-  public static byte[] getUniqueDescriptorForReference(
-      DexReference reference, ThrowingFunction<DexString, Integer, IOException> constantPoolLookup)
-      throws IOException {
-    if (reference.isDexType()) {
-      return typeToBytes(constantPoolLookup.apply(reference.asDexType().getDescriptor()));
-    }
-    int holderId =
-        constantPoolLookup.apply(reference.asDexMember().getHolderType().getDescriptor());
-    if (holderId < 0) {
-      return NON_EXISTING_DESCRIPTOR;
-    }
-    int nameId = constantPoolLookup.apply(reference.asDexMember().getName());
-    if (nameId < 0) {
-      return NON_EXISTING_DESCRIPTOR;
-    }
-    if (reference.isDexField()) {
-      return fieldToBytes(
-          holderId,
-          nameId,
-          constantPoolLookup.apply(reference.asDexField().getType().getDescriptor()));
-    }
-    assert reference.isDexMethod();
-    return methodToBytes(holderId, nameId, reference.asDexMethod(), constantPoolLookup);
-  }
-
-  private static byte[] typeToBytes(int typeId) {
-    if (typeId < 0) {
-      return NON_EXISTING_DESCRIPTOR;
-    }
-    return new byte[] {
-      TYPE_IDENTIFIER, getFirstByteFromShort(typeId), getSecondByteFromShort(typeId)
-    };
-  }
-
-  private static byte[] fieldToBytes(int holderId, int nameId, int typeId) {
-    if (holderId < 0 || nameId < 0 || typeId < 0) {
-      return NON_EXISTING_DESCRIPTOR;
-    }
-    return new byte[] {
-      FIELD_IDENTIFIER,
-      getFirstByteFromShort(holderId),
-      getSecondByteFromShort(holderId),
-      getFirstByteFromShort(nameId),
-      getSecondByteFromShort(nameId),
-      getFirstByteFromShort(typeId),
-      getSecondByteFromShort(typeId)
-    };
-  }
-
-  private static byte[] methodToBytes(
-      int holderId,
-      int nameId,
-      DexMethod method,
-      ThrowingFunction<DexString, Integer, IOException> constantPoolLookup)
-      throws IOException {
-    if (holderId < 0 || nameId < 0) {
-      return NON_EXISTING_DESCRIPTOR;
-    }
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    baos.write(METHOD_IDENTIFIER);
-    baos.write(getFirstByteFromShort(holderId));
-    baos.write(getSecondByteFromShort(holderId));
-    baos.write(getFirstByteFromShort(nameId));
-    baos.write(getSecondByteFromShort(nameId));
-    for (DexType parameter : method.proto.parameters) {
-      int parameterId = constantPoolLookup.apply(parameter.getDescriptor());
-      if (parameterId < 0) {
-        return NON_EXISTING_DESCRIPTOR;
-      }
-      baos.write(getFirstByteFromShort(parameterId));
-      baos.write(getSecondByteFromShort(parameterId));
-    }
-    int returnTypeId = constantPoolLookup.apply(method.getReturnType().getDescriptor());
-    if (returnTypeId < 0) {
-      return NON_EXISTING_DESCRIPTOR;
-    }
-    baos.write(getFirstByteFromShort(returnTypeId));
-    baos.write(getSecondByteFromShort(returnTypeId));
-    return baos.toByteArray();
-  }
-
-  private static byte getFirstByteFromShort(int value) {
-    assert isU2(value);
-    return (byte) (value >> 8);
-  }
-
-  private static byte getSecondByteFromShort(int value) {
-    assert isU2(value);
-    return (byte) value;
-  }
-
-  private final Map<DexReference, AndroidApiLevel> lookupCache = new IdentityHashMap<>();
-  private final Map<DexString, Integer> constantPoolCache = new IdentityHashMap<>();
-  private static volatile AndroidApiDataAccess dataAccess;
-
-  private static AndroidApiDataAccess getDataAccess() {
-    if (dataAccess == null) {
-      synchronized (AndroidApiDataAccess.class) {
-        if (dataAccess == null) {
-          dataAccess = AndroidApiDataAccessInMemory.create();
-        }
-      }
-    }
-    return dataAccess;
-  }
+  private final Int2ReferenceMap<AndroidApiLevel> lookupNonAmbiguousCache =
+      new Int2ReferenceOpenHashMap<AndroidApiLevel>();
+  private final Map<String, AndroidApiLevel> ambiguousHashesWithApiLevel = new HashMap<>();
+  private final Map<DexReference, AndroidApiLevel> ambiguousCache = new IdentityHashMap<>();
 
   public AndroidApiLevelHashingDatabaseImpl(
       List<AndroidApiForHashingReference> predefinedApiTypeLookup) {
+    loadData();
     predefinedApiTypeLookup.forEach(
         predefinedApiReference -> {
+          int hashCode = predefinedApiReference.getReference().hashCode();
           // Do not use computeIfAbsent since a return value of null implies the key should not be
           // inserted.
-          lookupCache.put(
-              predefinedApiReference.getReference(), predefinedApiReference.getApiLevel());
+          if (!lookupNonAmbiguousCache.containsKey(hashCode)) {
+            lookupNonAmbiguousCache.put(hashCode, null);
+            ambiguousCache.put(
+                predefinedApiReference.getReference(), predefinedApiReference.getApiLevel());
+          }
         });
     assert predefinedApiTypeLookup.stream()
         .allMatch(added -> added.getApiLevel().isEqualTo(lookupApiLevel(added.getReference())));
+  }
+
+  private void loadData() {
+    int[] hashIndices;
+    byte[] apiLevels;
+    List<String> ambiguous;
+    try (InputStream indicesInputStream =
+            getClass()
+                .getClassLoader()
+                .getResourceAsStream("api_database/api_database_hash_lookup.ser");
+        ObjectInputStream indicesObjectStream = new ObjectInputStream(indicesInputStream);
+        InputStream apiInputStream =
+            getClass()
+                .getClassLoader()
+                .getResourceAsStream("api_database/api_database_api_level.ser");
+        ObjectInputStream apiObjectStream = new ObjectInputStream(apiInputStream);
+        InputStream ambiguousInputStream =
+            getClass()
+                .getClassLoader()
+                .getResourceAsStream("api_database/api_database_ambiguous.txt")) {
+      hashIndices = (int[]) indicesObjectStream.readObject();
+      apiLevels = (byte[]) apiObjectStream.readObject();
+      ambiguous =
+          new BufferedReader(new InputStreamReader(ambiguousInputStream, StandardCharsets.UTF_8))
+              .lines()
+              .collect(Collectors.toList());
+    } catch (IOException | ClassNotFoundException e) {
+      throw new RuntimeException("Could not build api database");
+    }
+    assert hashIndices.length == apiLevels.length;
+    for (int i = 0; i < hashIndices.length; i++) {
+      byte apiLevel = apiLevels[i];
+      lookupNonAmbiguousCache.put(
+          hashIndices[i], apiLevel == -1 ? null : AndroidApiLevel.getAndroidApiLevel(apiLevel));
+    }
+    ambiguous.forEach(this::parseAmbiguous);
+  }
+
+  /**
+   * All elements in the ambiguous map are on the form <key>:<api-level>. The reason for this
+   * additional map is that the keys collide for the items using the ordinary hashing function.
+   */
+  private void parseAmbiguous(String ambiguous) {
+    String[] split = ambiguous.split(":");
+    if (split.length != 2) {
+      throw new CompilationError("Expected two entries in ambiguous map");
+    }
+    ambiguousHashesWithApiLevel.put(
+        split[0], AndroidApiLevel.getAndroidApiLevel(Integer.parseInt(split[1])));
   }
 
   @Override
@@ -167,35 +122,34 @@ public class AndroidApiLevelHashingDatabaseImpl implements AndroidApiLevelDataba
     return lookupApiLevel(field);
   }
 
-  private int getConstantPoolId(DexString string) {
-    return constantPoolCache.computeIfAbsent(
-        string, key -> getDataAccess().getConstantPoolIndex(string));
-  }
-
   private AndroidApiLevel lookupApiLevel(DexReference reference) {
     // We use Android platform to track if an element is unknown since no occurrences of that api
     // level exists in the database.
-    AndroidApiLevel result = lookupCache.get(reference);
-    if (result == null) {
-      byte[] uniqueDescriptorForReference;
-      try {
-        uniqueDescriptorForReference =
-            getUniqueDescriptorForReference(reference, this::getConstantPoolId);
-      } catch (Exception e) {
-        uniqueDescriptorForReference = getNonExistingDescriptor();
-      }
-      if (uniqueDescriptorForReference == getNonExistingDescriptor()) {
-        result = ANDROID_PLATFORM;
-      } else {
-        byte apiLevelForReference =
-            getDataAccess().getApiLevelForReference(uniqueDescriptorForReference, reference);
-        result =
-            (apiLevelForReference <= 0)
-                ? ANDROID_PLATFORM
-                : AndroidApiLevel.getAndroidApiLevel(apiLevelForReference);
-      }
-      lookupCache.put(reference, result);
+    AndroidApiLevel result =
+        lookupNonAmbiguousCache.getOrDefault(reference.hashCode(), ANDROID_PLATFORM);
+    if (result != null) {
+      return result == ANDROID_PLATFORM ? null : result;
     }
-    return result == ANDROID_PLATFORM ? null : result;
+    return ambiguousCache.computeIfAbsent(
+        reference,
+        ignored -> {
+          HasherWrapper defaultHasher = getDefaultHasher();
+          reference.accept(
+              type -> DefaultHashingVisitor.run(type, defaultHasher, DexType::acceptHashing),
+              field ->
+                  DefaultHashingVisitor.run(field, defaultHasher, StructuralItem::acceptHashing),
+              method ->
+                  DefaultHashingVisitor.run(method, defaultHasher, StructuralItem::acceptHashing));
+          String existingHash = defaultHasher.hash().toString();
+          AndroidApiLevel androidApiLevel = ambiguousHashesWithApiLevel.get(existingHash);
+          if (androidApiLevel == null) {
+            throw new CompilationError(
+                "Failed to find api level for reference: "
+                    + reference.toSourceString()
+                    + " with hash value: "
+                    + existingHash);
+          }
+          return androidApiLevel;
+        });
   }
 }
