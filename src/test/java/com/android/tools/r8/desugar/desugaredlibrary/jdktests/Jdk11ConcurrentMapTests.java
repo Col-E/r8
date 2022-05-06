@@ -5,23 +5,29 @@
 package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
 
 import static com.android.tools.r8.ToolHelper.JDK_TESTS_BUILD_DIR;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8SHRINK;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
 import static org.hamcrest.CoreMatchers.endsWith;
 
-import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.DesugaredLibraryTestCompileResult;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,23 +50,29 @@ public class Jdk11ConcurrentMapTests extends Jdk11DesugaredLibraryTestBase {
       };
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
-    // TODO(b/134732760): Skip Android 4.4.4 due to missing libjavacrypto.
     return buildParameters(
-        BooleanUtils.values(),
+        // TODO(b/134732760): Skip Android 4.4.4 due to missing libjavacrypto.
         getTestParameters()
             .withDexRuntime(Version.V4_0_4)
             .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
             .withAllApiLevels()
-            .build());
+            .build(),
+        ImmutableList.of(JDK8, JDK11, JDK11_PATH),
+        ImmutableList.of(D8_L8DEBUG, D8_L8SHRINK));
   }
 
-  public Jdk11ConcurrentMapTests(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public Jdk11ConcurrentMapTests(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   @BeforeClass
@@ -96,27 +108,17 @@ public class Jdk11ConcurrentMapTests extends Jdk11DesugaredLibraryTestBase {
   }
 
   @Test
-  public void testD8Concurrent() throws Exception {
+  public void testConcurrent() throws Exception {
     // TODO(b/134732760): Support Java 9+ libraries.
     // We skip the ConcurrentRemoveIf test because of the  non desugared class CompletableFuture.
-    Assume.assumeFalse("b/144975341",
-        parameters.getRuntime().asDex().getVm().getVersion() == Version.V10_0_0);
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String verbosity = "2";
-    testForD8()
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramFiles(CONCURRENT_COMPILED_TESTS_FILES)
         .addProgramFiles(testNGSupportProgramFiles())
-        .addProgramFiles(getPathsFiles())
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .addLibraryFiles(getLibraryFile())
+        .applyIf(
+            libraryDesugaringSpecification != JDK11_PATH, b -> b.addProgramFiles(getPathsFiles()))
         .compile()
         .withArt6Plus64BitsLib()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), "TestNGMainRunner", verbosity, "ConcurrentModification")
         .assertSuccessWithOutputThatMatches(
             endsWith(StringUtils.lines("ConcurrentModification: SUCCESS")));
@@ -156,27 +158,19 @@ public class Jdk11ConcurrentMapTests extends Jdk11DesugaredLibraryTestBase {
 
   @Test
   public void testD8ConcurrentHash() throws Exception {
-    Assume.assumeFalse("b/144975341",
-        parameters.getRuntime().asDex().getVm().getVersion() == Version.V10_0_0);
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String verbosity = "2";
-    D8TestCompileResult d8TestCompileResult =
-        testForD8()
-            .addLibraryFiles(getLibraryFile())
+    DesugaredLibraryTestCompileResult<?> compileResult =
+        testForDesugaredLibrary(
+                parameters, libraryDesugaringSpecification, compilationSpecification)
             .addProgramFiles(concurrentHashTestToCompile())
             .addProgramFiles(testNGSupportProgramFiles())
-            .addProgramFiles(getPathsFiles())
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+            .applyIf(
+                libraryDesugaringSpecification != JDK11_PATH,
+                b -> b.addProgramFiles(getPathsFiles()))
             .compile()
-            .withArt6Plus64BitsLib()
-            .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibrary,
-                parameters.getApiLevel(),
-                keepRuleConsumer.get(),
-                shrinkDesugaredLibrary);
+            .withArt6Plus64BitsLib();
     for (String className : concurrentHashTestNGTestsToRun()) {
-      d8TestCompileResult
+      compileResult
           .run(parameters.getRuntime(), "TestNGMainRunner", verbosity, className)
           .assertSuccessWithOutputThatMatches(endsWith(StringUtils.lines(className + ": SUCCESS")));
     }
@@ -185,7 +179,7 @@ public class Jdk11ConcurrentMapTests extends Jdk11DesugaredLibraryTestBase {
       // Failure implies a runtime exception.
       // We ensure that everything could be resolved (no missing method or class)
       // with the assertion on stderr.
-      d8TestCompileResult.run(parameters.getRuntime(), className).assertSuccess();
+      compileResult.run(parameters.getRuntime(), className).assertSuccess();
     }
   }
 }

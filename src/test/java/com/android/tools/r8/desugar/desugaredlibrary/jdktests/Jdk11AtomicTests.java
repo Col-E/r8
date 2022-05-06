@@ -5,6 +5,11 @@
 package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
 
 import static com.android.tools.r8.ToolHelper.JDK_TESTS_BUILD_DIR;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8SHRINK;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
 import static org.hamcrest.CoreMatchers.endsWith;
@@ -13,8 +18,10 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
@@ -40,23 +47,29 @@ public class Jdk11AtomicTests extends Jdk11DesugaredLibraryTestBase {
       };
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
-    // TODO(b/134732760): Skip Android 4.4.4 due to missing libjavacrypto.
     return buildParameters(
-        BooleanUtils.values(),
+        // TODO(b/134732760): Skip Android 4.4.4 due to missing libjavacrypto.
         getTestParameters()
             .withDexRuntime(Version.V4_0_4)
             .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
             .withAllApiLevels()
-            .build());
+            .build(),
+        ImmutableList.of(JDK8, JDK11, JDK11_PATH),
+        ImmutableList.of(D8_L8DEBUG, D8_L8SHRINK));
   }
 
-  public Jdk11AtomicTests(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public Jdk11AtomicTests(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   @BeforeClass
@@ -71,24 +84,16 @@ public class Jdk11AtomicTests extends Jdk11DesugaredLibraryTestBase {
   }
 
   @Test
-  public void testD8AtomicReference() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+  public void testAtomicReference() throws Exception {
     String verbosity = "2";
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramFiles(
             ATOMIC_COMPILED_TESTS_FOLDER.resolve(ATOMIC_REFERENCE_TEST + CLASS_EXTENSION))
         .addProgramFiles(testNGSupportProgramFiles())
-        .addProgramFiles(getPathsFiles())
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .applyIf(
+            libraryDesugaringSpecification != JDK11_PATH, b -> b.addProgramFiles(getPathsFiles()))
         .compile()
         .withArt6Plus64BitsLib()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), "TestNGMainRunner", verbosity, ATOMIC_REFERENCE_TEST)
         .assertSuccessWithOutputThatMatches(
             endsWith(StringUtils.lines(ATOMIC_REFERENCE_TEST + ": SUCCESS")));
@@ -96,23 +101,15 @@ public class Jdk11AtomicTests extends Jdk11DesugaredLibraryTestBase {
 
   @Test
   public void testD8AtomicUpdaters() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String verbosity = "2";
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramFiles(
             getAllFilesWithSuffixInDirectory(ATOMIC_COMPILED_TESTS_FOLDER, CLASS_EXTENSION))
         .addProgramFiles(testNGSupportProgramFiles())
-        .addProgramFiles(getPathsFiles())
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .applyIf(
+            libraryDesugaringSpecification != JDK11_PATH, b -> b.addProgramFiles(getPathsFiles()))
         .compile()
         .withArt6Plus64BitsLib()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), "TestNGMainRunner", verbosity, ATOMIC_UPDATERS)
         .assertSuccessWithOutputThatMatches(
             endsWith(StringUtils.lines(ATOMIC_UPDATERS + ": SUCCESS")));

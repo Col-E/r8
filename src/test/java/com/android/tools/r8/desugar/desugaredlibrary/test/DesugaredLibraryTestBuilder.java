@@ -181,6 +181,14 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
+  public DesugaredLibraryTestBuilder<T> applyIf(
+      boolean apply, Consumer<DesugaredLibraryTestBuilder<T>> consumer) {
+    if (apply) {
+      consumer.accept(this);
+    }
+    return this;
+  }
+
   public DesugaredLibraryTestCompileResult<T> compile() throws Exception {
     // We compile first to generate the keep rules for the l8 compilation.
     TestCompileResult<?, ? extends SingleTestRunResult<?>> compile = builder.compile();
