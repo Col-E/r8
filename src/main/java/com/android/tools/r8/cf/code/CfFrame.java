@@ -6,6 +6,9 @@ package com.android.tools.r8.cf.code;
 import static org.objectweb.asm.Opcodes.F_NEW;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.cf.code.frame.SingleFrameType;
+import com.android.tools.r8.cf.code.frame.WideFrameType;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -50,7 +53,7 @@ public class CfFrame extends CfInstruction implements Cloneable {
   public abstract static class FrameType {
 
     public static FrameType initialized(DexType type) {
-      return new InitializedType(type);
+      return type.isWideType() ? new WideInitializedType(type) : new SingleInitializedType(type);
     }
 
     public static FrameType uninitializedNew(CfLabel label, DexType typeToInitialize) {
@@ -73,6 +76,10 @@ public class CfFrame extends CfInstruction implements Cloneable {
       return TwoWord.SINGLETON;
     }
 
+    public FrameType asFrameType() {
+      return this;
+    }
+
     abstract Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens);
 
     public boolean isObject() {
@@ -88,8 +95,16 @@ public class CfFrame extends CfInstruction implements Cloneable {
       return !isWide();
     }
 
+    public SingleFrameType asSingle() {
+      return null;
+    }
+
     public boolean isWide() {
       return false;
+    }
+
+    public WideFrameType asWide() {
+      return null;
     }
 
     public boolean isUninitializedNew() {
@@ -226,13 +241,19 @@ public class CfFrame extends CfInstruction implements Cloneable {
     return CfCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
   }
 
-  private static class InitializedType extends FrameType {
+  private static class SingleInitializedType extends FrameType implements SingleFrameType {
 
     private final DexType type;
 
-    private InitializedType(DexType type) {
+    private SingleInitializedType(DexType type) {
       assert type != null;
       this.type = type;
+    }
+
+    @Override
+    public SingleFrameType join(SingleFrameType frameType) {
+      // TODO(b/214496607): Implement this.
+      throw new Unimplemented();
     }
 
     @Override
@@ -243,7 +264,7 @@ public class CfFrame extends CfInstruction implements Cloneable {
       if (obj == null || getClass() != obj.getClass()) {
         return false;
       }
-      InitializedType initializedType = (InitializedType) obj;
+      SingleInitializedType initializedType = (SingleInitializedType) obj;
       return type == initializedType.type;
     }
 
@@ -280,8 +301,13 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
 
     @Override
+    public SingleFrameType asSingle() {
+      return this;
+    }
+
+    @Override
     public boolean isWide() {
-      return type.isPrimitiveType() && (type.toShorty() == 'J' || type.toShorty() == 'D');
+      return false;
     }
 
     @Override
@@ -306,11 +332,103 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
   }
 
-  private static class Top extends SingletonFrameType {
+  private static class WideInitializedType extends FrameType implements WideFrameType {
+
+    private final DexType type;
+
+    private WideInitializedType(DexType type) {
+      assert type != null;
+      this.type = type;
+    }
+
+    @Override
+    public boolean isWide() {
+      return true;
+    }
+
+    @Override
+    public WideFrameType asWide() {
+      return this;
+    }
+
+    @Override
+    public WideFrameType join(WideFrameType frameType) {
+      // TODO(b/214496607): Implement this.
+      throw new Unimplemented();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null || getClass() != obj.getClass()) {
+        return false;
+      }
+      WideInitializedType initializedType = (WideInitializedType) obj;
+      return type == initializedType.type;
+    }
+
+    @Override
+    public int hashCode() {
+      return type.hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return "Initialized(" + type.toString() + ")";
+    }
+
+    @Override
+    Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
+      switch (type.toShorty()) {
+        case 'J':
+          return Opcodes.LONG;
+        case 'D':
+          return Opcodes.DOUBLE;
+        default:
+          throw new Unreachable("Unexpected value type: " + type);
+      }
+    }
+
+    @Override
+    public boolean isInitialized() {
+      return true;
+    }
+
+    @Override
+    public DexType getInitializedType() {
+      return type;
+    }
+
+    @Override
+    public boolean isObject() {
+      return type.isNullValueType() || type.isReferenceType();
+    }
+
+    @Override
+    public DexType getObjectType(ProgramMethod context) {
+      assert isObject() : "Unexpected use of getObjectType() for non-object FrameType";
+      return type;
+    }
+  }
+
+  private static class Top extends SingletonFrameType implements SingleFrameType {
 
     private static final Top SINGLETON = new Top();
 
     private Top() {}
+
+    @Override
+    public SingleFrameType asSingle() {
+      return this;
+    }
+
+    @Override
+    public SingleFrameType join(SingleFrameType frameType) {
+      // TODO(b/214496607): Implement this.
+      throw new Unimplemented();
+    }
 
     @Override
     public String toString() {
@@ -328,7 +446,7 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
   }
 
-  private static class UninitializedNew extends FrameType {
+  private static class UninitializedNew extends FrameType implements SingleFrameType {
 
     private final CfLabel label;
     private final DexType type;
@@ -336,6 +454,17 @@ public class CfFrame extends CfInstruction implements Cloneable {
     private UninitializedNew(CfLabel label, DexType type) {
       this.label = label;
       this.type = type;
+    }
+
+    @Override
+    public SingleFrameType asSingle() {
+      return this;
+    }
+
+    @Override
+    public SingleFrameType join(SingleFrameType frameType) {
+      // TODO(b/214496607): Implement this.
+      throw new Unimplemented();
     }
 
     @Override
@@ -396,11 +525,22 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
   }
 
-  private static class UninitializedThis extends SingletonFrameType {
+  private static class UninitializedThis extends SingletonFrameType implements SingleFrameType {
 
     private static final UninitializedThis SINGLETON = new UninitializedThis();
 
     private UninitializedThis() {}
+
+    @Override
+    public SingleFrameType asSingle() {
+      return this;
+    }
+
+    @Override
+    public SingleFrameType join(SingleFrameType frameType) {
+      // TODO(b/214496607): Implement this.
+      throw new Unimplemented();
+    }
 
     @Override
     Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
@@ -433,11 +573,22 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
   }
 
-  private static class OneWord extends SingletonFrameType {
+  private static class OneWord extends SingletonFrameType implements SingleFrameType {
 
     private static final OneWord SINGLETON = new OneWord();
 
     private OneWord() {}
+
+    @Override
+    public SingleFrameType asSingle() {
+      return this;
+    }
+
+    @Override
+    public SingleFrameType join(SingleFrameType frameType) {
+      // TODO(b/214496607): Implement this.
+      throw new Unimplemented();
+    }
 
     @Override
     Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
@@ -455,20 +606,31 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
   }
 
-  private static class TwoWord extends SingletonFrameType {
+  private static class TwoWord extends SingletonFrameType implements WideFrameType {
 
     private static final TwoWord SINGLETON = new TwoWord();
 
     private TwoWord() {}
 
     @Override
-    Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
-      throw new Unreachable("Should only be used for verification");
+    public boolean isWide() {
+      return true;
     }
 
     @Override
-    public boolean isWide() {
-      return true;
+    public WideFrameType asWide() {
+      return this;
+    }
+
+    @Override
+    public WideFrameType join(WideFrameType frameType) {
+      // TODO(b/214496607): Implement this.
+      throw new Unimplemented();
+    }
+
+    @Override
+    Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
+      throw new Unreachable("Should only be used for verification");
     }
 
     @Override
@@ -786,10 +948,17 @@ public class CfFrame extends CfInstruction implements Cloneable {
       return this;
     }
 
+    public boolean hasLocal(int localIndex) {
+      return locals.containsKey(localIndex);
+    }
+
+    public FrameType getLocal(int localIndex) {
+      assert hasLocal(localIndex);
+      return locals.get(localIndex);
+    }
+
     public Builder push(FrameType frameType) {
-      if (stack == EMPTY_STACK) {
-        stack = new ArrayDeque<>();
-      }
+      ensureMutableStack();
       stack.addLast(frameType);
       return this;
     }
@@ -800,9 +969,7 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
 
     private Builder internalStore(int localIndex, FrameType frameType) {
-      if (locals == EMPTY_LOCALS) {
-        locals = new Int2ObjectAVLTreeMap<>();
-      }
+      ensureMutableLocals();
       locals.put(localIndex, frameType);
       if (frameType.isWide()) {
         locals.put(localIndex + 1, frameType);
@@ -812,6 +979,24 @@ public class CfFrame extends CfInstruction implements Cloneable {
 
     public CfFrame build() {
       return new CfFrame(locals, stack);
+    }
+
+    public CfFrame buildMutable() {
+      ensureMutableLocals();
+      ensureMutableStack();
+      return build();
+    }
+
+    private void ensureMutableLocals() {
+      if (locals == EMPTY_LOCALS) {
+        locals = new Int2ObjectAVLTreeMap<>();
+      }
+    }
+
+    private void ensureMutableStack() {
+      if (stack == EMPTY_STACK) {
+        stack = new ArrayDeque<>();
+      }
     }
   }
 }

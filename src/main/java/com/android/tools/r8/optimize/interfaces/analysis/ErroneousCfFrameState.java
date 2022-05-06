@@ -25,6 +25,11 @@ public class ErroneousCfFrameState extends CfFrameState {
   }
 
   @Override
+  public boolean isError() {
+    return true;
+  }
+
+  @Override
   public CfFrameState check(AppView<?> appView, CfFrame frame) {
     return this;
   }

@@ -25,6 +25,11 @@ public class BottomCfFrameState extends CfFrameState {
   }
 
   @Override
+  public boolean isBottom() {
+    return true;
+  }
+
+  @Override
   public CfFrameState check(AppView<?> appView, CfFrame frame) {
     if (CfAssignability.isFrameAssignable(new CfFrame(), frame, appView).isFailed()) {
       return error();

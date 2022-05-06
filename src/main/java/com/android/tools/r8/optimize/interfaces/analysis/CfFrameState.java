@@ -7,7 +7,6 @@ package com.android.tools.r8.optimize.interfaces.analysis;
 import com.android.tools.r8.cf.code.CfAssignability;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -23,7 +22,7 @@ import java.util.function.BiFunction;
 
 public abstract class CfFrameState extends AbstractState<CfFrameState> {
 
-  public static CfFrameState bottom() {
+  public static BottomCfFrameState bottom() {
     return BottomCfFrameState.getInstance();
   }
 
@@ -34,6 +33,22 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
   @Override
   public CfFrameState asAbstractState() {
     return this;
+  }
+
+  public boolean isBottom() {
+    return false;
+  }
+
+  public boolean isConcrete() {
+    return false;
+  }
+
+  public ConcreteCfFrameState asConcrete() {
+    return null;
+  }
+
+  public boolean isError() {
+    return false;
   }
 
   public abstract CfFrameState check(AppView<?> appView, CfFrame frame);
@@ -216,8 +231,15 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
 
   @Override
   public final CfFrameState join(CfFrameState state) {
-    // TODO(b/214496607): Implement join.
-    throw new Unimplemented();
+    if (state.isBottom() || isError()) {
+      return this;
+    }
+    if (isBottom() || state.isError()) {
+      return state;
+    }
+    assert isConcrete();
+    assert state.isConcrete();
+    return asConcrete().join(state.asConcrete());
   }
 
   @Override

@@ -5,7 +5,6 @@
 package com.android.tools.r8.optimize.interfaces.analysis;
 
 import com.android.tools.r8.cf.code.CfInstruction;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
@@ -68,9 +67,8 @@ public class CfOpenClosedInterfacesAnalysis {
 
     @Override
     public CfFrameState computeBlockEntryState(
-        CfBlock cfBlock, CfBlock predecessor, CfFrameState predecessorExitState) {
-      // TODO(b/214496607): Implement this.
-      throw new Unimplemented();
+        CfBlock block, CfBlock predecessor, CfFrameState predecessorExitState) {
+      return predecessorExitState;
     }
   }
 }
