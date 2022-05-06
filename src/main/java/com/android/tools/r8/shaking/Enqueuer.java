@@ -253,7 +253,7 @@ public class Enqueuer {
   // Don't hold a direct pointer to app info (use appView).
   private AppInfoWithClassHierarchy appInfo;
   private final AppView<AppInfoWithClassHierarchy> appView;
-  private final EnqueuerDeferredTracing deferredTracing;
+  private final EnqueuerDeferredTracingImpl deferredTracing;
   private final ExecutorService executorService;
   private SubtypingInfo subtypingInfo;
   private final InternalOptions options;
@@ -469,7 +469,7 @@ public class Enqueuer {
     InternalOptions options = appView.options();
     this.appInfo = appView.appInfo();
     this.appView = appView.withClassHierarchy();
-    this.deferredTracing = new EnqueuerDeferredTracing(appView, this, mode);
+    this.deferredTracing = new EnqueuerDeferredTracingImpl(appView, this, mode);
     this.executorService = executorService;
     this.subtypingInfo = subtypingInfo;
     this.forceProguardCompatibility = options.forceProguardCompatibility;

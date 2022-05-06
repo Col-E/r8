@@ -45,7 +45,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
-public class EnqueuerDeferredTracing {
+public class EnqueuerDeferredTracingImpl {
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final Enqueuer enqueuer;
@@ -64,7 +64,7 @@ public class EnqueuerDeferredTracing {
   // A set of fields that are never eligible for pruning.
   private final ProgramFieldSet ineligibleForPruning = ProgramFieldSet.create();
 
-  EnqueuerDeferredTracing(
+  EnqueuerDeferredTracingImpl(
       AppView<? extends AppInfoWithClassHierarchy> appView, Enqueuer enqueuer, Mode mode) {
     this.appView = appView;
     this.enqueuer = enqueuer;
