@@ -3,16 +3,18 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.desugaredlibrary.jdk11;
 
-import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.LibraryDesugaringTestConfiguration;
-import com.android.tools.r8.StringResource;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
+
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CustomLibrarySpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousFileChannel;
@@ -31,8 +33,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
-import org.junit.Assume;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -42,7 +42,9 @@ import org.junit.runners.Parameterized.Parameters;
 public class ChannelSetTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
+
   private static final String EXPECTED_RESULT =
       StringUtils.lines(
           "bytes written: 11",
@@ -71,90 +73,49 @@ public class ChannelSetTest extends DesugaredLibraryTestBase {
           "String read: Hello World",
           "bytes read: 11",
           "String read: Hello World");
-  private static Path CUSTOM_LIB;
 
-  @BeforeClass
-  public static void compileCustomLib() throws Exception {
-    CUSTOM_LIB =
-        testForD8(getStaticTemp())
-            .addProgramClasses(CustomLib.class)
-            .setMinApi(AndroidApiLevel.B)
-            .compile()
-            .writeToZip();
-  }
-
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
-    // Skip Android 4.4.4 due to missing libjavacrypto.
     return buildParameters(
-        BooleanUtils.values(),
+        // Skip Android 4.4.4 due to missing libjavacrypto.
         getTestParameters()
             .withDexRuntime(Version.V4_0_4)
             .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
             .withAllApiLevels()
-            .build());
+            .build(),
+        ImmutableList.of(JDK11_PATH),
+        DEFAULT_SPECIFICATIONS);
   }
 
-  public ChannelSetTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public ChannelSetTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
+  }
+
+  @Test
+  public void test() throws Exception {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+        .addProgramClasses(TestClass.class)
+        .setCustomLibrarySpecification(
+            new CustomLibrarySpecification(CustomLib.class, AndroidApiLevel.B))
+        .addKeepMainRule(TestClass.class)
+        .compile()
+        .withArt6Plus64BitsLib()
+        .run(
+            parameters.getRuntime(),
+            TestClass.class,
+            Integer.toString(parameters.getApiLevel().getLevel()))
+        .assertSuccessWithOutput(getExpectedResult());
   }
 
   private String getExpectedResult() {
     return parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.O)
         ? EXPECTED_RESULT_26
         : EXPECTED_RESULT;
-  }
-
-  private LibraryDesugaringTestConfiguration pathConfiguration() {
-    return LibraryDesugaringTestConfiguration.builder()
-        .setMinApi(parameters.getApiLevel())
-        .addDesugaredLibraryConfiguration(
-            StringResource.fromFile(ToolHelper.getDesugarLibJsonForTestingWithPath()))
-        .setMode(shrinkDesugaredLibrary ? CompilationMode.RELEASE : CompilationMode.DEBUG)
-        .withKeepRuleConsumer()
-        .build();
-  }
-
-  @Test
-  public void testD8() throws Exception {
-    Assume.assumeTrue(isJDK11DesugaredLibrary());
-    testForD8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
-        .addProgramClasses(TestClass.class)
-        .addLibraryClasses(CustomLib.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(pathConfiguration())
-        .compile()
-        .withArt6Plus64BitsLib()
-        .withArtFrameworks()
-        .addRunClasspathFiles(CUSTOM_LIB)
-        .run(
-            parameters.getRuntime(),
-            TestClass.class,
-            Integer.toString(parameters.getApiLevel().getLevel()))
-        .assertSuccessWithOutput(getExpectedResult());
-  }
-
-  @Test
-  public void testR8() throws Exception {
-    Assume.assumeTrue(isJDK11DesugaredLibrary());
-    testForR8(Backend.DEX)
-        .addLibraryFiles(getLibraryFile())
-        .addProgramClasses(TestClass.class)
-        .addLibraryClasses(CustomLib.class)
-        .setMinApi(parameters.getApiLevel())
-        .addKeepMainRule(TestClass.class)
-        .enableCoreLibraryDesugaring(pathConfiguration())
-        .compile()
-        .withArt6Plus64BitsLib()
-        .withArtFrameworks()
-        .addRunClasspathFiles(CUSTOM_LIB)
-        .run(
-            parameters.getRuntime(),
-            TestClass.class,
-            Integer.toString(parameters.getApiLevel().getLevel()))
-        .assertSuccessWithOutput(getExpectedResult());
   }
 
   public static class CustomLib {

@@ -5,16 +5,16 @@
 package com.android.tools.r8.desugar.desugaredlibrary.jdk11;
 
 import static com.android.tools.r8.ToolHelper.DexVm.Version.V12_0_0;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
 
-import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.LibraryDesugaringTestConfiguration;
-import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ServiceLoader;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -37,24 +36,31 @@ public class FileTypeDetectorTest extends DesugaredLibraryTestBase {
       StringUtils.lines("false", "text/plain", "image/png", "null", "image/png");
   private static final String EXPECTED_RESULT_NO_DEFAULT_PNG_TYPE_DETECTOR =
       StringUtils.lines("false", "text/plain", "null", "null", "image/png");
-  private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  private final TestParameters parameters;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
+
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
-    // Skip Android 4.4.4 due to missing libjavacrypto.
     return buildParameters(
-        BooleanUtils.values(),
+        // Skip Android 4.4.4 due to missing libjavacrypto.
         getTestParameters()
             .withDexRuntime(Version.V4_0_4)
             .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
             .withAllApiLevels()
-            .build());
+            .build(),
+        ImmutableList.of(JDK11_PATH),
+        DEFAULT_SPECIFICATIONS);
   }
 
-  public FileTypeDetectorTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public FileTypeDetectorTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   private boolean hasDefaultPNGTypeDetector() {
@@ -67,45 +73,14 @@ public class FileTypeDetectorTest extends DesugaredLibraryTestBase {
         : EXPECTED_RESULT_NO_DEFAULT_PNG_TYPE_DETECTOR;
   }
 
-  private LibraryDesugaringTestConfiguration pathConfiguration() {
-    return LibraryDesugaringTestConfiguration.builder()
-        .setMinApi(parameters.getApiLevel())
-        .addDesugaredLibraryConfiguration(
-            StringResource.fromFile(ToolHelper.getDesugarLibJsonForTestingWithPath()))
-        .setMode(shrinkDesugaredLibrary ? CompilationMode.RELEASE : CompilationMode.DEBUG)
-        .withKeepRuleConsumer()
-        .build();
-  }
-
   @Test
-  public void testD8() throws Exception {
-    Assume.assumeTrue(isJDK11DesugaredLibrary());
-    testForD8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
+  public void test() throws Exception {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addInnerClasses(getClass())
         .addProgramClasses(GoogleIcon.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(pathConfiguration())
-        .compile()
-        .withArt6Plus64BitsLib()
-        .withArtFrameworks()
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(getExpectedResult());
-  }
-
-  @Test
-  public void testR8() throws Exception {
-    Assume.assumeTrue(isJDK11DesugaredLibrary());
-    testForR8(Backend.DEX)
-        .addLibraryFiles(getLibraryFile())
-        .addInnerClasses(getClass())
-        .addProgramClasses(GoogleIcon.class)
-        .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(TestClass.class)
-        .enableCoreLibraryDesugaring(pathConfiguration())
         .compile()
         .withArt6Plus64BitsLib()
-        .withArtFrameworks()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(getExpectedResult());
   }

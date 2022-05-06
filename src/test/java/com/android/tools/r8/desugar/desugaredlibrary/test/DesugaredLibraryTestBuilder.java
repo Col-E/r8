@@ -154,6 +154,11 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
+  public DesugaredLibraryTestBuilder<T> addKeepMainRule(String mainClass) {
+    withR8TestBuilder(b -> b.addKeepMainRule(mainClass));
+    return this;
+  }
+
   public DesugaredLibraryTestBuilder<T> addKeepRuleFiles(Path... files) {
     withR8TestBuilder(b -> b.addKeepRuleFiles(files));
     return this;

@@ -4,15 +4,22 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.jdk11;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
+
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.desugar.desugaredlibrary.jdk11.ChannelSetTest.CustomLib;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CustomLibrarySpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentHashMap.KeySetView;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -21,63 +28,40 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class ConcurrentHashMapJDK11Test extends DesugaredLibraryTestBase {
 
+  private final TestParameters parameters;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
+
   private static final String EXPECTED_RESULT = StringUtils.lines("1", "one=ONE, two=TWO");
 
-  private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
-
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
+        // Skip Android 4.0.4 due to missing ForkJoinPool.
+        getTestParameters()
+            .withDexRuntimesStartingFromIncluding(Version.V4_4_4)
+            .withAllApiLevels()
+            .build(),
+        ImmutableList.of(JDK11),
+        DEFAULT_SPECIFICATIONS);
   }
 
-  public ConcurrentHashMapJDK11Test(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public ConcurrentHashMapJDK11Test(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   @Test
-  public void testD8() throws Exception {
-    Assume.assumeTrue(isJDK11DesugaredLibrary());
-    Assume.assumeFalse(
-        "TODO(b/171682016): reduce methods are backported but rely on non backported ForkJoinPool",
-        parameters.getDexRuntimeVersion().isEqualTo(Version.V4_0_4));
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForD8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
+  public void test() throws Exception {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addInnerClasses(ConcurrentHashMapJDK11Test.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
-  }
-
-  @Test
-  public void testR8() throws Exception {
-    Assume.assumeTrue(isJDK11DesugaredLibrary());
-    Assume.assumeFalse(
-        "TODO(b/171682016): reduce methods are backported but rely on non backported ForkJoinPool",
-        parameters.getDexRuntimeVersion().isEqualTo(Version.V4_0_4));
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForR8(Backend.DEX)
-        .addLibraryFiles(getLibraryFile())
-        .addInnerClasses(ConcurrentHashMapJDK11Test.class)
-        .setMinApi(parameters.getApiLevel())
+        .setCustomLibrarySpecification(
+            new CustomLibrarySpecification(CustomLib.class, AndroidApiLevel.B))
         .addKeepMainRule(TestClass.class)
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
