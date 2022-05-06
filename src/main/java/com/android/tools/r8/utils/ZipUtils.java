@@ -11,6 +11,7 @@ import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.androidapi.AndroidApiDataAccess;
 import com.android.tools.r8.errors.CompilationError;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
@@ -50,17 +51,22 @@ public class ZipUtils {
       Closer closer,
       ZipOutputStream out)
       throws IOException, ResourceException {
+    String resourceName = AndroidApiDataAccess.getResourceName();
+    for (DataEntryResource dataResource : dataResources) {
+      String entryName = dataResource.getName();
+      byte[] bytes = ByteStreams.toByteArray(closer.register(dataResource.getByteStream()));
+      writeToZipStream(
+          out,
+          entryName,
+          bytes,
+          entryName.equals(resourceName) ? ZipEntry.STORED : ZipEntry.DEFLATED);
+    }
     for (ProgramResource resource : resources) {
       assert resource.getClassDescriptors().size() == 1;
       Iterator<String> iterator = resource.getClassDescriptors().iterator();
       String className = iterator.next();
       String entryName = DescriptorUtils.getClassFileName(className);
       byte[] bytes = ByteStreams.toByteArray(closer.register(resource.getByteStream()));
-      writeToZipStream(out, entryName, bytes, ZipEntry.DEFLATED);
-    }
-    for (DataEntryResource dataResource : dataResources) {
-      String entryName = dataResource.getName();
-      byte[] bytes = ByteStreams.toByteArray(closer.register(dataResource.getByteStream()));
       writeToZipStream(out, entryName, bytes, ZipEntry.DEFLATED);
     }
   }
