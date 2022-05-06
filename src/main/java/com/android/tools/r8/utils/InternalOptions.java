@@ -2496,10 +2496,14 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // interface invoke. In these cases rewrite to a virtual invoke with
   // the symbolic reference java.lang.Object.
   //
-  // javac started generating code like this with the fix for JDK-8272564.
+  // The support was added in Android O, however at least for j.l.CharSequence.equals the handling
+  // in Art was incorrect (b/231450655).
+  //
+  // javac started generating code like this with the fix for JDK-8272564, which will be part of
+  // JDK 18.
   //
   // See b/218298666.
   public boolean canHaveInvokeInterfaceToObjectMethodBug() {
-    return isGeneratingDex() && getMinApiLevel().isLessThan(AndroidApiLevel.O);
+    return isGeneratingDex() && getMinApiLevel().isLessThan(AndroidApiLevel.P);
   }
 }

@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.ir.optimize.string;
 
+import static org.junit.Assume.assumeTrue;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import java.io.IOException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -17,7 +17,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.objectweb.asm.Opcodes;
 
-/** Reproduction for b/230821936. */
+/** Reproduction for b/230821936. Also see b/231450655 for Art 8.1 issue. */
 @RunWith(Parameterized.class)
 public class InvokeInterfaceToStringEqualsTest extends TestBase {
 
@@ -30,23 +30,28 @@ public class InvokeInterfaceToStringEqualsTest extends TestBase {
   }
 
   @Test
-  public void test() throws Exception {
-    testForR8(parameters.getBackend())
-        .addProgramClassFileData(getTransformedMain())
-        .addKeepMainRule(Main.class)
-        .addDontOptimize()
+  public void testD8() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    testForD8(parameters.getBackend())
+        .addProgramClassFileData(getTransformedMain(MainD8.class))
         .setMinApi(parameters.getApiLevel())
-        .run(parameters.getRuntime(), Main.class)
-        .applyIf(
-            parameters.isDexRuntimeVersion(Version.V8_1_0)
-                && parameters.getApiLevel().isGreaterThan(AndroidApiLevel.B),
-            // TODO(b/231450655): Should evaluate to "false".
-            runResult -> runResult.assertSuccessWithOutputLines("true"),
-            runResult -> runResult.assertSuccessWithOutputLines("false"));
+        .run(parameters.getRuntime(), MainD8.class)
+        .assertSuccessWithOutputLines("false");
   }
 
-  private static byte[] getTransformedMain() throws IOException {
-    return transformer(Main.class)
+  @Test
+  public void test() throws Exception {
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(getTransformedMain(MainR8.class))
+        .addKeepMainRule(MainR8.class)
+        .addDontOptimize()
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), MainR8.class)
+        .assertSuccessWithOutputLines("false");
+  }
+
+  private static byte[] getTransformedMain(Class<?> clazz) throws IOException {
+    return transformer(clazz)
         .transformMethodInsnInMethod(
             "main",
             (opcode, owner, name, descriptor, isInterface, continuation) -> {
@@ -64,11 +69,18 @@ public class InvokeInterfaceToStringEqualsTest extends TestBase {
         .transform();
   }
 
-  static class Main {
+  static class MainR8 {
 
     public static void main(String[] args) {
       String s = System.currentTimeMillis() > 0 ? "foo" : "bar";
       System.out.println(s.equals("baz"));
+    }
+  }
+
+  static class MainD8 {
+
+    public static void main(String[] args) {
+      System.out.println("foo".equals("baz"));
     }
   }
 }
