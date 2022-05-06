@@ -45,7 +45,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
-public class EnqueuerDeferredTracingImpl {
+public class EnqueuerDeferredTracingImpl extends EnqueuerDeferredTracing {
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final Enqueuer enqueuer;
@@ -73,23 +73,13 @@ public class EnqueuerDeferredTracingImpl {
     this.rewriter = new EnqueuerDeferredTracingRewriter(appView);
   }
 
-  /**
-   * Returns true if the {@link Enqueuer} should not trace the given field reference.
-   *
-   * <p>If for some reason the field reference should be traced after all, a worklist item can be
-   * enqueued upon reaching a (preliminary) fixpoint in {@link
-   * #enqueueWorklistActions(EnqueuerWorklist)}, which will cause tracing to continue.
-   */
+  @Override
   public boolean deferTracingOfFieldAccess(
       DexField fieldReference,
       FieldResolutionResult resolutionResult,
       ProgramMethod context,
       FieldAccessKind accessKind,
       FieldAccessMetadata metadata) {
-    if (!enqueuer.getMode().isFinalTreeShaking()) {
-      return false;
-    }
-
     ProgramField field = resolutionResult.getSingleProgramField();
     if (field == null) {
       return false;
@@ -143,17 +133,24 @@ public class EnqueuerDeferredTracingImpl {
     return true;
   }
 
+  @Override
   public void notifyReflectiveFieldAccess(ProgramField field, ProgramMethod context) {
     enqueueDeferredEnqueuerActions(field);
   }
 
   private boolean isEligibleForPruning(ProgramField field) {
+    if (enqueuer.isFieldLive(field)) {
+      return false;
+    }
+
+    assert enqueuer.getKeepInfo(field).isBottom();
+    assert !enqueuer.getKeepInfo(field).isPinned(options);
+
     FieldAccessInfo info = enqueuer.getFieldAccessInfoCollection().get(field.getReference());
     if (info.hasReflectiveAccess()
         || info.isAccessedFromMethodHandle()
         || info.isReadFromAnnotation()
         || info.isReadFromRecordInvokeDynamic()
-        || enqueuer.getKeepInfo(field).isPinned(options)
         || enqueuer.hasMinimumKeepInfoThatMatches(
             field,
             minimumKeepInfo ->
@@ -209,10 +206,7 @@ public class EnqueuerDeferredTracingImpl {
     return false;
   }
 
-  /**
-   * Called when the {@link EnqueuerWorklist} is empty, to allow additional tracing before ending
-   * tree shaking.
-   */
+  @Override
   public boolean enqueueWorklistActions(EnqueuerWorklist worklist) {
     return deferredEnqueuerActions.removeIf(
         (field, worklistActions) -> {
@@ -224,10 +218,7 @@ public class EnqueuerDeferredTracingImpl {
         });
   }
 
-  /**
-   * Called when tree shaking has ended, to allow rewriting the application according to the tracing
-   * that has not been performed (e.g., rewriting of dead field instructions).
-   */
+  @Override
   public void rewriteApplication(ExecutorService executorService) throws ExecutionException {
     FieldAccessInfoCollectionImpl fieldAccessInfoCollection =
         enqueuer.getFieldAccessInfoCollection();
