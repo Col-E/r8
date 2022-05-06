@@ -4,14 +4,13 @@
 
 package com.android.tools.r8.shaking;
 
-import static org.junit.Assert.assertFalse;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.codeinspector.FoundFieldSubject;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -21,11 +20,10 @@ import org.junit.runners.Parameterized.Parameters;
 public class KeepClassMembersFieldTest extends TestBase {
 
   private static final String KEEP_RULE =
-      "-keepclassmembers,allowshrinking class"
-          + " com.android.tools.r8.shaking.KeepClassMembersFieldTest$Foo {"
-          + " <fields>; "
-          + "}";
-  private static final String EXPECTED_RESULT = StringUtils.lines("42");
+      StringUtils.lines(
+          "-keepclassmembers,allowshrinking class " + Foo.class.getTypeName() + " {",
+          "  <fields>;",
+          "}");
 
   private final TestParameters parameters;
 
@@ -41,32 +39,23 @@ public class KeepClassMembersFieldTest extends TestBase {
   @Test
   public void testR8() throws Throwable {
     testForR8(parameters.getBackend())
-        .addProgramClasses(Foo.class, Bar.class)
+        .addInnerClasses(getClass())
         .addKeepMainRule(Foo.class)
         .addKeepRules(KEEP_RULE)
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .run(parameters.getRuntime(), Foo.class)
         .inspect(
-            inspector -> {
-              List<FoundFieldSubject> foundFieldSubjects = inspector.clazz(Foo.class).allFields();
-              // TODO(b/231555675): This should present
-              assertFalse(inspector.clazz(Foo.class).uniqueFieldWithName("value").isPresent());
-            })
-        .assertSuccess();
+            inspector ->
+                assertThat(inspector.clazz(Foo.class).uniqueFieldWithName("value"), isPresent()))
+        .run(parameters.getRuntime(), Foo.class)
+        .assertSuccessWithEmptyOutput();
   }
 
-  static class Bar {
-    @Override
-    public String toString() {
-      return "42";
-    }
-  }
+  static class Bar {}
 
   static class Foo {
-    public Bar value = new Bar();
 
-    Foo() {}
+    Bar value = new Bar();
 
     public static void main(String[] args) {
       new Foo();

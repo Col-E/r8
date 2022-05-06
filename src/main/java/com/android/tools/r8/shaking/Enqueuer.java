@@ -10,6 +10,7 @@ import static com.android.tools.r8.ir.desugar.LambdaDescriptor.isLambdaMetafacto
 import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.Flavor.ExcludeDexResources;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentifier;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
+import static com.android.tools.r8.shaking.KeepInfo.Joiner.asFieldJoinerOrNull;
 import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
 import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 import static java.util.Collections.emptySet;
@@ -718,6 +719,16 @@ public class Enqueuer {
 
   public KeepFieldInfo getKeepInfo(ProgramField field) {
     return keepInfo.getFieldInfo(field);
+  }
+
+  public boolean hasMinimumKeepInfoThatMatches(
+      ProgramField field, Predicate<KeepFieldInfo.Joiner> predicate) {
+    MinimumKeepInfoCollection minimumKeepInfoCollection =
+        dependentMinimumKeepInfo.getUnconditionalMinimumKeepInfoOrDefault(
+            MinimumKeepInfoCollection.empty());
+    KeepFieldInfo.Joiner minimumKeepInfo =
+        asFieldJoinerOrNull(minimumKeepInfoCollection.getOrDefault(field.getReference(), null));
+    return minimumKeepInfo != null && predicate.test(minimumKeepInfo);
   }
 
   public ObjectAllocationInfoCollectionImpl getObjectAllocationInfoCollection() {

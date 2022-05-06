@@ -498,6 +498,10 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       return null;
     }
 
+    public static KeepFieldInfo.Joiner asFieldJoinerOrNull(Joiner<?, ?, ?> joiner) {
+      return joiner != null ? joiner.asFieldJoiner() : null;
+    }
+
     public KeepMethodInfo.Joiner asMethodJoiner() {
       return null;
     }
@@ -512,6 +516,10 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     public boolean isCheckDiscardedEnabled() {
       return builder.isCheckDiscardedEnabled();
+    }
+
+    public boolean isOptimizationAllowed() {
+      return builder.isOptimizationAllowed();
     }
 
     public boolean isShrinkingAllowed() {

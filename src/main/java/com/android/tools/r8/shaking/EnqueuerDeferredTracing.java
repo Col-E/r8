@@ -153,7 +153,12 @@ public class EnqueuerDeferredTracing {
         || info.isAccessedFromMethodHandle()
         || info.isReadFromAnnotation()
         || info.isReadFromRecordInvokeDynamic()
-        || enqueuer.getKeepInfo(field).isPinned(options)) {
+        || enqueuer.getKeepInfo(field).isPinned(options)
+        || enqueuer.hasMinimumKeepInfoThatMatches(
+            field,
+            minimumKeepInfo ->
+                !minimumKeepInfo.isOptimizationAllowed()
+                    || !minimumKeepInfo.isShrinkingAllowed())) {
       return false;
     }
 

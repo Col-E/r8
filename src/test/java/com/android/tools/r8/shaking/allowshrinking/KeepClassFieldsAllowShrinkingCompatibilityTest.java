@@ -4,7 +4,6 @@
 package com.android.tools.r8.shaking.allowshrinking;
 
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.accessesField;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
@@ -104,12 +103,9 @@ public class KeepClassFieldsAllowShrinkingCompatibilityTest extends TestBase {
                 assertThat(bBar, not(isPresent()));
               } else {
                 assertThat(aFoo, isPresentAndRenamed(allowObfuscation));
-                // TODO(b/171459868) It is inconsistent that the unused field A.bar is retained.
-                //   This does not match the R8 behavior for an unused method, so there may be an
-                //   optimization opportunity here.
-                //   (See KeepClassMethodsAllowShrinkingCompatibilityTest regarding methods).
                 assertThat(
-                    aBar, shrinker.isR8() ? isAbsent() : isPresentAndRenamed(allowObfuscation));
+                    aBar, /*shrinker.isR8() ? isAbsent() : */
+                    isPresentAndRenamed(allowObfuscation));
                 assertThat(inspector.clazz(TestClass.class).mainMethod(), accessesField(aFoo));
                 if (shrinker.isR8()) {
                   assertThat(bFoo, not(isPresent()));
