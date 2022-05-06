@@ -11,7 +11,6 @@ import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.frame.SingleFrameType;
 import com.android.tools.r8.cf.code.frame.WideFrameType;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -24,6 +23,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import it.unimi.dsi.fastutil.objects.ObjectBidirectionalIterator;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.Objects;
 import java.util.function.BiFunction;
 
@@ -217,7 +217,10 @@ public class ConcreteCfFrameState extends CfFrameState {
   public CfFrameState join(ConcreteCfFrameState state) {
     CfFrame.Builder builder = CfFrame.builder();
     joinLocals(state.locals, builder);
-    joinStack(state.stack, builder);
+    ErroneousCfFrameState error = joinStack(state.stack, builder);
+    if (error != null) {
+      return error;
+    }
     CfFrame frame = builder.buildMutable();
     return new ConcreteCfFrameState(frame.getLocals(), frame.getStack());
   }
@@ -399,9 +402,25 @@ public class ConcreteCfFrameState extends CfFrameState {
     setSingleLocalToTop(localIndex + 1, builder);
   }
 
-  private void joinStack(Deque<FrameType> stack, CfFrame.Builder builder) {
-    // TODO(b/214496607): Implement this.
-    throw new Unimplemented();
+  private ErroneousCfFrameState joinStack(Deque<FrameType> stack, CfFrame.Builder builder) {
+    Iterator<FrameType> iterator = this.stack.descendingIterator();
+    Iterator<FrameType> otherIterator = stack.descendingIterator();
+    while (iterator.hasNext() && otherIterator.hasNext()) {
+      FrameType frameType = iterator.next();
+      FrameType otherFrameType = otherIterator.next();
+      if (frameType.isSingle() != otherFrameType.isSingle()) {
+        return error();
+      }
+      FrameType join =
+          frameType.isSingle()
+              ? frameType.asSingle().join(otherFrameType.asSingle()).asFrameType()
+              : frameType.asWide().join(otherFrameType.asWide()).asFrameType();
+      if (join.isTop()) {
+        return error();
+      }
+      builder.push(join);
+    }
+    return null;
   }
 
   @Override

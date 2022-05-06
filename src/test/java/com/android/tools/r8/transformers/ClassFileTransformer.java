@@ -25,6 +25,7 @@ import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.transformers.MethodTransformer.MethodContext;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -147,6 +148,14 @@ public class ClassFileTransformer {
 
   public static ClassFileTransformer create(Class<?> clazz) throws IOException {
     return create(ToolHelper.getClassAsBytes(clazz), classFromTypeName(clazz.getTypeName()));
+  }
+
+  public <E extends Exception> ClassFileTransformer applyIf(
+      boolean condition, ThrowingConsumer<ClassFileTransformer, E> consumer) throws E {
+    if (condition) {
+      consumer.accept(this);
+    }
+    return this;
   }
 
   public byte[] transform() {
