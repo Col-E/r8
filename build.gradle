@@ -781,6 +781,7 @@ task repackageSources11(type: Jar) {
 
 def r8CreateTask(name, baseName, sources, includeSwissArmyKnife) {
     return tasks.create("r8Create${name}", Jar) {
+        entryCompression ZipEntryCompression.STORED
         dependsOn sources
         from consolidatedLicense.outputs.files
         from sources.collect { zipTree(it) }
