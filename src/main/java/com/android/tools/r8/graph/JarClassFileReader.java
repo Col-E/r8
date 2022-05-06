@@ -903,7 +903,7 @@ public class JarClassFileReader<T extends DexClass> {
       InternalOptions options = parent.application.options;
       parent.application.checkMethodForRecord(method);
       if (!flags.isAbstract() && !flags.isNative() && classRequiresCode()) {
-        code = new LazyCfCode(method, parent.origin, parent.context, parent.application);
+        code = new LazyCfCode(parent.origin, parent.context, parent.application);
       }
       ParameterAnnotationsList parameterAnnotationsList;
       if (parameterAnnotationsLists == null) {

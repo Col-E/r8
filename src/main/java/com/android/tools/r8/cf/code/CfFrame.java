@@ -968,6 +968,7 @@ public class CfFrame extends CfInstruction implements Cloneable {
     private Int2ObjectSortedMap<FrameType> locals = EMPTY_LOCALS;
     private Deque<FrameType> stack = EMPTY_STACK;
 
+    private boolean hasIncompleteUninitializedNew = false;
     private boolean seenStore = false;
 
     public Builder allocateStack(int size) {
@@ -990,6 +991,15 @@ public class CfFrame extends CfInstruction implements Cloneable {
       return this;
     }
 
+    public boolean hasIncompleteUninitializedNew() {
+      return hasIncompleteUninitializedNew;
+    }
+
+    public Builder setHasIncompleteUninitializedNew() {
+      hasIncompleteUninitializedNew = true;
+      return this;
+    }
+
     public boolean hasLocal(int localIndex) {
       return locals.containsKey(localIndex);
     }
@@ -1002,6 +1012,16 @@ public class CfFrame extends CfInstruction implements Cloneable {
     public Builder push(FrameType frameType) {
       ensureMutableStack();
       stack.addLast(frameType);
+      return this;
+    }
+
+    public Builder setLocals(Int2ObjectSortedMap<FrameType> locals) {
+      this.locals = locals;
+      return this;
+    }
+
+    public Builder setStack(Deque<FrameType> stack) {
+      this.stack = stack;
       return this;
     }
 

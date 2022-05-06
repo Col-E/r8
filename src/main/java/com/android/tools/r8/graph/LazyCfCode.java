@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+
 import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.cf.code.CfArrayLength;
 import com.android.tools.r8.cf.code.CfArrayLoad;
@@ -71,7 +72,10 @@ import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -97,8 +101,7 @@ public class LazyCfCode extends Code {
     }
   }
 
-  public LazyCfCode(
-      DexMethod method, Origin origin, ReparseContext context, JarApplicationReader application) {
+  public LazyCfCode(Origin origin, ReparseContext context, JarApplicationReader application) {
     this.origin = origin;
     this.context = context;
     this.application = application;
@@ -369,7 +372,10 @@ public class LazyCfCode extends Code {
     private List<CfTryCatch> tryCatchRanges;
     private List<LocalVariableInfo> localVariables;
     private final Map<DebugLocalInfo, DebugLocalInfo> canonicalDebugLocalInfo = new HashMap<>();
+    private CfLabel currentLabel;
+    private IntList framesWithIncompleteUninitializedNew;
     private Map<Label, CfLabel> labelMap;
+    private Map<CfLabel, CfNew> labelToNewMap;
     private final LazyCfCode code;
     private final DexMethod method;
     private final Origin origin;
@@ -392,6 +398,13 @@ public class LazyCfCode extends Code {
       this.origin = origin;
     }
 
+    private void addInstruction(CfInstruction instruction) {
+      instructions.add(instruction);
+      if (!instruction.isFrame() && !instruction.isPosition()) {
+        currentLabel = null;
+      }
+    }
+
     @Override
     public void visitCode() {
       maxStack = 0;
@@ -399,7 +412,10 @@ public class LazyCfCode extends Code {
       instructions = new ArrayList<>();
       tryCatchRanges = new ArrayList<>();
       localVariables = new ArrayList<>();
+      currentLabel = null;
+      framesWithIncompleteUninitializedNew = new IntArrayList();
       labelMap = new IdentityHashMap<>();
+      labelToNewMap = new IdentityHashMap<>();
     }
 
     @Override
@@ -415,6 +431,7 @@ public class LazyCfCode extends Code {
             origin,
             MethodPosition.create(method.asMethodReference(), getDiagnosticPosition()));
       }
+      finalizeFramesWithIncompleteUninitializedNew();
       code.setCode(
           new CfCode(
               method.holder,
@@ -424,6 +441,35 @@ public class LazyCfCode extends Code {
               tryCatchRanges,
               localVariables,
               getDiagnosticPosition()));
+    }
+
+    private void finalizeFramesWithIncompleteUninitializedNew() {
+      for (int instructionIndex : framesWithIncompleteUninitializedNew) {
+        CfInstruction instruction = instructions.get(instructionIndex);
+        assert instruction.isFrame();
+        CfFrame frame = instruction.asFrame();
+        CfFrame.Builder builder = CfFrame.builder().setLocals(frame.getLocals());
+        for (Int2ObjectMap.Entry<FrameType> entry : frame.getLocals().int2ObjectEntrySet()) {
+          FrameType frameType = entry.getValue();
+          if (frameType.isUninitializedNew() && frameType.getUninitializedNewType() == null) {
+            entry.setValue(fixupUninitializedNew(frameType));
+          }
+        }
+        for (FrameType frameType : frame.getStack()) {
+          if (frameType.isUninitializedNew() && frameType.getUninitializedNewType() == null) {
+            builder.push(fixupUninitializedNew(frameType));
+          } else {
+            builder.push(frameType);
+          }
+        }
+        instructions.add(builder.build());
+      }
+    }
+
+    private FrameType fixupUninitializedNew(FrameType frameType) {
+      CfLabel label = frameType.getUninitializedLabel();
+      CfNew cfNew = labelToNewMap.get(label);
+      return cfNew != null ? FrameType.uninitializedNew(label, cfNew.getType()) : frameType;
     }
 
     private com.android.tools.r8.position.Position getDiagnosticPosition() {
@@ -445,13 +491,16 @@ public class LazyCfCode extends Code {
       CfFrame.Builder builder = CfFrame.builder();
       parseLocals(nLocals, localTypes, builder);
       parseStack(nStack, stackTypes, builder);
-      instructions.add(builder.build());
+      if (builder.hasIncompleteUninitializedNew()) {
+        framesWithIncompleteUninitializedNew.add(instructions.size());
+      }
+      addInstruction(builder.build());
     }
 
     private void parseLocals(int typeCount, Object[] asmTypes, CfFrame.Builder builder) {
       for (int j = 0; j < typeCount; j++) {
         Object localType = asmTypes[j];
-        FrameType value = getFrameType(localType);
+        FrameType value = getFrameType(localType, builder);
         builder.appendLocal(value);
       }
     }
@@ -459,13 +508,19 @@ public class LazyCfCode extends Code {
     private void parseStack(int nStack, Object[] stackTypes, CfFrame.Builder builder) {
       builder.allocateStack(nStack);
       for (int i = 0; i < nStack; i++) {
-        builder.push(getFrameType(stackTypes[i]));
+        builder.push(getFrameType(stackTypes[i], builder));
       }
     }
 
-    private FrameType getFrameType(Object localType) {
+    private FrameType getFrameType(Object localType, CfFrame.Builder builder) {
       if (localType instanceof Label) {
-        return FrameType.uninitializedNew(getLabel((Label) localType), null);
+        CfLabel label = getLabel((Label) localType);
+        CfNew cfNew = labelToNewMap.get(label);
+        if (cfNew != null) {
+          return FrameType.uninitializedNew(label, cfNew.getType());
+        }
+        builder.setHasIncompleteUninitializedNew();
+        return FrameType.uninitializedNew(label, null);
       } else if (localType == Opcodes.UNINITIALIZED_THIS) {
         return FrameType.uninitializedThis();
       } else if (localType == null || localType == Opcodes.TOP) {
@@ -507,10 +562,10 @@ public class LazyCfCode extends Code {
     public void visitInsn(int opcode) {
       switch (opcode) {
         case Opcodes.NOP:
-          instructions.add(new CfNop());
+          addInstruction(new CfNop());
           break;
         case Opcodes.ACONST_NULL:
-          instructions.add(new CfConstNull());
+          addInstruction(new CfConstNull());
           break;
         case Opcodes.ICONST_M1:
         case Opcodes.ICONST_0:
@@ -519,22 +574,22 @@ public class LazyCfCode extends Code {
         case Opcodes.ICONST_3:
         case Opcodes.ICONST_4:
         case Opcodes.ICONST_5:
-          instructions.add(new CfConstNumber(opcode - Opcodes.ICONST_0, ValueType.INT));
+          addInstruction(new CfConstNumber(opcode - Opcodes.ICONST_0, ValueType.INT));
           break;
         case Opcodes.LCONST_0:
         case Opcodes.LCONST_1:
-          instructions.add(new CfConstNumber(opcode - Opcodes.LCONST_0, ValueType.LONG));
+          addInstruction(new CfConstNumber(opcode - Opcodes.LCONST_0, ValueType.LONG));
           break;
         case Opcodes.FCONST_0:
         case Opcodes.FCONST_1:
         case Opcodes.FCONST_2:
-          instructions.add(
+          addInstruction(
               new CfConstNumber(
                   Float.floatToRawIntBits(opcode - Opcodes.FCONST_0), ValueType.FLOAT));
           break;
         case Opcodes.DCONST_0:
         case Opcodes.DCONST_1:
-          instructions.add(
+          addInstruction(
               new CfConstNumber(
                   Double.doubleToRawLongBits(opcode - Opcodes.DCONST_0), ValueType.DOUBLE));
           break;
@@ -546,7 +601,7 @@ public class LazyCfCode extends Code {
         case Opcodes.BALOAD:
         case Opcodes.CALOAD:
         case Opcodes.SALOAD:
-          instructions.add(new CfArrayLoad(getMemberTypeForOpcode(opcode)));
+          addInstruction(new CfArrayLoad(getMemberTypeForOpcode(opcode)));
           break;
         case Opcodes.IASTORE:
         case Opcodes.LASTORE:
@@ -556,7 +611,7 @@ public class LazyCfCode extends Code {
         case Opcodes.BASTORE:
         case Opcodes.CASTORE:
         case Opcodes.SASTORE:
-          instructions.add(new CfArrayStore(getMemberTypeForOpcode(opcode)));
+          addInstruction(new CfArrayStore(getMemberTypeForOpcode(opcode)));
           break;
         case Opcodes.POP:
         case Opcodes.POP2:
@@ -567,7 +622,7 @@ public class LazyCfCode extends Code {
         case Opcodes.DUP2_X1:
         case Opcodes.DUP2_X2:
         case Opcodes.SWAP:
-          instructions.add(CfStackInstruction.fromAsm(opcode));
+          addInstruction(CfStackInstruction.fromAsm(opcode));
           break;
         case Opcodes.IADD:
         case Opcodes.LADD:
@@ -589,13 +644,13 @@ public class LazyCfCode extends Code {
         case Opcodes.LREM:
         case Opcodes.FREM:
         case Opcodes.DREM:
-          instructions.add(CfArithmeticBinop.fromAsm(opcode));
+          addInstruction(CfArithmeticBinop.fromAsm(opcode));
           break;
         case Opcodes.INEG:
         case Opcodes.LNEG:
         case Opcodes.FNEG:
         case Opcodes.DNEG:
-          instructions.add(CfNeg.fromAsm(opcode));
+          addInstruction(CfNeg.fromAsm(opcode));
           break;
         case Opcodes.ISHL:
         case Opcodes.LSHL:
@@ -609,7 +664,7 @@ public class LazyCfCode extends Code {
         case Opcodes.LOR:
         case Opcodes.IXOR:
         case Opcodes.LXOR:
-          instructions.add(CfLogicalBinop.fromAsm(opcode));
+          addInstruction(CfLogicalBinop.fromAsm(opcode));
           break;
         case Opcodes.I2L:
         case Opcodes.I2F:
@@ -626,44 +681,44 @@ public class LazyCfCode extends Code {
         case Opcodes.I2B:
         case Opcodes.I2C:
         case Opcodes.I2S:
-          instructions.add(CfNumberConversion.fromAsm(opcode));
+          addInstruction(CfNumberConversion.fromAsm(opcode));
           break;
         case Opcodes.LCMP:
         case Opcodes.FCMPL:
         case Opcodes.FCMPG:
         case Opcodes.DCMPL:
         case Opcodes.DCMPG:
-          instructions.add(CfCmp.fromAsm(opcode));
+          addInstruction(CfCmp.fromAsm(opcode));
           break;
         case Opcodes.IRETURN:
-          instructions.add(new CfReturn(ValueType.INT));
+          addInstruction(new CfReturn(ValueType.INT));
           break;
         case Opcodes.LRETURN:
-          instructions.add(new CfReturn(ValueType.LONG));
+          addInstruction(new CfReturn(ValueType.LONG));
           break;
         case Opcodes.FRETURN:
-          instructions.add(new CfReturn(ValueType.FLOAT));
+          addInstruction(new CfReturn(ValueType.FLOAT));
           break;
         case Opcodes.DRETURN:
-          instructions.add(new CfReturn(ValueType.DOUBLE));
+          addInstruction(new CfReturn(ValueType.DOUBLE));
           break;
         case Opcodes.ARETURN:
-          instructions.add(new CfReturn(ValueType.OBJECT));
+          addInstruction(new CfReturn(ValueType.OBJECT));
           break;
         case Opcodes.RETURN:
-          instructions.add(new CfReturnVoid());
+          addInstruction(new CfReturnVoid());
           break;
         case Opcodes.ARRAYLENGTH:
-          instructions.add(new CfArrayLength());
+          addInstruction(new CfArrayLength());
           break;
         case Opcodes.ATHROW:
-          instructions.add(new CfThrow());
+          addInstruction(new CfThrow());
           break;
         case Opcodes.MONITORENTER:
-          instructions.add(new CfMonitor(Monitor.Type.ENTER));
+          addInstruction(new CfMonitor(Monitor.Type.ENTER));
           break;
         case Opcodes.MONITOREXIT:
-          instructions.add(new CfMonitor(Monitor.Type.EXIT));
+          addInstruction(new CfMonitor(Monitor.Type.EXIT));
           break;
         default:
           throw new Unreachable("Unknown instruction");
@@ -706,10 +761,10 @@ public class LazyCfCode extends Code {
       switch (opcode) {
         case Opcodes.SIPUSH:
         case Opcodes.BIPUSH:
-          instructions.add(new CfConstNumber(operand, ValueType.INT));
+          addInstruction(new CfConstNumber(operand, ValueType.INT));
           break;
         case Opcodes.NEWARRAY:
-          instructions.add(
+          addInstruction(
               new CfNewArray(factory.createArrayType(1, arrayTypeDesc(operand, factory))));
           break;
         default:
@@ -766,16 +821,16 @@ public class LazyCfCode extends Code {
           break;
         case Opcodes.RET:
           {
-            instructions.add(new CfJsrRet(var));
+            addInstruction(new CfJsrRet(var));
             return;
           }
         default:
           throw new Unreachable("Unexpected VarInsn opcode: " + opcode);
       }
       if (Opcodes.ILOAD <= opcode && opcode <= Opcodes.ALOAD) {
-        instructions.add(new CfLoad(type, var));
+        addInstruction(new CfLoad(type, var));
       } else {
-        instructions.add(new CfStore(type, var));
+        addInstruction(new CfStore(type, var));
       }
     }
 
@@ -784,16 +839,21 @@ public class LazyCfCode extends Code {
       DexType type = factory.createType(Type.getObjectType(typeName).getDescriptor());
       switch (opcode) {
         case Opcodes.NEW:
-          instructions.add(new CfNew(type));
+          // A label is only required if this uninitialized-new instance flows into a frame.
+          CfNew cfNew = new CfNew(type, currentLabel);
+          if (cfNew.hasLabel()) {
+            labelToNewMap.put(cfNew.getLabel(), cfNew);
+          }
+          addInstruction(cfNew);
           break;
         case Opcodes.ANEWARRAY:
-          instructions.add(new CfNewArray(factory.createArrayType(1, type)));
+          addInstruction(new CfNewArray(factory.createArrayType(1, type)));
           break;
         case Opcodes.CHECKCAST:
-          instructions.add(new CfCheckCast(type));
+          addInstruction(new CfCheckCast(type));
           break;
         case Opcodes.INSTANCEOF:
-          instructions.add(new CfInstanceOf(type));
+          addInstruction(new CfInstanceOf(type));
           break;
         default:
           throw new Unreachable("Unexpected TypeInsn opcode: " + opcode);
@@ -806,7 +866,7 @@ public class LazyCfCode extends Code {
           factory.createField(createTypeFromInternalType(owner), factory.createType(desc), name);
       // TODO(mathiasr): Don't require CfFieldInstruction::declaringField. It is needed for proper
       // renaming in the backend, but it is not available here in the frontend.
-      instructions.add(CfFieldInstruction.create(opcode, field, field));
+      addInstruction(CfFieldInstruction.create(opcode, field, field));
     }
 
     @Override
@@ -815,14 +875,14 @@ public class LazyCfCode extends Code {
       if (application.getFactory().isClassConstructor(method)) {
         throw new CompilationError("Invalid input code with a call to <clinit>");
       }
-      instructions.add(new CfInvoke(opcode, method, itf));
+      addInstruction(new CfInvoke(opcode, method, itf));
     }
 
     @Override
     public void visitInvokeDynamicInsn(String name, String desc, Handle bsm, Object... bsmArgs) {
       DexCallSite callSite =
           DexCallSite.fromAsmInvokeDynamic(application, method.holder, name, desc, bsm, bsmArgs);
-      instructions.add(new CfInvokeDynamic(callSite));
+      addInstruction(new CfInvokeDynamic(callSite));
     }
 
     @Override
@@ -831,7 +891,7 @@ public class LazyCfCode extends Code {
       if (Opcodes.IFEQ <= opcode && opcode <= Opcodes.IF_ACMPNE) {
         if (opcode <= Opcodes.IFLE) {
           // IFEQ, IFNE, IFLT, IFGE, IFGT, or IFLE.
-          instructions.add(new CfIf(ifType(opcode), ValueType.INT, target));
+          addInstruction(new CfIf(ifType(opcode), ValueType.INT, target));
         } else {
           // IF_ICMPEQ, IF_ICMPNE, IF_ICMPLT, IF_ICMPGE, IF_ICMPGT, IF_ICMPLE, IF_ACMPEQ, or
           // IF_ACMPNE.
@@ -841,18 +901,18 @@ public class LazyCfCode extends Code {
           } else {
             valueType = ValueType.OBJECT;
           }
-          instructions.add(new CfIfCmp(ifType(opcode), valueType, target));
+          addInstruction(new CfIfCmp(ifType(opcode), valueType, target));
         }
       } else {
         // GOTO, JSR, IFNULL or IFNONNULL.
         switch (opcode) {
           case Opcodes.GOTO:
-            instructions.add(new CfGoto(target));
+            addInstruction(new CfGoto(target));
             break;
           case Opcodes.IFNULL:
           case Opcodes.IFNONNULL:
             If.Type type = opcode == Opcodes.IFNULL ? If.Type.EQ : If.Type.NE;
-            instructions.add(new CfIf(type, ValueType.OBJECT, target));
+            addInstruction(new CfIf(type, ValueType.OBJECT, target));
             break;
           case Opcodes.JSR:
             throw new JsrEncountered("JSR should be handled by the ASM jsr inliner");
@@ -891,7 +951,9 @@ public class LazyCfCode extends Code {
 
     @Override
     public void visitLabel(Label label) {
-      instructions.add(getLabel(label));
+      CfLabel cfLabel = getLabel(label);
+      addInstruction(cfLabel);
+      currentLabel = cfLabel;
     }
 
     @Override
@@ -900,28 +962,28 @@ public class LazyCfCode extends Code {
         Type type = (Type) cst;
         if (type.getSort() == Type.METHOD) {
           DexProto proto = application.getProto(type.getDescriptor());
-          instructions.add(new CfConstMethodType(proto));
+          addInstruction(new CfConstMethodType(proto));
         } else {
-          instructions.add(new CfConstClass(factory.createType(type.getDescriptor())));
+          addInstruction(new CfConstClass(factory.createType(type.getDescriptor())));
         }
       } else if (cst instanceof String) {
-        instructions.add(new CfConstString(factory.createString((String) cst)));
+        addInstruction(new CfConstString(factory.createString((String) cst)));
       } else if (cst instanceof Long) {
-        instructions.add(new CfConstNumber((Long) cst, ValueType.LONG));
+        addInstruction(new CfConstNumber((Long) cst, ValueType.LONG));
       } else if (cst instanceof Double) {
         long l = Double.doubleToRawLongBits((Double) cst);
-        instructions.add(new CfConstNumber(l, ValueType.DOUBLE));
+        addInstruction(new CfConstNumber(l, ValueType.DOUBLE));
       } else if (cst instanceof Integer) {
-        instructions.add(new CfConstNumber((Integer) cst, ValueType.INT));
+        addInstruction(new CfConstNumber((Integer) cst, ValueType.INT));
       } else if (cst instanceof Float) {
         long i = Float.floatToRawIntBits((Float) cst);
-        instructions.add(new CfConstNumber(i, ValueType.FLOAT));
+        addInstruction(new CfConstNumber(i, ValueType.FLOAT));
       } else if (cst instanceof Handle) {
-        instructions.add(
+        addInstruction(
             new CfConstMethodHandle(
                 DexMethodHandle.fromAsmHandle((Handle) cst, application, method.holder)));
       } else if (cst instanceof ConstantDynamic) {
-        instructions.add(
+        addInstruction(
             CfConstDynamic.fromAsmConstantDynamic(
                 (ConstantDynamic) cst, application, method.holder));
       } else {
@@ -931,7 +993,7 @@ public class LazyCfCode extends Code {
 
     @Override
     public void visitIincInsn(int var, int increment) {
-      instructions.add(new CfIinc(var, increment));
+      addInstruction(new CfIinc(var, increment));
     }
 
     @Override
@@ -941,7 +1003,7 @@ public class LazyCfCode extends Code {
       for (Label label : labels) {
         targets.add(getLabel(label));
       }
-      instructions.add(new CfSwitch(CfSwitch.Kind.TABLE, getLabel(dflt), new int[] {min}, targets));
+      addInstruction(new CfSwitch(CfSwitch.Kind.TABLE, getLabel(dflt), new int[] {min}, targets));
     }
 
     @Override
@@ -950,7 +1012,7 @@ public class LazyCfCode extends Code {
       for (Label label : labels) {
         targets.add(getLabel(label));
       }
-      instructions.add(new CfSwitch(CfSwitch.Kind.LOOKUP, getLabel(dflt), keys, targets));
+      addInstruction(new CfSwitch(CfSwitch.Kind.LOOKUP, getLabel(dflt), keys, targets));
     }
 
     @Override
@@ -958,7 +1020,7 @@ public class LazyCfCode extends Code {
       InternalOptions options = application.options;
       if (options.isGeneratingClassFiles()
           && !options.testing.enableMultiANewArrayDesugaringForClassFiles) {
-        instructions.add(new CfMultiANewArray(factory.createType(desc), dims));
+        addInstruction(new CfMultiANewArray(factory.createType(desc), dims));
         return;
       }
       // When generating DEX code a multianewarray is desugared to a reflective creation.
@@ -1045,7 +1107,7 @@ public class LazyCfCode extends Code {
       minLine = Math.min(line, minLine);
       maxLine = Math.max(line, maxLine);
       if (debugParsingOptions.lineInfo) {
-        instructions.add(
+        addInstruction(
             new CfPosition(
                 getLabel(start), SourcePosition.builder().setLine(line).setMethod(method).build()));
       }

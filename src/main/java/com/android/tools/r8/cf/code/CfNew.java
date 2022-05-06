@@ -32,9 +32,26 @@ import org.objectweb.asm.Opcodes;
 public class CfNew extends CfInstruction implements CfTypeInstruction {
 
   private final DexType type;
+  private CfLabel label;
 
   public CfNew(DexType type) {
+    this(type, null);
+  }
+
+  public CfNew(DexType type, CfLabel label) {
     this.type = type;
+    this.label = label;
+  }
+
+  public boolean hasLabel() {
+    return label != null;
+  }
+
+  public CfLabel getLabel() {
+    if (label == null) {
+      label = new CfLabel();
+    }
+    return label;
   }
 
   @Override
@@ -54,7 +71,7 @@ public class CfNew extends CfInstruction implements CfTypeInstruction {
 
   @Override
   public CfInstruction withType(DexType newType) {
-    return new CfNew(newType);
+    return new CfNew(newType, label);
   }
 
   @Override
@@ -122,7 +139,7 @@ public class CfNew extends CfInstruction implements CfTypeInstruction {
       DexItemFactory dexItemFactory) {
     // ... →
     // ..., objectref
-    frameBuilder.push(FrameType.uninitializedNew(new CfLabel(), type));
+    frameBuilder.push(FrameType.uninitializedNew(getLabel(), type));
   }
 
   @Override
@@ -133,6 +150,6 @@ public class CfNew extends CfInstruction implements CfTypeInstruction {
       DexItemFactory dexItemFactory) {
     // ... →
     // ..., objectref
-    return frame.push(FrameType.uninitializedNew(new CfLabel(), type));
+    return frame.push(FrameType.uninitializedNew(getLabel(), type));
   }
 }
