@@ -5,10 +5,25 @@
 package com.android.tools.r8.cf.code.frame;
 
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
+import com.android.tools.r8.cf.code.CfFrame.SingleInitializedType;
 
 public interface SingleFrameType {
 
   FrameType asFrameType();
+
+  boolean isInitialized();
+
+  SingleInitializedType asSingleInitializedType();
+
+  boolean isNullType();
+
+  boolean isOneWord();
+
+  boolean isTop();
+
+  boolean isUninitializedObject();
+
+  boolean isUninitializedThis();
 
   SingleFrameType join(SingleFrameType frameType);
 }

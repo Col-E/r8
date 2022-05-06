@@ -542,7 +542,7 @@ public class CfCodePrinter extends CfPrinter {
       }
     } else {
       assert frameType.isInitialized();
-      if (frameType.isNull()) {
+      if (frameType.isNullType()) {
         return frameTypeType() + ".initialized(" + dexItemFactoryType() + ".nullValueType)";
       } else {
         return frameTypeType()

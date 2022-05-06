@@ -75,11 +75,11 @@ public class CfFrame extends CfInstruction implements Cloneable {
       return UninitializedThis.SINGLETON;
     }
 
-    public static FrameType top() {
+    public static Top top() {
       return Top.SINGLETON;
     }
 
-    public static FrameType oneWord() {
+    public static OneWord oneWord() {
       return OneWord.SINGLETON;
     }
 
@@ -101,7 +101,7 @@ public class CfFrame extends CfInstruction implements Cloneable {
       return false;
     }
 
-    public boolean isNull() {
+    public boolean isNullType() {
       return false;
     }
 
@@ -290,7 +290,33 @@ public class CfFrame extends CfInstruction implements Cloneable {
 
     @Override
     public SingleFrameType join(SingleFrameType frameType) {
-      // TODO(b/214496607): Implement this.
+      if (equals(frameType)) {
+        return this;
+      }
+      if (frameType.isOneWord() || frameType.isTop()) {
+        return frameType;
+      }
+      if (frameType.isUninitializedObject()) {
+        return oneWord();
+      }
+      assert frameType.isInitialized();
+      DexType otherType = frameType.asSingleInitializedType().getInitializedType();
+      assert type != otherType;
+      if (type.isPrimitiveType()) {
+        // TODO(b/214496607): Should two different non-wide primitives join to int instead of
+        //  OneWord?
+        return oneWord();
+      }
+      assert type.isReferenceType();
+      if (isNullType()) {
+        return otherType.isReferenceType() ? frameType : oneWord();
+      }
+      if (frameType.isNullType()) {
+        return this;
+      }
+      assert type.isArrayType() || type.isClassType();
+      assert otherType.isArrayType() || otherType.isClassType();
+      // TODO(b/214496607): Implement join of different reference types using class hierarchy.
       throw new Unimplemented();
     }
 
@@ -368,7 +394,7 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
 
     @Override
-    public boolean isNull() {
+    public boolean isNullType() {
       return type.isNullValueType();
     }
 
@@ -475,8 +501,7 @@ public class CfFrame extends CfInstruction implements Cloneable {
 
     @Override
     public SingleFrameType join(SingleFrameType frameType) {
-      // TODO(b/214496607): Implement this.
-      throw new Unimplemented();
+      return this;
     }
 
     @Override
@@ -512,8 +537,14 @@ public class CfFrame extends CfInstruction implements Cloneable {
 
     @Override
     public SingleFrameType join(SingleFrameType frameType) {
-      // TODO(b/214496607): Implement this.
-      throw new Unimplemented();
+      if (equals(frameType)) {
+        return this;
+      }
+      // TODO(b/231126561): By unifying OneWord and Top, this could always return OneWord.
+      if (frameType.isTop()) {
+        return frameType;
+      }
+      return oneWord();
     }
 
     @Override
@@ -587,8 +618,14 @@ public class CfFrame extends CfInstruction implements Cloneable {
 
     @Override
     public SingleFrameType join(SingleFrameType frameType) {
-      // TODO(b/214496607): Implement this.
-      throw new Unimplemented();
+      if (this == frameType) {
+        return this;
+      }
+      // TODO(b/231126561): By unifying OneWord and Top, this could always return OneWord.
+      if (frameType.isTop()) {
+        return frameType;
+      }
+      return oneWord();
     }
 
     @Override
@@ -635,8 +672,8 @@ public class CfFrame extends CfInstruction implements Cloneable {
 
     @Override
     public SingleFrameType join(SingleFrameType frameType) {
-      // TODO(b/214496607): Implement this.
-      throw new Unimplemented();
+      // TODO(b/231126561): By unifying OneWord and Top this could always return `this`.
+      return frameType.isTop() ? frameType : this;
     }
 
     @Override
