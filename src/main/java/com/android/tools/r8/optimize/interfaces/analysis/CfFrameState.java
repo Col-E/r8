@@ -5,6 +5,7 @@
 package com.android.tools.r8.optimize.interfaces.analysis;
 
 import com.android.tools.r8.cf.code.CfAssignability;
+import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
@@ -34,6 +35,8 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
   public CfFrameState asAbstractState() {
     return this;
   }
+
+  public abstract CfFrameState check(AppView<?> appView, CfFrame frame);
 
   public abstract CfFrameState clear();
 

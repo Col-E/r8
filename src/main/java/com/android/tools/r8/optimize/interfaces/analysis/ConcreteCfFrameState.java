@@ -7,6 +7,7 @@ package com.android.tools.r8.optimize.interfaces.analysis;
 import static com.android.tools.r8.cf.code.CfFrame.getInitializedFrameType;
 
 import com.android.tools.r8.cf.code.CfAssignability;
+import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
@@ -33,6 +34,15 @@ public class ConcreteCfFrameState extends CfFrameState {
   ConcreteCfFrameState(Int2ObjectSortedMap<FrameType> locals, Deque<FrameType> stack) {
     this.locals = locals;
     this.stack = stack;
+  }
+
+  @Override
+  public CfFrameState check(AppView<?> appView, CfFrame frame) {
+    if (CfAssignability.isFrameAssignable(new CfFrame(), frame, appView).isFailed()) {
+      return error();
+    }
+    CfFrame frameCopy = frame.mutableCopy();
+    return new ConcreteCfFrameState(frameCopy.getLocals(), frameCopy.getStack());
   }
 
   @Override

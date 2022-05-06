@@ -6,7 +6,6 @@ package com.android.tools.r8.cf.code;
 import static org.objectweb.asm.Opcodes.F_NEW;
 
 import com.android.tools.r8.cf.CfPrinter;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -692,8 +691,7 @@ public class CfFrame extends CfInstruction implements Cloneable {
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
-    // TODO(b/214496607): Implement this.
-    throw new Unimplemented();
+    return frame.check(appView, this);
   }
 
   public CfFrame markInstantiated(FrameType uninitializedType, DexType initType) {

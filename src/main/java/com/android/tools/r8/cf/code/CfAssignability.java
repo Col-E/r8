@@ -10,6 +10,11 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.utils.MapUtils;
+import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
+import java.util.Arrays;
+import java.util.Deque;
+import java.util.Iterator;
 
 public class CfAssignability {
 
@@ -93,5 +98,129 @@ public class CfAssignability {
       return factory.intType;
     }
     return type;
+  }
+
+  public static AssignabilityResult isFrameAssignable(
+      CfFrame source, CfFrame target, AppView<?> appView) {
+    AssignabilityResult result =
+        isLocalsAssignable(source.getLocals(), target.getLocals(), appView);
+    return result.isSuccessful()
+        ? isStackAssignable(source.getStack(), target.getStack(), appView)
+        : result;
+  }
+
+  public static AssignabilityResult isLocalsAssignable(
+      Int2ObjectSortedMap<FrameType> sourceLocals,
+      Int2ObjectSortedMap<FrameType> targetLocals,
+      AppView<?> appView) {
+    // TODO(b/229826687): The tail of locals could have top(s) at destination but still be valid.
+    int localsLastKey = sourceLocals.isEmpty() ? -1 : sourceLocals.lastIntKey();
+    int otherLocalsLastKey = targetLocals.isEmpty() ? -1 : targetLocals.lastIntKey();
+    if (localsLastKey < otherLocalsLastKey) {
+      return new FailedAssignabilityResult(
+          "Source locals "
+              + MapUtils.toString(sourceLocals)
+              + " have different local indices than "
+              + MapUtils.toString(targetLocals));
+    }
+    for (int i = 0; i < otherLocalsLastKey; i++) {
+      FrameType sourceType = sourceLocals.containsKey(i) ? sourceLocals.get(i) : FrameType.top();
+      FrameType destinationType =
+          targetLocals.containsKey(i) ? targetLocals.get(i) : FrameType.top();
+      if (!isAssignable(sourceType, destinationType, appView)) {
+        return new FailedAssignabilityResult(
+            "Could not assign '"
+                + MapUtils.toString(sourceLocals)
+                + "' to '"
+                + MapUtils.toString(targetLocals)
+                + "'. The local at index "
+                + i
+                + " with '"
+                + sourceType
+                + "' not being assignable to '"
+                + destinationType
+                + "'");
+      }
+    }
+    return new SuccessfulAssignabilityResult();
+  }
+
+  public static AssignabilityResult isStackAssignable(
+      Deque<FrameType> sourceStack, Deque<FrameType> targetStack, AppView<?> appView) {
+    if (sourceStack.size() != targetStack.size()) {
+      return new FailedAssignabilityResult(
+          "Source stack "
+              + Arrays.toString(sourceStack.toArray())
+              + " and destination stack "
+              + Arrays.toString(targetStack.toArray())
+              + " is not the same size");
+    }
+    Iterator<FrameType> otherIterator = targetStack.iterator();
+    int stackIndex = 0;
+    for (FrameType sourceType : sourceStack) {
+      FrameType destinationType = otherIterator.next();
+      if (!isAssignable(sourceType, destinationType, appView)) {
+        return new FailedAssignabilityResult(
+            "Could not assign '"
+                + Arrays.toString(sourceStack.toArray())
+                + "' to '"
+                + Arrays.toString(targetStack.toArray())
+                + "'. The stack value at index "
+                + stackIndex
+                + " (from top) with '"
+                + sourceType
+                + "' not being assignable to '"
+                + destinationType
+                + "'");
+      }
+      stackIndex++;
+    }
+    return new SuccessfulAssignabilityResult();
+  }
+
+  public abstract static class AssignabilityResult {
+
+    public boolean isSuccessful() {
+      return false;
+    }
+
+    public boolean isFailed() {
+      return false;
+    }
+
+    public FailedAssignabilityResult asFailed() {
+      return null;
+    }
+  }
+
+  public static class SuccessfulAssignabilityResult extends AssignabilityResult {
+
+    @Override
+    public boolean isSuccessful() {
+      return true;
+    }
+  }
+
+  public static class FailedAssignabilityResult extends AssignabilityResult {
+
+    private final String message;
+
+    FailedAssignabilityResult(String message) {
+      this.message = message;
+    }
+
+    public String getMessage() {
+      return message;
+    }
+
+    @Override
+    public boolean isFailed() {
+      return true;
+    }
+
+    @Override
+    public FailedAssignabilityResult asFailed() {
+      return this;
+    }
   }
 }

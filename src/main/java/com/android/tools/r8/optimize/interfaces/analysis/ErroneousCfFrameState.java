@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.optimize.interfaces.analysis;
 
+import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
@@ -21,6 +22,11 @@ public class ErroneousCfFrameState extends CfFrameState {
 
   static ErroneousCfFrameState getInstance() {
     return INSTANCE;
+  }
+
+  @Override
+  public CfFrameState check(AppView<?> appView, CfFrame frame) {
+    return this;
   }
 
   @Override
