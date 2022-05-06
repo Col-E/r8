@@ -981,6 +981,9 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
           assert !instruction.isStore();
           builder.checkExceptionEdges();
         }
+        if (instruction.isLabel()) {
+          builder.seenLabel(instruction.asLabel());
+        }
         instruction.evaluate(builder, previousMethodSignature, appView, appView.dexItemFactory());
       } catch (CfCodeStackMapValidatingException ex) {
         return reportStackMapError(
