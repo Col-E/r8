@@ -4,18 +4,19 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.jdk11;
 
-import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.LibraryDesugaringTestConfiguration;
-import com.android.tools.r8.StringResource;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
+
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -25,7 +26,8 @@ import org.junit.runners.Parameterized.Parameters;
 public class InputStreamTransferToTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
 
   private static final Path INPUT_JAR =
       Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR + "transferto.jar");
@@ -33,48 +35,28 @@ public class InputStreamTransferToTest extends DesugaredLibraryTestBase {
       StringUtils.lines("Hello World!", "Hello World!", "Hello World!", "$Hello World!");
   private static final String MAIN_CLASS = "transferto.TestClass";
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        ImmutableList.of(JDK11_PATH),
+        DEFAULT_SPECIFICATIONS);
   }
 
-  public InputStreamTransferToTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public InputStreamTransferToTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
-  }
-
-  private LibraryDesugaringTestConfiguration pathConfiguration() {
-    return LibraryDesugaringTestConfiguration.builder()
-        .setMinApi(parameters.getApiLevel())
-        .addDesugaredLibraryConfiguration(
-            StringResource.fromFile(ToolHelper.getDesugarLibJsonForTestingWithPath()))
-        .setMode(shrinkDesugaredLibrary ? CompilationMode.RELEASE : CompilationMode.DEBUG)
-        .withKeepRuleConsumer()
-        .build();
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   @Test
-  public void testD8() throws Exception {
-    Assume.assumeTrue(isJDK11DesugaredLibrary());
-    testForD8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
+  public void test() throws Exception {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramFiles(INPUT_JAR)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(pathConfiguration())
-        .run(parameters.getRuntime(), MAIN_CLASS)
-        .assertSuccessWithOutput(EXPECTED_OUTPUT);
-  }
-
-  @Test
-  public void testR8() throws Exception {
-    Assume.assumeTrue(isJDK11DesugaredLibrary());
-    testForR8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
-        .addProgramFiles(INPUT_JAR)
-        .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(MAIN_CLASS)
-        .enableCoreLibraryDesugaring(pathConfiguration())
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }

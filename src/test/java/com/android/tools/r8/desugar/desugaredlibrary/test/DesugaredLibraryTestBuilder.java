@@ -24,6 +24,7 @@ import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.function.Consumer;
 import org.junit.Assume;
 
@@ -119,6 +120,12 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
 
   public DesugaredLibraryTestBuilder<T> addProgramFiles(Path... files) {
     builder.addProgramFiles(files);
+    return this;
+  }
+
+  public DesugaredLibraryTestBuilder<T> addProgramClassFileData(
+      Collection<byte[]> programClassFileData) {
+    builder.addProgramClassFileData(programClassFileData);
     return this;
   }
 
