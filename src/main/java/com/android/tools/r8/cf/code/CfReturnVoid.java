@@ -26,7 +26,7 @@ import java.util.function.BiFunction;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class CfReturnVoid extends CfInstruction {
+public class CfReturnVoid extends CfJumpInstruction {
 
   @Override
   public <BT, CT> TraversalContinuation<BT, CT> traverseNormalTargets(
@@ -34,11 +34,6 @@ public class CfReturnVoid extends CfInstruction {
       CfInstruction fallthroughInstruction,
       CT initialValue) {
     return TraversalContinuation.doContinue(initialValue);
-  }
-
-  @Override
-  public boolean isJump() {
-    return true;
   }
 
   @Override
@@ -111,6 +106,6 @@ public class CfReturnVoid extends CfInstruction {
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
-    return CfFrameState.bottom();
+    return frame.clear();
   }
 }

@@ -4,7 +4,6 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCompareHelper;
@@ -27,7 +26,7 @@ import java.util.function.BiFunction;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class CfGoto extends CfInstruction {
+public class CfGoto extends CfJumpInstruction {
 
   private final CfLabel target;
 
@@ -57,7 +56,7 @@ public class CfGoto extends CfInstruction {
   }
 
   @Override
-  public boolean isJump() {
+  public boolean isJumpWithNormalTarget() {
     return true;
   }
 
@@ -114,8 +113,7 @@ public class CfGoto extends CfInstruction {
       DexMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
-    frameBuilder.checkTarget(target);
-    frameBuilder.setNoFrame();
+    // Intentionally empty.
   }
 
   @Override
@@ -124,7 +122,6 @@ public class CfGoto extends CfInstruction {
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
-    // TODO(b/214496607): Implement this.
-    throw new Unimplemented();
+    return frame;
   }
 }

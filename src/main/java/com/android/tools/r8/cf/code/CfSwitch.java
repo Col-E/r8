@@ -4,7 +4,6 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -33,7 +32,7 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class CfSwitch extends CfInstruction {
+public class CfSwitch extends CfJumpInstruction {
 
   public enum Kind { LOOKUP, TABLE }
 
@@ -106,7 +105,7 @@ public class CfSwitch extends CfInstruction {
   }
 
   @Override
-  public boolean isJump() {
+  public boolean isJumpWithNormalTarget() {
     return true;
   }
 
@@ -180,11 +179,6 @@ public class CfSwitch extends CfInstruction {
     // ..., index/key →
     // ...
     frameBuilder.popInitialized(dexItemFactory.intType);
-    frameBuilder.checkTarget(defaultTarget);
-    for (CfLabel target : targets) {
-      frameBuilder.checkTarget(target);
-    }
-    frameBuilder.setNoFrame();
   }
 
   @Override
@@ -193,7 +187,8 @@ public class CfSwitch extends CfInstruction {
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
-    // TODO(b/214496607): Implement this.
-    throw new Unimplemented();
+    // ..., index/key →
+    // ...
+    return frame.popInitialized(appView, dexItemFactory.intType);
   }
 }

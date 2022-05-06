@@ -321,6 +321,18 @@ public abstract class CfInstruction implements CfOrDexInstruction {
     return false;
   }
 
+  public CfJumpInstruction asJump() {
+    return null;
+  }
+
+  /**
+   * @return true if this instruction is {@link CfGoto}, {@link CfIf}, {@link CfIfCmp}, or {@link
+   *     CfSwitch}.
+   */
+  public boolean isJumpWithNormalTarget() {
+    return false;
+  }
+
   /** Return true if this instruction or its DEX equivalent can throw. */
   public boolean canThrow() {
     return false;

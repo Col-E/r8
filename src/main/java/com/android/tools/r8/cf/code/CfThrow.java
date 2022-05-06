@@ -4,7 +4,6 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCompareHelper;
@@ -28,7 +27,7 @@ import java.util.function.BiFunction;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class CfThrow extends CfInstruction {
+public class CfThrow extends CfJumpInstruction {
 
   @Override
   public <BT, CT> TraversalContinuation<BT, CT> traverseNormalTargets(
@@ -36,11 +35,6 @@ public class CfThrow extends CfInstruction {
       CfInstruction fallthroughInstruction,
       CT initialValue) {
     return TraversalContinuation.doContinue(initialValue);
-  }
-
-  @Override
-  public boolean isJump() {
-    return true;
   }
 
   @Override
@@ -123,7 +117,8 @@ public class CfThrow extends CfInstruction {
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
-    // TODO(b/214496607): Implement this.
-    throw new Unimplemented();
+    // ..., objectref →
+    // objectref
+    return frame.popInitialized(appView, dexItemFactory.throwableType).clear();
   }
 }

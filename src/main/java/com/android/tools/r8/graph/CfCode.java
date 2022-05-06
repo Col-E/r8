@@ -985,6 +985,21 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
           builder.seenLabel(instruction.asLabel());
         }
         instruction.evaluate(builder, previousMethodSignature, appView, appView.dexItemFactory());
+        if (instruction.isJumpWithNormalTarget()) {
+          CfInstruction fallthroughInstruction =
+              (i + 1) < instructions.size() ? instructions.get(i + 1) : null;
+          instruction.forEachNormalTarget(
+              target -> {
+                if (target != fallthroughInstruction) {
+                  assert target.isLabel();
+                  builder.checkTarget(target.asLabel());
+                }
+              },
+              fallthroughInstruction);
+          if (!instruction.asJump().hasFallthrough()) {
+            builder.setNoFrame();
+          }
+        }
       } catch (CfCodeStackMapValidatingException ex) {
         return reportStackMapError(
             CfCodeStackMapValidatingException.invalidStackMapForInstruction(

@@ -29,7 +29,7 @@ import java.util.function.BiFunction;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class CfReturn extends CfInstruction {
+public class CfReturn extends CfJumpInstruction {
 
   private final ValueType type;
 
@@ -80,11 +80,6 @@ public class CfReturn extends CfInstruction {
       CfInstruction fallthroughInstruction,
       CT initialValue) {
     return TraversalContinuation.doContinue(initialValue);
-  }
-
-  @Override
-  public boolean isJump() {
-    return true;
   }
 
   @Override

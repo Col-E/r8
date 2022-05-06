@@ -75,6 +75,10 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
     return popInitialized(appView, expectedType.toDexType(appView.dexItemFactory()));
   }
 
+  public final CfFrameState popInitialized(AppView<?> appView, ValueType valueType) {
+    return popInitialized(appView, valueType, FunctionUtils::getFirst);
+  }
+
   public final CfFrameState popInitialized(
       AppView<?> appView,
       ValueType valueType,
