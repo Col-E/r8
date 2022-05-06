@@ -11,14 +11,17 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.examples.JavaExampleClassProxy;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -125,13 +128,24 @@ public class TwrCloseResourceDuplicationTest extends TestBase {
         .assertSuccessWithOutput(EXPECTED)
         .inspect(
             inspector -> {
+              List<FoundClassSubject> foundClassSubjects = inspector.allClasses();
+              Set<String> foundClasses =
+                  foundClassSubjects.stream()
+                      .map(FoundClassSubject::getFinalName)
+                      .collect(Collectors.toSet());
               // R8 will optimize the generated methods for the two cases below where the thrown
               // exception is known or not, thus the synthetic methods will be 2.
-              int expectedSynthetics =
-                  BooleanUtils.intValue(
-                      parameters.getApiLevel().isLessThan(apiLevelWithTwrCloseResourceSupport()));
-              List<FoundClassSubject> foundClassSubjects = inspector.allClasses();
-              assertEquals(INPUT_CLASSES + expectedSynthetics, foundClassSubjects.size());
+              Set<String> nonSyntheticClassOutput =
+                  ImmutableSet.of(FOO.typeName(), BAR.typeName(), MAIN.typeName());
+              if (parameters.getApiLevel().isLessThan(apiLevelWithTwrCloseResourceSupport())) {
+                Set<String> classOutputWithSynthetics = new HashSet<>(nonSyntheticClassOutput);
+                classOutputWithSynthetics.add(BAR.typeName() + "$$ExternalSyntheticBackport0");
+                classOutputWithSynthetics.add(
+                    BAR.typeName() + "$$ExternalSyntheticTwrCloseResource1");
+                assertEquals(classOutputWithSynthetics, foundClasses);
+              } else {
+                assertEquals(nonSyntheticClassOutput, foundClasses);
+              }
             });
   }
 
