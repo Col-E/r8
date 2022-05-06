@@ -41,10 +41,10 @@ import com.android.tools.r8.ir.conversion.CfState.Snapshot;
 import com.android.tools.r8.ir.conversion.IRBuilder.BlockInfo;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOutputMode;
+import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
@@ -604,12 +604,11 @@ public class CfSourceCode implements SourceCode {
   }
 
   public void setStateFromFrame(CfFrame frame) {
-    Int2ReferenceSortedMap<FrameType> frameLocals = frame.getLocals();
+    Int2ObjectSortedMap<FrameType> frameLocals = frame.getLocals();
     DexType[] locals = new DexType[frameLocals.isEmpty() ? 0 : frameLocals.lastIntKey() + 1];
     DexType[] stack = new DexType[frame.getStack().size()];
-    for (Int2ReferenceMap.Entry<FrameType> entry : frameLocals.int2ReferenceEntrySet()) {
-      locals[entry.getIntKey()] = convertUninitialized(entry.getValue());
-    }
+    frame.forEachLocal(
+        (localIndex, frameType) -> locals[localIndex] = convertUninitialized(frameType));
     int index = 0;
     for (FrameType frameType : frame.getStack()) {
       stack[index++] = convertUninitialized(frameType);

@@ -26,12 +26,9 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.IterableUtils;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.ints.IntBidirectionalIterator;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
 import org.objectweb.asm.Opcodes;
 
@@ -156,30 +153,22 @@ public class IncompleteVirtuallyMergedMethodCode extends IncompleteHorizontalCla
   }
 
   private static CfFrame createCfFrameForSwitchCase(ProgramMethod representative, int localsSize) {
-    Deque<FrameType> stack =
-        new ArrayDeque<>(representative.getDefinition().getNumberOfArguments());
+    CfFrame.Builder builder =
+        CfFrame.builder().allocateStack(representative.getDefinition().getNumberOfArguments());
     for (int argumentIndex = 0;
         argumentIndex < representative.getDefinition().getNumberOfArguments();
         argumentIndex++) {
-      stack.add(FrameType.initialized(representative.getArgumentType(argumentIndex)));
+      builder.push(FrameType.initialized(representative.getArgumentType(argumentIndex)));
     }
-    return new CfFrame(createLocalFrames(representative, localsSize), stack);
-  }
-
-  private static Int2ReferenceAVLTreeMap<FrameType> createLocalFrames(
-      ProgramMethod representative, int localsSize) {
-    Int2ReferenceAVLTreeMap<FrameType> locals = new Int2ReferenceAVLTreeMap<>();
-    for (int argumentIndex = 0, localIndex = 0;
+    for (int argumentIndex = 0;
         argumentIndex < representative.getDefinition().getNumberOfArguments();
         argumentIndex++) {
       FrameType frameType = FrameType.initialized(representative.getArgumentType(argumentIndex));
-      locals.put(localIndex++, frameType);
-      if (frameType.isWide()) {
-        locals.put(localIndex++, frameType);
-      }
+      builder.appendLocal(frameType);
     }
-    assert locals.size() == localsSize;
-    return locals;
+    CfFrame frame = builder.build();
+    assert frame.getLocals().size() == localsSize;
+    return frame;
   }
 
   @Override

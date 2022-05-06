@@ -57,15 +57,12 @@ import com.android.tools.r8.ir.optimize.PhiOptimizations;
 import com.android.tools.r8.ir.optimize.peepholes.BasicBlockMuncher;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -591,25 +588,23 @@ public class CfBuilder {
 
   private void addFrame(BasicBlock block) {
     List<TypeInfo> stack = registerAllocator.getTypesAtBlockEntry(block).stack;
-    Deque<FrameType> stackTypes;
+    CfFrame.Builder builder = CfFrame.builder();
     if (block.entry().isMoveException()) {
       assert stack.isEmpty();
       StackValue exception = (StackValue) block.entry().outValue();
-      stackTypes = new ArrayDeque<>();
-      stackTypes.add(getFrameType(block, exception.getTypeInfo()));
+      builder.push(getFrameType(block, exception.getTypeInfo()));
     } else {
-      stackTypes = new ArrayDeque<>(stack.size());
+      builder.allocateStack(stack.size());
       for (TypeInfo typeInfo : stack) {
-        stackTypes.add(getFrameType(block, typeInfo));
+        builder.push(getFrameType(block, typeInfo));
       }
     }
 
     Int2ReferenceMap<TypeInfo> locals = registerAllocator.getTypesAtBlockEntry(block).registers;
-    Int2ReferenceSortedMap<FrameType> mapping = new Int2ReferenceAVLTreeMap<>();
     for (Entry<TypeInfo> local : locals.int2ReferenceEntrySet()) {
-      mapping.put(local.getIntKey(), getFrameType(block, local.getValue()));
+      builder.store(local.getIntKey(), getFrameType(block, local.getValue()));
     }
-    CfFrame frame = new CfFrame(mapping, stackTypes);
+    CfFrame frame = builder.build();
 
     // Make sure to end locals on this transition before the synthetic CfFrame instruction.
     // Otherwise we might extend the live range of a local across a CfFrame instruction that

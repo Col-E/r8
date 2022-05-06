@@ -28,17 +28,25 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
+import com.android.tools.r8.utils.IntObjConsumer;
+import com.android.tools.r8.utils.collections.ImmutableDeque;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
+import com.google.common.collect.Iterables;
+import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMaps;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Objects;
-import java.util.SortedMap;
+import java.util.function.Consumer;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class CfFrame extends CfInstruction {
+public class CfFrame extends CfInstruction implements Cloneable {
+
+  public static final Int2ObjectSortedMap<FrameType> EMPTY_LOCALS = Int2ObjectSortedMaps.emptyMap();
+  public static final Deque<FrameType> EMPTY_STACK = ImmutableDeque.of();
 
   public abstract static class FrameType {
 
@@ -51,7 +59,7 @@ public class CfFrame extends CfInstruction {
     }
 
     public static FrameType uninitializedThis() {
-      return new UninitializedThis();
+      return UninitializedThis.SINGLETON;
     }
 
     public static FrameType top() {
@@ -145,6 +153,12 @@ public class CfFrame extends CfInstruction {
 
     private FrameType() {}
 
+    @Override
+    public abstract boolean equals(Object obj);
+
+    @Override
+    public abstract int hashCode();
+
     public static FrameType fromMemberType(MemberType memberType, DexItemFactory factory) {
       switch (memberType) {
         case OBJECT:
@@ -174,6 +188,19 @@ public class CfFrame extends CfInstruction {
 
     public static FrameType fromNumericType(NumericType numericType, DexItemFactory factory) {
       return FrameType.initialized(numericType.toDexType(factory));
+    }
+  }
+
+  private abstract static class SingletonFrameType extends FrameType {
+
+    @Override
+    public final boolean equals(Object obj) {
+      return this == obj;
+    }
+
+    @Override
+    public final int hashCode() {
+      return System.identityHashCode(this);
     }
   }
 
@@ -207,6 +234,23 @@ public class CfFrame extends CfInstruction {
     private InitializedType(DexType type) {
       assert type != null;
       this.type = type;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null || getClass() != obj.getClass()) {
+        return false;
+      }
+      InitializedType initializedType = (InitializedType) obj;
+      return type == initializedType.type;
+    }
+
+    @Override
+    public int hashCode() {
+      return type.hashCode();
     }
 
     @Override
@@ -263,9 +307,11 @@ public class CfFrame extends CfInstruction {
     }
   }
 
-  private static class Top extends FrameType {
+  private static class Top extends SingletonFrameType {
 
     private static final Top SINGLETON = new Top();
+
+    private Top() {}
 
     @Override
     public String toString() {
@@ -284,12 +330,30 @@ public class CfFrame extends CfInstruction {
   }
 
   private static class UninitializedNew extends FrameType {
+
     private final CfLabel label;
     private final DexType type;
 
     private UninitializedNew(CfLabel label, DexType type) {
       this.label = label;
       this.type = type;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      UninitializedNew uninitializedNew = (UninitializedNew) o;
+      return label == uninitializedNew.label && type == uninitializedNew.type;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(label, type);
     }
 
     @Override
@@ -333,7 +397,9 @@ public class CfFrame extends CfInstruction {
     }
   }
 
-  private static class UninitializedThis extends FrameType {
+  private static class UninitializedThis extends SingletonFrameType {
+
+    private static final UninitializedThis SINGLETON = new UninitializedThis();
 
     private UninitializedThis() {}
 
@@ -368,9 +434,11 @@ public class CfFrame extends CfInstruction {
     }
   }
 
-  private static class OneWord extends FrameType {
+  private static class OneWord extends SingletonFrameType {
 
     private static final OneWord SINGLETON = new OneWord();
+
+    private OneWord() {}
 
     @Override
     Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
@@ -388,9 +456,11 @@ public class CfFrame extends CfInstruction {
     }
   }
 
-  private static class TwoWord extends FrameType {
+  private static class TwoWord extends SingletonFrameType {
 
     private static final TwoWord SINGLETON = new TwoWord();
+
+    private TwoWord() {}
 
     @Override
     Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
@@ -413,32 +483,90 @@ public class CfFrame extends CfInstruction {
     }
   }
 
-  private final Int2ReferenceSortedMap<FrameType> locals;
+  private final Int2ObjectSortedMap<FrameType> locals;
   private final Deque<FrameType> stack;
 
-  public CfFrame(Int2ReferenceSortedMap<FrameType> locals, Deque<FrameType> stack) {
+  // Constructor used by CfCodePrinter.
+  public CfFrame() {
+    this(EMPTY_LOCALS, EMPTY_STACK);
+  }
+
+  // Constructor used by CfCodePrinter.
+  public CfFrame(Int2ObjectAVLTreeMap<FrameType> locals) {
+    this((Int2ObjectSortedMap<FrameType>) locals, EMPTY_STACK);
+    assert !locals.isEmpty() || locals == EMPTY_LOCALS : "Should use EMPTY_LOCALS instead";
+  }
+
+  // Constructor used by CfCodePrinter.
+  public CfFrame(Deque<FrameType> stack) {
+    this(EMPTY_LOCALS, stack);
+    assert !stack.isEmpty() || stack == EMPTY_STACK : "Should use EMPTY_STACK instead";
+  }
+
+  // Constructor used by CfCodePrinter.
+  public CfFrame(Int2ObjectAVLTreeMap<FrameType> locals, Deque<FrameType> stack) {
+    this((Int2ObjectSortedMap<FrameType>) locals, stack);
+    assert !locals.isEmpty() || locals == EMPTY_LOCALS : "Should use EMPTY_LOCALS instead";
+    assert !stack.isEmpty() || stack == EMPTY_STACK : "Should use EMPTY_STACK instead";
+  }
+
+  // Internal constructor that does not require locals to be of the type Int2ObjectAVLTreeMap.
+  private CfFrame(Int2ObjectSortedMap<FrameType> locals, Deque<FrameType> stack) {
     assert locals.values().stream().allMatch(Objects::nonNull);
     assert stack.stream().allMatch(Objects::nonNull);
     this.locals = locals;
     this.stack = stack;
   }
 
-  // This is used from tests. As fastutils are repackaged and minified the method above is
-  // not available from tests which use fastutils in their original namespace.
-  public CfFrame(SortedMap<Integer, FrameType> locals, Deque<FrameType> stack) {
-    this(
-        locals instanceof Int2ReferenceAVLTreeMap
-            ? (Int2ReferenceAVLTreeMap<FrameType>) locals
-            : new Int2ReferenceAVLTreeMap<>(locals),
-        stack);
+  public static Builder builder() {
+    return new Builder();
   }
 
-  public Int2ReferenceSortedMap<FrameType> getLocals() {
+  @Override
+  public CfFrame clone() {
+    return new CfFrame(locals, stack);
+  }
+
+  public CfFrame mutableCopy() {
+    return new CfFrame(
+        (Int2ObjectSortedMap<FrameType>) new Int2ObjectAVLTreeMap<>(locals),
+        new ArrayDeque<>(stack));
+  }
+
+  public void forEachLocal(IntObjConsumer<FrameType> consumer) {
+    for (Int2ObjectMap.Entry<FrameType> entry : locals.int2ObjectEntrySet()) {
+      consumer.accept(entry.getIntKey(), entry.getValue());
+    }
+  }
+
+  public Int2ObjectSortedMap<FrameType> getLocals() {
     return locals;
   }
 
   public Deque<FrameType> getStack() {
     return stack;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
+    CfFrame frame = (CfFrame) obj;
+    return locals.equals(frame.locals) && Iterables.elementsEqual(stack, frame.stack);
+  }
+
+  @Override
+  public int hashCode() {
+    // Generates a hash that is identical to Objects.hash(locals, stack[0], ..., stack[n]).
+    int result = 31 + locals.hashCode();
+    for (FrameType frameType : stack) {
+      result = 31 * result + frameType.hashCode();
+    }
+    return result;
   }
 
   @Override
@@ -573,15 +701,15 @@ public class CfFrame extends CfInstruction {
       throw CfCodeStackMapValidatingException.error(
           "Cannot instantiate already instantiated type " + uninitializedType);
     }
-    Int2ReferenceSortedMap<FrameType> newLocals = new Int2ReferenceAVLTreeMap<>();
-    for (int var : locals.keySet()) {
-      newLocals.put(var, getInitializedFrameType(uninitializedType, locals.get(var), initType));
-    }
-    Deque<FrameType> newStack = new ArrayDeque<>();
+    CfFrame.Builder builder = CfFrame.builder().allocateStack(stack.size());
+    forEachLocal(
+        (localIndex, frameType) ->
+            builder.store(
+                localIndex, getInitializedFrameType(uninitializedType, frameType, initType)));
     for (FrameType frameType : stack) {
-      newStack.addLast(getInitializedFrameType(uninitializedType, frameType, initType));
+      builder.push(getInitializedFrameType(uninitializedType, frameType, initType));
     }
-    return new CfFrame(newLocals, newStack);
+    return builder.build();
   }
 
   public static FrameType getInitializedFrameType(
@@ -623,14 +751,69 @@ public class CfFrame extends CfInstruction {
     if (!mapped) {
       return this;
     }
-    Int2ReferenceSortedMap<FrameType> newLocals = new Int2ReferenceAVLTreeMap<>();
-    for (int var : locals.keySet()) {
-      newLocals.put(var, locals.get(var).map(func));
+    Builder builder = builder();
+    for (Int2ObjectMap.Entry<FrameType> entry : locals.int2ObjectEntrySet()) {
+      builder.store(entry.getIntKey(), entry.getValue().map(func));
     }
-    Deque<FrameType> newStack = new ArrayDeque<>();
     for (FrameType frameType : stack) {
-      newStack.addLast(frameType.map(func));
+      builder.push(frameType.map(func));
     }
-    return new CfFrame(newLocals, newStack);
+    return builder.build();
+  }
+
+  public static class Builder {
+
+    private Int2ObjectSortedMap<FrameType> locals = EMPTY_LOCALS;
+    private Deque<FrameType> stack = EMPTY_STACK;
+
+    private boolean seenStore = false;
+
+    public Builder allocateStack(int size) {
+      assert stack == EMPTY_STACK;
+      if (size > 0) {
+        stack = new ArrayDeque<>(size);
+      }
+      return this;
+    }
+
+    public Builder appendLocal(FrameType frameType) {
+      // Mixing appendLocal() and store() is somewhat error prone. Catch it if we ever do it.
+      assert !seenStore;
+      int localIndex = locals.size();
+      return internalStore(localIndex, frameType);
+    }
+
+    public Builder apply(Consumer<Builder> consumer) {
+      consumer.accept(this);
+      return this;
+    }
+
+    public Builder push(FrameType frameType) {
+      if (stack == EMPTY_STACK) {
+        stack = new ArrayDeque<>();
+      }
+      stack.addLast(frameType);
+      return this;
+    }
+
+    public Builder store(int localIndex, FrameType frameType) {
+      seenStore = true;
+      return internalStore(localIndex, frameType);
+    }
+
+    private Builder internalStore(int localIndex, FrameType frameType) {
+      if (locals == EMPTY_LOCALS) {
+        locals = new Int2ObjectAVLTreeMap<>();
+      }
+      locals.put(localIndex, frameType);
+      if (frameType.isWide()) {
+        locals.put(localIndex + 1, frameType);
+      }
+      return this;
+    }
+
+    public CfFrame build() {
+      return new CfFrame(locals, stack);
+    }
   }
 }

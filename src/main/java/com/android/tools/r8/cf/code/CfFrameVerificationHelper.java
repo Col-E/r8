@@ -13,10 +13,8 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.collections.ImmutableDeque;
-import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
 import com.google.common.collect.Sets;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Deque;
@@ -28,9 +26,7 @@ import java.util.function.BiPredicate;
 
 public class CfFrameVerificationHelper {
 
-  private static final CfFrame NO_FRAME =
-      new CfFrame(
-          ImmutableInt2ReferenceSortedMap.<FrameType>builder().build(), ImmutableDeque.of());
+  private static final CfFrame NO_FRAME = new CfFrame();
 
   private final AppView<?> appView;
   private final DexItemFactory factory;
@@ -216,9 +212,7 @@ public class CfFrameVerificationHelper {
 
   private void setFrame(CfFrame frame) {
     assert frame != NO_FRAME;
-    currentFrame =
-        new CfFrame(
-            new Int2ReferenceAVLTreeMap<>(frame.getLocals()), new ArrayDeque<>(frame.getStack()));
+    currentFrame = frame.mutableCopy();
   }
 
   public void checkExceptionEdges() {
@@ -248,7 +242,7 @@ public class CfFrameVerificationHelper {
     checkFrame(destinationFrame.getLocals(), destinationFrame.getStack());
   }
 
-  public void checkFrame(Int2ReferenceSortedMap<FrameType> locals, Deque<FrameType> stack) {
+  public void checkFrame(Int2ObjectSortedMap<FrameType> locals, Deque<FrameType> stack) {
     checkIsAssignable(currentFrame.getLocals(), currentFrame.getStack(), locals, stack);
   }
 
@@ -295,17 +289,16 @@ public class CfFrameVerificationHelper {
 
   // Based on https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.10.1.4.
   private void checkIsAssignable(
-      Int2ReferenceSortedMap<FrameType> sourceLocals,
+      Int2ObjectSortedMap<FrameType> sourceLocals,
       Deque<FrameType> sourceStack,
-      Int2ReferenceSortedMap<FrameType> destLocals,
+      Int2ObjectSortedMap<FrameType> destLocals,
       Deque<FrameType> destStack) {
     checkLocalsIsAssignable(sourceLocals, destLocals);
     checkStackIsAssignable(sourceStack, destStack);
   }
 
   private void checkLocalsIsAssignable(
-      Int2ReferenceSortedMap<FrameType> sourceLocals,
-      Int2ReferenceSortedMap<FrameType> destLocals) {
+      Int2ObjectSortedMap<FrameType> sourceLocals, Int2ObjectSortedMap<FrameType> destLocals) {
     // TODO(b/229826687): The tail of locals could have top(s) at destination but still be valid.
     int localsLastKey = sourceLocals.isEmpty() ? -1 : sourceLocals.lastIntKey();
     int otherLocalsLastKey = destLocals.isEmpty() ? -1 : destLocals.lastIntKey();

@@ -197,9 +197,8 @@ public class CfCodePrinter extends CfPrinter {
     return type("ImmutableList", ImmutableList.of("com", "google", "common", "collect"));
   }
 
-  private String int2ReferenceAVLTreeMapType() {
-    return type(
-        "Int2ReferenceAVLTreeMap", ImmutableList.of("it", "unimi", "dsi", "fastutil", "ints"));
+  private String int2ObjectAVLTreeMapType() {
+    return type("Int2ObjectAVLTreeMap", ImmutableList.of("it", "unimi", "dsi", "fastutil", "ints"));
   }
 
   private String frameTypeType() {
@@ -242,6 +241,10 @@ public class CfCodePrinter extends CfPrinter {
 
   private String cfType(String name) {
     return r8Type(name, ImmutableList.of("cf", "code"));
+  }
+
+  private String cfFrameType() {
+    return cfType("CfFrame");
   }
 
   private String labelName(CfLabel label) {
@@ -488,23 +491,40 @@ public class CfCodePrinter extends CfPrinter {
 
   @Override
   public void print(CfFrame frame) {
-    String keys = join(",", frame.getLocals().keySet());
-    String values = join(",", frame.getLocals().values(), this::frameTypeType);
-    String stack = join(",", frame.getStack(), this::frameTypeType);
-    printNewInstruction(
-        "CfFrame",
-        "new "
-            + int2ReferenceAVLTreeMapType()
-            + "<>("
-            + "new int[] {"
-            + keys
-            + "},"
-            + "new "
-            + frameTypeType()
-            + "[] { "
-            + values
-            + " })",
-        "new " + arrayDequeType() + "<>(" + arraysType() + ".asList(" + stack + "))");
+    if (frame.getLocals().isEmpty()) {
+      if (frame.getStack().isEmpty()) {
+        printNewInstruction(cfFrameType());
+      } else {
+        printNewInstruction(cfFrameType(), getCfFrameStack(frame));
+      }
+    } else {
+      if (frame.getStack().isEmpty()) {
+        printNewInstruction(cfFrameType(), getCfFrameLocals(frame));
+      } else {
+        printNewInstruction(cfFrameType(), getCfFrameLocals(frame), getCfFrameStack(frame));
+      }
+    }
+  }
+
+  private String getCfFrameLocals(CfFrame frame) {
+    String localsKeys = join(",", frame.getLocals().keySet());
+    String localsElements = join(",", frame.getLocals().values(), this::frameTypeType);
+    return "new "
+        + int2ObjectAVLTreeMapType()
+        + "<>("
+        + "new int[] {"
+        + localsKeys
+        + "},"
+        + "new "
+        + frameTypeType()
+        + "[] { "
+        + localsElements
+        + " })";
+  }
+
+  private String getCfFrameStack(CfFrame frame) {
+    String stackElements = join(",", frame.getStack(), this::frameTypeType);
+    return "new " + arrayDequeType() + "<>(" + arraysType() + ".asList(" + stackElements + "))";
   }
 
   private String frameTypeType(FrameType frameType) {

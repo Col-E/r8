@@ -34,8 +34,6 @@ import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldMappingData;
-import com.android.tools.r8.utils.collections.ImmutableDeque;
-import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
 import java.util.ArrayList;
 import java.util.List;
 import org.objectweb.asm.Opcodes;
@@ -102,13 +100,10 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       DexItemFactory factory = appView.dexItemFactory();
       List<CfInstruction> instructions = new ArrayList<>();
 
-      ImmutableInt2ReferenceSortedMap<FrameType> locals =
-          ImmutableInt2ReferenceSortedMap.<FrameType>builder()
-              .put(0, FrameType.initialized(factory.intType))
-              .build();
-
       // if (i == 1) { return 10;}
       // if (i == 2) { return 20;}
+      CfFrame.Builder frameBuilder =
+          CfFrame.builder().appendLocal(FrameType.initialized(factory.intType));
       fieldDataMap.forEach(
           (unboxedEnumValue, value) -> {
             CfLabel dest = new CfLabel();
@@ -118,7 +113,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
             addCfInstructionsForAbstractValue(instructions, value, returnType);
             instructions.add(new CfReturn(ValueType.fromDexType(returnType)));
             instructions.add(dest);
-            instructions.add(new CfFrame(locals, ImmutableDeque.of()));
+            instructions.add(frameBuilder.build());
           });
 
       if (nullValue != null) {
@@ -162,10 +157,8 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       DexItemFactory factory = appView.dexItemFactory();
       List<CfInstruction> instructions = new ArrayList<>();
 
-      ImmutableInt2ReferenceSortedMap<FrameType> locals =
-          ImmutableInt2ReferenceSortedMap.<FrameType>builder()
-              .put(0, FrameType.initialized(factory.stringType))
-              .build();
+      CfFrame frame =
+          CfFrame.builder().appendLocal(FrameType.initialized(factory.stringType)).build();
 
       // if (s == null) { throw npe("Name is null"); }
       CfLabel nullDest = new CfLabel();
@@ -178,7 +171,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
           new CfInvoke(Opcodes.INVOKESPECIAL, factory.npeMethods.initWithMessage, false));
       instructions.add(new CfThrow());
       instructions.add(nullDest);
-      instructions.add(new CfFrame(locals, ImmutableDeque.of()));
+      instructions.add(frame);
 
       // if (s.equals("A")) { return 1;}
       // if (s.equals("B")) { return 2;}
@@ -193,7 +186,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
             instructions.add(new CfConstNumber(unboxedEnumValue, ValueType.INT));
             instructions.add(new CfReturn(ValueType.INT));
             instructions.add(dest);
-            instructions.add(new CfFrame(locals, ImmutableDeque.of()));
+            instructions.add(frame.clone());
           });
 
       // throw new IllegalArgumentException("No enum constant com.x.MyEnum." + s);
@@ -254,9 +247,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, initializationMethod, false));
       instructions.add(new CfStaticFieldWrite(utilityField, utilityField));
       instructions.add(nullDest);
-      instructions.add(
-          new CfFrame(
-              ImmutableInt2ReferenceSortedMap.<FrameType>builder().build(), ImmutableDeque.of()));
+      instructions.add(new CfFrame());
       instructions.add(new CfStaticFieldRead(utilityField, utilityField));
       instructions.add(new CfReturn(ValueType.OBJECT));
       return standardCfCodeFromInstructions(instructions);

@@ -28,8 +28,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.utils.collections.ImmutableDeque;
-import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
 import java.util.ArrayList;
 import java.util.List;
 import org.objectweb.asm.Opcodes;
@@ -161,11 +159,6 @@ public abstract class RecordCfCodeProvider {
       // return Arrays.equals(
       //     recordInstance.getFieldsAsObjects(),
       //     ((RecordClass) other).getFieldsAsObjects());
-      ImmutableInt2ReferenceSortedMap<FrameType> locals =
-          ImmutableInt2ReferenceSortedMap.<FrameType>builder()
-              .put(0, FrameType.initialized(getHolder()))
-              .put(1, FrameType.initialized(appView.dexItemFactory().objectType))
-              .build();
       DexItemFactory factory = appView.dexItemFactory();
       List<CfInstruction> instructions = new ArrayList<>();
       CfLabel fieldCmp = new CfLabel();
@@ -179,7 +172,11 @@ public abstract class RecordCfCodeProvider {
       instructions.add(new CfConstNumber(0, ValueType.INT));
       instructions.add(new CfReturn(ValueType.INT));
       instructions.add(fieldCmp);
-      instructions.add(new CfFrame(locals, ImmutableDeque.of()));
+      instructions.add(
+          CfFrame.builder()
+              .appendLocal(FrameType.initialized(getHolder()))
+              .appendLocal(FrameType.initialized(appView.dexItemFactory().objectType))
+              .build());
       instructions.add(new CfLoad(recordType, 0));
       instructions.add(new CfInvoke(Opcodes.INVOKESPECIAL, getFieldsAsObjects, false));
       instructions.add(new CfLoad(objectType, 1));

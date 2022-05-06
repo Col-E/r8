@@ -25,9 +25,7 @@ import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
-import java.util.ArrayDeque;
-import java.util.Arrays;
+import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 
 public final class CfUtilityMethodsForCodeOptimizations {
 
@@ -66,10 +64,9 @@ public final class CfUtilityMethodsForCodeOptimizations {
             new CfThrow(),
             label2,
             new CfFrame(
-                new Int2ReferenceAVLTreeMap<>(
+                new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {FrameType.initialized(options.itemFactory.objectType)}),
-                new ArrayDeque<>(Arrays.asList())),
+                    new FrameType[] {FrameType.initialized(options.itemFactory.objectType)})),
             new CfReturnVoid(),
             label3),
         ImmutableList.of(),
@@ -172,10 +169,9 @@ public final class CfUtilityMethodsForCodeOptimizations {
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
             label2,
             new CfFrame(
-                new Int2ReferenceAVLTreeMap<>(
+                new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {FrameType.initialized(options.itemFactory.objectType)}),
-                new ArrayDeque<>(Arrays.asList())),
+                    new FrameType[] {FrameType.initialized(options.itemFactory.objectType)})),
             new CfReturnVoid(),
             label3),
         ImmutableList.of(),

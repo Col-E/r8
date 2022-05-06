@@ -41,8 +41,6 @@ import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.synthetic.SyntheticCfCodeProvider;
-import com.android.tools.r8.utils.collections.ImmutableDeque;
-import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -88,19 +86,14 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
 
       // if (arg == null) { return null; }
       generateNullCheck(instructions);
-      instructions.add(
-          new CfFrame(
-              ImmutableInt2ReferenceSortedMap.<FrameType>builder()
-                  .put(0, FrameType.initialized(typeArray))
-                  .build(),
-              ImmutableDeque.of()));
+      instructions.add(CfFrame.builder().appendLocal(FrameType.initialized(typeArray)).build());
 
-      ImmutableInt2ReferenceSortedMap<FrameType> locals =
-          ImmutableInt2ReferenceSortedMap.<FrameType>builder()
-              .put(0, FrameType.initialized(typeArray))
-              .put(1, FrameType.initialized(factory.intType))
-              .put(2, FrameType.initialized(convertedTypeArray))
-              .put(3, FrameType.initialized(factory.intType))
+      CfFrame frame =
+          CfFrame.builder()
+              .appendLocal(FrameType.initialized(typeArray))
+              .appendLocal(FrameType.initialized(factory.intType))
+              .appendLocal(FrameType.initialized(convertedTypeArray))
+              .appendLocal(FrameType.initialized(factory.intType))
               .build();
 
       // int t1 = arg.length;
@@ -118,7 +111,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
       CfLabel returnLabel = new CfLabel();
       CfLabel loopLabel = new CfLabel();
       instructions.add(loopLabel);
-      instructions.add(new CfFrame(locals, ImmutableDeque.of()));
+      instructions.add(frame);
       instructions.add(new CfLoad(ValueType.INT, 3));
       instructions.add(new CfLoad(ValueType.INT, 1));
       instructions.add(new CfIfCmp(If.Type.GE, ValueType.INT, returnLabel));
@@ -138,7 +131,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
       instructions.add(new CfGoto(loopLabel));
       // return t2;
       instructions.add(returnLabel);
-      instructions.add(new CfFrame(locals, ImmutableDeque.of()));
+      instructions.add(frame.clone());
       instructions.add(new CfLoad(ValueType.fromDexType(convertedTypeArray), 2));
       instructions.add(new CfReturn(ValueType.fromDexType(convertedTypeArray)));
       return standardCfCodeFromInstructions(instructions);
@@ -168,14 +161,11 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
       DexItemFactory factory = appView.dexItemFactory();
       List<CfInstruction> instructions = new ArrayList<>();
 
-      ImmutableInt2ReferenceSortedMap<FrameType> locals =
-          ImmutableInt2ReferenceSortedMap.<FrameType>builder()
-              .put(0, FrameType.initialized(enumType))
-              .build();
+      CfFrame frame = CfFrame.builder().appendLocal(FrameType.initialized(enumType)).build();
 
       // if (arg == null) { return null; }
       generateNullCheck(instructions);
-      instructions.add(new CfFrame(locals, ImmutableDeque.of()));
+      instructions.add(frame);
 
       // if (arg == enumType.enumField1) { return convertedType.enumField1; }
       Iterator<DexEncodedField> iterator = enumFields.iterator();
@@ -194,7 +184,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
         instructions.add(new CfReturn(ValueType.fromDexType(convertedType)));
         if (iterator.hasNext()) {
           instructions.add(notEqual);
-          instructions.add(new CfFrame(locals, ImmutableDeque.of()));
+          instructions.add(frame.clone());
         }
       }
       return standardCfCodeFromInstructions(instructions);
@@ -219,14 +209,11 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
       List<CfInstruction> instructions = new ArrayList<>();
 
       DexType argType = wrapperField.type;
-      ImmutableInt2ReferenceSortedMap<FrameType> locals =
-          ImmutableInt2ReferenceSortedMap.<FrameType>builder()
-              .put(0, FrameType.initialized(argType))
-              .build();
+      CfFrame frame = CfFrame.builder().appendLocal(FrameType.initialized(argType)).build();
 
       // if (arg == null) { return null };
       generateNullCheck(instructions);
-      instructions.add(new CfFrame(locals, ImmutableDeque.of()));
+      instructions.add(frame);
 
       // if (arg instanceOf ReverseWrapper) { return ((ReverseWrapper) arg).wrapperField};
       assert reverseWrapperField != null;
@@ -239,7 +226,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
       instructions.add(new CfInstanceFieldRead(reverseWrapperField));
       instructions.add(new CfReturn(ValueType.fromDexType(reverseWrapperField.type)));
       instructions.add(unwrapDest);
-      instructions.add(new CfFrame(locals, ImmutableDeque.of()));
+      instructions.add(frame.clone());
 
       // return new Wrapper(wrappedValue);
       instructions.add(new CfNew(wrapperField.holder));
@@ -278,17 +265,13 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
       // if (arg == null) { return null; }
       generateNullCheck(instructions);
       instructions.add(
-          new CfFrame(
-              ImmutableInt2ReferenceSortedMap.<FrameType>builder()
-                  .put(0, FrameType.initialized(collectionType))
-                  .build(),
-              ImmutableDeque.of()));
+          CfFrame.builder().appendLocal(FrameType.initialized(collectionType)).build());
 
-      ImmutableInt2ReferenceSortedMap<FrameType> locals =
-          ImmutableInt2ReferenceSortedMap.<FrameType>builder()
-              .put(0, FrameType.initialized(collectionType))
-              .put(1, FrameType.initialized(collectionType))
-              .put(2, FrameType.initialized(factory.iteratorType))
+      CfFrame frame =
+          CfFrame.builder()
+              .appendLocal(FrameType.initialized(collectionType))
+              .appendLocal(FrameType.initialized(collectionType))
+              .appendLocal(FrameType.initialized(factory.iteratorType))
               .build();
 
       // Collection<E> t1 = new Collection<E>();
@@ -332,7 +315,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
       CfLabel returnLabel = new CfLabel();
       CfLabel loopLabel = new CfLabel();
       instructions.add(loopLabel);
-      instructions.add(new CfFrame(locals, ImmutableDeque.of()));
+      instructions.add(frame);
       instructions.add(new CfLoad(ValueType.fromDexType(factory.iteratorType), 2));
       instructions.add(
           new CfInvoke(
@@ -367,7 +350,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
 
       // return t1;
       instructions.add(returnLabel);
-      instructions.add(new CfFrame(locals, ImmutableDeque.of()));
+      instructions.add(frame.clone());
       instructions.add(new CfLoad(ValueType.fromDexType(collectionType), 1));
       instructions.add(new CfReturn(ValueType.fromDexType(collectionType)));
 

@@ -60,8 +60,6 @@ import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.Utili
 import com.android.tools.r8.synthesis.SyntheticProgramClassBuilder;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.collections.ImmutableDeque;
-import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
@@ -307,11 +305,9 @@ public class ConstantDynamicClass {
 
     instructions.add(initializedTrueSecond);
     instructions.add(
-        new CfFrame(
-            ImmutableInt2ReferenceSortedMap.of(
-                new int[] {0},
-                new FrameType[] {FrameType.initialized(builder.getFactory().objectType)}),
-            ImmutableDeque.of()));
+        CfFrame.builder()
+            .appendLocal(FrameType.initialized(builder.getFactory().objectType))
+            .build());
     instructions.add(new CfLoad(ValueType.OBJECT, 0));
     instructions.add(new CfMonitor(Monitor.Type.EXIT));
     instructions.add(tryCatchEnd);
@@ -319,11 +315,10 @@ public class ConstantDynamicClass {
 
     instructions.add(tryCatchTarget);
     instructions.add(
-        new CfFrame(
-            ImmutableInt2ReferenceSortedMap.of(
-                new int[] {0},
-                new FrameType[] {FrameType.initialized(builder.getFactory().objectType)}),
-            ImmutableDeque.of(FrameType.initialized(builder.getFactory().throwableType))));
+        CfFrame.builder()
+            .appendLocal(FrameType.initialized(builder.getFactory().objectType))
+            .push(FrameType.initialized(builder.getFactory().throwableType))
+            .build());
     instructions.add(new CfStore(ValueType.OBJECT, 1));
     instructions.add(new CfLoad(ValueType.OBJECT, 0));
     instructions.add(new CfMonitor(Monitor.Type.EXIT));
@@ -332,7 +327,7 @@ public class ConstantDynamicClass {
     instructions.add(new CfThrow());
 
     instructions.add(initializedTrue);
-    instructions.add(new CfFrame(ImmutableInt2ReferenceSortedMap.empty(), ImmutableDeque.of()));
+    instructions.add(new CfFrame());
     instructions.add(new CfStaticFieldRead(constantValueField));
     instructions.add(new CfReturn(ValueType.OBJECT));
 

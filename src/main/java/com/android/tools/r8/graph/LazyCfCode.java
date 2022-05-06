@@ -71,13 +71,9 @@ import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -446,31 +442,25 @@ public class LazyCfCode extends Code {
     public void visitFrame(
         int frameType, int nLocals, Object[] localTypes, int nStack, Object[] stackTypes) {
       assert frameType == Opcodes.F_NEW;
-      Int2ReferenceSortedMap<FrameType> parsedLocals = parseLocals(nLocals, localTypes);
-      Deque<FrameType> parsedStack = parseStack(nStack, stackTypes);
-      instructions.add(new CfFrame(parsedLocals, parsedStack));
+      CfFrame.Builder builder = CfFrame.builder();
+      parseLocals(nLocals, localTypes, builder);
+      parseStack(nStack, stackTypes, builder);
+      instructions.add(builder.build());
     }
 
-    private Int2ReferenceSortedMap<FrameType> parseLocals(int typeCount, Object[] asmTypes) {
-      Int2ReferenceSortedMap<FrameType> types = new Int2ReferenceAVLTreeMap<>();
-      int i = 0;
+    private void parseLocals(int typeCount, Object[] asmTypes, CfFrame.Builder builder) {
       for (int j = 0; j < typeCount; j++) {
         Object localType = asmTypes[j];
         FrameType value = getFrameType(localType);
-        types.put(i++, value);
-        if (value.isWide()) {
-          i++;
-        }
+        builder.appendLocal(value);
       }
-      return types;
     }
 
-    private Deque<FrameType> parseStack(int nStack, Object[] stackTypes) {
-      Deque<FrameType> dexStack = new ArrayDeque<>(nStack);
+    private void parseStack(int nStack, Object[] stackTypes, CfFrame.Builder builder) {
+      builder.allocateStack(nStack);
       for (int i = 0; i < nStack; i++) {
-        dexStack.add(getFrameType(stackTypes[i]));
+        builder.push(getFrameType(stackTypes[i]));
       }
-      return dexStack;
     }
 
     private FrameType getFrameType(Object localType) {

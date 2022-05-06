@@ -49,11 +49,8 @@ import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.google.common.base.Strings;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
@@ -971,13 +968,8 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
       builder.checkFrameAndSet(stateMap.get(null));
     } else if (shouldComputeInitialFrame()) {
       builder.checkFrameAndSet(
-          new CfFrame(
-              computeInitialLocals(
-                  appView,
-                  previousMethodSignature,
-                  previousMethodSignatureIsInstance,
-                  protoChanges),
-              new ArrayDeque<>()));
+          computeInitialFrame(
+              appView, previousMethodSignature, previousMethodSignatureIsInstance, protoChanges));
     }
     for (int i = 0; i < instructions.size(); i++) {
       CfInstruction instruction = instructions.get(i);
@@ -1040,17 +1032,15 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
     return true;
   }
 
-  private Int2ReferenceSortedMap<FrameType> computeInitialLocals(
+  private CfFrame computeInitialFrame(
       AppView<?> appView,
       DexMethod method,
       boolean isInstance,
       RewrittenPrototypeDescription prototypeChanges) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
-    Int2ReferenceSortedMap<FrameType> initialLocals = new Int2ReferenceAVLTreeMap<>();
-    int index = 0;
+    CfFrame.Builder builder = CfFrame.builder();
     if (isInstance) {
-      initialLocals.put(
-          index++,
+      builder.appendLocal(
           method.isInstanceInitializer(dexItemFactory)
                   || method.mustBeInlinedIntoInstanceInitializer(appView)
                   || method.isHorizontallyMergedInstanceInitializer(dexItemFactory)
@@ -1058,19 +1048,11 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
               : FrameType.initialized(method.getHolderType()));
     }
     for (DexType parameter : method.getParameters()) {
-      FrameType frameType = FrameType.initialized(parameter);
-      initialLocals.put(index++, frameType);
-      if (frameType.isWide()) {
-        initialLocals.put(index++, frameType);
-      }
+      builder.appendLocal(FrameType.initialized(parameter));
     }
     for (ExtraParameter extraParameter : prototypeChanges.getExtraParameters()) {
-      FrameType frameType = FrameType.initialized(extraParameter.getType(dexItemFactory));
-      initialLocals.put(index++, frameType);
-      if (frameType.isWide()) {
-        initialLocals.put(index++, frameType);
-      }
+      builder.appendLocal(FrameType.initialized(extraParameter.getType(dexItemFactory)));
     }
-    return initialLocals;
+    return builder.build();
   }
 }

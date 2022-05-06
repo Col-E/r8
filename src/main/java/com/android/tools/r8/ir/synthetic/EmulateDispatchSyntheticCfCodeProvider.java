@@ -21,8 +21,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.utils.collections.ImmutableDeque;
-import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -57,14 +55,16 @@ public class EmulateDispatchSyntheticCfCodeProvider extends SyntheticCfCodeProvi
     }
     int nextLabel = 0;
 
-    ImmutableInt2ReferenceSortedMap.Builder<FrameType> localsBuilder =
-        ImmutableInt2ReferenceSortedMap.builder();
-    localsBuilder.put(0, FrameType.initialized(receiverType));
-    int index = 1;
-    for (DexType param : interfaceMethod.proto.parameters.values) {
-      localsBuilder.put(index++, FrameType.initialized(param));
-    }
-    ImmutableInt2ReferenceSortedMap<FrameType> locals = localsBuilder.build();
+    CfFrame frame =
+        CfFrame.builder()
+            .appendLocal(FrameType.initialized(receiverType))
+            .apply(
+                builder -> {
+                  for (DexType parameter : interfaceMethod.getParameters()) {
+                    builder.appendLocal(FrameType.initialized(parameter));
+                  }
+                })
+            .build();
 
     instructions.add(new CfLoad(ValueType.fromDexType(receiverType), 0));
     instructions.add(new CfInstanceOf(interfaceMethod.holder));
@@ -81,7 +81,7 @@ public class EmulateDispatchSyntheticCfCodeProvider extends SyntheticCfCodeProvi
     for (Map.Entry<DexType, DexMethod> dispatch : extraDispatchCases.entrySet()) {
       // Type check basic block.
       instructions.add(labels[nextLabel++]);
-      instructions.add(new CfFrame(locals, ImmutableDeque.of()));
+      instructions.add(frame);
       instructions.add(new CfLoad(ValueType.fromDexType(receiverType), 0));
       instructions.add(new CfInstanceOf(dispatch.getKey()));
       instructions.add(new CfIf(If.Type.EQ, ValueType.INT, labels[nextLabel]));
@@ -96,7 +96,7 @@ public class EmulateDispatchSyntheticCfCodeProvider extends SyntheticCfCodeProvi
 
     // Branch with companion call.
     instructions.add(labels[nextLabel]);
-    instructions.add(new CfFrame(locals, ImmutableDeque.of()));
+    instructions.add(frame.clone());
     instructions.add(new CfLoad(ValueType.fromDexType(receiverType), 0));
     loadExtraParameters(instructions);
     instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, forwardingMethod, false));
