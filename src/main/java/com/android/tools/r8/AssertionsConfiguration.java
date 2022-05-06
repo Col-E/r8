@@ -219,6 +219,15 @@ public class AssertionsConfiguration {
     }
 
     /**
+     * @deprecated As of version 3.3, replaced by {@link #compileTimeEnableAllAssertions(Builder)}
+     */
+    @Deprecated
+    public static AssertionsConfiguration enableAllAssertions(
+        AssertionsConfiguration.Builder builder) {
+      return compileTimeEnableAllAssertions(builder);
+    }
+
+    /**
      * Static helper to build an <code>AssertionConfiguration</code> which unconditionally disables
      * javac generated assertion code in all packages and classes. To be used like this:
      *
