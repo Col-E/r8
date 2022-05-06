@@ -46,13 +46,14 @@ public class CfAssignability {
     // TODO(b/168190267): Clean-up the lattice.
     DexItemFactory factory = appView.dexItemFactory();
     if (!source.isInitialized()
-        && target.isInitialized()
-        && target.getInitializedType() == factory.objectType) {
+        && target.isSingleInitialized()
+        && target.asSingleInitializedType().getInitializedType() == factory.objectType) {
       return true;
     }
     if (source.isInitialized() && target.isInitialized()) {
       // Both are instantiated types and we resort to primitive tyoe/java type hierarchy checking.
-      return isAssignable(source.getInitializedType(), target.getInitializedType(), appView);
+      return isAssignable(
+          source.getInitializedType(factory), target.getInitializedType(factory), appView);
     }
     return false;
   }

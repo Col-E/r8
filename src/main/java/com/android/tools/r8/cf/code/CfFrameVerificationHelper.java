@@ -266,7 +266,7 @@ public class CfFrameVerificationHelper {
     if (!source.isInitialized()) {
       return false;
     }
-    return CfAssignability.isAssignable(source.getInitializedType(), target, appView);
+    return CfAssignability.isAssignable(source.getInitializedType(factory), target, appView);
   }
 
   public void checkIsAssignable(

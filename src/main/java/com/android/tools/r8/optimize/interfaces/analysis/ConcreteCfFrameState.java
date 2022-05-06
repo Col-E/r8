@@ -160,7 +160,9 @@ public class ConcreteCfFrameState extends CfFrameState {
         (state, frameType) ->
             frameType.isInitialized()
                     && CfAssignability.isAssignable(
-                        frameType.getInitializedType(), expectedType, appView)
+                        frameType.getInitializedType(appView.dexItemFactory()),
+                        expectedType,
+                        appView)
                 ? fn.apply(state, frameType)
                 : error());
   }
@@ -196,7 +198,8 @@ public class ConcreteCfFrameState extends CfFrameState {
       return error();
     }
     if (frameType.isInitialized()
-        && CfAssignability.isAssignable(frameType.getInitializedType(), expectedType, appView)) {
+        && CfAssignability.isAssignable(
+            frameType.getInitializedType(appView.dexItemFactory()), expectedType, appView)) {
       return fn.apply(this, frameType);
     }
     if (frameType.isUninitializedObject() && expectedType.isObject()) {

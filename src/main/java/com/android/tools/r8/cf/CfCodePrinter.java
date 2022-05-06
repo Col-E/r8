@@ -56,7 +56,6 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
@@ -534,12 +533,22 @@ public class CfCodePrinter extends CfPrinter {
       return frameTypeType() + ".uninitializedThis()";
     } else if (frameType.isUninitializedNew()) {
       return frameTypeType() + ".uninitializedNew(new " + cfType("CfLabel") + "())";
+    } else if (frameType.isWide()) {
+      if (frameType.isDouble()) {
+        return frameTypeType() + ".doubleType()";
+      } else {
+        assert frameType.isLong();
+        return frameTypeType() + ".longType()";
+      }
     } else {
       assert frameType.isInitialized();
-      if (frameType.getInitializedType() == DexItemFactory.nullValueType) {
+      if (frameType.isNull()) {
         return frameTypeType() + ".initialized(" + dexItemFactoryType() + ".nullValueType)";
       } else {
-        return frameTypeType() + ".initialized(" + dexType(frameType.getInitializedType()) + ")";
+        return frameTypeType()
+            + ".initialized("
+            + dexType(frameType.asSingleInitializedType().getInitializedType())
+            + ")";
       }
     }
   }

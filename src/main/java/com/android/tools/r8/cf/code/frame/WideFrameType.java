@@ -10,5 +10,11 @@ public interface WideFrameType {
 
   FrameType asFrameType();
 
+  boolean isDouble();
+
+  boolean isLong();
+
+  boolean isTwoWord();
+
   WideFrameType join(WideFrameType frameType);
 }

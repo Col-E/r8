@@ -458,7 +458,14 @@ public class CfPrinter {
     if (type.isUninitializedNew()) {
       builder.append("uninitialized ").append(getLabel(type.getUninitializedLabel()));
     } else if (type.isInitialized()) {
-      appendType(type.getInitializedType());
+      if (type.isSingle()) {
+        appendType(type.asSingleInitializedType().getInitializedType());
+      } else if (type.isDouble()) {
+        builder.append("double");
+      } else {
+        assert type.isLong();
+        builder.append("long");
+      }
     } else {
       builder.append(type.toString());
     }
