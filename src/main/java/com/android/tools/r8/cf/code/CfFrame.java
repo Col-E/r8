@@ -75,10 +75,6 @@ public class CfFrame extends CfInstruction implements Cloneable {
       return UninitializedThis.SINGLETON;
     }
 
-    public static Top top() {
-      return Top.SINGLETON;
-    }
-
     public static OneWord oneWord() {
       return OneWord.SINGLETON;
     }
@@ -166,12 +162,12 @@ public class CfFrame extends CfInstruction implements Cloneable {
       return null;
     }
 
-    public boolean isTop() {
+    public boolean isOneWord() {
       return false;
     }
 
-    public boolean isOneWord() {
-      return false;
+    public boolean isSpecific() {
+      return true;
     }
 
     public boolean isTwoWord() {
@@ -206,7 +202,8 @@ public class CfFrame extends CfInstruction implements Cloneable {
     @Override
     public abstract int hashCode();
 
-    public static FrameType fromMemberType(MemberType memberType, DexItemFactory factory) {
+    public static FrameType fromPreciseMemberType(MemberType memberType, DexItemFactory factory) {
+      assert memberType.isPrecise();
       switch (memberType) {
         case OBJECT:
           return FrameType.initialized(factory.objectType);
@@ -224,10 +221,6 @@ public class CfFrame extends CfInstruction implements Cloneable {
           return FrameType.longType();
         case DOUBLE:
           return FrameType.doubleType();
-        case INT_OR_FLOAT:
-          return FrameType.oneWord();
-        case LONG_OR_DOUBLE:
-          return FrameType.twoWord();
         default:
           throw new Unreachable("Unexpected MemberType: " + memberType);
       }
@@ -293,10 +286,7 @@ public class CfFrame extends CfInstruction implements Cloneable {
       if (equals(frameType)) {
         return this;
       }
-      if (frameType.isOneWord() || frameType.isTop()) {
-        return frameType;
-      }
-      if (frameType.isUninitializedObject()) {
+      if (frameType.isOneWord() || frameType.isUninitializedObject()) {
         return oneWord();
       }
       assert frameType.isInitialized();
@@ -488,38 +478,6 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
   }
 
-  private static class Top extends SingletonFrameType implements SingleFrameType {
-
-    private static final Top SINGLETON = new Top();
-
-    private Top() {}
-
-    @Override
-    public SingleFrameType asSingle() {
-      return this;
-    }
-
-    @Override
-    public SingleFrameType join(SingleFrameType frameType) {
-      return this;
-    }
-
-    @Override
-    public String toString() {
-      return "top";
-    }
-
-    @Override
-    Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
-      return Opcodes.TOP;
-    }
-
-    @Override
-    public boolean isTop() {
-      return true;
-    }
-  }
-
   private static class UninitializedNew extends FrameType implements SingleFrameType {
 
     private final CfLabel label;
@@ -537,14 +495,7 @@ public class CfFrame extends CfInstruction implements Cloneable {
 
     @Override
     public SingleFrameType join(SingleFrameType frameType) {
-      if (equals(frameType)) {
-        return this;
-      }
-      // TODO(b/231126561): By unifying OneWord and Top, this could always return OneWord.
-      if (frameType.isTop()) {
-        return frameType;
-      }
-      return oneWord();
+      return equals(frameType) ? this : oneWord();
     }
 
     @Override
@@ -621,10 +572,6 @@ public class CfFrame extends CfInstruction implements Cloneable {
       if (this == frameType) {
         return this;
       }
-      // TODO(b/231126561): By unifying OneWord and Top, this could always return OneWord.
-      if (frameType.isTop()) {
-        return frameType;
-      }
       return oneWord();
     }
 
@@ -666,24 +613,28 @@ public class CfFrame extends CfInstruction implements Cloneable {
     private OneWord() {}
 
     @Override
+    public boolean isOneWord() {
+      return true;
+    }
+
+    @Override
+    public boolean isSpecific() {
+      return false;
+    }
+
+    @Override
     public SingleFrameType asSingle() {
       return this;
     }
 
     @Override
     public SingleFrameType join(SingleFrameType frameType) {
-      // TODO(b/231126561): By unifying OneWord and Top this could always return `this`.
-      return frameType.isTop() ? frameType : this;
+      return this;
     }
 
     @Override
     Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
-      throw new Unreachable("Should only be used for verification");
-    }
-
-    @Override
-    public boolean isOneWord() {
-      return true;
+      return Opcodes.TOP;
     }
 
     @Override
@@ -697,6 +648,16 @@ public class CfFrame extends CfInstruction implements Cloneable {
     private static final TwoWord SINGLETON = new TwoWord();
 
     private TwoWord() {}
+
+    @Override
+    public boolean isSpecific() {
+      return false;
+    }
+
+    @Override
+    public boolean isTwoWord() {
+      return true;
+    }
 
     @Override
     public boolean isWide() {
@@ -717,11 +678,6 @@ public class CfFrame extends CfInstruction implements Cloneable {
     @Override
     Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
       throw new Unreachable("Should only be used for verification");
-    }
-
-    @Override
-    public boolean isTwoWord() {
-      return true;
     }
 
     @Override

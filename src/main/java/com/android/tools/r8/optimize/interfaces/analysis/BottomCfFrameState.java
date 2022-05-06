@@ -59,24 +59,6 @@ public class BottomCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState pop(AppView<?> appView, FrameType expectedType) {
-    return error();
-  }
-
-  @Override
-  public CfFrameState pop(
-      AppView<?> appView,
-      FrameType expectedType,
-      BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
-    return error();
-  }
-
-  @Override
-  public CfFrameState pop(AppView<?> appView, FrameType... expectedTypes) {
-    return error();
-  }
-
-  @Override
   public CfFrameState popAndInitialize(
       AppView<?> appView, DexMethod constructor, ProgramMethod context) {
     return error();

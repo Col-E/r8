@@ -16,5 +16,9 @@ public interface WideFrameType {
 
   boolean isTwoWord();
 
+  default boolean lessThanOrEqualTo(WideFrameType frameType) {
+    return join(frameType) == frameType;
+  }
+
   WideFrameType join(WideFrameType frameType);
 }

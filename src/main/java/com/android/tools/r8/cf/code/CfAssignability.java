@@ -5,6 +5,8 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
+import com.android.tools.r8.cf.code.frame.SingleFrameType;
+import com.android.tools.r8.cf.code.frame.WideFrameType;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -18,22 +20,24 @@ import java.util.Iterator;
 
 public class CfAssignability {
 
+  public static boolean isFrameTypeAssignable(
+      FrameType source, FrameType target, AppView<?> appView) {
+    if (source.isSingle() != target.isSingle()) {
+      return false;
+    }
+    return source.isSingle()
+        ? isFrameTypeAssignable(source.asSingle(), target.asSingle(), appView)
+        : isFrameTypeAssignable(source.asWide(), target.asWide(), appView);
+  }
+
   // Based on https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.10.1.2.
-  public static boolean isAssignable(FrameType source, FrameType target, AppView<?> appView) {
-    if (target.isTop()) {
+  public static boolean isFrameTypeAssignable(
+      SingleFrameType source, SingleFrameType target, AppView<?> appView) {
+    if (source == target || target.isOneWord()) {
       return true;
     }
-    if (source.isTop()) {
+    if (source.isOneWord()) {
       return false;
-    }
-    if (source.isWide() != target.isWide()) {
-      return false;
-    }
-    if (target.isOneWord() || target.isTwoWord()) {
-      return true;
-    }
-    if (source.isUninitializedThis() && target.isUninitializedThis()) {
-      return true;
     }
     if (source.isUninitializedNew() && target.isUninitializedNew()) {
       // TODO(b/168190134): Allow for picking the offset from the target if not set.
@@ -45,17 +49,23 @@ public class CfAssignability {
     }
     // TODO(b/168190267): Clean-up the lattice.
     DexItemFactory factory = appView.dexItemFactory();
-    if (!source.isInitialized()
-        && target.isSingleInitialized()
-        && target.asSingleInitializedType().getInitializedType() == factory.objectType) {
-      return true;
-    }
-    if (source.isInitialized() && target.isInitialized()) {
-      // Both are instantiated types and we resort to primitive tyoe/java type hierarchy checking.
-      return isAssignable(
-          source.getInitializedType(factory), target.getInitializedType(factory), appView);
+    if (target.isInitialized()) {
+      if (source.isInitialized()) {
+        // Both are instantiated types and we resort to primitive type/java type hierarchy checking.
+        return isAssignable(
+            source.asSingleInitializedType().getInitializedType(),
+            target.asSingleInitializedType().getInitializedType(),
+            appView);
+      }
+      return target.asSingleInitializedType().getInitializedType() == factory.objectType;
     }
     return false;
+  }
+
+  public static boolean isFrameTypeAssignable(
+      WideFrameType source, WideFrameType target, AppView<?> appView) {
+    assert !source.isTwoWord();
+    return source.lessThanOrEqualTo(target);
   }
 
   // Rules found at https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.10.1.2
@@ -125,10 +135,14 @@ public class CfAssignability {
               + MapUtils.toString(targetLocals));
     }
     for (int i = 0; i < otherLocalsLastKey; i++) {
-      FrameType sourceType = sourceLocals.containsKey(i) ? sourceLocals.get(i) : FrameType.top();
+      FrameType sourceType =
+          sourceLocals.containsKey(i) ? sourceLocals.get(i) : FrameType.oneWord();
       FrameType destinationType =
-          targetLocals.containsKey(i) ? targetLocals.get(i) : FrameType.top();
-      if (!isAssignable(sourceType, destinationType, appView)) {
+          targetLocals.containsKey(i) ? targetLocals.get(i) : FrameType.oneWord();
+      if (sourceType.isWide() && destinationType.isOneWord()) {
+        destinationType = FrameType.twoWord();
+      }
+      if (!isFrameTypeAssignable(sourceType, destinationType, appView)) {
         return new FailedAssignabilityResult(
             "Could not assign '"
                 + MapUtils.toString(sourceLocals)
@@ -160,7 +174,11 @@ public class CfAssignability {
     int stackIndex = 0;
     for (FrameType sourceType : sourceStack) {
       FrameType destinationType = otherIterator.next();
-      if (!isAssignable(sourceType, destinationType, appView)) {
+      // TODO(b/231260627): By strengthening the stack to Deque<SpecificFrameType> the following
+      //  asserts would be trivial as a result of type checking.
+      assert sourceType.isSpecific();
+      assert destinationType.isSpecific();
+      if (!isFrameTypeAssignable(sourceType, destinationType, appView)) {
         return new FailedAssignabilityResult(
             "Could not assign '"
                 + Arrays.toString(sourceStack.toArray())

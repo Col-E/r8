@@ -659,7 +659,7 @@ public class CfSourceCode implements SourceCode {
     if (type.isUninitializedThis()) {
       return method.getHolderType();
     }
-    assert type.isTop();
+    assert type.isOneWord();
     return null;
   }
 

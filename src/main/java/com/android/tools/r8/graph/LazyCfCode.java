@@ -469,7 +469,7 @@ public class LazyCfCode extends Code {
       } else if (localType == Opcodes.UNINITIALIZED_THIS) {
         return FrameType.uninitializedThis();
       } else if (localType == null || localType == Opcodes.TOP) {
-        return FrameType.top();
+        return FrameType.oneWord();
       } else {
         return FrameType.initialized(parseAsmType(localType));
       }

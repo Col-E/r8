@@ -527,8 +527,10 @@ public class CfCodePrinter extends CfPrinter {
   }
 
   private String frameTypeType(FrameType frameType) {
-    if (frameType.isTop()) {
-      return frameTypeType() + ".top()";
+    if (frameType.isOneWord()) {
+      return frameTypeType() + ".oneWord()";
+    } else if (frameType.isTwoWord()) {
+      return frameTypeType() + ".twoWord()";
     } else if (frameType.isUninitializedThis()) {
       return frameTypeType() + ".uninitializedThis()";
     } else if (frameType.isUninitializedNew()) {

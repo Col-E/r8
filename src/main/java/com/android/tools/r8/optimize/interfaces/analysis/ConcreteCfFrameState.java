@@ -106,32 +106,6 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState pop(AppView<?> appView, FrameType expectedType) {
-    return pop(appView, expectedType, (newFrame, ignore) -> newFrame);
-  }
-
-  @Override
-  public CfFrameState pop(
-      AppView<?> appView,
-      FrameType expectedType,
-      BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
-    return pop(
-        (state, frameType) ->
-            CfAssignability.isAssignable(frameType, expectedType, appView)
-                ? fn.apply(state, frameType)
-                : error());
-  }
-
-  @Override
-  public CfFrameState pop(AppView<?> appView, FrameType... expectedTypes) {
-    CfFrameState state = this;
-    for (int i = expectedTypes.length - 1; i >= 0; i--) {
-      state = state.pop(appView, expectedTypes[i]);
-    }
-    return state;
-  }
-
-  @Override
   public CfFrameState popAndInitialize(
       AppView<?> appView, DexMethod constructor, ProgramMethod context) {
     return pop(
@@ -364,7 +338,7 @@ public class ConcreteCfFrameState extends CfFrameState {
 
       // Verify that the low part of the current local has been set to top.
       assert builder.hasLocal(currentLocalIndex);
-      assert builder.getLocal(currentLocalIndex).isTop();
+      assert builder.getLocal(currentLocalIndex).isOneWord();
 
       // If the current local is not a wide, then we're done.
       if (currentFrameType.isSingle()) {
@@ -395,7 +369,7 @@ public class ConcreteCfFrameState extends CfFrameState {
 
   private void setSingleLocalToTop(int localIndex, CfFrame.Builder builder) {
     assert !builder.hasLocal(localIndex);
-    builder.store(localIndex, FrameType.top());
+    builder.store(localIndex, FrameType.oneWord());
   }
 
   private void setWideLocalToTop(int localIndex, CfFrame.Builder builder) {
@@ -414,14 +388,19 @@ public class ConcreteCfFrameState extends CfFrameState {
       if (frameType.isSingle() != otherFrameType.isSingle()) {
         return error();
       }
-      FrameType join =
-          frameType.isSingle()
-              ? frameType.asSingle().join(otherFrameType.asSingle()).asFrameType()
-              : frameType.asWide().join(otherFrameType.asWide()).asFrameType();
-      if (join.isTop()) {
-        return error();
+      if (frameType.isSingle()) {
+        SingleFrameType join = frameType.asSingle().join(otherFrameType.asSingle());
+        if (join.isOneWord()) {
+          return error();
+        }
+        builder.push(join.asFrameType());
+      } else {
+        WideFrameType join = frameType.asWide().join(otherFrameType.asWide());
+        if (join.isTwoWord()) {
+          return error();
+        }
+        builder.push(join.asFrameType());
       }
-      builder.push(join);
     }
     return null;
   }

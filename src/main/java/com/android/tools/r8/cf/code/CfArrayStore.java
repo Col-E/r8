@@ -33,6 +33,7 @@ public class CfArrayStore extends CfInstruction {
   private final MemberType type;
 
   public CfArrayStore(MemberType type) {
+    assert type.isPrecise();
     this.type = type;
   }
 
@@ -125,7 +126,7 @@ public class CfArrayStore extends CfInstruction {
     // ..., arrayref, index, value →
     // ...
     frameBuilder
-        .popAndDiscard(FrameType.fromMemberType(type, dexItemFactory))
+        .popAndDiscard(FrameType.fromPreciseMemberType(type, dexItemFactory))
         .popAndDiscardInitialized(dexItemFactory.objectArrayType, dexItemFactory.intType);
   }
 

@@ -135,7 +135,7 @@ public class CfArrayLoad extends CfInstruction {
     // ..., arrayref, index →
     // ..., value
     frameBuilder.popAndDiscardInitialized(dexItemFactory.objectArrayType, dexItemFactory.intType);
-    frameBuilder.push(FrameType.fromMemberType(type, dexItemFactory));
+    frameBuilder.push(FrameType.fromPreciseMemberType(type, dexItemFactory));
   }
 
   @Override

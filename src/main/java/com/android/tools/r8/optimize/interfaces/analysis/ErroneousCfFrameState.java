@@ -55,24 +55,6 @@ public class ErroneousCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState pop(AppView<?> appView, FrameType expectedType) {
-    return this;
-  }
-
-  @Override
-  public CfFrameState pop(
-      AppView<?> appView,
-      FrameType expectedType,
-      BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
-    return this;
-  }
-
-  @Override
-  public CfFrameState pop(AppView<?> appView, FrameType... expectedTypes) {
-    return this;
-  }
-
-  @Override
   public CfFrameState popAndInitialize(
       AppView<?> appView, DexMethod constructor, ProgramMethod context) {
     return this;

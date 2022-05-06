@@ -8,6 +8,7 @@ import com.android.tools.r8.cf.code.CfAssignability;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -62,15 +63,6 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
 
   public abstract CfFrameState pop(BiFunction<CfFrameState, FrameType, CfFrameState> fn);
 
-  public abstract CfFrameState pop(AppView<?> appView, FrameType expectedType);
-
-  public abstract CfFrameState pop(AppView<?> appView, FrameType... expectedTypes);
-
-  public abstract CfFrameState pop(
-      AppView<?> appView,
-      FrameType expectedType,
-      BiFunction<CfFrameState, FrameType, CfFrameState> fn);
-
   public abstract CfFrameState popAndInitialize(
       AppView<?> appView, DexMethod constructor, ProgramMethod context);
 
@@ -86,7 +78,11 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
   public abstract CfFrameState popInitialized(AppView<?> appView, DexType... expectedTypes);
 
   public final CfFrameState popInitialized(AppView<?> appView, MemberType memberType) {
-    return pop(appView, FrameType.fromMemberType(memberType, appView.dexItemFactory()));
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    return popInitialized(
+        appView,
+        FrameType.fromPreciseMemberType(memberType, dexItemFactory)
+            .getInitializedType(dexItemFactory));
   }
 
   public final CfFrameState popInitialized(AppView<?> appView, NumericType expectedType) {
@@ -200,7 +196,7 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
   }
 
   public final CfFrameState push(AppView<?> appView, MemberType memberType) {
-    return push(FrameType.fromMemberType(memberType, appView.dexItemFactory()));
+    return push(FrameType.fromPreciseMemberType(memberType, appView.dexItemFactory()));
   }
 
   public final CfFrameState push(AppView<?> appView, NumericType numericType) {

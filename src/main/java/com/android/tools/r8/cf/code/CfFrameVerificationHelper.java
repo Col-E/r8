@@ -279,7 +279,7 @@ public class CfFrameVerificationHelper {
   }
 
   public void checkIsAssignable(FrameType source, FrameType target) {
-    if (!CfAssignability.isAssignable(source, target, appView)) {
+    if (!CfAssignability.isFrameTypeAssignable(source, target, appView)) {
       throw CfCodeStackMapValidatingException.error(
           "The expected type " + source + " is not assignable to " + target);
     }

@@ -373,8 +373,7 @@ public class CfStackInstruction extends CfInstruction {
         // ..., value →
         // ...
         final FrameType pop = frameBuilder.pop();
-        if (!pop.isWide()) {
-          frameBuilder.checkIsAssignable(pop, FrameType.oneWord());
+        if (pop.isSingle()) {
           frameBuilder.pop(FrameType.oneWord());
         }
         return;
@@ -404,8 +403,7 @@ public class CfStackInstruction extends CfInstruction {
           // ..., value1, value2, value1
           FrameType value1 = frameBuilder.pop(FrameType.oneWord());
           FrameType value2 = frameBuilder.pop();
-          if (!value2.isWide()) {
-            frameBuilder.checkIsAssignable(value2, FrameType.oneWord());
+          if (value2.isSingle()) {
             FrameType value3 = frameBuilder.pop(FrameType.oneWord());
             frameBuilder.push(value1).push(value3);
           } else {
@@ -422,8 +420,7 @@ public class CfStackInstruction extends CfInstruction {
           // ..., value →
           // ..., value, value
           FrameType value1 = frameBuilder.pop();
-          if (!value1.isWide()) {
-            frameBuilder.checkIsAssignable(value1, FrameType.oneWord());
+          if (value1.isSingle()) {
             FrameType value2 = frameBuilder.pop(FrameType.oneWord());
             frameBuilder.push(value2).push(value1).push(value2);
           } else {
@@ -441,8 +438,7 @@ public class CfStackInstruction extends CfInstruction {
           // ..., value1, value2, value1
           FrameType value1 = frameBuilder.pop();
           FrameType value2 = frameBuilder.pop(FrameType.oneWord());
-          if (!value1.isWide()) {
-            frameBuilder.checkIsAssignable(value1, FrameType.oneWord());
+          if (value1.isSingle()) {
             FrameType value3 = frameBuilder.pop(FrameType.oneWord());
             frameBuilder.push(value2).push(value1).push(value3);
           } else {
@@ -467,14 +463,11 @@ public class CfStackInstruction extends CfInstruction {
           // ..., value2, value1 →
           // ..., value1, value2, value1
           FrameType value1 = frameBuilder.pop();
-          FrameType value2 = frameBuilder.pop();
-          if (!value1.isWide()) {
+          if (value1.isSingle()) {
+            FrameType value2 = frameBuilder.pop(FrameType.oneWord());
             FrameType value3 = frameBuilder.pop();
-            if (!value3.isWide()) {
+            if (value3.isSingle()) {
               // (1)
-              frameBuilder.checkIsAssignable(value1, FrameType.oneWord());
-              frameBuilder.checkIsAssignable(value2, FrameType.oneWord());
-              frameBuilder.checkIsAssignable(value3, FrameType.oneWord());
               FrameType value4 = frameBuilder.pop(FrameType.oneWord());
               frameBuilder
                   .push(value2)
@@ -485,19 +478,18 @@ public class CfStackInstruction extends CfInstruction {
                   .push(value1);
             } else {
               // (3)
-              frameBuilder.checkIsAssignable(value1, FrameType.oneWord());
-              frameBuilder.checkIsAssignable(value2, FrameType.oneWord());
               frameBuilder.push(value2).push(value1).push(value3).push(value2).push(value1);
             }
-          } else if (!value2.isWide()) {
-            // (2)
-            frameBuilder.checkIsAssignable(value2, FrameType.oneWord());
-            FrameType value3 = frameBuilder.pop(FrameType.oneWord());
-            frameBuilder.push(value1).push(value3).push(value2).push(value1);
           } else {
-            // (4)
-            assert value2.isWide();
-            frameBuilder.push(value1).push(value2).push(value1);
+            FrameType value2 = frameBuilder.pop();
+            if (value2.isSingle()) {
+              // (2)
+              FrameType value3 = frameBuilder.pop(FrameType.oneWord());
+              frameBuilder.push(value1).push(value3).push(value2).push(value1);
+            } else {
+              // (4)
+              frameBuilder.push(value1).push(value2).push(value1);
+            }
           }
           return;
         }

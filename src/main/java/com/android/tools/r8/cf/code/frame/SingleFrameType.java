@@ -6,6 +6,7 @@ package com.android.tools.r8.cf.code.frame;
 
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.CfFrame.SingleInitializedType;
+import com.android.tools.r8.graph.DexType;
 
 public interface SingleFrameType {
 
@@ -19,11 +20,11 @@ public interface SingleFrameType {
 
   boolean isOneWord();
 
-  boolean isTop();
+  boolean isUninitializedNew();
+
+  DexType getUninitializedNewType();
 
   boolean isUninitializedObject();
-
-  boolean isUninitializedThis();
 
   SingleFrameType join(SingleFrameType frameType);
 }
