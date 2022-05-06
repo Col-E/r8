@@ -6,6 +6,7 @@ package com.android.tools.r8.cf.code.frame;
 
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.CfFrame.SingleInitializedType;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 
 public interface SingleFrameType {
@@ -14,11 +15,17 @@ public interface SingleFrameType {
 
   boolean isInitialized();
 
+  DexType getInitializedType(DexItemFactory dexItemFactory);
+
+  boolean isInt();
+
   SingleInitializedType asSingleInitializedType();
 
   boolean isNullType();
 
   boolean isOneWord();
+
+  boolean isPrimitive();
 
   boolean isUninitializedNew();
 

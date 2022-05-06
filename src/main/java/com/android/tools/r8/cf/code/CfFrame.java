@@ -56,13 +56,21 @@ public class CfFrame extends CfInstruction implements Cloneable {
       return DoubleFrameType.SINGLETON;
     }
 
+    public static IntFrameType intType() {
+      return IntFrameType.SINGLETON;
+    }
+
     public static LongFrameType longType() {
       return LongFrameType.SINGLETON;
     }
 
     public static FrameType initialized(DexType type) {
-      if (type.isWideType()) {
-        return type.isDoubleType() ? doubleType() : longType();
+      if (type.isPrimitiveType()) {
+        if (type.isWideType()) {
+          return type.isDoubleType() ? doubleType() : longType();
+        } else if (type.isIntType()) {
+          return intType();
+        }
       }
       return new SingleInitializedType(type);
     }
@@ -93,6 +101,10 @@ public class CfFrame extends CfInstruction implements Cloneable {
       return false;
     }
 
+    public boolean isInt() {
+      return false;
+    }
+
     public boolean isLong() {
       return false;
     }
@@ -108,6 +120,10 @@ public class CfFrame extends CfInstruction implements Cloneable {
     public DexType getObjectType(ProgramMethod context) {
       assert false : "Unexpected use of getObjectType() for non-object FrameType";
       return null;
+    }
+
+    public boolean isPrimitive() {
+      return false;
     }
 
     public final boolean isSingle() {
@@ -267,12 +283,74 @@ public class CfFrame extends CfInstruction implements Cloneable {
     return CfCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
   }
 
+  public abstract static class SinglePrimitiveType extends SingletonFrameType
+      implements SingleFrameType {
+
+    @Override
+    public boolean isInitialized() {
+      return true;
+    }
+
+    @Override
+    public boolean isPrimitive() {
+      return true;
+    }
+
+    @Override
+    public SingleFrameType asSingle() {
+      return this;
+    }
+  }
+
+  public static class IntFrameType extends SinglePrimitiveType {
+
+    private static final IntFrameType SINGLETON = new IntFrameType();
+
+    private IntFrameType() {}
+
+    @Override
+    public DexType getInitializedType(DexItemFactory dexItemFactory) {
+      return dexItemFactory.intType;
+    }
+
+    @Override
+    public boolean isInt() {
+      return true;
+    }
+
+    @Override
+    Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
+      return Opcodes.INTEGER;
+    }
+
+    @Override
+    public SingleFrameType join(SingleFrameType frameType) {
+      if (this == frameType) {
+        return this;
+      }
+      if (frameType.isOneWord() || frameType.isUninitializedObject()) {
+        return oneWord();
+      }
+      assert frameType.isInitialized();
+      return CfAssignability.hasIntVerificationType(
+              frameType.asSingleInitializedType().getInitializedType())
+          ? this
+          : oneWord();
+    }
+
+    @Override
+    public String toString() {
+      return "int";
+    }
+  }
+
   public static class SingleInitializedType extends FrameType implements SingleFrameType {
 
     private final DexType type;
 
     private SingleInitializedType(DexType type) {
       assert type != null;
+      assert !type.isIntType();
       this.type = type;
     }
 
@@ -290,11 +368,20 @@ public class CfFrame extends CfInstruction implements Cloneable {
         return oneWord();
       }
       assert frameType.isInitialized();
+      if (frameType.isPrimitive()) {
+        if (frameType.isInt()) {
+          return CfAssignability.hasIntVerificationType(type) ? frameType : oneWord();
+        }
+        // The rest of the primitives are still represented using SingleInitializedType.
+        DexType otherType = frameType.asSingleInitializedType().getInitializedType();
+        return CfAssignability.hasIntVerificationType(type)
+                && CfAssignability.hasIntVerificationType(otherType)
+            ? intType()
+            : oneWord();
+      }
       DexType otherType = frameType.asSingleInitializedType().getInitializedType();
       assert type != otherType;
       if (type.isPrimitiveType()) {
-        // TODO(b/214496607): Should two different non-wide primitives join to int instead of
-        //  OneWord?
         return oneWord();
       }
       assert type.isReferenceType();
@@ -370,6 +457,11 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
 
     @Override
+    public boolean isPrimitive() {
+      return type.isPrimitiveType();
+    }
+
+    @Override
     public boolean isSingleInitialized() {
       return true;
     }
@@ -405,6 +497,11 @@ public class CfFrame extends CfInstruction implements Cloneable {
 
     @Override
     public boolean isInitialized() {
+      return true;
+    }
+
+    @Override
+    public boolean isPrimitive() {
       return true;
     }
 

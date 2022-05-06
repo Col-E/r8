@@ -455,17 +455,22 @@ public class CfPrinter {
   }
 
   private void print(FrameType type) {
-    if (type.isUninitializedNew()) {
-      builder.append("uninitialized ").append(getLabel(type.getUninitializedLabel()));
-    } else if (type.isInitialized()) {
-      if (type.isSingle()) {
-        appendType(type.asSingleInitializedType().getInitializedType());
+    if (type.isPrimitive()) {
+      if (type.isInt()) {
+        builder.append("int");
       } else if (type.isDouble()) {
         builder.append("double");
-      } else {
+      } else if (type.isLong()) {
         assert type.isLong();
         builder.append("long");
+      } else {
+        assert type.isSingleInitialized();
+        appendType(type.asSingleInitializedType().getInitializedType());
       }
+    } else if (type.isInitialized()) {
+      appendType(type.asSingleInitializedType().getInitializedType());
+    } else if (type.isUninitializedNew()) {
+      builder.append("uninitialized ").append(getLabel(type.getUninitializedLabel()));
     } else {
       builder.append(type.toString());
     }

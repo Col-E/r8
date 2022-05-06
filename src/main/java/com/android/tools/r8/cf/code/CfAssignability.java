@@ -53,9 +53,7 @@ public class CfAssignability {
       if (source.isInitialized()) {
         // Both are instantiated types and we resort to primitive type/java type hierarchy checking.
         return isAssignable(
-            source.asSingleInitializedType().getInitializedType(),
-            target.asSingleInitializedType().getInitializedType(),
-            appView);
+            source.getInitializedType(factory), target.getInitializedType(factory), appView);
       }
       return target.asSingleInitializedType().getInitializedType() == factory.objectType;
     }
@@ -105,10 +103,15 @@ public class CfAssignability {
 
   private static DexType byteCharShortOrBooleanToInt(DexType type, DexItemFactory factory) {
     // byte, char, short and boolean has verification type int.
-    if (type.isByteType() || type.isCharType() || type.isShortType() || type.isBooleanType()) {
-      return factory.intType;
-    }
-    return type;
+    return hasIntVerificationType(type) ? factory.intType : type;
+  }
+
+  public static boolean hasIntVerificationType(DexType type) {
+    return type.isBooleanType()
+        || type.isByteType()
+        || type.isCharType()
+        || type.isIntType()
+        || type.isShortType();
   }
 
   public static AssignabilityResult isFrameAssignable(
