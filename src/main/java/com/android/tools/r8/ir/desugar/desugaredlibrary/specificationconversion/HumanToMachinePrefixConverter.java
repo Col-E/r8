@@ -104,11 +104,6 @@ public class HumanToMachinePrefixConverter {
   }
 
   private void registerClassType(DexType type) {
-    // TODO(b/222647019): To remove, the problem is that the prefix java.nio.channels.FileChannel
-    //  matches java.nio.channels.FileChannel$MapMode.
-    if (type.toString().equals("java.nio.channels.FileChannel$MapMode")) {
-      return;
-    }
     registerType(type);
     registerMaintainType(type);
     registerDifferentType(type);
