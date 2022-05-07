@@ -535,12 +535,24 @@ public class CfCodePrinter extends CfPrinter {
       return frameTypeType() + ".uninitializedThis()";
     } else if (frameType.isUninitializedNew()) {
       return frameTypeType() + ".uninitializedNew(new " + cfType("CfLabel") + "())";
-    } else if (frameType.isWide()) {
-      if (frameType.isDouble()) {
-        return frameTypeType() + ".doubleType()";
+    } else if (frameType.isPrimitive()) {
+      if (frameType.isSingle()) {
+        if (frameType.isInt()) {
+          return frameTypeType() + ".intType()";
+        } else {
+          return frameTypeType()
+              + ".initialized("
+              + dexType(frameType.asSingleInitializedType().getInitializedType())
+              + ")";
+        }
       } else {
-        assert frameType.isLong();
-        return frameTypeType() + ".longType()";
+        assert frameType.isWide();
+        if (frameType.isDouble()) {
+          return frameTypeType() + ".doubleType()";
+        } else {
+          assert frameType.isLong();
+          return frameTypeType() + ".longType()";
+        }
       }
     } else {
       assert frameType.isInitialized();

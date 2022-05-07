@@ -203,7 +203,7 @@ public final class RecordCfMethods {
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.createType("[Ljava/lang/String;")),
                       FrameType.initialized(options.itemFactory.stringBuilderType),
-                      FrameType.initialized(options.itemFactory.intType)
+                      FrameType.intType()
                     })),
             new CfLoad(ValueType.INT, 5),
             new CfLoad(ValueType.OBJECT, 3),
@@ -272,7 +272,7 @@ public final class RecordCfMethods {
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.createType("[Ljava/lang/String;")),
                       FrameType.initialized(options.itemFactory.stringBuilderType),
-                      FrameType.initialized(options.itemFactory.intType)
+                      FrameType.intType()
                     })),
             new CfIinc(5, 1),
             new CfGoto(label6),

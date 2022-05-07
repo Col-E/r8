@@ -65,11 +65,7 @@ public final class EnumUnboxingCfMethods {
             label1,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
-                    new int[] {0, 1},
-                    new FrameType[] {
-                      FrameType.initialized(options.itemFactory.intType),
-                      FrameType.initialized(options.itemFactory.intType)
-                    })),
+                    new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()})),
             new CfNew(options.itemFactory.createType("Ljava/lang/NullPointerException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
@@ -83,11 +79,7 @@ public final class EnumUnboxingCfMethods {
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
-                    new int[] {0, 1},
-                    new FrameType[] {
-                      FrameType.initialized(options.itemFactory.intType),
-                      FrameType.initialized(options.itemFactory.intType)
-                    })),
+                    new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()})),
             new CfLoad(ValueType.INT, 0),
             new CfLoad(ValueType.INT, 1),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
@@ -126,11 +118,7 @@ public final class EnumUnboxingCfMethods {
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
-                    new int[] {0, 1},
-                    new FrameType[] {
-                      FrameType.initialized(options.itemFactory.intType),
-                      FrameType.initialized(options.itemFactory.intType)
-                    })),
+                    new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()})),
             new CfLoad(ValueType.INT, 0),
             new CfLoad(ValueType.INT, 1),
             new CfIfCmp(If.Type.NE, ValueType.INT, label3),
@@ -139,22 +127,13 @@ public final class EnumUnboxingCfMethods {
             label3,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
-                    new int[] {0, 1},
-                    new FrameType[] {
-                      FrameType.initialized(options.itemFactory.intType),
-                      FrameType.initialized(options.itemFactory.intType)
-                    })),
+                    new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()})),
             new CfConstNumber(0, ValueType.INT),
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
-                    new int[] {0, 1},
-                    new FrameType[] {
-                      FrameType.initialized(options.itemFactory.intType),
-                      FrameType.initialized(options.itemFactory.intType)
-                    }),
-                new ArrayDeque<>(
-                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
+                    new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()}),
+                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
             label5),
         ImmutableList.of(),
@@ -187,9 +166,7 @@ public final class EnumUnboxingCfMethods {
             new CfThrow(),
             label2,
             new CfFrame(
-                new Int2ObjectAVLTreeMap<>(
-                    new int[] {0},
-                    new FrameType[] {FrameType.initialized(options.itemFactory.intType)})),
+                new Int2ObjectAVLTreeMap<>(new int[] {0}, new FrameType[] {FrameType.intType()})),
             new CfLoad(ValueType.INT, 0),
             new CfConstNumber(1, ValueType.INT),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
@@ -224,9 +201,9 @@ public final class EnumUnboxingCfMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.intType),
+                      FrameType.intType(),
                       FrameType.initialized(options.itemFactory.intArrayType),
-                      FrameType.initialized(options.itemFactory.intType)
+                      FrameType.intType()
                     })),
             new CfLoad(ValueType.INT, 2),
             new CfLoad(ValueType.OBJECT, 1),
@@ -247,8 +224,7 @@ public final class EnumUnboxingCfMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.intType),
-                      FrameType.initialized(options.itemFactory.intArrayType)
+                      FrameType.intType(), FrameType.initialized(options.itemFactory.intArrayType)
                     })),
             new CfLoad(ValueType.OBJECT, 1),
             new CfReturn(ValueType.OBJECT),
@@ -283,9 +259,7 @@ public final class EnumUnboxingCfMethods {
             new CfThrow(),
             label2,
             new CfFrame(
-                new Int2ObjectAVLTreeMap<>(
-                    new int[] {0},
-                    new FrameType[] {FrameType.initialized(options.itemFactory.intType)})),
+                new Int2ObjectAVLTreeMap<>(new int[] {0}, new FrameType[] {FrameType.intType()})),
             new CfReturnVoid(),
             label3),
         ImmutableList.of(),
@@ -324,8 +298,7 @@ public final class EnumUnboxingCfMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.intType),
-                      FrameType.initialized(options.itemFactory.stringType)
+                      FrameType.intType(), FrameType.initialized(options.itemFactory.stringType)
                     })),
             new CfReturnVoid(),
             label3),

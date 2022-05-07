@@ -247,7 +247,7 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
   }
 
-  private abstract static class SingletonFrameType extends FrameType {
+  public abstract static class SingletonFrameType extends FrameType {
 
     @Override
     public final boolean equals(Object obj) {
@@ -492,7 +492,7 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
   }
 
-  private abstract static class WideInitializedType extends SingletonFrameType
+  public abstract static class WideInitializedType extends SingletonFrameType
       implements WideFrameType {
 
     @Override
@@ -548,7 +548,7 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
   }
 
-  private static class LongFrameType extends WideInitializedType {
+  public static class LongFrameType extends WideInitializedType {
 
     private static final LongFrameType SINGLETON = new LongFrameType();
 
