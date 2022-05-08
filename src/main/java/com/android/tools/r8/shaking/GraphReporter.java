@@ -162,9 +162,15 @@ public class GraphReporter {
   }
 
   KeepReasonWitness reportKeepField(
-      DexDefinition precondition, Collection<ProguardKeepRuleBase> rules, DexEncodedField field) {
-    assert !rules.isEmpty() || !options.isShrinking();
+      DexDefinition precondition,
+      Collection<KeepReason> reasons,
+      Collection<ProguardKeepRuleBase> rules,
+      DexEncodedField field) {
+    assert !reasons.isEmpty() || !rules.isEmpty() || !options.isShrinking();
     if (keptGraphConsumer != null) {
+      for (KeepReason reason : reasons) {
+        registerField(field, reason);
+      }
       for (ProguardKeepRuleBase rule : rules) {
         reportKeepField(precondition, rule, field);
       }

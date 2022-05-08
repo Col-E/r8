@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.shaking.KeepInfo.Builder;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -477,6 +478,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
     // The set of rules that have contributed to this joiner. These are only needed for the
     // interpretation of keep rules into keep info, and is therefore not stored in the keep info
     // builder above.
+    final Set<KeepReason> reasons = new HashSet<>();
     final Set<ProguardKeepRuleBase> rules = Sets.newIdentityHashSet();
 
     Joiner(B builder) {
@@ -506,6 +508,10 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       return null;
     }
 
+    public Set<KeepReason> getReasons() {
+      return reasons;
+    }
+
     public Set<ProguardKeepRuleBase> getRules() {
       return rules;
     }
@@ -532,6 +538,11 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     public J top() {
       builder.makeTop();
+      return self();
+    }
+
+    public J addReason(KeepReason reason) {
+      reasons.add(reason);
       return self();
     }
 
@@ -592,6 +603,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       applyIf(
           builder.isAccessModificationRequiredForRepackaging(),
           Joiner::requireAccessModificationForRepackaging);
+      reasons.addAll(joiner.reasons);
       rules.addAll(joiner.rules);
       return self();
     }
@@ -610,7 +622,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     public boolean verifyShrinkingDisallowedWithRule(InternalOptions options) {
       assert !isShrinkingAllowed();
-      assert !getRules().isEmpty() || !options.isShrinking();
+      assert !getReasons().isEmpty() || !getRules().isEmpty() || !options.isShrinking();
       return true;
     }
   }

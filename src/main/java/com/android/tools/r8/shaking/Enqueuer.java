@@ -944,7 +944,10 @@ public class Enqueuer {
     workList.enqueueMarkFieldKeptAction(
         field,
         graphReporter.reportKeepField(
-            precondition, minimumKeepInfo.getRules(), field.getDefinition()));
+            precondition,
+            minimumKeepInfo.getReasons(),
+            minimumKeepInfo.getRules(),
+            field.getDefinition()));
   }
 
   private void enqueueMethodDueToNoShrinkingRule(
@@ -3543,7 +3546,7 @@ public class Enqueuer {
               (clazz, minimumKeepInfo) ->
                   applyMinimumKeepInfoWhenLive(clazz, preconditionEvent, minimumKeepInfo),
               (field, minimumKeepInfo) ->
-                  applyMinimumKeepInfoWhenLive(field, preconditionEvent, minimumKeepInfo),
+                  applyMinimumKeepInfoWhenLive(field, minimumKeepInfo, preconditionEvent),
               this::applyMinimumKeepInfoWhenLiveOrTargeted);
     }
     enqueueAllIfNotShrinking();
@@ -3637,7 +3640,12 @@ public class Enqueuer {
   }
 
   private void applyMinimumKeepInfoWhenLive(
-      ProgramField field, EnqueuerEvent preconditionEvent, KeepFieldInfo.Joiner minimumKeepInfo) {
+      ProgramField field, KeepFieldInfo.Joiner minimumKeepInfo) {
+    applyMinimumKeepInfoWhenLive(field, minimumKeepInfo, EnqueuerEvent.unconditional());
+  }
+
+  private void applyMinimumKeepInfoWhenLive(
+      ProgramField field, KeepFieldInfo.Joiner minimumKeepInfo, EnqueuerEvent preconditionEvent) {
     if (liveFields.contains(field)) {
       keepInfo.joinField(field, info -> info.merge(minimumKeepInfo));
     } else {
@@ -3660,7 +3668,7 @@ public class Enqueuer {
   private void recordDependentMinimumKeepInfo(
       EnqueuerEvent preconditionEvent, ProgramField field, KeepFieldInfo.Joiner minimumKeepInfo) {
     if (isPreconditionForMinimumKeepInfoSatisfied(preconditionEvent)) {
-      applyMinimumKeepInfoWhenLive(field, preconditionEvent, minimumKeepInfo);
+      applyMinimumKeepInfoWhenLive(field, minimumKeepInfo, preconditionEvent);
     } else {
       dependentMinimumKeepInfo
           .getOrCreateMinimumKeepInfoFor(preconditionEvent)
@@ -3741,7 +3749,7 @@ public class Enqueuer {
           (clazz, minimumKeepInfoForClass) ->
               applyMinimumKeepInfoWhenLive(clazz, preconditionEvent, minimumKeepInfoForClass),
           (field, minimumKeepInfoForField) ->
-              applyMinimumKeepInfoWhenLive(field, preconditionEvent, minimumKeepInfoForField),
+              applyMinimumKeepInfoWhenLive(field, minimumKeepInfoForField, preconditionEvent),
           (method, minimumKeepInfoForMethod) ->
               applyMinimumKeepInfoWhenLiveOrTargeted(
                   method, minimumKeepInfoForMethod, preconditionEvent));
@@ -4841,9 +4849,12 @@ public class Enqueuer {
       }
       if (keepInfo.getFieldInfo(encodedField, clazz).isShrinkingAllowed(options)) {
         ProgramField programField = new ProgramField(clazz, encodedField);
-        keepInfo.joinField(
-            programField, joiner -> joiner.disallowOptimization().disallowShrinking());
-        markFieldAsKept(programField, KeepReason.reflectiveUseIn(method));
+        applyMinimumKeepInfoWhenLive(
+            programField,
+            KeepFieldInfo.newEmptyJoiner()
+                .disallowOptimization()
+                .disallowShrinking()
+                .addReason(KeepReason.reflectiveUseIn(method)));
       }
     } else {
       assert referencedItem.isDexMethod();

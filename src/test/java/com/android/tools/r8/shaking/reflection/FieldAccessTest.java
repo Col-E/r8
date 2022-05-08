@@ -8,7 +8,8 @@ import static com.android.tools.r8.references.Reference.methodFromMethod;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -18,20 +19,18 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class FieldAccessTest extends TestBase {
 
-  private final Backend backend;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
-
-  public FieldAccessTest(Backend backend) {
-    this.backend = backend;
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private boolean isInvokeGetField(InstructionSubject instruction) {
@@ -45,27 +44,30 @@ public class FieldAccessTest extends TestBase {
         methodFromMethod(testClass.getDeclaredMethod("main", String[].class));
     FieldReference fooField = fieldFromField(testClass.getDeclaredField("foo"));
 
-    testForR8(Backend.DEX)
+    testForR8(parameters.getBackend())
         .enableGraphInspector()
         .addProgramClasses(testClass)
         .addKeepMainRule(testClass)
-        .run(testClass)
-        .inspectGraph(inspector -> {
-          // The only root should be the keep annotation rule.
-          assertEquals(1, inspector.getRoots().size());
-          QueryNode root = inspector.rule(Origin.unknown(), 1, 1).assertRoot();
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), testClass)
+        .inspectGraph(
+            inspector -> {
+              // The only root should be the keep annotation rule.
+              assertEquals(1, inspector.getRoots().size());
+              QueryNode root = inspector.rule(Origin.unknown(), 1, 1).assertRoot();
 
-          inspector.method(mainMethod).assertNotRenamed().assertKeptBy(root);
-          inspector.field(fooField).assertRenamed();
-        })
-        .inspect(inspector -> {
-          Assert.assertTrue(
-              inspector
-                  .clazz(testClass)
-                  .uniqueMethodWithName("main")
-                  .streamInstructions()
-                  .anyMatch(this::isInvokeGetField));
-        })
+              inspector.method(mainMethod).assertNotRenamed().assertKeptBy(root);
+              inspector.field(fooField).assertRenamed();
+            })
+        .inspect(
+            inspector -> {
+              Assert.assertTrue(
+                  inspector
+                      .clazz(testClass)
+                      .uniqueMethodWithName("main")
+                      .streamInstructions()
+                      .anyMatch(this::isInvokeGetField));
+            })
         .assertSuccessWithOutput("42");
   }
 
