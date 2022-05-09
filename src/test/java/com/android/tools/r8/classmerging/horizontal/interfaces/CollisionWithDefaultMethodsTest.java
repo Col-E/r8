@@ -42,12 +42,16 @@ public class CollisionWithDefaultMethodsTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getApiLevel())
         .addKeepRules("-keep class ** { *; }")
+        .addHorizontallyMergedClassesInspector(
+            inspector -> {
+              if (parameters.isCfRuntime()
+                  || (parameters.isDexRuntime()
+                      && parameters.canUseDefaultAndStaticInterfaceMethods())) {
+                inspector.assertNoClassesMerged();
+              }
+            })
         .run(parameters.getRuntime(), TestClass.class)
-        // TODO(b/229951607): This should never throw ICCE.
-        .applyIf(
-            parameters.isDexRuntime() && hasDefaultInterfaceMethodsSupport(parameters),
-            r -> r.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class),
-            r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT));
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   static class Event {}
