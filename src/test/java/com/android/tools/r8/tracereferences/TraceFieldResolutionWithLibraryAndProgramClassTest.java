@@ -15,6 +15,7 @@ import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.transformers.ClassFileTransformer.FieldPredicate;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
@@ -83,14 +84,18 @@ public class TraceFieldResolutionWithLibraryAndProgramClassTest extends TestBase
                 ToolHelper.getClassPathForTests(), ToolHelper.getClassFileForTestClass(Main.class))
             .build();
     SeenReferencesConsumer consumer = new SeenReferencesConsumer();
-    TraceReferences.run(
+    InternalOptions internalOptions = new InternalOptions();
+    internalOptions.loadAllClassDefinitions = true;
+    // TODO(b/231928368): Remove this when enabled by default.
+    TraceReferences.runForTesting(
         TraceReferencesCommand.builder()
             .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
             .addLibraryFiles(libJar)
             .addTargetFiles(targetJar)
             .addSourceFiles(sourceJar)
             .setConsumer(consumer)
-            .build());
+            .build(),
+        internalOptions);
     ImmutableSet<FieldReference> expectedSet =
         ImmutableSet.of(
             Reference.field(

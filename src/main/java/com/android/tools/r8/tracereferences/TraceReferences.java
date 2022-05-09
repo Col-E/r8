@@ -28,7 +28,11 @@ import java.util.function.Consumer;
 public class TraceReferences {
 
   public static void run(TraceReferencesCommand command) throws CompilationFailedException {
-    ExceptionUtils.withCompilationHandler(command.getReporter(), () -> runInternal(command));
+    InternalOptions options = new InternalOptions();
+    // TODO(b/231928368): enable this
+    options.loadAllClassDefinitions = false;
+    ExceptionUtils.withCompilationHandler(
+        command.getReporter(), () -> runInternal(command, options));
   }
 
   private static void forEachDescriptor(ProgramResourceProvider provider, Consumer<String> consumer)
@@ -54,7 +58,13 @@ public class TraceReferences {
     }
   }
 
-  private static void runInternal(TraceReferencesCommand command)
+  static void runForTesting(TraceReferencesCommand command, InternalOptions options)
+      throws CompilationFailedException {
+    ExceptionUtils.withCompilationHandler(
+        command.getReporter(), () -> runInternal(command, options));
+  }
+
+  private static void runInternal(TraceReferencesCommand command, InternalOptions options)
       throws IOException, ResourceException {
     AndroidApp.Builder builder = AndroidApp.builder();
     command.getLibrary().forEach(builder::addLibraryResourceProvider);
@@ -67,9 +77,6 @@ public class TraceReferences {
     for (ProgramResourceProvider provider : command.getSource()) {
       forEachDescriptor(provider, targetDescriptors::remove);
     }
-    InternalOptions options = new InternalOptions();
-    // TODO(b/231928368): enable this
-    options.loadAllClassDefinitions = false;
     Tracer tracer = new Tracer(targetDescriptors, builder.build(), command.getReporter(), options);
     tracer.run(command.getConsumer());
   }
