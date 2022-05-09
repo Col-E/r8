@@ -4,29 +4,29 @@
 
 package com.android.tools.r8.ir.optimize.library;
 
-import static com.android.tools.r8.graph.DexLibraryClass.asLibraryClassOrNull;
+import static com.android.tools.r8.graph.ClasspathOrLibraryClass.asClasspathOrLibraryClass;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.FieldAccessFlags;
 
 /**
- * This class synthesizes library fields that we rely on for modeling.
+ * This class synthesizes classpath/library fields that we rely on for modeling.
  *
  * <p>For example, we synthesize the field `java.lang.String java.lang.Enum.name` if it is not
  * present. We use this to model that the constructor `void java.lang.Enum.<init>(java.lang.String,
  * int)` initializes `java.lang.String java.lang.Enum.name` to the first argument of the
  * constructor.
  */
-public class LibraryFieldSynthesis {
+public class FieldSynthesis {
 
   public static void synthesizeEnumFields(AppView<?> appView) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
-    DexLibraryClass enumClass =
-        asLibraryClassOrNull(appView.definitionFor(dexItemFactory.enumType));
+    ClasspathOrLibraryClass enumClass =
+        asClasspathOrLibraryClass(appView.definitionFor(dexItemFactory.enumType));
     if (enumClass != null) {
       dexItemFactory.enumMembers.forEachField(
           field -> {

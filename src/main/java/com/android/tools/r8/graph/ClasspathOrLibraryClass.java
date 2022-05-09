@@ -5,5 +5,14 @@
 package com.android.tools.r8.graph;
 
 public interface ClasspathOrLibraryClass extends ClassDefinition, ClasspathOrLibraryDefinition {
+
+  void appendInstanceField(DexEncodedField field);
+
   DexClass asDexClass();
+
+  DexEncodedField lookupField(DexField field);
+
+  static ClasspathOrLibraryClass asClasspathOrLibraryClass(DexClass clazz) {
+    return clazz != null ? clazz.asClasspathOrLibraryClass() : null;
+  }
 }

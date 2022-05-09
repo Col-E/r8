@@ -68,7 +68,7 @@ public class LibraryOptimizationInfoInitializer {
     EnumMembers enumMembers = dexItemFactory.enumMembers;
     DexEncodedMethod enumConstructor = lookupMethod(enumMembers.constructor);
     if (enumConstructor != null) {
-      LibraryFieldSynthesis.synthesizeEnumFields(appView);
+      FieldSynthesis.synthesizeEnumFields(appView);
       InstanceFieldInitializationInfoFactory factory =
           appView.instanceFieldInitializationInfoFactory();
       InstanceFieldInitializationInfoCollection fieldInitializationInfos =
