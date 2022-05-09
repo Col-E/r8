@@ -68,7 +68,8 @@ public class TraceReferences {
       forEachDescriptor(provider, targetDescriptors::remove);
     }
     InternalOptions options = new InternalOptions();
-    options.loadAllClassDefinitions = true;
+    // TODO(b/231928368): enable this
+    options.loadAllClassDefinitions = false;
     Tracer tracer = new Tracer(targetDescriptors, builder.build(), command.getReporter(), options);
     tracer.run(command.getConsumer());
   }
