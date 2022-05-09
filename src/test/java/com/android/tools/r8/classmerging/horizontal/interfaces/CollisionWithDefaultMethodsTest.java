@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.classmerging.horizontal.interfaces;
 
+import static org.junit.Assert.assertEquals;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.StringUtils;
@@ -25,7 +27,8 @@ public class CollisionWithDefaultMethodsTest extends TestBase {
         getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build());
   }
 
-  private static final String EXPECTED_OUTPUT = StringUtils.lines("Event1", "Event2");
+  private static final String EXPECTED_OUTPUT =
+      StringUtils.lines("Event1", "Event2", "Event1!", "Event2!", "Event1#", "Event2#");
 
   @Test
   public void testDesugaring() throws Exception {
@@ -44,10 +47,11 @@ public class CollisionWithDefaultMethodsTest extends TestBase {
         .addKeepRules("-keep class ** { *; }")
         .addHorizontallyMergedClassesInspector(
             inspector -> {
-              if (parameters.isCfRuntime()
-                  || (parameters.isDexRuntime()
-                      && parameters.canUseDefaultAndStaticInterfaceMethods())) {
+              if (parameters.isCfRuntime()) {
                 inspector.assertNoClassesMerged();
+              } else if (parameters.isDexRuntime()
+                  && parameters.canUseDefaultAndStaticInterfaceMethods()) {
+                assertEquals(2, inspector.getMergeGroups().size());
               }
             })
         .run(parameters.getRuntime(), TestClass.class)
@@ -100,6 +104,11 @@ public class CollisionWithDefaultMethodsTest extends TestBase {
     public static void main(String[] args) throws Exception {
       eventOnListener1(System.out::println);
       eventOnListener2(System.out::println);
+      // This will create two merge groups with default methods in the implemented interfaces.
+      eventOnListener1(e -> System.out.println(e.toString() + "!"));
+      eventOnListener2(e -> System.out.println(e.toString() + "!"));
+      eventOnListener1(e -> System.out.println(e.toString() + "#"));
+      eventOnListener2(e -> System.out.println(e.toString() + "#"));
     }
   }
 }
