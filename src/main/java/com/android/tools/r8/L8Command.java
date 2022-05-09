@@ -213,6 +213,8 @@ public final class L8Command extends BaseCompilerCommand {
 
     // Disable global optimizations.
     internal.disableGlobalOptimizations();
+    internal.apiModelingOptions().disableApiCallerIdentification();
+    internal.apiModelingOptions().disableMissingApiModeling();
 
     internal.setDumpInputFlags(getDumpInputFlags(), false);
     internal.dumpOptions = dumpOptions();

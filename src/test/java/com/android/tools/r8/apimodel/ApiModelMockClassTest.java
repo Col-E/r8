@@ -81,10 +81,10 @@ public class ApiModelMockClassTest extends TestBase {
         .setMode(CompilationMode.DEBUG)
         .apply(this::setupTestBuilder)
         .compile()
-        .inspect(ApiModelingTestHelper::assertNoSynthesizedClasses)
         .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
-        .apply(this::checkOutput);
+        .apply(this::checkOutput)
+        .inspect(this::inspect);
   }
 
   @Test
@@ -92,8 +92,6 @@ public class ApiModelMockClassTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     testForD8()
         .setMode(CompilationMode.RELEASE)
-        // TODO(b/213552119): Remove when enabled by default.
-        .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(this::setupTestBuilder)
         .compile()
         .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))

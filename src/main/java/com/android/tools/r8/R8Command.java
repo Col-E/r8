@@ -114,6 +114,7 @@ public final class R8Command extends BaseCompilerCommand {
     private final List<FeatureSplit> featureSplits = new ArrayList<>();
     private String synthesizedClassPrefix = "";
     private boolean skipDump = false;
+    private boolean enableMissingLibraryApiModeling = false;
 
     private boolean allowTestProguardOptions =
         System.getProperty("com.android.tools.r8.allowTestProguardOptions") != null;
@@ -431,6 +432,18 @@ public final class R8Command extends BaseCompilerCommand {
       return self();
     }
 
+    /**
+     * Enable experimental/pre-release support for modeling missing library APIs.
+     *
+     * <p>This allows enabling the feature while it is still default disabled by the compiler. Once
+     * the feature is default enabled, calling this method will have no affect.
+     */
+    @Deprecated
+    public Builder setEnableExperimentalMissingLibraryApiModeling(boolean enable) {
+      this.enableMissingLibraryApiModeling = enable;
+      return self();
+    }
+
     @Override
     protected InternalProgramOutputPathConsumer createProgramOutputConsumer(
         Path path,
@@ -619,7 +632,8 @@ public final class R8Command extends BaseCompilerCommand {
               getThreadCount(),
               getDumpInputFlags(),
               getMapIdProvider(),
-              getSourceFileProvider());
+              getSourceFileProvider(),
+              enableMissingLibraryApiModeling);
 
       if (inputDependencyGraphConsumer != null) {
         inputDependencyGraphConsumer.finished();
@@ -704,6 +718,7 @@ public final class R8Command extends BaseCompilerCommand {
   private final FeatureSplitConfiguration featureSplitConfiguration;
   private final String synthesizedClassPrefix;
   private final boolean skipDump;
+  private final boolean enableMissingLibraryApiModeling;
 
   /** Get a new {@link R8Command.Builder}. */
   public static Builder builder() {
@@ -792,7 +807,8 @@ public final class R8Command extends BaseCompilerCommand {
       int threadCount,
       DumpInputFlags dumpInputFlags,
       MapIdProvider mapIdProvider,
-      SourceFileProvider sourceFileProvider) {
+      SourceFileProvider sourceFileProvider,
+      boolean enableMissingLibraryApiModeling) {
     super(
         inputApp,
         mode,
@@ -831,6 +847,7 @@ public final class R8Command extends BaseCompilerCommand {
     this.featureSplitConfiguration = featureSplitConfiguration;
     this.synthesizedClassPrefix = synthesizedClassPrefix;
     this.skipDump = skipDump;
+    this.enableMissingLibraryApiModeling = enableMissingLibraryApiModeling;
   }
 
   private R8Command(boolean printHelp, boolean printVersion) {
@@ -854,6 +871,7 @@ public final class R8Command extends BaseCompilerCommand {
     featureSplitConfiguration = null;
     synthesizedClassPrefix = null;
     skipDump = false;
+    enableMissingLibraryApiModeling = false;
   }
 
   public DexItemFactory getDexItemFactory() {
@@ -959,6 +977,10 @@ public final class R8Command extends BaseCompilerCommand {
     internal.syntheticProguardRulesConsumer = syntheticProguardRulesConsumer;
 
     internal.outputInspections = InspectorImpl.wrapInspections(getOutputInspections());
+
+    if (!enableMissingLibraryApiModeling) {
+      internal.apiModelingOptions().disableMissingApiModeling();
+    }
 
     // Default is to remove all javac generated assertion code when generating dex.
     assert internal.assertionsConfiguration == null;

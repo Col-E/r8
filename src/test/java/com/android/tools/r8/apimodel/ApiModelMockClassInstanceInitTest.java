@@ -65,7 +65,7 @@ public class ApiModelMockClassInstanceInitTest extends TestBase {
         .applyIf(isGreaterOrEqualToMockLevel(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkOutput)
-        .inspect(ApiModelingTestHelper::assertNoSynthesizedClasses);
+        .inspect(this::inspect);
   }
 
   @Test
@@ -73,8 +73,6 @@ public class ApiModelMockClassInstanceInitTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     testForD8()
         .setMode(CompilationMode.RELEASE)
-        // TODO(b/213552119): Remove when enabled by default.
-        .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(this::setupTestBuilder)
         .compile()
         .applyIf(isGreaterOrEqualToMockLevel(), b -> b.addBootClasspathClasses(LibraryClass.class))

@@ -256,7 +256,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     enableInitializedClassesAnalysis = false;
     callSiteOptimizationOptions.disableOptimization();
     horizontalClassMergerOptions.setRestrictToSynthetics();
-    apiModelTestingOptions.disableApiCallerIdentification();
   }
 
   public boolean printTimes = System.getProperty("com.android.tools.r8.printtimes") != null;
@@ -1667,6 +1666,15 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
           (methodReference, apiLevel) -> {
             apiLevelConsumer.accept(factory.createMethod(methodReference), apiLevel);
           });
+    }
+
+    /**
+     * Disable the workarounds for missing APIs. This does not disable the use of the database, just
+     * the introduction of soft-verification workarounds for potentially missing API references.
+     */
+    public void disableMissingApiModeling() {
+      enableOutliningOfMethods = false;
+      enableStubbingOfClasses = false;
     }
 
     public void disableApiCallerIdentification() {

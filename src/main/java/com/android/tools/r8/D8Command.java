@@ -92,6 +92,7 @@ public final class D8Command extends BaseCompilerCommand {
     private boolean minimalMainDex = false;
     private boolean skipDump = false;
     private final List<ProguardConfigurationSource> mainDexRules = new ArrayList<>();
+    private boolean enableMissingLibraryApiModeling = false;
 
     private Builder() {
       this(new DefaultD8DiagnosticsHandler());
@@ -322,6 +323,18 @@ public final class D8Command extends BaseCompilerCommand {
       return self();
     }
 
+    /**
+     * Enable experimental/pre-release support for modeling missing library APIs.
+     *
+     * <p>This allows enabling the feature while it is still default disabled by the compiler. Once
+     * the feature is default enabled, calling this method will have no affect.
+     */
+    @Deprecated
+    public Builder setEnableExperimentalMissingLibraryApiModeling(boolean enable) {
+      this.enableMissingLibraryApiModeling = enable;
+      return self();
+    }
+
     @Override
     void validate() {
       if (isPrintHelp()) {
@@ -411,6 +424,7 @@ public final class D8Command extends BaseCompilerCommand {
           getDumpInputFlags(),
           getMapIdProvider(),
           proguardMapConsumer,
+          enableMissingLibraryApiModeling,
           factory);
     }
   }
@@ -426,6 +440,7 @@ public final class D8Command extends BaseCompilerCommand {
   private final boolean minimalMainDex;
   private final ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
   private final StringConsumer proguardMapConsumer;
+  private final boolean enableMissingLibraryApiModeling;
   private final DexItemFactory factory;
 
   public static Builder builder() {
@@ -500,6 +515,7 @@ public final class D8Command extends BaseCompilerCommand {
       DumpInputFlags dumpInputFlags,
       MapIdProvider mapIdProvider,
       StringConsumer proguardMapConsumer,
+      boolean enableMissingLibraryApiModeling,
       DexItemFactory factory) {
     super(
         inputApp,
@@ -529,6 +545,7 @@ public final class D8Command extends BaseCompilerCommand {
     this.minimalMainDex = minimalMainDex;
     this.mainDexKeepRules = mainDexKeepRules;
     this.proguardMapConsumer = proguardMapConsumer;
+    this.enableMissingLibraryApiModeling = enableMissingLibraryApiModeling;
     this.factory = factory;
   }
 
@@ -545,6 +562,7 @@ public final class D8Command extends BaseCompilerCommand {
     minimalMainDex = false;
     mainDexKeepRules = null;
     proguardMapConsumer = null;
+    enableMissingLibraryApiModeling = false;
     factory = null;
   }
 
@@ -601,6 +619,11 @@ public final class D8Command extends BaseCompilerCommand {
     internal.setDesugaredLibrarySpecification(desugaredLibrarySpecification);
     internal.synthesizedClassPrefix = synthesizedClassPrefix;
     internal.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
+
+    if (!enableMissingLibraryApiModeling) {
+      internal.apiModelingOptions().disableApiCallerIdentification();
+      internal.apiModelingOptions().disableMissingApiModeling();
+    }
 
     // Default is to remove all javac generated assertion code when generating dex.
     assert internal.assertionsConfiguration == null;
