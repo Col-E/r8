@@ -17,9 +17,9 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ThrowingFunction;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class AndroidApiLevelHashingDatabaseImpl implements AndroidApiLevelDatabase {
 
@@ -124,8 +124,8 @@ public class AndroidApiLevelHashingDatabaseImpl implements AndroidApiLevelDataba
     return (byte) value;
   }
 
-  private final Map<DexReference, AndroidApiLevel> lookupCache = new IdentityHashMap<>();
-  private final Map<DexString, Integer> constantPoolCache = new IdentityHashMap<>();
+  private final Map<DexReference, AndroidApiLevel> lookupCache = new ConcurrentHashMap<>();
+  private final Map<DexString, Integer> constantPoolCache = new ConcurrentHashMap<>();
   private static volatile AndroidApiDataAccess dataAccess;
 
   private static AndroidApiDataAccess getDataAccess() {
@@ -175,27 +175,27 @@ public class AndroidApiLevelHashingDatabaseImpl implements AndroidApiLevelDataba
   private AndroidApiLevel lookupApiLevel(DexReference reference) {
     // We use Android platform to track if an element is unknown since no occurrences of that api
     // level exists in the database.
-    AndroidApiLevel result = lookupCache.get(reference);
-    if (result == null) {
-      byte[] uniqueDescriptorForReference;
-      try {
-        uniqueDescriptorForReference =
-            getUniqueDescriptorForReference(reference, this::getConstantPoolId);
-      } catch (Exception e) {
-        uniqueDescriptorForReference = getNonExistingDescriptor();
-      }
-      if (uniqueDescriptorForReference == getNonExistingDescriptor()) {
-        result = ANDROID_PLATFORM;
-      } else {
-        byte apiLevelForReference =
-            getDataAccess().getApiLevelForReference(uniqueDescriptorForReference, reference);
-        result =
-            (apiLevelForReference <= 0)
-                ? ANDROID_PLATFORM
-                : AndroidApiLevel.getAndroidApiLevel(apiLevelForReference);
-      }
-      lookupCache.put(reference, result);
-    }
+    AndroidApiLevel result =
+        lookupCache.computeIfAbsent(
+            reference,
+            ref -> {
+              byte[] uniqueDescriptorForReference;
+              try {
+                uniqueDescriptorForReference =
+                    getUniqueDescriptorForReference(ref, this::getConstantPoolId);
+              } catch (Exception e) {
+                uniqueDescriptorForReference = getNonExistingDescriptor();
+              }
+              if (uniqueDescriptorForReference == getNonExistingDescriptor()) {
+                return ANDROID_PLATFORM;
+              } else {
+                byte apiLevelForReference =
+                    getDataAccess().getApiLevelForReference(uniqueDescriptorForReference, ref);
+                return (apiLevelForReference <= 0)
+                    ? ANDROID_PLATFORM
+                    : AndroidApiLevel.getAndroidApiLevel(apiLevelForReference);
+              }
+            });
     return result == ANDROID_PLATFORM ? null : result;
   }
 }
