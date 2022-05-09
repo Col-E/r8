@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -18,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -65,9 +67,9 @@ public abstract class ClassConverter {
       throws ExecutionException {
     Collection<DexProgramClass> classes = appView.appInfo().classes();
 
-      CfClassSynthesizerDesugaringEventConsumer classSynthesizerEventConsumer =
-          new CfClassSynthesizerDesugaringEventConsumer();
-      converter.classSynthesisDesugaring(executorService, classSynthesizerEventConsumer);
+    CfClassSynthesizerDesugaringEventConsumer classSynthesizerEventConsumer =
+        new CfClassSynthesizerDesugaringEventConsumer();
+    converter.classSynthesisDesugaring(executorService, classSynthesizerEventConsumer);
     if (!classSynthesizerEventConsumer.getSynthesizedClasses().isEmpty()) {
       classes =
           ImmutableList.<DexProgramClass>builder()
@@ -98,6 +100,7 @@ public abstract class ClassConverter {
 
       // Process the wave and wait for all IR processing to complete.
       methodProcessor.newWave();
+      checkWaveDeterminism(wave);
       ThreadUtils.processItems(
           wave, clazz -> convertClass(clazz, instructionDesugaringEventConsumer), executorService);
       methodProcessor.awaitMethodProcessing();
@@ -130,6 +133,25 @@ public abstract class ClassConverter {
 
       classes = deferred;
     }
+  }
+
+  private void checkWaveDeterminism(Collection<DexProgramClass> wave) {
+    appView
+        .options()
+        .testing
+        .checkDeterminism(
+            checker -> {
+              // There is no constraint on the order within the wave so sort them to have a
+              // deterministic log.
+              List<DexProgramClass> sorted = new ArrayList<>(wave);
+              sorted.sort(Comparator.comparing(DexClass::getType));
+              checker.accept(
+                  lineCallback -> {
+                    for (DexProgramClass clazz : sorted) {
+                      lineCallback.onLine(clazz.getType().toDescriptorString());
+                    }
+                  });
+            });
   }
 
   abstract void convertClass(

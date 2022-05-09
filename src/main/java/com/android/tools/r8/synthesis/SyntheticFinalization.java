@@ -159,6 +159,7 @@ public class SyntheticFinalization {
       throws ExecutionException {
     assert !appView.appInfo().hasClassHierarchy();
     assert !appView.appInfo().hasLiveness();
+    appView.options().testing.checkDeterminism(appView);
     Result result = appView.getSyntheticItems().computeFinalSynthetics(appView);
     appView.setAppInfo(new AppInfo(result.commit, result.mainDexInfo));
     if (result.lens != null) {
@@ -179,6 +180,7 @@ public class SyntheticFinalization {
       AppView<AppInfoWithClassHierarchy> appView, ExecutorService executorService)
       throws ExecutionException {
     assert !appView.appInfo().hasLiveness();
+    appView.options().testing.checkDeterminism(appView);
     Result result = appView.getSyntheticItems().computeFinalSynthetics(appView);
     appView.setAppInfo(appView.appInfo().rebuildWithClassHierarchy(result.commit));
     appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(result.mainDexInfo));
