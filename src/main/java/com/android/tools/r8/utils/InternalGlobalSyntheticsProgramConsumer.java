@@ -195,6 +195,7 @@ public abstract class InternalGlobalSyntheticsProgramConsumer
 
     abstract Kind getKind();
 
+    @Override
     public final void finished(DiagnosticsHandler handler) {
       throw new Unreachable("Unexpected call to non-internal finished.");
     }
