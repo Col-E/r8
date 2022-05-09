@@ -30,6 +30,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
+import com.android.tools.r8.shaking.KeepReason.ReflectiveUseFrom;
 import com.android.tools.r8.utils.DequeUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
@@ -163,7 +164,7 @@ public class GraphReporter {
 
   KeepReasonWitness reportKeepField(
       DexDefinition precondition,
-      Collection<KeepReason> reasons,
+      Collection<ReflectiveUseFrom> reasons,
       Collection<ProguardKeepRuleBase> rules,
       DexEncodedField field) {
     assert !reasons.isEmpty() || !rules.isEmpty() || !options.isShrinking();

@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.shaking.KeepInfo.Builder;
+import com.android.tools.r8.shaking.KeepReason.ReflectiveUseFrom;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.HashSet;
@@ -475,10 +476,20 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     final B builder;
 
-    // The set of rules that have contributed to this joiner. These are only needed for the
-    // interpretation of keep rules into keep info, and is therefore not stored in the keep info
-    // builder above.
-    final Set<KeepReason> reasons = new HashSet<>();
+    /**
+     * The set of reasons and rules that have contributed to setting {@link Builder#allowShrinking}
+     * to false on this joiner. These are needed to report the correct -whyareyoukeeping reasons for
+     * rooted items.
+     *
+     * <p>An item should only have allowShrinking set to false if it is kept by a -keep rule or the
+     * {@link Enqueuer} detects a reflective access to the item (hence the {@link
+     * Set<ReflectiveUseFrom>}).
+     *
+     * <p>These are only needed for the interpretation of keep rules into keep info, and is
+     * therefore not stored in the keep info builder above.
+     */
+    final Set<ReflectiveUseFrom> reasons = new HashSet<>();
+
     final Set<ProguardKeepRuleBase> rules = Sets.newIdentityHashSet();
 
     Joiner(B builder) {
@@ -508,7 +519,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       return null;
     }
 
-    public Set<KeepReason> getReasons() {
+    public Set<ReflectiveUseFrom> getReasons() {
       return reasons;
     }
 
@@ -541,7 +552,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       return self();
     }
 
-    public J addReason(KeepReason reason) {
+    public J addReason(ReflectiveUseFrom reason) {
       reasons.add(reason);
       return self();
     }

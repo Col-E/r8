@@ -79,7 +79,7 @@ public abstract class KeepReason {
     return new TargetedBySuper(from.getDefinition());
   }
 
-  public static KeepReason reflectiveUseIn(ProgramMethod method) {
+  public static ReflectiveUseFrom reflectiveUseIn(ProgramMethod method) {
     return new ReflectiveUseFrom(method.getDefinition());
   }
 
@@ -276,7 +276,7 @@ public abstract class KeepReason {
     }
   }
 
-  private static class ReflectiveUseFrom extends BasedOnOtherMethod {
+  public static class ReflectiveUseFrom extends BasedOnOtherMethod {
 
     private ReflectiveUseFrom(DexEncodedMethod method) {
       super(method);
