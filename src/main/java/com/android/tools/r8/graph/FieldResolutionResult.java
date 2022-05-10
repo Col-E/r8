@@ -504,6 +504,7 @@ public abstract class FieldResolutionResult
     private Builder() {}
 
     public void addResolutionResult(FieldResolutionResult otherResult) {
+      assert otherResult != null;
       if (currentResult == null) {
         currentResult = otherResult;
         return;
