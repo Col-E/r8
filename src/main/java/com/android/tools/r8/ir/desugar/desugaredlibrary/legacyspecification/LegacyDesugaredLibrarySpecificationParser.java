@@ -27,7 +27,7 @@ import java.util.function.Consumer;
 
 public class LegacyDesugaredLibrarySpecificationParser {
 
-  public static final int MAX_SUPPORTED_VERSION = 4;
+  public static final int MAX_SUPPORTED_VERSION = 5;
   public static final SemanticVersion MIN_SUPPORTED_VERSION = SemanticVersion.create(1, 0, 9);
 
   static final String VERSION_KEY = "version";

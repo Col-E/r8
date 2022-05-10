@@ -52,7 +52,8 @@ public class LibraryDesugaringSpecification {
   public static LibraryDesugaringSpecification JDK11_LEGACY =
       new LibraryDesugaringSpecification(
           "DESUGARED_JDK_11_LIB_JAR",
-          DESUGARED_JDK_11_LIB_JAR,
+          // The legacy specification is not using the undesugared JAR.
+          Paths.get("third_party/openjdk/desugar_jdk_libs_11/desugar_jdk_libs.jar"),
           Paths.get("src/library_desugar/jdk11/desugar_jdk_libs_legacy.json"));
   private static final LibraryDesugaringSpecification RELEASED_1_0_9 =
       new LibraryDesugaringSpecification("1.0.9");
