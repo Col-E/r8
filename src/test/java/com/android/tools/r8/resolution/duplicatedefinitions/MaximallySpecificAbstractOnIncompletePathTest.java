@@ -4,9 +4,8 @@
 
 package com.android.tools.r8.resolution.duplicatedefinitions;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
@@ -18,6 +17,8 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.MethodResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.transformers.ClassFileTransformer.MethodPredicate;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
@@ -71,16 +72,13 @@ public class MaximallySpecificAbstractOnIncompletePathTest extends TestBase {
             options -> options.loadAllClassDefinitions = true);
     AppInfoWithClassHierarchy appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(Main.class, "foo", appInfo.dexItemFactory());
-    AssertionError assertionError =
-        assertThrows(
-            AssertionError.class,
-            () -> {
-              appInfo.unsafeResolveMethodDueToDexFormat(method);
-            });
-    // TODO(b/231928368): Fix lookup for partial results with only abstract methods.
-    assertThat(
-        assertionError.getMessage(),
-        containsString("Should not be called on a collection without any non-null candidates"));
+    MethodResolutionResult methodResolutionResult =
+        appInfo.unsafeResolveMethodDueToDexFormat(method);
+    assertTrue(methodResolutionResult.isSingleResolution());
+    SingleResolutionResult<?> resolution = methodResolutionResult.asSingleResolution();
+    assertTrue(resolution.getResolvedHolder().isLibraryClass());
+    assertEquals(
+        "void " + typeName(I.class) + ".foo()", resolution.getResolvedMethod().toSourceString());
   }
 
   @Test

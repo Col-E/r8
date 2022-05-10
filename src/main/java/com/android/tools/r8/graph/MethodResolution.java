@@ -658,8 +658,13 @@ public class MethodResolution {
         // as a target. For deterministic resolution, we return the first mapped method (of the
         // linked map).
         if (nonAbstractOnComplete.isEmpty()) {
-          return singleResultHelper(
-              initialResolutionHolder, firstNonNullEntry(maximallySpecificMethodsOnCompletePaths));
+          Entry<DexClass, DexEncodedMethod> abstractMethod =
+              firstNonNullEntry(maximallySpecificMethodsOnCompletePaths);
+          if (abstractMethod == null) {
+            abstractMethod = firstNonNullEntry(maximallySpecificMethodsOnIncompletePaths);
+          }
+          assert abstractMethod != null && abstractMethod.getValue().isAbstract();
+          return singleResultHelper(initialResolutionHolder, abstractMethod);
         } else {
           // If there is exactly one non-abstract method (a default method) it is the resolution
           // target.
@@ -717,7 +722,6 @@ public class MethodResolution {
           return entry;
         }
       }
-      assert false : "Should not be called on a collection without any non-null candidates";
       return null;
     }
   }
