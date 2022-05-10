@@ -78,22 +78,22 @@ public class ApiReferenceStubber {
 
     @Override
     public void registerInstanceFieldRead(DexField field) {
-      checkReferenceToLibraryClass(field.type);
+      checkReferenceToLibraryClass(field);
     }
 
     @Override
     public void registerInstanceFieldWrite(DexField field) {
-      checkReferenceToLibraryClass(field.type);
+      checkReferenceToLibraryClass(field);
     }
 
     @Override
     public void registerStaticFieldRead(DexField field) {
-      checkReferenceToLibraryClass(field.type);
+      checkReferenceToLibraryClass(field);
     }
 
     @Override
     public void registerStaticFieldWrite(DexField field) {
-      checkReferenceToLibraryClass(field.type);
+      checkReferenceToLibraryClass(field);
     }
 
     @Override
