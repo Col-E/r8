@@ -4,20 +4,20 @@
 
 package com.android.tools.r8.tracereferences;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.StringContains.containsString;
-import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
+import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.junit.Test;
@@ -82,24 +82,21 @@ public class TraceSuperMethodResolutionWithLibraryAndProgramClassTest extends Te
     InternalOptions internalOptions = new InternalOptions();
     internalOptions.loadAllClassDefinitions = true;
     // TODO(b/231928368): Remove this when enabled by default.
-    CompilationFailedException compilationFailedException =
-        assertThrows(
-            CompilationFailedException.class,
-            () ->
-                TraceReferences.runForTesting(
-                    TraceReferencesCommand.builder()
-                        .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
-                        .addLibraryFiles(libJar)
-                        .addTargetFiles(targetJar)
-                        .addSourceFiles(sourceJar)
-                        .setConsumer(consumer)
-                        .build(),
-                    internalOptions));
-    Throwable cause = compilationFailedException.getCause();
-    // TODO(b/226170842): Handle InvokeSuper.
-    assertThat(
-        cause.getMessage(),
-        containsString("Should not be called on MultipleFieldResolutionResult"));
+    TraceReferences.runForTesting(
+        TraceReferencesCommand.builder()
+            .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
+            .addLibraryFiles(libJar)
+            .addTargetFiles(targetJar)
+            .addSourceFiles(sourceJar)
+            .setConsumer(consumer)
+            .build(),
+        internalOptions);
+    ImmutableSet<MethodReference> foundSet =
+        ImmutableSet.of(
+            Reference.methodFromMethod(A.class.getMethod("foo")),
+            Reference.methodFromMethod(A.class.getConstructor()));
+    assertEquals(foundSet, consumer.seenMethods);
+    assertEquals(Collections.emptySet(), consumer.seenMissingMethods);
   }
 
   // A is added to both library and program.

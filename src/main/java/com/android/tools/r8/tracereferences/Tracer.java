@@ -31,6 +31,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.FieldLookupResult;
 import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.MethodResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
@@ -51,6 +52,7 @@ import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class Tracer {
@@ -314,7 +316,9 @@ public class Tracer {
         assert lookupResult.getType().isStatic();
         DexMethod rewrittenMethod = lookupResult.getReference();
         handleRewrittenMethodResolution(
-            rewrittenMethod, appInfo().unsafeResolveMethodDueToDexFormat(rewrittenMethod));
+            rewrittenMethod,
+            appInfo().unsafeResolveMethodDueToDexFormat(rewrittenMethod),
+            SingleResolutionResult::getResolutionPair);
       }
 
       @Override
@@ -322,16 +326,10 @@ public class Tracer {
         MethodLookupResult lookupResult = graphLens().lookupInvokeSuper(method, getContext());
         assert lookupResult.getType().isSuper();
         DexMethod rewrittenMethod = lookupResult.getReference();
-        MethodResolutionResult resolutionResult =
-            appInfo().unsafeResolveMethodDueToDexFormat(rewrittenMethod);
-        if (resolutionResult.isFailedResolution()
-            && resolutionResult.asFailedResolution().hasMethodsCausingError()) {
-          handleRewrittenMethodResolution(rewrittenMethod, resolutionResult);
-          return;
-        }
-        handleRewrittenMethodReference(
-            rewrittenMethod,
-            resolutionResult.lookupInvokeSuperTarget(getContext().getHolder(), appInfo()));
+        handleRewrittenMethodResolution(
+            method,
+            appInfo().unsafeResolveMethodDueToDexFormat(rewrittenMethod),
+            result -> result.lookupInvokeSuperTarget(getContext().getHolder(), appInfo()));
       }
 
       @Override
@@ -353,24 +351,29 @@ public class Tracer {
             method,
             lookupResult.getType().isInterface()
                 ? appInfo().resolveMethodOnInterfaceHolder(method)
-                : appInfo().resolveMethodOnClassHolder(method));
+                : appInfo().resolveMethodOnClassHolder(method),
+            SingleResolutionResult::getResolutionPair);
       }
 
       private void handleRewrittenMethodResolution(
-          DexMethod method, MethodResolutionResult resolutionResult) {
+          DexMethod method,
+          MethodResolutionResult resolutionResult,
+          Function<SingleResolutionResult<?>, DexClassAndMethod> getResult) {
         resolutionResult.forEachMethodResolutionResult(
             result -> {
-              if (result.isFailedResolution()
-                  && result.asFailedResolution().hasTypesOrMethodsCausingError()) {
+              if (result.isFailedResolution()) {
                 result
                     .asFailedResolution()
                     .forEachFailureDependency(
                         type -> addType(type, referencedFrom),
                         methodCausingFailure ->
                             handleRewrittenMethodReference(method, methodCausingFailure));
+                if (!result.asFailedResolution().hasTypesOrMethodsCausingError()) {
+                  handleRewrittenMethodReference(method, (DexEncodedMethod) null);
+                }
                 return;
               }
-              handleRewrittenMethodReference(method, result.getResolutionPair());
+              handleRewrittenMethodReference(method, getResult.apply(result.asSingleResolution()));
             });
       }
 
