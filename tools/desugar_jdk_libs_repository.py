@@ -20,6 +20,10 @@ def parse_options():
                       default='/tmp/repo',
                       metavar=('<path>'),
                       help='Location for Maven repository.')
+  result.add_argument('--desugar-jdk-libs-checkout', '--desugar_jdk_libs_checkout',
+                      default=None,
+                      metavar=('<path>'),
+                      help='Use existing checkout of github.com/google/desugar_jdk_libs.')
   args = result.parse_args()
   return args
 
@@ -47,8 +51,10 @@ def main():
     version = utils.desugar_configuration_version(utils.DESUGAR_CONFIGURATION_JDK11_LEGACY)
 
     # Checkout desugar_jdk_libs from GitHub
-    checkout_dir = join(tmp_dir, 'desugar_jdk_libs')
-    utils.RunCmd(['git', 'clone', 'https://github.com/google/desugar_jdk_libs.git', checkout_dir])
+    use_existing_checkout = args.desugar_jdk_libs_checkout != None
+    checkout_dir = args.desugar_jdk_libs_checkout if use_existing_checkout else join(tmp_dir, 'desugar_jdk_libs')
+    if (not use_existing_checkout):
+      utils.RunCmd(['git', 'clone', 'https://github.com/google/desugar_jdk_libs.git', checkout_dir])
     with utils.ChangedWorkingDirectory(checkout_dir):
       with open('VERSION_JDK11.txt') as version_file:
         version_file_lines = version_file.readlines()
