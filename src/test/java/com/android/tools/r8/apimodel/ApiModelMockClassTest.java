@@ -185,6 +185,7 @@ public class ApiModelMockClassTest extends TestBase {
   // Only present from api level 23.
   public static class LibraryClass {
 
+    // Do not model foo. If foo was modeled we would not stub.
     public void foo() {
       System.out.println("LibraryClass::foo");
     }

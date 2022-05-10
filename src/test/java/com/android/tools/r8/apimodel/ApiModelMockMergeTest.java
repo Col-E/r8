@@ -5,6 +5,7 @@
 package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
@@ -59,6 +60,7 @@ public class ApiModelMockMergeTest extends TestBase {
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(ApiModelingTestHelper::enableStubbingOfClasses)
         .apply(setMockApiLevelForClass(LibraryClass.class, mockLevel))
+        .apply(setMockApiLevelForDefaultInstanceInitializer(LibraryClass.class, mockLevel))
         .apply(setMockApiLevelForMethod(LibraryClass.class.getDeclaredMethod("foo"), mockLevel))
         .apply(setMockApiLevelForMethod(LibraryClass.class.getDeclaredMethod("bar"), mockLevel));
   }
@@ -131,8 +133,7 @@ public class ApiModelMockMergeTest extends TestBase {
       assertThat(libraryClassSubject, isAbsent());
     } else {
       assertThat(libraryClassSubject, isPresent());
-      // TODO(b/213552119): Both should be absent to ensure easy merging.
-      assertThat(libraryClassSubject.uniqueMethodWithName("foo"), isPresent());
+      assertThat(libraryClassSubject.uniqueMethodWithName("foo"), isAbsent());
       assertThat(libraryClassSubject.uniqueMethodWithName("bar"), isAbsent());
     }
   }

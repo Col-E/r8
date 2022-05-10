@@ -8,6 +8,7 @@ import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLeve
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
@@ -78,7 +79,7 @@ public class ApiModelNoOutlineForFullyMockedTest extends TestBase {
         .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(result)
-        .inspect(this::inspect);
+        .inspect(inspector -> inspect(inspector, true, true));
   }
 
   @Test
@@ -92,7 +93,7 @@ public class ApiModelNoOutlineForFullyMockedTest extends TestBase {
         .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkOutput)
-        .inspect(this::inspect);
+        .inspect(inspector -> inspect(inspector, true, true));
   }
 
   private void checkOutput(SingleTestRunResult<?> runResult) {
@@ -104,12 +105,22 @@ public class ApiModelNoOutlineForFullyMockedTest extends TestBase {
     }
   }
 
-  private void inspect(CodeInspector inspector) throws Exception {
+  private void inspect(CodeInspector inspector, boolean canOutline, boolean canStub)
+      throws Exception {
     Method methodOn23 = LibraryClass.class.getDeclaredMethod("methodOn23");
     Method mainMethod = Main.class.getDeclaredMethod("main", String[].class);
     assertThat(inspector.method(mainMethod), isPresent());
-    verifyThat(inspector, parameters, methodOn23).isNotOutlinedFrom(mainMethod);
-    verifyThat(inspector, parameters, LibraryClass.class).stubbedUntil(libraryApiLevel);
+    if (canOutline) {
+      verifyThat(inspector, parameters, methodOn23)
+          .isOutlinedFromUntil(mainMethod, libraryApiLevel);
+    } else {
+      verifyThat(inspector, parameters, methodOn23).isNotOutlinedFrom(mainMethod);
+    }
+    if (canStub) {
+      verifyThat(inspector, parameters, LibraryClass.class).stubbedUntil(libraryApiLevel);
+    } else {
+      assertThat(inspector.clazz(LibraryClass.class), isAbsent());
+    }
   }
 
   // Only present from api level 23.
