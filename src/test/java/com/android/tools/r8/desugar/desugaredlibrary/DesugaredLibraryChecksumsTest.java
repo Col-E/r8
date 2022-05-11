@@ -3,52 +3,59 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.L8;
-import com.android.tools.r8.L8Command;
-import com.android.tools.r8.OutputMode;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
+
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
-import java.nio.file.Path;
+import com.google.common.collect.ImmutableList;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class DesugaredLibraryChecksumsTest extends DesugaredLibraryTestBase {
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withNoneRuntime().build();
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+
+  @Parameters(name = "{0}, spec: {1}, {2}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withNoneRuntime().build(),
+        getJdk8Jdk11(),
+        ImmutableList.of(D8_L8DEBUG));
   }
 
-  public DesugaredLibraryChecksumsTest(TestParameters parameters) {
-    parameters.assertNoneRuntime();
+  public DesugaredLibraryChecksumsTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   @Test
   public void test() throws Exception {
-    Path out = temp.newFolder().toPath().resolve("out.jar");
-    L8.run(
-        L8Command.builder()
-            .setIncludeClassesChecksum(true)
-            .addLibraryFiles(getLibraryFile())
-            .addProgramFiles(ToolHelper.getDesugarJDKLibs())
-            .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
-            .setMode(CompilationMode.DEBUG)
-            .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
-            .setMinApiLevel(AndroidApiLevel.B.getLevel())
-            .setOutput(out, OutputMode.DexIndexed)
-            .build());
-    CodeInspector inspector = new CodeInspector(out);
-    for (FoundClassSubject clazz : inspector.allClasses()) {
-      clazz.getDexProgramClass().getChecksum();
-    }
+    testForL8(AndroidApiLevel.B)
+        .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
+        .addProgramFiles(libraryDesugaringSpecification.getDesugarJdkLibs())
+        .noDefaultDesugarJDKLibs()
+        .setDebug()
+        .setDesugaredLibraryConfiguration(
+            StringResource.fromFile(libraryDesugaringSpecification.getSpecification()))
+        .compile()
+        .inspect(
+            inspector -> {
+              for (FoundClassSubject clazz : inspector.allClasses()) {
+                clazz.getDexProgramClass().getChecksum();
+              }
+            });
   }
 }

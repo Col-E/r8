@@ -51,6 +51,12 @@ public class LibraryDesugaringSpecification {
           UNDESUGARED_JDK_11_LIB_JAR,
           "jdk11/desugar_jdk_libs_path_alternative_3.json",
           AndroidApiLevel.R);
+  public static LibraryDesugaringSpecification JDK11_CHM_ONLY =
+      new LibraryDesugaringSpecification(
+          "JDK11_CHM_ONLY",
+          UNDESUGARED_JDK_11_LIB_JAR,
+          "jdk11/chm_only_desugar_jdk_libs.json",
+          AndroidApiLevel.R);
   public static LibraryDesugaringSpecification JDK11_LEGACY =
       new LibraryDesugaringSpecification(
           "JDK11_LEGACY",

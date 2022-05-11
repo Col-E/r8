@@ -162,6 +162,7 @@ public class L8TestBuilder {
             .addProgramFiles(getProgramFiles())
             .addLibraryFiles(getLibraryFiles())
             .setMode(mode)
+            .setIncludeClassesChecksum(true)
             .addDesugaredLibraryConfiguration(desugaredLibrarySpecification)
             .setMinApiLevel(apiLevel.getLevel())
             .setProgramConsumer(

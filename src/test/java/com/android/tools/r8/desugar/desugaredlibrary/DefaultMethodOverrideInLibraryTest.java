@@ -3,18 +3,21 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
-import com.android.tools.r8.D8TestRunResult;
-import com.android.tools.r8.LibraryDesugaringTestConfiguration;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +26,7 @@ import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * This test checks that if a default interface method in a library is overridden by a class method
@@ -39,14 +43,24 @@ public class DefaultMethodOverrideInLibraryTest extends DesugaredLibraryTestBase
   static final String EXPECTED = StringUtils.lines("0", "42", "0", "0", "42", "42");
 
   private final TestParameters parameters;
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
+  @Parameters(name = "{0}, spec: {1}, {2}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        ImmutableList.of(D8_L8DEBUG));
   }
 
-  public DefaultMethodOverrideInLibraryTest(TestParameters parameters) {
+  public DefaultMethodOverrideInLibraryTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   @Test
@@ -65,19 +79,15 @@ public class DefaultMethodOverrideInLibraryTest extends DesugaredLibraryTestBase
           .run(parameters.getRuntime(), Main.class)
           .assertSuccessWithOutput(EXPECTED);
     } else {
-      testForD8()
-          .addLibraryFiles(getLibraryFile())
-          .setMinApi(parameters.getApiLevel())
-          .addInnerClasses(DefaultMethodOverrideInLibraryTest.class)
-          .enableCoreLibraryDesugaring(
-              LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
-          .compile()
+      testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+          .addInnerClasses(getClass())
+          .addKeepMainRule(Main.class)
           .run(parameters.getRuntime(), Main.class)
           .apply(this::checkResult);
     }
   }
 
-  private void checkResult(D8TestRunResult result) {
+  private void checkResult(SingleTestRunResult<?> result) {
     // TODO(b/145504401): Execution on Art 7.0.0 has the wrong runtime behavior (non-desugared).
     if (parameters.isDexRuntime()
         && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N)
