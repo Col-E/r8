@@ -45,6 +45,9 @@ import java.util.zip.ZipOutputStream;
 
 public class ZipUtils {
 
+  // Beginning of extra field length: https://en.wikipedia.org/wiki/ZIP_(file_format)
+  private static final int EXTRA_FIELD_LENGTH_OFFSET = 30;
+
   public static void writeResourcesToZip(
       List<ProgramResource> resources,
       Set<DataEntryResource> dataResources,
@@ -294,5 +297,26 @@ public class ZipUtils {
 
   public static String zipEntryNameForClass(Class<?> clazz) {
     return DescriptorUtils.getClassBinaryName(clazz) + CLASS_EXTENSION;
+  }
+
+  public static long getOffsetOfResourceInZip(Path path, String entry) throws IOException {
+    // Look into the jar file to see find the offset.
+    ZipFile zipFile = new ZipFile(path.toFile());
+    Enumeration<? extends ZipEntry> entries = zipFile.entries();
+    long offset = 0;
+    while (entries.hasMoreElements()) {
+      ZipEntry zipEntry = entries.nextElement();
+      byte[] extra = zipEntry.getExtra();
+      offset +=
+          EXTRA_FIELD_LENGTH_OFFSET
+              + zipEntry.getName().length()
+              + (extra == null ? 0 : extra.length);
+      if (zipEntry.getName().equals(entry)) {
+        return zipEntry.getSize() == zipEntry.getCompressedSize() ? offset : -1;
+      } else if (!zipEntry.isDirectory()) {
+        offset += zipEntry.getCompressedSize();
+      }
+    }
+    return -1;
   }
 }

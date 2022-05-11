@@ -10,6 +10,7 @@ import static com.android.tools.r8.androidapi.AndroidApiLevelHashingDatabaseImpl
 import static com.android.tools.r8.lightir.ByteUtils.isU2;
 import static com.android.tools.r8.lightir.ByteUtils.setBitAtIndex;
 import static com.android.tools.r8.utils.MapUtils.ignoreKey;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -211,12 +212,12 @@ public class AndroidApiHashingDatabaseBuilderGenerator extends TestBase {
     Map<Integer, List<Pair<DexReference, AndroidApiLevel>>> generationMap = new HashMap<>();
     ConstantPool constantPool = new ConstantPool();
 
-    int constantPoolMapSize = 1 << AndroidApiDataAccess.entrySizeInBitsForConstantPoolMap();
-    int apiMapSize = 1 << AndroidApiDataAccess.entrySizeInBitsForApiLevelMap();
+    int constantPoolHashMapSize = 1 << AndroidApiDataAccess.entrySizeInBitsForConstantPoolMap();
+    int apiHashMapSize = 1 << AndroidApiDataAccess.entrySizeInBitsForApiLevelMap();
 
     for (Entry<DexReference, AndroidApiLevel> entry : referenceMap.entrySet()) {
       int newCode = AndroidApiDataAccess.apiLevelHash(entry.getKey());
-      assert newCode >= 0 && newCode <= apiMapSize;
+      assert newCode >= 0 && newCode <= apiHashMapSize;
       generationMap
           .computeIfAbsent(newCode, ignoreKey(ArrayList::new))
           .add(Pair.create(entry.getKey(), entry.getValue()));
@@ -238,6 +239,7 @@ public class AndroidApiHashingDatabaseBuilderGenerator extends TestBase {
     outputStream.writeInt(constantPool.size());
 
     // Write constant pool consisting of <u4:payload_offset><u2:length>.
+    assertEquals(AndroidApiDataAccess.constantPoolOffset(), outputStream.size());
     IntBox lastReadIndex = new IntBox(-1);
     constantPool.forEach(
         (string, id) -> {
@@ -252,14 +254,14 @@ public class AndroidApiHashingDatabaseBuilderGenerator extends TestBase {
     constantPool.forEach(
         (string, id) -> {
           int constantPoolHash = constantPoolHash(string);
-          assert constantPoolHash >= 0 && constantPoolHash <= constantPoolMapSize;
+          assert constantPoolHash >= 0 && constantPoolHash <= constantPoolHashMapSize;
           constantPoolLookupTable
               .computeIfAbsent(constantPoolHash, ignoreKey(ArrayList::new))
               .add(id);
         });
 
-    int[] constantPoolEntries = new int[constantPoolMapSize];
-    int[] constantPoolEntryLengths = new int[constantPoolMapSize];
+    int[] constantPoolEntries = new int[constantPoolHashMapSize];
+    int[] constantPoolEntryLengths = new int[constantPoolHashMapSize];
     for (Entry<Integer, List<Integer>> entry : constantPoolLookupTable.entrySet()) {
       // Tag if we have a unique value
       if (entry.getValue().size() == 1) {
@@ -276,13 +278,15 @@ public class AndroidApiHashingDatabaseBuilderGenerator extends TestBase {
       }
     }
     // Write constant pool lookup entries consisting of <u4:payload_offset><u2:length>
+    assertEquals(
+        AndroidApiDataAccess.constantPoolHashMapOffset(constantPool.size()), outputStream.size());
     for (int i = 0; i < constantPoolEntries.length; i++) {
       outputStream.writeInt(constantPoolEntries[i]);
       outputStream.writeShort(constantPoolEntryLengths[i]);
     }
 
-    int[] apiOffsets = new int[apiMapSize];
-    int[] apiOffsetLengths = new int[apiMapSize];
+    int[] apiOffsets = new int[apiHashMapSize];
+    int[] apiOffsetLengths = new int[apiHashMapSize];
     for (Entry<Integer, Pair<Integer, Integer>> hashIndexAndOffset : offsetMap.entrySet()) {
       assert apiOffsets[hashIndexAndOffset.getKey()] == 0;
       Pair<Integer, Integer> value = hashIndexAndOffset.getValue();
@@ -293,6 +297,8 @@ public class AndroidApiHashingDatabaseBuilderGenerator extends TestBase {
     }
 
     // Write api lookup entries consisting of <u4:payload_offset><u2:length>
+    assertEquals(
+        AndroidApiDataAccess.apiLevelHashMapOffset(constantPool.size()), outputStream.size());
     for (int i = 0; i < apiOffsets.length; i++) {
       outputStream.writeInt(apiOffsets[i]);
       outputStream.writeShort(apiOffsetLengths[i]);

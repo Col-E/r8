@@ -8,6 +8,7 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
@@ -117,8 +118,9 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
         AndroidApiVersionsXmlParser.getParsedApiClasses(
             ToolHelper.getApiVersionsXmlFile(API_LEVEL).toFile(), API_LEVEL);
     DexItemFactory factory = new DexItemFactory();
+    TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
     AndroidApiLevelHashingDatabaseImpl androidApiLevelDatabase =
-        new AndroidApiLevelHashingDatabaseImpl(ImmutableList.of());
+        new AndroidApiLevelHashingDatabaseImpl(ImmutableList.of(), diagnosticsHandler);
     parsedApiClasses.forEach(
         parsedApiClass -> {
           DexType type = factory.createType(parsedApiClass.getClassReference().getDescriptor());
@@ -147,6 +149,7 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
                             .isLessThanOrEqualTo(fieldApiLevel);
                       }));
         });
+    diagnosticsHandler.assertNoMessages();
   }
 
   /**

@@ -30,7 +30,8 @@ public class AndroidApiReferenceLevelCache {
     this.apiLevelCompute = apiLevelCompute;
     factory = appView.dexItemFactory();
     androidApiLevelDatabase =
-        new AndroidApiLevelHashingDatabaseImpl(predefinedApiTypeLookupForHashing);
+        new AndroidApiLevelHashingDatabaseImpl(
+            predefinedApiTypeLookupForHashing, appView.reporter());
   }
 
   public static AndroidApiReferenceLevelCache create(
