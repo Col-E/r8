@@ -16,7 +16,6 @@ import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
@@ -244,12 +243,12 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
         .compile();
   }
 
-  public TestRunResult<?> run(TestRuntime runtime, Class<?> mainClass, String... args)
+  public SingleTestRunResult<?> run(TestRuntime runtime, Class<?> mainClass, String... args)
       throws Exception {
     return compile().run(runtime, mainClass.getTypeName(), args);
   }
 
-  public TestRunResult<?> run(TestRuntime runtime, String mainClass, String... args)
+  public SingleTestRunResult<?> run(TestRuntime runtime, String mainClass, String... args)
       throws Exception {
     return compile().run(runtime, mainClass, args);
   }
