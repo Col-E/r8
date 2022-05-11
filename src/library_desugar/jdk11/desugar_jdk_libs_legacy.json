@@ -8,7 +8,7 @@
   "support_all_callbacks_from_library": true,
   "common_flags": [
     {
-      "api_level_below_or_equal": 30,
+      "api_level_below_or_equal": 10000,
       "rewrite_prefix": {
         "java.time.": "j$.time.",
         "java.util.Desugar": "j$.util.Desugar"
@@ -37,7 +37,13 @@
       }
     },
     {
-      "api_level_below_or_equal": 28,
+      "api_level_below_or_equal": 23,
+      "rewrite_prefix": {
+        "java.util.concurrent.atomic.DesugarAtomic": "j$.util.concurrent.atomic.DesugarAtomic"
+      }
+    },
+    {
+      "api_level_below_or_equal": 10000,
       "rewrite_prefix": {
         "java.util.DoubleSummaryStatistics": "j$.util.DoubleSummaryStatistics",
         "java.util.IntSummaryStatistics": "j$.util.IntSummaryStatistics",
@@ -48,7 +54,6 @@
         "java.util.StringJoiner": "j$.util.StringJoiner",
         "java.util.concurrent.ConcurrentHashMap": "j$.util.concurrent.ConcurrentHashMap",
         "java.util.concurrent.ThreadLocalRandom": "j$.util.concurrent.ThreadLocalRandom",
-        "java.util.concurrent.atomic.DesugarAtomic": "j$.util.concurrent.atomic.DesugarAtomic",
         "java.util.function.": "j$.util.function.",
         "java.util.stream.": "j$.util.stream."
       },
@@ -137,7 +142,7 @@
   ],
   "program_flags": [
     {
-      "api_level_below_or_equal": 30,
+      "api_level_below_or_equal": 10000,
       "retarget_lib_member": {
         "java.util.TimeZone#getTimeZone": "java.util.DesugarTimeZone",
         "java.util.Calendar#toInstant": "java.util.DesugarCalendar",
@@ -167,7 +172,7 @@
   ],
   "library_flags": [
     {
-      "api_level_below_or_equal": 30,
+      "api_level_below_or_equal": 10000,
       "rewrite_prefix": {
         "j$.time.": "java.time.",
         "java.lang.Desugar": "j$.lang.Desugar",
@@ -183,7 +188,7 @@
       }
     },
     {
-      "api_level_below_or_equal": 28,
+      "api_level_below_or_equal": 10000,
       "rewrite_prefix": {
         "java.util.AbstractList": "j$.util.AbstractList",
         "java.util.CollSer": "j$.util.CollSer",

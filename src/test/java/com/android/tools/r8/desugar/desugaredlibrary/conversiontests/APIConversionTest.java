@@ -5,8 +5,10 @@ package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_LEGACY;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
-import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.core.StringContains.containsString;
 
@@ -16,6 +18,7 @@ import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecificati
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
@@ -42,7 +45,7 @@ public class APIConversionTest extends DesugaredLibraryTestBase {
   public static List<Object[]> data() {
     return buildParameters(
         getConversionParametersUpToExcluding(MIN_SUPPORTED),
-        getJdk8Jdk11(),
+        ImmutableList.of(JDK8, JDK11, JDK11_LEGACY, JDK11_PATH),
         DEFAULT_SPECIFICATIONS);
   }
 

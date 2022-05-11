@@ -17,7 +17,7 @@ import java.util.Set;
 public class LibraryDesugaringSpecification {
 
   private static final String RELEASES_DIR = "third_party/openjdk/desugar_jdk_libs_releases/";
-  private static final Path DESUGARED_JDK_11_LIB_JAR =
+  private static final Path UNDESUGARED_JDK_11_LIB_JAR =
       DesugaredLibraryJDK11Undesugarer.undesugaredJarJDK11(
           Paths.get("third_party/openjdk/desugar_jdk_libs_11/desugar_jdk_libs.jar"));
 
@@ -30,28 +30,28 @@ public class LibraryDesugaringSpecification {
   public static LibraryDesugaringSpecification JDK11 =
       new LibraryDesugaringSpecification(
           "JDK11",
-          DESUGARED_JDK_11_LIB_JAR,
+          UNDESUGARED_JDK_11_LIB_JAR,
           Paths.get("src/library_desugar/jdk11/desugar_jdk_libs.json"));
   public static LibraryDesugaringSpecification JDK11_MINIMAL =
       new LibraryDesugaringSpecification(
           "JDK11_MINIMAL",
-          DESUGARED_JDK_11_LIB_JAR,
+          UNDESUGARED_JDK_11_LIB_JAR,
           Paths.get("src/library_desugar/jdk11/desugar_jdk_libs_minimal.json"));
   public static LibraryDesugaringSpecification JDK11_PATH =
       new LibraryDesugaringSpecification(
           "JDK11_PATH",
-          DESUGARED_JDK_11_LIB_JAR,
+          UNDESUGARED_JDK_11_LIB_JAR,
           Paths.get("src/library_desugar/jdk11/desugar_jdk_libs_path.json"));
 
   // Legacy specifications.
   public static LibraryDesugaringSpecification JDK11_PATH_ALTERNATIVE_3 =
       new LibraryDesugaringSpecification(
           "JDK11_PATH_ALTERNATIVE_3",
-          DESUGARED_JDK_11_LIB_JAR,
+          UNDESUGARED_JDK_11_LIB_JAR,
           Paths.get("src/library_desugar/jdk11/desugar_jdk_libs_path_alternative_3.json"));
   public static LibraryDesugaringSpecification JDK11_LEGACY =
       new LibraryDesugaringSpecification(
-          "DESUGARED_JDK_11_LIB_JAR",
+          "JDK11_LEGACY",
           // The legacy specification is not using the undesugared JAR.
           Paths.get("third_party/openjdk/desugar_jdk_libs_11/desugar_jdk_libs.jar"),
           Paths.get("src/library_desugar/jdk11/desugar_jdk_libs_legacy.json"));
@@ -75,7 +75,7 @@ public class LibraryDesugaringSpecification {
   }
 
   public LibraryDesugaringSpecification(String name, Path specification) {
-    this(name, DESUGARED_JDK_11_LIB_JAR, specification);
+    this(name, UNDESUGARED_JDK_11_LIB_JAR, specification);
   }
 
   public LibraryDesugaringSpecification(String name, Set<Path> desugarJdkLibs, Path specification) {
