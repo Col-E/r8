@@ -57,6 +57,7 @@ public class CfControlFlowGraph implements ControlFlowGraph<CfBlock, CfInstructi
     return blocks.get(blockEntry);
   }
 
+  @Override
   public CfBlock getEntryBlock() {
     return getBlock(code.getInstructions().get(0));
   }

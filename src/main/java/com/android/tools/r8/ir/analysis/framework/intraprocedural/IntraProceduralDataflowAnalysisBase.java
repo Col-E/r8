@@ -111,7 +111,10 @@ public class IntraProceduralDataflowAnalysisBase<
     return new SuccessfulDataflowAnalysisResult<>(blockExitStates);
   }
 
-  StateType computeBlockEntryState(Block block) {
+  public StateType computeBlockEntryState(Block block) {
+    if (block == cfg.getEntryBlock()) {
+      return transfer.computeInitialState(block, bottom);
+    }
     if (shouldCacheBlockEntryStateFor(block)) {
       return blockEntryStatesCache.getOrDefault(block, bottom);
     }
@@ -125,7 +128,7 @@ public class IntraProceduralDataflowAnalysisBase<
               return TraversalContinuation.doContinue(entryState.join(edgeState));
             },
             bottom);
-    return traversalContinuation.asContinue().getValue();
+    return traversalContinuation.asContinue().getValue().clone();
   }
 
   boolean setBlockExitState(Block block, StateType state) {

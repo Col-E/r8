@@ -127,7 +127,12 @@ public abstract class CfInstruction implements CfOrDexInstruction {
       CT initialValue) {
     // The method is overridden in each jump instruction.
     assert !isJump();
-    return fn.apply(fallthroughInstruction, initialValue);
+    if (fallthroughInstruction != null) {
+      return fn.apply(fallthroughInstruction, initialValue);
+    }
+    // There may be a label after the last return.
+    assert isLabel();
+    return TraversalContinuation.doContinue(initialValue);
   }
 
   @Override

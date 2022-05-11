@@ -173,6 +173,11 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
     return blocks.getFirst();
   }
 
+  @Override
+  public BasicBlock getEntryBlock() {
+    return blocks.getFirst();
+  }
+
   public Position getEntryPosition() {
     return entryPosition;
   }

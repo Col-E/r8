@@ -20,6 +20,7 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.FunctionUtils;
 import com.android.tools.r8.utils.TriFunction;
 import java.util.function.BiFunction;
+import java.util.function.UnaryOperator;
 
 public abstract class CfFrameState extends AbstractState<CfFrameState> {
 
@@ -34,6 +35,15 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
   @Override
   public CfFrameState asAbstractState() {
     return this;
+  }
+
+  @Override
+  public boolean isGreaterThanOrEquals(CfFrameState state) {
+    if (this == state) {
+      return true;
+    }
+    CfFrameState leastUpperBound = join(state, UnaryOperator.identity());
+    return equals(leastUpperBound);
   }
 
   public boolean isBottom() {
@@ -227,6 +237,12 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
 
   @Override
   public final CfFrameState join(CfFrameState state) {
+    return join(
+        state, frameType -> frameType.isSingle() ? FrameType.oneWord() : FrameType.twoWord());
+  }
+
+  public final CfFrameState join(
+      CfFrameState state, UnaryOperator<FrameType> joinWithMissingLocal) {
     if (state.isBottom() || isError()) {
       return this;
     }
@@ -235,7 +251,7 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
     }
     assert isConcrete();
     assert state.isConcrete();
-    return asConcrete().join(state.asConcrete());
+    return asConcrete().join(state.asConcrete(), joinWithMissingLocal);
   }
 
   @Override

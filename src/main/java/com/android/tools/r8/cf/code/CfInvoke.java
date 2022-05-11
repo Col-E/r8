@@ -352,7 +352,7 @@ public class CfInvoke extends CfInstruction {
     frame = frame.popInitialized(appView, method.getParameters().getBacking());
     if (opcode != Opcodes.INVOKESTATIC) {
       frame =
-          opcode == Opcodes.INVOKESPECIAL && context.getDefinition().isInstanceInitializer()
+          opcode == Opcodes.INVOKESPECIAL && method.isInstanceInitializer(dexItemFactory)
               ? frame.popAndInitialize(appView, method, context)
               : frame.popInitialized(appView, method.getHolderType());
     }

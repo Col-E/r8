@@ -35,7 +35,7 @@ public class BottomCfFrameState extends CfFrameState {
       return error();
     }
     CfFrame frameCopy = frame.mutableCopy();
-    return new ConcreteCfFrameState(frameCopy.getLocals(), frameCopy.getStack());
+    return new ConcreteCfFrameState(frameCopy.getMutableLocals(), frameCopy.getMutableStack());
   }
 
   @Override
@@ -74,7 +74,7 @@ public class BottomCfFrameState extends CfFrameState {
 
   @Override
   public CfFrameState popInitialized(AppView<?> appView, DexType... expectedTypes) {
-    return error();
+    return expectedTypes.length == 0 ? this : error();
   }
 
   @Override

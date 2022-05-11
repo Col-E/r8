@@ -843,8 +843,18 @@ public class CfFrame extends CfInstruction implements Cloneable {
     return locals;
   }
 
+  public Int2ObjectAVLTreeMap<FrameType> getMutableLocals() {
+    assert locals instanceof Int2ObjectAVLTreeMap<?>;
+    return (Int2ObjectAVLTreeMap<FrameType>) locals;
+  }
+
   public Deque<FrameType> getStack() {
     return stack;
+  }
+
+  public ArrayDeque<FrameType> getMutableStack() {
+    assert stack instanceof ArrayDeque<?>;
+    return (ArrayDeque<FrameType>) stack;
   }
 
   @Override

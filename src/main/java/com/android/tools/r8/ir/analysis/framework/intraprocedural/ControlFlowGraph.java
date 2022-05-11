@@ -12,6 +12,8 @@ import java.util.function.Function;
 
 public interface ControlFlowGraph<Block, Instruction> {
 
+  Block getEntryBlock();
+
   default boolean hasUniquePredecessor(Block block) {
     return TraversalUtils.isSingleton(counter -> traversePredecessors(block, counter));
   }

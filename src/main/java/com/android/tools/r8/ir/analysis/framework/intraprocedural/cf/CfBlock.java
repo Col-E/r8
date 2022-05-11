@@ -8,7 +8,10 @@ import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.utils.SetUtils;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /** A basic block for {@link com.android.tools.r8.graph.CfCode}. */
 public class CfBlock {
@@ -21,7 +24,7 @@ public class CfBlock {
 
   // The predecessors of the block. These are stored explicitly (unlike the successors) since they
   // cannot efficiently be computed from the block.
-  final List<CfBlock> predecessors = new ArrayList<>();
+  final Set<CfBlock> predecessors = new LinkedHashSet<>();
 
   // The exceptional predecessors of the block.
   final List<CfBlock> exceptionalPredecessors = new ArrayList<>();
@@ -48,7 +51,7 @@ public class CfBlock {
     return lastInstructionIndex;
   }
 
-  public List<CfBlock> getPredecessors() {
+  public Collection<CfBlock> getPredecessors() {
     return predecessors;
   }
 

@@ -8,7 +8,13 @@ import com.android.tools.r8.ir.code.BasicBlock;
 
 /** The abstract state of the dataflow analysis, which is computed for each {@link BasicBlock}. */
 public abstract class AbstractState<StateType extends AbstractState<StateType>>
-    implements TransferFunctionResult<StateType> {
+    implements Cloneable, TransferFunctionResult<StateType> {
+
+  @Override
+  public StateType clone() {
+    // For immutable states there is no need to clone.
+    return asAbstractState();
+  }
 
   public abstract StateType join(StateType state);
 
