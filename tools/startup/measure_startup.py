@@ -5,6 +5,7 @@
 
 import argparse
 import os
+import statistics
 import sys
 import time
 
@@ -35,47 +36,74 @@ def setup(options):
   # Unlock device.
   adb_utils.unlock(options.device_id, options.device_pin)
 
-  tear_down_options = {
+  teardown_options = {
     'previous_screen_off_timeout': previous_screen_off_timeout
   }
-  return tear_down_options
+  return teardown_options
 
-def tear_down(options, tear_down_options):
+def teardown(options, teardown_options):
   # Reset screen off timeout.
   adb_utils.set_screen_off_timeout(
-      tear_down_options['previous_screen_off_timeout'],
+      teardown_options['previous_screen_off_timeout'],
       options.device_id)
 
 def run_all(apk, options, tmp_dir):
   # Launch app while collecting information.
-  data_avg = {}
-  for iteration in range(options.iterations):
+  data_total = {}
+  for iteration in range(1, options.iterations + 1):
     print('Starting iteration %i' % iteration)
     out_dir = os.path.join(options.out_dir, str(iteration))
-    prepare_for_run(apk, out_dir, options)
+    teardown_options = setup_for_run(apk, out_dir, options)
     data = run(out_dir, options, tmp_dir)
-    add_data(data_avg, data)
-    print("Result:")
+    teardown_for_run(options, teardown_options)
+    add_data(data_total, data)
+    print('Result:')
     print(data)
-    print("Done")
-  for key, value in data_avg.items():
-    if isinstance(value, int):
-      data_avg[key] = value / options.iterations
-  print("Average result:")
-  print(data_avg)
-  write_data(options.out_dir, data_avg)
+    print(compute_data_summary(data_total))
+    print('Done')
+  print('Average result:')
+  data_summary = compute_data_summary(data_total)
+  print(data_summary)
+  write_data(options.out_dir, data_summary)
 
-def prepare_for_run(apk, out_dir, options):
+def compute_data_summary(data_total):
+  data_summary = {}
+  for key, value in data_total.items():
+    if not isinstance(value, list):
+      data_summary[key] = value
+      continue
+    data_summary['%s_avg' % key] = round(statistics.mean(value), 1)
+    data_summary['%s_med' % key] = statistics.median(value)
+  return data_summary
+
+def setup_for_run(apk, out_dir, options):
   adb_utils.root(options.device_id)
+
+  print('Installing')
   adb_utils.uninstall(options.app_id, options.device_id)
   adb_utils.install(apk, options.device_id)
+  os.makedirs(out_dir, exist_ok=True)
+
+  # AOT compile.
   if options.aot:
+    print('AOT compiling')
     if options.baseline_profile:
       adb_utils.clear_profile_data(options.app_id, options.device_id)
       adb_utils.install_profile(options.app_id, options.device_id)
     else:
       adb_utils.force_compilation(options.app_id, options.device_id)
+
+  # Cooldown and then unlock device.
+  if options.cooldown > 0:
+    print('Cooling down for %i seconds' % options.cooldown)
+    assert adb_utils.get_screen_state(options.device_id).is_off()
+    time.sleep(options.cooldown)
+    teardown_options = adb_utils.prepare_for_interaction_with_device(
+        options.device_id, options.device_pin)
+
+  # Prelaunch for hot startup.
   if options.hot_startup:
+    print('Prelaunching')
     adb_utils.launch_activity(
         options.app_id,
         options.main_activity,
@@ -84,8 +112,20 @@ def prepare_for_run(apk, out_dir, options):
     time.sleep(options.startup_duration)
     adb_utils.navigate_to_home_screen(options.device_id)
     time.sleep(1)
+
+  # Drop caches before run.
   adb_utils.drop_caches(options.device_id)
-  os.makedirs(out_dir, exist_ok=True)
+  return teardown_options
+
+def teardown_for_run(options, teardown_options):
+  assert adb_utils.get_screen_state(options.device_id).is_on_and_unlocked()
+
+  if options.cooldown > 0:
+    adb_utils.teardown_after_interaction_with_device(
+        teardown_options, options.device_id)
+    adb_utils.ensure_screen_off(options.device_id)
+  else:
+    assert teardown_options is None
 
 def run(out_dir, options, tmp_dir):
   assert adb_utils.get_screen_state(options.device_id).is_on_and_unlocked()
@@ -113,20 +153,24 @@ def run(out_dir, options, tmp_dir):
   write_data(out_dir, data)
   return data
 
-def add_data(sum_data, data):
+def add_data(data_total, data):
   for key, value in data.items():
+    if key == 'app_id':
+      assert data_total.get(key, value) == value
+      data_total[key] = value
     if key == 'time':
       continue
-    if key in sum_data:
+    if key in data_total:
       if key == 'app_id':
-        assert sum_data[key] == value
+        assert data_total[key] == value
       else:
-        existing_value = sum_data[key]
+        existing_value = data_total[key]
         assert isinstance(value, int)
-        assert isinstance(existing_value, int)
-        sum_data[key] = existing_value + value
+        assert isinstance(existing_value, list)
+        existing_value.append(value)
     else:
-      sum_data[key] = value
+      assert isinstance(value, int), key
+      data_total[key] = [value]
 
 def compute_data(launch_activity_result, perfetto_trace_path, options):
   minfl, majfl = adb_utils.get_minor_major_page_faults(
@@ -202,6 +246,10 @@ def parse_options(argv):
   result.add_argument('--apk',
                       help='Path to the APK',
                       required=True)
+  result.add_argument('--cooldown',
+                      help='Seconds to wait before running each iteration',
+                      default=0,
+                      type=int)
   result.add_argument('--device-id',
                       help='Device id (e.g., emulator-5554).')
   result.add_argument('--device-pin',
@@ -236,16 +284,33 @@ def parse_options(argv):
   assert options.aot or not options.baseline_profile
   return options, args
 
+def global_setup(options):
+  # If there is no cooldown then unlock the screen once. Otherwise we turn off
+  # the screen during the cooldown and unlock the screen before each iteration.
+  teardown_options = None
+  if options.cooldown == 0:
+    teardown_options = adb_utils.prepare_for_interaction_with_device(
+        options.device_id, options.device_pin)
+    assert adb_utils.get_screen_state(options.device_id).is_on()
+  else:
+    adb_utils.ensure_screen_off(options.device_id)
+  return teardown_options
+
+def global_teardown(options, teardown_options):
+  if options.cooldown == 0:
+    adb_utils.teardown_after_interaction_with_device(
+        teardown_options, options.device_id)
+  else:
+    assert teardown_options is None
+
 def main(argv):
   (options, args) = parse_options(argv)
   with utils.TempDir() as tmp_dir:
     apk = apk_utils.add_baseline_profile_to_apk(
         options.apk, options.baseline_profile, tmp_dir)
-    tear_down_options = adb_utils.prepare_for_interaction_with_device(
-        options.device_id, options.device_pin)
+    teardown_options = global_setup(options)
     run_all(apk, options, tmp_dir)
-    adb_utils.tear_down_after_interaction_with_device(
-        tear_down_options, options.device_id)
+    global_teardown(options, teardown_options)
 
 if __name__ == '__main__':
   sys.exit(main(sys.argv[1:]))

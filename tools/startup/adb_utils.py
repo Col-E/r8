@@ -95,6 +95,16 @@ def drop_caches(device_id=None):
       ['shell', 'echo 3 > /proc/sys/vm/drop_caches'], device_id)
   subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
 
+def ensure_screen_on(device_id=None):
+  if get_screen_state(device_id).is_off():
+    toggle_screen(device_id)
+  assert adb_utils.get_screen_state(options.device_id).is_on()
+
+def ensure_screen_off(device_id=None):
+  if get_screen_state(device_id).is_on():
+    toggle_screen(device_id)
+  assert adb_utils.get_screen_state(options.device_id).is_off()
+
 def force_compilation(app_id, device_id=None):
   print('Applying AOT (full)')
   cmd = create_adb_cmd(
@@ -268,10 +278,10 @@ def prepare_for_interaction_with_device(device_id=None, device_pin=None):
   # Unlock device.
   unlock(device_id, device_pin)
 
-  tear_down_options = {
+  teardown_options = {
     'previous_screen_off_timeout': previous_screen_off_timeout
   }
-  return tear_down_options
+  return teardown_options
 
 def root(device_id=None):
   cmd = create_adb_cmd('root', device_id)
@@ -308,11 +318,14 @@ def stop_app(app_id, device_id=None):
   cmd = create_adb_cmd('shell am force-stop %s' % app_id, device_id)
   subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
 
-def tear_down_after_interaction_with_device(tear_down_options, device_id=None):
+def teardown_after_interaction_with_device(teardown_options, device_id=None):
   # Reset screen off timeout.
   set_screen_off_timeout(
-      tear_down_options['previous_screen_off_timeout'],
+      teardown_options['previous_screen_off_timeout'],
       device_id)
+
+def toggle_screen(device_id=None):
+  issue_key_event('KEYCODE_POWER', device_id)
 
 def uninstall(app_id, device_id=None):
   print('Uninstalling %s' % app_id)
@@ -329,10 +342,8 @@ def uninstall(app_id, device_id=None):
         or expected_error in stderr
 
 def unlock(device_id=None, device_pin=None):
+  ensure_screen_on(device_id)
   screen_state = get_screen_state(device_id)
-  if screen_state.is_off():
-    issue_key_event('KEYCODE_POWER', device_id)
-    screen_state = get_screen_state(device_id)
   assert screen_state.is_on(), 'was %s' % screen_state
   if screen_state.is_on_and_locked():
     if device_pin is not None:
