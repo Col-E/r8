@@ -43,19 +43,9 @@
       }
     },
     {
-      "api_level_below_or_equal": 10000,
+      "api_level_below_or_equal": 23,
       "rewrite_prefix": {
-        "java.util.DoubleSummaryStatistics": "j$.util.DoubleSummaryStatistics",
-        "java.util.IntSummaryStatistics": "j$.util.IntSummaryStatistics",
-        "java.util.LongSummaryStatistics": "j$.util.LongSummaryStatistics",
-        "java.util.Optional": "j$.util.Optional",
-        "java.util.PrimitiveIterator": "j$.util.PrimitiveIterator",
-        "java.util.Spliterator": "j$.util.Spliterator",
-        "java.util.StringJoiner": "j$.util.StringJoiner",
-        "java.util.concurrent.ConcurrentHashMap": "j$.util.concurrent.ConcurrentHashMap",
-        "java.util.concurrent.ThreadLocalRandom": "j$.util.concurrent.ThreadLocalRandom",
-        "java.util.function.": "j$.util.function.",
-        "java.util.stream.": "j$.util.stream."
+        "java.util.function.": "j$.util.function."
       },
       "emulate_interface": {
         "java.lang.Iterable": "j$.lang.Iterable",
@@ -71,7 +61,22 @@
       },
       "dont_rewrite": [
         "java.util.Iterator#remove"
-      ],
+      ]
+    },
+    {
+      "api_level_below_or_equal": 10000,
+      "rewrite_prefix": {
+        "java.util.DoubleSummaryStatistics": "j$.util.DoubleSummaryStatistics",
+        "java.util.IntSummaryStatistics": "j$.util.IntSummaryStatistics",
+        "java.util.LongSummaryStatistics": "j$.util.LongSummaryStatistics",
+        "java.util.Optional": "j$.util.Optional",
+        "java.util.PrimitiveIterator": "j$.util.PrimitiveIterator",
+        "java.util.Spliterator": "j$.util.Spliterator",
+        "java.util.StringJoiner": "j$.util.StringJoiner",
+        "java.util.concurrent.ConcurrentHashMap": "j$.util.concurrent.ConcurrentHashMap",
+        "java.util.concurrent.ThreadLocalRandom": "j$.util.concurrent.ThreadLocalRandom",
+        "java.util.stream.": "j$.util.stream."
+      },
       "retarget_lib_member": {
         "java.util.Arrays#spliterator": "java.util.DesugarArrays",
         "java.util.Arrays#stream": "java.util.DesugarArrays",

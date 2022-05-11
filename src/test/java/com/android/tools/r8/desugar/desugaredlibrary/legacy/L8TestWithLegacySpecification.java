@@ -11,11 +11,14 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -26,25 +29,38 @@ import org.junit.runners.Parameterized.Parameters;
 public class L8TestWithLegacySpecification extends TestBase {
 
   @Parameter(0)
-  public TestParameters parameters;
+  public AndroidApiLevel apiLevel;
 
   @Parameter(1)
+  public CompilationMode mode;
+
+  @Parameter(2)
   public L8KeepRules l8KeepRules;
 
-  @Parameters(name = "{0}, {1}")
+  @Parameter(3)
+  public TestParameters none;
+
+  @Parameters(name = "{0}, {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
+        Arrays.stream(AndroidApiLevel.values())
+            .sorted()
+            .filter(apiLevel -> apiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.L))
+            .filter(apiLevel -> apiLevel.isLessThan(AndroidApiLevel.ANDROID_PLATFORM))
+            .collect(Collectors.toList()),
+        CompilationMode.values(),
         ImmutableList.of(
             new L8KeepRules("AGP", agp73KeepRules),
             new L8KeepRules("j$", ImmutableList.of("-keep class j$.** { *; }")),
             new L8KeepRules("java", ImmutableList.of("-keep class java.** { *; }")),
             new L8KeepRules(
                 "both",
-                ImmutableList.of("-keep class j$.** { *; }", "-keep class java.** { *; }"))));
+                ImmutableList.of("-keep class j$.** { *; }", "-keep class java.** { *; }"))),
+        getTestParameters().withNoneRuntime().build());
   }
 
   private static class L8KeepRules {
+
     private String name;
     private List<String> keepRules;
 
@@ -160,10 +176,11 @@ public class L8TestWithLegacySpecification extends TestBase {
                     LibraryDesugaringSpecification.JDK11_LEGACY.getSpecification(),
                     StandardCharsets.UTF_8))
             .addProguardConfiguration(l8KeepRules.keepRules, Origin.unknown())
-            .setMode(CompilationMode.RELEASE)
+            .setMode(mode)
             .setOutput(temp.newFolder().toPath().resolve("out.jar"), OutputMode.DexIndexed)
-            .setMinApiLevel(21)
+            .setMinApiLevel(apiLevel.getLevel())
             .build();
+    // TODO(b/231925782): This should succeed for all API levels.
     L8.run(command);
   }
 }
