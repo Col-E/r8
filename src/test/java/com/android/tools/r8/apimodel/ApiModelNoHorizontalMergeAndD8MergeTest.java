@@ -6,9 +6,7 @@ package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
-import static com.android.tools.r8.utils.codeinspector.AssertUtils.assertFailsCompilationIf;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -24,6 +22,7 @@ import com.android.tools.r8.synthesis.globals.GlobalSyntheticsTestingConsumer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -104,27 +103,17 @@ public class ApiModelNoHorizontalMergeAndD8MergeTest extends TestBase {
     assertFalse(mainGlobals.hasGlobals());
     assertFalse(testCallingFooGlobals.hasGlobals());
     assertFalse(testCallingBarGlobals.hasGlobals());
-    boolean attemptToMergeNotSet = !isGreaterOrEqualToMockLevel() && mode.isRelease();
-    assertFailsCompilationIf(
-        attemptToMergeNotSet,
-        () ->
-            testForD8()
-                .setMode(mode)
-                .addProgramFiles(paths)
-                .apply(this::setupTestCompileBuilder)
-                .compileWithExpectedDiagnostics(
-                    diagnosticMessages -> {
-                      if (attemptToMergeNotSet) {
-                        diagnosticMessages.assertErrorMessageThatMatches(
-                            containsString("Cannot compute relationship for not set"));
-                      } else {
-                        diagnosticMessages.assertNoMessages();
-                      }
-                    })
-                .inspect(inspector -> inspect(inspector, mode))
-                .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
-                .run(parameters.getRuntime(), Main.class)
-                .apply(this::checkOutput));
+    testForD8()
+        .setMode(mode)
+        .addProgramFiles(paths)
+        .apply(this::setupTestCompileBuilder)
+        .addHorizontallyMergedClassesInspector(
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
+        .compile()
+        .inspect(inspector -> inspect(inspector, mode))
+        .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
+        .run(parameters.getRuntime(), Main.class)
+        .apply(this::checkOutput);
   }
 
   private void inspect(CodeInspector inspector, CompilationMode mode) {
@@ -132,8 +121,7 @@ public class ApiModelNoHorizontalMergeAndD8MergeTest extends TestBase {
     if (isGreaterOrEqualToMockLevel()) {
       assertThat(libraryClassSubject, isAbsent());
     } else {
-      // TODO(b/213552119): We should not merge synthesized outlines.
-      assertEquals(mode.isRelease() ? 4 : 5, inspector.allClasses().size());
+      assertEquals(5, inspector.allClasses().size());
     }
   }
 
