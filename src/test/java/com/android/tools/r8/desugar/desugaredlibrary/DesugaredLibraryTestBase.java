@@ -223,7 +223,7 @@ public class DesugaredLibraryTestBase extends TestBase {
     }
   }
 
-  protected static Path[] getAllFilesWithSuffixInDirectory(Path directory, String suffix)
+  public static Path[] getAllFilesWithSuffixInDirectory(Path directory, String suffix)
       throws IOException {
     return Files.walk(directory)
         .filter(path -> path.toString().endsWith(suffix))

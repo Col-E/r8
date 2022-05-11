@@ -5,6 +5,8 @@
 package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
 
 import static com.android.tools.r8.ToolHelper.JDK_TESTS_BUILD_DIR;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11Paths.getPathsFiles;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11Paths.testNGSupportProgramFiles;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8SHRINK;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
@@ -18,6 +20,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.StringUtils;
@@ -33,7 +36,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class Jdk11AtomicTests extends Jdk11DesugaredLibraryTestBase {
+public class Jdk11AtomicTests extends DesugaredLibraryTestBase {
 
   private static final Path ATOMIC_TESTS_FOLDER =
       Paths.get(ToolHelper.JDK_11_TESTS_DIR + "java/util/concurrent/atomic/");

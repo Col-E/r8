@@ -64,6 +64,11 @@ public class L8TestBuilder {
     return this;
   }
 
+  public L8TestBuilder addLibraryFiles(Collection<Path> libraryFiles) {
+    this.libraryFiles.addAll(libraryFiles);
+    return this;
+  }
+
   public L8TestBuilder addLibraryFiles(Path... libraryFiles) {
     Collections.addAll(this.libraryFiles, libraryFiles);
     return this;

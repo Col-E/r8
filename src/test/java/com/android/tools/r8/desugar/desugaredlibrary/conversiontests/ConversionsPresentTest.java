@@ -44,7 +44,7 @@ public class ConversionsPresentTest extends DesugaredLibraryTestBase {
   @Test
   public void testConversionsDex() throws Exception {
     testForL8(parameters.getApiLevel())
-        .addLibraryFiles(libraryDesugaringSpecification.getAndroidJar())
+        .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
         .noDefaultDesugarJDKLibs()
         .addProgramFiles(libraryDesugaringSpecification.getDesugarJdkLibs())
         .setDesugaredLibraryConfiguration(

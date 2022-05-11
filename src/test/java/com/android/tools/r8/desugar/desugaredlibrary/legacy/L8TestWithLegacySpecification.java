@@ -153,7 +153,7 @@ public class L8TestWithLegacySpecification extends TestBase {
     L8Command.Builder builder = L8Command.builder();
     L8Command command =
         builder
-            .addLibraryFiles(LibraryDesugaringSpecification.JDK11_LEGACY.getAndroidJar())
+            .addLibraryFiles(LibraryDesugaringSpecification.JDK11_LEGACY.getLibraryFiles())
             .addProgramFiles(LibraryDesugaringSpecification.JDK11_LEGACY.getDesugarJdkLibs())
             .addDesugaredLibraryConfiguration(
                 FileUtils.readTextFile(

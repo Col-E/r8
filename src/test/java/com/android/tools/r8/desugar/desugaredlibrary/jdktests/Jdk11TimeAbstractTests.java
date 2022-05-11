@@ -1,23 +1,31 @@
-// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
 package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
 
 import static com.android.tools.r8.ToolHelper.JDK_TESTS_BUILD_DIR;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11Paths.getPathsFiles;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11Paths.testNGSupportProgramFiles;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11TestLibraryDesugaringSpecification.EXTENSION_PATH;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8SHRINK;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.D8TestCompileResult;
-import com.android.tools.r8.D8TestRunResult;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.DesugaredLibraryTestCompileResult;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
@@ -28,34 +36,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.BeforeClass;
-import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class Jdk11TimeTests extends Jdk11DesugaredLibraryTestBase {
-
-  private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
-
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
-  public static List<Object[]> data() {
-    // TODO(134732760): Support Dalvik VMs, currently fails because libjavacrypto is required and
-    // present only in ART runtimes.
-    return buildParameters(
-        BooleanUtils.values(),
-        getTestParameters()
-            .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
-            .withAllApiLevels()
-            .withApiLevel(AndroidApiLevel.N)
-            .build());
-  }
-
-  public Jdk11TimeTests(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
-    this.parameters = parameters;
-  }
+public abstract class Jdk11TimeAbstractTests extends DesugaredLibraryTestBase {
 
   private static final Path JDK_11_TCK_TEST_FILES_DIR =
       Paths.get(ToolHelper.JDK_11_TIME_TESTS_DIR).resolve("tck");
@@ -63,6 +49,34 @@ public class Jdk11TimeTests extends Jdk11DesugaredLibraryTestBase {
       Paths.get(ToolHelper.JDK_11_TIME_TESTS_DIR).resolve("test");
   private static final String JDK_11_TIME_TEST_EXCLUDE = "TestZoneTextPrinterParser.java";
   private static Path[] JDK_11_TIME_TEST_COMPILED_FILES;
+
+  final TestParameters parameters;
+  final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  final CompilationSpecification compilationSpecification;
+
+  @Parameters(name = "{0}, spec: {1}, {2}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        // TODO(134732760): Support Dalvik VMs, currently fails because libjavacrypto is required
+        // and
+        // present only in ART runtimes.
+        getTestParameters()
+            .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
+            .withAllApiLevels()
+            .withApiLevel(AndroidApiLevel.N)
+            .build(),
+        ImmutableList.of(JDK8, JDK11_PATH),
+        ImmutableList.of(D8_L8DEBUG, D8_L8SHRINK));
+  }
+
+  public Jdk11TimeAbstractTests(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
+    this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
+  }
 
   private static List<Path> getJdk11TimeTestFiles() throws Exception {
     List<Path> tckFiles =
@@ -83,14 +97,14 @@ public class Jdk11TimeTests extends Jdk11DesugaredLibraryTestBase {
   }
 
   @BeforeClass
-  public static void compileJdk11StreamTests() throws Exception {
+  public static void compileJdk11TimeTests() throws Exception {
     Path tmpDirectory = getStaticTemp().newFolder("time").toPath();
     List<String> options =
         Arrays.asList(
             "--add-reads",
             "java.base=ALL-UNNAMED",
             "--patch-module",
-            "java.base=" + JDK_11_JAVA_BASE_EXTENSION_CLASSES_DIR);
+            "java.base=" + EXTENSION_PATH);
     javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
         .addOptions(options)
         .addClasspathFiles(
@@ -107,7 +121,7 @@ public class Jdk11TimeTests extends Jdk11DesugaredLibraryTestBase {
 
   // Following tests are also failing on the Bazel build, they cannot be run easily on
   // Android (difference in time precision, iAndroid printing, etc.).
-  private static String[] wontFixFailures =
+  private static final String[] WONT_FIX_FAILURES =
       new String[] {
         "test.java.time.TestZoneTextPrinterParser.java",
         // Removed by gradle (compile-time error).
@@ -132,12 +146,11 @@ public class Jdk11TimeTests extends Jdk11DesugaredLibraryTestBase {
         "test.java.time.chrono.TestEraDisplayName",
         "test.java.time.format.TestDateTimeFormatter",
         "test.java.time.TestLocalDate",
-      };
-  private static String[] formattingProblem =
-      new String[] {
+        // Formatting problem
         "test.java.time.format.TestNarrowMonthNamesAndDayNames",
       };
-  private static String[] successes = new String[] {
+  static final String[] RAW_TEMPORAL_SUCCESSES =
+      new String[] {
         "test.java.time.TestYearMonth",
         "test.java.time.TestZonedDateTime",
         "test.java.time.TestClock_Tick",
@@ -148,10 +161,6 @@ public class Jdk11TimeTests extends Jdk11DesugaredLibraryTestBase {
         "test.java.time.TestDuration",
         "test.java.time.TestZoneOffset",
         "test.java.time.TestLocalDateTime",
-        "test.java.time.temporal.TestDateTimeBuilderCombinations",
-        "test.java.time.temporal.TestJulianFields",
-        "test.java.time.temporal.TestChronoUnit",
-        "test.java.time.temporal.TestDateTimeValueRange",
         "test.java.time.TestClock_Fixed",
         "test.java.time.TestYear",
         "test.java.time.TestLocalTime",
@@ -159,6 +168,17 @@ public class Jdk11TimeTests extends Jdk11DesugaredLibraryTestBase {
         "test.java.time.TestOffsetTime",
         "test.java.time.TestClock_Offset",
         "test.java.time.TestPeriod",
+        "test.java.time.TestClock_System",
+        "test.java.time.TestOffsetDateTime_instants",
+        "tck.java.time.TestIsoChronology",
+        "test.java.time.temporal.TestDateTimeBuilderCombinations",
+        "test.java.time.temporal.TestJulianFields",
+        "test.java.time.temporal.TestChronoUnit",
+        "test.java.time.temporal.TestDateTimeValueRange",
+        "test.java.time.temporal.TestIsoWeekFields",
+      };
+  static final String[] FORMAT_CHRONO_SUCCESSES =
+      new String[] {
         "test.java.time.format.TestFractionPrinterParser",
         "test.java.time.format.TestStringLiteralParser",
         "test.java.time.format.TestZoneOffsetPrinter",
@@ -177,49 +197,30 @@ public class Jdk11TimeTests extends Jdk11DesugaredLibraryTestBase {
         "test.java.time.format.TestTextPrinterWithLocale",
         "test.java.time.format.TestReducedPrinter",
         "test.java.time.format.TestCharLiteralParser",
-        "test.java.time.TestOffsetDateTime_instants",
+        "test.java.time.format.TestUnicodeExtension",
+        "test.java.time.format.TestDateTimeFormatterBuilderWithLocale",
         "test.java.time.chrono.TestChronologyPerf",
         "test.java.time.chrono.TestExampleCode",
         "test.java.time.chrono.TestJapaneseChronology",
         "test.java.time.chrono.TestChronoLocalDate",
         "test.java.time.chrono.TestIsoChronoImpl",
-        "tck.java.time.TestIsoChronology",
-        "test.java.time.TestClock_System",
         "test.java.time.chrono.TestUmmAlQuraChronology",
-        "test.java.time.temporal.TestIsoWeekFields",
-        "test.java.time.format.TestUnicodeExtension",
-        "test.java.time.format.TestDateTimeFormatterBuilderWithLocale",
       };
 
-  @Test
-  public void testTime() throws Exception {
-    if (parameters.getRuntime().asDex().getVm().isEqualTo(DexVm.ART_12_0_0_HOST)) {
-      // TODO(b/197078988): Many additional tests fails with Android 12.
-      return;
-    }
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+  void testTime(String[] toRun) throws Exception {
     String verbosity = "2";
-    D8TestCompileResult compileResult =
-        testForD8()
-            .addLibraryFiles(getLibraryFile())
-            .addProgramFiles(getPathsFiles())
+    DesugaredLibraryTestCompileResult<?> compileResult =
+        testForDesugaredLibrary(
+                parameters, libraryDesugaringSpecification, compilationSpecification)
             .addProgramFiles(JDK_11_TIME_TEST_COMPILED_FILES)
-            .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar"))
-            .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "jcommander-1.48.jar"))
-            .addProgramFiles(
-                Paths.get(
-                    ToolHelper.JAVA_CLASSES_DIR + "examplesTestNGRunner/TestNGMainRunner.class"))
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+            .addProgramFiles(testNGSupportProgramFiles())
+            .applyIf(
+                libraryDesugaringSpecification != JDK11_PATH,
+                b -> b.addProgramFiles(getPathsFiles()))
             .compile()
-            .withArt6Plus64BitsLib()
-            .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibrary,
-                parameters.getApiLevel(),
-                keepRuleConsumer.get(),
-                shrinkDesugaredLibrary);
-    for (String success : successes) {
-      D8TestRunResult result =
+            .withArt6Plus64BitsLib();
+    for (String success : toRun) {
+      SingleTestRunResult<?> result =
           compileResult.run(parameters.getRuntime(), "TestNGMainRunner", verbosity, success);
       if (result.getStdErr().contains("Couldn't find any tzdata")) {
         // TODO(b/134732760): fix missing time zone data.
@@ -229,16 +230,6 @@ public class Jdk11TimeTests extends Jdk11DesugaredLibraryTestBase {
         assertTrue(
             "Failure in " + success + "\n" + result,
             result.getStdOut().contains(StringUtils.lines(success + ": SUCCESS")));
-      }
-    }
-    for (String issue : formattingProblem) {
-      D8TestRunResult result =
-          compileResult.run(parameters.getRuntime(), "TestNGMainRunner", verbosity, issue);
-      if (requiresTimeDesugaring(parameters)) {
-        // Fails due to formatting differences in desugared library.
-        assertTrue(result.getStdOut().contains("for style NARROW"));
-      } else {
-        assertTrue(result.getStdOut().contains(StringUtils.lines(issue + ": SUCCESS")));
       }
     }
   }

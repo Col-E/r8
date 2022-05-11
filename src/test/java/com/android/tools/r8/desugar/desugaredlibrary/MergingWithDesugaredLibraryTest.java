@@ -26,7 +26,6 @@ import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11DesugaredLibraryTestBase;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -40,7 +39,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBase {
+public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
 
   private static final String JAVA_RESULT = "java.util.stream.ReferencePipeline$Head";
   private static final String J$_RESULT = "j$.util.stream.ReferencePipeline$Head";
