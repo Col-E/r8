@@ -80,7 +80,7 @@ public class VirtualMethodMergingWithAbsentMethodAndSuperClassMergingTest extend
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatThrows(NoSuchMethodError.class);
+        .assertSuccessWithOutputLines("A", "B", "C", "A");
   }
 
   static class Main {

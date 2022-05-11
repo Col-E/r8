@@ -131,9 +131,13 @@ public class IncompleteVirtuallyMergedMethodCode extends IncompleteHorizontalCla
     instructions.add(fallthroughLabel);
     instructions.add(createCfFrameForSwitchCase(method, maxLocals));
 
-    DexMethod fallthroughTarget =
-        lens.getNextMethodSignature(
-            superMethod != null ? superMethod : mappedMethods.get(mappedMethods.lastIntKey()));
+    DexMethod fallthroughTarget;
+    if (superMethod == null) {
+      fallthroughTarget =
+          lens.getNextMethodSignature(mappedMethods.get(mappedMethods.lastIntKey()));
+    } else {
+      fallthroughTarget = lens.lookupInvokeSuper(superMethod, method).getReference();
+    }
     instructions.add(
         new CfInvoke(Opcodes.INVOKESPECIAL, fallthroughTarget, method.getHolder().isInterface()));
 
