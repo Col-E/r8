@@ -4,14 +4,15 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import static org.junit.Assert.assertEquals;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.SPECIFICATIONS_WITH_CF2CF;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
-import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,18 +29,38 @@ public class CustomMapHierarchyTest extends DesugaredLibraryTestBase {
       StringUtils.lines("B::getOrDefault", "default 1", "B::getOrDefault", "default 2");
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
-        BooleanUtils.values());
+        getJdk8Jdk11(),
+        SPECIFICATIONS_WITH_CF2CF);
   }
 
-  public CustomMapHierarchyTest(TestParameters parameters, boolean shrinkDesugaredLibrary) {
+  public CustomMapHierarchyTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+  }
+
+  @Test
+  public void testCollection() throws Throwable {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Main.class)
+        .addKeepAllClassesRuleWithAllowObfuscation()
+        .addKeepAttributes(
+            ProguardKeepAttributes.SIGNATURE,
+            ProguardKeepAttributes.INNER_CLASSES,
+            ProguardKeepAttributes.ENCLOSING_METHOD)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
@@ -51,93 +72,6 @@ public class CustomMapHierarchyTest extends DesugaredLibraryTestBase {
                 .isGreaterThanOrEqualTo(TestBase.apiLevelWithDefaultInterfaceMethodsSupport()));
     testForRuntime(parameters)
         .addInnerClasses(CustomMapHierarchyTest.class)
-        .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutput(EXPECTED);
-  }
-
-  @Test
-  public void testD8() throws Exception {
-    Assume.assumeTrue(parameters.getRuntime().isDex());
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
-        .addInnerClasses(CustomMapHierarchyTest.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutput(EXPECTED);
-  }
-
-  @Test
-  public void testD8Cf2Cf() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-
-    Path jar =
-        testForD8(Backend.CF)
-            .addInnerClasses(CustomMapHierarchyTest.class)
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .setIncludeClassesChecksum(true)
-            .setMinApi(parameters.getApiLevel())
-            .allowStdoutMessages()
-            .compile()
-            .writeToZip();
-    String desugaredLibraryKeepRules = "";
-    if (shrinkDesugaredLibrary && keepRuleConsumer.get() != null) {
-      // Collection keep rules is only implemented in the DEX writer.
-      assertEquals(0, keepRuleConsumer.get().length());
-      desugaredLibraryKeepRules = "-keep class * { *; }";
-    }
-    if (parameters.getRuntime().isDex()) {
-      testForD8()
-          .addProgramFiles(jar)
-          .setMinApi(parameters.getApiLevel())
-          .disableDesugaring()
-          .allowStdoutMessages()
-          .compile()
-          .addDesugaredCoreLibraryRunClassPath(
-              this::buildDesugaredLibrary,
-              parameters.getApiLevel(),
-              desugaredLibraryKeepRules,
-              shrinkDesugaredLibrary)
-          .run(parameters.getRuntime(), Main.class)
-          .assertSuccessWithOutput(EXPECTED);
-    } else {
-      testForJvm()
-          .addProgramFiles(jar)
-          .addRunClasspathFiles(getDesugaredLibraryInCF(parameters, options -> {}))
-          .run(parameters.getRuntime(), Main.class)
-          .assertSuccessWithOutput(EXPECTED);
-    }
-  }
-
-  @Test
-  public void testR8() throws Exception {
-    Assume.assumeTrue(parameters.getRuntime().isDex());
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForR8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
-        .addInnerClasses(CustomMapHierarchyTest.class)
-        .addKeepMainRule(Main.class)
-        .addKeepAllClassesRuleWithAllowObfuscation()
-        .addKeepAttributes(
-            ProguardKeepAttributes.SIGNATURE,
-            ProguardKeepAttributes.INNER_CLASSES,
-            ProguardKeepAttributes.ENCLOSING_METHOD)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED);
   }

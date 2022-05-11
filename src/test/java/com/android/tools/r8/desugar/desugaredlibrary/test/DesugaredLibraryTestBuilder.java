@@ -17,6 +17,7 @@ import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
+import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.utils.ConsumerUtils;
@@ -117,6 +118,12 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
+  public DesugaredLibraryTestBuilder<T> addProgramClasses(Collection<Class<?>> clazz)
+      throws IOException {
+    builder.addProgramClasses(clazz);
+    return this;
+  }
+
   public DesugaredLibraryTestBuilder<T> addProgramFiles(Path... files) {
     builder.addProgramFiles(files);
     return this;
@@ -157,6 +164,16 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
 
   public DesugaredLibraryTestBuilder<T> allowDiagnosticWarningMessages() {
     withR8TestBuilder(R8TestBuilder::allowDiagnosticWarningMessages);
+    return this;
+  }
+
+  public DesugaredLibraryTestBuilder<T> addKeepAttributes(String... attributes) {
+    withR8TestBuilder(b -> b.addKeepAttributes(attributes));
+    return this;
+  }
+
+  public DesugaredLibraryTestBuilder<T> addKeepAllClassesRuleWithAllowObfuscation() {
+    withR8TestBuilder(TestShrinkerBuilder::addKeepAllClassesRuleWithAllowObfuscation);
     return this;
   }
 

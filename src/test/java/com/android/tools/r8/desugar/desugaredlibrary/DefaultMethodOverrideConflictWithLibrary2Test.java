@@ -3,15 +3,17 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -22,6 +24,7 @@ import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * This test checks that if a default interface method in a library interface conflicts with a
@@ -34,14 +37,24 @@ import org.junit.runners.Parameterized;
 public class DefaultMethodOverrideConflictWithLibrary2Test extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
+  @Parameters(name = "{0}, spec: {1}, {2}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        ImmutableList.of(D8_L8DEBUG));
   }
 
-  public DefaultMethodOverrideConflictWithLibrary2Test(TestParameters parameters) {
+  public DefaultMethodOverrideConflictWithLibrary2Test(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   private List<Class<?>> getClasses() {
@@ -75,14 +88,10 @@ public class DefaultMethodOverrideConflictWithLibrary2Test extends DesugaredLibr
           .run(parameters.getRuntime(), Main.class)
           .apply(this::checkResult);
     } else {
-      testForD8()
-          .addLibraryFiles(getLibraryFile())
+      testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
           .addProgramClasses(getClasses())
           .addProgramClassFileData(getTransforms())
-          .setMinApi(parameters.getApiLevel())
-          .enableCoreLibraryDesugaring(
-              LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
-          .compile()
+          .addKeepMainRule(Main.class)
           .run(parameters.getRuntime(), Main.class)
           .apply(this::checkResult);
     }

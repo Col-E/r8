@@ -4,10 +4,14 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import com.android.tools.r8.D8TestRunResult;
-import com.android.tools.r8.R8TestRunResult;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
+
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.StringUtils;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -22,67 +26,42 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class DateTimeFormatterTest extends DesugaredLibraryTestBase {
 
-  private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
   private static final String expectedOutputDesugaredLib =
       StringUtils.lines("2/3/01 4:05 AM - Feb 3, 1 4:05 AM");
   private static final String expectedOutput =
       StringUtils.lines("2/3/01, 4:05 AM - Feb 3, 1, 4:05 AM");
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  private final TestParameters parameters;
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        DEFAULT_SPECIFICATIONS);
   }
 
-  public DateTimeFormatterTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public DateTimeFormatterTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   @Test
-  public void testD8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    D8TestRunResult run =
-        testForD8()
-            .addLibraryFiles(getLibraryFile())
-            .addInnerClasses(DateTimeFormatterTest.class)
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .setIncludeClassesChecksum(true)
-            .compile()
-            .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibrary,
-                parameters.getApiLevel(),
-                keepRuleConsumer.get(),
-                shrinkDesugaredLibrary)
-            .run(parameters.getRuntime(), TestClass.class);
-    if (requiresTimeDesugaring(parameters)) {
-      run.assertSuccessWithOutput(expectedOutputDesugaredLib);
-    } else {
-      run.assertSuccessWithOutput(expectedOutput);
-    }
-  }
-
-  @Test
-  public void testR8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    R8TestRunResult run =
-        testForR8(parameters.getBackend())
-            .addLibraryFiles(getLibraryFile())
-            .noMinification()
+  public void testFormatter() throws Throwable {
+    SingleTestRunResult<?> run =
+        testForDesugaredLibrary(
+                parameters, libraryDesugaringSpecification, compilationSpecification)
+            .addInnerClasses(getClass())
             .addKeepMainRule(TestClass.class)
-            .addInnerClasses(DateTimeFormatterTest.class)
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .compile()
-            .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibrary,
-                parameters.getApiLevel(),
-                keepRuleConsumer.get(),
-                shrinkDesugaredLibrary)
-            .run(parameters.getRuntime(), TestClass.class);
-    if (requiresTimeDesugaring(parameters)) {
+            .run(parameters.getRuntime(), TestClass.class)
+            .assertSuccess();
+    if (requiresTimeDesugaring(parameters, libraryDesugaringSpecification != JDK8)) {
       run.assertSuccessWithOutput(expectedOutputDesugaredLib);
     } else {
       run.assertSuccessWithOutput(expectedOutput);
