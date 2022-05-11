@@ -4,18 +4,17 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import static org.junit.Assert.assertEquals;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.SPECIFICATIONS_WITH_CF2CF;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.D8TestRunResult;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,124 +32,56 @@ import org.junit.runners.Parameterized.Parameters;
 public class CustomCollectionTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameters(name = "machine: {0}, shrink: {1}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(),
-        getTestParameters().withDexRuntimes().withAllApiLevels().build());
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        SPECIFICATIONS_WITH_CF2CF);
   }
 
-  public CustomCollectionTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public CustomCollectionTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
-  private final String EXECUTOR =
-      "com.android.tools.r8.desugar.desugaredlibrary.CustomCollectionTest$Executor";
-
   @Test
-  public void testCustomCollectionD8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    D8TestRunResult d8TestRunResult =
-        testForD8()
-            .addLibraryFiles(getLibraryFile())
-            .addInnerClasses(CustomCollectionTest.class)
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+  public void testCollection() throws Throwable {
+    String stdOut =
+        testForDesugaredLibrary(
+                parameters, libraryDesugaringSpecification, compilationSpecification)
+            .addInnerClasses(getClass())
+            .addKeepMainRule(Executor.class)
             .compile()
-            .assertNoMessages()
             .inspect(this::assertCustomCollectionCallsCorrect)
-            .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibrary,
-                parameters.getApiLevel(),
-                keepRuleConsumer.get(),
-                shrinkDesugaredLibrary)
             .run(parameters.getRuntime(), Executor.class)
-            .assertSuccess();
-    assertResultCorrect(d8TestRunResult.getStdOut());
-  }
-
-  @Test
-  public void testCustomCollectionD8Cf2Cf() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    // Use D8 to desugar with Java classfile output.
-    Path jar =
-        testForD8(Backend.CF)
-            .addInnerClasses(CustomCollectionTest.class)
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .compile()
-            .writeToZip();
-    if (parameters.getRuntime().isDex()) {
-      // Collection keep rules is only implemented in the DEX writer.
-      String desugaredLibraryKeepRules = keepRuleConsumer.get();
-      if (desugaredLibraryKeepRules != null) {
-        assertEquals(0, desugaredLibraryKeepRules.length());
-        desugaredLibraryKeepRules = "-keep class * { *; }";
-      }
-      D8TestRunResult d8TestRunResult =
-          testForD8()
-              .addProgramFiles(jar)
-              .setMinApi(parameters.getApiLevel())
-              .disableDesugaring()
-              .compile()
-              .assertNoMessages()
-              .inspect(this::assertCustomCollectionCallsCorrect)
-              .addDesugaredCoreLibraryRunClassPath(
-                  this::buildDesugaredLibrary,
-                  parameters.getApiLevel(),
-                  desugaredLibraryKeepRules,
-                  shrinkDesugaredLibrary)
-              .run(parameters.getRuntime(), EXECUTOR)
-              .assertSuccess();
-      assertResultCorrect(d8TestRunResult.getStdOut());
-    } else {
-      // Build the desugared library in class file format.
-      Path desugaredLib = getDesugaredLibraryInCF(parameters, o -> {});
-
-      // Run on the JVM with desuagred library on classpath.
-      testForJvm()
-          .addProgramFiles(jar)
-          .addRunClasspathFiles(desugaredLib)
-          .run(parameters.getRuntime(), EXECUTOR)
-          .assertSuccess();
-    }
+            .assertSuccess()
+            .getStdOut();
+    assertResultCorrect(stdOut);
   }
 
   private void assertResultCorrect(String stdOut) {
-    if (requiresEmulatedInterfaceCoreLibDesugaring(parameters) && !shrinkDesugaredLibrary) {
+    if (requiresEmulatedInterfaceCoreLibDesugaring(parameters)
+        && !compilationSpecification.isL8Shrink()) {
       // When shrinking the class names are not printed correctly anymore due to minification.
       // Expected output is emulated interfaces expected output.
       assertLines2By2Correct(stdOut);
     }
   }
 
-  @Test
-  public void testCustomCollectionR8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    R8TestRunResult r8TestRunResult =
-        testForR8(Backend.DEX)
-            .addLibraryFiles(getLibraryFile())
-            .addInnerClasses(CustomCollectionTest.class)
-            .setMinApi(parameters.getApiLevel())
-            .addKeepClassAndMembersRules(Executor.class)
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .compile()
-            .inspect(this::assertCustomCollectionCallsCorrect)
-            .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibrary,
-                parameters.getApiLevel(),
-                keepRuleConsumer.get(),
-                shrinkDesugaredLibrary)
-            .run(parameters.getRuntime(), Executor.class)
-            .assertSuccess();
-    assertResultCorrect(r8TestRunResult.getStdOut());
-  }
-
   private void assertCustomCollectionCallsCorrect(CodeInspector inspector) {
-    MethodSubject direct = inspector.clazz(EXECUTOR).uniqueMethodWithName("directTypes");
+    if (compilationSpecification.isProgramShrink()) {
+      return;
+    }
+    MethodSubject direct = inspector.clazz(Executor.class).uniqueMethodWithName("directTypes");
+    System.out.println(direct);
     if (requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
       assertTrue(
           direct
@@ -164,7 +95,8 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
     } else {
       assertTrue(direct.streamInstructions().noneMatch(instr -> instr.toString().contains("$-EL")));
     }
-    MethodSubject inherited = inspector.clazz(EXECUTOR).uniqueMethodWithName("inheritedTypes");
+    MethodSubject inherited =
+        inspector.clazz(Executor.class).uniqueMethodWithName("inheritedTypes");
     if (!requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
       assertTrue(
           inherited.streamInstructions().noneMatch(instr -> instr.toString().contains("$-EL")));

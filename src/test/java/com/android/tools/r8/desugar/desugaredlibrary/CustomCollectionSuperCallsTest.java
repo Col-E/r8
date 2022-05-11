@@ -4,13 +4,12 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import static org.junit.Assert.assertEquals;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.SPECIFICATIONS_WITH_CF2CF;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 
-import com.android.tools.r8.D8TestRunResult;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
-import java.nio.file.Path;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Spliterator;
@@ -24,101 +23,37 @@ import org.junit.runners.Parameterized.Parameters;
 public class CustomCollectionSuperCallsTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        SPECIFICATIONS_WITH_CF2CF);
   }
 
-  public CustomCollectionSuperCallsTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public CustomCollectionSuperCallsTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   @Test
-  public void testCustomCollectionSuperCallsD8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    D8TestRunResult d8TestRunResult =
-        testForD8()
-            .addLibraryFiles(getLibraryFile())
-            .addInnerClasses(CustomCollectionSuperCallsTest.class)
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .compile()
-            .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibrary,
-                parameters.getApiLevel(),
-                keepRuleConsumer.get(),
-                shrinkDesugaredLibrary)
-            .run(parameters.getRuntime(), Executor.class)
-            .assertSuccess();
-    assertLines2By2Correct(d8TestRunResult.getStdOut());
-  }
-
-  @Test
-  public void testCustomCollectionSuperCallsD8Cf2Cf() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    Path jar =
-        testForD8(Backend.CF)
-            .addInnerClasses(CustomCollectionSuperCallsTest.class)
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .allowStdoutMessages()
-            .compile()
-            .writeToZip();
-    String desugaredLibraryKeepRules = "";
-    if (shrinkDesugaredLibrary && keepRuleConsumer.get() != null) {
-      // Collection keep rules is only implemented in the DEX writer.
-      assertEquals(0, keepRuleConsumer.get().length());
-      desugaredLibraryKeepRules = "-keep class * { *; }";
-    }
-    D8TestRunResult d8TestRunResult;
-    if (parameters.getRuntime().isDex()) {
-      d8TestRunResult =
-          testForD8()
-              .addProgramFiles(jar)
-              .setMinApi(parameters.getApiLevel())
-              .disableDesugaring()
-              .allowStdoutMessages()
-              .compile()
-              .addDesugaredCoreLibraryRunClassPath(
-                  this::buildDesugaredLibrary,
-                  parameters.getApiLevel(),
-                  desugaredLibraryKeepRules,
-                  shrinkDesugaredLibrary)
-              .run(parameters.getRuntime(), Executor.class)
-              .assertSuccess();
-      assertLines2By2Correct(d8TestRunResult.getStdOut());
-    } else {
-      testForJvm()
-          .addProgramFiles(jar)
-          .addRunClasspathFiles(getDesugaredLibraryInCF(parameters, options -> {}))
-          .run(parameters.getRuntime(), Executor.class)
-          .assertSuccess();
-    }
-  }
-
-  @Test
-  public void testCustomCollectionSuperCallsR8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    R8TestRunResult r8TestRunResult =
-        testForR8(parameters.getBackend())
-            .addLibraryFiles(getLibraryFile())
-            .addInnerClasses(CustomCollectionSuperCallsTest.class)
+  public void testCollection() throws Exception {
+    String stdOut =
+        testForDesugaredLibrary(
+                parameters, libraryDesugaringSpecification, compilationSpecification)
+            .addInnerClasses(getClass())
             .addKeepMainRule(Executor.class)
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .compile()
-            .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibrary,
-                parameters.getApiLevel(),
-                keepRuleConsumer.get(),
-                shrinkDesugaredLibrary)
             .run(parameters.getRuntime(), Executor.class)
-            .assertSuccess();
-    assertLines2By2Correct(r8TestRunResult.getStdOut());
+            .assertSuccess()
+            .getStdOut();
+    assertLines2By2Correct(stdOut);
   }
 
   static class Executor {
