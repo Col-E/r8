@@ -9,6 +9,7 @@ import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DataResource;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.androidapi.AndroidApiDataAccess;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.google.common.io.ByteStreams;
@@ -133,7 +134,11 @@ public class ArchiveBuilder implements OutputBuilder {
     try (InputStream in = content.getByteStream()) {
       ByteDataView view = ByteDataView.of(ByteStreams.toByteArray(in));
       synchronized (this) {
-        delayedWrites.add(DelayedData.createFile(name, view));
+        if (AndroidApiDataAccess.isApiDatabaseEntry(name)) {
+          writeFileNow(name, view, handler);
+        } else {
+          delayedWrites.add(DelayedData.createFile(name, view));
+        }
       }
     } catch (IOException e) {
       handleIOException(e, handler);
@@ -150,7 +155,11 @@ public class ArchiveBuilder implements OutputBuilder {
 
   private void writeFileNow(String name, ByteDataView content, DiagnosticsHandler handler) {
     try {
-      ZipUtils.writeToZipStream(getStream(), name, content, ZipEntry.DEFLATED);
+      ZipUtils.writeToZipStream(
+          getStream(),
+          name,
+          content,
+          AndroidApiDataAccess.isApiDatabaseEntry(name) ? ZipEntry.STORED : ZipEntry.DEFLATED);
     } catch (IOException e) {
       handleIOException(e, handler);
     }

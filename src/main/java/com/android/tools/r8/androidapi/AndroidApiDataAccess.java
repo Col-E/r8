@@ -30,8 +30,8 @@ public abstract class AndroidApiDataAccess {
   private static final int PAYLOAD_OFFSET_WITH_LENGTH = 4 + 2;
   private static final byte ZERO_BYTE = (byte) 0;
 
-  public static String getResourceName() {
-    return RESOURCE_NAME;
+  public static boolean isApiDatabaseEntry(String entry) {
+    return RESOURCE_NAME.equals(entry);
   }
 
   private static class PositionAndLength {

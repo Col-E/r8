@@ -51,7 +51,6 @@ public class ZipUtils {
       Closer closer,
       ZipOutputStream out)
       throws IOException, ResourceException {
-    String resourceName = AndroidApiDataAccess.getResourceName();
     for (DataEntryResource dataResource : dataResources) {
       String entryName = dataResource.getName();
       byte[] bytes = ByteStreams.toByteArray(closer.register(dataResource.getByteStream()));
@@ -59,7 +58,7 @@ public class ZipUtils {
           out,
           entryName,
           bytes,
-          entryName.equals(resourceName) ? ZipEntry.STORED : ZipEntry.DEFLATED);
+          AndroidApiDataAccess.isApiDatabaseEntry(entryName) ? ZipEntry.STORED : ZipEntry.DEFLATED);
     }
     for (ProgramResource resource : resources) {
       assert resource.getClassDescriptors().size() == 1;
