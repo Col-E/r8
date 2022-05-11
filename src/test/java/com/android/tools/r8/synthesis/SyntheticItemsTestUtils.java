@@ -42,7 +42,7 @@ public class SyntheticItemsTestUtils {
   }
 
   public static MethodReference syntheticBackportMethod(Class<?> clazz, int id, Method method) {
-    ClassReference syntheticHolder = syntheticClass(clazz, naming.BACKPORT, id);
+    ClassReference syntheticHolder = syntheticBackportClass(clazz, id);
     MethodReference originalMethod = Reference.methodFromMethod(method);
     return Reference.methodFromDescriptor(
         syntheticHolder.getDescriptor(),
@@ -60,6 +60,26 @@ public class SyntheticItemsTestUtils {
 
   public static ClassReference syntheticLambdaClass(Class<?> clazz, int id) {
     return syntheticClass(clazz, naming.LAMBDA, id);
+  }
+
+  public static ClassReference syntheticApiOutlineClass(Class<?> clazz, int id) {
+    return syntheticClass(clazz, naming.API_MODEL_OUTLINE, id);
+  }
+
+  public static ClassReference syntheticBackportClass(Class<?> clazz, int id) {
+    return syntheticClass(clazz, naming.BACKPORT, id);
+  }
+
+  public static ClassReference syntheticBackportClass(ClassReference classReference, int id) {
+    return syntheticClass(classReference, naming.BACKPORT, id);
+  }
+
+  public static ClassReference syntheticTwrCloseResourceClass(Class<?> clazz, int id) {
+    return syntheticClass(clazz, naming.TWR_CLOSE_RESOURCE, id);
+  }
+
+  public static ClassReference syntheticTwrCloseResourceClass(ClassReference reference, int id) {
+    return syntheticClass(reference, naming.TWR_CLOSE_RESOURCE, id);
   }
 
   public static MethodReference syntheticLambdaMethod(Class<?> clazz, int id, Method method) {

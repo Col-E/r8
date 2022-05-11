@@ -5,13 +5,13 @@
 package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
-import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
+import static com.android.tools.r8.utils.codeinspector.AssertUtils.assertFailsCompilationIf;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.OutputMode;
@@ -20,7 +20,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.synthesis.globals.GlobalSyntheticsTestingConsumer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -35,7 +34,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class ApiModelMockMergeTest extends TestBase {
+public class ApiModelHorizontalMergeAndD8MergeTest extends TestBase {
 
   private final AndroidApiLevel mockLevel = AndroidApiLevel.M;
 
@@ -50,18 +49,15 @@ public class ApiModelMockMergeTest extends TestBase {
     return parameters.isDexRuntime() && parameters.getApiLevel().isGreaterThanOrEqualTo(mockLevel);
   }
 
-  private void setupTestCompileBuilder(
-      TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder, Class<?> programClass)
+  private void setupTestCompileBuilder(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder)
       throws NoSuchMethodException {
     testBuilder
-        .addProgramClasses(programClass)
         .addLibraryClasses(LibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
         .setMinApi(parameters.getApiLevel())
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
-        .apply(ApiModelingTestHelper::enableStubbingOfClasses)
+        .apply(ApiModelingTestHelper::enableOutliningOfMethods)
         .apply(setMockApiLevelForClass(LibraryClass.class, mockLevel))
-        .apply(setMockApiLevelForDefaultInstanceInitializer(LibraryClass.class, mockLevel))
         .apply(setMockApiLevelForMethod(LibraryClass.class.getDeclaredMethod("foo"), mockLevel))
         .apply(setMockApiLevelForMethod(LibraryClass.class.getDeclaredMethod("bar"), mockLevel));
   }
@@ -85,10 +81,11 @@ public class ApiModelMockMergeTest extends TestBase {
       Class<?> clazz, GlobalSyntheticsTestingConsumer global, CompilationMode mode)
       throws Exception {
     return testForD8()
+        .addProgramClasses(clazz)
         .setMode(mode)
         .setOutputMode(OutputMode.DexFilePerClassFile)
         .apply(b -> b.getBuilder().setGlobalSyntheticsConsumer(global))
-        .apply(builder -> setupTestCompileBuilder(builder, clazz))
+        .apply(this::setupTestCompileBuilder)
         .compile()
         .writeToZip();
   }
@@ -102,41 +99,37 @@ public class ApiModelMockMergeTest extends TestBase {
     paths.add(runD8ForClass(TestCallingFoo.class, testCallingFooGlobals, mode));
     paths.add(runD8ForClass(TestCallingBar.class, testCallingBarGlobals, mode));
     assertFalse(mainGlobals.hasGlobals());
-    if (isGreaterOrEqualToMockLevel()) {
-      assertFalse(testCallingFooGlobals.hasGlobals());
-      assertFalse(testCallingBarGlobals.hasGlobals());
-    } else {
-      // The TestCallingX does reference the mock and should have globals.
-      assertNotNull(
-          testCallingFooGlobals.getProvider(Reference.classFromClass(TestCallingFoo.class)));
-      assertNotNull(
-          testCallingBarGlobals.getProvider(Reference.classFromClass(TestCallingBar.class)));
-    }
-
-    testForD8()
-        .setMode(mode)
-        .addProgramFiles(paths)
-        .setMinApi(parameters.getApiLevel())
-        .apply(
-            b ->
-                b.getBuilder()
-                    .addGlobalSyntheticsResourceProviders(testCallingFooGlobals.getProviders())
-                    .addGlobalSyntheticsResourceProviders(testCallingBarGlobals.getProviders()))
-        .compile()
-        .inspect(this::inspect)
-        .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
-        .run(parameters.getRuntime(), Main.class)
-        .apply(this::checkOutput);
+    assertFalse(testCallingFooGlobals.hasGlobals());
+    assertFalse(testCallingBarGlobals.hasGlobals());
+    boolean attemptToMergeNotSet = !isGreaterOrEqualToMockLevel() && mode.isRelease();
+    assertFailsCompilationIf(
+        attemptToMergeNotSet,
+        () ->
+            testForD8()
+                .setMode(mode)
+                .addProgramFiles(paths)
+                .apply(this::setupTestCompileBuilder)
+                .compileWithExpectedDiagnostics(
+                    diagnosticMessages -> {
+                      if (attemptToMergeNotSet) {
+                        diagnosticMessages.assertErrorMessageThatMatches(
+                            containsString("Cannot compute relationship for not set"));
+                      } else {
+                        diagnosticMessages.assertNoMessages();
+                      }
+                    })
+                .inspect(inspector -> inspect(inspector, mode))
+                .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
+                .run(parameters.getRuntime(), Main.class)
+                .apply(this::checkOutput));
   }
 
-  private void inspect(CodeInspector inspector) {
+  private void inspect(CodeInspector inspector, CompilationMode mode) {
     ClassSubject libraryClassSubject = inspector.clazz(LibraryClass.class);
     if (isGreaterOrEqualToMockLevel()) {
       assertThat(libraryClassSubject, isAbsent());
     } else {
-      assertThat(libraryClassSubject, isPresent());
-      assertThat(libraryClassSubject.uniqueMethodWithName("foo"), isAbsent());
-      assertThat(libraryClassSubject.uniqueMethodWithName("bar"), isAbsent());
+      assertEquals(mode.isRelease() ? 4 : 5, inspector.allClasses().size());
     }
   }
 
@@ -149,11 +142,11 @@ public class ApiModelMockMergeTest extends TestBase {
   // Only present form api level 23.
   public static class LibraryClass {
 
-    public void foo() {
+    public static void foo() {
       System.out.println("LibraryClass::foo");
     }
 
-    public void bar() {
+    public static void bar() {
       System.out.println("LibraryClass::bar");
     }
   }
@@ -161,14 +154,14 @@ public class ApiModelMockMergeTest extends TestBase {
   public static class TestCallingFoo {
 
     public static void callFoo() {
-      new LibraryClass().foo();
+      LibraryClass.foo();
     }
   }
 
   public static class TestCallingBar {
 
     public static void callBar() {
-      new LibraryClass().bar();
+      LibraryClass.bar();
     }
   }
 

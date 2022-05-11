@@ -11,6 +11,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.examples.JavaExampleClassProxy;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -32,11 +33,11 @@ public class TwrCloseResourceDuplicationTest extends TestBase {
   private static final String PKG = "twrcloseresourceduplication";
   private static final String EXAMPLE = "examplesJava9/" + PKG;
   private final JavaExampleClassProxy MAIN =
-      new JavaExampleClassProxy(EXAMPLE, PKG + ".TwrCloseResourceDuplication");
+      new JavaExampleClassProxy(EXAMPLE, PKG + "/TwrCloseResourceDuplication");
   private final JavaExampleClassProxy FOO =
-      new JavaExampleClassProxy(EXAMPLE, PKG + ".TwrCloseResourceDuplication$Foo");
+      new JavaExampleClassProxy(EXAMPLE, PKG + "/TwrCloseResourceDuplication$Foo");
   private final JavaExampleClassProxy BAR =
-      new JavaExampleClassProxy(EXAMPLE, PKG + ".TwrCloseResourceDuplication$Bar");
+      new JavaExampleClassProxy(EXAMPLE, PKG + "/TwrCloseResourceDuplication$Bar");
 
   static final int INPUT_CLASSES = 3;
 
@@ -139,9 +140,13 @@ public class TwrCloseResourceDuplicationTest extends TestBase {
                   ImmutableSet.of(FOO.typeName(), BAR.typeName(), MAIN.typeName());
               if (parameters.getApiLevel().isLessThan(apiLevelWithTwrCloseResourceSupport())) {
                 Set<String> classOutputWithSynthetics = new HashSet<>(nonSyntheticClassOutput);
-                classOutputWithSynthetics.add(BAR.typeName() + "$$ExternalSyntheticBackport0");
                 classOutputWithSynthetics.add(
-                    BAR.typeName() + "$$ExternalSyntheticTwrCloseResource1");
+                    SyntheticItemsTestUtils.syntheticBackportClass(BAR.getClassReference(), 0)
+                        .getTypeName());
+                classOutputWithSynthetics.add(
+                    SyntheticItemsTestUtils.syntheticTwrCloseResourceClass(
+                            BAR.getClassReference(), 1)
+                        .getTypeName());
                 assertEquals(classOutputWithSynthetics, foundClasses);
               } else {
                 assertEquals(nonSyntheticClassOutput, foundClasses);

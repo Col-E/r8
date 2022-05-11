@@ -9,5 +9,13 @@ public enum CompilationMode {
   /** Preserves debugging information during compilation, eg, line-numbers and locals. */
   DEBUG,
   /** Strips debugging information that cannot affect stack traces. */
-  RELEASE
+  RELEASE;
+
+  public boolean isDebug() {
+    return this == DEBUG;
+  }
+
+  public boolean isRelease() {
+    return this == RELEASE;
+  }
 }

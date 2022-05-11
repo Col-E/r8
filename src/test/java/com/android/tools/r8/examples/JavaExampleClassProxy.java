@@ -5,6 +5,8 @@
 package com.android.tools.r8.examples;
 
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.io.ByteStreams;
@@ -49,5 +51,9 @@ public class JavaExampleClassProxy {
 
   public String typeName() {
     return DescriptorUtils.getJavaTypeFromBinaryName(binaryName);
+  }
+
+  public ClassReference getClassReference() {
+    return Reference.classFromBinaryName(binaryName);
   }
 }
