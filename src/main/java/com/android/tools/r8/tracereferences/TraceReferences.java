@@ -29,8 +29,7 @@ public class TraceReferences {
 
   public static void run(TraceReferencesCommand command) throws CompilationFailedException {
     InternalOptions options = new InternalOptions();
-    // TODO(b/231928368): enable this
-    options.loadAllClassDefinitions = false;
+    options.loadAllClassDefinitions = true;
     ExceptionUtils.withCompilationHandler(
         command.getReporter(), () -> runInternal(command, options));
   }
