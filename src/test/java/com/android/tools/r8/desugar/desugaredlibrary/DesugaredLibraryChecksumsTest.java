@@ -6,7 +6,6 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 
-import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
@@ -44,12 +43,7 @@ public class DesugaredLibraryChecksumsTest extends DesugaredLibraryTestBase {
   @Test
   public void test() throws Exception {
     testForL8(AndroidApiLevel.B)
-        .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
-        .addProgramFiles(libraryDesugaringSpecification.getDesugarJdkLibs())
-        .noDefaultDesugarJDKLibs()
-        .setDebug()
-        .setDesugaredLibraryConfiguration(
-            StringResource.fromFile(libraryDesugaringSpecification.getSpecification()))
+        .apply(libraryDesugaringSpecification::configureL8TestBuilder)
         .compile()
         .inspect(
             inspector -> {

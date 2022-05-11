@@ -8,7 +8,6 @@ import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpec
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8SHRINK;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_CHM_ONLY;
 
-import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
@@ -45,13 +44,10 @@ public class DesugaredLibraryCHMOnlyContentTest extends DesugaredLibraryTestBase
   @Test
   public void testDesugaredLibraryContentCHMOnly() throws Throwable {
     testForL8(AndroidApiLevel.B)
-        .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
-        .addProgramFiles(libraryDesugaringSpecification.getDesugarJdkLibs())
-        .addGeneratedKeepRules("-keep class * { *; }")
-        .noDefaultDesugarJDKLibs()
-        .setDebug()
-        .setDesugaredLibraryConfiguration(
-            StringResource.fromFile(libraryDesugaringSpecification.getSpecification()))
+        .apply(
+            b ->
+                libraryDesugaringSpecification.configureL8TestBuilder(
+                    b, compilationSpecification.isL8Shrink(), "-keep class * { *; }"))
         .compile()
         .inspect(
             inspector -> {

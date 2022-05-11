@@ -97,6 +97,11 @@ public class L8TestBuilder {
     return this;
   }
 
+  public L8TestBuilder apply(ThrowableConsumer<L8TestBuilder> thenConsumer) {
+    thenConsumer.acceptWithRuntimeException(this);
+    return this;
+  }
+
   public L8TestBuilder applyIf(boolean condition, ThrowableConsumer<L8TestBuilder> thenConsumer) {
     return applyIf(condition, thenConsumer, ThrowableConsumer.empty());
   }

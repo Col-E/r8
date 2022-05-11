@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.desugaredlibrary.test;
 import static com.android.tools.r8.ToolHelper.DESUGARED_JDK_8_LIB_JAR;
 import static com.android.tools.r8.ToolHelper.DESUGARED_LIB_RELEASES_DIR;
 
+import com.android.tools.r8.L8TestBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.jdk11.DesugaredLibraryJDK11Undesugarer;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -139,6 +140,28 @@ public class LibraryDesugaringSpecification {
 
   public String getExtraKeepRules() {
     return extraKeepRules;
+  }
+
+  public void configureL8TestBuilder(L8TestBuilder l8TestBuilder) {
+    configureL8TestBuilder(l8TestBuilder, false, "");
+  }
+
+  public void configureL8TestBuilder(
+      L8TestBuilder l8TestBuilder, boolean l8Shrink, String keepRule) {
+    l8TestBuilder
+        .addProgramFiles(getDesugarJdkLibs())
+        .addLibraryFiles(getLibraryFiles())
+        .setDesugaredLibraryConfiguration(getSpecification())
+        .noDefaultDesugarJDKLibs()
+        .applyIf(
+            l8Shrink,
+            builder -> {
+              if (keepRule != null && !keepRule.trim().isEmpty()) {
+                String totalKeepRules = keepRule + "\n" + getExtraKeepRules();
+                builder.addGeneratedKeepRules(totalKeepRules);
+              }
+            },
+            L8TestBuilder::setDebug);
   }
 
   public static List<LibraryDesugaringSpecification> getReleased() {

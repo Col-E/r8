@@ -8,7 +8,6 @@ import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugari
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 
-import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
@@ -44,11 +43,7 @@ public class ConversionsPresentTest extends DesugaredLibraryTestBase {
   @Test
   public void testConversionsDex() throws Exception {
     testForL8(parameters.getApiLevel())
-        .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
-        .noDefaultDesugarJDKLibs()
-        .addProgramFiles(libraryDesugaringSpecification.getDesugarJdkLibs())
-        .setDesugaredLibraryConfiguration(
-            StringResource.fromFile(libraryDesugaringSpecification.getSpecification()))
+        .apply(libraryDesugaringSpecification::configureL8TestBuilder)
         .compile()
         .apply(c -> checkConversionGeneratedDex(c.inspector()));
   }

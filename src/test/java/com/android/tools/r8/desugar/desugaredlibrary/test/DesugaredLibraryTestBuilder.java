@@ -6,7 +6,6 @@ package com.android.tools.r8.desugar.desugaredlibrary.test;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8TestCompileResult;
-import com.android.tools.r8.L8TestBuilder;
 import com.android.tools.r8.L8TestCompileResult;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.R8TestBuilder;
@@ -242,20 +241,10 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
 
   private L8TestCompileResult compileDesugaredLibrary(String keepRule) throws Exception {
     return test.testForL8(parameters.getApiLevel(), parameters.getBackend())
-        .addProgramFiles(libraryDesugaringSpecification.getDesugarJdkLibs())
-        .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
-        .setDesugaredLibraryConfiguration(libraryDesugaringSpecification.getSpecification())
-        .noDefaultDesugarJDKLibs()
-        .applyIf(
-            compilationSpecification.isL8Shrink(),
-            builder -> {
-              if (keepRule != null && !keepRule.trim().isEmpty()) {
-                String totalKeepRules =
-                    keepRule + "\n" + libraryDesugaringSpecification.getExtraKeepRules();
-                builder.addGeneratedKeepRules(totalKeepRules);
-              }
-            },
-            L8TestBuilder::setDebug)
+        .apply(
+            b ->
+                libraryDesugaringSpecification.configureL8TestBuilder(
+                    b, compilationSpecification.isL8Shrink(), keepRule))
         .addOptionsModifier(l8OptionModifier)
         .compile();
   }
