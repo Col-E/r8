@@ -4,6 +4,7 @@
 # BSD-style license that can be found in the LICENSE file.
 
 import argparse
+from enum import Enum
 import os
 from os.path import join
 import shutil
@@ -13,18 +14,30 @@ import sys
 import utils
 import create_maven_release
 
+class Configuration(Enum):
+    jdk8 = 'jdk8'
+    jdk11_legacy = 'jdk11-legacy'
+
+    def __str__(self):
+        return self.value
+
 def parse_options():
-  result = argparse.ArgumentParser(
-    description='Local desugared library repository for JDK 11 legacy configuration')
-  result.add_argument('--repo-root', '--repo_root',
+  parser = argparse.ArgumentParser(
+    description='Local desugared library repository for desugared library configurations')
+  parser.add_argument('--repo-root', '--repo_root',
                       default='/tmp/repo',
                       metavar=('<path>'),
                       help='Location for Maven repository.')
-  result.add_argument('--desugar-jdk-libs-checkout', '--desugar_jdk_libs_checkout',
+  parser.add_argument('--clear-repo', '--clear_repo',
+                      default=False,
+                      action='store_true',
+                      help='Clear the Maven repository so it only has one version present')
+  parser.add_argument('--configuration', default='jdk8', type=Configuration, choices=list(Configuration))
+  parser.add_argument('--desugar-jdk-libs-checkout', '--desugar_jdk_libs_checkout',
                       default=None,
                       metavar=('<path>'),
                       help='Use existing checkout of github.com/google/desugar_jdk_libs.')
-  args = result.parse_args()
+  args = parser.parse_args()
   return args
 
 def jar_or_pom_file(unzip_dir, artifact, version, extension):
@@ -45,18 +58,29 @@ def pom_file(unzip_dir, artifact, version):
 
 def main():
   args = parse_options()
-  shutil.rmtree(args.repo_root, ignore_errors=True)
+  if args.clear_repo:
+    shutil.rmtree(args.repo_root, ignore_errors=True)
   utils.makedirs_if_needed(args.repo_root)
+  configuration = (utils.DESUGAR_CONFIGURATION
+                   if args.configuration is Configuration.jdk8
+                   else utils.DESUGAR_CONFIGURATION_JDK11_LEGACY)
+  implementation = (utils.DESUGAR_IMPLEMENTATION
+                    if args.configuration is Configuration.jdk8
+                    else utils.DESUGAR_IMPLEMENTATION_JDK11)
+  version_file = ('VERSION.txt'
+                  if args.configuration is Configuration.jdk8 else
+                  'VERSION_JDK11.txt')
   with utils.TempDir() as tmp_dir:
-    version = utils.desugar_configuration_version(utils.DESUGAR_CONFIGURATION_JDK11_LEGACY)
-
+    version = utils.desugar_configuration_version(configuration)
     # Checkout desugar_jdk_libs from GitHub
     use_existing_checkout = args.desugar_jdk_libs_checkout != None
-    checkout_dir = args.desugar_jdk_libs_checkout if use_existing_checkout else join(tmp_dir, 'desugar_jdk_libs')
+    checkout_dir = (args.desugar_jdk_libs_checkout
+                    if use_existing_checkout
+                    else join(tmp_dir, 'desugar_jdk_libs'))
     if (not use_existing_checkout):
       utils.RunCmd(['git', 'clone', 'https://github.com/google/desugar_jdk_libs.git', checkout_dir])
     with utils.ChangedWorkingDirectory(checkout_dir):
-      with open('VERSION_JDK11.txt') as version_file:
+      with open(version_file) as version_file:
         version_file_lines = version_file.readlines()
         for line in version_file_lines:
           if not line.startswith('#'):
@@ -74,8 +98,8 @@ def main():
     maven_zip = join(tmp_dir, 'desugar_configuration.zip')
     create_maven_release.generate_desugar_configuration_maven_zip(
       maven_zip,
-      utils.DESUGAR_CONFIGURATION_JDK11_LEGACY,
-      utils.DESUGAR_IMPLEMENTATION_JDK11)
+      configuration,
+      implementation)
     unzip_dir = join(tmp_dir, 'desugar_jdk_libs_configuration_unzipped')
     cmd = ['unzip', '-q', maven_zip, '-d', unzip_dir]
     utils.RunCmd(cmd)
@@ -97,12 +121,18 @@ def main():
           'build',
           '--spawn_strategy=local',
           '--verbose_failures',
-          ':maven_release_jdk11'])
+          (':maven_release'
+            if args.configuration is Configuration.jdk8
+          else ':maven_release_jdk11')])
     unzip_dir = join(tmp_dir, 'desugar_jdk_libs_unzipped')
     cmd = [
         'unzip',
         '-q',
-        join(checkout_dir, 'bazel-bin', 'desugar_jdk_libs_jdk11.zip'),
+        join(checkout_dir,
+            'bazel-bin',
+            ('desugar_jdk_libs.zip'
+              if args.configuration is Configuration.jdk8
+              else 'desugar_jdk_libs_jdk11.zip')),
         '-d',
         unzip_dir]
     utils.RunCmd(cmd)
@@ -128,11 +158,17 @@ def main():
     print("    url uri('file://" + args.repo_root + "')")
     print("  }")
     print()
-    print("to dependencyResolutionManagement.repositories in settings.gradle.")
+    print("to dependencyResolutionManagement.repositories in settings.gradle, and use")
+    print('the "changing" property of the coreLibraryDesugaring dependency:')
     print()
-    print("Remember to run gradle with --refresh-dependencies "
-      + "(./gradlew --refresh-dependencies ...) "
-      + "to ensure the cache is not used when the same version is published.")
+    print("  coreLibraryDesugaring('com.android.tools:desugar_jdk_libs:" +  version + "') {")
+    print("    changing = true")
+    print("  }")
+    print()
+    print('If not using the !changing" propertyRemember to run gradle with '
+      + " --refresh-dependencies (./gradlew --refresh-dependencies ...) "
+      + "to ensure the cache is not used when the same version is published."
+      + "multiple times.")
 
 if __name__ == '__main__':
   sys.exit(main())
