@@ -23,6 +23,7 @@ import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11TestLibraryDesugaringSpecification;
 import com.android.tools.r8.errors.DuplicateTypesDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -119,6 +120,7 @@ public class MergingJ$Test extends DesugaredLibraryTestBase {
 
   private Path buildSplitDesugaredLibraryPart2() throws Exception {
     Path outputDex = temp.newFolder().toPath().resolve("merger-input-split-dex.zip");
+    Jdk11TestLibraryDesugaringSpecification.setUp();
     L8.run(
         L8Command.builder()
             .addLibraryFiles(getLibraryFile())

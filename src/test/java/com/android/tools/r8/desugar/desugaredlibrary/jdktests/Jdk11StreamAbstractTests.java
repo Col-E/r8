@@ -56,7 +56,7 @@ public abstract class Jdk11StreamAbstractTests extends DesugaredLibraryTestBase 
 
   @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() throws Exception {
-    Jdk11TestLibraryDesugaringSpecification.setUpSpecifications();
+    Jdk11TestLibraryDesugaringSpecification.setUp();
     return buildParameters(
         // TODO(134732760): Support Dalvik VMs, currently fails because libjavacrypto is required
         // and present only in ART runtimes.

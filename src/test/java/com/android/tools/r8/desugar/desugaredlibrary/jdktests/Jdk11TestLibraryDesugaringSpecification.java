@@ -31,12 +31,13 @@ import org.junit.rules.TemporaryFolder;
 public class Jdk11TestLibraryDesugaringSpecification {
 
   private static final String EXTENSION_STRING = "build/libs/java_base_extension.jar";
-  public static final Path EXTENSION_PATH = Paths.get(EXTENSION_STRING);
 
   private static Path[] JDK_11_JAVA_BASE_EXTENSION_COMPILED_FILES;
   private static Path JDK_11_JAVA_BASE_EXTENSION_CLASSES_DIR;
   private static final Path JDK_11_JAVA_BASE_EXTENSION_FILES_DIR =
       Paths.get("third_party/openjdk/jdk-11-test/lib/testlibrary/bootlib/java.base");
+
+  public static Path EXTENSION_PATH;
 
   public static LibraryDesugaringSpecification JDK8_JAVA_BASE_EXT;
   public static LibraryDesugaringSpecification JDK11_JAVA_BASE_EXT;
@@ -49,7 +50,8 @@ public class Jdk11TestLibraryDesugaringSpecification {
     return files;
   }
 
-  public static void setUpSpecifications() throws Exception {
+  public static void setUp() throws Exception {
+    EXTENSION_PATH = Paths.get(EXTENSION_STRING);
     ensureJavaBaseExtensionsCompiled();
     JDK8_JAVA_BASE_EXT = createSpecification("JDK8_JAVA_BASE_EXT", JDK8);
     JDK11_JAVA_BASE_EXT = createSpecification("JDK11_JAVA_BASE_EXT", JDK11);
