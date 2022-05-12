@@ -3,15 +3,20 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.DeterminismChecker;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -19,18 +24,30 @@ import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class DesugaredLibraryDeterminismTest extends DesugaredLibraryTestBase {
-  private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().build();
+  private final TestParameters parameters;
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+
+  @Parameters(name = "{0}, spec: {1}, {2}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        ImmutableList.of(D8_L8DEBUG));
   }
 
-  public DesugaredLibraryDeterminismTest(TestParameters parameters) {
+  public DesugaredLibraryDeterminismTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   private void setDeterminismChecks(
@@ -44,23 +61,34 @@ public class DesugaredLibraryDeterminismTest extends DesugaredLibraryTestBase {
     Set<String> contextsRoundOne = ConcurrentHashMap.newKeySet();
     Set<String> contextsRoundTwo = ConcurrentHashMap.newKeySet();
     Path determinismLogDir = temp.newFolder().toPath();
-    AndroidApiLevel minApiLevel = parameters.getRuntime().asDex().getMinApiLevel();
-    Assume.assumeTrue(minApiLevel.isLessThan(AndroidApiLevel.O));
+    Assume.assumeTrue(
+        requiresAnyCoreLibDesugaring(
+            parameters.getApiLevel(), libraryDesugaringSpecification != JDK8));
+
     Path libDexFile1 =
-        buildDesugaredLibrary(
-            minApiLevel, o -> setDeterminismChecks(o, determinismLogDir, contextsRoundOne::add));
+        testForL8(parameters.getApiLevel())
+            .apply(libraryDesugaringSpecification::configureL8TestBuilder)
+            .addOptionsModifier(
+                o -> setDeterminismChecks(o, determinismLogDir, contextsRoundOne::add))
+            .compile()
+            .writeToZip();
     Path libDexFile2 =
-        buildDesugaredLibrary(
-            minApiLevel,
-            o ->
-                setDeterminismChecks(
-                    o,
-                    determinismLogDir,
-                    context -> {
-                      assertTrue(
-                          "Did not find context: " + context, contextsRoundOne.contains(context));
-                      contextsRoundTwo.add(context);
-                    }));
+        testForL8(parameters.getApiLevel())
+            .apply(libraryDesugaringSpecification::configureL8TestBuilder)
+            .addOptionsModifier(
+                o ->
+                    setDeterminismChecks(
+                        o,
+                        determinismLogDir,
+                        context -> {
+                          assertTrue(
+                              "Did not find context: " + context,
+                              contextsRoundOne.contains(context));
+                          contextsRoundTwo.add(context);
+                        }))
+            .compile()
+            .writeToZip();
+
     assertEquals(contextsRoundOne, contextsRoundTwo);
     uploadJarsToCloudStorageIfTestFails(
         (file1, file2) -> {

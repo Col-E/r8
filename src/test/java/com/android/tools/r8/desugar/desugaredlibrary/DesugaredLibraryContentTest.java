@@ -5,6 +5,9 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.startsWith;
@@ -14,52 +17,70 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.D8TestBuilder;
-import com.android.tools.r8.L8Command;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
-import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestDiagnosticMessages;
-import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+  @Parameters(name = "{0}, spec: {1}, {2}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
+        getJdk8Jdk11(),
+        ImmutableList.of(D8_L8DEBUG));
   }
 
-  public DesugaredLibraryContentTest(TestParameters parameters) {
+  public DesugaredLibraryContentTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   @Test
   public void testInvalidLibrary() {
     Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
+    // This is handwritten since this is really a special case: library desugaring with an
+    // invalid library file passed.
     D8TestBuilder testBuilder =
         testForD8()
             .setMinApi(parameters.getApiLevel())
             .addProgramClasses(GuineaPig.class)
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.L))
             .enableCoreLibraryDesugaring(
-                LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()));
+                LibraryDesugaringTestConfiguration.builder()
+                    .setMinApi(parameters.getApiLevel())
+                    .addDesugaredLibraryConfiguration(
+                        StringResource.fromFile(libraryDesugaringSpecification.getSpecification()))
+                    .dontAddRunClasspath()
+                    .build());
     try {
       testBuilder.compile();
     } catch (Throwable t) {
@@ -77,19 +98,12 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
   }
 
   @Test
-  public void testDesugaredLibraryContentD8() throws Exception {
+  public void testDesugaredLibraryContent() throws Exception {
     Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
-    CodeInspector inspector = new CodeInspector(buildDesugaredLibrary(parameters.getApiLevel()));
-    assertCorrect(inspector);
-  }
-
-  @Test
-  public void testDesugaredLibraryContentR8() throws Exception {
-    Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
-    CodeInspector inspector =
-        new CodeInspector(
-            buildDesugaredLibrary(parameters.getApiLevel(), "-keep class * { *; }", true));
-    assertCorrect(inspector);
+    testForL8(parameters.getApiLevel())
+        .apply(libraryDesugaringSpecification::configureL8TestBuilder)
+        .compile()
+        .inspect(this::assertCorrect);
   }
 
   @Test
@@ -97,37 +111,31 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
     Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
     ArrayList<Path> coreLambdaStubs = new ArrayList<>();
     coreLambdaStubs.add(ToolHelper.getCoreLambdaStubs());
-    CodeInspector inspector =
-        new CodeInspector(
-            buildDesugaredLibrary(parameters.getApiLevel(), "", false, coreLambdaStubs));
-    assertCorrect(inspector);
+    testForL8(parameters.getApiLevel())
+        .apply(libraryDesugaringSpecification::configureL8TestBuilder)
+        .addProgramFiles(coreLambdaStubs)
+        .compile()
+        .inspect(this::assertCorrect);
   }
 
   @Test
   public void testDesugaredLibraryContentWithCoreLambdaStubsAsLibrary() throws Exception {
     Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
-    TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
-    Path desugaredLib = temp.newFolder().toPath().resolve("desugar_jdk_libs_dex.zip");
-    L8Command.Builder l8Builder =
-        L8Command.builder(diagnosticsHandler)
-            .addLibraryFiles(getLibraryFile())
-            .addProgramFiles(ToolHelper.getDesugarJDKLibs())
-            .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
-            .addLibraryFiles(ToolHelper.getCoreLambdaStubs())
-            .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
-            .setMinApiLevel(parameters.getApiLevel().getLevel())
-            .setOutput(desugaredLib, OutputMode.DexIndexed);
-    ToolHelper.runL8(l8Builder.build(), options -> {});
-    CodeInspector codeInspector = new CodeInspector(desugaredLib);
-    assertCorrect(codeInspector);
-    if (isJDK11DesugaredLibrary()) {
-      diagnosticsHandler.assertNoErrors();
-      diagnosticsHandler.assertAllWarningsMatch(
-          diagnosticMessage(containsString("Specification conversion")));
-    } else {
-      diagnosticsHandler.assertNoMessages();
-    }
+    testForL8(parameters.getApiLevel())
+        .apply(libraryDesugaringSpecification::configureL8TestBuilder)
+        .addLibraryFiles(ToolHelper.getCoreLambdaStubs())
+        .compile()
+        .inspect(this::assertCorrect)
+        .inspectDiagnosticMessages(
+            diagnosticsHandler -> {
+              if (libraryDesugaringSpecification == JDK8) {
+                diagnosticsHandler.assertNoMessages();
+              } else {
+                diagnosticsHandler.assertNoErrors();
+                diagnosticsHandler.assertAllWarningsMatch(
+                    diagnosticMessage(containsString("Specification conversion")));
+              }
+            });
   }
 
   private void assertCorrect(CodeInspector inspector) {

@@ -161,6 +161,11 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
+  public DesugaredLibraryTestBuilder<T> allowDiagnosticInfoMessages() {
+    withR8TestBuilder(R8TestBuilder::allowDiagnosticInfoMessages);
+    return this;
+  }
+
   public DesugaredLibraryTestBuilder<T> allowDiagnosticWarningMessages() {
     withR8TestBuilder(R8TestBuilder::allowDiagnosticWarningMessages);
     return this;
@@ -229,6 +234,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
         customLibCompile,
         l8Compile);
   }
+
   private D8TestCompileResult compileCustomLib() throws CompilationFailedException {
     if (customLibrarySpecification == null) {
       return null;

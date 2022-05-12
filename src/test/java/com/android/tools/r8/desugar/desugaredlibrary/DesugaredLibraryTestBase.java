@@ -120,11 +120,13 @@ public class DesugaredLibraryTestBase extends TestBase {
     return requiresAnyCoreLibDesugaring(parameters.getApiLevel());
   }
 
-  protected boolean requiresAnyCoreLibDesugaring(AndroidApiLevel apiLevel) {
+  protected boolean requiresAnyCoreLibDesugaring(AndroidApiLevel apiLevel, boolean isJDK11) {
     return apiLevel.getLevel()
-        <= (isJDK11DesugaredLibrary()
-            ? AndroidApiLevel.Sv2.getLevel()
-            : AndroidApiLevel.N_MR1.getLevel());
+        <= (isJDK11 ? AndroidApiLevel.Sv2.getLevel() : AndroidApiLevel.N_MR1.getLevel());
+  }
+
+  protected boolean requiresAnyCoreLibDesugaring(AndroidApiLevel apiLevel) {
+    return requiresAnyCoreLibDesugaring(apiLevel, isJDK11DesugaredLibrary());
   }
 
   protected DesugaredLibraryTestBuilder<?> testForDesugaredLibrary(

@@ -3,15 +3,18 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.DiagnosticsMatcher;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.ZipUtils;
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,78 +25,47 @@ import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class DesugaredLibraryDumpInputsTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameterized.Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        DEFAULT_SPECIFICATIONS);
   }
 
-  public DesugaredLibraryDumpInputsTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public DesugaredLibraryDumpInputsTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   @Test
-  public void testD8DumpToDirectory() throws Exception {
+  public void testDumpToDirectory() throws Exception {
     Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     Path dumpDir = temp.newFolder().toPath();
-    testForD8(parameters.getBackend())
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClasses(TestClass.class)
-        .addLibraryFiles(getLibraryFile())
-        .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(options -> options.dumpInputToDirectory = dumpDir.toString())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            (minAPILevel, keepRules, shrink) ->
-                this.buildDesugaredLibrary(
-                    minAPILevel,
-                    keepRules,
-                    shrink,
-                    ImmutableList.of(),
-                    opt -> opt.dumpInputToDirectory = dumpDir.toString()),
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("PT42S");
-    verifyDumpDir(dumpDir);
-  }
-
-  @Test
-  public void testR8DumpToDirectory() throws Exception {
-    Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    Path dumpDir = temp.newFolder().toPath();
-    testForR8(parameters.getBackend())
-        .addProgramClasses(TestClass.class)
-        .addLibraryFiles(getLibraryFile())
-        .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(options -> options.dumpInputToDirectory = dumpDir.toString())
         .allowDiagnosticInfoMessages()
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            (minAPILevel, keepRules, shrink) ->
-                this.buildDesugaredLibrary(
-                    minAPILevel,
-                    keepRules,
-                    shrink,
-                    ImmutableList.of(),
-                    opt -> opt.dumpInputToDirectory = dumpDir.toString()),
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .assertAllInfoMessagesMatch(containsString("Dumped compilation inputs to:"))
+        .inspectDiagnosticMessages(
+            diagnosticMessages ->
+                diagnosticMessages.assertAllInfosMatch(
+                    DiagnosticsMatcher.diagnosticMessage(
+                        containsString("Dumped compilation inputs to:"))))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("PT42S");
     verifyDumpDir(dumpDir);
@@ -102,7 +74,7 @@ public class DesugaredLibraryDumpInputsTest extends DesugaredLibraryTestBase {
   private void verifyDumpDir(Path dumpDir) throws IOException {
     assertTrue(Files.isDirectory(dumpDir));
     List<Path> paths = Files.walk(dumpDir, 1).collect(Collectors.toList());
-    assertEquals(3, paths.size());
+    assertEquals(2, paths.size());
     boolean hasVerified = false;
     for (Path path : paths) {
       if (!path.equals(dumpDir)) {
@@ -128,7 +100,7 @@ public class DesugaredLibraryDumpInputsTest extends DesugaredLibraryTestBase {
     assertTrue(buildProperties.get(0).startsWith("tool="));
     boolean isD8 = buildProperties.get(0).equals("tool=D8");
     boolean isR8 = buildProperties.get(0).equals("tool=R8");
-    if ((shrinkDesugaredLibrary || isR8) && !isD8) {
+    if ((compilationSpecification.isL8Shrink() || isR8) && !isD8) {
       assertTrue(Files.exists(unzipped.resolve("proguard.config")));
     } else {
       assertFalse(Files.exists(unzipped.resolve("proguard.config")));
