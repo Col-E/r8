@@ -110,7 +110,11 @@ public abstract class AndroidApiDataAccess {
           }
         }
       }
-    } catch (Exception e) {
+      // On older DEX platforms creating a new byte channel may fail:
+      // Error: java.lang.NoSuchMethodError: No static method newByteChannel(Ljava/nio/file/Path;
+      // [Ljava/nio/file/OpenOption;)Ljava/nio/channels/SeekableByteChannel;
+      // in class Ljava/nio/file/Files
+    } catch (Exception | NoSuchMethodError e) {
       diagnosticsHandler.warning(new ExceptionDiagnostic(e));
       return null;
     }
