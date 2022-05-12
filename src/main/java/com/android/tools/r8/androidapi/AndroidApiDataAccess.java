@@ -8,6 +8,7 @@ import static com.android.tools.r8.lightir.ByteUtils.unsetBitAtIndex;
 import static com.android.tools.r8.utils.ZipUtils.getOffsetOfResourceInZip;
 
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.dex.CompatByteBuffer;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
@@ -133,7 +134,8 @@ public abstract class AndroidApiDataAccess {
     FileChannel fileChannel = (FileChannel) Files.newByteChannel(path, StandardOpenOption.READ);
     MappedByteBuffer mappedByteBuffer =
         fileChannel.map(FileChannel.MapMode.READ_ONLY, offset, fileChannel.size() - offset);
-    return new AndroidApiDataAccessByteMapped(mappedByteBuffer);
+    // Ensure that we can run on JDK 8 by using the CompatByteBuffer.
+    return new AndroidApiDataAccessByteMapped(new CompatByteBuffer(mappedByteBuffer));
   }
 
   public static int entrySizeInBitsForConstantPoolMap() {
@@ -301,9 +303,9 @@ public abstract class AndroidApiDataAccess {
 
   public static class AndroidApiDataAccessByteMapped extends AndroidApiDataAccess {
 
-    private final MappedByteBuffer mappedByteBuffer;
+    private final CompatByteBuffer mappedByteBuffer;
 
-    public AndroidApiDataAccessByteMapped(MappedByteBuffer mappedByteBuffer) {
+    public AndroidApiDataAccessByteMapped(CompatByteBuffer mappedByteBuffer) {
       this.mappedByteBuffer = mappedByteBuffer;
     }
 

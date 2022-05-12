@@ -117,6 +117,10 @@ public class CompatByteBuffer {
     return asByteBuffer().getShort();
   }
 
+  public short getShort(int offset) {
+    return asByteBuffer().getShort(offset);
+  }
+
   public void put(byte aByte) {
     asByteBuffer().put(aByte);
   }
