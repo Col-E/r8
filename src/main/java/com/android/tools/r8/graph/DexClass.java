@@ -788,6 +788,10 @@ public abstract class DexClass extends DexDefinition
     return type;
   }
 
+  public boolean hasSuperType() {
+    return superType != null;
+  }
+
   public DexType getSuperType() {
     return superType;
   }

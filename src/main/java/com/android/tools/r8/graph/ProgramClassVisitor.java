@@ -3,17 +3,17 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import java.util.HashSet;
+import com.google.common.collect.Sets;
 import java.util.Set;
 
 /**
  * Implements traversal of the class hierarchy in topological order. A class is visited after its
- * super class and its interfaces are visited. Only visits program classes and does NOT visit 
+ * super class and its interfaces are visited. Only visits program classes and does NOT visit
  * classpath, nor library classes.
  *
- * NOTE: The visiting is processed by traversing program classes only, which means that
- * in presence of classpath it is NOT guaranteed that class C is visited before class D
- * if there exists a classpath class X in class hierarchy between C and D, like:
+ * <p>NOTE: The visiting is processed by traversing program classes only, which means that in
+ * presence of classpath it is NOT guaranteed that class C is visited before class D if there exists
+ * a classpath class X in class hierarchy between C and D, like:
  *
  * <pre>
  *   class ProgramClassS {}
@@ -21,29 +21,24 @@ import java.util.Set;
  *   class ProgramClassD extends ClasspathClassX {}
  * </pre>
  *
- * The above consideration does not apply to library classes, since we assume library
- * classes never extend or implement program/classpath class.
+ * The above consideration does not apply to library classes, since we assume library classes never
+ * extend or implement program/classpath class.
  */
 public abstract class ProgramClassVisitor {
 
-  final DexApplication application;
-  private final Set<DexItem> visited = new HashSet<>();
+  final AppView<?> appView;
 
-  protected ProgramClassVisitor(DexApplication application) {
-    this.application = application;
+  private final Set<DexProgramClass> visited = Sets.newIdentityHashSet();
+
+  protected ProgramClassVisitor(AppView<?> appView) {
+    this.appView = appView;
   }
 
   private void accept(DexType type) {
-    if (type == null || visited.contains(type)) {
-      return;
-    }
-    DexClass clazz = application.programDefinitionFor(type);
+    DexProgramClass clazz = appView.app().programDefinitionFor(type);
     if (clazz != null) {
       accept(clazz);
-      return;
     }
-    visit(type);
-    visited.add(type);
   }
 
   private void accept(DexTypeList types) {
@@ -52,14 +47,14 @@ public abstract class ProgramClassVisitor {
     }
   }
 
-  private void accept(DexClass clazz) {
-    if (visited.contains(clazz)) {
-      return;
+  private void accept(DexProgramClass clazz) {
+    if (visited.add(clazz)) {
+      if (clazz.hasSuperType()) {
+        accept(clazz.getSuperType());
+      }
+      accept(clazz.getInterfaces());
+      visit(clazz);
     }
-    accept(clazz.superType);
-    accept(clazz.interfaces);
-    visit(clazz);
-    visited.add(clazz);
   }
 
   public void run(DexProgramClass[] classes) {
@@ -68,24 +63,6 @@ public abstract class ProgramClassVisitor {
     }
   }
 
-  public void run(Iterable<DexProgramClass> classes) {
-    for (DexProgramClass clazz : classes) {
-      accept(clazz);
-    }
-  }
-
-  public void run() {
-    run(application.classes());
-  }
-
-  /**
-   * Called for each library class used in the class hierarchy. A library class is a class that is
-   * not present in the application.
-   */
-  public abstract void visit(DexType type);
-
-  /**
-   * Called for each class defined in the application.
-   */
-  public abstract void visit(DexClass clazz);
+  /** Called for each class defined in the application. */
+  public abstract void visit(DexProgramClass clazz);
 }

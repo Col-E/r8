@@ -332,8 +332,8 @@ public class ApplicationWriter {
         merger.end();
       }
 
-
-      // Now code offsets are fixed, compute the mapping file content.
+      // Now that the instruction offsets in each code object are fixed, compute the mapping file
+      // content.
       if (willComputeProguardMap()) {
         // TODO(b/220999985): Refactor line number optimization to be per file and thread it above.
         DebugRepresentationPredicate representation =
@@ -829,13 +829,7 @@ public class ApplicationWriter {
   private ByteBufferResult writeDexFile(
       ObjectToOffsetMapping objectMapping, ByteBufferProvider provider, Timing timing) {
     FileWriter fileWriter =
-        new FileWriter(
-            provider,
-            objectMapping,
-            appView.appInfo(),
-            options,
-            namingLens,
-            desugaredLibraryCodeToKeep);
+        new FileWriter(appView, provider, objectMapping, namingLens, desugaredLibraryCodeToKeep);
     // Collect the non-fixed sections.
     timing.time("collect", fileWriter::collect);
     // Generate and write the bytes.

@@ -18,17 +18,16 @@ import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap.Entry;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 public class ObjectToOffsetMapping {
 
   private final static int NOT_FOUND = -1;
-  private final static int NOT_SET = -2;
 
   private final int lazyDexStringsCount;
   private final AppView<?> appView;
@@ -94,7 +93,7 @@ public class ObjectToOffsetMapping {
         new CompareToVisitorWithTypeTable(namingLens, this.strings::getInt, this.types::getInt);
     timing.end();
     timing.begin("Sort classes");
-    this.classes = sortClasses(appView.appInfo(), classes, namingLens);
+    this.classes = sortClasses(classes, visitor);
     timing.end();
     timing.begin("Sort protos");
     this.protos = createSortedMap(protos, compare(visitor), this::failOnOverflow);
@@ -241,20 +240,19 @@ public class ObjectToOffsetMapping {
     }
   }
 
-  private static DexProgramClass[] sortClasses(
-      AppInfo appInfo, Collection<DexProgramClass> classes, NamingLens namingLens) {
+  private DexProgramClass[] sortClasses(
+      Collection<DexProgramClass> classes, CompareToVisitor visitor) {
     // Collect classes in subtyping order, based on a sorted list of classes to start with.
-    ProgramClassDepthsMemoized classDepths = new ProgramClassDepthsMemoized(appInfo);
-    List<DexProgramClass> sortedClasses =
-        classes.stream()
-            .sorted(
-                (x, y) -> {
-                  int dx = classDepths.getDepth(x);
-                  int dy = classDepths.getDepth(y);
-                  return dx != dy ? dx - dy : x.type.compareToWithNamingLens(y.type, namingLens);
-                })
-            .collect(Collectors.toList());
-    return sortedClasses.toArray(DexProgramClass.EMPTY_ARRAY);
+    ProgramClassDepthsMemoized classDepths = new ProgramClassDepthsMemoized(appView.appInfo());
+    DexProgramClass[] sortedClasses = classes.toArray(DexProgramClass.EMPTY_ARRAY);
+    Arrays.sort(
+        sortedClasses,
+        (x, y) -> {
+          int dx = classDepths.getDepth(x);
+          int dy = classDepths.getDepth(y);
+          return dx != dy ? dx - dy : visitor.visitDexType(x.type, y.type);
+        });
+    return sortedClasses;
   }
 
   private static <T> Collection<T> keysOrEmpty(Reference2IntLinkedOpenHashMap<T> map) {
@@ -329,7 +327,6 @@ public class ObjectToOffsetMapping {
 
   private <T extends IndexedDexItem> int getOffsetFor(T item, Reference2IntMap<T> map) {
     int index = map.getInt(item);
-    assert index != NOT_SET : "Index was not set: " + item;
     assert index != NOT_FOUND : "Missing dependency: " + item;
     return index;
   }
