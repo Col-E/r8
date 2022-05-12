@@ -33,7 +33,7 @@ public class CfAssignability {
   // Based on https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.10.1.2.
   public static boolean isFrameTypeAssignable(
       SingleFrameType source, SingleFrameType target, AppView<?> appView) {
-    if (source == target || target.isOneWord()) {
+    if (source.equals(target) || target.isOneWord()) {
       return true;
     }
     if (source.isOneWord()) {
@@ -49,11 +49,21 @@ public class CfAssignability {
     }
     // TODO(b/168190267): Clean-up the lattice.
     DexItemFactory factory = appView.dexItemFactory();
+    if (target.isPrimitive()) {
+      return source.isPrimitive()
+          && source.asSinglePrimitive().hasIntVerificationType()
+          && target.asSinglePrimitive().hasIntVerificationType();
+    }
+    if (source.isPrimitive()) {
+      return false;
+    }
     if (target.isInitialized()) {
       if (source.isInitialized()) {
         // Both are instantiated types and we resort to primitive type/java type hierarchy checking.
         return isAssignable(
-            source.getInitializedType(factory), target.getInitializedType(factory), appView);
+            source.asSingleInitializedType().getInitializedType(),
+            target.asSingleInitializedType().getInitializedType(),
+            appView);
       }
       return target.asSingleInitializedType().getInitializedType() == factory.objectType;
     }

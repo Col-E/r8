@@ -6,6 +6,7 @@ package com.android.tools.r8.cf.code;
 import static org.objectweb.asm.Opcodes.F_NEW;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.cf.code.frame.PrimitiveFrameType;
 import com.android.tools.r8.cf.code.frame.SingleFrameType;
 import com.android.tools.r8.cf.code.frame.WideFrameType;
 import com.android.tools.r8.errors.Unimplemented;
@@ -52,8 +53,24 @@ public class CfFrame extends CfInstruction implements Cloneable {
 
   public abstract static class FrameType {
 
+    public static BooleanFrameType booleanType() {
+      return BooleanFrameType.SINGLETON;
+    }
+
+    public static ByteFrameType byteType() {
+      return ByteFrameType.SINGLETON;
+    }
+
+    public static CharFrameType charType() {
+      return CharFrameType.SINGLETON;
+    }
+
     public static DoubleFrameType doubleType() {
       return DoubleFrameType.SINGLETON;
+    }
+
+    public static FloatFrameType floatType() {
+      return FloatFrameType.SINGLETON;
     }
 
     public static IntFrameType intType() {
@@ -64,12 +81,32 @@ public class CfFrame extends CfInstruction implements Cloneable {
       return LongFrameType.SINGLETON;
     }
 
+    public static ShortFrameType shortType() {
+      return ShortFrameType.SINGLETON;
+    }
+
     public static FrameType initialized(DexType type) {
       if (type.isPrimitiveType()) {
-        if (type.isWideType()) {
-          return type.isDoubleType() ? doubleType() : longType();
-        } else if (type.isIntType()) {
-          return intType();
+        char c = (char) type.getDescriptor().content[0];
+        switch (c) {
+          case 'Z':
+            return booleanType();
+          case 'B':
+            return byteType();
+          case 'C':
+            return charType();
+          case 'D':
+            return doubleType();
+          case 'F':
+            return floatType();
+          case 'I':
+            return intType();
+          case 'J':
+            return longType();
+          case 'S':
+            return shortType();
+          default:
+            throw new Unreachable("Unexpected primitive type: " + type.getTypeName());
         }
       }
       return new SingleInitializedType(type);
@@ -97,7 +134,23 @@ public class CfFrame extends CfInstruction implements Cloneable {
 
     abstract Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens);
 
+    public boolean isBoolean() {
+      return false;
+    }
+
+    public boolean isByte() {
+      return false;
+    }
+
+    public boolean isChar() {
+      return false;
+    }
+
     public boolean isDouble() {
+      return false;
+    }
+
+    public boolean isFloat() {
       return false;
     }
 
@@ -106,6 +159,10 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
 
     public boolean isLong() {
+      return false;
+    }
+
+    public boolean isShort() {
       return false;
     }
 
@@ -126,11 +183,19 @@ public class CfFrame extends CfInstruction implements Cloneable {
       return false;
     }
 
+    public PrimitiveFrameType asPrimitive() {
+      return null;
+    }
+
     public final boolean isSingle() {
       return !isWide();
     }
 
     public SingleFrameType asSingle() {
+      return null;
+    }
+
+    public SinglePrimitiveFrameType asSinglePrimitive() {
       return null;
     }
 
@@ -163,10 +228,6 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
 
     public boolean isInitialized() {
-      return false;
-    }
-
-    public boolean isSingleInitialized() {
       return false;
     }
 
@@ -283,26 +344,181 @@ public class CfFrame extends CfInstruction implements Cloneable {
     return CfCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
   }
 
-  public abstract static class SinglePrimitiveType extends SingletonFrameType
-      implements SingleFrameType {
+  public abstract static class SinglePrimitiveFrameType extends SingletonFrameType
+      implements PrimitiveFrameType, SingleFrameType {
+
+    public boolean hasIntVerificationType() {
+      return false;
+    }
 
     @Override
-    public boolean isInitialized() {
+    public final boolean isInitialized() {
       return true;
     }
 
     @Override
-    public boolean isPrimitive() {
+    public final boolean isPrimitive() {
       return true;
     }
 
     @Override
-    public SingleFrameType asSingle() {
+    public PrimitiveFrameType asPrimitive() {
       return this;
+    }
+
+    @Override
+    public final SingleFrameType asSingle() {
+      return this;
+    }
+
+    @Override
+    public final SinglePrimitiveFrameType asSinglePrimitive() {
+      return this;
+    }
+
+    @Override
+    public final SingleFrameType join(SingleFrameType frameType) {
+      if (this == frameType) {
+        return this;
+      }
+      if (hasIntVerificationType()
+          && frameType.isPrimitive()
+          && frameType.asSinglePrimitive().hasIntVerificationType()) {
+        return intType();
+      }
+      return oneWord();
+    }
+
+    @Override
+    public final String toString() {
+      return getTypeName();
     }
   }
 
-  public static class IntFrameType extends SinglePrimitiveType {
+  public static class BooleanFrameType extends SinglePrimitiveFrameType {
+
+    private static final BooleanFrameType SINGLETON = new BooleanFrameType();
+
+    private BooleanFrameType() {}
+
+    @Override
+    public DexType getInitializedType(DexItemFactory dexItemFactory) {
+      return dexItemFactory.booleanType;
+    }
+
+    @Override
+    public String getTypeName() {
+      return "boolean";
+    }
+
+    @Override
+    Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
+      throw new Unreachable("Unexpected value type: " + this);
+    }
+
+    @Override
+    public boolean hasIntVerificationType() {
+      return true;
+    }
+
+    @Override
+    public boolean isBoolean() {
+      return true;
+    }
+  }
+
+  public static class ByteFrameType extends SinglePrimitiveFrameType {
+
+    private static final ByteFrameType SINGLETON = new ByteFrameType();
+
+    private ByteFrameType() {}
+
+    @Override
+    public DexType getInitializedType(DexItemFactory dexItemFactory) {
+      return dexItemFactory.byteType;
+    }
+
+    @Override
+    public String getTypeName() {
+      return "byte";
+    }
+
+    @Override
+    Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
+      throw new Unreachable("Unexpected value type: " + this);
+    }
+
+    @Override
+    public boolean hasIntVerificationType() {
+      return true;
+    }
+
+    @Override
+    public boolean isByte() {
+      return true;
+    }
+  }
+
+  public static class CharFrameType extends SinglePrimitiveFrameType {
+
+    private static final CharFrameType SINGLETON = new CharFrameType();
+
+    private CharFrameType() {}
+
+    @Override
+    public DexType getInitializedType(DexItemFactory dexItemFactory) {
+      return dexItemFactory.charType;
+    }
+
+    @Override
+    public String getTypeName() {
+      return "char";
+    }
+
+    @Override
+    Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
+      throw new Unreachable("Unexpected value type: " + this);
+    }
+
+    @Override
+    public boolean hasIntVerificationType() {
+      return true;
+    }
+
+    @Override
+    public boolean isChar() {
+      return true;
+    }
+  }
+
+  public static class FloatFrameType extends SinglePrimitiveFrameType {
+
+    private static final FloatFrameType SINGLETON = new FloatFrameType();
+
+    private FloatFrameType() {}
+
+    @Override
+    public DexType getInitializedType(DexItemFactory dexItemFactory) {
+      return dexItemFactory.floatType;
+    }
+
+    @Override
+    public String getTypeName() {
+      return "float";
+    }
+
+    @Override
+    Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
+      return Opcodes.FLOAT;
+    }
+
+    @Override
+    public boolean isFloat() {
+      return true;
+    }
+  }
+
+  public static class IntFrameType extends SinglePrimitiveFrameType {
 
     private static final IntFrameType SINGLETON = new IntFrameType();
 
@@ -314,8 +530,8 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
 
     @Override
-    public boolean isInt() {
-      return true;
+    public String getTypeName() {
+      return "int";
     }
 
     @Override
@@ -324,23 +540,45 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
 
     @Override
-    public SingleFrameType join(SingleFrameType frameType) {
-      if (this == frameType) {
-        return this;
-      }
-      if (frameType.isOneWord() || frameType.isUninitializedObject()) {
-        return oneWord();
-      }
-      assert frameType.isInitialized();
-      return CfAssignability.hasIntVerificationType(
-              frameType.asSingleInitializedType().getInitializedType())
-          ? this
-          : oneWord();
+    public boolean hasIntVerificationType() {
+      return true;
     }
 
     @Override
-    public String toString() {
-      return "int";
+    public boolean isInt() {
+      return true;
+    }
+  }
+
+  public static class ShortFrameType extends SinglePrimitiveFrameType {
+
+    private static final ShortFrameType SINGLETON = new ShortFrameType();
+
+    private ShortFrameType() {}
+
+    @Override
+    public DexType getInitializedType(DexItemFactory dexItemFactory) {
+      return dexItemFactory.shortType;
+    }
+
+    @Override
+    public String getTypeName() {
+      return "short";
+    }
+
+    @Override
+    Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
+      throw new Unreachable("Unexpected value type: " + this);
+    }
+
+    @Override
+    public boolean hasIntVerificationType() {
+      return true;
+    }
+
+    @Override
+    public boolean isShort() {
+      return true;
     }
   }
 
@@ -350,7 +588,7 @@ public class CfFrame extends CfInstruction implements Cloneable {
 
     private SingleInitializedType(DexType type) {
       assert type != null;
-      assert !type.isIntType();
+      assert type.isReferenceType();
       this.type = type;
     }
 
@@ -364,26 +602,11 @@ public class CfFrame extends CfInstruction implements Cloneable {
       if (equals(frameType)) {
         return this;
       }
-      if (frameType.isOneWord() || frameType.isUninitializedObject()) {
+      if (frameType.isOneWord() || frameType.isPrimitive() || frameType.isUninitializedObject()) {
         return oneWord();
-      }
-      assert frameType.isInitialized();
-      if (frameType.isPrimitive()) {
-        if (frameType.isInt()) {
-          return CfAssignability.hasIntVerificationType(type) ? frameType : oneWord();
-        }
-        // The rest of the primitives are still represented using SingleInitializedType.
-        DexType otherType = frameType.asSingleInitializedType().getInitializedType();
-        return CfAssignability.hasIntVerificationType(type)
-                && CfAssignability.hasIntVerificationType(otherType)
-            ? intType()
-            : oneWord();
       }
       DexType otherType = frameType.asSingleInitializedType().getInitializedType();
       assert type != otherType;
-      if (type.isPrimitiveType()) {
-        return oneWord();
-      }
       assert type.isReferenceType();
       if (isNullType()) {
         return otherType.isReferenceType() ? frameType : oneWord();
@@ -456,16 +679,6 @@ public class CfFrame extends CfInstruction implements Cloneable {
       return true;
     }
 
-    @Override
-    public boolean isPrimitive() {
-      return type.isPrimitiveType();
-    }
-
-    @Override
-    public boolean isSingleInitialized() {
-      return true;
-    }
-
     public DexType getInitializedType() {
       return type;
     }
@@ -492,8 +705,8 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
   }
 
-  public abstract static class WideInitializedType extends SingletonFrameType
-      implements WideFrameType {
+  public abstract static class WidePrimitiveFrameType extends SingletonFrameType
+      implements PrimitiveFrameType, WideFrameType {
 
     @Override
     public boolean isInitialized() {
@@ -503,6 +716,11 @@ public class CfFrame extends CfInstruction implements Cloneable {
     @Override
     public boolean isPrimitive() {
       return true;
+    }
+
+    @Override
+    public PrimitiveFrameType asPrimitive() {
+      return this;
     }
 
     @Override
@@ -519,9 +737,14 @@ public class CfFrame extends CfInstruction implements Cloneable {
     public WideFrameType join(WideFrameType frameType) {
       return this == frameType ? this : twoWord();
     }
+
+    @Override
+    public final String toString() {
+      return getTypeName();
+    }
   }
 
-  private static class DoubleFrameType extends WideInitializedType {
+  public static class DoubleFrameType extends WidePrimitiveFrameType {
 
     private static final DoubleFrameType SINGLETON = new DoubleFrameType();
 
@@ -538,17 +761,17 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
 
     @Override
-    Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
-      return Opcodes.DOUBLE;
+    public String getTypeName() {
+      return "double";
     }
 
     @Override
-    public String toString() {
-      return "double";
+    Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
+      return Opcodes.DOUBLE;
     }
   }
 
-  public static class LongFrameType extends WideInitializedType {
+  public static class LongFrameType extends WidePrimitiveFrameType {
 
     private static final LongFrameType SINGLETON = new LongFrameType();
 
@@ -565,13 +788,13 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
 
     @Override
-    Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
-      return Opcodes.LONG;
+    public String getTypeName() {
+      return "long";
     }
 
     @Override
-    public String toString() {
-      return "long";
+    Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
+      return Opcodes.LONG;
     }
   }
 

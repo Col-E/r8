@@ -456,17 +456,7 @@ public class CfPrinter {
 
   private void print(FrameType type) {
     if (type.isPrimitive()) {
-      if (type.isInt()) {
-        builder.append("int");
-      } else if (type.isDouble()) {
-        builder.append("double");
-      } else if (type.isLong()) {
-        assert type.isLong();
-        builder.append("long");
-      } else {
-        assert type.isSingleInitialized();
-        appendType(type.asSingleInitializedType().getInitializedType());
-      }
+      builder.append(type.asPrimitive().getTypeName());
     } else if (type.isInitialized()) {
       appendType(type.asSingleInitializedType().getInitializedType());
     } else if (type.isUninitializedNew()) {
