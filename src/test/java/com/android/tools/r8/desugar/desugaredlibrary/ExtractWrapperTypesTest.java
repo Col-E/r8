@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -11,8 +12,8 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.GenerateLintFiles;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
@@ -47,6 +48,7 @@ import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
@@ -94,18 +96,22 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
           // TODO(b/159304624): Does this need custom conversion?
           "java.time.Period");
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withNoneRuntime().build();
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+
+  @Parameters(name = "{0}, spec: {1}, {2}")
+  public static List<Object[]> data() {
+    return buildParameters(getTestParameters().withNoneRuntime().build(), getJdk8Jdk11());
+  }
+
+  public ExtractWrapperTypesTest(
+      TestParameters parameters, LibraryDesugaringSpecification libraryDesugaringSpecification) {
+    parameters.assertNoneRuntime();
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   // TODO: parameterize to check both api<=23 as well as 23<api<26 for which the spec differs.
   private final AndroidApiLevel minApi = AndroidApiLevel.B;
   private final AndroidApiLevel targetApi = AndroidApiLevel.Q;
-
-  public ExtractWrapperTypesTest(TestParameters parameters) {
-    parameters.assertNoneRuntime();
-  }
 
   @Test
   public void checkConsistency() {
@@ -134,7 +140,7 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
     DexItemFactory factory = new DexItemFactory();
     DesugaredLibrarySpecification spec =
         DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecification(
-            StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()),
+            StringResource.fromFile(libraryDesugaringSpecification.getSpecification()),
             factory,
             null,
             false,

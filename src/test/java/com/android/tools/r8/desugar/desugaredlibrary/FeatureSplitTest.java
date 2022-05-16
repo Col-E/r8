@@ -4,28 +4,32 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.R8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.R8_L8SHRINK;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.DesugaredLibraryTestCompileResult;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.dexsplitter.SplitterTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.google.common.collect.ImmutableList;
 import dalvik.system.PathClassLoader;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -35,21 +39,28 @@ import org.junit.runners.Parameterized.Parameters;
 public class FeatureSplitTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        ImmutableList.of(R8_L8DEBUG, R8_L8SHRINK));
   }
 
-  public FeatureSplitTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public FeatureSplitTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   @Test
-  public void testTwoFeatures() throws CompilationFailedException, IOException, ExecutionException {
+  public void testTwoFeatures() throws Throwable {
     CompiledWithFeature compiledWithFeature = new CompiledWithFeature().invoke(this);
     Path basePath = compiledWithFeature.getBasePath();
     Path feature1Path = compiledWithFeature.getFeature1Path();
@@ -72,6 +83,9 @@ public class FeatureSplitTest extends DesugaredLibraryTestBase {
     if (parameters.getApiLevel().getLevel() >= AndroidApiLevel.N.getLevel()) {
       return;
     }
+    if (!compilationSpecification.isL8Shrink()) {
+      return;
+    }
     // Ensure count, toArray and forEach are kept.
     assertTrue(
         keepRules.contains(
@@ -84,8 +98,7 @@ public class FeatureSplitTest extends DesugaredLibraryTestBase {
                 + "    java.lang.Object[] toArray();"));
   }
 
-  private void assertClassPresent(Path appPath, Class<?> present)
-      throws IOException, ExecutionException {
+  private void assertClassPresent(Path appPath, Class<?> present) throws IOException {
     CodeInspector inspector = new CodeInspector(appPath);
     assertTrue(inspector.clazz(present).isPresent());
   }
@@ -227,38 +240,36 @@ public class FeatureSplitTest extends DesugaredLibraryTestBase {
       return keepRules;
     }
 
-    public CompiledWithFeature invoke(FeatureSplitTest tester)
-        throws IOException, CompilationFailedException {
+    public CompiledWithFeature invoke(FeatureSplitTest tester) throws Throwable {
 
       basePath = temp.newFile("base.zip").toPath();
       feature1Path = temp.newFile("feature1.zip").toPath();
       feature2Path = temp.newFile("feature2.zip").toPath();
 
-      KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-      testForR8(parameters.getBackend())
-          .addLibraryFiles(getLibraryFile())
-          .addProgramClasses(BaseClass.class, RunInterface.class, SplitRunner.class)
-          .setMinApi(parameters.getApiLevel())
-          .addFeatureSplit(
-              builder ->
-                  SplitterTestBase.simpleSplitProvider(
-                      builder, feature1Path, temp, FeatureClass.class))
-          .addFeatureSplit(
-              builder ->
-                  SplitterTestBase.simpleSplitProvider(
-                      builder, feature2Path, temp, FeatureClass2.class))
-          .addKeepAllClassesRule()
-          .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-          .compile()
-          .writeToZip(basePath);
+      DesugaredLibraryTestCompileResult<?> compileResult =
+          tester
+              .testForDesugaredLibrary(
+                  parameters, libraryDesugaringSpecification, compilationSpecification)
+              .addProgramClasses(BaseClass.class, RunInterface.class, SplitRunner.class)
+              .addFeatureSplit(
+                  builder ->
+                      SplitterTestBase.simpleSplitProvider(
+                          builder, feature1Path, temp, FeatureClass.class))
+              .addFeatureSplit(
+                  builder ->
+                      SplitterTestBase.simpleSplitProvider(
+                          builder, feature2Path, temp, FeatureClass2.class))
+              .addKeepAllClassesRule()
+              .compile()
+              .writeToZip(basePath);
+
       // Stream desugaring is not needed >= N.
       if (parameters.getApiLevel().getLevel() >= AndroidApiLevel.N.getLevel()) {
         return this;
       }
-      desugaredLibrary =
-          tester.buildDesugaredLibrary(
-              parameters.getApiLevel(), keepRuleConsumer.get(), shrinkDesugaredLibrary);
-      keepRules = keepRuleConsumer.get();
+
+      desugaredLibrary = compileResult.writeL8ToZip();
+      compileResult.inspectKeepRules(kr -> keepRules = StringUtils.join("\n", kr));
       return this;
     }
   }

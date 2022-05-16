@@ -140,6 +140,15 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
     return runnableCompiledResult.writeToZip();
   }
 
+  public DesugaredLibraryTestCompileResult<T> writeToZip(Path path) throws IOException {
+    runnableCompiledResult.writeToZip(path);
+    return this;
+  }
+
+  public Path writeL8ToZip() throws IOException {
+    return l8Compile.writeToZip();
+  }
+
   public DesugaredLibraryTestCompileResult<T> addRunClasspathFiles(Path... classpathFiles) {
     runnableCompiledResult.addRunClasspathFiles(classpathFiles);
     return this;

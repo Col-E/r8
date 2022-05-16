@@ -6,6 +6,7 @@ package com.android.tools.r8.desugar.desugaredlibrary.test;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8TestCompileResult;
+import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.L8TestCompileResult;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.R8TestBuilder;
@@ -26,6 +27,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import org.junit.Assume;
 
 public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
@@ -182,6 +184,11 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
+  public DesugaredLibraryTestBuilder<T> addKeepAllClassesRule() {
+    withR8TestBuilder(TestShrinkerBuilder::addKeepAllClassesRule);
+    return this;
+  }
+
   public DesugaredLibraryTestBuilder<T> addKeepMainRule(Class<?> clazz) {
     withR8TestBuilder(b -> b.addKeepMainRule(clazz));
     return this;
@@ -194,6 +201,12 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
 
   public DesugaredLibraryTestBuilder<T> addKeepRuleFiles(Path... files) {
     withR8TestBuilder(b -> b.addKeepRuleFiles(files));
+    return this;
+  }
+
+  public DesugaredLibraryTestBuilder<T> addFeatureSplit(
+      Function<FeatureSplit.Builder, FeatureSplit> featureSplitBuilder) {
+    withR8TestBuilder(b -> b.addFeatureSplit(featureSplitBuilder));
     return this;
   }
 
