@@ -194,6 +194,11 @@ public class CodeMatchers {
   }
 
   public static Predicate<InstructionSubject> isInvokeWithTarget(
+      String holderType, String methodName) {
+    return isInvokeWithTarget(null, holderType, methodName, (List<String>) null);
+  }
+
+  public static Predicate<InstructionSubject> isInvokeWithTarget(
       String returnType, String holderType, String methodName, List<String> parameterTypes) {
     return instruction -> {
       if (!instruction.isInvoke()) {
