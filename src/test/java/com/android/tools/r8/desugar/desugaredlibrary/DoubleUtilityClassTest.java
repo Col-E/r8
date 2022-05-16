@@ -4,45 +4,55 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.StringContains.containsString;
 
-import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.zone.ZoneOffsetTransition;
+import java.util.List;
 import java.util.Objects;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 // In this test both the desugared library and the program have the same utility class.
 @RunWith(Parameterized.class)
 public class DoubleUtilityClassTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+  @Parameters(name = "{0}, spec: {1}, {2}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        DEFAULT_SPECIFICATIONS);
   }
 
-  public DoubleUtilityClassTest(TestParameters parameters) {
+  public DoubleUtilityClassTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   @Test
   public void testDoubleUtility() throws Exception {
     for (Class<?> executor : new Class<?>[] {ExecutorV1.class, ExecutorV2.class}) {
-      testForD8()
-          .addLibraryFiles(getLibraryFile())
+      testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
           .addProgramClasses(executor)
-          .enableCoreLibraryDesugaring(
-              LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
-          .setMinApi(parameters.getApiLevel())
-          .compile()
+          .addKeepMainRule(executor)
           .run(parameters.getRuntime(), executor)
           .assertSuccess()
           // Verification error on some Dalvik VMs (4,api 1;4,api 15;4.4,api 1).

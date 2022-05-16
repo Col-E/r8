@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8SHRINK;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.getEmulateLibraryClassNameSuffix;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertEquals;
@@ -13,12 +16,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -32,26 +37,37 @@ import org.junit.runners.Parameterized.Parameters;
 public class EmulatedInterfacesTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        ImmutableList.of(D8_L8DEBUG, D8_L8SHRINK));
   }
 
-  public EmulatedInterfacesTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public EmulatedInterfacesTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   @Test
   public void testEmulatedInterface() throws Exception {
     Assume.assumeTrue(requiresEmulatedInterfaceCoreLibDesugaring(parameters));
     CodeInspector inspector =
-        new CodeInspector(
-            buildDesugaredLibrary(
-                parameters.getApiLevel(), "-keep class **$-EL", shrinkDesugaredLibrary));
+        testForL8(parameters.getApiLevel())
+            .apply(
+                l8Builder ->
+                    libraryDesugaringSpecification.configureL8TestBuilder(
+                        l8Builder, compilationSpecification.isL8Shrink(), "-keep class **$-EL"))
+            .compile()
+            .inspector();
     assertEmulateInterfaceClassesPresentWithDispatchMethods(inspector);
     assertCollectionMethodsPresentWithCorrectDispatch(inspector);
   }

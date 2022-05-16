@@ -3,49 +3,70 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
+import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.LibraryDesugaringTestConfiguration.PresentKeepRuleConsumer;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CustomLibrarySpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class DontKeepBootstrapClassesTest extends DesugaredLibraryTestBase {
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withNoneRuntime().build();
+  private final TestParameters parameters;
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+
+  @Parameters(name = "{0}, spec: {1}, {2}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        DEFAULT_SPECIFICATIONS);
   }
 
-  final AndroidApiLevel minApiLevel = AndroidApiLevel.B;
-
-  public DontKeepBootstrapClassesTest(TestParameters parameters) {
-    parameters.assertNoneRuntime();
+  public DontKeepBootstrapClassesTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
+    this.parameters = parameters;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   @Test
-  public void test() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = new PresentKeepRuleConsumer();
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
+  public void testDontKeep() throws Throwable {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClasses(TestClass.class)
-        .setMinApi(minApiLevel)
-        .addLibraryClasses(CustomLibClass.class)
-        .enableCoreLibraryDesugaring(minApiLevel, keepRuleConsumer)
-        .compile();
-    assertThat(keepRuleConsumer.get(), containsString("-keep class j$.util.function.Consumer"));
-    // TODO(b/158635415): Don't generate keep rules targeting items outside desugared library.
-    assertThat(keepRuleConsumer.get(), containsString("-keep class java.util"));
+        .addKeepMainRule(TestClass.class)
+        .setCustomLibrarySpecification(
+            new CustomLibrarySpecification(CustomLibClass.class, AndroidApiLevel.N))
+        .compile()
+        .inspectKeepRules(
+            keepRule -> {
+              if (requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
+                assertTrue(
+                    keepRule.stream()
+                        .anyMatch(kr -> kr.contains("-keep class j$.util.function.Consumer")));
+                // TODO(b/158635415): Don't generate keep rules targeting items outside desugared
+                // library.
+                assertTrue(keepRule.stream().anyMatch(kr -> kr.contains("-keep class java.util")));
+              }
+            });
   }
 
   static class CustomLibClass {
+
     public static <T> Consumer<T> id(Consumer<T> fn) {
       return fn;
     }

@@ -303,4 +303,9 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     builder.addAndroidBuildVersion();
     return this;
   }
+
+  public DesugaredLibraryTestBuilder<T> disableDesugaring() {
+    builder.disableDesugaring();
+    return this;
+  }
 }

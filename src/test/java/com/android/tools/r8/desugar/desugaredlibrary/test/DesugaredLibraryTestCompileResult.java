@@ -17,6 +17,7 @@ import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.function.Consumer;
 
 public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBase> {
@@ -67,6 +68,14 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
   public <E extends Throwable> DesugaredLibraryTestCompileResult<T> inspect(
       ThrowingConsumer<CodeInspector, E> consumer) throws Throwable {
     compileResult.inspect(consumer);
+    return this;
+  }
+
+  public <E extends Throwable> DesugaredLibraryTestCompileResult<T> inspectKeepRules(
+      ThrowingConsumer<List<String>, E> consumer) throws Throwable {
+    if (compilationSpecification.isL8Shrink()) {
+      l8Compile.inspectKeepRules(consumer);
+    }
     return this;
   }
 

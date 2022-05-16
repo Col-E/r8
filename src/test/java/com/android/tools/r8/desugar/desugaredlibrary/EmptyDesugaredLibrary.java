@@ -4,22 +4,24 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.L8Command;
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.StringResource;
+import com.android.tools.r8.L8TestBuilder;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.google.common.collect.ImmutableList;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.zip.ZipFile;
@@ -31,39 +33,30 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class EmptyDesugaredLibrary extends DesugaredLibraryTestBase {
 
-  private final AndroidApiLevel apiLevel;
+  private final TestParameters parameters;
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameters(name = "api: {0}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        range(AndroidApiLevel.K, AndroidApiLevel.LATEST),
-        getTestParameters().withNoneRuntime().build());
+        getTestParameters().withDexRuntimes().withOnlyDexRuntimeApiLevel().build(),
+        getJdk8Jdk11(),
+        ImmutableList.of(D8_L8DEBUG));
   }
 
-  private static List<AndroidApiLevel> range(
-      AndroidApiLevel fromIncluding, AndroidApiLevel toIncluding) {
-    ArrayList<AndroidApiLevel> result = new ArrayList<>();
-    for (AndroidApiLevel apiLevel : AndroidApiLevel.values()) {
-      if (apiLevel.isGreaterThanOrEqualTo(fromIncluding)
-          && apiLevel.isLessThanOrEqualTo(toIncluding)) {
-        result.add(apiLevel);
-      }
-    }
-    return result;
+  public EmptyDesugaredLibrary(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
+    this.parameters = parameters;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
-  public EmptyDesugaredLibrary(AndroidApiLevel apiLevel, TestParameters parameters) {
-    parameters.assertNoneRuntime();
-    this.apiLevel = apiLevel;
-  }
-
-  private L8Command.Builder prepareL8Builder(AndroidApiLevel minApiLevel) {
-    return L8Command.builder()
-        .addLibraryFiles(getLibraryFile())
-        .addProgramFiles(ToolHelper.getDesugarJDKLibs())
-        .addDesugaredLibraryConfiguration(
-            StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
-        .setMinApiLevel(minApiLevel.getLevel());
+  private L8TestBuilder prepareL8() {
+    return testForL8(parameters.getApiLevel())
+        .apply(libraryDesugaringSpecification::configureL8TestBuilder);
   }
 
   static class CountingProgramConsumer extends DexIndexedConsumer.ForwardingConsumer {
@@ -82,7 +75,7 @@ public class EmptyDesugaredLibrary extends DesugaredLibraryTestBase {
   }
 
   private boolean expectsEmptyDesugaredLibrary(AndroidApiLevel apiLevel) {
-    if (isJDK11DesugaredLibrary()) {
+    if (libraryDesugaringSpecification != JDK8) {
       return apiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.S);
     }
     return !requiresAnyCoreLibDesugaring(apiLevel);
@@ -91,32 +84,17 @@ public class EmptyDesugaredLibrary extends DesugaredLibraryTestBase {
   @Test
   public void testEmptyDesugaredLibrary() throws Exception {
     CountingProgramConsumer programConsumer = new CountingProgramConsumer();
-    ToolHelper.runL8(prepareL8Builder(apiLevel).setProgramConsumer(programConsumer).build());
-    assertEquals(expectsEmptyDesugaredLibrary(apiLevel) ? 0 : 1, programConsumer.count);
+    prepareL8().setProgramConsumer(programConsumer).compile();
+    assertEquals(
+        expectsEmptyDesugaredLibrary(parameters.getApiLevel()) ? 0 : 1, programConsumer.count);
   }
 
   @Test
   public void testEmptyDesugaredLibraryDexZip() throws Exception {
-    Path desugaredLibraryZip = temp.newFolder().toPath().resolve("desugar_jdk_libs_dex.zip");
-    ToolHelper.runL8(
-        prepareL8Builder(apiLevel).setOutput(desugaredLibraryZip, OutputMode.DexIndexed).build());
+    Path desugaredLibraryZip = prepareL8().compile().writeToZip();
     assertTrue(Files.exists(desugaredLibraryZip));
     assertEquals(
-        expectsEmptyDesugaredLibrary(apiLevel) ? 0 : 1,
+        expectsEmptyDesugaredLibrary(parameters.getApiLevel()) ? 0 : 1,
         new ZipFile(desugaredLibraryZip.toFile(), StandardCharsets.UTF_8).size());
-  }
-
-  @Test
-  public void testEmptyDesugaredLibraryDexDirectory() throws Exception {
-    Path desugaredLibraryDirectory = temp.newFolder().toPath();
-    ToolHelper.runL8(
-        prepareL8Builder(apiLevel)
-            .setOutput(desugaredLibraryDirectory, OutputMode.DexIndexed)
-            .build());
-    assertEquals(
-        expectsEmptyDesugaredLibrary(apiLevel) ? 0 : 1,
-        Files.walk(desugaredLibraryDirectory)
-            .filter(path -> path.toString().endsWith(".dex"))
-            .count());
   }
 }

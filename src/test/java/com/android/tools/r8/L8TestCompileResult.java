@@ -11,25 +11,30 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Set;
 
 public class L8TestCompileResult extends TestCompileResult<L8TestCompileResult, L8TestRunResult> {
 
+  private final List<String> allKeepRules;
   private final String generatedKeepRules;
   private final Path mapping;
 
   public L8TestCompileResult(
       AndroidApp app,
       AndroidApiLevel apiLevel,
+      List<String> allKeepRules,
       String generatedKeepRules,
       Path mapping,
       TestState state,
       OutputMode outputMode) {
     super(state, app, apiLevel.getLevel(), outputMode);
+    this.allKeepRules = allKeepRules;
     this.generatedKeepRules = generatedKeepRules;
     this.mapping = mapping;
   }
@@ -69,6 +74,12 @@ public class L8TestCompileResult extends TestCompileResult<L8TestCompileResult, 
   @Override
   public L8TestCompileResult self() {
     return this;
+  }
+
+  public <E extends Throwable> L8TestCompileResult inspectKeepRules(
+      ThrowingConsumer<List<String>, E> consumer) throws Throwable {
+    consumer.accept(allKeepRules);
+    return self();
   }
 
   public L8TestCompileResult writeGeneratedKeepRules(Path path) throws IOException {

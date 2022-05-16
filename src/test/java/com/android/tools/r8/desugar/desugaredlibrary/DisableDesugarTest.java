@@ -4,16 +4,18 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -23,14 +25,39 @@ import org.junit.runners.Parameterized.Parameters;
 public class DisableDesugarTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+  @Parameters(name = "{0}, spec: {1}, {2}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        DEFAULT_SPECIFICATIONS);
   }
 
-  public DisableDesugarTest(TestParameters parameters) {
+  public DisableDesugarTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+  }
+
+  @Test
+  public void testDisableDesugar() throws Exception {
+    try {
+      testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+          .addInnerClasses(getClass())
+          .addKeepMainRule(TestClass.class)
+          .disableDesugaring()
+          .compileWithExpectedDiagnostics(this::checkExpectedDiagnostics);
+    } catch (CompilationFailedException e) {
+      // Expected compilation failed.
+      return;
+    }
+    fail("Expected test to fail with CompilationFailedException");
   }
 
   private void checkExpectedDiagnostics(TestDiagnosticMessages messages) {
@@ -40,41 +67,6 @@ public class DisableDesugarTest extends DesugaredLibraryTestBase {
     assertThat(
         messages.getErrors().get(0).getDiagnosticMessage(),
         containsString("Using desugared library configuration requires desugaring to be enabled"));
-  }
-
-  @Test
-  public void testDisableDesugarD8() throws Exception {
-    try {
-      testForD8()
-          .addInnerClasses(DisableDesugarTest.class)
-          .setMinApi(parameters.getApiLevel())
-          .disableDesugaring()
-          .enableCoreLibraryDesugaring(
-              LibraryDesugaringTestConfiguration.forApiLevel(AndroidApiLevel.B))
-          .compileWithExpectedDiagnostics(this::checkExpectedDiagnostics);
-    } catch (CompilationFailedException e) {
-      // Expected compilation failed.
-      return;
-    }
-    fail("Expected test to fail with CompilationFailedException");
-  }
-
-  @Test
-  public void testDisableDesugarR8() throws Exception {
-    try {
-      testForR8(parameters.getBackend())
-          .addInnerClasses(DisableDesugarTest.class)
-          .addKeepMainRule(TestClass.class)
-          .setMinApi(parameters.getApiLevel())
-          .disableDesugaring()
-          .enableCoreLibraryDesugaring(
-              LibraryDesugaringTestConfiguration.forApiLevel(AndroidApiLevel.B))
-          .compileWithExpectedDiagnostics(this::checkExpectedDiagnostics);
-    } catch (CompilationFailedException e) {
-      // Expected compilation failed.
-      return;
-    }
-    fail("Expected test to fail with CompilationFailedException");
   }
 
   static class TestClass {
