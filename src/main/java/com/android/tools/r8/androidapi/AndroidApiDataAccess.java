@@ -97,7 +97,7 @@ public abstract class AndroidApiDataAccess {
       // protocol: file, path: <path-to-file>
       // protocol: jar, path: file:<path-to-jar>!/<resource-name-in-jar>
       if (resource.getProtocol().equals("file")) {
-        return getDataAccessFromPathAndOffset(Paths.get(resource.getPath()), 0);
+        return getDataAccessFromPathAndOffset(Paths.get(resource.toURI()), 0);
       } else if (resource.getProtocol().equals("jar") && resource.getPath().startsWith("file:")) {
         // The path is on form 'file:<path-to-jar>!/<resource-name-in-jar>
         JarURLConnection jarUrl = (JarURLConnection) resource.openConnection();
