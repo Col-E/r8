@@ -6,6 +6,7 @@ package com.android.tools.r8.utils;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfPosition;
+import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.debuginfo.DebugRepresentation.DebugRepresentationPredicate;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -1139,6 +1140,7 @@ public class LineNumberOptimizer {
     EventBasedDebugInfo debugInfo =
         DexDebugInfo.convertToEventBased(dexCode, appView.dexItemFactory());
     assert debugInfo != null;
+    IntBox firstDefaultEventPc = new IntBox(-1);
     BooleanBox singleOriginalLine = new BooleanBox(true);
     Pair<Integer, Position> lastPosition = new Pair<>();
     DexDebugEventVisitor visitor =
@@ -1149,6 +1151,9 @@ public class LineNumberOptimizer {
           public void visit(Default defaultEvent) {
             super.visit(defaultEvent);
             assert getCurrentLine() >= 0;
+            if (firstDefaultEventPc.get() < 0) {
+              firstDefaultEventPc.set(getCurrentPc());
+            }
             Position currentPosition = getPositionFromPositionState(this);
             if (lastPosition.getSecond() != null) {
               if (singleOriginalLine.isTrue()
@@ -1170,6 +1175,20 @@ public class LineNumberOptimizer {
 
     for (DexDebugEvent event : debugInfo.events) {
       event.accept(visitor);
+    }
+
+    // If the method has a single non-preamble line, check that the preamble is not active on any
+    // throwing instruction before the single line becomes active.
+    if (singleOriginalLine.isTrue() && firstDefaultEventPc.get() > 0) {
+      for (Instruction instruction : dexCode.instructions) {
+        if (instruction.getOffset() < firstDefaultEventPc.get()) {
+          if (instruction.canThrow()) {
+            singleOriginalLine.set(false);
+          }
+        } else {
+          break;
+        }
+      }
     }
 
     int lastInstructionPc = ArrayUtils.last(dexCode.instructions).getOffset();

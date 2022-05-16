@@ -179,14 +179,12 @@ public class NoLineInfoTest extends TestBase {
     StackTraceLine fooLine =
         isRuntimeWithPcAsLineNumberSupport() ? inputLine("foo", 1) : inputLine("foo", -1);
 
-    // TODO(b/232212653): Retracing builds with stripped line table will retrace incorrectly.
-    StackTraceLine barLine =
-        (isRuntimeWithPcAsLineNumberSupport() && customSourceFile)
-                || !isCompileWithPcAsLineNumberSupport()
-            ? inputLine("bar", 100)
-            : inputLine("bar", 0);
+    // TODO(b/232212653): Normal line-opt will cause a single-line mapping. Retrace should not
+    //  optimize that to mean it represents a single possible line. (<noline> should not match 1:x).
+    StackTraceLine barLine = parameters.isCfRuntime() ? inputLine("bar", 100) : inputLine("bar", 0);
 
     // TODO(b/232212653): The retracing in CF where the line table is preserved is incorrect.
+    //  same issue as for bar.
     StackTraceLine bazLine = parameters.isCfRuntime() ? inputLine("baz", 100) : inputLine("baz", 0);
 
     return StackTrace.builder()
@@ -218,16 +216,9 @@ public class NoLineInfoTest extends TestBase {
             ? line(UNKNOWN_SOURCE_FILE, "foo", 1)
             : residualLine("foo", -1);
 
-    // TODO(b/232212653): If not using a custom source file, then the single line identification
-    //  strips the line table.
-    StackTraceLine barLine =
-        isRuntimeWithPcAsLineNumberSupport() && !customSourceFile
-            ? line(UNKNOWN_SOURCE_FILE, "bar", 0)
-            : residualLine("bar", customSourceFile ? 0 : -1);
-
     return StackTrace.builder()
         .add(fooLine)
-        .add(barLine)
+        .add(residualLine("bar", 0))
         .add(residualLine("baz", 0))
         .add(residualLine("main", 6))
         .build();
