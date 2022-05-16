@@ -187,6 +187,7 @@ public class TestParametersBuilder {
 
   private boolean enableApiLevels = false;
   private boolean enableApiLevelsForCf = false;
+  private boolean onlyDexRuntimeApiLevel = false;
 
   private Predicate<AndroidApiLevel> apiLevelFilter = param -> false;
   private List<AndroidApiLevel> explicitApiLevels = new ArrayList<>();
@@ -200,6 +201,12 @@ public class TestParametersBuilder {
 
   public TestParametersBuilder withAllApiLevels() {
     return withApiFilter(api -> true);
+  }
+
+  public TestParametersBuilder withOnlyDexRuntimeApiLevel() {
+    enableApiLevels = true;
+    onlyDexRuntimeApiLevel = true;
+    return this;
   }
 
   public TestParametersBuilder enableApiLevelsForCf() {
@@ -266,6 +273,10 @@ public class TestParametersBuilder {
     if (runtime.isCf() && !enableApiLevelsForCf) {
       return Stream.of(new TestParameters(runtime));
     }
+    AndroidApiLevel vmLevel = runtime.maxSupportedApiLevel();
+    if (onlyDexRuntimeApiLevel) {
+      return Stream.of(new TestParameters(runtime, vmLevel));
+    }
     List<AndroidApiLevel> sortedApiLevels =
         AndroidApiLevel.getAndroidApiLevelsSorted().stream()
             .filter(apiLevelFilter)
@@ -273,7 +284,6 @@ public class TestParametersBuilder {
     if (sortedApiLevels.isEmpty()) {
       return Stream.of();
     }
-    AndroidApiLevel vmLevel = runtime.maxSupportedApiLevel();
     AndroidApiLevel lowestApplicable = sortedApiLevels.get(0);
     if (vmLevel.getLevel() < lowestApplicable.getLevel()) {
       return Stream.of();
@@ -281,6 +291,9 @@ public class TestParametersBuilder {
     if (sortedApiLevels.size() > 1) {
       for (int i = sortedApiLevels.size() - 1; i >= 0; i--) {
         AndroidApiLevel highestApplicable = sortedApiLevels.get(i);
+        if (onlyDexRuntimeApiLevel) {
+          return Stream.of(new TestParameters(runtime, highestApplicable));
+        }
         if (highestApplicable.getLevel() <= vmLevel.getLevel()
             && lowestApplicable != highestApplicable) {
           Set<AndroidApiLevel> set = new TreeSet<>();

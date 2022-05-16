@@ -5,23 +5,21 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8SHRINK;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.hamcrest.core.StringContains.containsString;
 
-import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.L8Command;
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.StringResource;
-import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.BooleanUtils;
-import java.nio.file.Path;
-import java.util.Arrays;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class DesugaredLibraryWarningTest extends DesugaredLibraryTestBase {
@@ -36,44 +34,44 @@ public class DesugaredLibraryWarningTest extends DesugaredLibraryTestBase {
           + "-keep class j$.util.function.Function { *; }";
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameterized.Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        ImmutableList.of(D8_L8DEBUG, D8_L8SHRINK));
   }
 
-  public DesugaredLibraryWarningTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public DesugaredLibraryWarningTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   @Test
   public void testDesugaredLibraryContent() throws Exception {
-    TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
-    Path desugaredLib = temp.newFolder().toPath().resolve("desugar_jdk_libs_dex.zip");
-    L8Command.Builder l8Builder =
-        L8Command.builder(diagnosticsHandler)
-            .addLibraryFiles(getLibraryFile())
-            .addProgramFiles(ToolHelper.getDesugarJDKLibs())
-            .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
-            .setMode(shrinkDesugaredLibrary ? CompilationMode.RELEASE : CompilationMode.DEBUG)
-            .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
-            .setMinApiLevel(parameters.getApiLevel().getLevel())
-            .setOutput(desugaredLib, OutputMode.DexIndexed);
-    if (shrinkDesugaredLibrary) {
-      l8Builder.addProguardConfiguration(
-          Arrays.asList(FUNCTION_KEEP.split(System.lineSeparator())), Origin.unknown());
-    }
-    ToolHelper.runL8(l8Builder.build(), options -> {});
-    if (isJDK11DesugaredLibrary()) {
-      diagnosticsHandler.assertNoErrors();
-      diagnosticsHandler.assertAllWarningsMatch(
-          diagnosticMessage(containsString("Specification conversion")));
-    } else {
-      diagnosticsHandler.assertNoMessages();
-    }
+    testForL8(parameters.getApiLevel())
+        .apply(
+            l8TestBuilder ->
+                libraryDesugaringSpecification.configureL8TestBuilder(
+                    l8TestBuilder, compilationSpecification.isL8Shrink(), FUNCTION_KEEP))
+        .compile()
+        .inspectDiagnosticMessages(
+            diagnosticsHandler -> {
+              if (libraryDesugaringSpecification != JDK8) {
+                diagnosticsHandler.assertNoErrors();
+                diagnosticsHandler.assertAllWarningsMatch(
+                    diagnosticMessage(containsString("Specification conversion")));
+              } else {
+
+                diagnosticsHandler.assertNoMessages();
+              }
+            });
   }
 }

@@ -14,6 +14,7 @@ import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestCompilerBuilder;
+import com.android.tools.r8.TestCompilerBuilder.DiagnosticsConsumer;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestShrinkerBuilder;
@@ -220,8 +221,19 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   }
 
   public DesugaredLibraryTestCompileResult<T> compile() throws Exception {
-    // We compile first to generate the keep rules for the l8 compilation.
     TestCompileResult<?, ? extends SingleTestRunResult<?>> compile = builder.compile();
+    return internalCompile(compile);
+  }
+
+  public DesugaredLibraryTestCompileResult<T> compileWithExpectedDiagnostics(
+      DiagnosticsConsumer consumer) throws Exception {
+    TestCompileResult<?, ? extends SingleTestRunResult<?>> compile =
+        builder.compileWithExpectedDiagnostics(consumer);
+    return internalCompile(compile);
+  }
+
+  private DesugaredLibraryTestCompileResult<T> internalCompile(
+      TestCompileResult<?, ? extends SingleTestRunResult<?>> compile) throws Exception {
     String keepRule = keepRuleConsumer == null ? null : keepRuleConsumer.get();
     L8TestCompileResult l8Compile = compileDesugaredLibrary(keepRule);
     D8TestCompileResult customLibCompile = compileCustomLib();

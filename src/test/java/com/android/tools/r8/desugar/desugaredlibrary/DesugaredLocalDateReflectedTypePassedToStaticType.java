@@ -4,12 +4,14 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.hamcrest.core.StringContains.containsString;
 
-import com.android.tools.r8.D8TestRunResult;
-import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.StringUtils;
 import java.time.LocalDate;
 import java.util.List;
@@ -21,69 +23,41 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class DesugaredLocalDateReflectedTypePassedToStaticType extends DesugaredLibraryTestBase {
 
-  private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
   private static final String EXPECTED = StringUtils.lines("1992");
 
-  @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
+  private final TestParameters parameters;
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withDexRuntimes().withAllApiLevels().build(), BooleanUtils.values());
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        DEFAULT_SPECIFICATIONS);
   }
 
   public DesugaredLocalDateReflectedTypePassedToStaticType(
-      TestParameters parameters, boolean shrinkDesugaredLibrary) {
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   @Test
-  public void testD8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    D8TestRunResult runResult =
-        testForD8()
-            .addLibraryFiles(getLibraryFile())
-            .addInnerClasses(DesugaredLocalDateReflectedTypePassedToStaticType.class)
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .setIncludeClassesChecksum(true)
-            .compile()
-            .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibrary,
-                parameters.getApiLevel(),
-                keepRuleConsumer.get(),
-                shrinkDesugaredLibrary)
-            .run(parameters.getRuntime(), Main.class);
-    if (shrinkDesugaredLibrary && requiresTimeDesugaring(parameters)) {
-      runResult.assertFailureWithErrorThatMatches(
-          containsString("java.lang.NoSuchMethodException"));
-    } else {
-      runResult.assertSuccessWithOutput(EXPECTED);
-    }
-  }
-
-  @Test
-  public void testR8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    R8TestRunResult runResult =
-        testForR8(parameters.getBackend())
-            .addLibraryFiles(getLibraryFile())
+  public void testDate() throws Exception {
+    SingleTestRunResult<?> run =
+        testForDesugaredLibrary(
+                parameters, libraryDesugaringSpecification, compilationSpecification)
             .addInnerClasses(DesugaredLocalDateReflectedTypePassedToStaticType.class)
             .addKeepMainRule(Main.class)
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .compile()
-            .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibrary,
-                parameters.getApiLevel(),
-                keepRuleConsumer.get(),
-                shrinkDesugaredLibrary)
             .run(parameters.getRuntime(), Main.class);
-    if (shrinkDesugaredLibrary && requiresTimeDesugaring(parameters)) {
-      runResult.assertFailureWithErrorThatMatches(
-          containsString("java.lang.NoSuchMethodException"));
+    if (compilationSpecification.isL8Shrink() && requiresTimeDesugaring(parameters)) {
+      run.assertFailureWithErrorThatMatches(containsString("java.lang.NoSuchMethodException"));
     } else {
-      runResult.assertSuccessWithOutput(EXPECTED);
+      run.assertSuccessWithOutput(EXPECTED);
     }
   }
 

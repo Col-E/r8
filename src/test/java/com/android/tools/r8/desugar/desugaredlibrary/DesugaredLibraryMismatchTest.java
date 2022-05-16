@@ -6,6 +6,9 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 
@@ -13,13 +16,16 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.errors.DesugaredLibraryMismatchDiagnostic;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Box;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import java.util.Collection;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -29,20 +35,30 @@ import org.junit.runners.Parameterized.Parameters;
 public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final AndroidApiLevel apiLevel;
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameters(name = "API level: {1}")
-  public static Collection<Object[]> data() {
+  @Parameters(name = "{0}, spec: {1}, {2}")
+  public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withNoneRuntime().build(),
-        new AndroidApiLevel[] {
-          AndroidApiLevel.LATEST, AndroidApiLevel.O, AndroidApiLevel.N_MR1, AndroidApiLevel.B
-        });
+        getTestParameters()
+            .withDexRuntime(Version.first())
+            .withDexRuntime(Version.V7_0_0)
+            .withDexRuntime(Version.V8_1_0)
+            .withDexRuntime(Version.last())
+            .withOnlyDexRuntimeApiLevel()
+            .build(),
+        getJdk8Jdk11(),
+        ImmutableList.of(D8_L8DEBUG));
   }
 
-  public DesugaredLibraryMismatchTest(TestParameters parameters, AndroidApiLevel apiLevel) {
+  public DesugaredLibraryMismatchTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
-    this.apiLevel = apiLevel;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   @Test
@@ -51,21 +67,19 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
     Path libraryDex =
         testForD8(Backend.DEX)
             .addProgramClasses(Library.class)
-            .setMinApi(apiLevel)
+            .setMinApi(parameters.getApiLevel())
             .compile()
             .writeToZip();
 
     // Combine DEX input without library desugaring with dexing with library desugaring.
     try {
-      testForD8()
-          .addLibraryFiles(getLibraryFile())
+      testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
           .addProgramFiles(libraryDex)
           .addProgramClasses(TestRunner.class)
-          .setMinApi(apiLevel)
-          .enableCoreLibraryDesugaring(LibraryDesugaringTestConfiguration.forApiLevel(apiLevel))
           .compileWithExpectedDiagnostics(
               diagnostics -> {
-                if (requiresAnyCoreLibDesugaring(apiLevel)) {
+                if (requiresAnyCoreLibDesugaring(
+                    parameters.getApiLevel(), libraryDesugaringSpecification != JDK8)) {
                   diagnostics.assertNoInfos();
                   diagnostics.assertAllWarningsMatch(
                       diagnosticMessage(
@@ -89,17 +103,14 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
     Path desugaredLibrary =
         testForD8(Backend.CF)
             .addProgramClasses(Library.class)
-            .setMinApi(apiLevel)
+            .setMinApi(parameters.getApiLevel())
             .compile()
             .writeToZip();
 
     // Combine CF desugared input without library desugaring with dexing with library desugaring.
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramFiles(desugaredLibrary)
         .addProgramClasses(TestRunner.class)
-        .setMinApi(apiLevel)
-        .enableCoreLibraryDesugaring(LibraryDesugaringTestConfiguration.forApiLevel(apiLevel))
         .compile();
   }
 
@@ -109,7 +120,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
     Path desugaredLibrary =
         testForD8(Backend.CF)
             .addProgramClasses(Library.class)
-            .setMinApi(apiLevel)
+            .setMinApi(parameters.getApiLevel())
             .compile()
             .writeToZip();
 
@@ -117,17 +128,14 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
     Path desugaredLibraryDex =
         testForD8(Backend.DEX)
             .addProgramFiles(desugaredLibrary)
-            .setMinApi(apiLevel)
+            .setMinApi(parameters.getApiLevel())
             .disableDesugaring()
             .compile()
             .writeToZip();
 
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramFiles(desugaredLibraryDex)
         .addProgramClasses(TestRunner.class)
-        .setMinApi(apiLevel)
-        .enableCoreLibraryDesugaring(LibraryDesugaringTestConfiguration.forApiLevel(apiLevel))
         .compile();
   }
 
@@ -137,8 +145,9 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
     Path desugaredLibrary =
         testForD8(Backend.CF)
             .addProgramClasses(Library.class)
-            .setMinApi(apiLevel)
-            .enableCoreLibraryDesugaring(LibraryDesugaringTestConfiguration.forApiLevel(apiLevel))
+            .setMinApi(parameters.getApiLevel())
+            .enableCoreLibraryDesugaring(
+                LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
             .compile()
             .writeToZip();
 
@@ -147,10 +156,10 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
       testForD8()
           .addProgramFiles(desugaredLibrary)
           .addProgramClasses(TestRunner.class)
-          .setMinApi(apiLevel)
+          .setMinApi(parameters.getApiLevel())
           .compileWithExpectedDiagnostics(
               diagnostics -> {
-                if (requiresAnyCoreLibDesugaring(apiLevel)) {
+                if (requiresAnyCoreLibDesugaring(parameters.getApiLevel())) {
                   diagnostics.assertOnlyErrors();
                   diagnostics.assertErrorsMatch(
                       diagnosticType(DesugaredLibraryMismatchDiagnostic.class));
@@ -166,11 +175,9 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
   public void testMergeLibraryDesugaredWithNotLibraryDesugared() throws Exception {
     // DEX code with library desugaring.
     Path libraryDex =
-        testForD8(Backend.DEX)
-            .addLibraryFiles(getLibraryFile())
+        testForDesugaredLibrary(
+                parameters, libraryDesugaringSpecification, compilationSpecification)
             .addProgramClasses(Library.class)
-            .setMinApi(apiLevel)
-            .enableCoreLibraryDesugaring(LibraryDesugaringTestConfiguration.forApiLevel(apiLevel))
             .compile()
             .writeToZip();
 
@@ -178,7 +185,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
     Path programDex =
         testForD8(Backend.DEX)
             .addProgramClasses(TestRunner.class)
-            .setMinApi(apiLevel)
+            .setMinApi(parameters.getApiLevel())
             .compile()
             .writeToZip();
 
@@ -186,10 +193,11 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
       testForD8()
           .addProgramFiles(libraryDex)
           .addProgramFiles(programDex)
-          .setMinApi(apiLevel)
+          .setMinApi(parameters.getApiLevel())
           .compileWithExpectedDiagnostics(
               diagnostics -> {
-                if (requiresAnyCoreLibDesugaring(apiLevel)) {
+                if (requiresAnyCoreLibDesugaring(
+                    parameters.getApiLevel(), libraryDesugaringSpecification != JDK8)) {
                   diagnostics.assertOnlyErrors();
                   diagnostics.assertErrorsMatch(
                       diagnosticType(DesugaredLibraryMismatchDiagnostic.class));
@@ -209,10 +217,10 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
     Path libraryDex =
         testForD8(Backend.DEX)
             .addProgramClasses(Library.class)
-            .setMinApi(apiLevel)
+            .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(
                 LibraryDesugaringTestConfiguration.builder()
-                    .setMinApi(apiLevel)
+                    .setMinApi(parameters.getApiLevel())
                     // Minimal configuration with a different identifier.
                     // The j$.time is rewritten because empty flags are equivalent to an empty
                     // specification, and no marker is set for empty specifications.
@@ -241,7 +249,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
     Path programDex =
         testForD8(Backend.DEX)
             .addProgramClasses(TestRunner.class)
-            .setMinApi(apiLevel)
+            .setMinApi(parameters.getApiLevel())
             .compile()
             .writeToZip();
 
@@ -249,7 +257,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
       testForD8()
           .addProgramFiles(libraryDex)
           .addProgramFiles(programDex)
-          .setMinApi(apiLevel)
+          .setMinApi(parameters.getApiLevel())
           .compileWithExpectedDiagnostics(
               diagnostics -> {
                 diagnostics.assertOnlyErrors();
