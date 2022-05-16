@@ -12,6 +12,7 @@ import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.time.LocalDate;
 import java.util.List;
@@ -57,7 +58,14 @@ public class DesugaredLocalDateReflectedTypePassedToStaticType extends Desugared
     if (compilationSpecification.isL8Shrink() && requiresTimeDesugaring(parameters)) {
       run.assertFailureWithErrorThatMatches(containsString("java.lang.NoSuchMethodException"));
     } else {
-      run.assertSuccessWithOutput(EXPECTED);
+      // TODO(b/232780224): Evaluate this.
+      if (compilationSpecification.isL8Shrink()
+          && parameters.getApiLevel().betweenBothIncluded(AndroidApiLevel.O, AndroidApiLevel.Q)) {
+        run.assertFailureWithErrorThatMatches(containsString("java.lang.NoSuchMethodException"));
+
+      } else {
+        run.assertSuccessWithOutput(EXPECTED);
+      }
     }
   }
 
