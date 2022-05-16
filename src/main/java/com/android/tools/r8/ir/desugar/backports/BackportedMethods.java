@@ -2218,15 +2218,11 @@ public final class BackportedMethods {
             new CfGoto(label2),
             label1,
             new CfFrame(
-                new Int2ObjectAVLTreeMap<>(
-                    new int[] {0},
-                    new FrameType[] {FrameType.initialized(options.itemFactory.floatType)})),
+                new Int2ObjectAVLTreeMap<>(new int[] {0}, new FrameType[] {FrameType.floatType()})),
             new CfConstNumber(0, ValueType.INT),
             label2,
             new CfFrame(
-                new Int2ObjectAVLTreeMap<>(
-                    new int[] {0},
-                    new FrameType[] {FrameType.initialized(options.itemFactory.floatType)}),
+                new Int2ObjectAVLTreeMap<>(new int[] {0}, new FrameType[] {FrameType.floatType()}),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
             label3),
