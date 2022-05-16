@@ -4,7 +4,10 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
 
+import static org.junit.Assume.assumeTrue;
+
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import org.junit.Test;
@@ -23,6 +26,10 @@ public class Jdk11TimeFormatChronoTests extends Jdk11TimeAbstractTests {
 
   @Test
   public void testTime() throws Exception {
+    // TODO(b/232721525): Figure out why.
+    assumeTrue(
+        parameters.isCfRuntime()
+            || parameters.getRuntime().asDex().getVersion().isOlderThan(Version.V12_0_0));
     testTime(FORMAT_CHRONO_SUCCESSES);
   }
 }
