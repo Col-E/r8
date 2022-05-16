@@ -16,8 +16,10 @@ import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.io.ByteStreams;
 import com.google.common.primitives.Ints;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.JarURLConnection;
 import java.net.URL;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -98,16 +100,12 @@ public abstract class AndroidApiDataAccess {
         return getDataAccessFromPathAndOffset(Paths.get(resource.getPath()), 0);
       } else if (resource.getProtocol().equals("jar") && resource.getPath().startsWith("file:")) {
         // The path is on form 'file:<path-to-jar>!/<resource-name-in-jar>
-        String path = resource.getPath().substring(5);
-        int jarEntrySeparator = path.indexOf('!');
-        if (jarEntrySeparator > 0) {
-          String file = path.substring(0, jarEntrySeparator);
-          String databaseEntry = path.substring(jarEntrySeparator + 2);
-          Path jarPath = Paths.get(file);
-          long offsetInJar = getOffsetOfResourceInZip(jarPath, databaseEntry);
-          if (offsetInJar > 0) {
-            return getDataAccessFromPathAndOffset(jarPath, offsetInJar);
-          }
+        JarURLConnection jarUrl = (JarURLConnection) resource.openConnection();
+        File jarFile = new File(jarUrl.getJarFileURL().getFile());
+        String databaseEntry = jarUrl.getEntryName();
+        long offsetInJar = getOffsetOfResourceInZip(jarFile, databaseEntry);
+        if (offsetInJar > 0) {
+          return getDataAccessFromPathAndOffset(jarFile.toPath(), offsetInJar);
         }
       }
       // On older DEX platforms creating a new byte channel may fail:

@@ -299,9 +299,9 @@ public class ZipUtils {
     return DescriptorUtils.getClassBinaryName(clazz) + CLASS_EXTENSION;
   }
 
-  public static long getOffsetOfResourceInZip(Path path, String entry) throws IOException {
+  public static long getOffsetOfResourceInZip(File file, String entry) throws IOException {
     // Look into the jar file to see find the offset.
-    ZipFile zipFile = new ZipFile(path.toFile());
+    ZipFile zipFile = new ZipFile(file);
     Enumeration<? extends ZipEntry> entries = zipFile.entries();
     long offset = 0;
     while (entries.hasMoreElements()) {
