@@ -4,14 +4,20 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8SHRINK;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.google.common.collect.ImmutableList;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
@@ -26,20 +32,37 @@ import org.junit.runners.Parameterized.Parameters;
 public class ImplementedInterfacesTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
   private final boolean canUseDefaultAndStaticInterfaceMethods;
 
-  @Parameters(name = "{0}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build());
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        ImmutableList.of(D8_L8DEBUG, D8_L8SHRINK));
   }
 
-  public ImplementedInterfacesTest(TestParameters parameters) {
+  public ImplementedInterfacesTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
     this.canUseDefaultAndStaticInterfaceMethods =
         parameters
             .getApiLevel()
             .isGreaterThanOrEqualTo(apiLevelWithDefaultInterfaceMethodsSupport());
+  }
+
+  @Test
+  public void testImplementedInterfaces() throws Throwable {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+        .addInnerClasses(getClass())
+        .compile()
+        .inspect(this::checkInterfaces);
   }
 
   private String desugaredJavaTypeNameFor(Class<?> clazz) {
@@ -61,18 +84,6 @@ public class ImplementedInterfacesTest extends DesugaredLibraryTestBase {
       assertFalse(clazz.isImplementing(desugaredJavaTypeNameFor(Collection.class)));
       assertFalse(clazz.isImplementing(desugaredJavaTypeNameFor(Iterable.class)));
     }
-  }
-
-  @Test
-  public void testInterfaces() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForD8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
-        .addInnerClasses(ImplementedInterfacesTest.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .inspect(this::checkInterfaces);
   }
 
   abstract static class MultipleInterfaces<T> implements List<T>, Serializable, Set<T> {

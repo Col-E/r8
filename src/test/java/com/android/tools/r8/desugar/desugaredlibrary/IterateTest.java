@@ -4,14 +4,15 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import com.android.tools.r8.LibraryDesugaringTestConfiguration;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.SPECIFICATIONS_WITH_CF2CF;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
+
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.StringUtils;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.IntStream;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -20,77 +21,34 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class IterateTest extends DesugaredLibraryTestBase {
 
-  private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
   private static final String EXPECTED_OUTPUT = StringUtils.lines("1");
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  private final TestParameters parameters;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
+
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(),
-        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build());
+        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
+        getJdk8Jdk11(),
+        SPECIFICATIONS_WITH_CF2CF);
   }
 
-  public IterateTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public IterateTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   @Test
-  public void testIterateD8Cf() throws Exception {
-    // Only test without shrinking desugared library.
-    Assume.assumeFalse(shrinkDesugaredLibrary);
-    // Use D8 to desugar with Java classfile output.
-    Path jar =
-        testForD8(Backend.CF)
-            .addInnerClasses(IterateTest.class)
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(
-                LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
-            .compile()
-            .writeToZip();
-
-    if (parameters.getRuntime().isDex()) {
-      // Convert to DEX without desugaring and run.
-      testForD8()
-          .addProgramFiles(jar)
-          .setMinApi(parameters.getApiLevel())
-          .disableDesugaring()
-          .compile()
-          .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()))
-          .run(parameters.getRuntime(), Main.class)
-          .assertSuccessWithOutput(EXPECTED_OUTPUT);
-    } else {
-      // Run on the JVM with desugared library on classpath.
-      testForJvm()
-          .addProgramFiles(jar)
-          .addRunClasspathFiles(buildDesugaredLibraryClassFile(parameters.getApiLevel()))
-          .run(parameters.getRuntime(), Main.class)
-          .assertSuccessWithOutput(EXPECTED_OUTPUT);
-    }
-  }
-
-  @Test
-  public void testIterate() throws Exception {
-    if (parameters.isCfRuntime()) {
-      testForJvm()
-          .addInnerClasses(IterateTest.class)
-          .run(parameters.getRuntime(), Main.class)
-          .assertSuccessWithOutput(EXPECTED_OUTPUT);
-      return;
-    }
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
-        .addInnerClasses(IterateTest.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
+  public void testIterable() throws Throwable {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
