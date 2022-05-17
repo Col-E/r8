@@ -164,7 +164,7 @@ def compare(app1_classes_dir, app2_classes_dir, app1, app2, options):
 def Main():
   (options, args) = parse_options()
   if len(args) is not 2:
-    print args
+    print(args)
     print('Takes exactly two arguments, the two apps to compare')
     return 1
   app1 = args[0]
