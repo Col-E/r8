@@ -56,7 +56,14 @@ public abstract class Jdk11StreamAbstractTests extends DesugaredLibraryTestBase 
 
   @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() throws Exception {
-    Jdk11TestLibraryDesugaringSpecification.setUp();
+    List<LibraryDesugaringSpecification> specs;
+    if (ToolHelper.isWindows()) {
+      // The library configuration is not available on windows. Do not run anything.
+      specs = ImmutableList.of();
+    } else {
+      Jdk11TestLibraryDesugaringSpecification.setUp();
+      specs = ImmutableList.of(JDK8_JAVA_BASE_EXT, JDK11_PATH_JAVA_BASE_EXT);
+    }
     return buildParameters(
         // TODO(134732760): Support Dalvik VMs, currently fails because libjavacrypto is required
         // and present only in ART runtimes.
@@ -65,7 +72,7 @@ public abstract class Jdk11StreamAbstractTests extends DesugaredLibraryTestBase 
             .withAllApiLevels()
             .withApiLevel(AndroidApiLevel.N)
             .build(),
-        ImmutableList.of(JDK8_JAVA_BASE_EXT, JDK11_PATH_JAVA_BASE_EXT),
+        specs,
         ImmutableList.of(D8_L8DEBUG, D8_L8SHRINK, D8CF2CF_L8DEBUG));
   }
 
