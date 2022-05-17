@@ -14,11 +14,8 @@ import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.google.common.collect.Lists;
 import java.util.ArrayDeque;
-import java.util.Comparator;
 import java.util.Deque;
-import java.util.List;
 
 public class TypeAnalysis {
 
@@ -72,11 +69,7 @@ public class TypeAnalysis {
   }
 
   public void narrowing(Iterable<? extends Value> values) {
-    // TODO(b/125492155) Not sorting causes us to have non-deterministic behaviour. This should be
-    //  removed when the bug is fixed.
-    List<Value> sortedValues = Lists.newArrayList(values);
-    sortedValues.sort(Comparator.comparingInt(Value::getNumber));
-    analyzeValues(sortedValues, Mode.NARROWING);
+    analyzeValues(values, Mode.NARROWING);
   }
 
   public boolean verifyValuesUpToDate(Iterable<? extends Value> values) {
