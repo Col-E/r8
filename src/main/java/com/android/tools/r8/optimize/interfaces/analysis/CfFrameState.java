@@ -11,11 +11,9 @@ import com.android.tools.r8.cf.code.CfAssignability;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.AbstractState;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
 import com.android.tools.r8.ir.code.MemberType;
@@ -113,7 +111,7 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
   public abstract CfFrameState pop(BiFunction<CfFrameState, FrameType, CfFrameState> fn);
 
   public abstract CfFrameState popAndInitialize(
-      AppView<?> appView, DexMethod constructor, ProgramMethod context);
+      AppView<?> appView, DexMethod constructor, CfAnalysisConfig config);
 
   public final CfFrameState popInitialized(AppView<?> appView, DexType expectedType) {
     return popInitialized(appView, expectedType, FunctionUtils::getFirst);
@@ -159,13 +157,15 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
   public final CfFrameState popObject(
       AppView<?> appView,
       DexType expectedType,
-      ProgramMethod context,
+      CfAnalysisConfig config,
       BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
     return pop(
         (state, head) ->
             head.isObject()
                     && CfAssignability.isAssignable(
-                        head.getObjectType(context), expectedType, appView)
+                        head.getObjectType(config.getCurrentContext().getHolderType()),
+                        expectedType,
+                        appView)
                 ? fn.apply(state, head)
                 : errorUnexpectedStack(head, expectedType));
   }
@@ -205,74 +205,77 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
         wideFn);
   }
 
-  public abstract CfFrameState push(CfCode code, DexType type);
+  public abstract CfFrameState push(CfAnalysisConfig config, DexType type);
 
-  public abstract CfFrameState push(CfCode code, FrameType frameType);
+  public abstract CfFrameState push(CfAnalysisConfig config, FrameType frameType);
 
-  public final CfFrameState push(CfCode code, FrameType frameType, FrameType frameType2) {
-    return push(code, frameType).push(code, frameType2);
+  public final CfFrameState push(
+      CfAnalysisConfig config, FrameType frameType, FrameType frameType2) {
+    return push(config, frameType).push(config, frameType2);
   }
 
   public final CfFrameState push(
-      CfCode code, FrameType frameType, FrameType frameType2, FrameType frameType3) {
-    return push(code, frameType).push(code, frameType2).push(code, frameType3);
+      CfAnalysisConfig config, FrameType frameType, FrameType frameType2, FrameType frameType3) {
+    return push(config, frameType).push(config, frameType2).push(config, frameType3);
   }
 
   public final CfFrameState push(
-      CfCode code,
+      CfAnalysisConfig config,
       FrameType frameType,
       FrameType frameType2,
       FrameType frameType3,
       FrameType frameType4) {
-    return push(code, frameType)
-        .push(code, frameType2)
-        .push(code, frameType3)
-        .push(code, frameType4);
+    return push(config, frameType)
+        .push(config, frameType2)
+        .push(config, frameType3)
+        .push(config, frameType4);
   }
 
   public final CfFrameState push(
-      CfCode code,
+      CfAnalysisConfig config,
       FrameType frameType,
       FrameType frameType2,
       FrameType frameType3,
       FrameType frameType4,
       FrameType frameType5) {
-    return push(code, frameType)
-        .push(code, frameType2)
-        .push(code, frameType3)
-        .push(code, frameType4)
-        .push(code, frameType5);
+    return push(config, frameType)
+        .push(config, frameType2)
+        .push(config, frameType3)
+        .push(config, frameType4)
+        .push(config, frameType5);
   }
 
   public final CfFrameState push(
-      CfCode code,
+      CfAnalysisConfig config,
       FrameType frameType,
       FrameType frameType2,
       FrameType frameType3,
       FrameType frameType4,
       FrameType frameType5,
       FrameType frameType6) {
-    return push(code, frameType)
-        .push(code, frameType2)
-        .push(code, frameType3)
-        .push(code, frameType4)
-        .push(code, frameType5)
-        .push(code, frameType6);
+    return push(config, frameType)
+        .push(config, frameType2)
+        .push(config, frameType3)
+        .push(config, frameType4)
+        .push(config, frameType5)
+        .push(config, frameType6);
   }
 
   @SuppressWarnings("InconsistentOverloads")
-  public final CfFrameState push(AppView<?> appView, CfCode code, MemberType memberType) {
-    return push(code, FrameType.fromPreciseMemberType(memberType, appView.dexItemFactory()));
+  public final CfFrameState push(
+      AppView<?> appView, CfAnalysisConfig config, MemberType memberType) {
+    return push(config, FrameType.fromPreciseMemberType(memberType, appView.dexItemFactory()));
   }
 
   @SuppressWarnings("InconsistentOverloads")
-  public final CfFrameState push(AppView<?> appView, CfCode code, NumericType numericType) {
-    return push(code, numericType.toDexType(appView.dexItemFactory()));
+  public final CfFrameState push(
+      AppView<?> appView, CfAnalysisConfig config, NumericType numericType) {
+    return push(config, numericType.toDexType(appView.dexItemFactory()));
   }
 
   @SuppressWarnings("InconsistentOverloads")
-  public final CfFrameState push(AppView<?> appView, CfCode code, ValueType valueType) {
-    return push(code, valueType.toDexType(appView.dexItemFactory()));
+  public final CfFrameState push(AppView<?> appView, CfAnalysisConfig config, ValueType valueType) {
+    return push(config, valueType.toDexType(appView.dexItemFactory()));
   }
 
   public abstract CfFrameState readLocal(
@@ -281,16 +284,22 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
       ValueType expectedType,
       BiFunction<CfFrameState, FrameType, CfFrameState> consumer);
 
-  public abstract CfFrameState storeLocal(int localIndex, FrameType frameType, CfCode code);
+  public abstract CfFrameState storeLocal(
+      int localIndex, FrameType frameType, CfAnalysisConfig config);
 
   public final CfFrameState storeLocal(
-      int localIndex, PrimitiveTypeElement primitiveType, AppView<?> appView, CfCode code) {
+      int localIndex,
+      PrimitiveTypeElement primitiveType,
+      AppView<?> appView,
+      CfAnalysisConfig config) {
     assert primitiveType.isInt()
         || primitiveType.isFloat()
         || primitiveType.isLong()
         || primitiveType.isDouble();
     return storeLocal(
-        localIndex, FrameType.initialized(primitiveType.toDexType(appView.dexItemFactory())), code);
+        localIndex,
+        FrameType.initialized(primitiveType.toDexType(appView.dexItemFactory())),
+        config);
   }
 
   @Override

@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import org.objectweb.asm.MethodVisitor;
@@ -145,15 +146,14 @@ public class CfCmp extends CfInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
-      CfCode code,
-      ProgramMethod context,
       AppView<?> appView,
+      CfAnalysisConfig config,
       DexItemFactory dexItemFactory) {
     // ..., value1, value2 →
     // ..., result
     return frame
         .popInitialized(appView, type)
         .popInitialized(appView, type)
-        .push(code, dexItemFactory.intType);
+        .push(config, dexItemFactory.intType);
   }
 }

@@ -7,10 +7,8 @@ package com.android.tools.r8.optimize.interfaces.analysis;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.ValueType;
 import java.util.function.BiFunction;
 
@@ -140,7 +138,7 @@ public class ErroneousCfFrameState extends CfFrameState {
 
   @Override
   public CfFrameState popAndInitialize(
-      AppView<?> appView, DexMethod constructor, ProgramMethod context) {
+      AppView<?> appView, DexMethod constructor, CfAnalysisConfig config) {
     return this;
   }
 
@@ -158,12 +156,12 @@ public class ErroneousCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState push(CfCode code, DexType type) {
+  public CfFrameState push(CfAnalysisConfig config, DexType type) {
     return this;
   }
 
   @Override
-  public CfFrameState push(CfCode code, FrameType frameType) {
+  public CfFrameState push(CfAnalysisConfig config, FrameType frameType) {
     return this;
   }
 
@@ -177,7 +175,7 @@ public class ErroneousCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState storeLocal(int localIndex, FrameType frameType, CfCode code) {
+  public CfFrameState storeLocal(int localIndex, FrameType frameType, CfAnalysisConfig config) {
     return this;
   }
 

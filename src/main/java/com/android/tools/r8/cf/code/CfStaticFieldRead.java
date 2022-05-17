@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import java.util.ListIterator;
 import org.objectweb.asm.Opcodes;
@@ -83,12 +84,11 @@ public class CfStaticFieldRead extends CfFieldInstruction implements CfOrDexStat
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
-      CfCode code,
-      ProgramMethod context,
       AppView<?> appView,
+      CfAnalysisConfig config,
       DexItemFactory dexItemFactory) {
     // ..., →
     // ..., value
-    return frame.push(code, getField().getType());
+    return frame.push(config, getField().getType());
   }
 }

@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import org.objectweb.asm.MethodVisitor;
@@ -177,21 +178,20 @@ public class CfStore extends CfInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
-      CfCode code,
-      ProgramMethod context,
       AppView<?> appView,
+      CfAnalysisConfig config,
       DexItemFactory dexItemFactory) {
     // ..., ref →
     // ...
     if (type.isObject()) {
-      return frame.popObject((state, head) -> state.storeLocal(getLocalIndex(), head, code));
+      return frame.popObject((state, head) -> state.storeLocal(getLocalIndex(), head, config));
     } else {
       assert type.isPrimitive();
       return frame.popInitialized(
           appView,
           type,
           (state, head) ->
-              state.storeLocal(getLocalIndex(), type.toPrimitiveType(), appView, code));
+              state.storeLocal(getLocalIndex(), type.toPrimitiveType(), appView, config));
     }
   }
 }

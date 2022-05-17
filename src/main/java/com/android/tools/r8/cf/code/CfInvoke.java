@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
@@ -341,9 +342,8 @@ public class CfInvoke extends CfInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
-      CfCode code,
-      ProgramMethod context,
       AppView<?> appView,
+      CfAnalysisConfig config,
       DexItemFactory dexItemFactory) {
     // ..., objectref, [arg1, [arg2 ...]] →
     // ... [ returnType ]
@@ -354,13 +354,13 @@ public class CfInvoke extends CfInstruction {
     if (opcode != Opcodes.INVOKESTATIC) {
       frame =
           opcode == Opcodes.INVOKESPECIAL && method.isInstanceInitializer(dexItemFactory)
-              ? frame.popAndInitialize(appView, method, context)
+              ? frame.popAndInitialize(appView, method, config)
               : frame.popInitialized(appView, method.getHolderType());
     }
     if (method.getReturnType().isVoidType()) {
       return frame;
     }
-    return frame.push(code, method.getReturnType());
+    return frame.push(config, method.getReturnType());
   }
 
   private Type computeInvokeTypeForInvokeSpecial(

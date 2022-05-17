@@ -30,6 +30,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.IntObjConsumer;
 import com.android.tools.r8.utils.collections.ImmutableDeque;
@@ -174,7 +175,7 @@ public class CfFrame extends CfInstruction implements Cloneable {
       return false;
     }
 
-    public DexType getObjectType(ProgramMethod context) {
+    public DexType getObjectType(DexType context) {
       assert false : "Unexpected use of getObjectType() for non-object FrameType";
       return null;
     }
@@ -704,7 +705,7 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
 
     @Override
-    public DexType getObjectType(ProgramMethod context) {
+    public DexType getObjectType(DexType context) {
       assert isObject() : "Unexpected use of getObjectType() for non-object FrameType";
       return type;
     }
@@ -861,7 +862,7 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
 
     @Override
-    public DexType getObjectType(ProgramMethod context) {
+    public DexType getObjectType(DexType context) {
       return type;
     }
 
@@ -921,8 +922,8 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
 
     @Override
-    public DexType getObjectType(ProgramMethod context) {
-      return context.getHolderType();
+    public DexType getObjectType(DexType context) {
+      return context;
     }
 
     @Override
@@ -1237,9 +1238,8 @@ public class CfFrame extends CfInstruction implements Cloneable {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
-      CfCode code,
-      ProgramMethod context,
       AppView<?> appView,
+      CfAnalysisConfig config,
       DexItemFactory dexItemFactory) {
     return frame.check(appView, this);
   }

@@ -9,7 +9,9 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.AbstractTransferFunction;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.DataflowAnalysisResult;
@@ -53,18 +55,41 @@ public class CfOpenClosedInterfacesAnalysis {
   private class TransferFunction
       implements AbstractTransferFunction<CfBlock, CfInstruction, CfFrameState> {
 
-    private final CfCode code;
-    private final ProgramMethod context;
+    private final CfAnalysisConfig config;
 
     TransferFunction(ProgramMethod context) {
-      this.code = context.getDefinition().getCode().asCfCode();
-      this.context = context;
+      CfCode code = context.getDefinition().getCode().asCfCode();
+      int maxLocals = code.getMaxLocals();
+      int maxStack = code.getMaxStack();
+      this.config =
+          new CfAnalysisConfig() {
+
+            @Override
+            public DexMethod getCurrentContext() {
+              return context.getReference();
+            }
+
+            @Override
+            public int getMaxLocals() {
+              return maxLocals;
+            }
+
+            @Override
+            public int getMaxStack() {
+              return maxStack;
+            }
+
+            @Override
+            public boolean isImmediateSuperClassOfCurrentContext(DexType type) {
+              return type == context.getHolder().getSuperType();
+            }
+          };
     }
 
     @Override
     public TransferFunctionResult<CfFrameState> apply(
         CfInstruction instruction, CfFrameState state) {
-      return instruction.evaluate(state, code, context, appView, appView.dexItemFactory());
+      return instruction.evaluate(state, appView, config, appView.dexItemFactory());
     }
 
     @Override

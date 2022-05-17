@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.conversion.CfState.Slot;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.optimize.interfaces.analysis.ErroneousCfFrameState;
 import java.util.ListIterator;
@@ -86,9 +87,8 @@ public class CfInstanceFieldWrite extends CfFieldInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
-      CfCode code,
-      ProgramMethod context,
       AppView<?> appView,
+      CfAnalysisConfig config,
       DexItemFactory dexItemFactory) {
     // ..., objectref, value →
     // ...
@@ -97,7 +97,7 @@ public class CfInstanceFieldWrite extends CfFieldInstruction {
         .popObject(
             appView,
             getField().getHolderType(),
-            context,
+            config,
             (state, head) -> head.isUninitializedNew() ? error(head) : state);
   }
 

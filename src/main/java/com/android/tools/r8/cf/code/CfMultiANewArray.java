@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
@@ -145,15 +146,14 @@ public class CfMultiANewArray extends CfInstruction implements CfTypeInstruction
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
-      CfCode code,
-      ProgramMethod context,
       AppView<?> appView,
+      CfAnalysisConfig config,
       DexItemFactory dexItemFactory) {
     // ..., count1, [count2, ...] →
     // ..., arrayref
     for (int i = 0; i < dimensions; i++) {
       frame = frame.popInitialized(appView, dexItemFactory.intType);
     }
-    return frame.push(code, type);
+    return frame.push(config, type);
   }
 }

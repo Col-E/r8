@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.conversion.CfState.Slot;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import java.util.ListIterator;
 import org.objectweb.asm.Opcodes;
@@ -80,14 +81,13 @@ public class CfInstanceFieldRead extends CfFieldInstruction implements CfOrDexIn
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
-      CfCode code,
-      ProgramMethod context,
       AppView<?> appView,
+      CfAnalysisConfig config,
       DexItemFactory dexItemFactory) {
     // ..., objectref →
     // ..., value
     return frame
         .popInitialized(appView, getField().getHolderType())
-        .push(code, getField().getType());
+        .push(config, getField().getType());
   }
 }

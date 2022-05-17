@@ -14,10 +14,8 @@ import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.frame.SingleFrameType;
 import com.android.tools.r8.cf.code.frame.WideFrameType;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.FunctionUtils;
@@ -124,14 +122,14 @@ public class ConcreteCfFrameState extends CfFrameState {
 
   @Override
   public CfFrameState popAndInitialize(
-      AppView<?> appView, DexMethod constructor, ProgramMethod context) {
+      AppView<?> appView, DexMethod constructor, CfAnalysisConfig config) {
     return pop(
         (state, frameType) -> {
           if (frameType.isUninitializedObject()) {
             if (frameType.isUninitializedThis()) {
-              if (constructor.getHolderType() == context.getHolderType()
-                  || constructor.getHolderType() == context.getHolder().getSuperType()) {
-                return state.markInitialized(frameType, context.getHolderType());
+              if (constructor.getHolderType() == config.getCurrentContext().getHolderType()
+                  || config.isImmediateSuperClassOfCurrentContext(constructor.getHolderType())) {
+                return state.markInitialized(frameType, config.getCurrentContext().getHolderType());
               }
             } else if (frameType.isUninitializedNew()) {
               DexType uninitializedNewType = frameType.getUninitializedNewType();
@@ -139,26 +137,25 @@ public class ConcreteCfFrameState extends CfFrameState {
                 return state.markInitialized(frameType, uninitializedNewType);
               }
             }
-            return popAndInitializeConstructorMismatchError(frameType, constructor, context);
+            return popAndInitializeConstructorMismatchError(frameType, constructor, config);
           }
           return popAndInitializeInitializedObjectError(frameType);
         });
   }
 
   private ErroneousCfFrameState popAndInitializeConstructorMismatchError(
-      FrameType frameType, DexMethod constructor, ProgramMethod context) {
+      FrameType frameType, DexMethod constructor, CfAnalysisConfig config) {
     assert frameType.isUninitializedObject();
-    StringBuilder message = new StringBuilder("Constructor mismatch, expected ");
+    StringBuilder message = new StringBuilder("Constructor mismatch, expected constructor from ");
     if (frameType.isUninitializedNew()) {
       message.append(frameType.getUninitializedNewType().getTypeName());
     } else {
       assert frameType.isUninitializedThis();
       message
-          .append(context.getHolderType().getTypeName())
-          .append(" or ")
-          .append(context.getHolder().getSuperType().getTypeName());
+          .append(config.getCurrentContext().getHolderType().getTypeName())
+          .append(" or its superclass");
     }
-    message.append(" constructor, but was ").append(constructor.toSourceStringWithoutReturnType());
+    message.append(", but was ").append(constructor.toSourceStringWithoutReturnType());
     return error(message.toString());
   }
 
@@ -193,25 +190,25 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState push(CfCode code, DexType type) {
-    return push(code, FrameType.initialized(type));
+  public CfFrameState push(CfAnalysisConfig config, DexType type) {
+    return push(config, FrameType.initialized(type));
   }
 
   @Override
-  public CfFrameState push(CfCode code, FrameType frameType) {
+  public CfFrameState push(CfAnalysisConfig config, FrameType frameType) {
     int newStackHeight = stackHeight + frameType.getWidth();
-    if (newStackHeight > code.getMaxStack()) {
-      return pushError(frameType, code);
+    if (newStackHeight > config.getMaxStack()) {
+      return pushError(config, frameType);
     }
     stack.addLast(frameType);
     stackHeight = newStackHeight;
     return this;
   }
 
-  private ErroneousCfFrameState pushError(FrameType frameType, CfCode code) {
+  private ErroneousCfFrameState pushError(CfAnalysisConfig config, FrameType frameType) {
     return error(
         "The max stack height of "
-            + code.getMaxStack()
+            + config.getMaxStack()
             + " is violated when pushing "
             + formatActual(frameType)
             + " to existing stack of size "
@@ -240,10 +237,10 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState storeLocal(int localIndex, FrameType frameType, CfCode code) {
+  public CfFrameState storeLocal(int localIndex, FrameType frameType, CfAnalysisConfig config) {
     int maxLocalIndex = localIndex + BooleanUtils.intValue(frameType.isWide());
-    if (maxLocalIndex >= code.getMaxLocals()) {
-      return storeLocalError(localIndex, frameType, code);
+    if (maxLocalIndex >= config.getMaxLocals()) {
+      return storeLocalError(localIndex, frameType, config);
     }
     locals.put(localIndex, frameType);
     if (frameType.isWide()) {
@@ -252,10 +249,11 @@ public class ConcreteCfFrameState extends CfFrameState {
     return this;
   }
 
-  private ErroneousCfFrameState storeLocalError(int localIndex, FrameType frameType, CfCode code) {
+  private ErroneousCfFrameState storeLocalError(
+      int localIndex, FrameType frameType, CfAnalysisConfig config) {
     StringBuilder message =
         new StringBuilder("The max locals of ")
-            .append(code.getMaxLocals())
+            .append(config.getMaxLocals())
             .append(" is violated when storing ")
             .append(formatActual(frameType))
             .append(" at local index ")
