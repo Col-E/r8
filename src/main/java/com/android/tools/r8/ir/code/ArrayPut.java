@@ -5,14 +5,15 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfArrayStore;
-import com.android.tools.r8.code.Aput;
-import com.android.tools.r8.code.AputBoolean;
-import com.android.tools.r8.code.AputByte;
-import com.android.tools.r8.code.AputChar;
-import com.android.tools.r8.code.AputObject;
-import com.android.tools.r8.code.AputShort;
-import com.android.tools.r8.code.AputWide;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexAput;
+import com.android.tools.r8.dex.code.DexAputBoolean;
+import com.android.tools.r8.dex.code.DexAputByte;
+import com.android.tools.r8.dex.code.DexAputChar;
+import com.android.tools.r8.dex.code.DexAputObject;
+import com.android.tools.r8.dex.code.DexAputShort;
+import com.android.tools.r8.dex.code.DexAputWide;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -66,34 +67,34 @@ public class ArrayPut extends ArrayAccess {
     int value = builder.allocatedRegister(value(), getNumber());
     int array = builder.allocatedRegister(array(), getNumber());
     int index = builder.allocatedRegister(index(), getNumber());
-    com.android.tools.r8.code.Instruction instruction;
+    DexInstruction instruction;
     switch (type) {
       case INT:
       case FLOAT:
-        instruction = new Aput(value, array, index);
+        instruction = new DexAput(value, array, index);
         break;
       case LONG:
       case DOUBLE:
-        instruction = new AputWide(value, array, index);
+        instruction = new DexAputWide(value, array, index);
         break;
       case OBJECT:
-        instruction = new AputObject(value, array, index);
+        instruction = new DexAputObject(value, array, index);
         break;
       case BOOLEAN_OR_BYTE:
         ArrayTypeElement arrayType = array().getType().asArrayType();
         if (arrayType != null && arrayType.getMemberType() == TypeElement.getBoolean()) {
-          instruction = new AputBoolean(value, array, index);
+          instruction = new DexAputBoolean(value, array, index);
         } else {
           assert array().getType().isDefinitelyNull()
               || arrayType.getMemberType() == TypeElement.getByte();
-          instruction = new AputByte(value, array, index);
+          instruction = new DexAputByte(value, array, index);
         }
         break;
       case CHAR:
-        instruction = new AputChar(value, array, index);
+        instruction = new DexAputChar(value, array, index);
         break;
       case SHORT:
-        instruction = new AputShort(value, array, index);
+        instruction = new DexAputShort(value, array, index);
         break;
       case INT_OR_FLOAT:
       case LONG_OR_DOUBLE:

@@ -8,12 +8,12 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfSwitch.Kind;
-import com.android.tools.r8.code.Nop;
-import com.android.tools.r8.code.PackedSwitch;
-import com.android.tools.r8.code.PackedSwitchPayload;
-import com.android.tools.r8.code.SparseSwitch;
-import com.android.tools.r8.code.SparseSwitchPayload;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexNop;
+import com.android.tools.r8.dex.code.DexPackedSwitch;
+import com.android.tools.r8.dex.code.DexPackedSwitchPayload;
+import com.android.tools.r8.dex.code.DexSparseSwitch;
+import com.android.tools.r8.dex.code.DexSparseSwitchPayload;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -202,9 +202,9 @@ public class IntSwitch extends Switch {
   public void buildDex(DexBuilder builder) {
     int value = builder.allocatedRegister(value(), getNumber());
     if (emitPacked(InternalOutputMode.DexIndexed)) {
-      builder.addSwitch(this, new PackedSwitch(value));
+      builder.addSwitch(this, new DexPackedSwitch(value));
     } else {
-      builder.addSwitch(this, new SparseSwitch(value));
+      builder.addSwitch(this, new DexSparseSwitch(value));
     }
   }
 
@@ -224,14 +224,14 @@ public class IntSwitch extends Switch {
     return result;
   }
 
-  public Nop buildPayload(int[] targets, int fallthroughTarget, InternalOutputMode mode) {
+  public DexNop buildPayload(int[] targets, int fallthroughTarget, InternalOutputMode mode) {
     assert keys.length == targets.length;
     assert mode.isGeneratingDex();
     if (emitPacked(mode)) {
       int targetsCount = (int) numberOfTargetsIfPacked(keys);
       if (targets.length == targetsCount) {
         // All targets are already present.
-        return new PackedSwitchPayload(getFirstKey(), targets);
+        return new DexPackedSwitchPayload(getFirstKey(), targets);
       } else {
         // Generate the list of targets for all key values. Set the target for keys not present
         // to the fallthrough.
@@ -247,11 +247,11 @@ public class IntSwitch extends Switch {
           }
         }
         assert originalIndex == keys.length;
-        return new PackedSwitchPayload(getFirstKey(), packedTargets);
+        return new DexPackedSwitchPayload(getFirstKey(), packedTargets);
       }
     } else {
       assert numberOfKeys() == keys.length;
-      return new SparseSwitchPayload(keys, targets);
+      return new DexSparseSwitchPayload(keys, targets);
     }
   }
 

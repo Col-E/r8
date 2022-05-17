@@ -5,6 +5,8 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfSafeCheckCast;
+import com.android.tools.r8.dex.code.DexCheckCast;
+import com.android.tools.r8.dex.code.DexSafeCheckCast;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -26,8 +28,8 @@ public class SafeCheckCast extends CheckCast {
   }
 
   @Override
-  com.android.tools.r8.code.CheckCast createCheckCast(int register) {
-    return new com.android.tools.r8.code.SafeCheckCast(register, getType());
+  DexCheckCast createCheckCast(int register) {
+    return new DexSafeCheckCast(register, getType());
   }
 
   @Override

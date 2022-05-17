@@ -9,9 +9,9 @@ import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_GET;
 import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_PUT;
 import static com.android.tools.r8.ir.code.Opcodes.RETURN;
 
-import com.android.tools.r8.code.Iget;
-import com.android.tools.r8.code.Iput;
-import com.android.tools.r8.code.Return;
+import com.android.tools.r8.dex.code.DexIget;
+import com.android.tools.r8.dex.code.DexIput;
+import com.android.tools.r8.dex.code.DexReturn;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -130,7 +130,7 @@ class ClassInlinerCostAnalysis {
             if (appView.options().isGeneratingClassFiles()) {
               result++;
             } else {
-              result += instruction.isInstanceGet() ? Iget.SIZE : Iput.SIZE;
+              result += instruction.isInstanceGet() ? DexIget.SIZE : DexIput.SIZE;
             }
           }
           break;
@@ -140,7 +140,7 @@ class ClassInlinerCostAnalysis {
           if (appView.options().isGeneratingClassFiles()) {
             result++;
           } else {
-            result += Return.SIZE;
+            result += DexReturn.SIZE;
           }
           break;
 

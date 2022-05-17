@@ -6,14 +6,15 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfArrayLoad;
-import com.android.tools.r8.code.Aget;
-import com.android.tools.r8.code.AgetBoolean;
-import com.android.tools.r8.code.AgetByte;
-import com.android.tools.r8.code.AgetChar;
-import com.android.tools.r8.code.AgetObject;
-import com.android.tools.r8.code.AgetShort;
-import com.android.tools.r8.code.AgetWide;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexAget;
+import com.android.tools.r8.dex.code.DexAgetBoolean;
+import com.android.tools.r8.dex.code.DexAgetByte;
+import com.android.tools.r8.dex.code.DexAgetChar;
+import com.android.tools.r8.dex.code.DexAgetObject;
+import com.android.tools.r8.dex.code.DexAgetShort;
+import com.android.tools.r8.dex.code.DexAgetWide;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
@@ -73,36 +74,36 @@ public class ArrayGet extends ArrayAccess {
     int dest = builder.allocatedRegister(dest(), getNumber());
     int array = builder.allocatedRegister(array(), getNumber());
     int index = builder.allocatedRegister(index(), getNumber());
-    com.android.tools.r8.code.Instruction instruction;
+    DexInstruction instruction;
     switch (type) {
       case INT:
       case FLOAT:
-        instruction = new Aget(dest, array, index);
+        instruction = new DexAget(dest, array, index);
         break;
       case LONG:
       case DOUBLE:
         assert builder.getOptions().canUseSameArrayAndResultRegisterInArrayGetWide()
             || dest != array;
-        instruction = new AgetWide(dest, array, index);
+        instruction = new DexAgetWide(dest, array, index);
         break;
       case OBJECT:
-        instruction = new AgetObject(dest, array, index);
+        instruction = new DexAgetObject(dest, array, index);
         break;
       case BOOLEAN_OR_BYTE:
         ArrayTypeElement arrayType = array().getType().asArrayType();
         if (arrayType != null && arrayType.getMemberType() == TypeElement.getBoolean()) {
-          instruction = new AgetBoolean(dest, array, index);
+          instruction = new DexAgetBoolean(dest, array, index);
         } else {
           assert array().getType().isDefinitelyNull()
               || arrayType.getMemberType() == TypeElement.getByte();
-          instruction = new AgetByte(dest, array, index);
+          instruction = new DexAgetByte(dest, array, index);
         }
         break;
       case CHAR:
-        instruction = new AgetChar(dest, array, index);
+        instruction = new DexAgetChar(dest, array, index);
         break;
       case SHORT:
-        instruction = new AgetShort(dest, array, index);
+        instruction = new DexAgetShort(dest, array, index);
         break;
       case INT_OR_FLOAT:
       case LONG_OR_DOUBLE:

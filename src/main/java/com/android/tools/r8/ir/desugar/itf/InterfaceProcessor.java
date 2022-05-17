@@ -6,8 +6,8 @@ package com.android.tools.r8.ir.desugar.itf;
 
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.InvokeSuper;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexInvokeSuper;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
@@ -193,8 +193,8 @@ public final class InterfaceProcessor {
     Code code = method.getDefinition().getCode();
     assert code != null;
     if (code.isDexCode()) {
-      for (Instruction insn : code.asDexCode().instructions) {
-        if (insn instanceof InvokeSuper) {
+      for (DexInstruction insn : code.asDexCode().instructions) {
+        if (insn instanceof DexInvokeSuper) {
           return false;
         }
       }

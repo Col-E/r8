@@ -3,9 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.code.CfOrDexInstanceFieldRead;
-import com.android.tools.r8.code.CfOrDexInstruction;
-import com.android.tools.r8.code.CfOrDexStaticFieldRead;
+import com.android.tools.r8.dex.code.CfOrDexInstanceFieldRead;
+import com.android.tools.r8.dex.code.CfOrDexInstruction;
+import com.android.tools.r8.dex.code.CfOrDexStaticFieldRead;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.utils.TraversalContinuation;
 import java.util.ListIterator;

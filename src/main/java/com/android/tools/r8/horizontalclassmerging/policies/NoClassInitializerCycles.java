@@ -9,7 +9,7 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.desugar.LambdaDescriptor.isLambdaMetafactoryMethod;
 import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
-import com.android.tools.r8.code.CfOrDexInstruction;
+import com.android.tools.r8.dex.code.CfOrDexInstruction;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClassAndMethod;

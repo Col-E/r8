@@ -3,11 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.DebugBytecodeWriter;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.LebUtils;
@@ -298,7 +298,7 @@ public abstract class DexDebugInfo extends CachedHashValueDexItem
     List<DexDebugEvent> events = new ArrayList<>(code.instructions.length);
     int pc = 0;
     int delta = 0;
-    for (Instruction instruction : code.instructions) {
+    for (DexInstruction instruction : code.instructions) {
       if (instruction.canThrow()) {
         DexDebugEventBuilder.addDefaultEventWithAdvancePcIfNecessary(delta, delta, events, factory);
         pc += delta;

@@ -4,8 +4,8 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
-import com.android.tools.r8.code.CfOrDexInstruction;
-import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.dex.code.CfOrDexInstruction;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -147,7 +147,7 @@ public abstract class CfInstruction implements CfOrDexInstruction {
   }
 
   @Override
-  public Instruction asDexInstruction() {
+  public DexInstruction asDexInstruction() {
     return null;
   }
 

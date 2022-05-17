@@ -8,9 +8,9 @@ import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfTryCatch;
-import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Marker;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
@@ -391,7 +391,9 @@ public class CodeInspector {
   }
 
   InstructionSubject createInstructionSubject(
-      Instruction instruction, MethodSubject method, SwitchPayloadResolver switchPayloadResolver) {
+      DexInstruction instruction,
+      MethodSubject method,
+      SwitchPayloadResolver switchPayloadResolver) {
     DexInstructionSubject dexInst = new DexInstructionSubject(instruction, method);
     if (dexInst.isInvoke()) {
       return new InvokeDexInstructionSubject(this, instruction, method);

@@ -4,31 +4,31 @@
 
 package com.android.tools.r8.ir.conversion;
 
-import com.android.tools.r8.code.FillArrayData;
-import com.android.tools.r8.code.FillArrayDataPayload;
-import com.android.tools.r8.code.FilledNewArray;
-import com.android.tools.r8.code.FilledNewArrayRange;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.InvokeCustom;
-import com.android.tools.r8.code.InvokeCustomRange;
-import com.android.tools.r8.code.InvokeDirect;
-import com.android.tools.r8.code.InvokeDirectRange;
-import com.android.tools.r8.code.InvokeInterface;
-import com.android.tools.r8.code.InvokeInterfaceRange;
-import com.android.tools.r8.code.InvokePolymorphic;
-import com.android.tools.r8.code.InvokePolymorphicRange;
-import com.android.tools.r8.code.InvokeStatic;
-import com.android.tools.r8.code.InvokeStaticRange;
-import com.android.tools.r8.code.InvokeSuper;
-import com.android.tools.r8.code.InvokeSuperRange;
-import com.android.tools.r8.code.InvokeVirtual;
-import com.android.tools.r8.code.InvokeVirtualRange;
-import com.android.tools.r8.code.MoveException;
-import com.android.tools.r8.code.MoveResult;
-import com.android.tools.r8.code.MoveResultObject;
-import com.android.tools.r8.code.MoveResultWide;
-import com.android.tools.r8.code.SwitchPayload;
-import com.android.tools.r8.code.Throw;
+import com.android.tools.r8.dex.code.DexFillArrayData;
+import com.android.tools.r8.dex.code.DexFillArrayDataPayload;
+import com.android.tools.r8.dex.code.DexFilledNewArray;
+import com.android.tools.r8.dex.code.DexFilledNewArrayRange;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexInvokeCustom;
+import com.android.tools.r8.dex.code.DexInvokeCustomRange;
+import com.android.tools.r8.dex.code.DexInvokeDirect;
+import com.android.tools.r8.dex.code.DexInvokeDirectRange;
+import com.android.tools.r8.dex.code.DexInvokeInterface;
+import com.android.tools.r8.dex.code.DexInvokeInterfaceRange;
+import com.android.tools.r8.dex.code.DexInvokePolymorphic;
+import com.android.tools.r8.dex.code.DexInvokePolymorphicRange;
+import com.android.tools.r8.dex.code.DexInvokeStatic;
+import com.android.tools.r8.dex.code.DexInvokeStaticRange;
+import com.android.tools.r8.dex.code.DexInvokeSuper;
+import com.android.tools.r8.dex.code.DexInvokeSuperRange;
+import com.android.tools.r8.dex.code.DexInvokeVirtual;
+import com.android.tools.r8.dex.code.DexInvokeVirtualRange;
+import com.android.tools.r8.dex.code.DexMoveException;
+import com.android.tools.r8.dex.code.DexMoveResult;
+import com.android.tools.r8.dex.code.DexMoveResultObject;
+import com.android.tools.r8.dex.code.DexMoveResultWide;
+import com.android.tools.r8.dex.code.DexSwitchPayload;
+import com.android.tools.r8.dex.code.DexThrow;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexCode.Try;
@@ -66,7 +66,7 @@ public class DexSourceCode implements SourceCode {
 
   private Try currentTryRange = null;
   private CatchHandlers<Integer> currentCatchHandlers = null;
-  private Instruction currentDexInstruction = null;
+  private DexInstruction currentDexInstruction = null;
   private boolean isBuildingPrelude;
 
   private Position currentPosition = null;
@@ -126,13 +126,13 @@ public class DexSourceCode implements SourceCode {
   public void setUp() {
     // Collect all payloads in the instruction stream.
     for (int index = 0; index < code.instructions.length; index++) {
-      Instruction insn = code.instructions[index];
+      DexInstruction insn = code.instructions[index];
       offsetToInstructionIndex.put(insn.getOffset(), index);
       if (insn.isPayload()) {
         if (insn.isSwitchPayload()) {
-          switchPayloadResolver.resolve((SwitchPayload) insn);
+          switchPayloadResolver.resolve((DexSwitchPayload) insn);
         } else {
-          arrayFilledDataPayloadResolver.resolve((FillArrayDataPayload) insn);
+          arrayFilledDataPayloadResolver.resolve((DexFillArrayDataPayload) insn);
         }
       }
     }
@@ -183,9 +183,9 @@ public class DexSourceCode implements SourceCode {
 
   @Override
   public int getMoveExceptionRegister(int instructionIndex) {
-    Instruction instruction = code.instructions[instructionIndex];
-    if (instruction instanceof MoveException) {
-      MoveException moveException = (MoveException) instruction;
+    DexInstruction instruction = code.instructions[instructionIndex];
+    if (instruction instanceof DexMoveException) {
+      DexMoveException moveException = (DexMoveException) instruction;
       return moveException.AA;
     }
     return -1;
@@ -297,38 +297,38 @@ public class DexSourceCode implements SourceCode {
         arrayFilledDataPayloadResolver.getData(payloadOffset));
   }
 
-  private boolean isInvoke(Instruction dex) {
-    return dex instanceof InvokeCustom
-        || dex instanceof InvokeCustomRange
-        || dex instanceof InvokeDirect
-        || dex instanceof InvokeDirectRange
-        || dex instanceof InvokeVirtual
-        || dex instanceof InvokeVirtualRange
-        || dex instanceof InvokeInterface
-        || dex instanceof InvokeInterfaceRange
-        || dex instanceof InvokeStatic
-        || dex instanceof InvokeStaticRange
-        || dex instanceof InvokeSuper
-        || dex instanceof InvokeSuperRange
-        || dex instanceof InvokePolymorphic
-        || dex instanceof InvokePolymorphicRange
-        || dex instanceof FilledNewArray
-        || dex instanceof FilledNewArrayRange;
+  private boolean isInvoke(DexInstruction dex) {
+    return dex instanceof DexInvokeCustom
+        || dex instanceof DexInvokeCustomRange
+        || dex instanceof DexInvokeDirect
+        || dex instanceof DexInvokeDirectRange
+        || dex instanceof DexInvokeVirtual
+        || dex instanceof DexInvokeVirtualRange
+        || dex instanceof DexInvokeInterface
+        || dex instanceof DexInvokeInterfaceRange
+        || dex instanceof DexInvokeStatic
+        || dex instanceof DexInvokeStaticRange
+        || dex instanceof DexInvokeSuper
+        || dex instanceof DexInvokeSuperRange
+        || dex instanceof DexInvokePolymorphic
+        || dex instanceof DexInvokePolymorphicRange
+        || dex instanceof DexFilledNewArray
+        || dex instanceof DexFilledNewArrayRange;
   }
 
-  private boolean isMoveResult(Instruction dex) {
-    return dex instanceof MoveResult
-        || dex instanceof MoveResultObject
-        || dex instanceof MoveResultWide;
+  private boolean isMoveResult(DexInstruction dex) {
+    return dex instanceof DexMoveResult
+        || dex instanceof DexMoveResultObject
+        || dex instanceof DexMoveResultWide;
   }
 
   @Override
   public int traceInstruction(int index, IRBuilder builder) {
-    Instruction dex = code.instructions[index];
+    DexInstruction dex = code.instructions[index];
     int offset = dex.getOffset();
     assert !dex.isPayload();
     int[] targets = dex.getTargets();
-    if (targets != Instruction.NO_TARGETS) {
+    if (targets != DexInstruction.NO_TARGETS) {
       // Check that we don't ever have instructions that can throw and have targets.
       assert !dex.canThrow();
       for (int relativeOffset : targets) {
@@ -339,7 +339,7 @@ public class DexSourceCode implements SourceCode {
     if (dex.canThrow()) {
       // TODO(zerny): Remove this from block computation.
       if (dex.hasPayload()) {
-        arrayFilledDataPayloadResolver.addPayloadUser((FillArrayData) dex);
+        arrayFilledDataPayloadResolver.addPayloadUser((DexFillArrayData) dex);
       }
       // If the instruction can throw and is in a try block, add edges to its catch successors.
       Try tryRange = getTryForOffset(offset);
@@ -366,13 +366,13 @@ public class DexSourceCode implements SourceCode {
           dex = code.instructions[index];
         }
         // Edge to normal successor if any (fallthrough).
-        if (!(dex instanceof Throw)) {
+        if (!(dex instanceof DexThrow)) {
           builder.ensureNormalSuccessorBlock(offset, dex.getOffset() + dex.getSize());
         }
         return index;
       }
       // Close the block if the instruction is a throw, otherwise the block remains open.
-      return dex instanceof Throw ? index : -1;
+      return dex instanceof DexThrow ? index : -1;
     }
     if (dex.isIntSwitch()) {
       // TODO(zerny): Remove this from block computation.

@@ -9,8 +9,8 @@ import static com.android.tools.r8.utils.EncodedValueUtils.parseSigned;
 import static com.android.tools.r8.utils.EncodedValueUtils.parseUnsigned;
 
 import com.android.tools.r8.ProgramResource.Kind;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.InstructionFactory;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexInstructionFactory;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.ApplicationReaderMap;
 import com.android.tools.r8.graph.ClassAccessFlags;
@@ -167,7 +167,7 @@ public class DexParser<T extends DexClass> {
       dexReader.position(offset);
       dexReader.align(4);
       DexCode code = parseCodeItem();
-      codes.put(offset, code);  // Update the file local offset to code mapping.
+      codes.put(offset, code); // Update the file local offset to code mapping.
       dexReader.position(currentPos);
     }
   }
@@ -297,7 +297,7 @@ public class DexParser<T extends DexClass> {
           DexMethodHandle value =
               indexedItems.getMethodHandle((int) parseUnsigned(dexReader, size));
           return new DexValue.DexValueMethodHandle(value);
-      }
+        }
       default:
         throw new IndexOutOfBoundsException();
     }
@@ -306,9 +306,10 @@ public class DexParser<T extends DexClass> {
   private void checkName(DexString name) {
     if (!options.itemFactory.getSkipNameValidationForTesting()
         && !name.isValidSimpleName(options.getMinApiLevel())) {
-      throw new CompilationError("Space characters in SimpleName '"
-        + name.toASCIIString()
-        + "' are not allowed prior to DEX version 040");
+      throw new CompilationError(
+          "Space characters in SimpleName '"
+              + name.toASCIIString()
+              + "' are not allowed prior to DEX version 040");
     }
   }
 
@@ -332,7 +333,6 @@ public class DexParser<T extends DexClass> {
     }
     return values;
   }
-
 
   private DexEncodedArray parseEncodedArray() {
     return new DexEncodedArray(parseEncodedArrayValues());
@@ -415,10 +415,11 @@ public class DexParser<T extends DexClass> {
     DexParameterAnnotation[] result = new DexParameterAnnotation[size];
     for (int i = 0; i < size; i++) {
       DexMethod method = indexedItems.getMethod(methodIndices[i]);
-      result[i] = new DexParameterAnnotation(
-          method,
-          annotationSetRefListAt(annotationOffsets[i])
-              .withParameterCount(method.proto.parameters.size()));
+      result[i] =
+          new DexParameterAnnotation(
+              method,
+              annotationSetRefListAt(annotationOffsets[i])
+                  .withParameterCount(method.proto.parameters.size()));
     }
     dexReader.position(saved);
     return result;
@@ -433,11 +434,11 @@ public class DexParser<T extends DexClass> {
 
   private <S> Object cacheAt(int offset, Supplier<S> function) {
     if (offset == 0) {
-      return null;  // return null for offset zero.
+      return null; // return null for offset zero.
     }
     Object result = offsetMap.get(offset);
     if (result != null) {
-      return result;  // return the cached result.
+      return result; // return the cached result.
     }
     // Cache is empty so parse the structure.
     dexReader.position(offset);
@@ -484,8 +485,7 @@ public class DexParser<T extends DexClass> {
     }
     DexType dupType = DexAnnotationSet.findDuplicateEntryType(result);
     if (dupType != null) {
-      throw new CompilationError(
-          "Multiple annotations of type `" + dupType.toSourceString() + "`");
+      throw new CompilationError("Multiple annotations of type `" + dupType.toSourceString() + "`");
     }
     return DexAnnotationSet.create(result);
   }
@@ -500,8 +500,8 @@ public class DexParser<T extends DexClass> {
   }
 
   private AnnotationsDirectory annotationsDirectoryAt(int offset) {
-    return (AnnotationsDirectory) cacheAt(offset, this::parseAnnotationsDirectory,
-        AnnotationsDirectory::empty);
+    return (AnnotationsDirectory)
+        cacheAt(offset, this::parseAnnotationsDirectory, AnnotationsDirectory::empty);
   }
 
   private AnnotationsDirectory parseAnnotationsDirectory() {
@@ -513,10 +513,7 @@ public class DexParser<T extends DexClass> {
     final DexMethodAnnotation[] methods = parseMethodAnnotations(methodsSize);
     final DexParameterAnnotation[] parameters = parseParameterAnnotations(parametersSize);
     return new AnnotationsDirectory(
-        annotationSetAt(classAnnotationsOff),
-        fields,
-        methods,
-        parameters);
+        annotationSetAt(classAnnotationsOff), fields, methods, parameters);
   }
 
   private DexDebugInfo debugInfoAt(int offset) {
@@ -548,72 +545,82 @@ public class DexParser<T extends DexClass> {
           events.add(dexItemFactory.createAdvanceLine(dexReader.getSleb128()));
           isPcBasedDebugInfo = false;
           break;
-        case Constants.DBG_START_LOCAL: {
-          int registerNum = dexReader.getUleb128();
-          int nameIdx = dexReader.getUleb128p1();
-          int typeIdx = dexReader.getUleb128p1();
-          events.add(new DexDebugEvent.StartLocal(
-              registerNum,
-              nameIdx == NO_INDEX ? null : indexedItems.getString(nameIdx),
-              typeIdx == NO_INDEX ? null : indexedItems.getType(typeIdx),
-              null));
-          isPcBasedDebugInfo = false;
-          break;
-        }
-        case Constants.DBG_START_LOCAL_EXTENDED: {
-          int registerNum = dexReader.getUleb128();
-          int nameIdx = dexReader.getUleb128p1();
-          int typeIdx = dexReader.getUleb128p1();
-          int sigIdx = dexReader.getUleb128p1();
-          events.add(new DexDebugEvent.StartLocal(
-              registerNum,
-              nameIdx == NO_INDEX ? null : indexedItems.getString(nameIdx),
-              typeIdx == NO_INDEX ? null : indexedItems.getType(typeIdx),
-              sigIdx == NO_INDEX ? null : indexedItems.getString(sigIdx)));
-          isPcBasedDebugInfo = false;
-          break;
-        }
-        case Constants.DBG_END_LOCAL: {
-          events.add(dexItemFactory.createEndLocal(dexReader.getUleb128()));
-          isPcBasedDebugInfo = false;
-          break;
-        }
-        case Constants.DBG_RESTART_LOCAL: {
-          events.add(dexItemFactory.createRestartLocal(dexReader.getUleb128()));
-          isPcBasedDebugInfo = false;
-          break;
-        }
-        case Constants.DBG_SET_PROLOGUE_END: {
-          events.add(dexItemFactory.createSetPrologueEnd());
-          isPcBasedDebugInfo = false;
-          break;
-        }
-        case Constants.DBG_SET_EPILOGUE_BEGIN: {
-          events.add(dexItemFactory.createSetEpilogueBegin());
-          isPcBasedDebugInfo = false;
-          break;
-        }
-        case Constants.DBG_SET_FILE: {
-          int nameIdx = dexReader.getUleb128p1();
-          DexString sourceFile = nameIdx == NO_INDEX ? null : indexedItems.getString(nameIdx);
-          if (options.readDebugSetFileEvent) {
-            events.add(dexItemFactory.createSetFile(sourceFile));
+        case Constants.DBG_START_LOCAL:
+          {
+            int registerNum = dexReader.getUleb128();
+            int nameIdx = dexReader.getUleb128p1();
+            int typeIdx = dexReader.getUleb128p1();
+            events.add(
+                new DexDebugEvent.StartLocal(
+                    registerNum,
+                    nameIdx == NO_INDEX ? null : indexedItems.getString(nameIdx),
+                    typeIdx == NO_INDEX ? null : indexedItems.getType(typeIdx),
+                    null));
+            isPcBasedDebugInfo = false;
+            break;
           }
-          isPcBasedDebugInfo = false;
-          break;
-        }
-        default: {
-          assert head >= 0x0a && head <= 0xff;
-          Default event = dexItemFactory.createDefault(head);
-          events.add(event);
-          if (isPcBasedDebugInfo) {
-            if (events.size() == 1) {
-              isPcBasedDebugInfo = event.equals(dexItemFactory.zeroChangeDefaultEvent);
-            } else {
-              isPcBasedDebugInfo = event.equals(dexItemFactory.oneChangeDefaultEvent);
+        case Constants.DBG_START_LOCAL_EXTENDED:
+          {
+            int registerNum = dexReader.getUleb128();
+            int nameIdx = dexReader.getUleb128p1();
+            int typeIdx = dexReader.getUleb128p1();
+            int sigIdx = dexReader.getUleb128p1();
+            events.add(
+                new DexDebugEvent.StartLocal(
+                    registerNum,
+                    nameIdx == NO_INDEX ? null : indexedItems.getString(nameIdx),
+                    typeIdx == NO_INDEX ? null : indexedItems.getType(typeIdx),
+                    sigIdx == NO_INDEX ? null : indexedItems.getString(sigIdx)));
+            isPcBasedDebugInfo = false;
+            break;
+          }
+        case Constants.DBG_END_LOCAL:
+          {
+            events.add(dexItemFactory.createEndLocal(dexReader.getUleb128()));
+            isPcBasedDebugInfo = false;
+            break;
+          }
+        case Constants.DBG_RESTART_LOCAL:
+          {
+            events.add(dexItemFactory.createRestartLocal(dexReader.getUleb128()));
+            isPcBasedDebugInfo = false;
+            break;
+          }
+        case Constants.DBG_SET_PROLOGUE_END:
+          {
+            events.add(dexItemFactory.createSetPrologueEnd());
+            isPcBasedDebugInfo = false;
+            break;
+          }
+        case Constants.DBG_SET_EPILOGUE_BEGIN:
+          {
+            events.add(dexItemFactory.createSetEpilogueBegin());
+            isPcBasedDebugInfo = false;
+            break;
+          }
+        case Constants.DBG_SET_FILE:
+          {
+            int nameIdx = dexReader.getUleb128p1();
+            DexString sourceFile = nameIdx == NO_INDEX ? null : indexedItems.getString(nameIdx);
+            if (options.readDebugSetFileEvent) {
+              events.add(dexItemFactory.createSetFile(sourceFile));
+            }
+            isPcBasedDebugInfo = false;
+            break;
+          }
+        default:
+          {
+            assert head >= 0x0a && head <= 0xff;
+            Default event = dexItemFactory.createDefault(head);
+            events.add(event);
+            if (isPcBasedDebugInfo) {
+              if (events.size() == 1) {
+                isPcBasedDebugInfo = event.equals(dexItemFactory.zeroChangeDefaultEvent);
+              } else {
+                isPcBasedDebugInfo = event.equals(dexItemFactory.oneChangeDefaultEvent);
+              }
             }
           }
-        }
       }
     }
     return isPcBasedDebugInfo
@@ -650,8 +657,8 @@ public class DexParser<T extends DexClass> {
     }
   }
 
-  private DexEncodedField[] readFields(int size, DexFieldAnnotation[] annotations,
-      DexValue[] staticValues) {
+  private DexEncodedField[] readFields(
+      int size, DexFieldAnnotation[] annotations, DexValue[] staticValues) {
     DexEncodedField[] fields = new DexEncodedField[size];
     int fieldIndex = 0;
     MemberAnnotationIterator<DexField, DexAnnotationSet> annotationIterator =
@@ -784,8 +791,9 @@ public class DexParser<T extends DexClass> {
       // Check if constraints from
       // https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.1 are met.
       if (!flags.areValid(Constants.CORRESPONDING_CLASS_FILE_VERSION, false)) {
-        throw new CompilationError("Class " + type.toSourceString()
-            + " has illegal access flags. Found: " + flags, origin);
+        throw new CompilationError(
+            "Class " + type.toSourceString() + " has illegal access flags. Found: " + flags,
+            origin);
       }
       DexEncodedField[] staticFields = DexEncodedField.EMPTY_ARRAY;
       DexEncodedField[] instanceFields = DexEncodedField.EMPTY_ARRAY;
@@ -811,8 +819,11 @@ public class DexParser<T extends DexClass> {
         int directMethodsSize = dexReader.getUleb128();
         int virtualMethodsSize = dexReader.getUleb128();
 
-        staticFields = readFields(staticFieldsSize, annotationsDirectory.fields,
-            staticValues != null ? staticValues.values : null);
+        staticFields =
+            readFields(
+                staticFieldsSize,
+                annotationsDirectory.fields,
+                staticValues != null ? staticValues.values : null);
         instanceFields = readFields(instanceFieldsSize, annotationsDirectory.fields, null);
         directMethods =
             readMethods(
@@ -857,7 +868,7 @@ public class DexParser<T extends DexClass> {
               dexItemFactory.getSkipNameValidationForTesting(),
               checksumSupplier,
               null);
-      classCollection.accept(clazz);  // Update the application object.
+      classCollection.accept(clazz); // Update the application object.
     }
   }
 
@@ -913,8 +924,13 @@ public class DexParser<T extends DexClass> {
       for (int i = 0; i < result.length; i++) {
         DexSection dexSection = result[i];
         int nextOffset = i < result.length - 1 ? result[i + 1].offset : dexSection.offset;
-        Log.debug(this.getClass(), "Read section 0x%04x @ 0x%08x #items %08d size 0x%08x.",
-            dexSection.type, dexSection.offset, dexSection.length, nextOffset - dexSection.offset);
+        Log.debug(
+            this.getClass(),
+            "Read section 0x%04x @ 0x%08x #items %08d size 0x%08x.",
+            dexSection.type,
+            dexSection.offset,
+            dexSection.length,
+            nextOffset - dexSection.offset);
       }
     }
     for (int i = 0; i < mapSize - 1; i++) {
@@ -940,7 +956,7 @@ public class DexParser<T extends DexClass> {
         code[i] = dexReader.getShort();
       }
       if (insnsSize % 2 != 0) {
-        dexReader.getUshort();  // Skip padding ushort
+        dexReader.getUshort(); // Skip padding ushort
       }
       if (triesSize > 0) {
         Int2IntArrayMap handlerMap = new Int2IntArrayMap();
@@ -987,20 +1003,20 @@ public class DexParser<T extends DexClass> {
     int saved = dexReader.position();
     DexDebugInfo debugInfo = debugInfoAt(debugInfoOff);
     dexReader.position(saved);
-    InstructionFactory factory = new InstructionFactory();
-    Instruction[] instructions =
+    DexInstructionFactory factory = new DexInstructionFactory();
+    DexInstruction[] instructions =
         factory.readSequenceFrom(ShortBuffer.wrap(code), 0, code.length, indexedItems);
     return new DexCode(registerSize, insSize, outsSize, instructions, tries, handlers, debugInfo);
   }
 
   void populateIndexTables() {
     // Populate structures that are already sorted upon read.
-    populateStrings();  // Depends on nothing.
+    populateStrings(); // Depends on nothing.
     populateChecksums(); // Depends on Strings.
-    populateTypes();  // Depends on Strings.
-    populateFields();  // Depends on Types, and Strings.
-    populateProtos();  // Depends on Types and Strings.
-    populateMethods();  // Depends on Protos, Types, and Strings.
+    populateTypes(); // Depends on Strings.
+    populateFields(); // Depends on Types, and Strings.
+    populateProtos(); // Depends on Types and Strings.
+    populateMethods(); // Depends on Protos, Types, and Strings.
     populateMethodHandles(); // Depends on Methods and Fields
     populateCallSites(); // Depends on MethodHandles
   }
@@ -1176,9 +1192,8 @@ public class DexParser<T extends DexClass> {
    * From https://source.android.com/devices/tech/dalvik/dex-format#file-layout:
    *
    * <p>This list must be sorted, where the defining type (by type_id index) is the major order,
-   * method name (by string_id index) is the intermediate order, and method prototype
-   * (by proto_id index) is the minor order. The list must not contain any duplicate entries.
-   *
+   * method name (by string_id index) is the intermediate order, and method prototype (by proto_id
+   * index) is the minor order. The list must not contain any duplicate entries.
    */
   private boolean verifyOrderOfMethodIds(DexSection dexSection) {
     if (dexSection.length >= 2) {
@@ -1288,18 +1303,20 @@ public class DexParser<T extends DexClass> {
       case INSTANCE_GET:
       case INSTANCE_PUT:
       case STATIC_GET:
-      case STATIC_PUT: {
-        fieldOrMethod = indexedItems.getField(indexFieldOrMethod);
-        break;
-      }
+      case STATIC_PUT:
+        {
+          fieldOrMethod = indexedItems.getField(indexFieldOrMethod);
+          break;
+        }
       case INVOKE_CONSTRUCTOR:
       case INVOKE_DIRECT:
       case INVOKE_INTERFACE:
       case INVOKE_INSTANCE:
-      case INVOKE_STATIC: {
-        fieldOrMethod = indexedItems.getMethod(indexFieldOrMethod);
-        break;
-      }
+      case INVOKE_STATIC:
+        {
+          fieldOrMethod = indexedItems.getMethod(indexFieldOrMethod);
+          break;
+        }
       default:
         throw new AssertionError("Method handle type unsupported in a dex file.");
     }
@@ -1367,15 +1384,15 @@ public class DexParser<T extends DexClass> {
     private static final DexParameterAnnotation[] NO_PARAMETER_ANNOTATIONS =
         new DexParameterAnnotation[0];
 
-    private static final DexFieldAnnotation[] NO_FIELD_ANNOTATIONS =
-        new DexFieldAnnotation[0];
+    private static final DexFieldAnnotation[] NO_FIELD_ANNOTATIONS = new DexFieldAnnotation[0];
 
-    private static final DexMethodAnnotation[] NO_METHOD_ANNOTATIONS =
-        new DexMethodAnnotation[0];
+    private static final DexMethodAnnotation[] NO_METHOD_ANNOTATIONS = new DexMethodAnnotation[0];
 
     private static final AnnotationsDirectory THE_EMPTY_ANNOTATIONS_DIRECTORY =
-        new AnnotationsDirectory(DexAnnotationSet.empty(),
-            NO_FIELD_ANNOTATIONS, new DexMethodAnnotation[0],
+        new AnnotationsDirectory(
+            DexAnnotationSet.empty(),
+            NO_FIELD_ANNOTATIONS,
+            new DexMethodAnnotation[0],
             NO_PARAMETER_ANNOTATIONS);
 
     public final DexAnnotationSet clazz;
@@ -1383,7 +1400,8 @@ public class DexParser<T extends DexClass> {
     public final DexMethodAnnotation[] methods;
     public final DexParameterAnnotation[] parameters;
 
-    AnnotationsDirectory(DexAnnotationSet clazz,
+    AnnotationsDirectory(
+        DexAnnotationSet clazz,
         DexFieldAnnotation[] fields,
         DexMethodAnnotation[] methods,
         DexParameterAnnotation[] parameters) {

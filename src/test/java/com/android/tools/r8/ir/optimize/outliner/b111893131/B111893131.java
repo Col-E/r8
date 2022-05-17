@@ -14,8 +14,8 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.InvokeVirtual;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexInvokeVirtual;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexCode;
@@ -98,10 +98,10 @@ public class B111893131 extends TestBase {
     });
   }
 
-  private void verifyAbsenceOfStringBuilderAppend(Instruction[] instructions) {
-    for (Instruction instr : instructions) {
-      if (instr instanceof InvokeVirtual) {
-        InvokeVirtual invokeVirtual = (InvokeVirtual) instr;
+  private void verifyAbsenceOfStringBuilderAppend(DexInstruction[] instructions) {
+    for (DexInstruction instr : instructions) {
+      if (instr instanceof DexInvokeVirtual) {
+        DexInvokeVirtual invokeVirtual = (DexInvokeVirtual) instr;
         DexMethod invokedMethod = invokeVirtual.getMethod();
         if (invokedMethod.holder.getName().endsWith("StringBuilder")) {
           assertNotEquals("append", invokedMethod.name.toString());

@@ -5,8 +5,9 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
-import com.android.tools.r8.code.FilledNewArray;
-import com.android.tools.r8.code.FilledNewArrayRange;
+import com.android.tools.r8.dex.code.DexFilledNewArray;
+import com.android.tools.r8.dex.code.DexFilledNewArrayRange;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -70,24 +71,25 @@ public class InvokeNewArray extends Invoke {
 
   @Override
   public void buildDex(DexBuilder builder) {
-    com.android.tools.r8.code.Instruction instruction;
+    DexInstruction instruction;
     int argumentRegisters = requiredArgumentRegisters();
     builder.requestOutgoingRegisters(argumentRegisters);
     if (needsRangedInvoke(builder)) {
       assert argumentsConsecutive(builder);
       int firstRegister = argumentRegisterValue(0, builder);
-      instruction = new FilledNewArrayRange(firstRegister, argumentRegisters, type);
+      instruction = new DexFilledNewArrayRange(firstRegister, argumentRegisters, type);
     } else {
       int[] individualArgumentRegisters = new int[5];
       int argumentRegistersCount = fillArgumentRegisters(builder, individualArgumentRegisters);
-      instruction = new FilledNewArray(
-          argumentRegistersCount,
-          type,
-          individualArgumentRegisters[0],  // C
-          individualArgumentRegisters[1],  // D
-          individualArgumentRegisters[2],  // E
-          individualArgumentRegisters[3],  // F
-          individualArgumentRegisters[4]); // G
+      instruction =
+          new DexFilledNewArray(
+              argumentRegistersCount,
+              type,
+              individualArgumentRegisters[0], // C
+              individualArgumentRegisters[1], // D
+              individualArgumentRegisters[2], // E
+              individualArgumentRegisters[3], // F
+              individualArgumentRegisters[4]); // G
     }
     addInvokeAndMoveResult(instruction, builder);
   }

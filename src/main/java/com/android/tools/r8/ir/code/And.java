@@ -5,12 +5,13 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfLogicalBinop;
-import com.android.tools.r8.code.AndInt;
-import com.android.tools.r8.code.AndInt2Addr;
-import com.android.tools.r8.code.AndIntLit16;
-import com.android.tools.r8.code.AndIntLit8;
-import com.android.tools.r8.code.AndLong;
-import com.android.tools.r8.code.AndLong2Addr;
+import com.android.tools.r8.dex.code.DexAndInt;
+import com.android.tools.r8.dex.code.DexAndInt2Addr;
+import com.android.tools.r8.dex.code.DexAndIntLit16;
+import com.android.tools.r8.dex.code.DexAndIntLit8;
+import com.android.tools.r8.dex.code.DexAndLong;
+import com.android.tools.r8.dex.code.DexAndLong2Addr;
+import com.android.tools.r8.dex.code.DexInstruction;
 import java.util.Set;
 
 public class And extends LogicalBinop {
@@ -45,33 +46,33 @@ public class And extends LogicalBinop {
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateInt(int dest, int left, int right) {
-    return new AndInt(dest, left, right);
+  public DexInstruction CreateInt(int dest, int left, int right) {
+    return new DexAndInt(dest, left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateLong(int dest, int left, int right) {
-    return new AndLong(dest, left, right);
+  public DexInstruction CreateLong(int dest, int left, int right) {
+    return new DexAndLong(dest, left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateInt2Addr(int left, int right) {
-    return new AndInt2Addr(left, right);
+  public DexInstruction CreateInt2Addr(int left, int right) {
+    return new DexAndInt2Addr(left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateLong2Addr(int left, int right) {
-    return new AndLong2Addr(left, right);
+  public DexInstruction CreateLong2Addr(int left, int right) {
+    return new DexAndLong2Addr(left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateIntLit8(int dest, int left, int constant) {
-    return new AndIntLit8(dest, left, constant);
+  public DexInstruction CreateIntLit8(int dest, int left, int constant) {
+    return new DexAndIntLit8(dest, left, constant);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateIntLit16(int dest, int left, int constant) {
-    return new AndIntLit16(dest, left, constant);
+  public DexInstruction CreateIntLit16(int dest, int left, int constant) {
+    return new DexAndIntLit16(dest, left, constant);
   }
 
   @Override

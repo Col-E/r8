@@ -4,10 +4,11 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfNeg;
-import com.android.tools.r8.code.NegDouble;
-import com.android.tools.r8.code.NegFloat;
-import com.android.tools.r8.code.NegInt;
-import com.android.tools.r8.code.NegLong;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexNegDouble;
+import com.android.tools.r8.dex.code.DexNegFloat;
+import com.android.tools.r8.dex.code.DexNegInt;
+import com.android.tools.r8.dex.code.DexNegLong;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
@@ -51,21 +52,21 @@ public class Neg extends Unop {
 
   @Override
   public void buildDex(DexBuilder builder) {
-    com.android.tools.r8.code.Instruction instruction;
+    DexInstruction instruction;
     int dest = builder.allocatedRegister(dest(), getNumber());
     int src = builder.allocatedRegister(source(), getNumber());
     switch (type) {
       case INT:
-        instruction = new NegInt(dest, src);
+        instruction = new DexNegInt(dest, src);
         break;
       case LONG:
-        instruction = new NegLong(dest, src);
+        instruction = new DexNegLong(dest, src);
         break;
       case FLOAT:
-        instruction = new NegFloat(dest, src);
+        instruction = new DexNegFloat(dest, src);
         break;
       case DOUBLE:
-        instruction = new NegDouble(dest, src);
+        instruction = new DexNegDouble(dest, src);
         break;
       default:
         throw new Unreachable("Unexpected type " + type);

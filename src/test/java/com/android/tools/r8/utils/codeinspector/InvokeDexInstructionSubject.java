@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
-import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.graph.DexMethod;
 
 public class InvokeDexInstructionSubject extends DexInstructionSubject
@@ -13,7 +13,7 @@ public class InvokeDexInstructionSubject extends DexInstructionSubject
   private final CodeInspector codeInspector;
 
   public InvokeDexInstructionSubject(
-      CodeInspector codeInspector, Instruction instruction, MethodSubject method) {
+      CodeInspector codeInspector, DexInstruction instruction, MethodSubject method) {
     super(instruction, method);
     this.codeInspector = codeInspector;
     assert isInvoke();

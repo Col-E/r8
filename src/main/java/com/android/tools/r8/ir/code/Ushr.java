@@ -4,11 +4,12 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfLogicalBinop;
-import com.android.tools.r8.code.UshrInt;
-import com.android.tools.r8.code.UshrInt2Addr;
-import com.android.tools.r8.code.UshrIntLit8;
-import com.android.tools.r8.code.UshrLong;
-import com.android.tools.r8.code.UshrLong2Addr;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexUshrInt;
+import com.android.tools.r8.dex.code.DexUshrInt2Addr;
+import com.android.tools.r8.dex.code.DexUshrIntLit8;
+import com.android.tools.r8.dex.code.DexUshrLong;
+import com.android.tools.r8.dex.code.DexUshrLong2Addr;
 import com.android.tools.r8.errors.Unreachable;
 
 public class Ushr extends LogicalBinop {
@@ -49,32 +50,32 @@ public class Ushr extends LogicalBinop {
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateInt(int dest, int left, int right) {
-    return new UshrInt(dest, left, right);
+  public DexInstruction CreateInt(int dest, int left, int right) {
+    return new DexUshrInt(dest, left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateLong(int dest, int left, int right) {
-    return new UshrLong(dest, left, right);
+  public DexInstruction CreateLong(int dest, int left, int right) {
+    return new DexUshrLong(dest, left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateInt2Addr(int left, int right) {
-    return new UshrInt2Addr(left, right);
+  public DexInstruction CreateInt2Addr(int left, int right) {
+    return new DexUshrInt2Addr(left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateLong2Addr(int left, int right) {
-    return new UshrLong2Addr(left, right);
+  public DexInstruction CreateLong2Addr(int left, int right) {
+    return new DexUshrLong2Addr(left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateIntLit8(int dest, int left, int constant) {
-    return new UshrIntLit8(dest, left, constant);
+  public DexInstruction CreateIntLit8(int dest, int left, int constant) {
+    return new DexUshrIntLit8(dest, left, constant);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateIntLit16(int dest, int left, int constant) {
+  public DexInstruction CreateIntLit16(int dest, int left, int constant) {
     throw new Unreachable("Unsupported instruction ShrIntLit16");
   }
 

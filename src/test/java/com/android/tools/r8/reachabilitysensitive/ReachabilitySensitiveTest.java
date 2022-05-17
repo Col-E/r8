@@ -12,10 +12,10 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.code.AddIntLit8;
-import com.android.tools.r8.code.Const4;
-import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.dex.Marker.Tool;
+import com.android.tools.r8.dex.code.DexAddIntLit8;
+import com.android.tools.r8.dex.code.DexConst4;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -145,16 +145,16 @@ public class ReachabilitySensitiveTest extends TestBase {
   private void checkAnnotatedCode(DexCode code) {
     // All live at the same time: receiver, i, j, k, System.out.
     assertEquals(5, code.registerSize);
-    Instruction first = code.instructions[0];
-    Instruction second = code.instructions[1];
-    Instruction third = code.instructions[2];
+    DexInstruction first = code.instructions[0];
+    DexInstruction second = code.instructions[1];
+    DexInstruction third = code.instructions[2];
     // None of the local declarations overwrite other locals.
-    assertTrue(first instanceof Const4);
-    assertTrue(second instanceof AddIntLit8);
-    assertTrue(third instanceof AddIntLit8);
-    int firstRegister = ((Const4) first).A;
-    int secondRegister = ((AddIntLit8) second).AA;
-    int thirdRegister = ((AddIntLit8) third).AA;
+    assertTrue(first instanceof DexConst4);
+    assertTrue(second instanceof DexAddIntLit8);
+    assertTrue(third instanceof DexAddIntLit8);
+    int firstRegister = ((DexConst4) first).A;
+    int secondRegister = ((DexAddIntLit8) second).AA;
+    int thirdRegister = ((DexAddIntLit8) third).AA;
     assertFalse(firstRegister == secondRegister);
     assertFalse(firstRegister == thirdRegister);
     assertFalse(secondRegister == thirdRegister);

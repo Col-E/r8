@@ -3,38 +3,38 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import com.android.tools.r8.code.Const;
-import com.android.tools.r8.code.Const16;
-import com.android.tools.r8.code.Const4;
-import com.android.tools.r8.code.ConstHigh16;
-import com.android.tools.r8.code.ConstString;
-import com.android.tools.r8.code.ConstStringJumbo;
-import com.android.tools.r8.code.ConstWide16;
-import com.android.tools.r8.code.ConstWide32;
-import com.android.tools.r8.code.FillArrayData;
-import com.android.tools.r8.code.FillArrayDataPayload;
-import com.android.tools.r8.code.Format35c;
-import com.android.tools.r8.code.Format3rc;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.InvokeDirect;
-import com.android.tools.r8.code.InvokeDirectRange;
-import com.android.tools.r8.code.InvokeInterface;
-import com.android.tools.r8.code.InvokeInterfaceRange;
-import com.android.tools.r8.code.InvokeStatic;
-import com.android.tools.r8.code.InvokeStaticRange;
-import com.android.tools.r8.code.InvokeSuper;
-import com.android.tools.r8.code.InvokeSuperRange;
-import com.android.tools.r8.code.InvokeVirtual;
-import com.android.tools.r8.code.InvokeVirtualRange;
-import com.android.tools.r8.code.NewArray;
-import com.android.tools.r8.code.Sget;
-import com.android.tools.r8.code.SgetBoolean;
-import com.android.tools.r8.code.SgetByte;
-import com.android.tools.r8.code.SgetChar;
-import com.android.tools.r8.code.SgetObject;
-import com.android.tools.r8.code.SgetShort;
-import com.android.tools.r8.code.SgetWide;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.code.DexConst;
+import com.android.tools.r8.dex.code.DexConst16;
+import com.android.tools.r8.dex.code.DexConst4;
+import com.android.tools.r8.dex.code.DexConstHigh16;
+import com.android.tools.r8.dex.code.DexConstString;
+import com.android.tools.r8.dex.code.DexConstStringJumbo;
+import com.android.tools.r8.dex.code.DexConstWide16;
+import com.android.tools.r8.dex.code.DexConstWide32;
+import com.android.tools.r8.dex.code.DexFillArrayData;
+import com.android.tools.r8.dex.code.DexFillArrayDataPayload;
+import com.android.tools.r8.dex.code.DexFormat35c;
+import com.android.tools.r8.dex.code.DexFormat3rc;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexInvokeDirect;
+import com.android.tools.r8.dex.code.DexInvokeDirectRange;
+import com.android.tools.r8.dex.code.DexInvokeInterface;
+import com.android.tools.r8.dex.code.DexInvokeInterfaceRange;
+import com.android.tools.r8.dex.code.DexInvokeStatic;
+import com.android.tools.r8.dex.code.DexInvokeStaticRange;
+import com.android.tools.r8.dex.code.DexInvokeSuper;
+import com.android.tools.r8.dex.code.DexInvokeSuperRange;
+import com.android.tools.r8.dex.code.DexInvokeVirtual;
+import com.android.tools.r8.dex.code.DexInvokeVirtualRange;
+import com.android.tools.r8.dex.code.DexNewArray;
+import com.android.tools.r8.dex.code.DexSget;
+import com.android.tools.r8.dex.code.DexSgetBoolean;
+import com.android.tools.r8.dex.code.DexSgetByte;
+import com.android.tools.r8.dex.code.DexSgetChar;
+import com.android.tools.r8.dex.code.DexSgetObject;
+import com.android.tools.r8.dex.code.DexSgetShort;
+import com.android.tools.r8.dex.code.DexSgetWide;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
@@ -219,12 +219,12 @@ final public class ResourceShrinker {
         final Set<Integer> methodIntArrayPayloadOffsets = Sets.newHashSet();
         // First we collect payloads, and then we process them because payload can be before the
         // fill-array-data instruction referencing it.
-        final List<FillArrayDataPayload> payloads = Lists.newArrayList();
+        final List<DexFillArrayDataPayload> payloads = Lists.newArrayList();
 
-        Instruction[] instructions = implementation.asDexCode().instructions;
+        DexInstruction[] instructions = implementation.asDexCode().instructions;
         int current = 0;
         while (current < instructions.length) {
-          Instruction instruction = instructions[current];
+          DexInstruction instruction = instructions[current];
           if (isIntConstInstruction(instruction)) {
             processIntConstInstruction(instruction);
           } else if (isStringConstInstruction(instruction)) {
@@ -235,15 +235,15 @@ final public class ResourceShrinker {
             processInvokeInstruction(instruction);
           } else if (isInvokeRangeInstruction(instruction)) {
             processInvokeRangeInstruction(instruction);
-          } else if (instruction instanceof FillArrayData) {
+          } else if (instruction instanceof DexFillArrayData) {
             processFillArray(instructions, current, methodIntArrayPayloadOffsets);
-          } else if (instruction instanceof FillArrayDataPayload) {
-            payloads.add((FillArrayDataPayload) instruction);
+          } else if (instruction instanceof DexFillArrayDataPayload) {
+            payloads.add((DexFillArrayDataPayload) instruction);
           }
           current++;
         }
 
-        for (FillArrayDataPayload payload : payloads) {
+        for (DexFillArrayDataPayload payload : payloads) {
           if (isIntArrayPayload(payload, methodIntArrayPayloadOffsets)) {
             processIntArrayPayload(payload);
           }
@@ -272,8 +272,8 @@ final public class ResourceShrinker {
               });
     }
 
-    private void processIntArrayPayload(Instruction instruction) {
-      FillArrayDataPayload payload = (FillArrayDataPayload) instruction;
+    private void processIntArrayPayload(DexInstruction instruction) {
+      DexFillArrayDataPayload payload = (DexFillArrayDataPayload) instruction;
 
       for (int i = 0; i < payload.data.length / 2; i++) {
         int intValue = payload.data[2 * i + 1] << 16 | payload.data[2 * i];
@@ -282,20 +282,20 @@ final public class ResourceShrinker {
     }
 
     private boolean isIntArrayPayload(
-        Instruction instruction, Set<Integer> methodIntArrayPayloadOffsets) {
-      if (!(instruction instanceof FillArrayDataPayload)) {
+        DexInstruction instruction, Set<Integer> methodIntArrayPayloadOffsets) {
+      if (!(instruction instanceof DexFillArrayDataPayload)) {
         return false;
       }
 
-      FillArrayDataPayload payload = (FillArrayDataPayload) instruction;
+      DexFillArrayDataPayload payload = (DexFillArrayDataPayload) instruction;
       return methodIntArrayPayloadOffsets.contains(payload.getOffset());
     }
 
     private void processFillArray(
-        Instruction[] instructions, int current, Set<Integer> methodIntArrayPayloadOffsets) {
-      FillArrayData fillArrayData = (FillArrayData) instructions[current];
-      if (current > 0 && instructions[current - 1] instanceof NewArray) {
-        NewArray newArray = (NewArray) instructions[current - 1];
+        DexInstruction[] instructions, int current, Set<Integer> methodIntArrayPayloadOffsets) {
+      DexFillArrayData fillArrayData = (DexFillArrayData) instructions[current];
+      if (current > 0 && instructions[current - 1] instanceof DexNewArray) {
+        DexNewArray newArray = (DexNewArray) instructions[current - 1];
         if (!Objects.equals(newArray.getType().descriptor.toString(), "[I")) {
           return;
         }
@@ -334,17 +334,17 @@ final public class ResourceShrinker {
       }
     }
 
-    private boolean isIntConstInstruction(Instruction instruction) {
+    private boolean isIntConstInstruction(DexInstruction instruction) {
       int opcode = instruction.getOpcode();
-      return opcode == Const4.OPCODE
-          || opcode == Const16.OPCODE
-          || opcode == Const.OPCODE
-          || opcode == ConstWide32.OPCODE
-          || opcode == ConstHigh16.OPCODE
-          || opcode == ConstWide16.OPCODE;
+      return opcode == DexConst4.OPCODE
+          || opcode == DexConst16.OPCODE
+          || opcode == DexConst.OPCODE
+          || opcode == DexConstWide32.OPCODE
+          || opcode == DexConstHigh16.OPCODE
+          || opcode == DexConstWide16.OPCODE;
     }
 
-    private void processIntConstInstruction(Instruction instruction) {
+    private void processIntConstInstruction(DexInstruction instruction) {
       assert isIntConstInstruction(instruction);
 
       int constantValue;
@@ -365,20 +365,20 @@ final public class ResourceShrinker {
       callback.referencedInt(constantValue);
     }
 
-    private boolean isStringConstInstruction(Instruction instruction) {
+    private boolean isStringConstInstruction(DexInstruction instruction) {
       int opcode = instruction.getOpcode();
-      return opcode == ConstString.OPCODE || opcode == ConstStringJumbo.OPCODE;
+      return opcode == DexConstString.OPCODE || opcode == DexConstStringJumbo.OPCODE;
     }
 
-    private void processStringConstantInstruction(Instruction instruction) {
+    private void processStringConstantInstruction(DexInstruction instruction) {
       assert isStringConstInstruction(instruction);
 
       String constantValue;
-      if (instruction instanceof ConstString) {
-        ConstString constString = (ConstString) instruction;
+      if (instruction instanceof DexConstString) {
+        DexConstString constString = (DexConstString) instruction;
         constantValue = constString.getString().toString();
-      } else if (instruction instanceof ConstStringJumbo) {
-        ConstStringJumbo constStringJumbo = (ConstStringJumbo) instruction;
+      } else if (instruction instanceof DexConstStringJumbo) {
+        DexConstStringJumbo constStringJumbo = (DexConstStringJumbo) instruction;
         constantValue = constStringJumbo.getString().toString();
       } else {
         throw new AssertionError("Not a string constant instruction.");
@@ -387,41 +387,41 @@ final public class ResourceShrinker {
       callback.referencedString(constantValue);
     }
 
-    private boolean isGetStatic(Instruction instruction) {
+    private boolean isGetStatic(DexInstruction instruction) {
       int opcode = instruction.getOpcode();
-      return opcode == Sget.OPCODE
-          || opcode == SgetBoolean.OPCODE
-          || opcode == SgetByte.OPCODE
-          || opcode == SgetChar.OPCODE
-          || opcode == SgetObject.OPCODE
-          || opcode == SgetShort.OPCODE
-          || opcode == SgetWide.OPCODE;
+      return opcode == DexSget.OPCODE
+          || opcode == DexSgetBoolean.OPCODE
+          || opcode == DexSgetByte.OPCODE
+          || opcode == DexSgetChar.OPCODE
+          || opcode == DexSgetObject.OPCODE
+          || opcode == DexSgetShort.OPCODE
+          || opcode == DexSgetWide.OPCODE;
     }
 
-    private void processGetStatic(Instruction instruction) {
+    private void processGetStatic(DexInstruction instruction) {
       assert isGetStatic(instruction);
 
       DexField field;
-      if (instruction instanceof Sget) {
-        Sget sget = (Sget) instruction;
+      if (instruction instanceof DexSget) {
+        DexSget sget = (DexSget) instruction;
         field = sget.getField();
-      } else if (instruction instanceof SgetBoolean) {
-        SgetBoolean sgetBoolean = (SgetBoolean) instruction;
+      } else if (instruction instanceof DexSgetBoolean) {
+        DexSgetBoolean sgetBoolean = (DexSgetBoolean) instruction;
         field = sgetBoolean.getField();
-      } else if (instruction instanceof SgetByte) {
-        SgetByte sgetByte = (SgetByte) instruction;
+      } else if (instruction instanceof DexSgetByte) {
+        DexSgetByte sgetByte = (DexSgetByte) instruction;
         field = sgetByte.getField();
-      } else if (instruction instanceof SgetChar) {
-        SgetChar sgetChar = (SgetChar) instruction;
+      } else if (instruction instanceof DexSgetChar) {
+        DexSgetChar sgetChar = (DexSgetChar) instruction;
         field = sgetChar.getField();
-      } else if (instruction instanceof SgetObject) {
-        SgetObject sgetObject = (SgetObject) instruction;
+      } else if (instruction instanceof DexSgetObject) {
+        DexSgetObject sgetObject = (DexSgetObject) instruction;
         field = sgetObject.getField();
-      } else if (instruction instanceof SgetShort) {
-        SgetShort sgetShort = (SgetShort) instruction;
+      } else if (instruction instanceof DexSgetShort) {
+        DexSgetShort sgetShort = (DexSgetShort) instruction;
         field = sgetShort.getField();
-      } else if (instruction instanceof SgetWide) {
-        SgetWide sgetWide = (SgetWide) instruction;
+      } else if (instruction instanceof DexSgetWide) {
+        DexSgetWide sgetWide = (DexSgetWide) instruction;
         field = sgetWide.getField();
       } else {
         throw new AssertionError("Not a get static instruction");
@@ -430,19 +430,19 @@ final public class ResourceShrinker {
       callback.referencedStaticField(field.holder.getInternalName(), field.name.toString());
     }
 
-    private boolean isInvokeInstruction(Instruction instruction) {
+    private boolean isInvokeInstruction(DexInstruction instruction) {
       int opcode = instruction.getOpcode();
-      return opcode == InvokeVirtual.OPCODE
-          || opcode == InvokeSuper.OPCODE
-          || opcode == InvokeDirect.OPCODE
-          || opcode == InvokeStatic.OPCODE
-          || opcode == InvokeInterface.OPCODE;
+      return opcode == DexInvokeVirtual.OPCODE
+          || opcode == DexInvokeSuper.OPCODE
+          || opcode == DexInvokeDirect.OPCODE
+          || opcode == DexInvokeStatic.OPCODE
+          || opcode == DexInvokeInterface.OPCODE;
     }
 
-    private void processInvokeInstruction(Instruction instruction) {
+    private void processInvokeInstruction(DexInstruction instruction) {
       assert isInvokeInstruction(instruction);
 
-      Format35c ins35c = (Format35c) instruction;
+      DexFormat35c ins35c = (DexFormat35c) instruction;
       DexMethod method = (DexMethod) ins35c.BBBB;
 
       callback.referencedMethod(
@@ -451,19 +451,19 @@ final public class ResourceShrinker {
           method.proto.toDescriptorString());
     }
 
-    private boolean isInvokeRangeInstruction(Instruction instruction) {
+    private boolean isInvokeRangeInstruction(DexInstruction instruction) {
       int opcode = instruction.getOpcode();
-      return opcode == InvokeVirtualRange.OPCODE
-          || opcode == InvokeSuperRange.OPCODE
-          || opcode == InvokeDirectRange.OPCODE
-          || opcode == InvokeStaticRange.OPCODE
-          || opcode == InvokeInterfaceRange.OPCODE;
+      return opcode == DexInvokeVirtualRange.OPCODE
+          || opcode == DexInvokeSuperRange.OPCODE
+          || opcode == DexInvokeDirectRange.OPCODE
+          || opcode == DexInvokeStaticRange.OPCODE
+          || opcode == DexInvokeInterfaceRange.OPCODE;
     }
 
-    private void processInvokeRangeInstruction(Instruction instruction) {
+    private void processInvokeRangeInstruction(DexInstruction instruction) {
       assert isInvokeRangeInstruction(instruction);
 
-      Format3rc ins3rc = (Format3rc) instruction;
+      DexFormat3rc ins3rc = (DexFormat3rc) instruction;
       DexMethod method = (DexMethod) ins3rc.BBBB;
 
       callback.referencedMethod(

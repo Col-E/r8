@@ -3,17 +3,26 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
-import com.android.tools.r8.code.InvokeCustomRange;
-import com.android.tools.r8.code.InvokeDirectRange;
-import com.android.tools.r8.code.InvokeInterfaceRange;
-import com.android.tools.r8.code.InvokePolymorphicRange;
-import com.android.tools.r8.code.InvokeStaticRange;
-import com.android.tools.r8.code.InvokeSuperRange;
-import com.android.tools.r8.code.InvokeVirtualRange;
-import com.android.tools.r8.code.MoveResult;
-import com.android.tools.r8.code.MoveResultObject;
-import com.android.tools.r8.code.MoveResultWide;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexInvokeCustom;
+import com.android.tools.r8.dex.code.DexInvokeCustomRange;
+import com.android.tools.r8.dex.code.DexInvokeDirect;
+import com.android.tools.r8.dex.code.DexInvokeDirectRange;
+import com.android.tools.r8.dex.code.DexInvokeInterface;
+import com.android.tools.r8.dex.code.DexInvokeInterfaceRange;
+import com.android.tools.r8.dex.code.DexInvokePolymorphic;
+import com.android.tools.r8.dex.code.DexInvokePolymorphicRange;
+import com.android.tools.r8.dex.code.DexInvokeStatic;
+import com.android.tools.r8.dex.code.DexInvokeStaticRange;
+import com.android.tools.r8.dex.code.DexInvokeSuper;
+import com.android.tools.r8.dex.code.DexInvokeSuperRange;
+import com.android.tools.r8.dex.code.DexInvokeVirtual;
+import com.android.tools.r8.dex.code.DexInvokeVirtualRange;
+import com.android.tools.r8.dex.code.DexMoveResult;
+import com.android.tools.r8.dex.code.DexMoveResultObject;
+import com.android.tools.r8.dex.code.DexMoveResultWide;
+import com.android.tools.r8.dex.code.DexNewArray;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -39,15 +48,15 @@ public abstract class Invoke extends Instruction {
   private static final int NO_SUCH_DEX_INSTRUCTION = -1;
 
   public enum Type {
-    DIRECT(com.android.tools.r8.code.InvokeDirect.OPCODE, InvokeDirectRange.OPCODE),
-    INTERFACE(com.android.tools.r8.code.InvokeInterface.OPCODE, InvokeInterfaceRange.OPCODE),
-    STATIC(com.android.tools.r8.code.InvokeStatic.OPCODE, InvokeStaticRange.OPCODE),
-    SUPER(com.android.tools.r8.code.InvokeSuper.OPCODE, InvokeSuperRange.OPCODE),
-    VIRTUAL(com.android.tools.r8.code.InvokeVirtual.OPCODE, InvokeVirtualRange.OPCODE),
-    NEW_ARRAY(com.android.tools.r8.code.NewArray.OPCODE, NO_SUCH_DEX_INSTRUCTION),
+    DIRECT(DexInvokeDirect.OPCODE, DexInvokeDirectRange.OPCODE),
+    INTERFACE(DexInvokeInterface.OPCODE, DexInvokeInterfaceRange.OPCODE),
+    STATIC(DexInvokeStatic.OPCODE, DexInvokeStaticRange.OPCODE),
+    SUPER(DexInvokeSuper.OPCODE, DexInvokeSuperRange.OPCODE),
+    VIRTUAL(DexInvokeVirtual.OPCODE, DexInvokeVirtualRange.OPCODE),
+    NEW_ARRAY(DexNewArray.OPCODE, NO_SUCH_DEX_INSTRUCTION),
     MULTI_NEW_ARRAY(NO_SUCH_DEX_INSTRUCTION, NO_SUCH_DEX_INSTRUCTION),
-    CUSTOM(com.android.tools.r8.code.InvokeCustom.OPCODE, InvokeCustomRange.OPCODE),
-    POLYMORPHIC(com.android.tools.r8.code.InvokePolymorphic.OPCODE, InvokePolymorphicRange.OPCODE);
+    CUSTOM(DexInvokeCustom.OPCODE, DexInvokeCustomRange.OPCODE),
+    POLYMORPHIC(DexInvokePolymorphic.OPCODE, DexInvokePolymorphicRange.OPCODE);
 
     private final int dexOpcode;
     private final int dexOpcodeRange;
@@ -346,18 +355,17 @@ public abstract class Invoke extends Instruction {
     return true;
   }
 
-  protected void addInvokeAndMoveResult(
-      com.android.tools.r8.code.Instruction instruction, DexBuilder builder) {
+  protected void addInvokeAndMoveResult(DexInstruction instruction, DexBuilder builder) {
     if (outValue != null && outValue.needsRegister()) {
       TypeElement moveType = outValue.getType();
       int register = builder.allocatedRegister(outValue, getNumber());
-      com.android.tools.r8.code.Instruction moveResult;
+      DexInstruction moveResult;
       if (moveType.isSinglePrimitive()) {
-        moveResult = new MoveResult(register);
+        moveResult = new DexMoveResult(register);
       } else if (moveType.isWidePrimitive()) {
-        moveResult = new MoveResultWide(register);
+        moveResult = new DexMoveResultWide(register);
       } else if (moveType.isReferenceType()) {
-        moveResult = new MoveResultObject(register);
+        moveResult = new DexMoveResultObject(register);
       } else {
         throw new Unreachable("Unexpected result type " + outType());
       }

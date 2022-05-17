@@ -9,11 +9,11 @@ import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfReturnVoid;
-import com.android.tools.r8.code.InvokeDirect;
-import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.dex.CodeToKeep;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.dex.code.DexInvokeDirect;
+import com.android.tools.r8.dex.code.DexReturnVoid;
 import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexCode.TryHandler;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
@@ -169,7 +169,7 @@ public class DefaultInstanceInitializerCode extends Code
 
   @Override
   public int codeSizeInBytes() {
-    return InvokeDirect.SIZE + ReturnVoid.SIZE;
+    return DexInvokeDirect.SIZE + DexReturnVoid.SIZE;
   }
 
   @Override
@@ -369,9 +369,9 @@ public class DefaultInstanceInitializerCode extends Code
       GraphLens graphLens,
       LensCodeRewriterUtils lensCodeRewriter,
       ObjectToOffsetMapping mapping) {
-    new InvokeDirect(1, getParentConstructor(context, mapping.dexItemFactory()), 0, 0, 0, 0, 0)
+    new DexInvokeDirect(1, getParentConstructor(context, mapping.dexItemFactory()), 0, 0, 0, 0, 0)
         .write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
-    new ReturnVoid().write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
+    new DexReturnVoid().write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
   }
 
   @Override

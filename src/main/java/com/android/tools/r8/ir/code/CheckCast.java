@@ -9,9 +9,10 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNul
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfCheckCast;
-import com.android.tools.r8.code.MoveObject;
-import com.android.tools.r8.code.MoveObjectFrom16;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexCheckCast;
+import com.android.tools.r8.dex.code.DexMoveObject;
+import com.android.tools.r8.dex.code.DexMoveObjectFrom16;
 import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -107,18 +108,18 @@ public class CheckCast extends Instruction {
       if (inRegister == outRegister) {
         builder.add(this, createCheckCast(outRegister));
       } else {
-        com.android.tools.r8.code.CheckCast cast = createCheckCast(outRegister);
+        DexCheckCast cast = createCheckCast(outRegister);
         if (outRegister <= Constants.U4BIT_MAX && inRegister <= Constants.U4BIT_MAX) {
-          builder.add(this, new MoveObject(outRegister, inRegister), cast);
+          builder.add(this, new DexMoveObject(outRegister, inRegister), cast);
         } else {
-          builder.add(this, new MoveObjectFrom16(outRegister, inRegister), cast);
+          builder.add(this, new DexMoveObjectFrom16(outRegister, inRegister), cast);
         }
       }
     }
   }
 
-  com.android.tools.r8.code.CheckCast createCheckCast(int register) {
-    return new com.android.tools.r8.code.CheckCast(register, getType(), ignoreCompatRules());
+  DexCheckCast createCheckCast(int register) {
+    return new DexCheckCast(register, getType(), ignoreCompatRules());
   }
 
   @Override

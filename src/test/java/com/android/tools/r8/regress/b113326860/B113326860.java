@@ -13,9 +13,9 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.code.Sput;
-import com.android.tools.r8.code.SputBoolean;
-import com.android.tools.r8.code.SputObject;
+import com.android.tools.r8.dex.code.DexSput;
+import com.android.tools.r8.dex.code.DexSputBoolean;
+import com.android.tools.r8.dex.code.DexSputObject;
 import com.android.tools.r8.ir.code.SingleConstant;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
@@ -113,10 +113,12 @@ public class B113326860 {
     assertThat(clazz, isPresent());
     MethodSubject method = clazz.method("void", "<clinit>", ImmutableList.of());
     assertThat(method, isPresent());
-    assertFalse(Arrays.stream(method.getMethod().getCode().asDexCode().instructions)
-        .anyMatch(i -> i instanceof SputBoolean || i instanceof Sput));
-    assertTrue(Arrays.stream(method.getMethod().getCode().asDexCode().instructions)
-        .anyMatch(i -> i instanceof SputObject));
+    assertFalse(
+        Arrays.stream(method.getMethod().getCode().asDexCode().instructions)
+            .anyMatch(i -> i instanceof DexSputBoolean || i instanceof DexSput));
+    assertTrue(
+        Arrays.stream(method.getMethod().getCode().asDexCode().instructions)
+            .anyMatch(i -> i instanceof DexSputObject));
   }
 
   @Test
@@ -128,8 +130,9 @@ public class B113326860 {
     assertThat(clazz, isPresent());
     MethodSubject method = clazz.method("void", "<clinit>", ImmutableList.of());
     assertThat(method, isPresent());
-    assertTrue(Arrays.stream(method.getMethod().getCode().asDexCode().instructions)
-        .anyMatch(i -> i instanceof SputBoolean));
+    assertTrue(
+        Arrays.stream(method.getMethod().getCode().asDexCode().instructions)
+            .anyMatch(i -> i instanceof DexSputBoolean));
   }
 
   @Test
@@ -141,8 +144,9 @@ public class B113326860 {
     assertThat(clazz, isPresent());
     MethodSubject method = clazz.method("void", "<clinit>", ImmutableList.of());
     assertThat(method, isPresent());
-    assertTrue(Arrays.stream(method.getMethod().getCode().asDexCode().instructions)
-        .anyMatch(i -> i instanceof SputBoolean));
+    assertTrue(
+        Arrays.stream(method.getMethod().getCode().asDexCode().instructions)
+            .anyMatch(i -> i instanceof DexSputBoolean));
   }
 
   @Test

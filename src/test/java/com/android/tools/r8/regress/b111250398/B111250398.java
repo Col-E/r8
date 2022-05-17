@@ -9,9 +9,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.code.Iget;
-import com.android.tools.r8.code.IgetObject;
-import com.android.tools.r8.code.Sget;
+import com.android.tools.r8.dex.code.DexIget;
+import com.android.tools.r8.dex.code.DexIgetObject;
+import com.android.tools.r8.dex.code.DexSget;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.utils.AndroidApp;
@@ -214,24 +214,24 @@ public class B111250398 extends TestBase {
 
   private long countIget(DexCode code, DexField field) {
     return Arrays.stream(code.instructions)
-        .filter(instruction -> instruction instanceof Iget)
-        .map(instruction -> (Iget) instruction)
+        .filter(instruction -> instruction instanceof DexIget)
+        .map(instruction -> (DexIget) instruction)
         .filter(get -> get.getField() == field)
         .count();
   }
 
   private long countSget(DexCode code, DexField field) {
     return Arrays.stream(code.instructions)
-        .filter(instruction -> instruction instanceof Sget)
-        .map(instruction -> (Sget) instruction)
+        .filter(instruction -> instruction instanceof DexSget)
+        .map(instruction -> (DexSget) instruction)
         .filter(get -> get.getField() == field)
         .count();
   }
 
   private long countIgetObject(MethodSubject method, FieldSubject field) {
     return Arrays.stream(method.getMethod().getCode().asDexCode().instructions)
-        .filter(instruction -> instruction instanceof IgetObject)
-        .map(instruction -> (IgetObject) instruction)
+        .filter(instruction -> instruction instanceof DexIgetObject)
+        .map(instruction -> (DexIgetObject) instruction)
         .filter(get -> get.getField() == field.getField().getReference())
         .count();
   }

@@ -9,24 +9,24 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.code.Const4;
-import com.android.tools.r8.code.ConstString;
-import com.android.tools.r8.code.ConstWide;
-import com.android.tools.r8.code.ConstWideHigh16;
-import com.android.tools.r8.code.DivInt;
-import com.android.tools.r8.code.DivInt2Addr;
-import com.android.tools.r8.code.Goto;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.InvokeStatic;
-import com.android.tools.r8.code.InvokeStaticRange;
-import com.android.tools.r8.code.InvokeVirtual;
-import com.android.tools.r8.code.MoveResult;
-import com.android.tools.r8.code.MoveResultObject;
-import com.android.tools.r8.code.MoveResultWide;
-import com.android.tools.r8.code.Return;
-import com.android.tools.r8.code.ReturnObject;
-import com.android.tools.r8.code.ReturnVoid;
-import com.android.tools.r8.code.ReturnWide;
+import com.android.tools.r8.dex.code.DexConst4;
+import com.android.tools.r8.dex.code.DexConstString;
+import com.android.tools.r8.dex.code.DexConstWide;
+import com.android.tools.r8.dex.code.DexConstWideHigh16;
+import com.android.tools.r8.dex.code.DexDivInt;
+import com.android.tools.r8.dex.code.DexDivInt2Addr;
+import com.android.tools.r8.dex.code.DexGoto;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexInvokeStatic;
+import com.android.tools.r8.dex.code.DexInvokeStaticRange;
+import com.android.tools.r8.dex.code.DexInvokeVirtual;
+import com.android.tools.r8.dex.code.DexMoveResult;
+import com.android.tools.r8.dex.code.DexMoveResultObject;
+import com.android.tools.r8.dex.code.DexMoveResultWide;
+import com.android.tools.r8.dex.code.DexReturn;
+import com.android.tools.r8.dex.code.DexReturnObject;
+import com.android.tools.r8.dex.code.DexReturnVoid;
+import com.android.tools.r8.dex.code.DexReturnWide;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -158,9 +158,9 @@ public class OutlineTest extends SmaliTestBase {
       DexEncodedMethod method = getMethod(processedApplication, signature);
 
       DexCode code = method.getCode().asDexCode();
-      assertTrue(code.instructions[0] instanceof ConstString);
-      assertTrue(code.instructions[1] instanceof InvokeStatic);
-      InvokeStatic invoke = (InvokeStatic) code.instructions[1];
+      assertTrue(code.instructions[0] instanceof DexConstString);
+      assertTrue(code.instructions[1] instanceof DexInvokeStatic);
+      DexInvokeStatic invoke = (DexInvokeStatic) code.instructions[1];
       assertTrue(isOutlineMethodName(invoke.getMethod()));
 
       // Run code and check result.
@@ -230,10 +230,10 @@ public class OutlineTest extends SmaliTestBase {
       // Up to 4 const instructions before the invoke of the outline.
       int firstOutlineInvoke = Math.min(i, 4);
       for (int j = 0; j < firstOutlineInvoke; j++) {
-        assertTrue(code.instructions[j] instanceof ConstString);
+        assertTrue(code.instructions[j] instanceof DexConstString);
       }
-      assertTrue(code.instructions[firstOutlineInvoke] instanceof InvokeStatic);
-      InvokeStatic invoke = (InvokeStatic) code.instructions[firstOutlineInvoke];
+      assertTrue(code.instructions[firstOutlineInvoke] instanceof DexInvokeStatic);
+      DexInvokeStatic invoke = (DexInvokeStatic) code.instructions[firstOutlineInvoke];
       assertTrue(isOutlineMethodName(invoke.getMethod()));
 
       // Run code and check result.
@@ -287,9 +287,9 @@ public class OutlineTest extends SmaliTestBase {
     DexEncodedMethod method = getMethod(processedApplication, signature);
 
     DexCode code = method.getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof ConstString);
-    assertTrue(code.instructions[1] instanceof InvokeStatic);
-    InvokeStatic invoke = (InvokeStatic) code.instructions[1];
+    assertTrue(code.instructions[0] instanceof DexConstString);
+    assertTrue(code.instructions[1] instanceof DexInvokeStatic);
+    DexInvokeStatic invoke = (DexInvokeStatic) code.instructions[1];
     assertTrue(isOutlineMethodName(invoke.getMethod()));
 
     // Run code and check result.
@@ -349,10 +349,10 @@ public class OutlineTest extends SmaliTestBase {
     DexEncodedMethod method = getMethod(processedApplication, signature);
 
     DexCode code = method.getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof ConstString);
-    assertTrue(code.instructions[1] instanceof ConstString);
-    assertTrue(code.instructions[2] instanceof InvokeStatic);
-    InvokeStatic invoke = (InvokeStatic) code.instructions[2];
+    assertTrue(code.instructions[0] instanceof DexConstString);
+    assertTrue(code.instructions[1] instanceof DexConstString);
+    assertTrue(code.instructions[2] instanceof DexInvokeStatic);
+    DexInvokeStatic invoke = (DexInvokeStatic) code.instructions[2];
     assertTrue(isOutlineMethodName(invoke.getMethod()));
 
     // Run code and check result.
@@ -414,16 +414,16 @@ public class OutlineTest extends SmaliTestBase {
       DexEncodedMethod method = getMethod(processedApplication, signature);
 
       DexCode code = method.getCode().asDexCode();
-      assertTrue(code.instructions[0] instanceof ConstWide);
+      assertTrue(code.instructions[0] instanceof DexConstWide);
       if (i < 3) {
-        assertTrue(code.instructions[1] instanceof InvokeStatic);
-        InvokeStatic invoke = (InvokeStatic) code.instructions[1];
+        assertTrue(code.instructions[1] instanceof DexInvokeStatic);
+        DexInvokeStatic invoke = (DexInvokeStatic) code.instructions[1];
         assertTrue(isOutlineMethodName(invoke.getMethod()));
       } else {
-        assertTrue(code.instructions[1] instanceof InvokeVirtual);
-        assertTrue(code.instructions[2] instanceof InvokeVirtual);
-        assertTrue(code.instructions[3] instanceof InvokeStatic);
-        InvokeStatic invoke = (InvokeStatic) code.instructions[3];
+        assertTrue(code.instructions[1] instanceof DexInvokeVirtual);
+        assertTrue(code.instructions[2] instanceof DexInvokeVirtual);
+        assertTrue(code.instructions[3] instanceof DexInvokeStatic);
+        DexInvokeStatic invoke = (DexInvokeStatic) code.instructions[3];
         assertTrue(isOutlineMethodName(invoke.getMethod()));
       }
 
@@ -491,16 +491,16 @@ public class OutlineTest extends SmaliTestBase {
       DexEncodedMethod method = getMethod(processedApplication, signature);
 
       DexCode code = method.getCode().asDexCode();
-      assertTrue(code.instructions[0] instanceof ConstWideHigh16);
+      assertTrue(code.instructions[0] instanceof DexConstWideHigh16);
       if (i < 3) {
-        assertTrue(code.instructions[1] instanceof InvokeStatic);
-        InvokeStatic invoke = (InvokeStatic) code.instructions[1];
+        assertTrue(code.instructions[1] instanceof DexInvokeStatic);
+        DexInvokeStatic invoke = (DexInvokeStatic) code.instructions[1];
         assertTrue(isOutlineMethodName(invoke.getMethod()));
       } else {
-        assertTrue(code.instructions[1] instanceof InvokeVirtual);
-        assertTrue(code.instructions[2] instanceof InvokeVirtual);
-        assertTrue(code.instructions[3] instanceof InvokeStatic);
-        InvokeStatic invoke = (InvokeStatic) code.instructions[3];
+        assertTrue(code.instructions[1] instanceof DexInvokeVirtual);
+        assertTrue(code.instructions[2] instanceof DexInvokeVirtual);
+        assertTrue(code.instructions[3] instanceof DexInvokeStatic);
+        DexInvokeStatic invoke = (DexInvokeStatic) code.instructions[3];
         assertTrue(isOutlineMethodName(invoke.getMethod()));
       }
 
@@ -572,14 +572,14 @@ public class OutlineTest extends SmaliTestBase {
         assert mainCode.instructions.length == 7;
       }
       if (i == 2) {
-        InvokeStatic invoke = (InvokeStatic) mainCode.instructions[4];
+        DexInvokeStatic invoke = (DexInvokeStatic) mainCode.instructions[4];
         assertTrue(isOutlineMethodName(invoke.getMethod()));
       } else if (i == 3) {
-        InvokeStatic invoke = (InvokeStatic) mainCode.instructions[1];
+        DexInvokeStatic invoke = (DexInvokeStatic) mainCode.instructions[1];
         assertTrue(isOutlineMethodName(invoke.getMethod()));
       } else {
         assert i == 4 || i == 5;
-        InvokeStatic invoke = (InvokeStatic) mainCode.instructions[2];
+        DexInvokeStatic invoke = (DexInvokeStatic) mainCode.instructions[2];
         assertTrue(isOutlineMethodName(invoke.getMethod()));
       }
 
@@ -661,14 +661,14 @@ public class OutlineTest extends SmaliTestBase {
 
     DexCode code1 = getMethod(processedApplication, signature1).getCode().asDexCode();
     assertEquals(4, code1.instructions.length);
-    assertTrue(code1.instructions[1] instanceof InvokeStatic);
-    InvokeStatic invoke1 = (InvokeStatic) code1.instructions[1];
+    assertTrue(code1.instructions[1] instanceof DexInvokeStatic);
+    DexInvokeStatic invoke1 = (DexInvokeStatic) code1.instructions[1];
     assertTrue(isOutlineMethodName(invoke1.getMethod()));
 
     DexCode code2 = getMethod(processedApplication, signature2).getCode().asDexCode();
     assertEquals(5, code2.instructions.length);
-    assertTrue(code2.instructions[2] instanceof InvokeStatic);
-    InvokeStatic invoke2 = (InvokeStatic) code2.instructions[2];
+    assertTrue(code2.instructions[2] instanceof DexInvokeStatic);
+    DexInvokeStatic invoke2 = (DexInvokeStatic) code2.instructions[2];
     assertTrue(isOutlineMethodName(invoke1.getMethod()));
 
     // Run code and check result.
@@ -739,12 +739,12 @@ public class OutlineTest extends SmaliTestBase {
         default:
           outlineInstructionIndex = 2;
       }
-      Instruction instruction = code.instructions[outlineInstructionIndex];
-      if (instruction instanceof InvokeStatic) {
-        InvokeStatic invoke = (InvokeStatic) instruction;
+      DexInstruction instruction = code.instructions[outlineInstructionIndex];
+      if (instruction instanceof DexInvokeStatic) {
+        DexInvokeStatic invoke = (DexInvokeStatic) instruction;
         assertTrue(isOutlineMethodName(invoke.getMethod()));
       } else {
-        InvokeStaticRange invoke = (InvokeStaticRange) instruction;
+        DexInvokeStaticRange invoke = (DexInvokeStaticRange) instruction;
         assertTrue(isOutlineMethodName(invoke.getMethod()));
       }
 
@@ -791,9 +791,9 @@ public class OutlineTest extends SmaliTestBase {
     assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
     DexCode code = getMethod(processedApplication, signature1).getCode().asDexCode();
-    InvokeStatic invoke;
-    assertTrue(code.instructions[0] instanceof InvokeStatic);
-    invoke = (InvokeStatic) code.instructions[0];
+    DexInvokeStatic invoke;
+    assertTrue(code.instructions[0] instanceof DexInvokeStatic);
+    invoke = (DexInvokeStatic) code.instructions[0];
     assertTrue(isOutlineMethodName(invoke.getMethod()));
 
     // Run code and check result.
@@ -871,7 +871,7 @@ public class OutlineTest extends SmaliTestBase {
     // Collect the return types of the outlines for the body of method1 and method2.
     List<DexType> r = new ArrayList<>();
     for (DexEncodedMethod directMethod : outlineMethods) {
-      if (directMethod.getCode().asDexCode().instructions[0] instanceof InvokeVirtual) {
+      if (directMethod.getCode().asDexCode().instructions[0] instanceof DexInvokeVirtual) {
         r.add(directMethod.getReference().proto.returnType);
       }
     }
@@ -1022,10 +1022,10 @@ public class OutlineTest extends SmaliTestBase {
     // The calls to set, set and getTimeInMillis was outlined.
     DexCode code = method.getCode().asDexCode();
     assertEquals(3, code.instructions.length);
-    assertTrue(code.instructions[0] instanceof InvokeStatic);
-    assertTrue(code.instructions[1] instanceof MoveResultWide);
-    assertTrue(code.instructions[2] instanceof ReturnWide);
-    InvokeStatic invoke = (InvokeStatic) code.instructions[0];
+    assertTrue(code.instructions[0] instanceof DexInvokeStatic);
+    assertTrue(code.instructions[1] instanceof DexMoveResultWide);
+    assertTrue(code.instructions[2] instanceof DexReturnWide);
+    DexInvokeStatic invoke = (DexInvokeStatic) code.instructions[0];
     assertEquals(firstOutlineMethodName(), invoke.getMethod().qualifiedName());
 
     // Run the code and expect a parsable long.
@@ -1139,9 +1139,9 @@ public class OutlineTest extends SmaliTestBase {
     DexEncodedMethod method = getMethod(processedApplication, signature);
     DexCode code = method.getCode().asDexCode();
     assertEquals(2, code.instructions.length);
-    assertTrue(code.instructions[0] instanceof InvokeStatic);
-    assertTrue(code.instructions[1] instanceof ReturnObject);
-    InvokeStatic invoke = (InvokeStatic) code.instructions[0];
+    assertTrue(code.instructions[0] instanceof DexInvokeStatic);
+    assertTrue(code.instructions[1] instanceof DexReturnObject);
+    DexInvokeStatic invoke = (DexInvokeStatic) code.instructions[0];
     assertEquals(firstOutlineMethodName(), invoke.getMethod().qualifiedName());
 
     // Run code and check result.
@@ -1215,16 +1215,16 @@ public class OutlineTest extends SmaliTestBase {
     DexEncodedMethod method1 = getMethod(processedApplication, signature1);
     DexCode code1 = method1.getCode().asDexCode();
     assertEquals(3, code1.instructions.length);
-    assertTrue(code1.instructions[0] instanceof InvokeStatic);
-    assertTrue(code1.instructions[1] instanceof MoveResult);
-    assertTrue(code1.instructions[2] instanceof Return);
-    InvokeStatic invoke1 = (InvokeStatic) code1.instructions[0];
+    assertTrue(code1.instructions[0] instanceof DexInvokeStatic);
+    assertTrue(code1.instructions[1] instanceof DexMoveResult);
+    assertTrue(code1.instructions[2] instanceof DexReturn);
+    DexInvokeStatic invoke1 = (DexInvokeStatic) code1.instructions[0];
     assertTrue(isOutlineMethodName(invoke1.getMethod()));
 
     DexEncodedMethod method2 = getMethod(processedApplication, signature2);
     DexCode code2 = method2.getCode().asDexCode();
-    assertTrue(code2.instructions[0] instanceof InvokeStatic);
-    InvokeStatic invoke2 = (InvokeStatic) code2.instructions[0];
+    assertTrue(code2.instructions[0] instanceof DexInvokeStatic);
+    DexInvokeStatic invoke2 = (DexInvokeStatic) code2.instructions[0];
     assertEquals(invoke1.getMethod().qualifiedName(), invoke2.getMethod().qualifiedName());
 
     // Run code and check result.
@@ -1293,14 +1293,14 @@ public class OutlineTest extends SmaliTestBase {
     DexEncodedMethod method = getMethod(processedApplication, signature);
     DexCode code = method.getCode().asDexCode();
     assertEquals(7, code.instructions.length);
-    assertTrue(code.instructions[0] instanceof DivInt);
-    assertTrue(code.instructions[1] instanceof InvokeStatic);
-    assertTrue(code.instructions[2] instanceof MoveResult);
-    assertTrue(code.instructions[3] instanceof DivInt2Addr);
-    assertTrue(code.instructions[4] instanceof Goto);
-    assertTrue(code.instructions[5] instanceof Const4);
-    assertTrue(code.instructions[6] instanceof Return);
-    InvokeStatic invoke = (InvokeStatic) code.instructions[1];
+    assertTrue(code.instructions[0] instanceof DexDivInt);
+    assertTrue(code.instructions[1] instanceof DexInvokeStatic);
+    assertTrue(code.instructions[2] instanceof DexMoveResult);
+    assertTrue(code.instructions[3] instanceof DexDivInt2Addr);
+    assertTrue(code.instructions[4] instanceof DexGoto);
+    assertTrue(code.instructions[5] instanceof DexConst4);
+    assertTrue(code.instructions[6] instanceof DexReturn);
+    DexInvokeStatic invoke = (DexInvokeStatic) code.instructions[1];
     assertTrue(isOutlineMethodName(invoke.getMethod()));
 
     // Run code and check result.
@@ -1347,10 +1347,10 @@ public class OutlineTest extends SmaliTestBase {
     DexEncodedMethod method = getMethod(processedApplication, signature);
     DexCode code = method.getCode().asDexCode();
     assertEquals(3, code.instructions.length);
-    assertTrue(code.instructions[0] instanceof InvokeStatic);
-    assertTrue(code.instructions[1] instanceof MoveResultObject);
-    assertTrue(code.instructions[2] instanceof ReturnObject);
-    InvokeStatic invoke = (InvokeStatic) code.instructions[0];
+    assertTrue(code.instructions[0] instanceof DexInvokeStatic);
+    assertTrue(code.instructions[1] instanceof DexMoveResultObject);
+    assertTrue(code.instructions[2] instanceof DexReturnObject);
+    DexInvokeStatic invoke = (DexInvokeStatic) code.instructions[0];
     assertEquals(firstOutlineMethodName(), invoke.getMethod().qualifiedName());
 
     // Run code and check result.
@@ -1405,9 +1405,9 @@ public class OutlineTest extends SmaliTestBase {
     DexEncodedMethod method = getMethod(processedApplication, signature);
     DexCode code = method.getCode().asDexCode();
     assertEquals(2, code.instructions.length);
-    assertTrue(code.instructions[0] instanceof InvokeStatic);
-    assertTrue(code.instructions[1] instanceof ReturnVoid);
-    InvokeStatic invoke = (InvokeStatic) code.instructions[0];
+    assertTrue(code.instructions[0] instanceof DexInvokeStatic);
+    assertTrue(code.instructions[1] instanceof DexReturnVoid);
+    DexInvokeStatic invoke = (DexInvokeStatic) code.instructions[0];
     assertEquals(firstOutlineMethodName(), invoke.getMethod().qualifiedName());
 
     // Run code and check result.
@@ -1635,8 +1635,8 @@ public class OutlineTest extends SmaliTestBase {
     runDex2Oat(processedApplication);
   }
 
-  private static boolean isOutlineInvoke(Instruction instruction) {
-    return instruction instanceof InvokeStatic && isOutlineMethodName(instruction.getMethod());
+  private static boolean isOutlineInvoke(DexInstruction instruction) {
+    return instruction instanceof DexInvokeStatic && isOutlineMethodName(instruction.getMethod());
   }
 
   private void assertHasOutlineInvoke(DexEncodedMethod method) {

@@ -13,8 +13,8 @@ import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.code.InvokeDirect;
-import com.android.tools.r8.code.InvokeVirtual;
+import com.android.tools.r8.dex.code.DexInvokeDirect;
+import com.android.tools.r8.dex.code.DexInvokeVirtual;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.smali.SmaliBuilder;
@@ -111,15 +111,18 @@ public class InvokeTypeConversionTest extends SmaliTestBase {
         parameters.getRuntime().asDex().getVm().getVersion().isOlderThanOrEqual(Version.V4_4_4)
             ? "VerifyError"
             : "IncompatibleClassChangeError";
-    run(builder, expectedError, dexInspector -> {
-      ClassSubject clazz = dexInspector.clazz(CLASS_NAME);
-      assertThat(clazz, isPresent());
-      DexEncodedMethod method = getMethod(dexInspector, main);
-      assertNotNull(method);
-      DexCode code = method.getCode().asDexCode();
-      // The given invoke line is remained as-is.
-      assertTrue(code.instructions[2] instanceof InvokeDirect);
-    });
+    run(
+        builder,
+        expectedError,
+        dexInspector -> {
+          ClassSubject clazz = dexInspector.clazz(CLASS_NAME);
+          assertThat(clazz, isPresent());
+          DexEncodedMethod method = getMethod(dexInspector, main);
+          assertNotNull(method);
+          DexCode code = method.getCode().asDexCode();
+          // The given invoke line is remained as-is.
+          assertTrue(code.instructions[2] instanceof DexInvokeDirect);
+        });
   }
 
   // The following test checks invoke-direct, which refers to the private instance method, *is*
@@ -139,15 +142,18 @@ public class InvokeTypeConversionTest extends SmaliTestBase {
   public void invokeDirectToPublicizedMethod() throws Exception {
     SmaliBuilder builder = buildTestClass(
         "invoke-direct { v1 }, L" + CLASS_NAME + ";->foo()I");
-    run(builder, null, dexInspector -> {
-      ClassSubject clazz = dexInspector.clazz(CLASS_NAME);
-      assertThat(clazz, isPresent());
-      DexEncodedMethod method = getMethod(dexInspector, main);
-      assertNotNull(method);
-      DexCode code = method.getCode().asDexCode();
-      // The given invoke line is changed to invoke-virtual
-      assertTrue(code.instructions[2] instanceof InvokeVirtual);
-    });
+    run(
+        builder,
+        null,
+        dexInspector -> {
+          ClassSubject clazz = dexInspector.clazz(CLASS_NAME);
+          assertThat(clazz, isPresent());
+          DexEncodedMethod method = getMethod(dexInspector, main);
+          assertNotNull(method);
+          DexCode code = method.getCode().asDexCode();
+          // The given invoke line is changed to invoke-virtual
+          assertTrue(code.instructions[2] instanceof DexInvokeVirtual);
+        });
   }
 
 }

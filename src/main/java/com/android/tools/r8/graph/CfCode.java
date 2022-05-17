@@ -18,8 +18,8 @@ import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfTryCatch;
-import com.android.tools.r8.code.Base5Format;
-import com.android.tools.r8.code.CfOrDexInstruction;
+import com.android.tools.r8.dex.code.CfOrDexInstruction;
+import com.android.tools.r8.dex.code.DexBase5Format;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
@@ -303,7 +303,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
 
   @Override
   public int estimatedDexCodeSizeUpperBoundInBytes() {
-    return estimatedSizeForInlining() * Base5Format.SIZE;
+    return estimatedSizeForInlining() * DexBase5Format.SIZE;
   }
 
   public int bytecodeSizeUpperBound() {

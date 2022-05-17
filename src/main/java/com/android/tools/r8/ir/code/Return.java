@@ -6,10 +6,12 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
-import com.android.tools.r8.code.ReturnObject;
-import com.android.tools.r8.code.ReturnVoid;
-import com.android.tools.r8.code.ReturnWide;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexReturn;
+import com.android.tools.r8.dex.code.DexReturnObject;
+import com.android.tools.r8.dex.code.DexReturnVoid;
+import com.android.tools.r8.dex.code.DexReturnWide;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -60,20 +62,20 @@ public class Return extends JumpInstruction {
     return inValues.get(0);
   }
 
-  public com.android.tools.r8.code.Instruction createDexInstruction(DexBuilder builder) {
+  public DexInstruction createDexInstruction(DexBuilder builder) {
     if (isReturnVoid()) {
-      return new ReturnVoid();
+      return new DexReturnVoid();
     }
     int register = builder.allocatedRegister(returnValue(), getNumber());
     TypeElement returnType = getReturnType();
     if (returnType.isReferenceType()) {
-      return new ReturnObject(register);
+      return new DexReturnObject(register);
     }
     if (returnType.isSinglePrimitive()) {
-      return new com.android.tools.r8.code.Return(register);
+      return new DexReturn(register);
     }
     if (returnType.isWidePrimitive()) {
-      return new ReturnWide(register);
+      return new DexReturnWide(register);
     }
     throw new Unreachable();
   }

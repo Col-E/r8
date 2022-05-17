@@ -4,9 +4,9 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
-import com.android.tools.r8.code.Const16;
-import com.android.tools.r8.code.Const4;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexConst16;
+import com.android.tools.r8.dex.code.DexConst4;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -39,7 +39,8 @@ public class AlwaysMaterializingDefinition extends ConstInstruction {
   public void buildDex(DexBuilder builder) {
     int register = builder.allocatedRegister(outValue, getNumber());
     builder.add(
-        this, (register & 0xf) == register ? new Const4(register, 0) : new Const16(register, 0));
+        this,
+        (register & 0xf) == register ? new DexConst4(register, 0) : new DexConst16(register, 0));
   }
 
   @Override

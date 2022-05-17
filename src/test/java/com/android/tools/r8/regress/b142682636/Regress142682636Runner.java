@@ -10,7 +10,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.code.MoveWide;
+import com.android.tools.r8.dex.code.DexMoveWide;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -54,8 +54,9 @@ public class Regress142682636Runner extends TestBase {
   }
 
   private void checkNoMoveWide(MethodSubject m) {
-    assertTrue(Arrays.stream(m.getMethod().getCode().asDexCode().instructions)
-        .noneMatch(i -> i instanceof MoveWide));
+    assertTrue(
+        Arrays.stream(m.getMethod().getCode().asDexCode().instructions)
+            .noneMatch(i -> i instanceof DexMoveWide));
   }
 
 }

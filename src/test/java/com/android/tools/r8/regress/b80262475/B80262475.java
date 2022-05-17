@@ -5,18 +5,13 @@
 package com.android.tools.r8.regress.b80262475;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.LongToInt;
-import com.android.tools.r8.code.Return;
-import com.android.tools.r8.code.ReturnVoid;
-import com.android.tools.r8.code.ReturnWide;
-import com.android.tools.r8.code.Throw;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexLongToInt;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -35,9 +30,9 @@ class TestClass {
 
 public class B80262475 extends TestBase {
 
-  private boolean overlappingLongToIntInputAndOutput(Instruction instruction) {
-    if (instruction instanceof LongToInt) {
-      LongToInt longToInt = (LongToInt) instruction;
+  private boolean overlappingLongToIntInputAndOutput(DexInstruction instruction) {
+    if (instruction instanceof DexLongToInt) {
+      DexLongToInt longToInt = (DexLongToInt) instruction;
       return longToInt.A == longToInt.B;
     }
     return false;
@@ -47,8 +42,8 @@ public class B80262475 extends TestBase {
   public void testLongToIntOverlap()
       throws IOException, CompilationFailedException, ExecutionException {
     MethodSubject method = getMethodSubject(AndroidApiLevel.L);
-    Instruction[] instructions = method.getMethod().getCode().asDexCode().instructions;
-    for (Instruction instruction : instructions) {
+    DexInstruction[] instructions = method.getMethod().getCode().asDexCode().instructions;
+    for (DexInstruction instruction : instructions) {
       assertFalse(overlappingLongToIntInputAndOutput(instruction));
     }
   }

@@ -4,16 +4,17 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfArithmeticBinop;
-import com.android.tools.r8.code.DivDouble;
-import com.android.tools.r8.code.DivDouble2Addr;
-import com.android.tools.r8.code.DivFloat;
-import com.android.tools.r8.code.DivFloat2Addr;
-import com.android.tools.r8.code.DivInt;
-import com.android.tools.r8.code.DivInt2Addr;
-import com.android.tools.r8.code.DivIntLit16;
-import com.android.tools.r8.code.DivIntLit8;
-import com.android.tools.r8.code.DivLong;
-import com.android.tools.r8.code.DivLong2Addr;
+import com.android.tools.r8.dex.code.DexDivDouble;
+import com.android.tools.r8.dex.code.DexDivDouble2Addr;
+import com.android.tools.r8.dex.code.DexDivFloat;
+import com.android.tools.r8.dex.code.DexDivFloat2Addr;
+import com.android.tools.r8.dex.code.DexDivInt;
+import com.android.tools.r8.dex.code.DexDivInt2Addr;
+import com.android.tools.r8.dex.code.DexDivIntLit16;
+import com.android.tools.r8.dex.code.DexDivIntLit8;
+import com.android.tools.r8.dex.code.DexDivLong;
+import com.android.tools.r8.dex.code.DexDivLong2Addr;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
 import java.util.function.Function;
@@ -50,53 +51,53 @@ public class Div extends ArithmeticBinop {
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateInt(int dest, int left, int right) {
-    return new DivInt(dest, left, right);
+  public DexInstruction CreateInt(int dest, int left, int right) {
+    return new DexDivInt(dest, left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateLong(int dest, int left, int right) {
-    return new DivLong(dest, left, right);
+  public DexInstruction CreateLong(int dest, int left, int right) {
+    return new DexDivLong(dest, left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateFloat(int dest, int left, int right) {
-    return new DivFloat(dest, left, right);
+  public DexInstruction CreateFloat(int dest, int left, int right) {
+    return new DexDivFloat(dest, left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateDouble(int dest, int left, int right) {
-    return new DivDouble(dest, left, right);
+  public DexInstruction CreateDouble(int dest, int left, int right) {
+    return new DexDivDouble(dest, left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateInt2Addr(int left, int right) {
-    return new DivInt2Addr(left, right);
+  public DexInstruction CreateInt2Addr(int left, int right) {
+    return new DexDivInt2Addr(left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateLong2Addr(int left, int right) {
-    return new DivLong2Addr(left, right);
+  public DexInstruction CreateLong2Addr(int left, int right) {
+    return new DexDivLong2Addr(left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateFloat2Addr(int left, int right) {
-    return new DivFloat2Addr(left, right);
+  public DexInstruction CreateFloat2Addr(int left, int right) {
+    return new DexDivFloat2Addr(left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateDouble2Addr(int left, int right) {
-    return new DivDouble2Addr(left, right);
+  public DexInstruction CreateDouble2Addr(int left, int right) {
+    return new DexDivDouble2Addr(left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateIntLit8(int dest, int left, int constant) {
-    return new DivIntLit8(dest, left, constant);
+  public DexInstruction CreateIntLit8(int dest, int left, int constant) {
+    return new DexDivIntLit8(dest, left, constant);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateIntLit16(int dest, int left, int constant) {
-    return new DivIntLit16(dest, left, constant);
+  public DexInstruction CreateIntLit16(int dest, int left, int constant) {
+    return new DexDivIntLit16(dest, left, constant);
   }
 
   @Override

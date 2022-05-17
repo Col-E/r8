@@ -6,8 +6,8 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfNewArray;
-import com.android.tools.r8.code.NewArray;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexNewArray;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
@@ -59,7 +59,7 @@ public class NewArrayEmpty extends Instruction {
   public void buildDex(DexBuilder builder) {
     int size = builder.allocatedRegister(size(), getNumber());
     int dest = builder.allocatedRegister(dest(), getNumber());
-    builder.add(this, new NewArray(dest, size, type));
+    builder.add(this, new DexNewArray(dest, size, type));
   }
 
   @Override

@@ -6,14 +6,15 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfInstanceFieldWrite;
-import com.android.tools.r8.code.Iput;
-import com.android.tools.r8.code.IputBoolean;
-import com.android.tools.r8.code.IputByte;
-import com.android.tools.r8.code.IputChar;
-import com.android.tools.r8.code.IputObject;
-import com.android.tools.r8.code.IputShort;
-import com.android.tools.r8.code.IputWide;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexIput;
+import com.android.tools.r8.dex.code.DexIputBoolean;
+import com.android.tools.r8.dex.code.DexIputByte;
+import com.android.tools.r8.dex.code.DexIputChar;
+import com.android.tools.r8.dex.code.DexIputObject;
+import com.android.tools.r8.dex.code.DexIputShort;
+import com.android.tools.r8.dex.code.DexIputWide;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -87,33 +88,33 @@ public class InstancePut extends FieldInstruction implements FieldPut, InstanceF
 
   @Override
   public void buildDex(DexBuilder builder) {
-    com.android.tools.r8.code.Instruction instruction;
+    DexInstruction instruction;
     int valueRegister = builder.allocatedRegister(value(), getNumber());
     int objectRegister = builder.allocatedRegister(object(), getNumber());
     DexField field = getField();
     switch (getType()) {
       case INT:
       case FLOAT:
-        instruction = new Iput(valueRegister, objectRegister, field);
+        instruction = new DexIput(valueRegister, objectRegister, field);
         break;
       case LONG:
       case DOUBLE:
-        instruction = new IputWide(valueRegister, objectRegister, field);
+        instruction = new DexIputWide(valueRegister, objectRegister, field);
         break;
       case OBJECT:
-        instruction = new IputObject(valueRegister, objectRegister, field);
+        instruction = new DexIputObject(valueRegister, objectRegister, field);
         break;
       case BOOLEAN:
-        instruction = new IputBoolean(valueRegister, objectRegister, field);
+        instruction = new DexIputBoolean(valueRegister, objectRegister, field);
         break;
       case BYTE:
-        instruction = new IputByte(valueRegister, objectRegister, field);
+        instruction = new DexIputByte(valueRegister, objectRegister, field);
         break;
       case CHAR:
-        instruction = new IputChar(valueRegister, objectRegister, field);
+        instruction = new DexIputChar(valueRegister, objectRegister, field);
         break;
       case SHORT:
-        instruction = new IputShort(valueRegister, objectRegister, field);
+        instruction = new DexIputShort(valueRegister, objectRegister, field);
         break;
       default:
         throw new Unreachable("Unexpected type: " + getType());

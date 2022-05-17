@@ -8,7 +8,7 @@ import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.
 
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfPosition;
-import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
@@ -317,7 +317,7 @@ public class FoundMethodSubject extends MethodSubject {
     DexDebugPositionState state =
         new DexDebugPositionState(info.startLine, getMethod().getReference());
     Iterator<DexDebugEvent> iterator = Arrays.asList(info.events).iterator();
-    for (Instruction insn : code.instructions) {
+    for (DexInstruction insn : code.instructions) {
       int offset = insn.getOffset();
       while (state.getCurrentPc() < offset && iterator.hasNext()) {
         iterator.next().accept(state);

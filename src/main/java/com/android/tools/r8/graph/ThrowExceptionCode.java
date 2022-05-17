@@ -4,12 +4,12 @@
 
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.code.InvokeDirect;
-import com.android.tools.r8.code.NewInstance;
-import com.android.tools.r8.code.Throw;
 import com.android.tools.r8.dex.CodeToKeep;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.dex.code.DexInvokeDirect;
+import com.android.tools.r8.dex.code.DexNewInstance;
+import com.android.tools.r8.dex.code.DexThrow;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexCode.TryHandler;
@@ -72,7 +72,7 @@ public class ThrowExceptionCode extends Code implements DexWritableCode {
 
   @Override
   public int codeSizeInBytes() {
-    return NewInstance.SIZE + InvokeDirect.SIZE + Throw.SIZE;
+    return DexNewInstance.SIZE + DexInvokeDirect.SIZE + DexThrow.SIZE;
   }
 
   @Override
@@ -216,14 +216,14 @@ public class ThrowExceptionCode extends Code implements DexWritableCode {
     int register = 0;
     int notUsed = 0;
     int argumentCount = 1;
-    new NewInstance(register, exceptionType)
+    new DexNewInstance(register, exceptionType)
         .write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
     DexMethod instanceInitializer =
         lensCodeRewriter.dexItemFactory().createInstanceInitializer(exceptionType);
-    new InvokeDirect(
+    new DexInvokeDirect(
             argumentCount, instanceInitializer, register, notUsed, notUsed, notUsed, notUsed)
         .write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
-    new Throw(register).write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
+    new DexThrow(register).write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
   }
 
   @Override

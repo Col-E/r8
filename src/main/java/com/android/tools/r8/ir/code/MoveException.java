@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexMoveException;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -45,7 +46,7 @@ public class MoveException extends Instruction {
   @Override
   public void buildDex(DexBuilder builder) {
     int dest = builder.allocatedRegister(dest(), getNumber());
-    builder.add(this, new com.android.tools.r8.code.MoveException(dest));
+    builder.add(this, new DexMoveException(dest));
   }
 
   @Override

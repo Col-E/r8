@@ -18,12 +18,12 @@ import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.InvokeDirect;
-import com.android.tools.r8.code.InvokeStatic;
-import com.android.tools.r8.code.InvokeVirtual;
-import com.android.tools.r8.code.SgetObject;
-import com.android.tools.r8.code.SputObject;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexInvokeDirect;
+import com.android.tools.r8.dex.code.DexInvokeStatic;
+import com.android.tools.r8.dex.code.DexInvokeVirtual;
+import com.android.tools.r8.dex.code.DexSgetObject;
+import com.android.tools.r8.dex.code.DexSputObject;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
@@ -358,29 +358,29 @@ public class ClassStaticizerTest extends TestBase {
     MethodSignature signature = new MethodSignature(methodName, retValue, params);
     DexCode code = clazz.method(signature).getMethod().getCode().asDexCode();
     return Streams.concat(
-        filterInstructionKind(code, SgetObject.class)
-            .map(Instruction::getField)
-            .filter(fld -> isTypeOfInterest(fld.holder))
-            .map(DexField::toSourceString),
-        filterInstructionKind(code, SputObject.class)
-            .map(Instruction::getField)
-            .filter(fld -> isTypeOfInterest(fld.holder))
-            .map(DexField::toSourceString),
-        filterInstructionKind(code, InvokeStatic.class)
-            .map(insn -> (InvokeStatic) insn)
-            .map(InvokeStatic::getMethod)
-            .filter(method -> isTypeOfInterest(method.holder))
-            .map(method -> "STATIC: " + method.toSourceString()),
-        filterInstructionKind(code, InvokeVirtual.class)
-            .map(insn -> (InvokeVirtual) insn)
-            .map(InvokeVirtual::getMethod)
-            .filter(method -> isTypeOfInterest(method.holder))
-            .map(method -> "VIRTUAL: " + method.toSourceString()),
-        filterInstructionKind(code, InvokeDirect.class)
-            .map(insn -> (InvokeDirect) insn)
-            .map(InvokeDirect::getMethod)
-            .filter(method -> isTypeOfInterest(method.holder))
-            .map(method -> "DIRECT: " + method.toSourceString()))
+            filterInstructionKind(code, DexSgetObject.class)
+                .map(DexInstruction::getField)
+                .filter(fld -> isTypeOfInterest(fld.holder))
+                .map(DexField::toSourceString),
+            filterInstructionKind(code, DexSputObject.class)
+                .map(DexInstruction::getField)
+                .filter(fld -> isTypeOfInterest(fld.holder))
+                .map(DexField::toSourceString),
+            filterInstructionKind(code, DexInvokeStatic.class)
+                .map(insn -> (DexInvokeStatic) insn)
+                .map(DexInvokeStatic::getMethod)
+                .filter(method -> isTypeOfInterest(method.holder))
+                .map(method -> "STATIC: " + method.toSourceString()),
+            filterInstructionKind(code, DexInvokeVirtual.class)
+                .map(insn -> (DexInvokeVirtual) insn)
+                .map(DexInvokeVirtual::getMethod)
+                .filter(method -> isTypeOfInterest(method.holder))
+                .map(method -> "VIRTUAL: " + method.toSourceString()),
+            filterInstructionKind(code, DexInvokeDirect.class)
+                .map(insn -> (DexInvokeDirect) insn)
+                .map(DexInvokeDirect::getMethod)
+                .filter(method -> isTypeOfInterest(method.holder))
+                .map(method -> "DIRECT: " + method.toSourceString()))
         .map(txt -> txt.replace("java.lang.", ""))
         .map(txt -> txt.replace("com.android.tools.r8.ir.optimize.staticizer.trivial.", ""))
         .map(txt -> txt.replace("com.android.tools.r8.ir.optimize.staticizer.", ""))

@@ -8,10 +8,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.code.ConstString;
-import com.android.tools.r8.code.InvokeVirtual;
-import com.android.tools.r8.code.ReturnVoid;
-import com.android.tools.r8.code.SgetObject;
+import com.android.tools.r8.dex.code.DexConstString;
+import com.android.tools.r8.dex.code.DexInvokeVirtual;
+import com.android.tools.r8.dex.code.DexReturnVoid;
+import com.android.tools.r8.dex.code.DexSgetObject;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
@@ -42,10 +42,10 @@ public class RunArtSmokeTest extends SmaliTestBase {
     assertNotNull(main);
 
     DexCode code = main.getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof SgetObject);
-    assertTrue(code.instructions[1] instanceof ConstString);
-    assertTrue(code.instructions[2] instanceof InvokeVirtual);
-    assertTrue(code.instructions[3] instanceof ReturnVoid);
+    assertTrue(code.instructions[0] instanceof DexSgetObject);
+    assertTrue(code.instructions[1] instanceof DexConstString);
+    assertTrue(code.instructions[2] instanceof DexInvokeVirtual);
+    assertTrue(code.instructions[3] instanceof DexReturnVoid);
 
     // Run the generated code in Art.
     String result = runArt(processedApplication);

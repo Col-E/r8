@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexThrow;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -36,7 +37,7 @@ public class Throw extends JumpInstruction {
 
   @Override
   public void buildDex(DexBuilder builder) {
-    builder.add(this, new com.android.tools.r8.code.Throw(builder.allocatedRegister(exception(), getNumber())));
+    builder.add(this, new DexThrow(builder.allocatedRegister(exception(), getNumber())));
   }
 
   @Override

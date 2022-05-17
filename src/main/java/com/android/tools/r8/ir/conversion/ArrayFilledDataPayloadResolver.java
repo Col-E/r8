@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.ir.conversion;
 
-import com.android.tools.r8.code.FillArrayData;
-import com.android.tools.r8.code.FillArrayDataPayload;
+import com.android.tools.r8.dex.code.DexFillArrayData;
+import com.android.tools.r8.dex.code.DexFillArrayDataPayload;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,21 +20,21 @@ public class ArrayFilledDataPayloadResolver {
     public short[] data;
   }
 
-  private final Map<Integer, FillArrayDataPayload> unresolvedPayload = new HashMap<>();
+  private final Map<Integer, DexFillArrayDataPayload> unresolvedPayload = new HashMap<>();
   private final Map<Integer, PayloadData> payloadToData = new HashMap<>();
 
-  public void addPayloadUser(FillArrayData dex) {
+  public void addPayloadUser(DexFillArrayData dex) {
     int offset = dex.getOffset();
     int payloadOffset = offset + dex.getPayloadOffset();
     assert !payloadToData.containsKey(payloadOffset);
     payloadToData.put(payloadOffset, new PayloadData());
     if (unresolvedPayload.containsKey(payloadOffset)) {
-      FillArrayDataPayload payload = unresolvedPayload.remove(payloadOffset);
+      DexFillArrayDataPayload payload = unresolvedPayload.remove(payloadOffset);
       resolve(payload);
     }
   }
 
-  public void resolve(FillArrayDataPayload payload) {
+  public void resolve(DexFillArrayDataPayload payload) {
     int payloadOffset = payload.getOffset();
     PayloadData data = payloadToData.get(payloadOffset);
     if (data == null) {

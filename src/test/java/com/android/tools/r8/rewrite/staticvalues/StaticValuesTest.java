@@ -9,8 +9,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.code.IfEqz;
-import com.android.tools.r8.code.SgetBoolean;
+import com.android.tools.r8.dex.code.DexIfEqz;
+import com.android.tools.r8.dex.code.DexSgetBoolean;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.smali.SmaliBuilder;
@@ -393,8 +393,8 @@ public class StaticValuesTest extends SmaliTestBase {
     assertEquals(("5"), value.asDexValueString().getValue().toString());
 
     DexCode code = inspector.clazz("Test").clinit().getMethod().getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof SgetBoolean);
-    assertTrue(code.instructions[1] instanceof IfEqz);
+    assertTrue(code.instructions[0] instanceof DexSgetBoolean);
+    assertTrue(code.instructions[1] instanceof DexIfEqz);
 
     String result = runArt(processedApplication);
 

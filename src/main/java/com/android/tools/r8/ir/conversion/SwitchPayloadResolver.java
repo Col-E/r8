@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.ir.conversion;
 
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.SwitchPayload;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexSwitchPayload;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,20 +28,20 @@ public class SwitchPayloadResolver {
     }
   }
 
-  private final Map<Integer, SwitchPayload> unresolvedPayload = new HashMap<>();
+  private final Map<Integer, DexSwitchPayload> unresolvedPayload = new HashMap<>();
   private final Map<Integer, PayloadData> payloadToData = new HashMap<>();
 
-  public void addPayloadUser(Instruction dex) {
+  public void addPayloadUser(DexInstruction dex) {
     int offset = dex.getOffset();
     int payloadOffset = offset + dex.getPayloadOffset();
     payloadToData.put(payloadOffset, new PayloadData(offset));
     if (unresolvedPayload.containsKey(payloadOffset)) {
-      SwitchPayload payload = unresolvedPayload.remove(payloadOffset);
+      DexSwitchPayload payload = unresolvedPayload.remove(payloadOffset);
       resolve(payload);
     }
   }
 
-  public void resolve(SwitchPayload payload) {
+  public void resolve(DexSwitchPayload payload) {
     int payloadOffset = payload.getOffset();
     PayloadData data = payloadToData.get(payloadOffset);
     if (data == null) {
@@ -59,7 +59,7 @@ public class SwitchPayloadResolver {
     data.size = payload.numberOfKeys();
   }
 
-  public int[] absoluteTargets(Instruction dex) {
+  public int[] absoluteTargets(DexInstruction dex) {
     assert dex.isIntSwitch();
     return absoluteTargets(dex.getOffset() + dex.getPayloadOffset());
   }

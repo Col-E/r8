@@ -4,7 +4,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfArithmeticBinop;
-import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
@@ -20,25 +20,25 @@ public abstract class ArithmeticBinop extends Binop {
     super(type, dest, left, right);
   }
 
-  public abstract com.android.tools.r8.code.Instruction CreateInt(int dest, int left, int right);
+  public abstract DexInstruction CreateInt(int dest, int left, int right);
 
-  public abstract Instruction CreateLong(int dest, int left, int right);
+  public abstract DexInstruction CreateLong(int dest, int left, int right);
 
-  public abstract Instruction CreateFloat(int dest, int left, int right);
+  public abstract DexInstruction CreateFloat(int dest, int left, int right);
 
-  public abstract Instruction CreateDouble(int dest, int left, int right);
+  public abstract DexInstruction CreateDouble(int dest, int left, int right);
 
-  public abstract Instruction CreateInt2Addr(int left, int right);
+  public abstract DexInstruction CreateInt2Addr(int left, int right);
 
-  public abstract Instruction CreateLong2Addr(int left, int right);
+  public abstract DexInstruction CreateLong2Addr(int left, int right);
 
-  public abstract Instruction CreateFloat2Addr(int left, int right);
+  public abstract DexInstruction CreateFloat2Addr(int left, int right);
 
-  public abstract Instruction CreateDouble2Addr(int left, int right);
+  public abstract DexInstruction CreateDouble2Addr(int left, int right);
 
-  public abstract Instruction CreateIntLit8(int dest, int left, int constant);
+  public abstract DexInstruction CreateIntLit8(int dest, int left, int constant);
 
-  public abstract Instruction CreateIntLit16(int dest, int left, int constant);
+  public abstract DexInstruction CreateIntLit16(int dest, int left, int constant);
 
   @Override
   public boolean canBeFolded() {
@@ -64,7 +64,7 @@ public abstract class ArithmeticBinop extends Binop {
     // Method needsValueInRegister ensures that left value has an allocated register.
     int left = builder.allocatedRegister(leftValue(), getNumber());
     int dest = builder.allocatedRegister(outValue, getNumber());
-    Instruction instruction = null;
+    DexInstruction instruction = null;
     if (isTwoAddr(builder.getRegisterAllocator())) {
       int right = builder.allocatedRegister(rightValue(), getNumber());
       if (left != dest) {

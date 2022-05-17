@@ -29,16 +29,16 @@ import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfThrow;
-import com.android.tools.r8.code.ConstString;
-import com.android.tools.r8.code.InstanceOf;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.InvokeDirect;
-import com.android.tools.r8.code.InvokeStatic;
-import com.android.tools.r8.code.NewInstance;
-import com.android.tools.r8.code.Return;
-import com.android.tools.r8.code.Throw;
-import com.android.tools.r8.code.XorIntLit8;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.dex.code.DexConstString;
+import com.android.tools.r8.dex.code.DexInstanceOf;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexInvokeDirect;
+import com.android.tools.r8.dex.code.DexInvokeStatic;
+import com.android.tools.r8.dex.code.DexNewInstance;
+import com.android.tools.r8.dex.code.DexReturn;
+import com.android.tools.r8.dex.code.DexThrow;
+import com.android.tools.r8.dex.code.DexXorIntLit8;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexAnnotation.AnnotatedKind;
@@ -889,13 +889,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return getReference().toSourceString();
   }
 
-  /**
-   * Generates a {@link DexCode} object for the given instructions.
-   */
+  /** Generates a {@link DexCode} object for the given instructions. */
   private DexCode generateCodeFromTemplate(
-      int numberOfRegisters, int outRegisters, Instruction... instructions) {
+      int numberOfRegisters, int outRegisters, DexInstruction... instructions) {
     int offset = 0;
-    for (Instruction instruction : instructions) {
+    for (DexInstruction instruction : instructions) {
       instruction.setOffset(offset);
       offset += instruction.getSize();
     }
@@ -937,13 +935,13 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public DexCode buildInstanceOfDexCode(DexType type, boolean negate) {
-    Instruction[] instructions = new Instruction[2 + BooleanUtils.intValue(negate)];
+    DexInstruction[] instructions = new DexInstruction[2 + BooleanUtils.intValue(negate)];
     int i = 0;
-    instructions[i++] = new InstanceOf(0, 0, type);
+    instructions[i++] = new DexInstanceOf(0, 0, type);
     if (negate) {
-      instructions[i++] = new XorIntLit8(0, 0, 1);
+      instructions[i++] = new DexXorIntLit8(0, 0, 1);
     }
-    instructions[i] = new Return(0);
+    instructions[i] = new DexReturn(0);
     return generateCodeFromTemplate(1, 0, instructions);
   }
 
@@ -998,12 +996,12 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return generateCodeFromTemplate(
         2,
         2,
-        new ConstString(0, tag),
-        new ConstString(1, message),
-        new InvokeStatic(2, logMethod, 0, 1, 0, 0, 0),
-        new NewInstance(0, exceptionType),
-        new InvokeDirect(2, exceptionInitMethod, 0, 1, 0, 0, 0),
-        new Throw(0));
+        new DexConstString(0, tag),
+        new DexConstString(1, message),
+        new DexInvokeStatic(2, logMethod, 0, 1, 0, 0, 0),
+        new DexNewInstance(0, exceptionType),
+        new DexInvokeDirect(2, exceptionInitMethod, 0, 1, 0, 0, 0),
+        new DexThrow(0));
   }
 
   private CfCode toCfCodeThatLogsError(DexItemFactory itemFactory) {

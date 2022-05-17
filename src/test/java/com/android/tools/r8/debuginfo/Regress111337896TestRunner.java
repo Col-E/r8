@@ -9,8 +9,8 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.Nop;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexNop;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
@@ -51,8 +51,8 @@ public class Regress111337896TestRunner extends DebugInfoTestBase {
     info.checkStartLine(12);
     assertEquals(1, info.checkLineExists(18));
     int nopsFound = 0;
-    for (Instruction instruction : info.getMethod().getCode().asDexCode().instructions) {
-      if (instruction instanceof Nop) {
+    for (DexInstruction instruction : info.getMethod().getCode().asDexCode().instructions) {
+      if (instruction instanceof DexNop) {
         nopsFound++;
       }
     }
@@ -103,8 +103,8 @@ public class Regress111337896TestRunner extends DebugInfoTestBase {
     info.checkStartLine(11);
     assertEquals(1, info.checkLineExists(13));
     int nopsFound = 0;
-    for (Instruction instruction : info.getMethod().getCode().asDexCode().instructions) {
-      if (instruction instanceof Nop) {
+    for (DexInstruction instruction : info.getMethod().getCode().asDexCode().instructions) {
+      if (instruction instanceof DexNop) {
         nopsFound++;
       }
     }

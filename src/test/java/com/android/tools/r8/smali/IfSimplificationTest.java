@@ -7,16 +7,16 @@ package com.android.tools.r8.smali;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.code.Const4;
-import com.android.tools.r8.code.IfEqz;
-import com.android.tools.r8.code.IfGez;
-import com.android.tools.r8.code.IfGtz;
-import com.android.tools.r8.code.IfLez;
-import com.android.tools.r8.code.IfLtz;
-import com.android.tools.r8.code.IfNez;
-import com.android.tools.r8.code.InvokeVirtual;
-import com.android.tools.r8.code.Return;
-import com.android.tools.r8.code.ReturnObject;
+import com.android.tools.r8.dex.code.DexConst4;
+import com.android.tools.r8.dex.code.DexIfEqz;
+import com.android.tools.r8.dex.code.DexIfGez;
+import com.android.tools.r8.dex.code.DexIfGtz;
+import com.android.tools.r8.dex.code.DexIfLez;
+import com.android.tools.r8.dex.code.DexIfLtz;
+import com.android.tools.r8.dex.code.DexIfNez;
+import com.android.tools.r8.dex.code.DexInvokeVirtual;
+import com.android.tools.r8.dex.code.DexReturn;
+import com.android.tools.r8.dex.code.DexReturnObject;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.code.If.Type;
@@ -55,9 +55,9 @@ public class IfSimplificationTest extends SmaliTestBase {
         "  goto :label_1");
     DexCode code = method.getCode().asDexCode();
     assertEquals(2, code.instructions.length);
-    assertTrue(code.instructions[0] instanceof Const4);
-    assertEquals(0, ((Const4) code.instructions[0]).B);
-    assertTrue(code.instructions[1] instanceof Return);
+    assertTrue(code.instructions[0] instanceof DexConst4);
+    assertEquals(0, ((DexConst4) code.instructions[0]).B);
+    assertTrue(code.instructions[1] instanceof DexReturn);
   }
 
   @Test
@@ -75,9 +75,9 @@ public class IfSimplificationTest extends SmaliTestBase {
         "  goto :label_1");
     DexCode code = method.getCode().asDexCode();
     assertEquals(2, code.instructions.length);
-    assertTrue(code.instructions[0] instanceof Const4);
-    assertEquals(2, ((Const4) code.instructions[0]).B);
-    assertTrue(code.instructions[1] instanceof Return);
+    assertTrue(code.instructions[0] instanceof DexConst4);
+    assertEquals(2, ((DexConst4) code.instructions[0]).B);
+    assertTrue(code.instructions[1] instanceof DexReturn);
   }
 
   @Test
@@ -99,9 +99,9 @@ public class IfSimplificationTest extends SmaliTestBase {
         "  goto :label_1");
     DexCode code = method.getCode().asDexCode();
     assertEquals(2, code.instructions.length);
-    assertTrue(code.instructions[0] instanceof Const4);
-    assertEquals(0, ((Const4) code.instructions[0]).B);
-    assertTrue(code.instructions[1] instanceof Return);
+    assertTrue(code.instructions[0] instanceof DexConst4);
+    assertEquals(0, ((DexConst4) code.instructions[0]).B);
+    assertTrue(code.instructions[1] instanceof DexReturn);
   }
 
   @Test
@@ -123,9 +123,9 @@ public class IfSimplificationTest extends SmaliTestBase {
         "  goto :label_2");
     DexCode code = method.getCode().asDexCode();
     assertEquals(2, code.instructions.length);
-    assertTrue(code.instructions[0] instanceof Const4);
-    assertEquals(0, ((Const4) code.instructions[0]).B);
-    assertTrue(code.instructions[1] instanceof Return);
+    assertTrue(code.instructions[0] instanceof DexConst4);
+    assertEquals(0, ((DexConst4) code.instructions[0]).B);
+    assertTrue(code.instructions[1] instanceof DexReturn);
   }
 
   @Test
@@ -154,9 +154,9 @@ public class IfSimplificationTest extends SmaliTestBase {
         "  goto :label_2");
     DexCode code = method.getCode().asDexCode();
     assertEquals(2, code.instructions.length);
-    assertTrue(code.instructions[0] instanceof Const4);
-    assertEquals(0, ((Const4) code.instructions[0]).B);
-    assertTrue(code.instructions[1] instanceof Return);
+    assertTrue(code.instructions[0] instanceof DexConst4);
+    assertEquals(0, ((DexConst4) code.instructions[0]).B);
+    assertTrue(code.instructions[1] instanceof DexReturn);
   }
 
   @Test
@@ -181,7 +181,7 @@ public class IfSimplificationTest extends SmaliTestBase {
         "  return v0");
     DexCode code = method.getCode().asDexCode();
     assertEquals(10, code.instructions.length);
-    assertTrue(code.instructions[9] instanceof Return);
+    assertTrue(code.instructions[9] instanceof DexReturn);
   }
 
   @Test
@@ -199,9 +199,9 @@ public class IfSimplificationTest extends SmaliTestBase {
         "  goto :label_2");
     DexCode code = method.getCode().asDexCode();
     assertEquals(2, code.instructions.length);
-    assertTrue(code.instructions[0] instanceof Const4);
-    assertEquals(0, ((Const4) code.instructions[0]).B);
-    assertTrue(code.instructions[1] instanceof Return);
+    assertTrue(code.instructions[0] instanceof DexConst4);
+    assertEquals(0, ((DexConst4) code.instructions[0]).B);
+    assertTrue(code.instructions[1] instanceof DexReturn);
   }
 
   @Test
@@ -257,10 +257,10 @@ public class IfSimplificationTest extends SmaliTestBase {
             "  goto :label_1");
         DexCode code = method.getCode().asDexCode();
         assertEquals(2, code.instructions.length);
-        assertTrue(code.instructions[0] instanceof Const4);
+        assertTrue(code.instructions[0] instanceof DexConst4);
         int expected = test.results[type.ordinal()] ? 1 : 0;
-        assertEquals(expected, ((Const4) code.instructions[0]).B);
-        assertTrue(code.instructions[1] instanceof Return);
+        assertEquals(expected, ((DexConst4) code.instructions[0]).B);
+        assertTrue(code.instructions[1] instanceof DexReturn);
       }
     }
   }
@@ -288,113 +288,121 @@ public class IfSimplificationTest extends SmaliTestBase {
     DexCode code = method.getCode().asDexCode();
     assertEquals(5, code.instructions.length);
     assertTrue(expected.isInstance(code.instructions[0]));
-    assertTrue(code.instructions[4] instanceof Return);
+    assertTrue(code.instructions[4] instanceof DexReturn);
   }
 
   @Test
   public void testRewriteIfWithConstZero() {
-    runRewriteIfWithConstZeroTest(Type.EQ, true, IfEqz.class);
-    runRewriteIfWithConstZeroTest(Type.NE, true, IfNez.class);
-    runRewriteIfWithConstZeroTest(Type.LE, true, IfGez.class);
-    runRewriteIfWithConstZeroTest(Type.GE, true, IfLez.class);
-    runRewriteIfWithConstZeroTest(Type.LT, true, IfGtz.class);
-    runRewriteIfWithConstZeroTest(Type.GT, true, IfLtz.class);
+    runRewriteIfWithConstZeroTest(Type.EQ, true, DexIfEqz.class);
+    runRewriteIfWithConstZeroTest(Type.NE, true, DexIfNez.class);
+    runRewriteIfWithConstZeroTest(Type.LE, true, DexIfGez.class);
+    runRewriteIfWithConstZeroTest(Type.GE, true, DexIfLez.class);
+    runRewriteIfWithConstZeroTest(Type.LT, true, DexIfGtz.class);
+    runRewriteIfWithConstZeroTest(Type.GT, true, DexIfLtz.class);
 
-    runRewriteIfWithConstZeroTest(Type.EQ, false, IfEqz.class);
-    runRewriteIfWithConstZeroTest(Type.NE, false, IfNez.class);
-    runRewriteIfWithConstZeroTest(Type.LE, false, IfLez.class);
-    runRewriteIfWithConstZeroTest(Type.GE, false, IfGez.class);
-    runRewriteIfWithConstZeroTest(Type.LT, false, IfLtz.class);
-    runRewriteIfWithConstZeroTest(Type.GT, false, IfGtz.class);
+    runRewriteIfWithConstZeroTest(Type.EQ, false, DexIfEqz.class);
+    runRewriteIfWithConstZeroTest(Type.NE, false, DexIfNez.class);
+    runRewriteIfWithConstZeroTest(Type.LE, false, DexIfLez.class);
+    runRewriteIfWithConstZeroTest(Type.GE, false, DexIfGez.class);
+    runRewriteIfWithConstZeroTest(Type.LT, false, DexIfLtz.class);
+    runRewriteIfWithConstZeroTest(Type.GT, false, DexIfGtz.class);
   }
 
   @Test
   public void x() {
-    DexEncodedMethod method = oneMethodApplication(
-        "Test",
-        Lists.newArrayList("Test", "java.lang.String[]", "java.lang.String",
-            "java.lang.String[]", "java.lang.String"),
-        10,
-        "          const/4             v4, 0x00  # 0",
-        "          invoke-virtual      { v10 }, LTest;->a()LTest;",
-        "          if-nez              v4, :label_8",
-        "          move-object         v0, v4",
-        "      :label_7",
-        "          return-object       v0",
-        "      :label_8",
-        "          invoke-static       { v14 }, LTest;->a([Ljava/lang/String;)LTest;",
-        "          move-result-object  v2",
-        "          invoke-virtual      { v2 }, LTest;->a()Z",
-        "          move-result         v0",
-        "          if-nez              v0, :label_20",
-        "          move-object         v0, v4",
-        "          goto                :label_7",
-        "      :label_20",
-        "          iget-wide           v0, v2, LTest;->a:J",
-        "          iget-wide           v6, v2, LTest;->b:J",
-        "          invoke-virtual      { v2 }, LTest;->c()Z",
-        "          move-result         v2",
-        "          if-eqz              v2, :label_33",
-        "          invoke-virtual      { v4 }, LTest;->a()V",
-        "      :label_33",
-        "          new-instance        v5, LTest;",
-        "          sget-object         v2, LTest;->a:[Ljava/lang/String;",
-        "          invoke-direct       { v5, v2 }, LTest;-><init>([Ljava/lang/String;)V",
-        "          invoke-virtual      { v10 }, LTest;->a()LTest;",
-        "          invoke-virtual      { v4, v0, v1, v6, v7 }, LTest;->a(JJ)Ljava/util/List;",
-        "          move-result-object  v2",
-        "          invoke-interface    { v2 }, Ljava/util/List;->iterator()Ljava/util/Iterator;",
-        "          move-result-object  v6",
-        "          move-wide           v2, v0",
-        "      :label_52",
-        "          invoke-interface    { v6 }, Ljava/util/Iterator;->hasNext()Z",
-        "          move-result         v0",
-        "          if-eqz              v0, :label_107",
-        "          invoke-interface    { v6 }, Ljava/util/Iterator;->next()Ljava/lang/Object;",
-        "          move-result-object  v0",
-        "          check-cast          v0, LTest;",
-        "          const-wide/16       v8, 0x0000000000000001  # 1",
-        "          add-long/2addr      v2, v8",
-        "          invoke-virtual      { v5 }, LTest;->newRow()LTest;",
-        "          move-result-object  v1",
-        "          invoke-static       { v2, v3 }, Ljava/lang/Long;->valueOf(J)Ljava/lang/Long;",
-        "          move-result-object  v7",
-        "          invoke-virtual      { v1, v7 }, LTest;->a(Ljava/lang/Object;)LTest;",
-        "          move-result-object  v1",
-        "          const-string        v7, \"add\"",
-        "          invoke-virtual      { v1, v7 }, LTest;->a(Ljava/lang/Object;)LTest;",
-        "          move-result-object  v1",
-        "          iget-object         v7, v0, LTest;->a:Ljava/lang/String;",
-        "          invoke-virtual      { v1, v7 }, LTest;->a(Ljava/lang/Object;)LTest;",
-        "          move-result-object  v1",
-        "          iget                v7, v0, LTest;->b:I",
-        "          invoke-static       { v7 }, Ljava/lang/Integer;->valueOf(I)Ljava/lang/Integer;",
-        "          move-result-object  v7",
-        "          invoke-virtual      { v1, v7 }, LTest;->add(Ljava/lang/Object;)LTest;",
-        "          move-result-object  v1",
-        "          iget-object         v0, v0, LTest;->a:Ljava/lang/String;",
-        "          invoke-virtual      { v1, v0 }, LTest;->add(Ljava/lang/Object;)LTest;",
-        "          goto                :label_52",
-        "      :label_107",
-        "          iget-object         v0, v4, LTest;->a:LTest;",
-        "          const-string        v1, \"text 1\"",
-        "          const/4             v2, 0x00  # 0",
-        "          invoke-virtual      { v0, v1, v2 }, LTest;->a(Ljava/lang/String;I)LTest;",
-        "          move-result-object  v0",
-        "          const-string        v1, \"text 2\"",
-        "          const-string        v2, \"\"",
-        "          invoke-interface    { v0, v1, v2 }, LTest;->getString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;",
-        "          move-result-object  v0",
-        "          invoke-static       { v5, v0 }, LTest;->a(LTest;Ljava/lang/String;)LTest;",
-        "          move-result-object  v0",
-        "          goto                :label_7"
-    );
+    DexEncodedMethod method =
+        oneMethodApplication(
+            "Test",
+            Lists.newArrayList(
+                "Test",
+                "java.lang.String[]",
+                "java.lang.String",
+                "java.lang.String[]",
+                "java.lang.String"),
+            10,
+            "          const/4             v4, 0x00  # 0",
+            "          invoke-virtual      { v10 }, LTest;->a()LTest;",
+            "          if-nez              v4, :label_8",
+            "          move-object         v0, v4",
+            "      :label_7",
+            "          return-object       v0",
+            "      :label_8",
+            "          invoke-static       { v14 }, LTest;->a([Ljava/lang/String;)LTest;",
+            "          move-result-object  v2",
+            "          invoke-virtual      { v2 }, LTest;->a()Z",
+            "          move-result         v0",
+            "          if-nez              v0, :label_20",
+            "          move-object         v0, v4",
+            "          goto                :label_7",
+            "      :label_20",
+            "          iget-wide           v0, v2, LTest;->a:J",
+            "          iget-wide           v6, v2, LTest;->b:J",
+            "          invoke-virtual      { v2 }, LTest;->c()Z",
+            "          move-result         v2",
+            "          if-eqz              v2, :label_33",
+            "          invoke-virtual      { v4 }, LTest;->a()V",
+            "      :label_33",
+            "          new-instance        v5, LTest;",
+            "          sget-object         v2, LTest;->a:[Ljava/lang/String;",
+            "          invoke-direct       { v5, v2 }, LTest;-><init>([Ljava/lang/String;)V",
+            "          invoke-virtual      { v10 }, LTest;->a()LTest;",
+            "          invoke-virtual      { v4, v0, v1, v6, v7 }, LTest;->a(JJ)Ljava/util/List;",
+            "          move-result-object  v2",
+            "          invoke-interface    { v2 },"
+                + " Ljava/util/List;->iterator()Ljava/util/Iterator;",
+            "          move-result-object  v6",
+            "          move-wide           v2, v0",
+            "      :label_52",
+            "          invoke-interface    { v6 }, Ljava/util/Iterator;->hasNext()Z",
+            "          move-result         v0",
+            "          if-eqz              v0, :label_107",
+            "          invoke-interface    { v6 }, Ljava/util/Iterator;->next()Ljava/lang/Object;",
+            "          move-result-object  v0",
+            "          check-cast          v0, LTest;",
+            "          const-wide/16       v8, 0x0000000000000001  # 1",
+            "          add-long/2addr      v2, v8",
+            "          invoke-virtual      { v5 }, LTest;->newRow()LTest;",
+            "          move-result-object  v1",
+            "          invoke-static       { v2, v3 },"
+                + " Ljava/lang/Long;->valueOf(J)Ljava/lang/Long;",
+            "          move-result-object  v7",
+            "          invoke-virtual      { v1, v7 }, LTest;->a(Ljava/lang/Object;)LTest;",
+            "          move-result-object  v1",
+            "          const-string        v7, \"add\"",
+            "          invoke-virtual      { v1, v7 }, LTest;->a(Ljava/lang/Object;)LTest;",
+            "          move-result-object  v1",
+            "          iget-object         v7, v0, LTest;->a:Ljava/lang/String;",
+            "          invoke-virtual      { v1, v7 }, LTest;->a(Ljava/lang/Object;)LTest;",
+            "          move-result-object  v1",
+            "          iget                v7, v0, LTest;->b:I",
+            "          invoke-static       { v7 },"
+                + " Ljava/lang/Integer;->valueOf(I)Ljava/lang/Integer;",
+            "          move-result-object  v7",
+            "          invoke-virtual      { v1, v7 }, LTest;->add(Ljava/lang/Object;)LTest;",
+            "          move-result-object  v1",
+            "          iget-object         v0, v0, LTest;->a:Ljava/lang/String;",
+            "          invoke-virtual      { v1, v0 }, LTest;->add(Ljava/lang/Object;)LTest;",
+            "          goto                :label_52",
+            "      :label_107",
+            "          iget-object         v0, v4, LTest;->a:LTest;",
+            "          const-string        v1, \"text 1\"",
+            "          const/4             v2, 0x00  # 0",
+            "          invoke-virtual      { v0, v1, v2 }, LTest;->a(Ljava/lang/String;I)LTest;",
+            "          move-result-object  v0",
+            "          const-string        v1, \"text 2\"",
+            "          const-string        v2, \"\"",
+            "          invoke-interface    { v0, v1, v2 },"
+                + " LTest;->getString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;",
+            "          move-result-object  v0",
+            "          invoke-static       { v5, v0 }, LTest;->a(LTest;Ljava/lang/String;)LTest;",
+            "          move-result-object  v0",
+            "          goto                :label_7");
     DexCode code = method.getCode().asDexCode();
     assertEquals(3, code.instructions.length);
-    assertTrue(code.instructions[0] instanceof InvokeVirtual);
-    assertTrue(code.instructions[1] instanceof Const4);
-    assertEquals(0, ((Const4) code.instructions[1]).B);
-    assertTrue(code.instructions[2] instanceof ReturnObject);
+    assertTrue(code.instructions[0] instanceof DexInvokeVirtual);
+    assertTrue(code.instructions[1] instanceof DexConst4);
+    assertEquals(0, ((DexConst4) code.instructions[1]).B);
+    assertTrue(code.instructions[2] instanceof DexReturnObject);
   }
 
   @Test

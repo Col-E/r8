@@ -83,7 +83,7 @@ public class DexItemBasedConstString extends ConstInstruction {
     int dest = builder.allocatedRegister(outValue(), getNumber());
     builder.add(
         this,
-        new com.android.tools.r8.code.DexItemBasedConstString(dest, item, nameComputationInfo));
+        new com.android.tools.r8.dex.code.DexItemBasedConstString(dest, item, nameComputationInfo));
   }
 
   @Override

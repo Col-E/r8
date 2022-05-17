@@ -12,8 +12,8 @@ import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.code.InvokeVirtual;
-import com.android.tools.r8.code.ReturnVoid;
+import com.android.tools.r8.dex.code.DexInvokeVirtual;
+import com.android.tools.r8.dex.code.DexReturnVoid;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
@@ -180,13 +180,15 @@ public class B77836766 extends TestBase {
 
               if (parameters.isDexRuntime()) {
                 DexCode code = fooFromCls2InAbsCls.getMethod().getCode().asDexCode();
-                checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
-                InvokeVirtual invoke = (InvokeVirtual) code.instructions[0];
+                checkInstructions(
+                    code, ImmutableList.of(DexInvokeVirtual.class, DexReturnVoid.class));
+                DexInvokeVirtual invoke = (DexInvokeVirtual) code.instructions[0];
                 assertEquals(absSubject.getDexProgramClass().type, invoke.getMethod().holder);
 
                 code = fooFromCls1InAbsCls.getMethod().getCode().asDexCode();
-                checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
-                invoke = (InvokeVirtual) code.instructions[0];
+                checkInstructions(
+                    code, ImmutableList.of(DexInvokeVirtual.class, DexReturnVoid.class));
+                invoke = (DexInvokeVirtual) code.instructions[0];
                 assertEquals(absSubject.getDexProgramClass().type, invoke.getMethod().holder);
               }
             })
@@ -304,13 +306,15 @@ public class B77836766 extends TestBase {
 
               if (parameters.isDexRuntime()) {
                 DexCode code = barInCls2.getMethod().getCode().asDexCode();
-                checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
-                InvokeVirtual invoke = (InvokeVirtual) code.instructions[0];
+                checkInstructions(
+                    code, ImmutableList.of(DexInvokeVirtual.class, DexReturnVoid.class));
+                DexInvokeVirtual invoke = (DexInvokeVirtual) code.instructions[0];
                 assertEquals(baseSubject.getDexProgramClass().type, invoke.getMethod().holder);
 
                 code = fooInBase.getMethod().getCode().asDexCode();
-                checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
-                invoke = (InvokeVirtual) code.instructions[0];
+                checkInstructions(
+                    code, ImmutableList.of(DexInvokeVirtual.class, DexReturnVoid.class));
+                invoke = (DexInvokeVirtual) code.instructions[0];
                 assertEquals(baseSubject.getDexProgramClass().type, invoke.getMethod().holder);
               }
             })
@@ -405,8 +409,9 @@ public class B77836766 extends TestBase {
 
               if (parameters.isDexRuntime()) {
                 DexCode code = barInSub.getMethod().getCode().asDexCode();
-                checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
-                InvokeVirtual invoke = (InvokeVirtual) code.instructions[0];
+                checkInstructions(
+                    code, ImmutableList.of(DexInvokeVirtual.class, DexReturnVoid.class));
+                DexInvokeVirtual invoke = (DexInvokeVirtual) code.instructions[0];
                 assertEquals(baseSubject.getDexProgramClass().type, invoke.getMethod().holder);
               }
             })
@@ -491,8 +496,9 @@ public class B77836766 extends TestBase {
 
               if (parameters.isDexRuntime()) {
                 DexCode code = barInSub.getMethod().getCode().asDexCode();
-                checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
-                InvokeVirtual invoke = (InvokeVirtual) code.instructions[0];
+                checkInstructions(
+                    code, ImmutableList.of(DexInvokeVirtual.class, DexReturnVoid.class));
+                DexInvokeVirtual invoke = (DexInvokeVirtual) code.instructions[0];
                 assertEquals(baseSubject.getDexProgramClass().type, invoke.getMethod().holder);
               }
             })

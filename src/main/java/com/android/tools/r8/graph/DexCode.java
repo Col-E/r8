@@ -3,14 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.code.CfOrDexInstruction;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.ReturnVoid;
-import com.android.tools.r8.code.SwitchPayload;
 import com.android.tools.r8.dex.CodeToKeep;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.JumboStringRewriter;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.dex.code.CfOrDexInstruction;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexReturnVoid;
+import com.android.tools.r8.dex.code.DexSwitchPayload;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
 import com.android.tools.r8.graph.DexDebugEvent.SetPositionFrame;
@@ -60,13 +60,13 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
   public final int outgoingRegisterSize;
   public final Try[] tries;
   public final TryHandler[] handlers;
-  public final Instruction[] instructions;
+  public final DexInstruction[] instructions;
 
   public DexString highestSortingString;
   private DexDebugInfo debugInfo;
   private DexDebugInfoForWriting debugInfoForWriting;
 
-  private final BytecodeMetadata<Instruction> metadata;
+  private final BytecodeMetadata<DexInstruction> metadata;
 
   private static void specify(StructuralSpecification<DexCode, ?> spec) {
     spec.withInt(c -> c.registerSize)
@@ -82,7 +82,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       int registerSize,
       int insSize,
       int outsSize,
-      Instruction[] instructions,
+      DexInstruction[] instructions,
       Try[] tries,
       TryHandler[] handlers,
       DexDebugInfo debugInfo) {
@@ -101,11 +101,11 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       int registerSize,
       int insSize,
       int outsSize,
-      Instruction[] instructions,
+      DexInstruction[] instructions,
       Try[] tries,
       TryHandler[] handlers,
       DexDebugInfo debugInfo,
-      BytecodeMetadata<Instruction> metadata) {
+      BytecodeMetadata<DexInstruction> metadata) {
     this.incomingRegisterSize = insSize;
     this.registerSize = registerSize;
     this.outgoingRegisterSize = outsSize;
@@ -126,7 +126,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
   }
 
   @Override
-  public BytecodeMetadata<Instruction> getMetadata() {
+  public BytecodeMetadata<DexInstruction> getMetadata() {
     return metadata;
   }
 
@@ -135,7 +135,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
     return getMetadata(instruction.asDexInstruction());
   }
 
-  public BytecodeInstructionMetadata getMetadata(Instruction instruction) {
+  public BytecodeInstructionMetadata getMetadata(DexInstruction instruction) {
     return metadata.getMetadata(instruction);
   }
 
@@ -157,8 +157,8 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       firstJumboString = mapping.getFirstString();
     } else {
       assert highestSortingString != null
-          || Arrays.stream(instructions).noneMatch(Instruction::isConstString);
-      assert Arrays.stream(instructions).noneMatch(Instruction::isDexItemBasedConstString);
+          || Arrays.stream(instructions).noneMatch(DexInstruction::isConstString);
+      assert Arrays.stream(instructions).noneMatch(DexInstruction::isDexItemBasedConstString);
       if (highestSortingString != null
           && highestSortingString.isGreaterThanOrEqualTo(mapping.getFirstJumboString())) {
         firstJumboString = mapping.getFirstJumboString();
@@ -171,7 +171,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
 
   @Override
   public void setCallSiteContexts(ProgramMethod method) {
-    for (Instruction instruction : instructions) {
+    for (DexInstruction instruction : instructions) {
       DexCallSite callSite = instruction.getCallSite();
       if (callSite != null) {
         callSite.setContext(method.getReference(), instruction.getOffset());
@@ -363,7 +363,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
 
   @Override
   public boolean isEmptyVoidMethod() {
-    return instructions.length == 1 && instructions[0] instanceof ReturnVoid;
+    return instructions.length == 1 && instructions[0] instanceof DexReturnVoid;
   }
 
   @Override
@@ -421,7 +421,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
 
   private void internalRegisterCodeReferences(DexClassAndMethod method, UseRegistry registry) {
     assert registry.getTraversalContinuation().shouldContinue();
-    for (Instruction insn : instructions) {
+    for (DexInstruction insn : instructions) {
       insn.registerUse(registry);
       if (registry.getTraversalContinuation().shouldBreak()) {
         return;
@@ -456,8 +456,8 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
     builder.append("------------------------------------------------------------\n");
 
     // Collect payload users.
-    Map<Integer, Instruction> payloadUsers = new HashMap<>();
-    for (Instruction dex : instructions) {
+    Map<Integer, DexInstruction> payloadUsers = new HashMap<>();
+    for (DexInstruction dex : instructions) {
       if (dex.hasPayload()) {
         payloadUsers.put(dex.getOffset() + dex.getPayloadOffset(), dex);
       }
@@ -472,7 +472,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
     }
     int instructionNumber = 0;
     Map<Integer, DebugLocalInfo> locals = Collections.emptyMap();
-    for (Instruction insn : instructions) {
+    for (DexInstruction insn : instructions) {
       debugInfo = advanceToOffset(insn.getOffset() - 1, debugInfo, debugInfoIterator);
       while (debugInfo != null && debugInfo.address == insn.getOffset()) {
         if (debugInfo.lineEntry || !locals.equals(debugInfo.locals)) {
@@ -484,7 +484,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       StringUtils.appendLeftPadded(builder, Integer.toString(instructionNumber++), 5);
       builder.append(": ");
       if (insn.isSwitchPayload()) {
-        Instruction payloadUser = payloadUsers.get(insn.getOffset());
+        DexInstruction payloadUser = payloadUsers.get(insn.getOffset());
         builder.append(insn.toString(naming, payloadUser));
       } else {
         builder.append(insn.toString(naming));
@@ -494,7 +494,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
     if (isPcBasedInfo) {
       builder.append(getDebugInfo()).append("\n");
     } else if (debugInfoIterator.hasNext()) {
-      Instruction lastInstruction = ArrayUtils.last(instructions);
+      DexInstruction lastInstruction = ArrayUtils.last(instructions);
       debugInfo = advanceToOffset(lastInstruction.getOffset(), debugInfo, debugInfoIterator);
       if (debugInfo != null) {
         throw new Unreachable("Could not print all debug information.");
@@ -531,12 +531,12 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
   public String toSmaliString(ClassNameMapper naming) {
     StringBuilder builder = new StringBuilder();
     // Find labeled targets.
-    Map<Integer, Instruction> payloadUsers = new HashMap<>();
+    Map<Integer, DexInstruction> payloadUsers = new HashMap<>();
     Set<Integer> labledTargets = new HashSet<>();
     // Collect payload users and labeled targets for non-payload instructions.
-    for (Instruction dex : instructions) {
+    for (DexInstruction dex : instructions) {
       int[] targets = dex.getTargets();
-      if (targets != Instruction.NO_TARGETS && targets != Instruction.EXIT_TARGET) {
+      if (targets != DexInstruction.NO_TARGETS && targets != DexInstruction.EXIT_TARGET) {
         assert targets.length <= 2;
         // For if instructions the second target is the fallthrough, for which no label is needed.
         labledTargets.add(dex.getOffset() + targets[0]);
@@ -546,11 +546,11 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       }
     }
     // Collect labeled targets for payload instructions.
-    for (Instruction dex : instructions) {
+    for (DexInstruction dex : instructions) {
       if (dex.isSwitchPayload()) {
-        Instruction payloadUser = payloadUsers.get(dex.getOffset());
-        if (dex instanceof SwitchPayload) {
-          SwitchPayload payload = (SwitchPayload) dex;
+        DexInstruction payloadUser = payloadUsers.get(dex.getOffset());
+        if (dex instanceof DexSwitchPayload) {
+          DexSwitchPayload payload = (DexSwitchPayload) dex;
           for (int target : payload.switchTargetOffsets()) {
             labledTargets.add(payloadUser.getOffset() + target);
           }
@@ -558,14 +558,14 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       }
     }
     // Generate smali for all instructions.
-    for (Instruction dex : instructions) {
+    for (DexInstruction dex : instructions) {
       if (labledTargets.contains(dex.getOffset())) {
         builder.append("  :label_");
         builder.append(dex.getOffset());
         builder.append("\n");
       }
       if (dex.isSwitchPayload()) {
-        Instruction payloadUser = payloadUsers.get(dex.getOffset());
+        DexInstruction payloadUser = payloadUsers.get(dex.getOffset());
         builder.append(dex.toSmaliString(payloadUser)).append('\n');
       } else {
         builder.append(dex.toSmaliString(naming)).append('\n');
@@ -594,7 +594,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       GraphLens graphLens,
       LensCodeRewriterUtils rewriter) {
     highestSortingString = null;
-    for (Instruction insn : instructions) {
+    for (DexInstruction insn : instructions) {
       assert !insn.isDexItemBasedConstString();
       insn.collectIndexedItems(indexedItems, context, graphLens, rewriter);
       if (insn.isConstString()) {
@@ -665,7 +665,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
 
   @Override
   public int codeSizeInBytes() {
-    Instruction last = instructions[instructions.length - 1];
+    DexInstruction last = instructions[instructions.length - 1];
     assert last.hasOffset();
     int result = last.getOffset() + last.getSize();
     assert result == computeCodeSizeInBytes();
@@ -674,7 +674,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
 
   private int computeCodeSizeInBytes() {
     int size = 0;
-    for (Instruction insn : instructions) {
+    for (DexInstruction insn : instructions) {
       size += insn.getSize();
     }
     return size;
@@ -682,7 +682,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
 
   @Override
   public void writeKeepRulesForDesugaredLibrary(CodeToKeep desugaredLibraryCodeToKeep) {
-    for (Instruction instruction : instructions) {
+    for (DexInstruction instruction : instructions) {
       DexMethod method = instruction.getMethod();
       DexField field = instruction.getField();
       if (field != null) {
@@ -707,7 +707,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       GraphLens graphLens,
       LensCodeRewriterUtils lensCodeRewriter,
       ObjectToOffsetMapping mapping) {
-    for (Instruction instruction : instructions) {
+    for (DexInstruction instruction : instructions) {
       instruction.write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
     }
   }

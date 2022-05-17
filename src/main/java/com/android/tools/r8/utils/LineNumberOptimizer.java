@@ -6,8 +6,8 @@ package com.android.tools.r8.utils;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfPosition;
-import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.debuginfo.DebugRepresentation.DebugRepresentationPredicate;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -1180,7 +1180,7 @@ public class LineNumberOptimizer {
     // If the method has a single non-preamble line, check that the preamble is not active on any
     // throwing instruction before the single line becomes active.
     if (singleOriginalLine.isTrue() && firstDefaultEventPc.get() > 0) {
-      for (Instruction instruction : dexCode.instructions) {
+      for (DexInstruction instruction : dexCode.instructions) {
         if (instruction.getOffset() < firstDefaultEventPc.get()) {
           if (instruction.canThrow()) {
             singleOriginalLine.set(false);

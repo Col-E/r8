@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfInstanceOf;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexInstanceOf;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -52,7 +53,7 @@ public class InstanceOf extends Instruction {
   public void buildDex(DexBuilder builder) {
     int dest = builder.allocatedRegister(dest(), getNumber());
     int value = builder.allocatedRegister(value(), getNumber());
-    builder.addInstanceOf(this, new com.android.tools.r8.code.InstanceOf(dest, value, type));
+    builder.addInstanceOf(this, new DexInstanceOf(dest, value, type));
   }
 
   @Override

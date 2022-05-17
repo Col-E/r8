@@ -6,8 +6,8 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfInitClass;
-import com.android.tools.r8.code.DexInitClass;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexInitClass;
 import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;

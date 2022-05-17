@@ -8,9 +8,9 @@ import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfDexItemBasedConstString;
 import com.android.tools.r8.cf.code.CfInstruction;
-import com.android.tools.r8.code.ConstString;
-import com.android.tools.r8.code.DexItemBasedConstString;
-import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.dex.code.DexConstString;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexItemBasedConstString;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
@@ -91,9 +91,9 @@ class IdentifierMinifier {
       return;
     }
     if (code.isDexCode()) {
-      for (Instruction instruction : code.asDexCode().instructions) {
+      for (DexInstruction instruction : code.asDexCode().instructions) {
         if (instruction.isConstString()) {
-          ConstString cnst = instruction.asConstString();
+          DexConstString cnst = instruction.asConstString();
           cnst.BBBB = getRenamedStringLiteral(cnst.getString());
         }
       }
@@ -163,15 +163,15 @@ class IdentifierMinifier {
     Code code = programMethod.getDefinition().getCode();
     assert code != null;
     if (code.isDexCode()) {
-      Instruction[] instructions = code.asDexCode().instructions;
+      DexInstruction[] instructions = code.asDexCode().instructions;
       for (int i = 0; i < instructions.length; ++i) {
-        Instruction instruction = instructions[i];
+        DexInstruction instruction = instructions[i];
         if (instruction.isDexItemBasedConstString()) {
           DexItemBasedConstString cnst = instruction.asDexItemBasedConstString();
           DexString replacement =
               cnst.getNameComputationInfo()
                   .computeNameFor(cnst.getItem(), appView, appView.graphLens(), lens);
-          ConstString constString = new ConstString(cnst.AA, replacement);
+          DexConstString constString = new DexConstString(cnst.AA, replacement);
           constString.setOffset(instruction.getOffset());
           instructions[i] = constString;
         }

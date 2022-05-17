@@ -7,6 +7,7 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfConstMethodType;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexConstMethodType;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
@@ -58,7 +59,7 @@ public class ConstMethodType extends ConstInstruction {
   @Override
   public void buildDex(DexBuilder builder) {
     int dest = builder.allocatedRegister(dest(), getNumber());
-    builder.add(this, new com.android.tools.r8.code.ConstMethodType(dest, methodType));
+    builder.add(this, new DexConstMethodType(dest, methodType));
   }
 
   @Override

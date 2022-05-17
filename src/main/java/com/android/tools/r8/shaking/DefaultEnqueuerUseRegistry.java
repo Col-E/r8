@@ -8,7 +8,7 @@ import static com.android.tools.r8.ir.desugar.records.RecordRewriterHelper.isInv
 
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.androidapi.ComputedApiLevel;
-import com.android.tools.r8.code.CfOrDexInstruction;
+import com.android.tools.r8.dex.code.CfOrDexInstruction;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;

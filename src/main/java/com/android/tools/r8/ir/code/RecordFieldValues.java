@@ -6,8 +6,8 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfRecordFieldValues;
-import com.android.tools.r8.code.DexRecordFieldValues;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexRecordFieldValues;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.ProgramMethod;

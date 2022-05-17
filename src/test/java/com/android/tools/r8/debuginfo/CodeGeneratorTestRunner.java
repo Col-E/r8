@@ -6,10 +6,10 @@ package com.android.tools.r8.debuginfo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.code.AddInt;
-import com.android.tools.r8.code.AddInt2Addr;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.Return;
+import com.android.tools.r8.dex.code.DexAddInt;
+import com.android.tools.r8.dex.code.DexAddInt2Addr;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexReturn;
 import com.android.tools.r8.utils.AndroidApp;
 import org.junit.Test;
 
@@ -31,11 +31,11 @@ public class CodeGeneratorTestRunner extends DebugInfoTestBase {
 
     DebugInfoInspector inspector = inspectMethod(d8App, clazz, "int", "intAddition", "int", "int",
         "int");
-    Instruction[] instructions = inspector.getMethod().getCode().asDexCode().instructions;
-    assertTrue(instructions[0] instanceof AddInt2Addr);
-    assertTrue(instructions[1] instanceof AddInt2Addr);
-    assertTrue(instructions[2] instanceof AddInt);
-    assertTrue(instructions[3] instanceof Return);
+    DexInstruction[] instructions = inspector.getMethod().getCode().asDexCode().instructions;
+    assertTrue(instructions[0] instanceof DexAddInt2Addr);
+    assertTrue(instructions[1] instanceof DexAddInt2Addr);
+    assertTrue(instructions[2] instanceof DexAddInt);
+    assertTrue(instructions[3] instanceof DexReturn);
   }
 
 }

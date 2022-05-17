@@ -13,8 +13,8 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.cf.code.CfArithmeticBinop.Opcode;
 import com.android.tools.r8.cf.code.CfInstruction;
-import com.android.tools.r8.code.AddLong2Addr;
-import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.dex.code.DexAddLong2Addr;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.ir.code.NumericType;
@@ -47,8 +47,8 @@ public class DesugarToClassFileBackport extends TestBase {
         && (((CfArithmeticBinop) instruction).getType() == NumericType.LONG);
   }
 
-  private boolean isDexAddLong(Instruction instruction) {
-    return instruction instanceof AddLong2Addr;
+  private boolean isDexAddLong(DexInstruction instruction) {
+    return instruction instanceof DexAddLong2Addr;
   }
 
   private boolean boxedDoubleIsFiniteInvoke(InstructionSubject instruction) {

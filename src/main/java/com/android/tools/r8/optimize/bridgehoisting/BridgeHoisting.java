@@ -7,9 +7,9 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.InvokeVirtual;
-import com.android.tools.r8.code.InvokeVirtualRange;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexInvokeVirtual;
+import com.android.tools.r8.dex.code.DexInvokeVirtualRange;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.BottomUpClassHierarchyTraversal;
@@ -332,24 +332,24 @@ public class BridgeHoisting {
   }
 
   private DexCode createDexCodeForVirtualBridge(DexCode code, DexMethod methodToInvoke) {
-    Instruction[] newInstructions = new Instruction[code.instructions.length];
+    DexInstruction[] newInstructions = new DexInstruction[code.instructions.length];
     boolean modified = false;
     for (int i = 0; i < code.instructions.length; i++) {
-      Instruction instruction = code.instructions[i];
+      DexInstruction instruction = code.instructions[i];
       if (instruction.isInvokeVirtual()
           && instruction.asInvokeVirtual().getMethod() != methodToInvoke) {
-        InvokeVirtual invoke = instruction.asInvokeVirtual();
-        InvokeVirtual newInvoke =
-            new InvokeVirtual(
+        DexInvokeVirtual invoke = instruction.asInvokeVirtual();
+        DexInvokeVirtual newInvoke =
+            new DexInvokeVirtual(
                 invoke.A, methodToInvoke, invoke.C, invoke.D, invoke.E, invoke.F, invoke.G);
         newInvoke.setOffset(invoke.getOffset());
         newInstructions[i] = newInvoke;
         modified = true;
       } else if (instruction.isInvokeVirtualRange()
           && instruction.asInvokeVirtualRange().getMethod() != methodToInvoke) {
-        InvokeVirtualRange invoke = instruction.asInvokeVirtualRange();
-        InvokeVirtualRange newInvoke =
-            new InvokeVirtualRange(invoke.CCCC, invoke.AA, methodToInvoke);
+        DexInvokeVirtualRange invoke = instruction.asInvokeVirtualRange();
+        DexInvokeVirtualRange newInvoke =
+            new DexInvokeVirtualRange(invoke.CCCC, invoke.AA, methodToInvoke);
         newInvoke.setOffset(invoke.getOffset());
         modified = true;
         newInstructions[i] = newInvoke;

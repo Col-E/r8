@@ -12,18 +12,18 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.ThrowableConsumer;
-import com.android.tools.r8.code.AputObject;
-import com.android.tools.r8.code.Const4;
-import com.android.tools.r8.code.ConstClass;
-import com.android.tools.r8.code.ConstString;
-import com.android.tools.r8.code.InvokeDirect;
-import com.android.tools.r8.code.InvokeStatic;
-import com.android.tools.r8.code.InvokeVirtual;
-import com.android.tools.r8.code.IputObject;
-import com.android.tools.r8.code.NewArray;
-import com.android.tools.r8.code.ReturnVoid;
-import com.android.tools.r8.code.SgetObject;
-import com.android.tools.r8.code.SputObject;
+import com.android.tools.r8.dex.code.DexAputObject;
+import com.android.tools.r8.dex.code.DexConst4;
+import com.android.tools.r8.dex.code.DexConstClass;
+import com.android.tools.r8.dex.code.DexConstString;
+import com.android.tools.r8.dex.code.DexInvokeDirect;
+import com.android.tools.r8.dex.code.DexInvokeStatic;
+import com.android.tools.r8.dex.code.DexInvokeVirtual;
+import com.android.tools.r8.dex.code.DexIputObject;
+import com.android.tools.r8.dex.code.DexNewArray;
+import com.android.tools.r8.dex.code.DexReturnVoid;
+import com.android.tools.r8.dex.code.DexSgetObject;
+import com.android.tools.r8.dex.code.DexSputObject;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.smali.SmaliBuilder;
@@ -67,8 +67,8 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     checkInstructions(
         code,
         ImmutableList.of(
-            InvokeDirect.class, ConstString.class, IputObject.class, ReturnVoid.class));
-    ConstString constString = (ConstString) code.instructions[1];
+            DexInvokeDirect.class, DexConstString.class, DexIputObject.class, DexReturnVoid.class));
+    DexConstString constString = (DexConstString) code.instructions[1];
     assertEquals(BOO, constString.getString().toString());
   }
 
@@ -100,16 +100,16 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     checkInstructions(
         code,
         ImmutableList.of(
-            InvokeDirect.class,
-            SgetObject.class,
-            ConstString.class,
-            InvokeVirtual.class,
-            ConstString.class,
-            IputObject.class,
-            ReturnVoid.class));
-    ConstString constString = (ConstString) code.instructions[2];
+            DexInvokeDirect.class,
+            DexSgetObject.class,
+            DexConstString.class,
+            DexInvokeVirtual.class,
+            DexConstString.class,
+            DexIputObject.class,
+            DexReturnVoid.class));
+    DexConstString constString = (DexConstString) code.instructions[2];
     assertEquals(BOO, constString.getString().toString());
-    constString = (ConstString) code.instructions[4];
+    constString = (DexConstString) code.instructions[4];
     assertEquals(BOO, constString.getString().toString());
   }
 
@@ -143,16 +143,16 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     checkInstructions(
         code,
         ImmutableList.of(
-            InvokeDirect.class,
-            SgetObject.class,
-            ConstString.class,
-            InvokeVirtual.class,
-            ConstString.class,
-            IputObject.class,
-            ReturnVoid.class));
-    ConstString constString = (ConstString) code.instructions[2];
+            DexInvokeDirect.class,
+            DexSgetObject.class,
+            DexConstString.class,
+            DexInvokeVirtual.class,
+            DexConstString.class,
+            DexIputObject.class,
+            DexReturnVoid.class));
+    DexConstString constString = (DexConstString) code.instructions[2];
     assertEquals(BOO, constString.getString().toString());
-    constString = (ConstString) code.instructions[4];
+    constString = (DexConstString) code.instructions[4];
     assertNotEquals(BOO, constString.getString().toString());
   }
 
@@ -180,11 +180,9 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
-    checkInstructions(code, ImmutableList.of(
-        ConstString.class,
-        SputObject.class,
-        ReturnVoid.class));
-    ConstString constString = (ConstString) code.instructions[0];
+    checkInstructions(
+        code, ImmutableList.of(DexConstString.class, DexSputObject.class, DexReturnVoid.class));
+    DexConstString constString = (DexConstString) code.instructions[0];
     assertEquals(BOO, constString.getString().toString());
   }
 
@@ -212,16 +210,18 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
-    checkInstructions(code, ImmutableList.of(
-        SgetObject.class,
-        ConstString.class,
-        InvokeVirtual.class,
-        ConstString.class,
-        SputObject.class,
-        ReturnVoid.class));
-    ConstString constString = (ConstString) code.instructions[1];
+    checkInstructions(
+        code,
+        ImmutableList.of(
+            DexSgetObject.class,
+            DexConstString.class,
+            DexInvokeVirtual.class,
+            DexConstString.class,
+            DexSputObject.class,
+            DexReturnVoid.class));
+    DexConstString constString = (DexConstString) code.instructions[1];
     assertEquals(BOO, constString.getString().toString());
-    constString = (ConstString) code.instructions[3];
+    constString = (DexConstString) code.instructions[3];
     assertEquals(BOO, constString.getString().toString());
   }
 
@@ -251,16 +251,18 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
-    checkInstructions(code, ImmutableList.of(
-        SgetObject.class,
-        ConstString.class,
-        InvokeVirtual.class,
-        ConstString.class,
-        SputObject.class,
-        ReturnVoid.class));
-    ConstString constString = (ConstString) code.instructions[1];
+    checkInstructions(
+        code,
+        ImmutableList.of(
+            DexSgetObject.class,
+            DexConstString.class,
+            DexInvokeVirtual.class,
+            DexConstString.class,
+            DexSputObject.class,
+            DexReturnVoid.class));
+    DexConstString constString = (DexConstString) code.instructions[1];
     assertEquals(BOO, constString.getString().toString());
-    constString = (ConstString) code.instructions[3];
+    constString = (DexConstString) code.instructions[3];
     assertNotEquals(BOO, constString.getString().toString());
   }
 
@@ -395,13 +397,13 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     checkInstructions(
         code,
         ImmutableList.of(
-            InvokeDirect.class,
-            ConstString.class,
-            ConstString.class,
-            InvokeStatic.class,
-            ReturnVoid.class));
-    String s1 = ((ConstString) code.instructions[1]).getString().toString();
-    String s2 = ((ConstString) code.instructions[2]).getString().toString();
+            DexInvokeDirect.class,
+            DexConstString.class,
+            DexConstString.class,
+            DexInvokeStatic.class,
+            DexReturnVoid.class));
+    String s1 = ((DexConstString) code.instructions[1]).getString().toString();
+    String s2 = ((DexConstString) code.instructions[2]).getString().toString();
     assertTrue(BOO.equals(s1) || BOO.equals(s2));
     assertTrue("Mixed/form.Boo".equals(s1) || "Mixed/form.Boo".equals(s2));
   }
@@ -439,16 +441,16 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     checkInstructions(
         code,
         ImmutableList.of(
-            InvokeDirect.class,
-            SgetObject.class,
-            ConstString.class,
-            InvokeVirtual.class,
-            ConstString.class,
-            InvokeStatic.class,
-            ReturnVoid.class));
-    ConstString constString = (ConstString) code.instructions[2];
+            DexInvokeDirect.class,
+            DexSgetObject.class,
+            DexConstString.class,
+            DexInvokeVirtual.class,
+            DexConstString.class,
+            DexInvokeStatic.class,
+            DexReturnVoid.class));
+    DexConstString constString = (DexConstString) code.instructions[2];
     assertEquals(BOO, constString.getString().toString());
-    constString = (ConstString) code.instructions[4];
+    constString = (DexConstString) code.instructions[4];
     assertEquals(BOO, constString.getString().toString());
   }
 
@@ -487,16 +489,16 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     checkInstructions(
         code,
         ImmutableList.of(
-            InvokeDirect.class,
-            SgetObject.class,
-            ConstString.class,
-            InvokeVirtual.class,
-            ConstString.class,
-            InvokeStatic.class,
-            ReturnVoid.class));
-    ConstString constString = (ConstString) code.instructions[2];
+            DexInvokeDirect.class,
+            DexSgetObject.class,
+            DexConstString.class,
+            DexInvokeVirtual.class,
+            DexConstString.class,
+            DexInvokeStatic.class,
+            DexReturnVoid.class));
+    DexConstString constString = (DexConstString) code.instructions[2];
     assertEquals(BOO, constString.getString().toString());
-    constString = (ConstString) code.instructions[4];
+    constString = (DexConstString) code.instructions[4];
     assertNotEquals(BOO, constString.getString().toString());
   }
 
@@ -541,12 +543,12 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     checkInstructions(
         code,
         ImmutableList.of(
-            InvokeDirect.class,
-            ConstClass.class,
-            ConstString.class,
-            InvokeStatic.class,
-            ReturnVoid.class));
-    ConstString constString = (ConstString) code.instructions[2];
+            DexInvokeDirect.class,
+            DexConstClass.class,
+            DexConstString.class,
+            DexInvokeStatic.class,
+            DexReturnVoid.class));
+    DexConstString constString = (DexConstString) code.instructions[2];
     assertEquals("foo", constString.getString().toString());
   }
 
@@ -591,12 +593,12 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     checkInstructions(
         code,
         ImmutableList.of(
-            InvokeDirect.class,
-            ConstClass.class,
-            ConstString.class,
-            InvokeStatic.class,
-            ReturnVoid.class));
-    ConstString constString = (ConstString) code.instructions[2];
+            DexInvokeDirect.class,
+            DexConstClass.class,
+            DexConstString.class,
+            DexInvokeStatic.class,
+            DexReturnVoid.class));
+    DexConstString constString = (DexConstString) code.instructions[2];
     assertNotEquals("foo", constString.getString().toString());
   }
 
@@ -648,16 +650,16 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     checkInstructions(
         code,
         ImmutableList.of(
-            InvokeDirect.class,
-            ConstClass.class,
-            Const4.class,
-            NewArray.class,
-            Const4.class,
-            AputObject.class,
-            ConstString.class,
-            InvokeStatic.class,
-            ReturnVoid.class));
-    ConstString constString = (ConstString) code.instructions[6];
+            DexInvokeDirect.class,
+            DexConstClass.class,
+            DexConst4.class,
+            DexNewArray.class,
+            DexConst4.class,
+            DexAputObject.class,
+            DexConstString.class,
+            DexInvokeStatic.class,
+            DexReturnVoid.class));
+    DexConstString constString = (DexConstString) code.instructions[6];
     assertEquals("foo", constString.getString().toString());
   }
 
@@ -709,16 +711,16 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     checkInstructions(
         code,
         ImmutableList.of(
-            InvokeDirect.class,
-            ConstClass.class,
-            Const4.class,
-            NewArray.class,
-            Const4.class,
-            AputObject.class,
-            ConstString.class,
-            InvokeStatic.class,
-            ReturnVoid.class));
-    ConstString constString = (ConstString) code.instructions[6];
+            DexInvokeDirect.class,
+            DexConstClass.class,
+            DexConst4.class,
+            DexNewArray.class,
+            DexConst4.class,
+            DexAputObject.class,
+            DexConstString.class,
+            DexInvokeStatic.class,
+            DexReturnVoid.class));
+    DexConstString constString = (DexConstString) code.instructions[6];
     assertNotEquals("foo", constString.getString().toString());
   }
 

@@ -4,21 +4,22 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfNumberConversion;
-import com.android.tools.r8.code.DoubleToFloat;
-import com.android.tools.r8.code.DoubleToInt;
-import com.android.tools.r8.code.DoubleToLong;
-import com.android.tools.r8.code.FloatToDouble;
-import com.android.tools.r8.code.FloatToInt;
-import com.android.tools.r8.code.FloatToLong;
-import com.android.tools.r8.code.IntToByte;
-import com.android.tools.r8.code.IntToChar;
-import com.android.tools.r8.code.IntToDouble;
-import com.android.tools.r8.code.IntToFloat;
-import com.android.tools.r8.code.IntToLong;
-import com.android.tools.r8.code.IntToShort;
-import com.android.tools.r8.code.LongToDouble;
-import com.android.tools.r8.code.LongToFloat;
-import com.android.tools.r8.code.LongToInt;
+import com.android.tools.r8.dex.code.DexDoubleToFloat;
+import com.android.tools.r8.dex.code.DexDoubleToInt;
+import com.android.tools.r8.dex.code.DexDoubleToLong;
+import com.android.tools.r8.dex.code.DexFloatToDouble;
+import com.android.tools.r8.dex.code.DexFloatToInt;
+import com.android.tools.r8.dex.code.DexFloatToLong;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexIntToByte;
+import com.android.tools.r8.dex.code.DexIntToChar;
+import com.android.tools.r8.dex.code.DexIntToDouble;
+import com.android.tools.r8.dex.code.DexIntToFloat;
+import com.android.tools.r8.dex.code.DexIntToLong;
+import com.android.tools.r8.dex.code.DexIntToShort;
+import com.android.tools.r8.dex.code.DexLongToDouble;
+import com.android.tools.r8.dex.code.DexLongToFloat;
+import com.android.tools.r8.dex.code.DexLongToInt;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
@@ -54,29 +55,29 @@ public class NumberConversion extends Unop {
 
   @Override
   public void buildDex(DexBuilder builder) {
-    com.android.tools.r8.code.Instruction instruction;
+    DexInstruction instruction;
     int dest = builder.allocatedRegister(dest(), getNumber());
     int src = builder.allocatedRegister(source(), getNumber());
     switch (from) {
       case INT:
         switch (to) {
           case BYTE:
-            instruction = new IntToByte(dest, src);
+            instruction = new DexIntToByte(dest, src);
             break;
           case CHAR:
-            instruction = new IntToChar(dest, src);
+            instruction = new DexIntToChar(dest, src);
             break;
           case SHORT:
-            instruction = new IntToShort(dest, src);
+            instruction = new DexIntToShort(dest, src);
             break;
           case LONG:
-            instruction = new IntToLong(dest, src);
+            instruction = new DexIntToLong(dest, src);
             break;
           case FLOAT:
-            instruction = new IntToFloat(dest, src);
+            instruction = new DexIntToFloat(dest, src);
             break;
           case DOUBLE:
-            instruction = new IntToDouble(dest, src);
+            instruction = new DexIntToDouble(dest, src);
             break;
           default:
             throw new Unreachable("Unexpected types " + from + ", " + to);
@@ -85,13 +86,13 @@ public class NumberConversion extends Unop {
       case LONG:
         switch (to) {
           case INT:
-            instruction = new LongToInt(dest, src);
+            instruction = new DexLongToInt(dest, src);
             break;
           case FLOAT:
-            instruction = new LongToFloat(dest, src);
+            instruction = new DexLongToFloat(dest, src);
             break;
           case DOUBLE:
-            instruction = new LongToDouble(dest, src);
+            instruction = new DexLongToDouble(dest, src);
             break;
           default:
             throw new Unreachable("Unexpected types " + from + ", " + to);
@@ -100,13 +101,13 @@ public class NumberConversion extends Unop {
       case FLOAT:
         switch (to) {
           case INT:
-            instruction = new FloatToInt(dest, src);
+            instruction = new DexFloatToInt(dest, src);
             break;
           case LONG:
-            instruction = new FloatToLong(dest, src);
+            instruction = new DexFloatToLong(dest, src);
             break;
           case DOUBLE:
-            instruction = new FloatToDouble(dest, src);
+            instruction = new DexFloatToDouble(dest, src);
             break;
           default:
             throw new Unreachable("Unexpected types " + from + ", " + to);
@@ -115,13 +116,13 @@ public class NumberConversion extends Unop {
       case DOUBLE:
         switch (to) {
           case INT:
-            instruction = new DoubleToInt(dest, src);
+            instruction = new DexDoubleToInt(dest, src);
             break;
           case LONG:
-            instruction = new DoubleToLong(dest, src);
+            instruction = new DexDoubleToLong(dest, src);
             break;
           case FLOAT:
-            instruction = new DoubleToFloat(dest, src);
+            instruction = new DexDoubleToFloat(dest, src);
             break;
           default:
             throw new Unreachable("Unexpected types " + from + ", " + to);

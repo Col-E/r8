@@ -12,9 +12,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.code.CmpgFloat;
-import com.android.tools.r8.code.IfGez;
-import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.dex.code.DexCmpgFloat;
+import com.android.tools.r8.dex.code.DexIfGez;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -58,14 +58,14 @@ public class B115552239 {
       throws IOException, CompilationFailedException, ExecutionException {
     MethodSubject method = compileTestClassAndGetMethod(AndroidApiLevel.L.getLevel());
     boolean previousWasCmp = false;
-    Instruction[] instructions = method.getMethod().getCode().asDexCode().instructions;
-    assertTrue(Arrays.stream(instructions).anyMatch(i -> i instanceof CmpgFloat));
-    for (Instruction instruction : instructions) {
-      if (instruction instanceof CmpgFloat) {
+    DexInstruction[] instructions = method.getMethod().getCode().asDexCode().instructions;
+    assertTrue(Arrays.stream(instructions).anyMatch(i -> i instanceof DexCmpgFloat));
+    for (DexInstruction instruction : instructions) {
+      if (instruction instanceof DexCmpgFloat) {
         previousWasCmp = true;
         continue;
       } else if (previousWasCmp) {
-        assertTrue(instruction instanceof IfGez);
+        assertTrue(instruction instanceof DexIfGez);
       }
       previousWasCmp = false;
     }
@@ -76,15 +76,15 @@ public class B115552239 {
       throws IOException, CompilationFailedException, ExecutionException {
     MethodSubject method = compileTestClassAndGetMethod(AndroidApiLevel.M.getLevel());
     boolean previousWasCmp = false;
-    Instruction[] instructions = method.getMethod().getCode().asDexCode().instructions;
-    assertTrue(Arrays.stream(instructions).anyMatch(i -> i instanceof CmpgFloat));
-    for (Instruction instruction : instructions) {
-      if (instruction instanceof CmpgFloat) {
+    DexInstruction[] instructions = method.getMethod().getCode().asDexCode().instructions;
+    assertTrue(Arrays.stream(instructions).anyMatch(i -> i instanceof DexCmpgFloat));
+    for (DexInstruction instruction : instructions) {
+      if (instruction instanceof DexCmpgFloat) {
         previousWasCmp = true;
         continue;
       } else if (previousWasCmp) {
         // We lowered the const instruction as close to its use as possible.
-        assertFalse(instruction instanceof IfGez);
+        assertFalse(instruction instanceof DexIfGez);
       }
       previousWasCmp = false;
     }

@@ -4,109 +4,109 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
-import com.android.tools.r8.code.Aget;
-import com.android.tools.r8.code.AgetBoolean;
-import com.android.tools.r8.code.AgetByte;
-import com.android.tools.r8.code.AgetChar;
-import com.android.tools.r8.code.AgetObject;
-import com.android.tools.r8.code.AgetShort;
-import com.android.tools.r8.code.AgetWide;
-import com.android.tools.r8.code.Aput;
-import com.android.tools.r8.code.AputBoolean;
-import com.android.tools.r8.code.AputByte;
-import com.android.tools.r8.code.AputChar;
-import com.android.tools.r8.code.AputObject;
-import com.android.tools.r8.code.AputShort;
-import com.android.tools.r8.code.AputWide;
-import com.android.tools.r8.code.ArrayLength;
-import com.android.tools.r8.code.CheckCast;
-import com.android.tools.r8.code.Const;
-import com.android.tools.r8.code.Const16;
-import com.android.tools.r8.code.Const4;
-import com.android.tools.r8.code.ConstClass;
-import com.android.tools.r8.code.ConstHigh16;
-import com.android.tools.r8.code.ConstString;
-import com.android.tools.r8.code.ConstStringJumbo;
-import com.android.tools.r8.code.ConstWide;
-import com.android.tools.r8.code.ConstWide16;
-import com.android.tools.r8.code.ConstWide32;
-import com.android.tools.r8.code.ConstWideHigh16;
-import com.android.tools.r8.code.Goto;
-import com.android.tools.r8.code.IfEq;
-import com.android.tools.r8.code.IfEqz;
-import com.android.tools.r8.code.IfGe;
-import com.android.tools.r8.code.IfGez;
-import com.android.tools.r8.code.IfGt;
-import com.android.tools.r8.code.IfGtz;
-import com.android.tools.r8.code.IfLe;
-import com.android.tools.r8.code.IfLez;
-import com.android.tools.r8.code.IfLt;
-import com.android.tools.r8.code.IfLtz;
-import com.android.tools.r8.code.IfNe;
-import com.android.tools.r8.code.IfNez;
-import com.android.tools.r8.code.Iget;
-import com.android.tools.r8.code.IgetBoolean;
-import com.android.tools.r8.code.IgetByte;
-import com.android.tools.r8.code.IgetChar;
-import com.android.tools.r8.code.IgetObject;
-import com.android.tools.r8.code.IgetShort;
-import com.android.tools.r8.code.IgetWide;
-import com.android.tools.r8.code.InstanceOf;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.InvokeCustom;
-import com.android.tools.r8.code.InvokeCustomRange;
-import com.android.tools.r8.code.InvokeDirect;
-import com.android.tools.r8.code.InvokeDirectRange;
-import com.android.tools.r8.code.InvokeInterface;
-import com.android.tools.r8.code.InvokeInterfaceRange;
-import com.android.tools.r8.code.InvokeStatic;
-import com.android.tools.r8.code.InvokeStaticRange;
-import com.android.tools.r8.code.InvokeSuper;
-import com.android.tools.r8.code.InvokeSuperRange;
-import com.android.tools.r8.code.InvokeVirtual;
-import com.android.tools.r8.code.InvokeVirtualRange;
-import com.android.tools.r8.code.Iput;
-import com.android.tools.r8.code.IputBoolean;
-import com.android.tools.r8.code.IputByte;
-import com.android.tools.r8.code.IputChar;
-import com.android.tools.r8.code.IputObject;
-import com.android.tools.r8.code.IputShort;
-import com.android.tools.r8.code.IputWide;
-import com.android.tools.r8.code.MonitorEnter;
-import com.android.tools.r8.code.MonitorExit;
-import com.android.tools.r8.code.MulDouble;
-import com.android.tools.r8.code.MulDouble2Addr;
-import com.android.tools.r8.code.MulFloat;
-import com.android.tools.r8.code.MulFloat2Addr;
-import com.android.tools.r8.code.MulInt;
-import com.android.tools.r8.code.MulInt2Addr;
-import com.android.tools.r8.code.MulIntLit16;
-import com.android.tools.r8.code.MulIntLit8;
-import com.android.tools.r8.code.MulLong;
-import com.android.tools.r8.code.MulLong2Addr;
-import com.android.tools.r8.code.NewArray;
-import com.android.tools.r8.code.NewInstance;
-import com.android.tools.r8.code.Nop;
-import com.android.tools.r8.code.PackedSwitch;
-import com.android.tools.r8.code.Return;
-import com.android.tools.r8.code.ReturnObject;
-import com.android.tools.r8.code.ReturnVoid;
-import com.android.tools.r8.code.Sget;
-import com.android.tools.r8.code.SgetBoolean;
-import com.android.tools.r8.code.SgetByte;
-import com.android.tools.r8.code.SgetChar;
-import com.android.tools.r8.code.SgetObject;
-import com.android.tools.r8.code.SgetShort;
-import com.android.tools.r8.code.SgetWide;
-import com.android.tools.r8.code.SparseSwitch;
-import com.android.tools.r8.code.Sput;
-import com.android.tools.r8.code.SputBoolean;
-import com.android.tools.r8.code.SputByte;
-import com.android.tools.r8.code.SputChar;
-import com.android.tools.r8.code.SputObject;
-import com.android.tools.r8.code.SputShort;
-import com.android.tools.r8.code.SputWide;
-import com.android.tools.r8.code.Throw;
+import com.android.tools.r8.dex.code.DexAget;
+import com.android.tools.r8.dex.code.DexAgetBoolean;
+import com.android.tools.r8.dex.code.DexAgetByte;
+import com.android.tools.r8.dex.code.DexAgetChar;
+import com.android.tools.r8.dex.code.DexAgetObject;
+import com.android.tools.r8.dex.code.DexAgetShort;
+import com.android.tools.r8.dex.code.DexAgetWide;
+import com.android.tools.r8.dex.code.DexAput;
+import com.android.tools.r8.dex.code.DexAputBoolean;
+import com.android.tools.r8.dex.code.DexAputByte;
+import com.android.tools.r8.dex.code.DexAputChar;
+import com.android.tools.r8.dex.code.DexAputObject;
+import com.android.tools.r8.dex.code.DexAputShort;
+import com.android.tools.r8.dex.code.DexAputWide;
+import com.android.tools.r8.dex.code.DexArrayLength;
+import com.android.tools.r8.dex.code.DexCheckCast;
+import com.android.tools.r8.dex.code.DexConst;
+import com.android.tools.r8.dex.code.DexConst16;
+import com.android.tools.r8.dex.code.DexConst4;
+import com.android.tools.r8.dex.code.DexConstClass;
+import com.android.tools.r8.dex.code.DexConstHigh16;
+import com.android.tools.r8.dex.code.DexConstString;
+import com.android.tools.r8.dex.code.DexConstStringJumbo;
+import com.android.tools.r8.dex.code.DexConstWide;
+import com.android.tools.r8.dex.code.DexConstWide16;
+import com.android.tools.r8.dex.code.DexConstWide32;
+import com.android.tools.r8.dex.code.DexConstWideHigh16;
+import com.android.tools.r8.dex.code.DexGoto;
+import com.android.tools.r8.dex.code.DexIfEq;
+import com.android.tools.r8.dex.code.DexIfEqz;
+import com.android.tools.r8.dex.code.DexIfGe;
+import com.android.tools.r8.dex.code.DexIfGez;
+import com.android.tools.r8.dex.code.DexIfGt;
+import com.android.tools.r8.dex.code.DexIfGtz;
+import com.android.tools.r8.dex.code.DexIfLe;
+import com.android.tools.r8.dex.code.DexIfLez;
+import com.android.tools.r8.dex.code.DexIfLt;
+import com.android.tools.r8.dex.code.DexIfLtz;
+import com.android.tools.r8.dex.code.DexIfNe;
+import com.android.tools.r8.dex.code.DexIfNez;
+import com.android.tools.r8.dex.code.DexIget;
+import com.android.tools.r8.dex.code.DexIgetBoolean;
+import com.android.tools.r8.dex.code.DexIgetByte;
+import com.android.tools.r8.dex.code.DexIgetChar;
+import com.android.tools.r8.dex.code.DexIgetObject;
+import com.android.tools.r8.dex.code.DexIgetShort;
+import com.android.tools.r8.dex.code.DexIgetWide;
+import com.android.tools.r8.dex.code.DexInstanceOf;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexInvokeCustom;
+import com.android.tools.r8.dex.code.DexInvokeCustomRange;
+import com.android.tools.r8.dex.code.DexInvokeDirect;
+import com.android.tools.r8.dex.code.DexInvokeDirectRange;
+import com.android.tools.r8.dex.code.DexInvokeInterface;
+import com.android.tools.r8.dex.code.DexInvokeInterfaceRange;
+import com.android.tools.r8.dex.code.DexInvokeStatic;
+import com.android.tools.r8.dex.code.DexInvokeStaticRange;
+import com.android.tools.r8.dex.code.DexInvokeSuper;
+import com.android.tools.r8.dex.code.DexInvokeSuperRange;
+import com.android.tools.r8.dex.code.DexInvokeVirtual;
+import com.android.tools.r8.dex.code.DexInvokeVirtualRange;
+import com.android.tools.r8.dex.code.DexIput;
+import com.android.tools.r8.dex.code.DexIputBoolean;
+import com.android.tools.r8.dex.code.DexIputByte;
+import com.android.tools.r8.dex.code.DexIputChar;
+import com.android.tools.r8.dex.code.DexIputObject;
+import com.android.tools.r8.dex.code.DexIputShort;
+import com.android.tools.r8.dex.code.DexIputWide;
+import com.android.tools.r8.dex.code.DexMonitorEnter;
+import com.android.tools.r8.dex.code.DexMonitorExit;
+import com.android.tools.r8.dex.code.DexMulDouble;
+import com.android.tools.r8.dex.code.DexMulDouble2Addr;
+import com.android.tools.r8.dex.code.DexMulFloat;
+import com.android.tools.r8.dex.code.DexMulFloat2Addr;
+import com.android.tools.r8.dex.code.DexMulInt;
+import com.android.tools.r8.dex.code.DexMulInt2Addr;
+import com.android.tools.r8.dex.code.DexMulIntLit16;
+import com.android.tools.r8.dex.code.DexMulIntLit8;
+import com.android.tools.r8.dex.code.DexMulLong;
+import com.android.tools.r8.dex.code.DexMulLong2Addr;
+import com.android.tools.r8.dex.code.DexNewArray;
+import com.android.tools.r8.dex.code.DexNewInstance;
+import com.android.tools.r8.dex.code.DexNop;
+import com.android.tools.r8.dex.code.DexPackedSwitch;
+import com.android.tools.r8.dex.code.DexReturn;
+import com.android.tools.r8.dex.code.DexReturnObject;
+import com.android.tools.r8.dex.code.DexReturnVoid;
+import com.android.tools.r8.dex.code.DexSget;
+import com.android.tools.r8.dex.code.DexSgetBoolean;
+import com.android.tools.r8.dex.code.DexSgetByte;
+import com.android.tools.r8.dex.code.DexSgetChar;
+import com.android.tools.r8.dex.code.DexSgetObject;
+import com.android.tools.r8.dex.code.DexSgetShort;
+import com.android.tools.r8.dex.code.DexSgetWide;
+import com.android.tools.r8.dex.code.DexSparseSwitch;
+import com.android.tools.r8.dex.code.DexSput;
+import com.android.tools.r8.dex.code.DexSputBoolean;
+import com.android.tools.r8.dex.code.DexSputByte;
+import com.android.tools.r8.dex.code.DexSputChar;
+import com.android.tools.r8.dex.code.DexSputObject;
+import com.android.tools.r8.dex.code.DexSputShort;
+import com.android.tools.r8.dex.code.DexSputWide;
+import com.android.tools.r8.dex.code.DexThrow;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.SingleConstant;
@@ -114,10 +114,10 @@ import com.android.tools.r8.ir.code.WideConstant;
 
 public class DexInstructionSubject implements InstructionSubject {
 
-  protected final Instruction instruction;
+  protected final DexInstruction instruction;
   protected final MethodSubject method;
 
-  public DexInstructionSubject(Instruction instruction, MethodSubject method) {
+  public DexInstructionSubject(DexInstruction instruction, MethodSubject method) {
     this.instruction = instruction;
     this.method = method;
   }
@@ -149,46 +149,46 @@ public class DexInstructionSubject implements InstructionSubject {
 
   @Override
   public boolean isInstanceGet() {
-    return instruction instanceof Iget
-        || instruction instanceof IgetBoolean
-        || instruction instanceof IgetByte
-        || instruction instanceof IgetShort
-        || instruction instanceof IgetChar
-        || instruction instanceof IgetWide
-        || instruction instanceof IgetObject;
+    return instruction instanceof DexIget
+        || instruction instanceof DexIgetBoolean
+        || instruction instanceof DexIgetByte
+        || instruction instanceof DexIgetShort
+        || instruction instanceof DexIgetChar
+        || instruction instanceof DexIgetWide
+        || instruction instanceof DexIgetObject;
   }
 
   @Override
   public boolean isInstancePut() {
-    return instruction instanceof Iput
-        || instruction instanceof IputBoolean
-        || instruction instanceof IputByte
-        || instruction instanceof IputShort
-        || instruction instanceof IputChar
-        || instruction instanceof IputWide
-        || instruction instanceof IputObject;
+    return instruction instanceof DexIput
+        || instruction instanceof DexIputBoolean
+        || instruction instanceof DexIputByte
+        || instruction instanceof DexIputShort
+        || instruction instanceof DexIputChar
+        || instruction instanceof DexIputWide
+        || instruction instanceof DexIputObject;
   }
 
   @Override
   public boolean isStaticGet() {
-    return instruction instanceof Sget
-        || instruction instanceof SgetBoolean
-        || instruction instanceof SgetByte
-        || instruction instanceof SgetShort
-        || instruction instanceof SgetChar
-        || instruction instanceof SgetWide
-        || instruction instanceof SgetObject;
+    return instruction instanceof DexSget
+        || instruction instanceof DexSgetBoolean
+        || instruction instanceof DexSgetByte
+        || instruction instanceof DexSgetShort
+        || instruction instanceof DexSgetChar
+        || instruction instanceof DexSgetWide
+        || instruction instanceof DexSgetObject;
   }
 
   @Override
   public boolean isStaticPut() {
-    return instruction instanceof Sput
-        || instruction instanceof SputBoolean
-        || instruction instanceof SputByte
-        || instruction instanceof SputShort
-        || instruction instanceof SputChar
-        || instruction instanceof SputWide
-        || instruction instanceof SputObject;
+    return instruction instanceof DexSput
+        || instruction instanceof DexSputBoolean
+        || instruction instanceof DexSputByte
+        || instruction instanceof DexSputShort
+        || instruction instanceof DexSputChar
+        || instruction instanceof DexSputWide
+        || instruction instanceof DexSputObject;
   }
 
   @Override
@@ -208,17 +208,18 @@ public class DexInstructionSubject implements InstructionSubject {
 
   @Override
   public boolean isInvokeVirtual() {
-    return instruction instanceof InvokeVirtual || instruction instanceof InvokeVirtualRange;
+    return instruction instanceof DexInvokeVirtual || instruction instanceof DexInvokeVirtualRange;
   }
 
   @Override
   public boolean isInvokeInterface() {
-    return instruction instanceof InvokeInterface || instruction instanceof InvokeInterfaceRange;
+    return instruction instanceof DexInvokeInterface
+        || instruction instanceof DexInvokeInterfaceRange;
   }
 
   @Override
   public boolean isInvokeStatic() {
-    return instruction instanceof InvokeStatic || instruction instanceof InvokeStaticRange;
+    return instruction instanceof DexInvokeStatic || instruction instanceof DexInvokeStaticRange;
   }
 
   @Override
@@ -227,15 +228,15 @@ public class DexInstructionSubject implements InstructionSubject {
   }
 
   public boolean isInvokeCustom() {
-    return instruction instanceof InvokeCustom || instruction instanceof InvokeCustomRange;
+    return instruction instanceof DexInvokeCustom || instruction instanceof DexInvokeCustomRange;
   }
 
   public boolean isInvokeSuper() {
-    return instruction instanceof InvokeSuper || instruction instanceof InvokeSuperRange;
+    return instruction instanceof DexInvokeSuper || instruction instanceof DexInvokeSuperRange;
   }
 
   public boolean isInvokeDirect() {
-    return instruction instanceof InvokeDirect || instruction instanceof InvokeDirectRange;
+    return instruction instanceof DexInvokeDirect || instruction instanceof DexInvokeDirectRange;
   }
 
   @Override
@@ -246,19 +247,19 @@ public class DexInstructionSubject implements InstructionSubject {
 
   @Override
   public boolean isNop() {
-    return instruction instanceof Nop;
+    return instruction instanceof DexNop;
   }
 
   @Override
   public boolean isConstNumber() {
-    return instruction instanceof Const
-        || instruction instanceof Const4
-        || instruction instanceof Const16
-        || instruction instanceof ConstHigh16
-        || instruction instanceof ConstWide
-        || instruction instanceof ConstWide16
-        || instruction instanceof ConstWide32
-        || instruction instanceof ConstWideHigh16;
+    return instruction instanceof DexConst
+        || instruction instanceof DexConst4
+        || instruction instanceof DexConst16
+        || instruction instanceof DexConstHigh16
+        || instruction instanceof DexConstWide
+        || instruction instanceof DexConstWide16
+        || instruction instanceof DexConstWide32
+        || instruction instanceof DexConstWideHigh16;
   }
 
   @Override
@@ -273,22 +274,22 @@ public class DexInstructionSubject implements InstructionSubject {
 
   @Override
   public boolean isConstString(JumboStringMode jumboStringMode) {
-    return instruction instanceof ConstString
-        || (jumboStringMode == JumboStringMode.ALLOW && instruction instanceof ConstStringJumbo);
+    return instruction instanceof DexConstString
+        || (jumboStringMode == JumboStringMode.ALLOW && instruction instanceof DexConstStringJumbo);
   }
 
   @Override
   public boolean isConstString(String value, JumboStringMode jumboStringMode) {
-    return (instruction instanceof ConstString
-            && ((ConstString) instruction).BBBB.toSourceString().equals(value))
+    return (instruction instanceof DexConstString
+            && ((DexConstString) instruction).BBBB.toSourceString().equals(value))
         || (jumboStringMode == JumboStringMode.ALLOW
-            && instruction instanceof ConstStringJumbo
-            && ((ConstStringJumbo) instruction).BBBBBBBB.toSourceString().equals(value));
+            && instruction instanceof DexConstStringJumbo
+            && ((DexConstStringJumbo) instruction).BBBBBBBB.toSourceString().equals(value));
   }
 
   @Override
   public boolean isJumboString() {
-    return instruction instanceof ConstStringJumbo;
+    return instruction instanceof DexConstStringJumbo;
   }
 
   @Override public long getConstNumber() {
@@ -302,44 +303,44 @@ public class DexInstructionSubject implements InstructionSubject {
 
   @Override
   public String getConstString() {
-    if (instruction instanceof ConstString) {
-      return ((ConstString) instruction).BBBB.toSourceString();
+    if (instruction instanceof DexConstString) {
+      return ((DexConstString) instruction).BBBB.toSourceString();
     }
-    if (instruction instanceof ConstStringJumbo) {
-      return ((ConstStringJumbo) instruction).BBBBBBBB.toSourceString();
+    if (instruction instanceof DexConstStringJumbo) {
+      return ((DexConstStringJumbo) instruction).BBBBBBBB.toSourceString();
     }
     return null;
   }
 
   @Override
   public boolean isConstClass() {
-    return instruction instanceof ConstClass;
+    return instruction instanceof DexConstClass;
   }
 
   @Override
   public boolean isConstClass(String type) {
-    return isConstClass() && ((ConstClass) instruction).getType().toString().equals(type);
+    return isConstClass() && ((DexConstClass) instruction).getType().toString().equals(type);
   }
 
   @Override
   public boolean isGoto() {
 
-    return instruction instanceof Goto;
+    return instruction instanceof DexGoto;
   }
 
   @Override
   public boolean isIfNez() {
-    return instruction instanceof IfNez;
+    return instruction instanceof DexIfNez;
   }
 
   @Override
   public boolean isIfEq() {
-    return instruction instanceof IfEq;
+    return instruction instanceof DexIfEq;
   }
 
   @Override
   public boolean isIfEqz() {
-    return instruction instanceof IfEqz;
+    return instruction instanceof DexIfEqz;
   }
 
   @Override
@@ -356,73 +357,72 @@ public class DexInstructionSubject implements InstructionSubject {
 
   @Override
   public boolean isReturn() {
-    return instruction instanceof Return;
+    return instruction instanceof DexReturn;
   }
 
   @Override
   public boolean isReturnVoid() {
-    return instruction instanceof ReturnVoid;
+    return instruction instanceof DexReturnVoid;
   }
 
   @Override
   public boolean isReturnObject() {
-    return instruction instanceof ReturnObject;
+    return instruction instanceof DexReturnObject;
   }
 
   @Override
   public boolean isThrow() {
-    return instruction instanceof Throw;
+    return instruction instanceof DexThrow;
   }
 
   @Override
   public boolean isNewInstance() {
-    return instruction instanceof NewInstance;
+    return instruction instanceof DexNewInstance;
   }
 
   @Override
   public boolean isNewInstance(String type) {
-    return isNewInstance()
-        && ((NewInstance) instruction).getType().toString().equals(type);
+    return isNewInstance() && ((DexNewInstance) instruction).getType().toString().equals(type);
   }
 
   @Override
   public boolean isCheckCast() {
-    return instruction instanceof CheckCast;
+    return instruction instanceof DexCheckCast;
   }
 
   @Override
   public boolean isCheckCast(String type) {
-    return isCheckCast() && ((CheckCast) instruction).getType().toString().equals(type);
+    return isCheckCast() && ((DexCheckCast) instruction).getType().toString().equals(type);
   }
 
   @Override
   public boolean isInstanceOf() {
-    return instruction instanceof InstanceOf;
+    return instruction instanceof DexInstanceOf;
   }
 
   @Override
   public boolean isInstanceOf(String type) {
-    return isInstanceOf() && ((InstanceOf) instruction).getType().toString().equals(type);
+    return isInstanceOf() && ((DexInstanceOf) instruction).getType().toString().equals(type);
   }
 
   public boolean isConst4() {
-    return instruction instanceof Const4;
+    return instruction instanceof DexConst4;
   }
 
   @Override
   public boolean isIf() {
-    return instruction instanceof IfEq
-        || instruction instanceof IfEqz
-        || instruction instanceof IfGe
-        || instruction instanceof IfGez
-        || instruction instanceof IfGt
-        || instruction instanceof IfGtz
-        || instruction instanceof IfLe
-        || instruction instanceof IfLez
-        || instruction instanceof IfLt
-        || instruction instanceof IfLtz
-        || instruction instanceof IfNe
-        || instruction instanceof IfNez;
+    return instruction instanceof DexIfEq
+        || instruction instanceof DexIfEqz
+        || instruction instanceof DexIfGe
+        || instruction instanceof DexIfGez
+        || instruction instanceof DexIfGt
+        || instruction instanceof DexIfGtz
+        || instruction instanceof DexIfLe
+        || instruction instanceof DexIfLez
+        || instruction instanceof DexIfLt
+        || instruction instanceof DexIfLtz
+        || instruction instanceof DexIfNe
+        || instruction instanceof DexIfNez;
   }
 
   @Override
@@ -432,68 +432,68 @@ public class DexInstructionSubject implements InstructionSubject {
 
   @Override
   public boolean isPackedSwitch() {
-    return instruction instanceof PackedSwitch;
+    return instruction instanceof DexPackedSwitch;
   }
 
   @Override
   public boolean isSparseSwitch() {
-    return instruction instanceof SparseSwitch;
+    return instruction instanceof DexSparseSwitch;
   }
 
   @Override
   public boolean isMultiplication() {
-    return instruction instanceof MulInt
-        || instruction instanceof MulIntLit8
-        || instruction instanceof MulIntLit16
-        || instruction instanceof MulInt2Addr
-        || instruction instanceof MulFloat
-        || instruction instanceof MulFloat2Addr
-        || instruction instanceof MulLong
-        || instruction instanceof MulLong2Addr
-        || instruction instanceof MulDouble
-        || instruction instanceof MulDouble2Addr;
+    return instruction instanceof DexMulInt
+        || instruction instanceof DexMulIntLit8
+        || instruction instanceof DexMulIntLit16
+        || instruction instanceof DexMulInt2Addr
+        || instruction instanceof DexMulFloat
+        || instruction instanceof DexMulFloat2Addr
+        || instruction instanceof DexMulLong
+        || instruction instanceof DexMulLong2Addr
+        || instruction instanceof DexMulDouble
+        || instruction instanceof DexMulDouble2Addr;
   }
 
   @Override
   public boolean isNewArray() {
-    return instruction instanceof NewArray;
+    return instruction instanceof DexNewArray;
   }
 
   @Override
   public boolean isArrayLength() {
-    return instruction instanceof ArrayLength;
+    return instruction instanceof DexArrayLength;
   }
 
   @Override
   public boolean isArrayGet() {
-    return instruction instanceof Aget
-        || instruction instanceof AgetBoolean
-        || instruction instanceof AgetByte
-        || instruction instanceof AgetChar
-        || instruction instanceof AgetObject
-        || instruction instanceof AgetShort
-        || instruction instanceof AgetWide;
+    return instruction instanceof DexAget
+        || instruction instanceof DexAgetBoolean
+        || instruction instanceof DexAgetByte
+        || instruction instanceof DexAgetChar
+        || instruction instanceof DexAgetObject
+        || instruction instanceof DexAgetShort
+        || instruction instanceof DexAgetWide;
   }
 
   @Override
   public boolean isArrayPut() {
-    return instruction instanceof Aput
-        || instruction instanceof AputBoolean
-        || instruction instanceof AputByte
-        || instruction instanceof AputChar
-        || instruction instanceof AputObject
-        || instruction instanceof AputShort
-        || instruction instanceof AputWide;
+    return instruction instanceof DexAput
+        || instruction instanceof DexAputBoolean
+        || instruction instanceof DexAputByte
+        || instruction instanceof DexAputChar
+        || instruction instanceof DexAputObject
+        || instruction instanceof DexAputShort
+        || instruction instanceof DexAputWide;
   }
 
   @Override
   public boolean isMonitorEnter() {
-    return instruction instanceof MonitorEnter;
+    return instruction instanceof DexMonitorEnter;
   }
 
   @Override
   public boolean isMonitorExit() {
-    return instruction instanceof MonitorExit;
+    return instruction instanceof DexMonitorExit;
   }
 
   @Override
@@ -527,7 +527,7 @@ public class DexInstructionSubject implements InstructionSubject {
     return instruction.toString();
   }
 
-  public Instruction getInstruction() {
+  public DexInstruction getInstruction() {
     return instruction;
   }
 }

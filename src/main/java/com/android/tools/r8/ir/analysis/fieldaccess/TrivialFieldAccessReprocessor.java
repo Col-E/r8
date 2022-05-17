@@ -9,8 +9,8 @@ import static com.android.tools.r8.ir.optimize.info.OptimizationFeedback.getSimp
 import static com.android.tools.r8.shaking.ObjectAllocationInfoCollectionUtils.mayHaveFinalizeMethodDirectlyOrIndirectly;
 import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
-import com.android.tools.r8.code.CfOrDexInstanceFieldRead;
-import com.android.tools.r8.code.CfOrDexStaticFieldRead;
+import com.android.tools.r8.dex.code.CfOrDexInstanceFieldRead;
+import com.android.tools.r8.dex.code.CfOrDexStaticFieldRead;
 import com.android.tools.r8.graph.AbstractAccessContexts;
 import com.android.tools.r8.graph.AbstractAccessContexts.ConcreteAccessContexts;
 import com.android.tools.r8.graph.AppView;

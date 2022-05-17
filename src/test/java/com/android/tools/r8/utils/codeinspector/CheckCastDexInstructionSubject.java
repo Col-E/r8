@@ -4,20 +4,20 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
-import com.android.tools.r8.code.CheckCast;
-import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.dex.code.DexCheckCast;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.graph.DexType;
 
 public class CheckCastDexInstructionSubject extends DexInstructionSubject
     implements CheckCastInstructionSubject {
-  public CheckCastDexInstructionSubject(Instruction instruction, MethodSubject method) {
+  public CheckCastDexInstructionSubject(DexInstruction instruction, MethodSubject method) {
     super(instruction, method);
     assert isCheckCast();
   }
 
   @Override
   public DexType getType() {
-    return ((CheckCast) instruction).getType();
+    return ((DexCheckCast) instruction).getType();
   }
 
   @Override

@@ -4,8 +4,9 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
-import com.android.tools.r8.code.NotInt;
-import com.android.tools.r8.code.NotLong;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexNotInt;
+import com.android.tools.r8.dex.code.DexNotLong;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
@@ -62,15 +63,15 @@ public class Not extends Unop {
   @Override
   public void buildDex(DexBuilder builder) {
     assert builder.getOptions().canUseNotInstruction();
-    com.android.tools.r8.code.Instruction instruction;
+    DexInstruction instruction;
     int dest = builder.allocatedRegister(dest(), getNumber());
     int src = builder.allocatedRegister(source(), getNumber());
     switch (type) {
       case INT:
-        instruction = new NotInt(dest, src);
+        instruction = new DexNotInt(dest, src);
         break;
       case LONG:
-        instruction = new NotLong(dest, src);
+        instruction = new DexNotLong(dest, src);
         break;
       default:
         throw new Unreachable("Unexpected type " + type);

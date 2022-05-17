@@ -7,6 +7,7 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexNewInstance;
 import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -68,7 +69,7 @@ public class NewInstance extends Instruction {
   @Override
   public void buildDex(DexBuilder builder) {
     int dest = builder.allocatedRegister(dest(), getNumber());
-    builder.add(this, new com.android.tools.r8.code.NewInstance(dest, clazz));
+    builder.add(this, new DexNewInstance(dest, clazz));
   }
 
   @Override

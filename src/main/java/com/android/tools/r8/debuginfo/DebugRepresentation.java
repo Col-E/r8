@@ -3,8 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debuginfo;
 
-import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.dex.VirtualFile;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexDebugInfo.PcBasedDebugInfo;
@@ -94,7 +94,7 @@ public class DebugRepresentation {
         }
         DexCode code = definition.getCode().asDexCode();
         DexDebugInfo debugInfo = code.getDebugInfo();
-        Instruction lastInstruction = getLastExecutableInstruction(code);
+        DexInstruction lastInstruction = getLastExecutableInstruction(code);
         if (lastInstruction == null) {
           continue;
         }
@@ -120,7 +120,7 @@ public class DebugRepresentation {
     if (conversionInfo.cutoff < 0) {
       return false;
     }
-    Instruction lastInstruction = getLastExecutableInstruction(code);
+    DexInstruction lastInstruction = getLastExecutableInstruction(code);
     if (lastInstruction == null) {
       return false;
     }
@@ -264,9 +264,9 @@ public class DebugRepresentation {
     }
   }
 
-  private static Instruction getLastExecutableInstruction(DexCode code) {
-    Instruction lastInstruction = null;
-    for (Instruction instruction : code.instructions) {
+  private static DexInstruction getLastExecutableInstruction(DexCode code) {
+    DexInstruction lastInstruction = null;
+    for (DexInstruction instruction : code.instructions) {
       if (!instruction.isPayload()) {
         lastInstruction = instruction;
       }

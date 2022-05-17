@@ -10,7 +10,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugEntry;
 import com.android.tools.r8.graph.DexDebugEntryBuilder;
@@ -68,7 +68,7 @@ public class Regress216178582Test extends TestBase {
                       new DexDebugEntryBuilder(method, inspector.getFactory()).build();
                   Iterator<DexDebugEntry> it = entries.iterator();
                   int pc = 0;
-                  for (Instruction instruction : code.instructions) {
+                  for (DexInstruction instruction : code.instructions) {
                     if (instruction.canThrow()) {
                       DexDebugEntry next = it.next();
                       assertEquals(

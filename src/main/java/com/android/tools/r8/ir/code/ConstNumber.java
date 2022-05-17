@@ -7,15 +7,15 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstNumber;
-import com.android.tools.r8.code.Const;
-import com.android.tools.r8.code.Const16;
-import com.android.tools.r8.code.Const4;
-import com.android.tools.r8.code.ConstHigh16;
-import com.android.tools.r8.code.ConstWide;
-import com.android.tools.r8.code.ConstWide16;
-import com.android.tools.r8.code.ConstWide32;
-import com.android.tools.r8.code.ConstWideHigh16;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexConst;
+import com.android.tools.r8.dex.code.DexConst16;
+import com.android.tools.r8.dex.code.DexConst4;
+import com.android.tools.r8.dex.code.DexConstHigh16;
+import com.android.tools.r8.dex.code.DexConstWide;
+import com.android.tools.r8.dex.code.DexConstWide16;
+import com.android.tools.r8.dex.code.DexConstWide32;
+import com.android.tools.r8.dex.code.DexConstWideHigh16;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
@@ -143,24 +143,24 @@ public class ConstNumber extends ConstInstruction {
     if (outType().isObject() || outType().isSingle()) {
       assert NumberUtils.is32Bit(value);
       if ((register & 0xf) == register && NumberUtils.is4Bit(value)) {
-        builder.add(this, new Const4(register, (int) value));
+        builder.add(this, new DexConst4(register, (int) value));
       } else if (NumberUtils.is16Bit(value)) {
-        builder.add(this, new Const16(register, (int) value));
+        builder.add(this, new DexConst16(register, (int) value));
       } else if ((value & 0x0000ffffL) == 0) {
-        builder.add(this, new ConstHigh16(register, ((int) value) >>> 16));
+        builder.add(this, new DexConstHigh16(register, ((int) value) >>> 16));
       } else {
-        builder.add(this, new Const(register, (int) value));
+        builder.add(this, new DexConst(register, (int) value));
       }
     } else {
       assert outType().isWide();
       if (NumberUtils.is16Bit(value)) {
-        builder.add(this, new ConstWide16(register, (int) value));
+        builder.add(this, new DexConstWide16(register, (int) value));
       } else if ((value & 0x0000ffffffffffffL) == 0) {
-        builder.add(this, new ConstWideHigh16(register, (int) (value >>> 48)));
+        builder.add(this, new DexConstWideHigh16(register, (int) (value >>> 48)));
       } else if (NumberUtils.is32Bit(value)) {
-        builder.add(this, new ConstWide32(register, (int) value));
+        builder.add(this, new DexConstWide32(register, (int) value));
       } else {
-        builder.add(this, new ConstWide(register, value));
+        builder.add(this, new DexConstWide(register, value));
       }
     }
   }
@@ -222,24 +222,24 @@ public class ConstNumber extends ConstInstruction {
     if (type.isSingle()) {
       assert NumberUtils.is32Bit(value);
       if (NumberUtils.is4Bit(value)) {
-        return Const4.SIZE;
+        return DexConst4.SIZE;
       } else if (NumberUtils.is16Bit(value)) {
-        return Const16.SIZE;
+        return DexConst16.SIZE;
       } else if ((value & 0x0000ffffL) == 0) {
-        return ConstHigh16.SIZE;
+        return DexConstHigh16.SIZE;
       } else {
-        return Const.SIZE;
+        return DexConst.SIZE;
       }
     } else {
       assert type.isWide();
       if (NumberUtils.is16Bit(value)) {
-        return ConstWide16.SIZE;
+        return DexConstWide16.SIZE;
       } else if ((value & 0x0000ffffffffffffL) == 0) {
-        return ConstWideHigh16.SIZE;
+        return DexConstWideHigh16.SIZE;
       } else if (NumberUtils.is32Bit(value)) {
-        return ConstWide32.SIZE;
+        return DexConstWide32.SIZE;
       } else {
-        return ConstWide.SIZE;
+        return DexConstWide.SIZE;
       }
     }
   }

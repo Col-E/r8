@@ -4,12 +4,13 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfLogicalBinop;
-import com.android.tools.r8.code.OrInt;
-import com.android.tools.r8.code.OrInt2Addr;
-import com.android.tools.r8.code.OrIntLit16;
-import com.android.tools.r8.code.OrIntLit8;
-import com.android.tools.r8.code.OrLong;
-import com.android.tools.r8.code.OrLong2Addr;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexOrInt;
+import com.android.tools.r8.dex.code.DexOrInt2Addr;
+import com.android.tools.r8.dex.code.DexOrIntLit16;
+import com.android.tools.r8.dex.code.DexOrIntLit8;
+import com.android.tools.r8.dex.code.DexOrLong;
+import com.android.tools.r8.dex.code.DexOrLong2Addr;
 import java.util.Set;
 
 public class Or extends LogicalBinop {
@@ -44,33 +45,33 @@ public class Or extends LogicalBinop {
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateInt(int dest, int left, int right) {
-    return new OrInt(dest, left, right);
+  public DexInstruction CreateInt(int dest, int left, int right) {
+    return new DexOrInt(dest, left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateLong(int dest, int left, int right) {
-    return new OrLong(dest, left, right);
+  public DexInstruction CreateLong(int dest, int left, int right) {
+    return new DexOrLong(dest, left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateInt2Addr(int left, int right) {
-    return new OrInt2Addr(left, right);
+  public DexInstruction CreateInt2Addr(int left, int right) {
+    return new DexOrInt2Addr(left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateLong2Addr(int left, int right) {
-    return new OrLong2Addr(left, right);
+  public DexInstruction CreateLong2Addr(int left, int right) {
+    return new DexOrLong2Addr(left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateIntLit8(int dest, int left, int constant) {
-    return new OrIntLit8(dest, left, constant);
+  public DexInstruction CreateIntLit8(int dest, int left, int constant) {
+    return new DexOrIntLit8(dest, left, constant);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateIntLit16(int dest, int left, int constant) {
-    return new OrIntLit16(dest, left, constant);
+  public DexInstruction CreateIntLit16(int dest, int left, int constant) {
+    return new DexOrIntLit16(dest, left, constant);
   }
 
   @Override

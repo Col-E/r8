@@ -4,7 +4,9 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfInvoke;
-import com.android.tools.r8.code.InvokePolymorphicRange;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexInvokePolymorphic;
+import com.android.tools.r8.dex.code.DexInvokePolymorphicRange;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -71,18 +73,20 @@ public class InvokePolymorphic extends InvokeMethod {
 
   @Override
   public void buildDex(DexBuilder builder) {
-    com.android.tools.r8.code.Instruction instruction;
+    DexInstruction instruction;
     int argumentRegisters = requiredArgumentRegisters();
     builder.requestOutgoingRegisters(argumentRegisters);
     if (needsRangedInvoke(builder)) {
       assert argumentsConsecutive(builder);
       int firstRegister = argumentRegisterValue(0, builder);
-      instruction = new InvokePolymorphicRange(
+      instruction =
+          new DexInvokePolymorphicRange(
               firstRegister, argumentRegisters, getInvokedMethod(), getProto());
     } else {
       int[] individualArgumentRegisters = new int[5];
       int argumentRegistersCount = fillArgumentRegisters(builder, individualArgumentRegisters);
-      instruction = new com.android.tools.r8.code.InvokePolymorphic(
+      instruction =
+          new DexInvokePolymorphic(
               argumentRegistersCount,
               getInvokedMethod(),
               getProto(),

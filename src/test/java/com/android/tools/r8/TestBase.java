@@ -23,8 +23,8 @@ import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.cf.CfVersion;
-import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfo;
@@ -1544,7 +1544,7 @@ public class TestBase {
   }
 
   protected static void checkInstructions(
-      DexCode code, List<Class<? extends Instruction>> instructions) {
+      DexCode code, List<Class<? extends DexInstruction>> instructions) {
     assertEquals(instructions.size(), code.instructions.length);
     for (int i = 0; i < instructions.size(); ++i) {
       assertEquals("Unexpected instruction at index " + i,
@@ -1552,8 +1552,8 @@ public class TestBase {
     }
   }
 
-  protected Stream<Instruction> filterInstructionKind(
-      DexCode dexCode, Class<? extends Instruction> kind) {
+  protected Stream<DexInstruction> filterInstructionKind(
+      DexCode dexCode, Class<? extends DexInstruction> kind) {
     return Arrays.stream(dexCode.instructions)
         .filter(kind::isInstance)
         .map(kind::cast);

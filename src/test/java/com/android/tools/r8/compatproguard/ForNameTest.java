@@ -7,9 +7,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.code.ConstString;
-import com.android.tools.r8.code.InvokeStatic;
-import com.android.tools.r8.code.ReturnVoid;
+import com.android.tools.r8.dex.code.DexConstString;
+import com.android.tools.r8.dex.code.DexInvokeStatic;
+import com.android.tools.r8.dex.code.DexReturnVoid;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -52,11 +52,11 @@ public class ForNameTest extends CompatProguardSmaliTestBase {
     assertTrue(method.isPresent());
 
     DexCode code = method.getMethod().getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof ConstString);
-    ConstString constString = (ConstString) code.instructions[0];
+    assertTrue(code.instructions[0] instanceof DexConstString);
+    DexConstString constString = (DexConstString) code.instructions[0];
     assertNotEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[1] instanceof InvokeStatic);
-    assertTrue(code.instructions[2] instanceof ReturnVoid);
+    assertTrue(code.instructions[1] instanceof DexInvokeStatic);
+    assertTrue(code.instructions[2] instanceof DexReturnVoid);
   }
 
   @Test
@@ -88,11 +88,11 @@ public class ForNameTest extends CompatProguardSmaliTestBase {
     assertTrue(method.isPresent());
 
     DexCode code = method.getMethod().getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof ConstString);
-    ConstString constString = (ConstString) code.instructions[0];
+    assertTrue(code.instructions[0] instanceof DexConstString);
+    DexConstString constString = (DexConstString) code.instructions[0];
     assertEquals(BOO, constString.getString().toString());
-    assertTrue(code.instructions[1] instanceof InvokeStatic);
-    assertTrue(code.instructions[2] instanceof ReturnVoid);
+    assertTrue(code.instructions[1] instanceof DexInvokeStatic);
+    assertTrue(code.instructions[2] instanceof DexReturnVoid);
   }
 
 }

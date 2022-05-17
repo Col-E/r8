@@ -7,9 +7,9 @@ import static com.android.tools.r8.ir.optimize.inliner.InlinerUtils.addMonitorEn
 import static com.android.tools.r8.ir.optimize.inliner.InlinerUtils.collectAllMonitorEnterValues;
 import static com.android.tools.r8.utils.AndroidApiLevelUtils.isApiSafeForInlining;
 
-import com.android.tools.r8.code.MoveResult;
-import com.android.tools.r8.code.MoveResultObject;
-import com.android.tools.r8.code.MoveResultWide;
+import com.android.tools.r8.dex.code.DexMoveResult;
+import com.android.tools.r8.dex.code.DexMoveResultObject;
+import com.android.tools.r8.dex.code.DexMoveResultWide;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppView;
@@ -245,9 +245,9 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     if (appView.options().isGeneratingDex()
         && invoke.hasOutValue()
         && invoke.outValue().hasNonDebugUsers()) {
-      assert MoveResult.SIZE == MoveResultObject.SIZE;
-      assert MoveResult.SIZE == MoveResultWide.SIZE;
-      instructionLimit += MoveResult.SIZE;
+      assert DexMoveResult.SIZE == DexMoveResultObject.SIZE;
+      assert DexMoveResult.SIZE == DexMoveResultWide.SIZE;
+      instructionLimit += DexMoveResult.SIZE;
     }
     return instructionLimit;
   }

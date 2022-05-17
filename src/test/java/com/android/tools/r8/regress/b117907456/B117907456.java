@@ -11,12 +11,9 @@ import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.code.Goto;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.Return;
-import com.android.tools.r8.code.ReturnVoid;
-import com.android.tools.r8.code.ReturnWide;
-import com.android.tools.r8.code.Throw;
+import com.android.tools.r8.dex.code.DexGoto;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexThrow;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -37,17 +34,17 @@ class TestClass {
 
 public class B117907456 extends TestBase {
 
-  private boolean isGoto(Instruction lastInstruction) {
-    return lastInstruction instanceof Goto;
+  private boolean isGoto(DexInstruction lastInstruction) {
+    return lastInstruction instanceof DexGoto;
   }
 
   @Test
   public void testNopDupInsertionForDalvikTracingBug()
       throws IOException, CompilationFailedException, ExecutionException {
     MethodSubject method = getMethodSubject(AndroidApiLevel.K);
-    Instruction[] instructions = method.getMethod().getCode().asDexCode().instructions;
-    Instruction lastInstruction = instructions[instructions.length - 1];
-    assertFalse(lastInstruction instanceof Throw);
+    DexInstruction[] instructions = method.getMethod().getCode().asDexCode().instructions;
+    DexInstruction lastInstruction = instructions[instructions.length - 1];
+    assertFalse(lastInstruction instanceof DexThrow);
     assertTrue(isGoto(lastInstruction));
   }
 
@@ -55,9 +52,9 @@ public class B117907456 extends TestBase {
   public void testNoNopDupInsertionForDalvikTracingBug()
       throws IOException, CompilationFailedException, ExecutionException {
     MethodSubject method = getMethodSubject(AndroidApiLevel.L);
-    Instruction[] instructions = method.getMethod().getCode().asDexCode().instructions;
-    Instruction lastInstruction = instructions[instructions.length - 1];
-    assertTrue(lastInstruction instanceof Throw);
+    DexInstruction[] instructions = method.getMethod().getCode().asDexCode().instructions;
+    DexInstruction lastInstruction = instructions[instructions.length - 1];
+    assertTrue(lastInstruction instanceof DexThrow);
   }
 
   private MethodSubject getMethodSubject(AndroidApiLevel level)

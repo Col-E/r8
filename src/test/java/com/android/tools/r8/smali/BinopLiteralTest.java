@@ -7,11 +7,11 @@ package com.android.tools.r8.smali;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.code.Const16;
-import com.android.tools.r8.code.Format22b;
-import com.android.tools.r8.code.Format22s;
-import com.android.tools.r8.code.Return;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexConst16;
+import com.android.tools.r8.dex.code.DexFormat22b;
+import com.android.tools.r8.dex.code.DexFormat22s;
+import com.android.tools.r8.dex.code.DexReturn;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import java.util.Arrays;
@@ -63,9 +63,9 @@ public class BinopLiteralTest extends SmaliTestBase {
         );
         DexCode code = method.getCode().asDexCode();
         assertEquals(2, code.instructions.length);
-        assertTrue(code.instructions[0] instanceof Format22b);
-        assertEquals(lit8Value, ((Format22b) code.instructions[0]).CC);
-        assertTrue(code.instructions[1] instanceof Return);
+        assertTrue(code.instructions[0] instanceof DexFormat22b);
+        assertEquals(lit8Value, ((DexFormat22b) code.instructions[0]).CC);
+        assertTrue(code.instructions[1] instanceof DexReturn);
       }
     }
   }
@@ -88,9 +88,9 @@ public class BinopLiteralTest extends SmaliTestBase {
         );
         DexCode code = method.getCode().asDexCode();
         assertEquals(2, code.instructions.length);
-        assertTrue(code.instructions[0] instanceof Format22s);
-        assertEquals(lit16Value, ((Format22s) code.instructions[0]).CCCC);
-        assertTrue(code.instructions[1] instanceof Return);
+        assertTrue(code.instructions[0] instanceof DexFormat22s);
+        assertEquals(lit16Value, ((DexFormat22s) code.instructions[0]).CCCC);
+        assertTrue(code.instructions[1] instanceof DexReturn);
       }
     }
   }
@@ -111,9 +111,9 @@ public class BinopLiteralTest extends SmaliTestBase {
         );
         DexCode code = method.getCode().asDexCode();
         assertEquals(3, code.instructions.length);
-        assertTrue(code.instructions[0] instanceof Const16);
-        assertEquals(lit16Value, ((Const16) code.instructions[0]).BBBB);
-        assertTrue(code.instructions[2] instanceof Return);
+        assertTrue(code.instructions[0] instanceof DexConst16);
+        assertEquals(lit16Value, ((DexConst16) code.instructions[0]).BBBB);
+        assertTrue(code.instructions[2] instanceof DexReturn);
       }
     }
   }

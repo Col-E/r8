@@ -8,8 +8,8 @@ import static com.android.tools.r8.dex.Constants.U8BIT_MAX;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfMonitor;
-import com.android.tools.r8.code.MonitorEnter;
-import com.android.tools.r8.code.MonitorExit;
+import com.android.tools.r8.dex.code.DexMonitorEnter;
+import com.android.tools.r8.dex.code.DexMonitorExit;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -65,9 +65,9 @@ public class Monitor extends Instruction {
       object = builder.allocatedRegister(object(), getNumber());
     }
     if (type == Type.ENTER) {
-      builder.add(this, new MonitorEnter(object));
+      builder.add(this, new DexMonitorEnter(object));
     } else {
-      builder.add(this, new MonitorExit(object));
+      builder.add(this, new DexMonitorExit(object));
     }
   }
 

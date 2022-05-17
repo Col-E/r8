@@ -3,37 +3,38 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
-import com.android.tools.r8.code.FillArrayData;
-import com.android.tools.r8.code.FillArrayDataPayload;
-import com.android.tools.r8.code.Format31t;
-import com.android.tools.r8.code.Goto;
-import com.android.tools.r8.code.Goto16;
-import com.android.tools.r8.code.Goto32;
-import com.android.tools.r8.code.IfEq;
-import com.android.tools.r8.code.IfEqz;
-import com.android.tools.r8.code.IfGe;
-import com.android.tools.r8.code.IfGez;
-import com.android.tools.r8.code.IfGt;
-import com.android.tools.r8.code.IfGtz;
-import com.android.tools.r8.code.IfLe;
-import com.android.tools.r8.code.IfLez;
-import com.android.tools.r8.code.IfLt;
-import com.android.tools.r8.code.IfLtz;
-import com.android.tools.r8.code.IfNe;
-import com.android.tools.r8.code.IfNez;
-import com.android.tools.r8.code.InstanceOf;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.Move16;
-import com.android.tools.r8.code.MoveFrom16;
-import com.android.tools.r8.code.MoveObject;
-import com.android.tools.r8.code.MoveObject16;
-import com.android.tools.r8.code.MoveObjectFrom16;
-import com.android.tools.r8.code.MoveWide;
-import com.android.tools.r8.code.MoveWide16;
-import com.android.tools.r8.code.MoveWideFrom16;
-import com.android.tools.r8.code.Nop;
-import com.android.tools.r8.code.Throw;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexFillArrayData;
+import com.android.tools.r8.dex.code.DexFillArrayDataPayload;
+import com.android.tools.r8.dex.code.DexFormat31t;
+import com.android.tools.r8.dex.code.DexGoto;
+import com.android.tools.r8.dex.code.DexGoto16;
+import com.android.tools.r8.dex.code.DexGoto32;
+import com.android.tools.r8.dex.code.DexIfEq;
+import com.android.tools.r8.dex.code.DexIfEqz;
+import com.android.tools.r8.dex.code.DexIfGe;
+import com.android.tools.r8.dex.code.DexIfGez;
+import com.android.tools.r8.dex.code.DexIfGt;
+import com.android.tools.r8.dex.code.DexIfGtz;
+import com.android.tools.r8.dex.code.DexIfLe;
+import com.android.tools.r8.dex.code.DexIfLez;
+import com.android.tools.r8.dex.code.DexIfLt;
+import com.android.tools.r8.dex.code.DexIfLtz;
+import com.android.tools.r8.dex.code.DexIfNe;
+import com.android.tools.r8.dex.code.DexIfNez;
+import com.android.tools.r8.dex.code.DexInstanceOf;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexMove;
+import com.android.tools.r8.dex.code.DexMove16;
+import com.android.tools.r8.dex.code.DexMoveFrom16;
+import com.android.tools.r8.dex.code.DexMoveObject;
+import com.android.tools.r8.dex.code.DexMoveObject16;
+import com.android.tools.r8.dex.code.DexMoveObjectFrom16;
+import com.android.tools.r8.dex.code.DexMoveWide;
+import com.android.tools.r8.dex.code.DexMoveWide16;
+import com.android.tools.r8.dex.code.DexMoveWideFrom16;
+import com.android.tools.r8.dex.code.DexNop;
+import com.android.tools.r8.dex.code.DexThrow;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexCode;
@@ -86,7 +87,7 @@ public class DexBuilder {
   private final IRCode ir;
 
   // Extra information that should be attached to the bytecode instructions.
-  private final BytecodeMetadata.Builder<Instruction> bytecodeMetadataBuilder;
+  private final BytecodeMetadata.Builder<DexInstruction> bytecodeMetadataBuilder;
 
   // The register allocator providing register assignments for the code to build.
   private final RegisterAllocator registerAllocator;
@@ -236,7 +237,7 @@ public class DexBuilder {
 
     // Build instructions.
     DexDebugEventBuilder debugEventBuilder = new DexDebugEventBuilder(ir, options);
-    List<Instruction> dexInstructions = new ArrayList<>(numberOfInstructions);
+    List<DexInstruction> dexInstructions = new ArrayList<>(numberOfInstructions);
     int instructionOffset = 0;
     for (com.android.tools.r8.ir.code.Instruction irInstruction : ir.instructions()) {
       Info info = getInfo(irInstruction);
@@ -244,7 +245,7 @@ public class DexBuilder {
       info.addInstructions(this, dexInstructions);
       int instructionStartOffset = instructionOffset;
       while (previousInstructionCount < dexInstructions.size()) {
-        Instruction dexInstruction = dexInstructions.get(previousInstructionCount++);
+        DexInstruction dexInstruction = dexInstructions.get(previousInstructionCount++);
         dexInstruction.setOffset(instructionOffset);
         instructionOffset += dexInstruction.getSize();
       }
@@ -257,7 +258,7 @@ public class DexBuilder {
     // We could have also changed the block order, however, moving the throwing block higher
     // led to larger code in all experiments (multiple gmscore version and R8 run on itself).
     if (options.canHaveTracingPastInstructionsStreamBug()
-        && dexInstructions.get(dexInstructions.size() - 1) instanceof Throw
+        && dexInstructions.get(dexInstructions.size() - 1) instanceof DexThrow
         && hasBackwardsBranch) {
       // This is the last in a series of different workarounds tried out.
       // Having an empty non reachable loop make some mediatek vms crash: b/119895393
@@ -275,12 +276,12 @@ public class DexBuilder {
       // That way we have no unreachable code, and we never end in a throw. The tracer will still
       // trace to the throw, but after moving to the second goto it will trace back again and see
       // an instruction it has already seen.
-      Instruction throwInstruction = dexInstructions.get(dexInstructions.size() -1);
+      DexInstruction throwInstruction = dexInstructions.get(dexInstructions.size() - 1);
       offset = throwInstruction.getOffset();
 
       // Generate the new forward and backward gotos, update offsets.
-      Instruction forward = new Goto(throwInstruction.getSize() + Goto.SIZE);
-      Instruction backward = new Goto(-throwInstruction.getSize());
+      DexInstruction forward = new DexGoto(throwInstruction.getSize() + DexGoto.SIZE);
+      DexInstruction backward = new DexGoto(-throwInstruction.getSize());
       forward.setOffset(offset);
       offset += forward.getSize();
       throwInstruction.setOffset(offset);
@@ -298,12 +299,12 @@ public class DexBuilder {
     for (SwitchPayloadInfo switchPayloadInfo : switchPayloadInfos) {
       // Align payloads at even addresses.
       if (offset % 2 != 0) {
-        Nop nop = new Nop();
+        DexNop nop = new DexNop();
         nop.setOffset(offset++);
         dexInstructions.add(nop);
       }
       // Create payload and add it to the instruction stream.
-      Nop payload = createSwitchPayload(switchPayloadInfo, offset);
+      DexNop payload = createSwitchPayload(switchPayloadInfo, offset);
       payload.setOffset(offset);
       offset += payload.getSize();
       dexInstructions.add(payload);
@@ -313,12 +314,12 @@ public class DexBuilder {
     for (FillArrayDataInfo info : fillArrayDataInfos) {
       // Align payloads at even addresses.
       if (offset % 2 != 0) {
-        Nop nop = new Nop();
+        DexNop nop = new DexNop();
         nop.setOffset(offset++);
         dexInstructions.add(nop);
       }
       // Create payload and add it to the instruction stream.
-      FillArrayDataPayload payload = info.ir.createPayload();
+      DexFillArrayDataPayload payload = info.ir.createPayload();
       payload.setOffset(offset);
       info.dex.setPayloadOffset(offset - info.dex.getOffset());
       offset += payload.getSize();
@@ -334,7 +335,7 @@ public class DexBuilder {
             registerAllocator.registersUsed(),
             inRegisterCount,
             outRegisterCount,
-            dexInstructions.toArray(Instruction.EMPTY_ARRAY),
+            dexInstructions.toArray(DexInstruction.EMPTY_ARRAY),
             tryInfo.tries,
             tryInfo.handlers,
             debugEventBuilder.build(),
@@ -584,7 +585,7 @@ public class DexBuilder {
     }
   }
 
-  private boolean needsNopBetweenMoveAndInstanceOf(InstanceOf instanceOf) {
+  private boolean needsNopBetweenMoveAndInstanceOf(DexInstanceOf instanceOf) {
     if (!options.canHaveArtInstanceOfVerifierBug()) {
       return false;
     }
@@ -608,9 +609,9 @@ public class DexBuilder {
     return false;
   }
 
-  public void addInstanceOf(com.android.tools.r8.ir.code.InstanceOf ir, InstanceOf instanceOf) {
+  public void addInstanceOf(com.android.tools.r8.ir.code.InstanceOf ir, DexInstanceOf instanceOf) {
     if (needsNopBetweenMoveAndInstanceOf(instanceOf)) {
-      add(ir, new Nop(), instanceOf);
+      add(ir, new DexNop(), instanceOf);
     } else {
       add(ir, instanceOf);
     }
@@ -645,7 +646,7 @@ public class DexBuilder {
   }
 
   public void addNop(com.android.tools.r8.ir.code.Instruction ir) {
-    add(ir, new FixedSizeInfo(ir, new Nop()));
+    add(ir, new FixedSizeInfo(ir, new DexNop()));
   }
 
   public void addDebugPosition(DebugPosition position) {
@@ -654,24 +655,24 @@ public class DexBuilder {
     addNop(position);
   }
 
-  public void add(com.android.tools.r8.ir.code.Instruction instr, Instruction dex) {
+  public void add(com.android.tools.r8.ir.code.Instruction instr, DexInstruction dex) {
     assert !instr.isGoto();
     add(instr, new FixedSizeInfo(instr, dex));
     bytecodeMetadataBuilder.setMetadata(instr, dex);
   }
 
-  public void add(com.android.tools.r8.ir.code.Instruction ir, Instruction... dex) {
+  public void add(com.android.tools.r8.ir.code.Instruction ir, DexInstruction... dex) {
     assert !ir.isGoto();
     add(ir, new MultiFixedSizeInfo(ir, dex));
   }
 
-  public void addSwitch(IntSwitch s, Format31t dex) {
+  public void addSwitch(IntSwitch s, DexFormat31t dex) {
     assert nextBlock == s.fallthroughBlock();
     switchPayloadInfos.add(new SwitchPayloadInfo(s, dex));
     add(s, dex);
   }
 
-  public void addFillArrayData(NewArrayFilledData nafd, FillArrayData dex) {
+  public void addFillArrayData(NewArrayFilledData nafd, DexFillArrayData dex) {
     fillArrayDataInfos.add(new FillArrayDataInfo(nafd, dex));
     add(nafd, dex);
   }
@@ -681,7 +682,7 @@ public class DexBuilder {
     add(argument, new FallThroughInfo(argument));
   }
 
-  public void addReturn(Return ret, Instruction dex) {
+  public void addReturn(Return ret, DexInstruction dex) {
     if (nextBlock != null
         && ret.identicalAfterRegisterAllocation(
             nextBlock.entry(), registerAllocator, conversionOptions)) {
@@ -759,7 +760,7 @@ public class DexBuilder {
   }
 
   // Helper for computing switch payloads.
-  private Nop createSwitchPayload(SwitchPayloadInfo info, int offset) {
+  private DexNop createSwitchPayload(SwitchPayloadInfo info, int offset) {
     IntSwitch ir = info.ir;
     // Patch the payload offset in the generated switch instruction now
     // that the location is known.
@@ -951,7 +952,7 @@ public class DexBuilder {
 
     // Materialize the actual construction.
     // All instruction offsets are known at this point.
-    public abstract void addInstructions(DexBuilder builder, List<Instruction> instructions);
+    public abstract void addInstructions(DexBuilder builder, List<DexInstruction> instructions);
 
     // Lower bound on the size of the instruction.
     public abstract int minSize();
@@ -1000,9 +1001,9 @@ public class DexBuilder {
 
   private static class FixedSizeInfo extends Info {
 
-    private final Instruction instruction;
+    private final DexInstruction instruction;
 
-    public FixedSizeInfo(com.android.tools.r8.ir.code.Instruction ir, Instruction instruction) {
+    public FixedSizeInfo(com.android.tools.r8.ir.code.Instruction ir, DexInstruction instruction) {
       super(ir);
       this.instruction = instruction;
     }
@@ -1029,7 +1030,7 @@ public class DexBuilder {
     }
 
     @Override
-    public void addInstructions(DexBuilder builder, List<Instruction> instructions) {
+    public void addInstructions(DexBuilder builder, List<DexInstruction> instructions) {
       instructions.add(instruction);
     }
 
@@ -1042,15 +1043,15 @@ public class DexBuilder {
 
   private static class MultiFixedSizeInfo extends Info {
 
-    private final Instruction[] instructions;
+    private final DexInstruction[] instructions;
     private final int size;
 
-    public MultiFixedSizeInfo(com.android.tools.r8.ir.code.Instruction ir,
-        Instruction[] instructions) {
+    public MultiFixedSizeInfo(
+        com.android.tools.r8.ir.code.Instruction ir, DexInstruction[] instructions) {
       super(ir);
       this.instructions = instructions;
       int size = 0;
-      for (Instruction instruction : instructions) {
+      for (DexInstruction instruction : instructions) {
         size += instruction.getSize();
       }
       this.size = size;
@@ -1062,9 +1063,9 @@ public class DexBuilder {
     }
 
     @Override
-    public void addInstructions(DexBuilder builder, List<Instruction> instructions) {
+    public void addInstructions(DexBuilder builder, List<DexInstruction> instructions) {
       int offset = getOffset();
-      for (Instruction instruction : this.instructions) {
+      for (DexInstruction instruction : this.instructions) {
         instructions.add(instruction);
         instruction.setOffset(offset);
         offset += instruction.getSize();
@@ -1110,8 +1111,7 @@ public class DexBuilder {
     }
 
     @Override
-    public void addInstructions(DexBuilder builder, List<Instruction> instructions) {
-    }
+    public void addInstructions(DexBuilder builder, List<DexInstruction> instructions) {}
 
     @Override
     public int minSize() {
@@ -1149,13 +1149,13 @@ public class DexBuilder {
 
     @Override
     public int minSize() {
-      assert new Goto(42).getSize() == 1;
+      assert new DexGoto(42).getSize() == 1;
       return 1;
     }
 
     @Override
     public int maxSize() {
-      assert new Goto32(0).getSize() == 3;
+      assert new DexGoto32(0).getSize() == 3;
       return 3;
     }
 
@@ -1201,7 +1201,7 @@ public class DexBuilder {
     }
 
     @Override
-    public void addInstructions(DexBuilder builder, List<Instruction> instructions) {
+    public void addInstructions(DexBuilder builder, List<DexInstruction> instructions) {
       com.android.tools.r8.ir.code.Goto jump = getJump();
       int source = builder.getInfo(jump).getOffset();
       Info targetInfo = builder.getTargetInfo(jump.getTarget());
@@ -1213,7 +1213,7 @@ public class DexBuilder {
       // size of this instruction.
       Return ret = targetInfo.getIR().asReturn();
       if (ret != null && size == targetInfo.getSize() && ret.getPosition().isNone()) {
-        Instruction dex = ret.createDexInstruction(builder);
+        DexInstruction dex = ret.createDexInstruction(builder);
         dex.setOffset(getOffset()); // for better printing of the dex code.
         instructions.add(dex);
       } else if (size == relativeOffset) {
@@ -1222,29 +1222,29 @@ public class DexBuilder {
         // jit crashes on 'goto next instruction' on Android 4.1.1.
         // TODO(b/34726595): We currently do hit this case and we should see if we can avoid that.
         for (int i = 0; i < size; i++) {
-          Instruction dex = new Nop();
+          DexInstruction dex = new DexNop();
           assert dex.getSize() == 1;
           dex.setOffset(getOffset() + i); // for better printing of the dex code.
           instructions.add(dex);
         }
       } else {
-        Instruction dex;
+        DexInstruction dex;
         switch (size) {
           case 1:
             assert relativeOffset != 0;
-            dex = new Goto(relativeOffset);
+            dex = new DexGoto(relativeOffset);
             break;
           case 2:
             if (relativeOffset == 0) {
-              Nop nop = new Nop();
+              DexNop nop = new DexNop();
               instructions.add(nop);
-              dex = new Goto(-nop.getSize());
+              dex = new DexGoto(-nop.getSize());
             } else {
-              dex = new Goto16(relativeOffset);
+              dex = new DexGoto16(relativeOffset);
             }
             break;
           case 3:
-            dex = new Goto32(relativeOffset);
+            dex = new DexGoto32(relativeOffset);
             break;
           default:
             throw new Unreachable("Unexpected size for goto instruction: " + size);
@@ -1307,7 +1307,7 @@ public class DexBuilder {
     }
 
     @Override
-    public void addInstructions(DexBuilder builder, List<Instruction> instructions) {
+    public void addInstructions(DexBuilder builder, List<DexInstruction> instructions) {
       If branch = getBranch();
       int source = builder.getInfo(branch).getOffset();
       int target = builder.getInfo(branch.getTrueTarget().entry()).getOffset();
@@ -1320,53 +1320,53 @@ public class DexBuilder {
 
       if (size == 3) {
         assert branchesToSelf(builder);
-        Nop nop = new Nop();
+        DexNop nop = new DexNop();
         relativeOffset -= nop.getSize();
         instructions.add(nop);
       }
       assert relativeOffset != 0;
-      Instruction instruction = null;
+      DexInstruction instruction = null;
       if (branch.isZeroTest()) {
         switch (getBranch().getType()) {
           case EQ:
-            instruction = new IfEqz(register1, relativeOffset);
+            instruction = new DexIfEqz(register1, relativeOffset);
             break;
           case GE:
-            instruction = new IfGez(register1, relativeOffset);
+            instruction = new DexIfGez(register1, relativeOffset);
             break;
           case GT:
-            instruction = new IfGtz(register1, relativeOffset);
+            instruction = new DexIfGtz(register1, relativeOffset);
             break;
           case LE:
-            instruction = new IfLez(register1, relativeOffset);
+            instruction = new DexIfLez(register1, relativeOffset);
             break;
           case LT:
-            instruction = new IfLtz(register1, relativeOffset);
+            instruction = new DexIfLtz(register1, relativeOffset);
             break;
           case NE:
-            instruction = new IfNez(register1, relativeOffset);
+            instruction = new DexIfNez(register1, relativeOffset);
             break;
         }
       } else {
         int register2 = getRegister(1, builder);
         switch (getBranch().getType()) {
           case EQ:
-            instruction = new IfEq(register1, register2, relativeOffset);
+            instruction = new DexIfEq(register1, register2, relativeOffset);
             break;
           case GE:
-            instruction = new IfGe(register1, register2, relativeOffset);
+            instruction = new DexIfGe(register1, register2, relativeOffset);
             break;
           case GT:
-            instruction = new IfGt(register1, register2, relativeOffset);
+            instruction = new DexIfGt(register1, register2, relativeOffset);
             break;
           case LE:
-            instruction = new IfLe(register1, register2, relativeOffset);
+            instruction = new DexIfLe(register1, register2, relativeOffset);
             break;
           case LT:
-            instruction = new IfLt(register1, register2, relativeOffset);
+            instruction = new DexIfLt(register1, register2, relativeOffset);
             break;
           case NE:
-            instruction = new IfNe(register1, register2, relativeOffset);
+            instruction = new DexIfNe(register1, register2, relativeOffset);
             break;
         }
       }
@@ -1456,46 +1456,46 @@ public class DexBuilder {
     }
 
     @Override
-    public void addInstructions(DexBuilder builder, List<Instruction> instructions) {
+    public void addInstructions(DexBuilder builder, List<DexInstruction> instructions) {
       Move move = getMove();
       TypeElement moveType = move.getOutType();
       int src = srcRegister(builder);
       int dest = destRegister(builder);
-      Instruction instruction;
+      DexInstruction instruction;
       switch (size) {
         case 1:
           if (src == dest) {
-            instruction = new Nop();
+            instruction = new DexNop();
             break;
           }
           if (moveType.isSinglePrimitive()) {
-            instruction = new com.android.tools.r8.code.Move(dest, src);
+            instruction = new DexMove(dest, src);
           } else if (moveType.isWidePrimitive()) {
-            instruction = new MoveWide(dest, src);
+            instruction = new DexMoveWide(dest, src);
           } else if (moveType.isReferenceType()) {
-            instruction = new MoveObject(dest, src);
+            instruction = new DexMoveObject(dest, src);
           } else {
             throw new Unreachable("Unexpected type: " + move.outType());
           }
           break;
         case 2:
           if (moveType.isSinglePrimitive()) {
-            instruction = new MoveFrom16(dest, src);
+            instruction = new DexMoveFrom16(dest, src);
           } else if (moveType.isWidePrimitive()) {
-            instruction = new MoveWideFrom16(dest, src);
+            instruction = new DexMoveWideFrom16(dest, src);
           } else if (moveType.isReferenceType()) {
-            instruction = new MoveObjectFrom16(dest, src);
+            instruction = new DexMoveObjectFrom16(dest, src);
           } else {
             throw new Unreachable("Unexpected type: " + move.outType());
           }
           break;
         case 3:
           if (moveType.isSinglePrimitive()) {
-            instruction = new Move16(dest, src);
+            instruction = new DexMove16(dest, src);
           } else if (moveType.isWidePrimitive()) {
-            instruction = new MoveWide16(dest, src);
+            instruction = new DexMoveWide16(dest, src);
           } else if (moveType.isReferenceType()) {
-            instruction = new MoveObject16(dest, src);
+            instruction = new DexMoveObject16(dest, src);
           } else {
             throw new Unreachable("Unexpected type: " + move.outType());
           }
@@ -1509,13 +1509,13 @@ public class DexBuilder {
 
     @Override
     public int minSize() {
-      assert new Nop().getSize() == 1 && new com.android.tools.r8.code.Move(0, 0).getSize() == 1;
+      assert new DexNop().getSize() == 1 && new DexMove(0, 0).getSize() == 1;
       return 1;
     }
 
     @Override
     public int maxSize() {
-      assert new Move16(0, 0).getSize() == 3;
+      assert new DexMove16(0, 0).getSize() == 3;
       return 3;
     }
 
@@ -1560,9 +1560,9 @@ public class DexBuilder {
   private static class SwitchPayloadInfo {
 
     public final IntSwitch ir;
-    public final Format31t dex;
+    public final DexFormat31t dex;
 
-    public SwitchPayloadInfo(IntSwitch ir, Format31t dex) {
+    public SwitchPayloadInfo(IntSwitch ir, DexFormat31t dex) {
       this.ir = ir;
       this.dex = dex;
     }
@@ -1571,9 +1571,9 @@ public class DexBuilder {
   private static class FillArrayDataInfo {
 
     public final NewArrayFilledData ir;
-    public final FillArrayData dex;
+    public final DexFillArrayData dex;
 
-    public FillArrayDataInfo(NewArrayFilledData ir, FillArrayData dex) {
+    public FillArrayDataInfo(NewArrayFilledData ir, DexFillArrayData dex) {
       this.ir = ir;
       this.dex = dex;
     }

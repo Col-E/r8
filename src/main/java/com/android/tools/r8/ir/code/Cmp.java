@@ -4,12 +4,13 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfCmp;
-import com.android.tools.r8.code.CmpLong;
-import com.android.tools.r8.code.CmpgDouble;
-import com.android.tools.r8.code.CmpgFloat;
-import com.android.tools.r8.code.CmplDouble;
-import com.android.tools.r8.code.CmplFloat;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexCmpLong;
+import com.android.tools.r8.dex.code.DexCmpgDouble;
+import com.android.tools.r8.dex.code.DexCmpgFloat;
+import com.android.tools.r8.dex.code.DexCmplDouble;
+import com.android.tools.r8.dex.code.DexCmplFloat;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
@@ -53,7 +54,7 @@ public class Cmp extends Binop {
 
   @Override
   public void buildDex(DexBuilder builder) {
-    com.android.tools.r8.code.Instruction instruction;
+    DexInstruction instruction;
     int dest = builder.allocatedRegister(outValue, getNumber());
     int left = builder.allocatedRegister(leftValue(), getNumber());
     int right = builder.allocatedRegister(rightValue(), getNumber());
@@ -61,24 +62,24 @@ public class Cmp extends Binop {
       case DOUBLE:
         assert bias != Bias.NONE;
         if (bias == Bias.GT) {
-          instruction = new CmpgDouble(dest, left, right);
+          instruction = new DexCmpgDouble(dest, left, right);
         } else {
           assert bias == Bias.LT;
-          instruction = new CmplDouble(dest, left, right);
+          instruction = new DexCmplDouble(dest, left, right);
         }
         break;
       case FLOAT:
         assert bias != Bias.NONE;
         if (bias == Bias.GT) {
-          instruction = new CmpgFloat(dest, left, right);
+          instruction = new DexCmpgFloat(dest, left, right);
         } else {
           assert bias == Bias.LT;
-          instruction = new CmplFloat(dest, left, right);
+          instruction = new DexCmplFloat(dest, left, right);
         }
         break;
       case LONG:
         assert bias == Bias.NONE;
-        instruction = new CmpLong(dest, left, right);
+        instruction = new DexCmpLong(dest, left, right);
         break;
       default:
         throw new Unreachable("Unexpected type " + type);

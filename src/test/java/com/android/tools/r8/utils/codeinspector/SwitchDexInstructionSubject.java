@@ -4,9 +4,9 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.PackedSwitch;
-import com.android.tools.r8.code.SparseSwitch;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexPackedSwitch;
+import com.android.tools.r8.dex.code.DexSparseSwitch;
 import com.android.tools.r8.ir.conversion.SwitchPayloadResolver;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.List;
@@ -17,7 +17,9 @@ public class SwitchDexInstructionSubject extends DexInstructionSubject
   private final SwitchPayloadResolver switchPayloadResolver;
 
   public SwitchDexInstructionSubject(
-      Instruction instruction, MethodSubject method, SwitchPayloadResolver switchPayloadResolver) {
+      DexInstruction instruction,
+      MethodSubject method,
+      SwitchPayloadResolver switchPayloadResolver) {
     super(instruction, method);
     assert isSwitch();
     assert instruction.isIntSwitch();
@@ -27,7 +29,7 @@ public class SwitchDexInstructionSubject extends DexInstructionSubject
 
   @Override
   public List<Integer> getKeys() {
-    if (instruction instanceof PackedSwitch) {
+    if (instruction instanceof DexPackedSwitch) {
       assert switchPayloadResolver.getKeys(instruction.getOffset() + instruction.getPayloadOffset())
               .length
           == 1;
@@ -44,7 +46,7 @@ public class SwitchDexInstructionSubject extends DexInstructionSubject
       }
       return keys;
     } else {
-      assert instruction instanceof SparseSwitch;
+      assert instruction instanceof DexSparseSwitch;
       return new IntArrayList(
           switchPayloadResolver.getKeys(instruction.getOffset() + instruction.getPayloadOffset()));
     }

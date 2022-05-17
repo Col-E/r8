@@ -5,6 +5,8 @@ package com.android.tools.r8.code;
 
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexInstructionFactory;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import java.nio.ByteBuffer;
 import org.junit.Test;
@@ -17,8 +19,8 @@ public class InstructionFactoryTest {
   @Test
   public void emptyBuffer() {
     ByteBuffer emptyBuffer = ByteBuffer.allocate(0);
-    InstructionFactory factory = new InstructionFactory();
-    Instruction[] instructions =
+    DexInstructionFactory factory = new DexInstructionFactory();
+    DexInstruction[] instructions =
         factory.readSequenceFrom(emptyBuffer.asShortBuffer(), 0, 0, new OffsetToObjectMapping());
     assertTrue(instructions.length == 0);
   }

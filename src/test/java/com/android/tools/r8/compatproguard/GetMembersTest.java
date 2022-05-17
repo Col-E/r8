@@ -6,13 +6,13 @@ package com.android.tools.r8.compatproguard;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.code.AputObject;
-import com.android.tools.r8.code.Const4;
-import com.android.tools.r8.code.ConstClass;
-import com.android.tools.r8.code.ConstString;
-import com.android.tools.r8.code.InvokeVirtual;
-import com.android.tools.r8.code.NewArray;
-import com.android.tools.r8.code.ReturnVoid;
+import com.android.tools.r8.dex.code.DexAputObject;
+import com.android.tools.r8.dex.code.DexConst4;
+import com.android.tools.r8.dex.code.DexConstClass;
+import com.android.tools.r8.dex.code.DexConstString;
+import com.android.tools.r8.dex.code.DexInvokeVirtual;
+import com.android.tools.r8.dex.code.DexNewArray;
+import com.android.tools.r8.dex.code.DexReturnVoid;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -53,12 +53,12 @@ public class GetMembersTest extends CompatProguardSmaliTestBase {
     assertTrue(method.isPresent());
 
     DexCode code = method.getMethod().getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof ConstClass);
-    assertTrue(code.instructions[1] instanceof ConstString);
-    ConstString constString = (ConstString) code.instructions[1];
+    assertTrue(code.instructions[0] instanceof DexConstClass);
+    assertTrue(code.instructions[1] instanceof DexConstString);
+    DexConstString constString = (DexConstString) code.instructions[1];
     assertNotEquals("foo", constString.getString().toString());
-    assertTrue(code.instructions[2] instanceof InvokeVirtual);
-    assertTrue(code.instructions[3] instanceof ReturnVoid);
+    assertTrue(code.instructions[2] instanceof DexInvokeVirtual);
+    assertTrue(code.instructions[3] instanceof DexReturnVoid);
   }
 
   @Test
@@ -93,17 +93,17 @@ public class GetMembersTest extends CompatProguardSmaliTestBase {
     assertTrue(method.isPresent());
 
     DexCode code = method.getMethod().getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof ConstClass);
-    assertTrue(code.instructions[1] instanceof Const4);
-    assertTrue(code.instructions[2] instanceof NewArray);
-    assertTrue(code.instructions[3] instanceof Const4);
-    assertTrue(code.instructions[4] instanceof AputObject);
-    assertTrue(code.instructions[5] instanceof ConstClass);
-    assertTrue(code.instructions[6] instanceof ConstString);
-    ConstString constString = (ConstString) code.instructions[6];
+    assertTrue(code.instructions[0] instanceof DexConstClass);
+    assertTrue(code.instructions[1] instanceof DexConst4);
+    assertTrue(code.instructions[2] instanceof DexNewArray);
+    assertTrue(code.instructions[3] instanceof DexConst4);
+    assertTrue(code.instructions[4] instanceof DexAputObject);
+    assertTrue(code.instructions[5] instanceof DexConstClass);
+    assertTrue(code.instructions[6] instanceof DexConstString);
+    DexConstString constString = (DexConstString) code.instructions[6];
     assertNotEquals("foo", constString.getString().toString());
-    assertTrue(code.instructions[7] instanceof InvokeVirtual);
-    assertTrue(code.instructions[8] instanceof ReturnVoid);
+    assertTrue(code.instructions[7] instanceof DexInvokeVirtual);
+    assertTrue(code.instructions[8] instanceof DexReturnVoid);
   }
 
 }

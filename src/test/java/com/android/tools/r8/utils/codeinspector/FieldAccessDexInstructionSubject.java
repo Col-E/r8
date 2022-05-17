@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
-import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.dex.code.DexInstruction;
 
 public class FieldAccessDexInstructionSubject extends DexInstructionSubject
     implements FieldAccessInstructionSubject {
@@ -12,7 +12,7 @@ public class FieldAccessDexInstructionSubject extends DexInstructionSubject
   private final CodeInspector codeInspector;
 
   public FieldAccessDexInstructionSubject(
-      CodeInspector codeInspector, Instruction instruction, MethodSubject method) {
+      CodeInspector codeInspector, DexInstruction instruction, MethodSubject method) {
     super(instruction, method);
     this.codeInspector = codeInspector;
     assert isFieldAccess();

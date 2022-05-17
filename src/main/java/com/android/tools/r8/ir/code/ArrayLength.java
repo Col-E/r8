@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfArrayLength;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexArrayLength;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -55,7 +56,7 @@ public class ArrayLength extends Instruction {
   public void buildDex(DexBuilder builder) {
     int dest = builder.allocatedRegister(dest(), getNumber());
     int array = builder.allocatedRegister(array(), getNumber());
-    builder.add(this, new com.android.tools.r8.code.ArrayLength(dest, array));
+    builder.add(this, new DexArrayLength(dest, array));
   }
 
   @Override

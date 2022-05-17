@@ -7,14 +7,15 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfInstanceFieldRead;
-import com.android.tools.r8.code.Iget;
-import com.android.tools.r8.code.IgetBoolean;
-import com.android.tools.r8.code.IgetByte;
-import com.android.tools.r8.code.IgetChar;
-import com.android.tools.r8.code.IgetObject;
-import com.android.tools.r8.code.IgetShort;
-import com.android.tools.r8.code.IgetWide;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexIget;
+import com.android.tools.r8.dex.code.DexIgetBoolean;
+import com.android.tools.r8.dex.code.DexIgetByte;
+import com.android.tools.r8.dex.code.DexIgetChar;
+import com.android.tools.r8.dex.code.DexIgetObject;
+import com.android.tools.r8.dex.code.DexIgetShort;
+import com.android.tools.r8.dex.code.DexIgetWide;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
@@ -79,31 +80,31 @@ public class InstanceGet extends FieldInstruction implements FieldGet, InstanceF
   public void buildDex(DexBuilder builder) {
     int destRegister = builder.allocatedRegister(dest(), getNumber());
     int objectRegister = builder.allocatedRegister(object(), getNumber());
-    com.android.tools.r8.code.Instruction instruction;
+    DexInstruction instruction;
     DexField field = getField();
     switch (getType()) {
       case INT:
       case FLOAT:
-        instruction = new Iget(destRegister, objectRegister, field);
+        instruction = new DexIget(destRegister, objectRegister, field);
         break;
       case LONG:
       case DOUBLE:
-        instruction = new IgetWide(destRegister, objectRegister, field);
+        instruction = new DexIgetWide(destRegister, objectRegister, field);
         break;
       case OBJECT:
-        instruction = new IgetObject(destRegister, objectRegister, field);
+        instruction = new DexIgetObject(destRegister, objectRegister, field);
         break;
       case BOOLEAN:
-        instruction = new IgetBoolean(destRegister, objectRegister, field);
+        instruction = new DexIgetBoolean(destRegister, objectRegister, field);
         break;
       case BYTE:
-        instruction = new IgetByte(destRegister, objectRegister, field);
+        instruction = new DexIgetByte(destRegister, objectRegister, field);
         break;
       case CHAR:
-        instruction = new IgetChar(destRegister, objectRegister, field);
+        instruction = new DexIgetChar(destRegister, objectRegister, field);
         break;
       case SHORT:
-        instruction = new IgetShort(destRegister, objectRegister, field);
+        instruction = new DexIgetShort(destRegister, objectRegister, field);
         break;
       default:
         throw new Unreachable("Unexpected type: " + getType());

@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.SwitchPayload;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexSwitchPayload;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.ir.conversion.SwitchPayloadResolver;
@@ -49,12 +49,12 @@ class DexInstructionIterator implements InstructionIterator {
   private void ensureSwitchPayloadResolver() {
     if (switchPayloadResolver == null) {
       switchPayloadResolver = new SwitchPayloadResolver();
-      for (Instruction instruction : code.instructions) {
+      for (DexInstruction instruction : code.instructions) {
         if (instruction.isIntSwitch()) {
           switchPayloadResolver.addPayloadUser(instruction);
         }
         if (instruction.isSwitchPayload()) {
-          switchPayloadResolver.resolve((SwitchPayload) instruction);
+          switchPayloadResolver.resolve((DexSwitchPayload) instruction);
         }
       }
     }

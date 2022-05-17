@@ -5,19 +5,20 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfArithmeticBinop;
-import com.android.tools.r8.code.AddIntLit16;
-import com.android.tools.r8.code.AddIntLit8;
-import com.android.tools.r8.code.RsubInt;
-import com.android.tools.r8.code.RsubIntLit8;
-import com.android.tools.r8.code.SubDouble;
-import com.android.tools.r8.code.SubDouble2Addr;
-import com.android.tools.r8.code.SubFloat;
-import com.android.tools.r8.code.SubFloat2Addr;
-import com.android.tools.r8.code.SubInt;
-import com.android.tools.r8.code.SubInt2Addr;
-import com.android.tools.r8.code.SubLong;
-import com.android.tools.r8.code.SubLong2Addr;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexAddIntLit16;
+import com.android.tools.r8.dex.code.DexAddIntLit8;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexRsubInt;
+import com.android.tools.r8.dex.code.DexRsubIntLit8;
+import com.android.tools.r8.dex.code.DexSubDouble;
+import com.android.tools.r8.dex.code.DexSubDouble2Addr;
+import com.android.tools.r8.dex.code.DexSubFloat;
+import com.android.tools.r8.dex.code.DexSubFloat2Addr;
+import com.android.tools.r8.dex.code.DexSubInt;
+import com.android.tools.r8.dex.code.DexSubInt2Addr;
+import com.android.tools.r8.dex.code.DexSubLong;
+import com.android.tools.r8.dex.code.DexSubLong2Addr;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 
@@ -43,53 +44,53 @@ public class Sub extends ArithmeticBinop {
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateInt(int dest, int left, int right) {
-    return new SubInt(dest, left, right);
+  public DexInstruction CreateInt(int dest, int left, int right) {
+    return new DexSubInt(dest, left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateLong(int dest, int left, int right) {
-    return new SubLong(dest, left, right);
+  public DexInstruction CreateLong(int dest, int left, int right) {
+    return new DexSubLong(dest, left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateFloat(int dest, int left, int right) {
-    return new SubFloat(dest, left, right);
+  public DexInstruction CreateFloat(int dest, int left, int right) {
+    return new DexSubFloat(dest, left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateDouble(int dest, int left, int right) {
-    return new SubDouble(dest, left, right);
+  public DexInstruction CreateDouble(int dest, int left, int right) {
+    return new DexSubDouble(dest, left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateInt2Addr(int left, int right) {
-    return new SubInt2Addr(left, right);
+  public DexInstruction CreateInt2Addr(int left, int right) {
+    return new DexSubInt2Addr(left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateLong2Addr(int left, int right) {
-    return new SubLong2Addr(left, right);
+  public DexInstruction CreateLong2Addr(int left, int right) {
+    return new DexSubLong2Addr(left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateFloat2Addr(int left, int right) {
-    return new SubFloat2Addr(left, right);
+  public DexInstruction CreateFloat2Addr(int left, int right) {
+    return new DexSubFloat2Addr(left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateDouble2Addr(int left, int right) {
-    return new SubDouble2Addr(left, right);
+  public DexInstruction CreateDouble2Addr(int left, int right) {
+    return new DexSubDouble2Addr(left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateIntLit8(int dest, int left, int constant) {
+  public DexInstruction CreateIntLit8(int dest, int left, int constant) {
     // The sub instructions with constants are rsub, and is handled below.
     throw new Unreachable("Unsupported instruction SubIntLit8");
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateIntLit16(int dest, int left, int constant) {
+  public DexInstruction CreateIntLit16(int dest, int left, int constant) {
     // The sub instructions with constants are rsub, and is handled below.
     throw new Unreachable("Unsupported instruction SubIntLit16");
   }
@@ -166,7 +167,7 @@ public class Sub extends ArithmeticBinop {
       return;
     }
 
-    com.android.tools.r8.code.Instruction instruction = null;
+    DexInstruction instruction = null;
     if (!needsValueInRegister(leftValue())) {
       // Sub instructions with small left constant is emitted as rsub.
       assert fitsInDexInstruction(leftValue());
@@ -174,10 +175,10 @@ public class Sub extends ArithmeticBinop {
       int right = builder.allocatedRegister(rightValue(), getNumber());
       int dest = builder.allocatedRegister(outValue, getNumber());
       if (left.is8Bit()) {
-        instruction = new RsubIntLit8(dest, right, left.getIntValue());
+        instruction = new DexRsubIntLit8(dest, right, left.getIntValue());
       } else {
         assert left.is16Bit();
-        instruction = new RsubInt(dest, right, left.getIntValue());
+        instruction = new DexRsubInt(dest, right, left.getIntValue());
       }
     } else if (!needsValueInRegister(rightValue())) {
       // Sub instructions with small right constant are emitted as add of the negative constant.
@@ -187,10 +188,10 @@ public class Sub extends ArithmeticBinop {
       int left = builder.allocatedRegister(leftValue(), getNumber());
       ConstNumber right = rightValue().getConstInstruction().asConstNumber();
       if (right.negativeIs8Bit()) {
-        instruction = new AddIntLit8(dest, left, -right.getIntValue());
+        instruction = new DexAddIntLit8(dest, left, -right.getIntValue());
       } else {
         assert right.negativeIs16Bit();
-        instruction = new AddIntLit16(dest, left, -right.getIntValue());
+        instruction = new DexAddIntLit16(dest, left, -right.getIntValue());
       }
     } else {
       assert type == NumericType.INT;

@@ -14,7 +14,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -58,7 +58,7 @@ public class RemoveCheckCastAfterClassInlining extends TestBase {
 
     DexCode code = method.getCode().asDexCode();
     int numberOfConstStringInstructions = 0;
-    for (Instruction instruction : code.instructions) {
+    for (DexInstruction instruction : code.instructions) {
       // Make sure that we do not load a const-string and then subsequently use a check-cast
       // instruction to check if it is actually a string.
       assertFalse(instruction.isCheckCast());

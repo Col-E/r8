@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.cf.code;
 
-import com.android.tools.r8.code.CfOrDexInstanceFieldRead;
+import com.android.tools.r8.dex.code.CfOrDexInstanceFieldRead;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexClassAndMethod;

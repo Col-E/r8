@@ -5,16 +5,17 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfArithmeticBinop;
-import com.android.tools.r8.code.AddDouble;
-import com.android.tools.r8.code.AddDouble2Addr;
-import com.android.tools.r8.code.AddFloat;
-import com.android.tools.r8.code.AddFloat2Addr;
-import com.android.tools.r8.code.AddInt;
-import com.android.tools.r8.code.AddInt2Addr;
-import com.android.tools.r8.code.AddIntLit16;
-import com.android.tools.r8.code.AddIntLit8;
-import com.android.tools.r8.code.AddLong;
-import com.android.tools.r8.code.AddLong2Addr;
+import com.android.tools.r8.dex.code.DexAddDouble;
+import com.android.tools.r8.dex.code.DexAddDouble2Addr;
+import com.android.tools.r8.dex.code.DexAddFloat;
+import com.android.tools.r8.dex.code.DexAddFloat2Addr;
+import com.android.tools.r8.dex.code.DexAddInt;
+import com.android.tools.r8.dex.code.DexAddInt2Addr;
+import com.android.tools.r8.dex.code.DexAddIntLit16;
+import com.android.tools.r8.dex.code.DexAddIntLit8;
+import com.android.tools.r8.dex.code.DexAddLong;
+import com.android.tools.r8.dex.code.DexAddLong2Addr;
+import com.android.tools.r8.dex.code.DexInstruction;
 
 public class Add extends ArithmeticBinop {
 
@@ -38,53 +39,53 @@ public class Add extends ArithmeticBinop {
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateInt(int dest, int left, int right) {
-    return new AddInt(dest, left, right);
+  public DexInstruction CreateInt(int dest, int left, int right) {
+    return new DexAddInt(dest, left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateLong(int dest, int left, int right) {
-    return new AddLong(dest, left, right);
+  public DexInstruction CreateLong(int dest, int left, int right) {
+    return new DexAddLong(dest, left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateFloat(int dest, int left, int right) {
-    return new AddFloat(dest, left, right);
+  public DexInstruction CreateFloat(int dest, int left, int right) {
+    return new DexAddFloat(dest, left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateDouble(int dest, int left, int right) {
-    return new AddDouble(dest, left, right);
+  public DexInstruction CreateDouble(int dest, int left, int right) {
+    return new DexAddDouble(dest, left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateInt2Addr(int left, int right) {
-    return new AddInt2Addr(left, right);
+  public DexInstruction CreateInt2Addr(int left, int right) {
+    return new DexAddInt2Addr(left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateLong2Addr(int left, int right) {
-    return new AddLong2Addr(left, right);
+  public DexInstruction CreateLong2Addr(int left, int right) {
+    return new DexAddLong2Addr(left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateFloat2Addr(int left, int right) {
-    return new AddFloat2Addr(left, right);
+  public DexInstruction CreateFloat2Addr(int left, int right) {
+    return new DexAddFloat2Addr(left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateDouble2Addr(int left, int right) {
-    return new AddDouble2Addr(left, right);
+  public DexInstruction CreateDouble2Addr(int left, int right) {
+    return new DexAddDouble2Addr(left, right);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateIntLit8(int dest, int left, int constant) {
-    return new AddIntLit8(dest, left, constant);
+  public DexInstruction CreateIntLit8(int dest, int left, int constant) {
+    return new DexAddIntLit8(dest, left, constant);
   }
 
   @Override
-  public com.android.tools.r8.code.Instruction CreateIntLit16(int dest, int left, int constant) {
-    return new AddIntLit16(dest, left, constant);
+  public DexInstruction CreateIntLit16(int dest, int left, int constant) {
+    return new DexAddIntLit16(dest, left, constant);
   }
 
   @Override

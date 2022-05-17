@@ -4,9 +4,9 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
-import com.android.tools.r8.code.FillArrayData;
-import com.android.tools.r8.code.FillArrayDataPayload;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexFillArrayData;
+import com.android.tools.r8.dex.code.DexFillArrayDataPayload;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -50,14 +50,14 @@ public class NewArrayFilledData extends Instruction {
     return inValues.get(0);
   }
 
-  public FillArrayDataPayload createPayload() {
-    return new FillArrayDataPayload(element_width, size, data);
+  public DexFillArrayDataPayload createPayload() {
+    return new DexFillArrayDataPayload(element_width, size, data);
   }
 
   @Override
   public void buildDex(DexBuilder builder) {
     int src = builder.allocatedRegister(src(), getNumber());
-    builder.addFillArrayData(this, new FillArrayData(src));
+    builder.addFillArrayData(this, new DexFillArrayData(src));
   }
 
   @Override

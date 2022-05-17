@@ -8,6 +8,7 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfConstClass;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexConstClass;
 import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -79,7 +80,7 @@ public class ConstClass extends ConstInstruction {
   @Override
   public void buildDex(DexBuilder builder) {
     int dest = builder.allocatedRegister(dest(), getNumber());
-    builder.add(this, new com.android.tools.r8.code.ConstClass(dest, clazz, ignoreCompatRules()));
+    builder.add(this, new DexConstClass(dest, clazz, ignoreCompatRules()));
   }
 
   @Override

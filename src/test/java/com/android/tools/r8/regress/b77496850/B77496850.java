@@ -7,8 +7,8 @@ package com.android.tools.r8.regress.b77496850;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.code.InvokeStatic;
 import com.android.tools.r8.dex.Marker.Tool;
+import com.android.tools.r8.dex.code.DexInvokeStatic;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -419,8 +419,8 @@ public class B77496850 extends TestBase {
         factory.booleanDescriptor,
         new DexString[]{factory.doubleDescriptor});
     for (int i = 0; i < code.instructions.length; i++) {
-      if (code.instructions[i] instanceof InvokeStatic) {
-        InvokeStatic invoke = (InvokeStatic) code.instructions[i];
+      if (code.instructions[i] instanceof DexInvokeStatic) {
+        DexInvokeStatic invoke = (DexInvokeStatic) code.instructions[i];
         if (invoke.getMethod() == doubleIsNaN) {
           count++;
         }

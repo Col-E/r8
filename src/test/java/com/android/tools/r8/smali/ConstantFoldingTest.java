@@ -6,12 +6,12 @@ package com.android.tools.r8.smali;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.code.Const4;
-import com.android.tools.r8.code.DivIntLit8;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.RemIntLit8;
-import com.android.tools.r8.code.Return;
-import com.android.tools.r8.code.ReturnWide;
+import com.android.tools.r8.dex.code.DexConst4;
+import com.android.tools.r8.dex.code.DexDivIntLit8;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexRemIntLit8;
+import com.android.tools.r8.dex.code.DexReturn;
+import com.android.tools.r8.dex.code.DexReturnWide;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -135,13 +135,13 @@ public class ConstantFoldingTest extends SmaliTestBase {
       assertTrue(code.instructions[0] instanceof WideConstant);
       assertEquals(test.result.longValue(),
           ((WideConstant) code.instructions[0]).decodedValue());
-      assertTrue(code.instructions[1] instanceof ReturnWide);
+      assertTrue(code.instructions[1] instanceof DexReturnWide);
     } else {
       assertTrue(code.instructions[0] instanceof SingleConstant);
       assertEquals(
           test.result.longValue(),
           (long) ((SingleConstant) code.instructions[0]).decodedValue());
-      assertTrue(code.instructions[1] instanceof Return);
+      assertTrue(code.instructions[1] instanceof DexReturn);
     }
   }
 
@@ -211,50 +211,50 @@ public class ConstantFoldingTest extends SmaliTestBase {
     testBuilder.addTest(
         (builder, name, parameters) -> {
           builder.addStaticMethod(
-              "int", name, Collections.singletonList("int"),
+              "int",
+              name,
+              Collections.singletonList("int"),
               2,
               "    const/4 v0, 1           ",
               "    const/4 v1, 0           ",
               "    div-int/2addr v0, v1    ",
-              "    return v0\n             "
-          );
+              "    return v0\n             ");
         },
         (method, parameters) -> {
           DexCode code = method.getCode().asDexCode();
           // Division by zero is not folded, but div-int/lit8 is used.
           assertEquals(3, code.instructions.length);
-          assertTrue(code.instructions[0] instanceof Const4);
-          assertTrue(code.instructions[1] instanceof DivIntLit8);
-          assertEquals(0, ((DivIntLit8) code.instructions[1]).CC);
-          assertTrue(code.instructions[2] instanceof Return);
+          assertTrue(code.instructions[0] instanceof DexConst4);
+          assertTrue(code.instructions[1] instanceof DexDivIntLit8);
+          assertEquals(0, ((DexDivIntLit8) code.instructions[1]).CC);
+          assertTrue(code.instructions[2] instanceof DexReturn);
         },
-        null
-    );
+        null);
   }
 
   private void addDivIntFoldRemByZero(SmaliBuilderWithCheckers testBuilder) {
     testBuilder.addTest(
         (builder, name, parameters) -> {
           builder.addStaticMethod(
-            "int", name, Collections.singletonList("int"),
-            2,
-            "    const/4 v0, 1           ",
-            "    const/4 v1, 0           ",
-            "    rem-int/2addr v0, v1    ",
-            "    return v0\n             "
-          );
+              "int",
+              name,
+              Collections.singletonList("int"),
+              2,
+              "    const/4 v0, 1           ",
+              "    const/4 v1, 0           ",
+              "    rem-int/2addr v0, v1    ",
+              "    return v0\n             ");
         },
         (method, parameters) -> {
           DexCode code = method.getCode().asDexCode();
           // Division by zero is not folded, but rem-int/lit8 is used.
           assertEquals(3, code.instructions.length);
-          assertTrue(code.instructions[0] instanceof Const4);
-          assertTrue(code.instructions[1] instanceof RemIntLit8);
-          assertEquals(0, ((RemIntLit8) code.instructions[1]).CC);
-          assertTrue(code.instructions[2] instanceof Return);
+          assertTrue(code.instructions[0] instanceof DexConst4);
+          assertTrue(code.instructions[1] instanceof DexRemIntLit8);
+          assertEquals(0, ((DexRemIntLit8) code.instructions[1]).CC);
+          assertTrue(code.instructions[2] instanceof DexReturn);
         },
-        null
-    );
+        null);
   }
 
   public class UnopTestData {
@@ -302,12 +302,12 @@ public class ConstantFoldingTest extends SmaliTestBase {
     if (wide) {
       assertTrue(code.instructions[0] instanceof WideConstant);
       assertEquals(test.result.longValue(), ((WideConstant) code.instructions[0]).decodedValue());
-      assertTrue(code.instructions[1] instanceof ReturnWide);
+      assertTrue(code.instructions[1] instanceof DexReturnWide);
     } else {
       assertTrue(code.instructions[0] instanceof SingleConstant);
       assertEquals(
           test.result.longValue(), (long) ((SingleConstant) code.instructions[0]).decodedValue());
-      assertTrue(code.instructions[1] instanceof Return);
+      assertTrue(code.instructions[1] instanceof DexReturn);
     }
   }
 
@@ -330,12 +330,12 @@ public class ConstantFoldingTest extends SmaliTestBase {
     addUnopTest(testBuilder, new UnopTestData("double", "neg", doubleBits(-0.0), doubleBits(0.0)));
   }
 
-  private void assertConstValue(int expected, Instruction insn) {
+  private void assertConstValue(int expected, DexInstruction insn) {
     assertTrue(insn instanceof SingleConstant);
     assertEquals(expected, ((SingleConstant) insn).decodedValue());
   }
 
-  private void assertConstValue(long expected, Instruction insn) {
+  private void assertConstValue(long expected, DexInstruction insn) {
     assertTrue(insn instanceof WideConstant);
     assertEquals(expected, ((WideConstant) insn).decodedValue());
   }
@@ -393,7 +393,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
     // Test that this just returns a constant.
     assertEquals(2, code.instructions.length);
     assertConstValue(test.expected, code.instructions[0]);
-    assertTrue(code.instructions[1] instanceof Return);
+    assertTrue(code.instructions[1] instanceof DexReturn);
   }
 
   private void addLogicalOperatorsFoldTests(SmaliBuilderWithCheckers testBuilder) {
@@ -476,7 +476,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
     // Test that this just returns a constant.
     assertEquals(2, code.instructions.length);
     assertConstValue(data.expected, code.instructions[0]);
-    assertTrue(code.instructions[1] instanceof Return);
+    assertTrue(code.instructions[1] instanceof DexReturn);
   }
 
   public void addShiftOperatorsFolding(SmaliBuilderWithCheckers testBuilder) {
@@ -560,7 +560,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
     // Test that this just returns a constant.
     assertEquals(2, code.instructions.length);
     assertConstValue(data.expected, code.instructions[0]);
-    assertTrue(code.instructions[1] instanceof ReturnWide);
+    assertTrue(code.instructions[1] instanceof DexReturnWide);
   }
 
   public void addShiftOperatorsFoldingWide(SmaliBuilderWithCheckers testBuilder) {
@@ -598,7 +598,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
     DexCode code = method.getCode().asDexCode();
     assertEquals(2, code.instructions.length);
     assertConstValue(~value, code.instructions[0]);
-    assertTrue(code.instructions[1] instanceof Return);
+    assertTrue(code.instructions[1] instanceof DexReturn);
   }
 
   private void addNotIntFoldTests(SmaliBuilderWithCheckers testBuilder) throws Exception {
@@ -620,7 +620,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
     DexCode code = method.getCode().asDexCode();
     assertEquals(2, code.instructions.length);
     assertConstValue(~value, code.instructions[0]);
-    assertTrue(code.instructions[1] instanceof ReturnWide);
+    assertTrue(code.instructions[1] instanceof DexReturnWide);
   }
 
 
@@ -650,7 +650,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
     DexCode code = method.getCode().asDexCode();
     assertEquals(2, code.instructions.length);
     assertConstValue(-value, code.instructions[0]);
-    assertTrue(code.instructions[1] instanceof Return);
+    assertTrue(code.instructions[1] instanceof DexReturn);
   }
 
   private void addNegIntFoldTests(SmaliBuilderWithCheckers testBuilder) throws Exception {
@@ -673,7 +673,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
     DexCode code = method.getCode().asDexCode();
     assertEquals(2, code.instructions.length);
     assertConstValue(-value, code.instructions[0]);
-    assertTrue(code.instructions[1] instanceof ReturnWide);
+    assertTrue(code.instructions[1] instanceof DexReturnWide);
   }
 
   private void addNegLongFoldTests(SmaliBuilderWithCheckers testBuilder) throws Exception {
@@ -748,7 +748,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
     DexCode code = method.getCode().asDexCode();
     assertEquals(2, code.instructions.length);
     assertConstValue(test.expected ? 1: 0, code.instructions[0]);
-    assertTrue(code.instructions[1] instanceof Return);
+    assertTrue(code.instructions[1] instanceof DexReturn);
   }
 
   private void addCmpFloatFoldTests(SmaliBuilderWithCheckers testBuilder) throws Exception {
@@ -856,7 +856,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
     DexCode code = method.getCode().asDexCode();
     assertEquals(2, code.instructions.length);
     assertConstValue(test.expected ? 1: 0, code.instructions[0]);
-    assertTrue(code.instructions[1] instanceof Return);
+    assertTrue(code.instructions[1] instanceof DexReturn);
   }
 
 
@@ -920,7 +920,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
     DexCode code = method.getCode().asDexCode();
     assertEquals(2, code.instructions.length);
     assertConstValue(Long.compare(values[0], values[1]), code.instructions[0]);
-    assertTrue(code.instructions[1] instanceof Return);
+    assertTrue(code.instructions[1] instanceof DexReturn);
   }
 
   private void addCmpLongFold(SmaliBuilderWithCheckers testBuilder) throws Exception {

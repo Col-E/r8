@@ -6,14 +6,15 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfStaticFieldRead;
-import com.android.tools.r8.code.Sget;
-import com.android.tools.r8.code.SgetBoolean;
-import com.android.tools.r8.code.SgetByte;
-import com.android.tools.r8.code.SgetChar;
-import com.android.tools.r8.code.SgetObject;
-import com.android.tools.r8.code.SgetShort;
-import com.android.tools.r8.code.SgetWide;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexSget;
+import com.android.tools.r8.dex.code.DexSgetBoolean;
+import com.android.tools.r8.dex.code.DexSgetByte;
+import com.android.tools.r8.dex.code.DexSgetChar;
+import com.android.tools.r8.dex.code.DexSgetObject;
+import com.android.tools.r8.dex.code.DexSgetShort;
+import com.android.tools.r8.dex.code.DexSgetWide;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndField;
@@ -97,32 +98,32 @@ public class StaticGet extends FieldInstruction implements FieldGet, StaticField
 
   @Override
   public void buildDex(DexBuilder builder) {
-    com.android.tools.r8.code.Instruction instruction;
+    DexInstruction instruction;
     int dest = builder.allocatedRegister(dest(), getNumber());
     DexField field = getField();
     switch (getType()) {
       case INT:
       case FLOAT:
-        instruction = new Sget(dest, field);
+        instruction = new DexSget(dest, field);
         break;
       case LONG:
       case DOUBLE:
-        instruction = new SgetWide(dest, field);
+        instruction = new DexSgetWide(dest, field);
         break;
       case OBJECT:
-        instruction = new SgetObject(dest, field);
+        instruction = new DexSgetObject(dest, field);
         break;
       case BOOLEAN:
-        instruction = new SgetBoolean(dest, field);
+        instruction = new DexSgetBoolean(dest, field);
         break;
       case BYTE:
-        instruction = new SgetByte(dest, field);
+        instruction = new DexSgetByte(dest, field);
         break;
       case CHAR:
-        instruction = new SgetChar(dest, field);
+        instruction = new DexSgetChar(dest, field);
         break;
       case SHORT:
-        instruction = new SgetShort(dest, field);
+        instruction = new DexSgetShort(dest, field);
         break;
       default:
         throw new Unreachable("Unexpected type: " + getType());

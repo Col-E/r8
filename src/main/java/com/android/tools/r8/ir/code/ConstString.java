@@ -9,6 +9,7 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexConstString;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexString;
@@ -69,7 +70,7 @@ public class ConstString extends ConstInstruction {
   @Override
   public void buildDex(DexBuilder builder) {
     int dest = builder.allocatedRegister(dest(), getNumber());
-    builder.add(this, new com.android.tools.r8.code.ConstString(dest, value));
+    builder.add(this, new DexConstString(dest, value));
   }
 
   @Override

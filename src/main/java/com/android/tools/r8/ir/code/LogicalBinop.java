@@ -4,7 +4,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfLogicalBinop;
-import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
@@ -20,17 +20,17 @@ public abstract class LogicalBinop extends Binop {
     super(type, dest, left, right);
   }
 
-  public abstract com.android.tools.r8.code.Instruction CreateInt(int dest, int left, int right);
+  public abstract DexInstruction CreateInt(int dest, int left, int right);
 
-  public abstract Instruction CreateLong(int dest, int left, int right);
+  public abstract DexInstruction CreateLong(int dest, int left, int right);
 
-  public abstract Instruction CreateInt2Addr(int left, int right);
+  public abstract DexInstruction CreateInt2Addr(int left, int right);
 
-  public abstract Instruction CreateLong2Addr(int left, int right);
+  public abstract DexInstruction CreateLong2Addr(int left, int right);
 
-  public abstract Instruction CreateIntLit8(int dest, int left, int constant);
+  public abstract DexInstruction CreateIntLit8(int dest, int left, int constant);
 
-  public abstract Instruction CreateIntLit16(int dest, int left, int constant);
+  public abstract DexInstruction CreateIntLit16(int dest, int left, int constant);
 
   @Override
   public boolean canBeFolded() {
@@ -54,7 +54,7 @@ public abstract class LogicalBinop extends Binop {
     // that will change.
     int left = builder.allocatedRegister(leftValue(), getNumber());
     int dest = builder.allocatedRegister(outValue, getNumber());
-    Instruction instruction;
+    DexInstruction instruction;
     if (isTwoAddr(builder.getRegisterAllocator())) {
       int right = builder.allocatedRegister(rightValue(), getNumber());
       if (left != dest) {

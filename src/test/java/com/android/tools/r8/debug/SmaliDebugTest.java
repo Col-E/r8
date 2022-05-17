@@ -7,9 +7,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.code.IfEqz;
-import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.debuginfo.DebugInfoInspector;
+import com.android.tools.r8.dex.code.DexIfEqz;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.graph.DexDebugEntry;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.smali.SmaliBuilder;
@@ -111,10 +111,10 @@ public class SmaliDebugTest extends DebugTestBase {
             AndroidApp.builder().addProgramFiles(outs).build(),
             CLASS,
             new MethodSignature(methodName, "int", new String[] {"int"}));
-    IfEqz cond = null;
-    for (Instruction instruction : info.getMethod().getCode().asDexCode().instructions) {
-      if (instruction.getOpcode() == IfEqz.OPCODE) {
-        cond = (IfEqz) instruction;
+    DexIfEqz cond = null;
+    for (DexInstruction instruction : info.getMethod().getCode().asDexCode().instructions) {
+      if (instruction.getOpcode() == DexIfEqz.OPCODE) {
+        cond = (DexIfEqz) instruction;
         break;
       }
     }

@@ -5,11 +5,11 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.cf.CfVersion;
-import com.android.tools.r8.code.Const4;
-import com.android.tools.r8.code.Throw;
 import com.android.tools.r8.dex.CodeToKeep;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.dex.code.DexConst4;
+import com.android.tools.r8.dex.code.DexThrow;
 import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexCode.TryHandler;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
@@ -81,7 +81,7 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
 
   @Override
   public int codeSizeInBytes() {
-    return Const4.SIZE + Throw.SIZE;
+    return DexConst4.SIZE + DexThrow.SIZE;
   }
 
   @Override
@@ -251,8 +251,8 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
       LensCodeRewriterUtils lensCodeRewriter,
       ObjectToOffsetMapping mapping) {
     int register = 0;
-    new Const4(register, 0).write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
-    new Throw(register).write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
+    new DexConst4(register, 0).write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
+    new DexThrow(register).write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
   }
 
   @Override

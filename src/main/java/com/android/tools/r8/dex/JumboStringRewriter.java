@@ -6,29 +6,29 @@ package com.android.tools.r8.dex;
 import static com.android.tools.r8.graph.DexCode.TryHandler.NO_HANDLER;
 import static com.android.tools.r8.graph.DexDebugEventBuilder.addDefaultEventWithAdvancePcIfNecessary;
 
-import com.android.tools.r8.code.ConstString;
-import com.android.tools.r8.code.ConstStringJumbo;
-import com.android.tools.r8.code.Format21t;
-import com.android.tools.r8.code.Format22t;
-import com.android.tools.r8.code.Format31t;
-import com.android.tools.r8.code.Goto;
-import com.android.tools.r8.code.Goto16;
-import com.android.tools.r8.code.Goto32;
-import com.android.tools.r8.code.IfEq;
-import com.android.tools.r8.code.IfEqz;
-import com.android.tools.r8.code.IfGe;
-import com.android.tools.r8.code.IfGez;
-import com.android.tools.r8.code.IfGt;
-import com.android.tools.r8.code.IfGtz;
-import com.android.tools.r8.code.IfLe;
-import com.android.tools.r8.code.IfLez;
-import com.android.tools.r8.code.IfLt;
-import com.android.tools.r8.code.IfLtz;
-import com.android.tools.r8.code.IfNe;
-import com.android.tools.r8.code.IfNez;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.Nop;
-import com.android.tools.r8.code.SwitchPayload;
+import com.android.tools.r8.dex.code.DexConstString;
+import com.android.tools.r8.dex.code.DexConstStringJumbo;
+import com.android.tools.r8.dex.code.DexFormat21t;
+import com.android.tools.r8.dex.code.DexFormat22t;
+import com.android.tools.r8.dex.code.DexFormat31t;
+import com.android.tools.r8.dex.code.DexGoto;
+import com.android.tools.r8.dex.code.DexGoto16;
+import com.android.tools.r8.dex.code.DexGoto32;
+import com.android.tools.r8.dex.code.DexIfEq;
+import com.android.tools.r8.dex.code.DexIfEqz;
+import com.android.tools.r8.dex.code.DexIfGe;
+import com.android.tools.r8.dex.code.DexIfGez;
+import com.android.tools.r8.dex.code.DexIfGt;
+import com.android.tools.r8.dex.code.DexIfGtz;
+import com.android.tools.r8.dex.code.DexIfLe;
+import com.android.tools.r8.dex.code.DexIfLez;
+import com.android.tools.r8.dex.code.DexIfLt;
+import com.android.tools.r8.dex.code.DexIfLtz;
+import com.android.tools.r8.dex.code.DexIfNe;
+import com.android.tools.r8.dex.code.DexIfNez;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexNop;
+import com.android.tools.r8.dex.code.DexSwitchPayload;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexCode.TryHandler;
@@ -57,11 +57,11 @@ import java.util.Map.Entry;
 public class JumboStringRewriter {
 
   private static class TryTargets {
-    private Instruction start;
-    private Instruction end;
+    private DexInstruction start;
+    private DexInstruction end;
     private final boolean endsAfterLastInstruction;
 
-    TryTargets(Instruction start, Instruction end, boolean endsAfterLastInstruction) {
+    TryTargets(DexInstruction start, DexInstruction end, boolean endsAfterLastInstruction) {
       assert start != null;
       assert end != null;
       this.start = start;
@@ -69,7 +69,7 @@ public class JumboStringRewriter {
       this.endsAfterLastInstruction = endsAfterLastInstruction;
     }
 
-    void replaceTarget(Instruction target, Instruction newTarget) {
+    void replaceTarget(DexInstruction target, DexInstruction newTarget) {
       if (start == target) {
         start = newTarget;
       }
@@ -93,14 +93,16 @@ public class JumboStringRewriter {
   private final DexEncodedMethod method;
   private final DexString firstJumboString;
   private final DexItemFactory factory;
-  private final Map<Instruction, List<Instruction>> instructionTargets = new IdentityHashMap<>();
+  private final Map<DexInstruction, List<DexInstruction>> instructionTargets =
+      new IdentityHashMap<>();
   private EventBasedDebugInfo debugEventBasedInfo = null;
-  private final Int2ReferenceMap<Instruction> debugEventTargets = new Int2ReferenceOpenHashMap<>();
-  private final Map<Instruction, Instruction> payloadToSwitch = new IdentityHashMap<>();
+  private final Int2ReferenceMap<DexInstruction> debugEventTargets =
+      new Int2ReferenceOpenHashMap<>();
+  private final Map<DexInstruction, DexInstruction> payloadToSwitch = new IdentityHashMap<>();
   private final Map<Try, TryTargets> tryTargets = new IdentityHashMap<>();
-  private final Int2ReferenceMap<Instruction> tryRangeStartAndEndTargets
-      = new Int2ReferenceOpenHashMap<>();
-  private final Map<TryHandler, List<Instruction>> handlerTargets = new IdentityHashMap<>();
+  private final Int2ReferenceMap<DexInstruction> tryRangeStartAndEndTargets =
+      new Int2ReferenceOpenHashMap<>();
+  private final Map<TryHandler, List<DexInstruction>> handlerTargets = new IdentityHashMap<>();
 
   public JumboStringRewriter(
       DexEncodedMethod method, DexString firstJumboString, DexItemFactory factory) {
@@ -114,7 +116,7 @@ public class JumboStringRewriter {
     // instructions to the actual instruction referenced.
     recordTargets();
     // Expand the code by rewriting jumbo strings and branching instructions.
-    List<Instruction> newInstructions = expandCode();
+    List<DexInstruction> newInstructions = expandCode();
     // Commit to the new instruction offsets and update instructions, try-catch structures
     // and debug info with the new offsets.
     rewriteInstructionOffsets(newInstructions);
@@ -128,7 +130,7 @@ public class JumboStringRewriter {
             oldCode.registerSize,
             oldCode.incomingRegisterSize,
             oldCode.outgoingRegisterSize,
-            newInstructions.toArray(Instruction.EMPTY_ARRAY),
+            newInstructions.toArray(DexInstruction.EMPTY_ARRAY),
             newTries,
             newHandlers,
             newDebugInfo);
@@ -138,44 +140,44 @@ public class JumboStringRewriter {
     return newCode;
   }
 
-  private void rewriteInstructionOffsets(List<Instruction> instructions) {
-    for (Instruction instruction : instructions) {
-      if (instruction instanceof Format22t) {  // IfEq, IfGe, IfGt, IfLe, IfLt, IfNe
-        Format22t condition = (Format22t) instruction;
+  private void rewriteInstructionOffsets(List<DexInstruction> instructions) {
+    for (DexInstruction instruction : instructions) {
+      if (instruction instanceof DexFormat22t) { // IfEq, IfGe, IfGt, IfLe, IfLt, IfNe
+        DexFormat22t condition = (DexFormat22t) instruction;
         int offset = instructionTargets.get(condition).get(0).getOffset() - instruction.getOffset();
         assert Short.MIN_VALUE <= offset && offset <= Short.MAX_VALUE;
         condition.CCCC = (short) offset;
-      } else if (instruction instanceof Format21t) {  // IfEqz, IfGez, IfGtz, IfLez, IfLtz, IfNez
-        Format21t condition = (Format21t) instruction;
+      } else if (instruction instanceof DexFormat21t) { // IfEqz, IfGez, IfGtz, IfLez, IfLtz, IfNez
+        DexFormat21t condition = (DexFormat21t) instruction;
         int offset = instructionTargets.get(condition).get(0).getOffset() - instruction.getOffset();
         assert Short.MIN_VALUE <= offset && offset <= Short.MAX_VALUE;
         condition.BBBB = (short) offset;
-      } else if (instruction instanceof Goto) {
-        Goto jump = (Goto) instruction;
+      } else if (instruction instanceof DexGoto) {
+        DexGoto jump = (DexGoto) instruction;
         int offset = instructionTargets.get(jump).get(0).getOffset() - instruction.getOffset();
         assert Byte.MIN_VALUE <= offset && offset <= Byte.MAX_VALUE;
         jump.AA = (byte) offset;
-      } else if (instruction instanceof Goto16) {
-        Goto16 jump = (Goto16) instruction;
+      } else if (instruction instanceof DexGoto16) {
+        DexGoto16 jump = (DexGoto16) instruction;
         int offset = instructionTargets.get(jump).get(0).getOffset() - instruction.getOffset();
         assert Short.MIN_VALUE <= offset && offset <= Short.MAX_VALUE;
         jump.AAAA = (short) offset;
-      } else if (instruction instanceof Goto32) {
-        Goto32 jump = (Goto32) instruction;
+      } else if (instruction instanceof DexGoto32) {
+        DexGoto32 jump = (DexGoto32) instruction;
         int offset = instructionTargets.get(jump).get(0).getOffset() - instruction.getOffset();
         jump.AAAAAAAA = offset;
-      } else if (instruction.hasPayload()) {  // FillArrayData, SparseSwitch, PackedSwitch
-        Format31t payloadUser = (Format31t) instruction;
+      } else if (instruction.hasPayload()) { // FillArrayData, SparseSwitch, PackedSwitch
+        DexFormat31t payloadUser = (DexFormat31t) instruction;
         int offset =
             instructionTargets.get(payloadUser).get(0).getOffset() - instruction.getOffset();
         payloadUser.setPayloadOffset(offset);
-      } else if (instruction instanceof SwitchPayload) {
-        SwitchPayload payload = (SwitchPayload) instruction;
-        Instruction switchInstruction = payloadToSwitch.get(payload);
-        List<Instruction> switchTargets = instructionTargets.get(payload);
+      } else if (instruction instanceof DexSwitchPayload) {
+        DexSwitchPayload payload = (DexSwitchPayload) instruction;
+        DexInstruction switchInstruction = payloadToSwitch.get(payload);
+        List<DexInstruction> switchTargets = instructionTargets.get(payload);
         int[] targets = payload.switchTargetOffsets();
         for (int i = 0; i < switchTargets.size(); i++) {
-          Instruction target = switchTargets.get(i);
+          DexInstruction target = switchTargets.get(i);
           targets[i] = target.getOffset() - switchInstruction.getOffset();
         }
       }
@@ -199,8 +201,8 @@ public class JumboStringRewriter {
     TryHandler[] result = new TryHandler[code.handlers.length];
     for (int i = 0; i < code.handlers.length; i++) {
       TryHandler handler = code.handlers[i];
-      List<Instruction> targets = handlerTargets.get(handler);
-      Iterator<Instruction> it = targets.iterator();
+      List<DexInstruction> targets = handlerTargets.get(handler);
+      Iterator<DexInstruction> it = targets.iterator();
       int catchAllAddr = NO_HANDLER;
       if (handler.catchAllAddr != NO_HANDLER) {
         catchAllAddr = it.next().getOffset();
@@ -226,14 +228,14 @@ public class JumboStringRewriter {
         if (event instanceof AdvancePC) {
           AdvancePC advance = (AdvancePC) event;
           lastOriginalOffset += advance.delta;
-          Instruction target = debugEventTargets.get(lastOriginalOffset);
+          DexInstruction target = debugEventTargets.get(lastOriginalOffset);
           int pcDelta = target.getOffset() - lastNewOffset;
           events.add(factory.createAdvancePC(pcDelta));
           lastNewOffset = target.getOffset();
         } else if (event instanceof Default) {
           Default defaultEvent = (Default) event;
           lastOriginalOffset += defaultEvent.getPCDelta();
-          Instruction target = debugEventTargets.get(lastOriginalOffset);
+          DexInstruction target = debugEventTargets.get(lastOriginalOffset);
           int lineDelta = defaultEvent.getLineDelta();
           int pcDelta = target.getOffset() - lastNewOffset;
           addDefaultEventWithAdvancePcIfNecessary(lineDelta, pcDelta, events, factory);
@@ -250,116 +252,116 @@ public class JumboStringRewriter {
     return code.getDebugInfo();
   }
 
-  private List<Instruction> expandCode() {
-    LinkedList<Instruction> instructions = new LinkedList<>();
+  private List<DexInstruction> expandCode() {
+    LinkedList<DexInstruction> instructions = new LinkedList<>();
     Collections.addAll(instructions, method.getCode().asDexCode().instructions);
     int offsetDelta;
     do {
-      ListIterator<Instruction> it = instructions.listIterator();
+      ListIterator<DexInstruction> it = instructions.listIterator();
       offsetDelta = 0;
       while (it.hasNext()) {
-        Instruction instruction = it.next();
+        DexInstruction instruction = it.next();
         int orignalOffset = instruction.getOffset();
         instruction.setOffset(orignalOffset + offsetDelta);
-        if (instruction instanceof ConstString) {
-          ConstString string = (ConstString) instruction;
+        if (instruction instanceof DexConstString) {
+          DexConstString string = (DexConstString) instruction;
           if (string.getString().compareTo(firstJumboString) >= 0) {
-            ConstStringJumbo jumboString = new ConstStringJumbo(string.AA, string.getString());
+            DexConstStringJumbo jumboString =
+                new DexConstStringJumbo(string.AA, string.getString());
             jumboString.setOffset(string.getOffset());
             offsetDelta++;
             it.set(jumboString);
             replaceTarget(instruction, jumboString);
           }
-        } else if (instruction instanceof Format22t) {  // IfEq, IfGe, IfGt, IfLe, IfLt, IfNe
-          Format22t condition = (Format22t) instruction;
+        } else if (instruction instanceof DexFormat22t) { // IfEq, IfGe, IfGt, IfLe, IfLt, IfNe
+          DexFormat22t condition = (DexFormat22t) instruction;
           int offset =
               instructionTargets.get(condition).get(0).getOffset() - instruction.getOffset();
           if (Short.MIN_VALUE > offset || offset > Short.MAX_VALUE) {
-            Format22t newCondition = null;
+            DexFormat22t newCondition = null;
             switch (condition.getType().inverted()) {
               case EQ:
-                newCondition = new IfEq(condition.A, condition.B, 0);
+                newCondition = new DexIfEq(condition.A, condition.B, 0);
                 break;
               case GE:
-                newCondition = new IfGe(condition.A, condition.B, 0);
+                newCondition = new DexIfGe(condition.A, condition.B, 0);
                 break;
               case GT:
-                newCondition = new IfGt(condition.A, condition.B, 0);
+                newCondition = new DexIfGt(condition.A, condition.B, 0);
                 break;
               case LE:
-                newCondition = new IfLe(condition.A, condition.B, 0);
+                newCondition = new DexIfLe(condition.A, condition.B, 0);
                 break;
               case LT:
-                newCondition = new IfLt(condition.A, condition.B, 0);
+                newCondition = new DexIfLt(condition.A, condition.B, 0);
                 break;
               case NE:
-                newCondition = new IfNe(condition.A, condition.B, 0);
+                newCondition = new DexIfNe(condition.A, condition.B, 0);
                 break;
             }
             offsetDelta = rewriteIfToIfAndGoto(offsetDelta, it, condition, newCondition);
           }
-        } else if (instruction instanceof Format21t) {  // IfEqz, IfGez, IfGtz, IfLez, IfLtz, IfNez
-          Format21t condition = (Format21t) instruction;
+        } else if (instruction
+            instanceof DexFormat21t) { // IfEqz, IfGez, IfGtz, IfLez, IfLtz, IfNez
+          DexFormat21t condition = (DexFormat21t) instruction;
           int offset =
               instructionTargets.get(condition).get(0).getOffset() - instruction.getOffset();
           if (Short.MIN_VALUE > offset || offset > Short.MAX_VALUE) {
-            Format21t newCondition = null;
+            DexFormat21t newCondition = null;
             switch (condition.getType().inverted()) {
               case EQ:
-                newCondition = new IfEqz(condition.AA, 0);
+                newCondition = new DexIfEqz(condition.AA, 0);
                 break;
               case GE:
-                newCondition = new IfGez(condition.AA, 0);
+                newCondition = new DexIfGez(condition.AA, 0);
                 break;
               case GT:
-                newCondition = new IfGtz(condition.AA, 0);
+                newCondition = new DexIfGtz(condition.AA, 0);
                 break;
               case LE:
-                newCondition = new IfLez(condition.AA, 0);
+                newCondition = new DexIfLez(condition.AA, 0);
                 break;
               case LT:
-                newCondition = new IfLtz(condition.AA, 0);
+                newCondition = new DexIfLtz(condition.AA, 0);
                 break;
               case NE:
-                newCondition = new IfNez(condition.AA, 0);
+                newCondition = new DexIfNez(condition.AA, 0);
                 break;
             }
             offsetDelta = rewriteIfToIfAndGoto(offsetDelta, it, condition, newCondition);
           }
-        } else if (instruction instanceof Goto) {
-          Goto jump = (Goto) instruction;
-          int offset =
-              instructionTargets.get(jump).get(0).getOffset() - instruction.getOffset();
+        } else if (instruction instanceof DexGoto) {
+          DexGoto jump = (DexGoto) instruction;
+          int offset = instructionTargets.get(jump).get(0).getOffset() - instruction.getOffset();
           if (Byte.MIN_VALUE > offset || offset > Byte.MAX_VALUE) {
-            Instruction newJump;
+            DexInstruction newJump;
             if (Short.MIN_VALUE > offset || offset > Short.MAX_VALUE) {
-              newJump = new Goto32(offset);
+              newJump = new DexGoto32(offset);
             } else {
-              newJump = new Goto16(offset);
+              newJump = new DexGoto16(offset);
             }
             newJump.setOffset(jump.getOffset());
             it.set(newJump);
             offsetDelta += (newJump.getSize() - jump.getSize());
             replaceTarget(jump, newJump);
-            List<Instruction> targets = instructionTargets.remove(jump);
+            List<DexInstruction> targets = instructionTargets.remove(jump);
             instructionTargets.put(newJump, targets);
           }
-        } else if (instruction instanceof Goto16) {
-          Goto16 jump = (Goto16) instruction;
-          int offset =
-              instructionTargets.get(jump).get(0).getOffset() - instruction.getOffset();
+        } else if (instruction instanceof DexGoto16) {
+          DexGoto16 jump = (DexGoto16) instruction;
+          int offset = instructionTargets.get(jump).get(0).getOffset() - instruction.getOffset();
           if (Short.MIN_VALUE > offset || offset > Short.MAX_VALUE) {
-            Instruction newJump = new Goto32(offset);
+            DexInstruction newJump = new DexGoto32(offset);
             newJump.setOffset(jump.getOffset());
             it.set(newJump);
             offsetDelta += (newJump.getSize() - jump.getSize());
             replaceTarget(jump, newJump);
-            List<Instruction> targets = instructionTargets.remove(jump);
+            List<DexInstruction> targets = instructionTargets.remove(jump);
             instructionTargets.put(newJump, targets);
           }
-        } else if (instruction instanceof Goto32) {
+        } else if (instruction instanceof DexGoto32) {
           // Instruction big enough for any offset.
-        } else if (instruction.hasPayload()) {  // FillArrayData, SparseSwitch, PackedSwitch
+        } else if (instruction.hasPayload()) { // FillArrayData, SparseSwitch, PackedSwitch
           // Instruction big enough for any offset.
         } else if (instruction.isPayload()) {
           // Payload instructions must be 4 byte aligned (instructions are 2 bytes).
@@ -368,7 +370,7 @@ public class JumboStringRewriter {
             // Check if the previous instruction was a simple nop. If that is the case, remove it
             // to make the alignment instead of adding another one. Only allow removal if this
             // instruction is not targeted by anything. See b/78072750.
-            Instruction instructionBeforePayload = it.hasPrevious() ? it.previous() : null;
+            DexInstruction instructionBeforePayload = it.hasPrevious() ? it.previous() : null;
             if (instructionBeforePayload != null
                 && instructionBeforePayload.isSimpleNop()
                 && debugEventTargets.get(orignalOffset) == null
@@ -379,7 +381,7 @@ public class JumboStringRewriter {
               if (instructionBeforePayload != null) {
                 it.next();
               }
-              Nop nop = new Nop();
+              DexNop nop = new DexNop();
               nop.setOffset(instruction.getOffset());
               it.add(nop);
               offsetDelta++;
@@ -396,11 +398,11 @@ public class JumboStringRewriter {
 
   private int rewriteIfToIfAndGoto(
       int offsetDelta,
-      ListIterator<Instruction> it,
-      Instruction condition,
-      Instruction newCondition) {
+      ListIterator<DexInstruction> it,
+      DexInstruction condition,
+      DexInstruction newCondition) {
     int jumpOffset = condition.getOffset() + condition.getSize();
-    Goto32 jump = new Goto32(0);
+    DexGoto32 jump = new DexGoto32(0);
     jump.setOffset(jumpOffset);
     newCondition.setOffset(condition.getOffset());
     it.set(newCondition);
@@ -408,17 +410,17 @@ public class JumboStringRewriter {
     it.add(jump);
     offsetDelta += jump.getSize();
     instructionTargets.put(jump, instructionTargets.remove(condition));
-    Instruction fallthroughInstruction = it.next();
+    DexInstruction fallthroughInstruction = it.next();
     instructionTargets.put(newCondition, Lists.newArrayList(fallthroughInstruction));
     it.previous();
     return offsetDelta;
   }
 
-  private void replaceTarget(Instruction target, Instruction newTarget) {
-    for (List<Instruction> instructions : instructionTargets.values()) {
+  private void replaceTarget(DexInstruction target, DexInstruction newTarget) {
+    for (List<DexInstruction> instructions : instructionTargets.values()) {
       instructions.replaceAll((i) -> i == target ? newTarget : i);
     }
-    for (Int2ReferenceMap.Entry<Instruction> entry : debugEventTargets.int2ReferenceEntrySet()) {
+    for (Int2ReferenceMap.Entry<DexInstruction> entry : debugEventTargets.int2ReferenceEntrySet()) {
       if (entry.getValue() == target) {
         entry.setValue(newTarget);
       }
@@ -426,52 +428,53 @@ public class JumboStringRewriter {
     for (Entry<Try, TryTargets> entry : tryTargets.entrySet()) {
       entry.getValue().replaceTarget(target, newTarget);
     }
-    for (List<Instruction> instructions : handlerTargets.values()) {
+    for (List<DexInstruction> instructions : handlerTargets.values()) {
       instructions.replaceAll((i) -> i == target ? newTarget : i);
     }
   }
 
-  private void recordInstructionTargets(Int2ReferenceMap<Instruction> offsetToInstruction) {
-    Instruction[] instructions = method.getCode().asDexCode().instructions;
-    for (Instruction instruction : instructions) {
-      if (instruction instanceof Format22t) {  // IfEq, IfGe, IfGt, IfLe, IfLt, IfNe
-        Format22t condition = (Format22t) instruction;
-        Instruction target = offsetToInstruction.get(condition.getOffset() + condition.CCCC);
+  private void recordInstructionTargets(Int2ReferenceMap<DexInstruction> offsetToInstruction) {
+    DexInstruction[] instructions = method.getCode().asDexCode().instructions;
+    for (DexInstruction instruction : instructions) {
+      if (instruction instanceof DexFormat22t) { // IfEq, IfGe, IfGt, IfLe, IfLt, IfNe
+        DexFormat22t condition = (DexFormat22t) instruction;
+        DexInstruction target = offsetToInstruction.get(condition.getOffset() + condition.CCCC);
         assert target != null;
         instructionTargets.put(instruction, Lists.newArrayList(target));
-      } else if (instruction instanceof Format21t) {  // IfEqz, IfGez, IfGtz, IfLez, IfLtz, IfNez
-        Format21t condition = (Format21t) instruction;
-        Instruction target = offsetToInstruction.get(condition.getOffset() + condition.BBBB);
+      } else if (instruction instanceof DexFormat21t) { // IfEqz, IfGez, IfGtz, IfLez, IfLtz, IfNez
+        DexFormat21t condition = (DexFormat21t) instruction;
+        DexInstruction target = offsetToInstruction.get(condition.getOffset() + condition.BBBB);
         assert target != null;
         instructionTargets.put(instruction, Lists.newArrayList(target));
-      } else if (instruction instanceof Goto) {
-        Goto jump = (Goto) instruction;
-        Instruction target = offsetToInstruction.get(jump.getOffset() + jump.AA);
+      } else if (instruction instanceof DexGoto) {
+        DexGoto jump = (DexGoto) instruction;
+        DexInstruction target = offsetToInstruction.get(jump.getOffset() + jump.AA);
         assert target != null;
         instructionTargets.put(instruction, Lists.newArrayList(target));
-      } else if (instruction instanceof Goto16) {
-        Goto16 jump = (Goto16) instruction;
-        Instruction target = offsetToInstruction.get(jump.getOffset() + jump.AAAA);
+      } else if (instruction instanceof DexGoto16) {
+        DexGoto16 jump = (DexGoto16) instruction;
+        DexInstruction target = offsetToInstruction.get(jump.getOffset() + jump.AAAA);
         assert target != null;
         instructionTargets.put(instruction, Lists.newArrayList(target));
-      } else if (instruction instanceof Goto32) {
-        Goto32 jump = (Goto32) instruction;
-        Instruction target = offsetToInstruction.get(jump.getOffset() + jump.AAAAAAAA);
+      } else if (instruction instanceof DexGoto32) {
+        DexGoto32 jump = (DexGoto32) instruction;
+        DexInstruction target = offsetToInstruction.get(jump.getOffset() + jump.AAAAAAAA);
         assert target != null;
         instructionTargets.put(instruction, Lists.newArrayList(target));
-      } else if (instruction.hasPayload()) {  // FillArrayData, SparseSwitch, PackedSwitch
-        Format31t offsetInstruction = (Format31t) instruction;
-        Instruction target = offsetToInstruction.get(
-            offsetInstruction.getOffset() + offsetInstruction.getPayloadOffset());
+      } else if (instruction.hasPayload()) { // FillArrayData, SparseSwitch, PackedSwitch
+        DexFormat31t offsetInstruction = (DexFormat31t) instruction;
+        DexInstruction target =
+            offsetToInstruction.get(
+                offsetInstruction.getOffset() + offsetInstruction.getPayloadOffset());
         assert target != null;
         instructionTargets.put(instruction, Lists.newArrayList(target));
-      } else if (instruction instanceof SwitchPayload) {
-        SwitchPayload payload = (SwitchPayload) instruction;
+      } else if (instruction instanceof DexSwitchPayload) {
+        DexSwitchPayload payload = (DexSwitchPayload) instruction;
         int[] targetOffsets = payload.switchTargetOffsets();
         int switchOffset = payloadToSwitch.get(instruction).getOffset();
-        List<Instruction> targets = new ArrayList<>();
+        List<DexInstruction> targets = new ArrayList<>();
         for (int i = 0; i < targetOffsets.length; i++) {
-          Instruction target = offsetToInstruction.get(switchOffset + targetOffsets[i]);
+          DexInstruction target = offsetToInstruction.get(switchOffset + targetOffsets[i]);
           assert target != null;
           targets.add(target);
         }
@@ -480,7 +483,7 @@ public class JumboStringRewriter {
     }
   }
 
-  private void recordDebugEventTargets(Int2ReferenceMap<Instruction> offsetToInstruction) {
+  private void recordDebugEventTargets(Int2ReferenceMap<DexInstruction> offsetToInstruction) {
     // TODO(b/213411850): Merging pc based D8 builds will map out of PC for any jumbo processed
     //  method. Instead we should rather retain the PC encoding by bumping the max-pc and recording
     //  the line number translation. We actually need to do so to support merging with native PC
@@ -496,13 +499,13 @@ public class JumboStringRewriter {
       if (event instanceof AdvancePC) {
         AdvancePC advance = (AdvancePC) event;
         address += advance.delta;
-        Instruction target = offsetToInstruction.get(address);
+        DexInstruction target = offsetToInstruction.get(address);
         assert target != null;
         debugEventTargets.put(address, target);
       } else if (event instanceof Default) {
         Default defaultEvent = (Default) event;
         address += defaultEvent.getPCDelta();
-        Instruction target = offsetToInstruction.get(address);
+        DexInstruction target = offsetToInstruction.get(address);
         assert target != null;
         debugEventTargets.put(address, target);
       }
@@ -510,12 +513,11 @@ public class JumboStringRewriter {
   }
 
   private void recordTryAndHandlerTargets(
-      Int2ReferenceMap<Instruction> offsetToInstruction,
-      Instruction lastInstruction) {
+      Int2ReferenceMap<DexInstruction> offsetToInstruction, DexInstruction lastInstruction) {
     DexCode code = method.getCode().asDexCode();
     for (Try theTry : code.tries) {
-      Instruction start = offsetToInstruction.get(theTry.startAddress);
-      Instruction end = null;
+      DexInstruction start = offsetToInstruction.get(theTry.startAddress);
+      DexInstruction end = null;
       int endAddress = theTry.startAddress + theTry.instructionCount;
       TryTargets targets;
       if (endAddress > lastInstruction.getOffset()) {
@@ -532,14 +534,14 @@ public class JumboStringRewriter {
       tryRangeStartAndEndTargets.put(end.getOffset(), end);
     }
     for (TryHandler handler : code.handlers) {
-      List<Instruction> targets = new ArrayList<>();
+      List<DexInstruction> targets = new ArrayList<>();
       if (handler.catchAllAddr != NO_HANDLER) {
-        Instruction target = offsetToInstruction.get(handler.catchAllAddr);
+        DexInstruction target = offsetToInstruction.get(handler.catchAllAddr);
         assert target != null;
         targets.add(target);
       }
       for (TypeAddrPair pair : handler.pairs) {
-        Instruction target = offsetToInstruction.get(pair.addr);
+        DexInstruction target = offsetToInstruction.get(pair.addr);
         assert target != null;
         targets.add(target);
       }
@@ -548,19 +550,19 @@ public class JumboStringRewriter {
   }
 
   private void recordTargets() {
-    Int2ReferenceMap<Instruction> offsetToInstruction = new Int2ReferenceOpenHashMap<>();
-    Instruction[] instructions = method.getCode().asDexCode().instructions;
+    Int2ReferenceMap<DexInstruction> offsetToInstruction = new Int2ReferenceOpenHashMap<>();
+    DexInstruction[] instructions = method.getCode().asDexCode().instructions;
     boolean containsPayloads = false;
-    for (Instruction instruction : instructions) {
+    for (DexInstruction instruction : instructions) {
       offsetToInstruction.put(instruction.getOffset(), instruction);
-      if (instruction.hasPayload()) {  // FillArrayData, SparseSwitch, PackedSwitch
+      if (instruction.hasPayload()) { // FillArrayData, SparseSwitch, PackedSwitch
         containsPayloads = true;
       }
     }
     if (containsPayloads) {
-      for (Instruction instruction : instructions) {
-        if (instruction.hasPayload()) {  // FillArrayData, SparseSwitch, PackedSwitch
-          Instruction payload =
+      for (DexInstruction instruction : instructions) {
+        if (instruction.hasPayload()) { // FillArrayData, SparseSwitch, PackedSwitch
+          DexInstruction payload =
               offsetToInstruction.get(instruction.getOffset() + instruction.getPayloadOffset());
           assert payload != null;
           payloadToSwitch.put(payload, instruction);
@@ -569,7 +571,7 @@ public class JumboStringRewriter {
     }
     recordInstructionTargets(offsetToInstruction);
     recordDebugEventTargets(offsetToInstruction);
-    Instruction lastInstruction = instructions[instructions.length - 1];
+    DexInstruction lastInstruction = instructions[instructions.length - 1];
     recordTryAndHandlerTargets(offsetToInstruction, lastInstruction);
   }
 }

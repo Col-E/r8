@@ -6,10 +6,10 @@ package com.android.tools.r8.compatproguard;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.code.ConstClass;
-import com.android.tools.r8.code.ConstString;
-import com.android.tools.r8.code.InvokeStatic;
-import com.android.tools.r8.code.ReturnVoid;
+import com.android.tools.r8.dex.code.DexConstClass;
+import com.android.tools.r8.dex.code.DexConstString;
+import com.android.tools.r8.dex.code.DexInvokeStatic;
+import com.android.tools.r8.dex.code.DexReturnVoid;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -52,12 +52,12 @@ public class AtomicFieldUpdaterTest extends CompatProguardSmaliTestBase {
     assertTrue(method.isPresent());
 
     DexCode code = method.getMethod().getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof ConstClass);
-    assertTrue(code.instructions[1] instanceof ConstString);
-    ConstString constString = (ConstString) code.instructions[1];
+    assertTrue(code.instructions[0] instanceof DexConstClass);
+    assertTrue(code.instructions[1] instanceof DexConstString);
+    DexConstString constString = (DexConstString) code.instructions[1];
     assertNotEquals("foo", constString.getString().toString());
-    assertTrue(code.instructions[2] instanceof InvokeStatic);
-    assertTrue(code.instructions[3] instanceof ReturnVoid);
+    assertTrue(code.instructions[2] instanceof DexInvokeStatic);
+    assertTrue(code.instructions[3] instanceof DexReturnVoid);
   }
 
   @Test
@@ -88,12 +88,12 @@ public class AtomicFieldUpdaterTest extends CompatProguardSmaliTestBase {
     assertTrue(method.isPresent());
 
     DexCode code = method.getMethod().getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof ConstClass);
-    assertTrue(code.instructions[1] instanceof ConstString);
-    ConstString constString = (ConstString) code.instructions[1];
+    assertTrue(code.instructions[0] instanceof DexConstClass);
+    assertTrue(code.instructions[1] instanceof DexConstString);
+    DexConstString constString = (DexConstString) code.instructions[1];
     assertNotEquals("foo", constString.getString().toString());
-    assertTrue(code.instructions[2] instanceof InvokeStatic);
-    assertTrue(code.instructions[3] instanceof ReturnVoid);
+    assertTrue(code.instructions[2] instanceof DexInvokeStatic);
+    assertTrue(code.instructions[3] instanceof DexReturnVoid);
   }
 
   @Test
@@ -125,12 +125,12 @@ public class AtomicFieldUpdaterTest extends CompatProguardSmaliTestBase {
     assertTrue(method.isPresent());
 
     DexCode code = method.getMethod().getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof ConstClass);
-    assertTrue(code.instructions[1] instanceof ConstClass);
-    assertTrue(code.instructions[2] instanceof ConstString);
-    ConstString constString = (ConstString) code.instructions[2];
+    assertTrue(code.instructions[0] instanceof DexConstClass);
+    assertTrue(code.instructions[1] instanceof DexConstClass);
+    assertTrue(code.instructions[2] instanceof DexConstString);
+    DexConstString constString = (DexConstString) code.instructions[2];
     assertNotEquals("foo", constString.getString().toString());
-    assertTrue(code.instructions[3] instanceof InvokeStatic);
-    assertTrue(code.instructions[4] instanceof ReturnVoid);
+    assertTrue(code.instructions[3] instanceof DexInvokeStatic);
+    assertTrue(code.instructions[4] instanceof DexReturnVoid);
   }
 }

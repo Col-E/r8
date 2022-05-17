@@ -20,9 +20,9 @@ import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfNew;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.NewInstance;
-import com.android.tools.r8.code.SgetObject;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexNewInstance;
+import com.android.tools.r8.dex.code.DexSgetObject;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.IntBox;
@@ -293,11 +293,11 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
                   return instruction.getField().getHolderType();
                 }
               } else {
-                Instruction baseInstruction = instruction.asDexInstruction().getInstruction();
-                if (baseInstruction instanceof SgetObject) {
+                DexInstruction baseInstruction = instruction.asDexInstruction().getInstruction();
+                if (baseInstruction instanceof DexSgetObject) {
                   return baseInstruction.getField().getHolderType();
-                } else if (baseInstruction instanceof NewInstance) {
-                  return ((NewInstance) baseInstruction).getType();
+                } else if (baseInstruction instanceof DexNewInstance) {
+                  return ((DexNewInstance) baseInstruction).getType();
                 }
               }
               return null;

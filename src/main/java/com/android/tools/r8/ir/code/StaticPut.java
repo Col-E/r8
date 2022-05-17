@@ -5,14 +5,15 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfStaticFieldWrite;
-import com.android.tools.r8.code.Sput;
-import com.android.tools.r8.code.SputBoolean;
-import com.android.tools.r8.code.SputByte;
-import com.android.tools.r8.code.SputChar;
-import com.android.tools.r8.code.SputObject;
-import com.android.tools.r8.code.SputShort;
-import com.android.tools.r8.code.SputWide;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexSput;
+import com.android.tools.r8.dex.code.DexSputBoolean;
+import com.android.tools.r8.dex.code.DexSputByte;
+import com.android.tools.r8.dex.code.DexSputChar;
+import com.android.tools.r8.dex.code.DexSputObject;
+import com.android.tools.r8.dex.code.DexSputShort;
+import com.android.tools.r8.dex.code.DexSputWide;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -65,32 +66,32 @@ public class StaticPut extends FieldInstruction implements FieldPut, StaticField
 
   @Override
   public void buildDex(DexBuilder builder) {
-    com.android.tools.r8.code.Instruction instruction;
+    DexInstruction instruction;
     int src = builder.allocatedRegister(value(), getNumber());
     DexField field = getField();
     switch (getType()) {
       case INT:
       case FLOAT:
-        instruction = new Sput(src, field);
+        instruction = new DexSput(src, field);
         break;
       case LONG:
       case DOUBLE:
-        instruction = new SputWide(src, field);
+        instruction = new DexSputWide(src, field);
         break;
       case OBJECT:
-        instruction = new SputObject(src, field);
+        instruction = new DexSputObject(src, field);
         break;
       case BOOLEAN:
-        instruction = new SputBoolean(src, field);
+        instruction = new DexSputBoolean(src, field);
         break;
       case BYTE:
-        instruction = new SputByte(src, field);
+        instruction = new DexSputByte(src, field);
         break;
       case CHAR:
-        instruction = new SputChar(src, field);
+        instruction = new DexSputChar(src, field);
         break;
       case SHORT:
-        instruction = new SputShort(src, field);
+        instruction = new DexSputShort(src, field);
         break;
       default:
         throw new Unreachable("Unexpected type: " + getType());

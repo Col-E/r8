@@ -15,9 +15,9 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -101,7 +101,7 @@ public class EmulatedInterfacesTest extends DesugaredLibraryTestBase {
       int numCheckCast =
           (int)
               Stream.of(method.getCode().asDexCode().instructions)
-                  .filter(Instruction::isCheckCast)
+                  .filter(DexInstruction::isCheckCast)
                   .count();
       if (method.qualifiedName().contains("spliterator")) {
         assertEquals(5, numCheckCast);
