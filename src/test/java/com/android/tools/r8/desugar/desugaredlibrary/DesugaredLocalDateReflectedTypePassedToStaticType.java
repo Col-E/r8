@@ -5,14 +5,15 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.hamcrest.core.StringContains.containsString;
 
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.time.LocalDate;
 import java.util.List;
@@ -33,7 +34,7 @@ public class DesugaredLocalDateReflectedTypePassedToStaticType extends Desugared
   @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getTestParameters().withDexRuntime(Version.DEFAULT).withAllApiLevels().build(),
         getJdk8Jdk11(),
         DEFAULT_SPECIFICATIONS);
   }
@@ -55,17 +56,11 @@ public class DesugaredLocalDateReflectedTypePassedToStaticType extends Desugared
             .addInnerClasses(DesugaredLocalDateReflectedTypePassedToStaticType.class)
             .addKeepMainRule(Main.class)
             .run(parameters.getRuntime(), Main.class);
-    if (compilationSpecification.isL8Shrink() && requiresTimeDesugaring(parameters)) {
+    if (compilationSpecification.isL8Shrink()
+        && requiresTimeDesugaring(parameters, libraryDesugaringSpecification != JDK8)) {
       run.assertFailureWithErrorThatMatches(containsString("java.lang.NoSuchMethodException"));
     } else {
-      // TODO(b/232780224): Evaluate this.
-      if (compilationSpecification.isL8Shrink()
-          && libraryDesugaringSpecification.isJdk11Based()
-          && parameters.getApiLevel().betweenBothIncluded(AndroidApiLevel.O, AndroidApiLevel.Q)) {
-        run.assertFailureWithErrorThatMatches(containsString("java.lang.NoSuchMethodException"));
-      } else {
-        run.assertSuccessWithOutput(EXPECTED);
-      }
+      run.assertSuccessWithOutput(EXPECTED);
     }
   }
 
