@@ -5,8 +5,10 @@
 package com.android.tools.r8.optimize.interfaces.analysis;
 
 import static com.android.tools.r8.cf.code.CfFrame.getInitializedFrameType;
+import static com.android.tools.r8.optimize.interfaces.analysis.ErroneousCfFrameState.formatActual;
 
 import com.android.tools.r8.cf.code.CfAssignability;
+import com.android.tools.r8.cf.code.CfAssignability.AssignabilityResult;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.frame.SingleFrameType;
@@ -16,6 +18,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.utils.FunctionUtils;
 import com.google.common.collect.Iterables;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -61,8 +64,10 @@ public class ConcreteCfFrameState extends CfFrameState {
   @Override
   public CfFrameState check(AppView<?> appView, CfFrame frame) {
     CfFrame currentFrame = CfFrame.builder().setLocals(locals).setStack(stack).build();
-    if (CfAssignability.isFrameAssignable(currentFrame, frame, appView).isFailed()) {
-      return error();
+    AssignabilityResult assignabilityResult =
+        CfAssignability.isFrameAssignable(currentFrame, frame, appView);
+    if (assignabilityResult.isFailed()) {
+      return error(assignabilityResult.asFailed().getMessage());
     }
     CfFrame frameCopy = frame.mutableCopy();
     return new ConcreteCfFrameState(frameCopy.getMutableLocals(), frameCopy.getMutableStack());
@@ -76,7 +81,7 @@ public class ConcreteCfFrameState extends CfFrameState {
   @Override
   public CfFrameState markInitialized(FrameType uninitializedType, DexType initializedType) {
     if (uninitializedType.isInitialized()) {
-      return error();
+      return error("Unexpected attempt to initialize already initialized type");
     }
     for (Int2ObjectMap.Entry<FrameType> entry : locals.int2ObjectEntrySet()) {
       FrameType frameType = entry.getValue();
@@ -97,17 +102,14 @@ public class ConcreteCfFrameState extends CfFrameState {
 
   @Override
   public CfFrameState pop() {
-    if (stack.isEmpty()) {
-      return error();
-    }
-    stack.removeLast();
-    return this;
+    return pop(FunctionUtils::getFirst);
   }
 
   @Override
   public CfFrameState pop(BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
     if (stack.isEmpty()) {
-      return error();
+      // Return the same error as when popping from the bottom state.
+      return bottom().pop();
     }
     FrameType frameType = stack.removeLast();
     return fn.apply(this, frameType);
@@ -118,19 +120,43 @@ public class ConcreteCfFrameState extends CfFrameState {
       AppView<?> appView, DexMethod constructor, ProgramMethod context) {
     return pop(
         (state, frameType) -> {
-          if (frameType.isUninitializedThis()) {
-            if (constructor.getHolderType() == context.getHolderType()
-                || constructor.getHolderType() == context.getHolder().getSuperType()) {
-              return state.markInitialized(frameType, context.getHolderType());
+          if (frameType.isUninitializedObject()) {
+            if (frameType.isUninitializedThis()) {
+              if (constructor.getHolderType() == context.getHolderType()
+                  || constructor.getHolderType() == context.getHolder().getSuperType()) {
+                return state.markInitialized(frameType, context.getHolderType());
+              }
+            } else if (frameType.isUninitializedNew()) {
+              DexType uninitializedNewType = frameType.getUninitializedNewType();
+              if (constructor.getHolderType() == uninitializedNewType) {
+                return state.markInitialized(frameType, uninitializedNewType);
+              }
             }
-          } else if (frameType.isUninitializedNew()) {
-            DexType uninitializedNewType = frameType.getUninitializedNewType();
-            if (constructor.getHolderType() == uninitializedNewType) {
-              return state.markInitialized(frameType, uninitializedNewType);
-            }
+            return popAndInitializeConstructorMismatchError(frameType, constructor, context);
           }
-          return error();
+          return popAndInitializeInitializedObjectError(frameType);
         });
+  }
+
+  private ErroneousCfFrameState popAndInitializeConstructorMismatchError(
+      FrameType frameType, DexMethod constructor, ProgramMethod context) {
+    assert frameType.isUninitializedObject();
+    StringBuilder message = new StringBuilder("Constructor mismatch, expected ");
+    if (frameType.isUninitializedNew()) {
+      message.append(frameType.getUninitializedNewType().getTypeName());
+    } else {
+      assert frameType.isUninitializedThis();
+      message
+          .append(context.getHolderType().getTypeName())
+          .append(" or ")
+          .append(context.getHolder().getSuperType().getTypeName());
+    }
+    message.append(" constructor, but was ").append(constructor.toSourceStringWithoutReturnType());
+    return error(message.toString());
+  }
+
+  private ErroneousCfFrameState popAndInitializeInitializedObjectError(FrameType frameType) {
+    return error("Unexpected attempt to initialize " + formatActual(frameType));
   }
 
   @Override
@@ -139,14 +165,15 @@ public class ConcreteCfFrameState extends CfFrameState {
       DexType expectedType,
       BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
     return pop(
-        (state, frameType) ->
-            frameType.isInitialized()
-                    && CfAssignability.isAssignable(
-                        frameType.getInitializedType(appView.dexItemFactory()),
-                        expectedType,
-                        appView)
-                ? fn.apply(state, frameType)
-                : error());
+        (state, frameType) -> {
+          if (frameType.isInitialized()) {
+            DexType initializedType = frameType.getInitializedType(appView.dexItemFactory());
+            if (CfAssignability.isAssignable(initializedType, expectedType, appView)) {
+              return fn.apply(state, frameType);
+            }
+          }
+          return errorUnexpectedStack(frameType, FrameType.initialized(expectedType));
+        });
   }
 
   @Override
@@ -177,17 +204,17 @@ public class ConcreteCfFrameState extends CfFrameState {
       BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
     FrameType frameType = locals.get(localIndex);
     if (frameType == null) {
-      return error();
+      return error("Unexpected read of missing local at index " + localIndex);
     }
-    if (frameType.isInitialized()
-        && CfAssignability.isAssignable(
-            frameType.getInitializedType(appView.dexItemFactory()), expectedType, appView)) {
+    if (frameType.isInitialized()) {
+      if (CfAssignability.isAssignable(
+          frameType.getInitializedType(appView.dexItemFactory()), expectedType, appView)) {
+        return fn.apply(this, frameType);
+      }
+    } else if (frameType.isUninitializedObject() && expectedType.isObject()) {
       return fn.apply(this, frameType);
     }
-    if (frameType.isUninitializedObject() && expectedType.isObject()) {
-      return fn.apply(this, frameType);
-    }
-    return error();
+    return errorUnexpectedLocal(frameType, expectedType, localIndex);
   }
 
   @Override
@@ -431,27 +458,50 @@ public class ConcreteCfFrameState extends CfFrameState {
   private ErroneousCfFrameState joinStack(Deque<FrameType> stack, CfFrame.Builder builder) {
     Iterator<FrameType> iterator = this.stack.iterator();
     Iterator<FrameType> otherIterator = stack.iterator();
+    int stackIndex = 0;
     while (iterator.hasNext() && otherIterator.hasNext()) {
       FrameType frameType = iterator.next();
       FrameType otherFrameType = otherIterator.next();
       if (frameType.isSingle() != otherFrameType.isSingle()) {
-        return error();
+        return error(
+            "Cannot join stacks, expected frame types at stack index "
+                + stackIndex
+                + " to have the same width, but was: "
+                + formatActual(frameType)
+                + " and "
+                + formatActual(otherFrameType));
       }
       if (frameType.isSingle()) {
         SingleFrameType join = frameType.asSingle().join(otherFrameType.asSingle());
         if (join.isOneWord()) {
-          return error();
+          return joinStackImpreciseJoinError(stackIndex, frameType, otherFrameType);
         }
         builder.push(join.asFrameType());
       } else {
         WideFrameType join = frameType.asWide().join(otherFrameType.asWide());
         if (join.isTwoWord()) {
-          return error();
+          return joinStackImpreciseJoinError(stackIndex, frameType, otherFrameType);
         }
         builder.push(join.asFrameType());
       }
+      stackIndex++;
+    }
+    if (iterator.hasNext() || otherIterator.hasNext()) {
+      return error("Cannot join stacks of different size");
     }
     return null;
+  }
+
+  private ErroneousCfFrameState joinStackImpreciseJoinError(
+      int stackIndex, FrameType first, FrameType second) {
+    return error(
+        "Cannot join stacks, expected frame types at stack index "
+            + stackIndex
+            + " to join to a precise (non-top) type, but types "
+            + formatActual(first)
+            + " and "
+            + formatActual(second)
+            + " do not");
   }
 
   @Override

@@ -269,6 +269,10 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
     return toSourceString(false, false);
   }
 
+  public String toSourceStringWithoutReturnType() {
+    return toSourceString(true, false);
+  }
+
   private String toSourceString(boolean includeHolder, boolean includeReturnType) {
     StringBuilder builder = new StringBuilder();
     if (includeReturnType) {

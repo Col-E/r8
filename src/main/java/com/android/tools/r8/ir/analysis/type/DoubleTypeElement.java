@@ -12,6 +12,11 @@ public class DoubleTypeElement extends WidePrimitiveTypeElement {
   }
 
   @Override
+  public String getTypeName() {
+    return "double";
+  }
+
+  @Override
   public boolean isDouble() {
     return true;
   }

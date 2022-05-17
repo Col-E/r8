@@ -12,6 +12,11 @@ public class CharTypeElement extends SinglePrimitiveTypeElement {
   }
 
   @Override
+  public String getTypeName() {
+    return "char";
+  }
+
+  @Override
   boolean isChar() {
     return true;
   }

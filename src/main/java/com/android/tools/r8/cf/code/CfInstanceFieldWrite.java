@@ -4,8 +4,10 @@
 
 package com.android.tools.r8.cf.code;
 
+import static com.android.tools.r8.optimize.interfaces.analysis.ErroneousCfFrameState.formatActual;
 import static com.android.tools.r8.utils.BiPredicateUtils.or;
 
+import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -21,6 +23,7 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
+import com.android.tools.r8.optimize.interfaces.analysis.ErroneousCfFrameState;
 import java.util.ListIterator;
 import org.objectweb.asm.Opcodes;
 
@@ -94,6 +97,14 @@ public class CfInstanceFieldWrite extends CfFieldInstruction {
             appView,
             getField().getHolderType(),
             context,
-            (state, head) -> head.isUninitializedNew() ? CfFrameState.error() : state);
+            (state, head) -> head.isUninitializedNew() ? error(head) : state);
+  }
+
+  private ErroneousCfFrameState error(FrameType objectType) {
+    return CfFrameState.error(
+        "Frame type "
+            + formatActual(objectType)
+            + " is not assignable to "
+            + getField().getHolderType().getTypeName());
   }
 }

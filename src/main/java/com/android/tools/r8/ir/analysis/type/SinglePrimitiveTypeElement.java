@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
+import com.android.tools.r8.errors.Unreachable;
+
 /** A {@link TypeElement} that abstracts primitive types, which fit in 32 bits. */
 public class SinglePrimitiveTypeElement extends PrimitiveTypeElement {
 
@@ -14,6 +16,11 @@ public class SinglePrimitiveTypeElement extends PrimitiveTypeElement {
 
   static SinglePrimitiveTypeElement getInstance() {
     return INSTANCE;
+  }
+
+  @Override
+  public String getTypeName() {
+    throw new Unreachable("Unexpected attempt to get type name of " + this);
   }
 
   @Override

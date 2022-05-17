@@ -12,6 +12,11 @@ public class LongTypeElement extends WidePrimitiveTypeElement {
   }
 
   @Override
+  public String getTypeName() {
+    return "long";
+  }
+
+  @Override
   public boolean isLong() {
     return true;
   }

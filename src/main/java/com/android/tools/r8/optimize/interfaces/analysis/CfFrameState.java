@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.optimize.interfaces.analysis;
 
+import static com.android.tools.r8.optimize.interfaces.analysis.ErroneousCfFrameState.formatActual;
+import static com.android.tools.r8.optimize.interfaces.analysis.ErroneousCfFrameState.formatExpected;
+
 import com.android.tools.r8.cf.code.CfAssignability;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
@@ -28,8 +31,39 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
     return BottomCfFrameState.getInstance();
   }
 
-  public static ErroneousCfFrameState error() {
-    return ErroneousCfFrameState.getInstance();
+  public static ErroneousCfFrameState error(String message) {
+    return new ErroneousCfFrameState(message);
+  }
+
+  public static ErroneousCfFrameState errorUnexpectedLocal(
+      FrameType frameType, ValueType expectedType, int localIndex) {
+    return internalError(
+        formatActual(frameType), formatExpected(expectedType), "at local index " + localIndex);
+  }
+
+  public static ErroneousCfFrameState errorUnexpectedStack(
+      FrameType frameType, DexType expectedType) {
+    return internalErrorUnexpectedStack(formatActual(frameType), formatExpected(expectedType));
+  }
+
+  public static ErroneousCfFrameState errorUnexpectedStack(
+      FrameType frameType, FrameType expectedType) {
+    return internalErrorUnexpectedStack(formatActual(frameType), formatExpected(expectedType));
+  }
+
+  public static ErroneousCfFrameState errorUnexpectedStack(
+      FrameType frameType, ValueType expectedType) {
+    return internalErrorUnexpectedStack(formatActual(frameType), formatExpected(expectedType));
+  }
+
+  private static ErroneousCfFrameState internalErrorUnexpectedStack(
+      String actual, String expected) {
+    return internalError(actual, expected, "on stack");
+  }
+
+  private static ErroneousCfFrameState internalError(
+      String actual, String expected, String location) {
+    return error("Expected " + expected + " " + location + ", but was " + actual);
   }
 
   @Override
@@ -60,6 +94,10 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
 
   public boolean isError() {
     return false;
+  }
+
+  public ErroneousCfFrameState asError() {
+    return null;
   }
 
   public abstract CfFrameState check(AppView<?> appView, CfFrame frame);
@@ -111,7 +149,9 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
   }
 
   public final CfFrameState popObject(BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
-    return pop((state, head) -> head.isObject() ? fn.apply(state, head) : error());
+    return pop(
+        (state, head) ->
+            head.isObject() ? fn.apply(state, head) : errorUnexpectedStack(head, ValueType.OBJECT));
   }
 
   @SuppressWarnings("InconsistentOverloads")
@@ -126,7 +166,7 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
                     && CfAssignability.isAssignable(
                         head.getObjectType(context), expectedType, appView)
                 ? fn.apply(state, head)
-                : error());
+                : errorUnexpectedStack(head, expectedType));
   }
 
   public final CfFrameState popSingle() {
@@ -134,7 +174,11 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
   }
 
   public final CfFrameState popSingle(BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
-    return pop((state, single) -> single.isSingle() ? fn.apply(state, single) : error());
+    return pop(
+        (state, single) ->
+            single.isSingle()
+                ? fn.apply(state, single)
+                : errorUnexpectedStack(single, FrameType.oneWord()));
   }
 
   public final CfFrameState popSingles(

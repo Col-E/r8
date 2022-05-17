@@ -11,6 +11,11 @@ public class IntTypeElement extends SinglePrimitiveTypeElement {
   }
 
   @Override
+  public String getTypeName() {
+    return "int";
+  }
+
+  @Override
   public boolean isInt() {
     return true;
   }

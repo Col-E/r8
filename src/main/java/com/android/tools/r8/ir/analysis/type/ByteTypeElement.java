@@ -12,6 +12,11 @@ public class ByteTypeElement extends SinglePrimitiveTypeElement {
   }
 
   @Override
+  public String getTypeName() {
+    return "byte";
+  }
+
+  @Override
   boolean isByte() {
     return true;
   }

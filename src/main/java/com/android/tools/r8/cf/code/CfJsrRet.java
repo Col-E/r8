@@ -100,7 +100,7 @@ public class CfJsrRet extends CfInstruction {
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
-    return CfFrameState.error();
+    return CfFrameState.error("Unexpected JSR/RET instruction");
   }
 
   public int getLocal() {

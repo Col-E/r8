@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.optimize.interfaces.analysis;
 
-import com.android.tools.r8.cf.code.CfAssignability;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.graph.AppView;
@@ -31,11 +30,7 @@ public class BottomCfFrameState extends CfFrameState {
 
   @Override
   public CfFrameState check(AppView<?> appView, CfFrame frame) {
-    if (CfAssignability.isFrameAssignable(new CfFrame(), frame, appView).isFailed()) {
-      return error();
-    }
-    CfFrame frameCopy = frame.mutableCopy();
-    return new ConcreteCfFrameState(frameCopy.getMutableLocals(), frameCopy.getMutableStack());
+    return new ConcreteCfFrameState().check(appView, frame);
   }
 
   @Override
@@ -45,36 +40,37 @@ public class BottomCfFrameState extends CfFrameState {
 
   @Override
   public CfFrameState markInitialized(FrameType uninitializedType, DexType initializedType) {
-    return error();
+    // Initializing an uninitialized type is a no-op when the frame is empty.
+    return this;
   }
 
   @Override
-  public CfFrameState pop() {
-    return error();
+  public ErroneousCfFrameState pop() {
+    return error("Unexpected pop from empty stack");
   }
 
   @Override
-  public CfFrameState pop(BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
-    return error();
+  public ErroneousCfFrameState pop(BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
+    return pop();
   }
 
   @Override
-  public CfFrameState popAndInitialize(
+  public ErroneousCfFrameState popAndInitialize(
       AppView<?> appView, DexMethod constructor, ProgramMethod context) {
-    return error();
+    return pop();
   }
 
   @Override
-  public CfFrameState popInitialized(
+  public ErroneousCfFrameState popInitialized(
       AppView<?> appView,
       DexType expectedType,
       BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
-    return error();
+    return pop();
   }
 
   @Override
   public CfFrameState popInitialized(AppView<?> appView, DexType... expectedTypes) {
-    return expectedTypes.length == 0 ? this : error();
+    return expectedTypes.length == 0 ? this : pop();
   }
 
   @Override
@@ -88,12 +84,12 @@ public class BottomCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState readLocal(
+  public ErroneousCfFrameState readLocal(
       AppView<?> appView,
       int localIndex,
       ValueType expectedType,
       BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
-    return error();
+    return error("Unexpected local read from empty frame");
   }
 
   @Override
