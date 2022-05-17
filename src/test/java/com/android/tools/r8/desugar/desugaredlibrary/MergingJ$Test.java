@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.List;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -119,6 +120,9 @@ public class MergingJ$Test extends DesugaredLibraryTestBase {
   }
 
   private Path buildSplitDesugaredLibraryPart2() throws Exception {
+    Assume.assumeFalse(
+        "getAllFilesWithSuffixInDirectory() seems to find different files on Windows",
+        ToolHelper.isWindows());
     Path outputDex = temp.newFolder().toPath().resolve("merger-input-split-dex.zip");
     Jdk11TestLibraryDesugaringSpecification.setUp();
     L8.run(
