@@ -17,6 +17,8 @@ public interface DesugaredLibraryRetargeterSynthesizerEventConsumer {
 
   interface DesugaredLibraryRetargeterInstructionEventConsumer {
     void acceptDesugaredLibraryRetargeterDispatchClasspathClass(DexClasspathClass clazz);
+
+    void acceptCovariantRetargetMethod(ProgramMethod method);
   }
 
   interface DesugaredLibraryRetargeterPostProcessingEventConsumer

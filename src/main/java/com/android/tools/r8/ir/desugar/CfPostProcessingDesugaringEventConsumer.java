@@ -76,6 +76,11 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     }
 
     @Override
+    public void acceptCovariantRetargetMethod(ProgramMethod method) {
+      addMethodToReprocess(method);
+    }
+
+    @Override
     public void acceptInterfaceInjection(DexProgramClass clazz, DexClass newInterface) {
       // Intentionally empty.
     }
@@ -162,6 +167,11 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     @Override
     public void acceptDesugaredLibraryRetargeterDispatchClasspathClass(DexClasspathClass clazz) {
       additions.addLiveClasspathClass(clazz);
+    }
+
+    @Override
+    public void acceptCovariantRetargetMethod(ProgramMethod method) {
+      additions.addLiveMethod(method);
     }
 
     @Override

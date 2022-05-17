@@ -78,6 +78,7 @@ public class SyntheticNaming {
   public final SyntheticKind TWR_CLOSE_RESOURCE = generator.forSingleMethod("TwrCloseResource");
   public final SyntheticKind SERVICE_LOADER = generator.forSingleMethod("ServiceLoad");
   public final SyntheticKind OUTLINE = generator.forSingleMethod("Outline");
+  public final SyntheticKind COVARIANT_OUTLINE = generator.forSingleMethod("CovariantOutline");
   public final SyntheticKind API_CONVERSION = generator.forSingleMethod("APIConversion");
   public final SyntheticKind API_CONVERSION_PARAMETERS =
       generator.forSingleMethod("APIConversionParameters");

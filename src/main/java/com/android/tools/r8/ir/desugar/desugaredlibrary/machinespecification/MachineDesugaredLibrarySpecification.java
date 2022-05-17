@@ -100,6 +100,10 @@ public class MachineDesugaredLibrarySpecification {
     return rewritingFlags.getStaticFieldRetarget();
   }
 
+  public Map<DexMethod, DexMethod> getCovariantRetarget() {
+    return rewritingFlags.getCovariantRetarget();
+  }
+
   public Map<DexMethod, DexMethod> getStaticRetarget() {
     return rewritingFlags.getStaticRetarget();
   }

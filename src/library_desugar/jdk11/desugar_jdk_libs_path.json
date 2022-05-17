@@ -268,6 +268,16 @@
   ],
   "program_flags": [
     {
+      "api_level_below_or_equal": 32,
+      "api_level_greater_or_equal": 26,
+      "covariant_retarget_method": {
+        "java.time.chrono.IsoEra java.time.LocalDate#getEra()": "java.time.chrono.Era"
+      },
+      "amend_library_method": [
+        "public java.time.chrono.IsoEra java.time.LocalDate#getEra()"
+      ]
+    },
+    {
       "api_level_below_or_equal": 30,
       "retarget_method": {
         "java.time.Instant java.util.Calendar#toInstant()": "java.util.DesugarCalendar",

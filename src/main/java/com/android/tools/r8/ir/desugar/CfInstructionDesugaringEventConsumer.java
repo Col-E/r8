@@ -117,6 +117,11 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
+    public void acceptCovariantRetargetMethod(ProgramMethod method) {
+      methodProcessor.scheduleMethodForProcessing(method, this);
+    }
+
+    @Override
     public void acceptBackportedMethod(ProgramMethod backportedMethod, ProgramMethod context) {
       methodProcessor.scheduleMethodForProcessing(backportedMethod, this);
     }
@@ -342,6 +347,11 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptRecordMethod(ProgramMethod method) {
+      // Intentionally empty. The method will be hit by tracing if required.
+    }
+
+    @Override
+    public void acceptCovariantRetargetMethod(ProgramMethod method) {
       // Intentionally empty. The method will be hit by tracing if required.
     }
 

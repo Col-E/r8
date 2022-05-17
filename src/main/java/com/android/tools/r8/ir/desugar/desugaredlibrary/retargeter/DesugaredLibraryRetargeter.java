@@ -31,8 +31,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import org.objectweb.asm.Opcodes;
 
 public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
@@ -41,6 +41,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
   private final DesugaredLibraryRetargeterSyntheticHelper syntheticHelper;
 
   private final Map<DexField, DexField> staticFieldRetarget;
+  private final Map<DexMethod, DexMethod> covariantRetarget;
   private final Map<DexMethod, DexMethod> staticRetarget;
   private final Map<DexMethod, DexMethod> nonEmulatedVirtualRetarget;
   private final Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedVirtualRetarget;
@@ -51,6 +52,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     MachineDesugaredLibrarySpecification specification =
         appView.options().machineDesugaredLibrarySpecification;
     staticFieldRetarget = specification.getStaticFieldRetarget();
+    covariantRetarget = specification.getCovariantRetarget();
     staticRetarget = specification.getStaticRetarget();
     nonEmulatedVirtualRetarget = specification.getNonEmulatedVirtualRetarget();
     emulatedVirtualRetarget = specification.getEmulatedVirtualRetarget();
@@ -76,7 +78,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     if (instruction.isFieldInstruction() && needsDesugaring(instruction, context)) {
       return desugarFieldInstruction(instruction.asFieldInstruction(), context);
     } else if (instruction.isInvoke() && needsDesugaring(instruction, context)) {
-      return desugarInvoke(instruction.asInvoke(), eventConsumer, context);
+      return desugarInvoke(instruction.asInvoke(), eventConsumer, context, methodProcessingContext);
     }
     return null;
   }
@@ -90,10 +92,14 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
   }
 
   private List<CfInstruction> desugarInvoke(
-      CfInvoke invoke, CfInstructionDesugaringEventConsumer eventConsumer, ProgramMethod context) {
+      CfInvoke invoke,
+      CfInstructionDesugaringEventConsumer eventConsumer,
+      ProgramMethod context,
+      MethodProcessingContext methodProcessingContext) {
     InvokeRetargetingResult invokeRetargetingResult = computeNewInvokeTarget(invoke, context);
     assert invokeRetargetingResult.hasNewInvokeTarget();
-    DexMethod newInvokeTarget = invokeRetargetingResult.getNewInvokeTarget(eventConsumer);
+    DexMethod newInvokeTarget =
+        invokeRetargetingResult.getNewInvokeTarget(eventConsumer, methodProcessingContext);
     return Collections.singletonList(
         new CfInvoke(Opcodes.INVOKESTATIC, newInvokeTarget, invoke.isInterface()));
   }
@@ -128,7 +134,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     }
     return new InvokeRetargetingResult(
         true,
-        eventConsumer -> {
+        (eventConsumer, methodProcessingContext) -> {
           syntheticHelper.ensureRetargetMethod(retarget, eventConsumer);
           return retarget;
         });
@@ -137,15 +143,19 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
   static class InvokeRetargetingResult {
 
     static InvokeRetargetingResult NO_REWRITING =
-        new InvokeRetargetingResult(false, ignored -> null);
+        new InvokeRetargetingResult(false, (ignored, alsoIgnored) -> null);
 
     private final boolean hasNewInvokeTarget;
-    private final Function<DesugaredLibraryRetargeterInstructionEventConsumer, DexMethod>
+    private final BiFunction<
+            DesugaredLibraryRetargeterInstructionEventConsumer, MethodProcessingContext, DexMethod>
         newInvokeTargetSupplier;
 
     private InvokeRetargetingResult(
         boolean hasNewInvokeTarget,
-        Function<DesugaredLibraryRetargeterInstructionEventConsumer, DexMethod>
+        BiFunction<
+                DesugaredLibraryRetargeterInstructionEventConsumer,
+                MethodProcessingContext,
+                DexMethod>
             newInvokeTargetSupplier) {
       this.hasNewInvokeTarget = hasNewInvokeTarget;
       this.newInvokeTargetSupplier = newInvokeTargetSupplier;
@@ -156,9 +166,10 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     }
 
     public DexMethod getNewInvokeTarget(
-        DesugaredLibraryRetargeterInstructionEventConsumer eventConsumer) {
+        DesugaredLibraryRetargeterInstructionEventConsumer eventConsumer,
+        MethodProcessingContext methodProcessingContext) {
       assert hasNewInvokeTarget();
-      return newInvokeTargetSupplier.apply(eventConsumer);
+      return newInvokeTargetSupplier.apply(eventConsumer, methodProcessingContext);
     }
   }
 
@@ -205,10 +216,20 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     if (descriptor != null) {
       return new InvokeRetargetingResult(
           true,
-          eventConsumer ->
+          (eventConsumer, methodProcessingContext) ->
               superInvoke
                   ? syntheticHelper.ensureForwardingMethod(descriptor, eventConsumer)
                   : syntheticHelper.ensureEmulatedHolderDispatchMethod(descriptor, eventConsumer));
+    }
+    if (covariantRetarget.containsKey(singleTarget)) {
+      return new InvokeRetargetingResult(
+          true,
+          (eventConsumer, methodProcessingContext) ->
+              syntheticHelper.ensureCovariantRetargetMethod(
+                  singleTarget,
+                  covariantRetarget.get(singleTarget),
+                  eventConsumer,
+                  methodProcessingContext));
     }
     return ensureInvokeRetargetingResult(nonEmulatedVirtualRetarget.get(singleTarget));
   }

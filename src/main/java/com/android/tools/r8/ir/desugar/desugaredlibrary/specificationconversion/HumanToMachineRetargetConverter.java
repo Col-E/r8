@@ -42,6 +42,9 @@ public class HumanToMachineRetargetConverter {
         .getRetargetStaticField()
         .forEach((field, type) -> convertRetargetField(builder, field, type));
     rewritingFlags
+        .getCovariantRetarget()
+        .forEach((method, type) -> convertCovariantRetarget(builder, method, type));
+    rewritingFlags
         .getRetargetMethod()
         .forEach((method, type) -> convertRetargetMethod(builder, method, type));
     rewritingFlags
@@ -93,6 +96,41 @@ public class HumanToMachineRetargetConverter {
                   + foundMethod);
     }
     convertEmulatedVirtualRetarget(builder, rewritingFlags, foundMethod, type);
+  }
+
+  private void convertCovariantRetarget(
+      MachineRewritingFlags.Builder builder, DexMethod method, DexType type) {
+    DexClass holder = appInfo.definitionFor(method.holder);
+    DexProto proto = method.getProto();
+    DexProto newProto = appInfo.dexItemFactory().createProto(type, proto.parameters);
+    DexMethod covariant = method.withProto(newProto, appInfo.dexItemFactory());
+    DexEncodedMethod foundMethod = holder.lookupMethod(covariant);
+    if (foundMethod == null) {
+      missingReferences.add(covariant);
+      return;
+    }
+    if (foundMethod.isStatic()) {
+      appInfo
+          .app()
+          .options
+          .reporter
+          .warning(
+              "Static method "
+                  + foundMethod
+                  + " is flagged as having a covariant return type, which is not possible.");
+      return;
+    }
+    if (seemsToNeedEmulatedDispatch(holder, foundMethod)) {
+      appInfo
+          .app()
+          .options
+          .reporter
+          .warning(
+              "Covariant retargeting of non final method "
+                  + foundMethod
+                  + " which could lead to invalid runtime execution in overrides.");
+    }
+    builder.putCovariantRetarget(method, covariant);
   }
 
   private void convertRetargetMethod(

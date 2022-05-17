@@ -56,6 +56,7 @@ public class HumanDesugaredLibrarySpecificationParser {
   static final String DONT_REWRITE_PREFIX_KEY = "dont_rewrite_prefix";
   static final String MAINTAIN_PREFIX_KEY = "maintain_prefix";
   static final String RETARGET_STATIC_FIELD_KEY = "retarget_static_field";
+  static final String COVARIANT_RETARGET_METHOD_KEY = "covariant_retarget_method";
   static final String RETARGET_METHOD_KEY = "retarget_method";
   static final String RETARGET_METHOD_EMULATED_DISPATCH_KEY =
       "retarget_method_with_emulated_dispatch";
@@ -297,6 +298,14 @@ public class HumanDesugaredLibrarySpecificationParser {
       for (Map.Entry<String, JsonElement> retarget :
           jsonFlagSet.get(RETARGET_METHOD_KEY).getAsJsonObject().entrySet()) {
         builder.retargetMethod(
+            parseMethod(retarget.getKey()),
+            stringDescriptorToDexType(retarget.getValue().getAsString()));
+      }
+    }
+    if (jsonFlagSet.has(COVARIANT_RETARGET_METHOD_KEY)) {
+      for (Map.Entry<String, JsonElement> retarget :
+          jsonFlagSet.get(COVARIANT_RETARGET_METHOD_KEY).getAsJsonObject().entrySet()) {
+        builder.covariantRetargetMethod(
             parseMethod(retarget.getKey()),
             stringDescriptorToDexType(retarget.getValue().getAsString()));
       }

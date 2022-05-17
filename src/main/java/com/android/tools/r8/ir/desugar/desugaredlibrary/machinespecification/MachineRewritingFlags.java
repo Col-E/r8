@@ -30,6 +30,7 @@ public class MachineRewritingFlags {
       Set<DexType> maintainType,
       Map<DexType, DexType> rewriteDerivedTypeOnly,
       Map<DexField, DexField> staticFieldRetarget,
+      Map<DexMethod, DexMethod> covariantRetarget,
       Map<DexMethod, DexMethod> staticRetarget,
       Map<DexMethod, DexMethod> nonEmulatedVirtualRetarget,
       Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedVirtualRetarget,
@@ -46,6 +47,7 @@ public class MachineRewritingFlags {
     this.maintainType = maintainType;
     this.rewriteDerivedTypeOnly = rewriteDerivedTypeOnly;
     this.staticFieldRetarget = staticFieldRetarget;
+    this.covariantRetarget = covariantRetarget;
     this.staticRetarget = staticRetarget;
     this.nonEmulatedVirtualRetarget = nonEmulatedVirtualRetarget;
     this.emulatedVirtualRetarget = emulatedVirtualRetarget;
@@ -70,6 +72,9 @@ public class MachineRewritingFlags {
 
   // Fields to retarget.
   private final Map<DexField, DexField> staticFieldRetarget;
+
+  // Methods with covariant return type to retarget.
+  private final Map<DexMethod, DexMethod> covariantRetarget;
 
   // Static methods to retarget.
   private final Map<DexMethod, DexMethod> staticRetarget;
@@ -117,6 +122,10 @@ public class MachineRewritingFlags {
 
   public Map<DexField, DexField> getStaticFieldRetarget() {
     return staticFieldRetarget;
+  }
+
+  public Map<DexMethod, DexMethod> getCovariantRetarget() {
+    return covariantRetarget;
   }
 
   public Map<DexMethod, DexMethod> getStaticRetarget() {
@@ -182,7 +191,8 @@ public class MachineRewritingFlags {
   }
 
   public boolean hasRetargeting() {
-    return !staticRetarget.isEmpty()
+    return !covariantRetarget.isEmpty()
+        || !staticRetarget.isEmpty()
         || !nonEmulatedVirtualRetarget.isEmpty()
         || !emulatedVirtualRetarget.isEmpty()
         || !staticFieldRetarget.isEmpty();
@@ -222,6 +232,8 @@ public class MachineRewritingFlags {
     private final ImmutableSet.Builder<DexType> maintainType = ImmutableSet.builder();
     private final Map<DexType, DexType> rewriteDerivedTypeOnly = new IdentityHashMap<>();
     private final ImmutableMap.Builder<DexField, DexField> staticFieldRetarget =
+        ImmutableMap.builder();
+    private final ImmutableMap.Builder<DexMethod, DexMethod> covariantRetarget =
         ImmutableMap.builder();
     private final ImmutableMap.Builder<DexMethod, DexMethod> staticRetarget =
         ImmutableMap.builder();
@@ -264,6 +276,10 @@ public class MachineRewritingFlags {
 
     public void putStaticFieldRetarget(DexField src, DexField dest) {
       staticFieldRetarget.put(src, dest);
+    }
+
+    public void putCovariantRetarget(DexMethod src, DexMethod dest) {
+      covariantRetarget.put(src, dest);
     }
 
     public void putStaticRetarget(DexMethod src, DexMethod dest) {
@@ -324,6 +340,7 @@ public class MachineRewritingFlags {
           maintainType.build(),
           rewriteDerivedTypeOnly,
           staticFieldRetarget.build(),
+          covariantRetarget.build(),
           staticRetarget.build(),
           nonEmulatedVirtualRetarget.build(),
           emulatedVirtualRetarget.build(),

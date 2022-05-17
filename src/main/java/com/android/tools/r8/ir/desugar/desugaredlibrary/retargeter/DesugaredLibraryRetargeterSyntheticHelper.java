@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter;
 
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -13,11 +14,13 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.DerivedMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedDispatchMethodDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterInstructionEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterL8SynthesizerEventConsumer;
 import com.android.tools.r8.ir.synthetic.EmulateDispatchSyntheticCfCodeProvider;
+import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticClassBuilder;
 import com.android.tools.r8.synthesis.SyntheticItems.SyntheticKindSelector;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
@@ -29,6 +32,33 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
 
   public DesugaredLibraryRetargeterSyntheticHelper(AppView<?> appView) {
     this.appView = appView;
+  }
+
+  public DexMethod ensureCovariantRetargetMethod(
+      DexMethod target,
+      DexMethod retarget,
+      DesugaredLibraryRetargeterInstructionEventConsumer eventConsumer,
+      MethodProcessingContext methodProcessingContext) {
+    ProgramMethod method =
+        appView
+            .getSyntheticItems()
+            .createMethod(
+                kinds -> kinds.COVARIANT_OUTLINE,
+                methodProcessingContext.createUniqueContext(),
+                appView,
+                methodBuilder ->
+                    methodBuilder
+                        .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                        .setProto(appView.dexItemFactory().prependHolderToProto(target))
+                        .setCode(
+                            m ->
+                                ForwardMethodBuilder.builder(appView.dexItemFactory())
+                                    .setVirtualTarget(retarget, false)
+                                    .setNonStaticSource(target)
+                                    .setCastResult()
+                                    .build()));
+    eventConsumer.acceptCovariantRetargetMethod(method);
+    return method.getReference();
   }
 
   public DexMethod ensureRetargetMethod(

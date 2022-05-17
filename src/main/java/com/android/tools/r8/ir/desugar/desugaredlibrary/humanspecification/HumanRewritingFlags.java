@@ -31,6 +31,7 @@ public class HumanRewritingFlags {
   private final Map<String, Map<String, String>> rewriteDerivedPrefix;
   private final Map<DexType, DexType> emulatedInterfaces;
   private final Map<DexField, DexType> retargetStaticField;
+  private final Map<DexMethod, DexType> covariantRetarget;
   private final Map<DexMethod, DexType> retargetMethod;
   private final Map<DexMethod, DexType> retargetMethodEmulatedDispatch;
   private final Map<DexMethod, DexType[]> apiConversionCollection;
@@ -49,6 +50,7 @@ public class HumanRewritingFlags {
       Map<String, Map<String, String>> rewriteDerivedPrefix,
       Map<DexType, DexType> emulateLibraryInterface,
       Map<DexField, DexType> retargetStaticField,
+      Map<DexMethod, DexType> covariantRetarget,
       Map<DexMethod, DexType> retargetMethod,
       Map<DexMethod, DexType> retargetMethodEmulatedDispatch,
       Map<DexMethod, DexType[]> apiConversionCollection,
@@ -65,6 +67,7 @@ public class HumanRewritingFlags {
     this.rewriteDerivedPrefix = rewriteDerivedPrefix;
     this.emulatedInterfaces = emulateLibraryInterface;
     this.retargetStaticField = retargetStaticField;
+    this.covariantRetarget = covariantRetarget;
     this.retargetMethod = retargetMethod;
     this.retargetMethodEmulatedDispatch = retargetMethodEmulatedDispatch;
     this.apiConversionCollection = apiConversionCollection;
@@ -82,6 +85,7 @@ public class HumanRewritingFlags {
         ImmutableMap.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
+        ImmutableMap.of(),
         ImmutableMap.of(),
         ImmutableMap.of(),
         ImmutableMap.of(),
@@ -111,6 +115,7 @@ public class HumanRewritingFlags {
         rewriteDerivedPrefix,
         emulatedInterfaces,
         retargetStaticField,
+        covariantRetarget,
         retargetMethod,
         retargetMethodEmulatedDispatch,
         apiConversionCollection,
@@ -145,6 +150,10 @@ public class HumanRewritingFlags {
 
   public Map<DexField, DexType> getRetargetStaticField() {
     return retargetStaticField;
+  }
+
+  public Map<DexMethod, DexType> getCovariantRetarget() {
+    return covariantRetarget;
   }
 
   public Map<DexMethod, DexType> getRetargetMethod() {
@@ -192,6 +201,7 @@ public class HumanRewritingFlags {
         && rewriteDerivedPrefix.isEmpty()
         && maintainPrefix.isEmpty()
         && emulatedInterfaces.isEmpty()
+        && covariantRetarget.isEmpty()
         && retargetMethod.isEmpty()
         && retargetMethodEmulatedDispatch.isEmpty()
         && retargetStaticField.isEmpty();
@@ -208,6 +218,7 @@ public class HumanRewritingFlags {
     private final Map<String, Map<String, String>> rewriteDerivedPrefix;
     private final Map<DexType, DexType> emulatedInterfaces;
     private final Map<DexField, DexType> retargetStaticField;
+    private final Map<DexMethod, DexType> covariantRetarget;
     private final Map<DexMethod, DexType> retargetMethod;
     private final Map<DexMethod, DexType> retargetMethodEmulatedDispatch;
     private final Map<DexMethod, DexType[]> apiConversionCollection;
@@ -234,6 +245,7 @@ public class HumanRewritingFlags {
           new IdentityHashMap<>(),
           new IdentityHashMap<>(),
           new IdentityHashMap<>(),
+          new IdentityHashMap<>(),
           Sets.newIdentityHashSet(),
           Sets.newIdentityHashSet(),
           new IdentityHashMap<>(),
@@ -250,6 +262,7 @@ public class HumanRewritingFlags {
         Map<String, Map<String, String>> rewriteDerivedPrefix,
         Map<DexType, DexType> emulateLibraryInterface,
         Map<DexField, DexType> retargetStaticField,
+        Map<DexMethod, DexType> covariantRetarget,
         Map<DexMethod, DexType> retargetMethod,
         Map<DexMethod, DexType> retargetMethodEmulatedDispatch,
         Map<DexMethod, DexType[]> apiConversionCollection,
@@ -268,6 +281,7 @@ public class HumanRewritingFlags {
       this.rewriteDerivedPrefix = new HashMap<>(rewriteDerivedPrefix);
       this.emulatedInterfaces = new IdentityHashMap<>(emulateLibraryInterface);
       this.retargetStaticField = new IdentityHashMap<>(retargetStaticField);
+      this.covariantRetarget = new IdentityHashMap<>(covariantRetarget);
       this.retargetMethod = new IdentityHashMap<>(retargetMethod);
       this.retargetMethodEmulatedDispatch = new IdentityHashMap<>(retargetMethodEmulatedDispatch);
       this.apiConversionCollection = new IdentityHashMap<>(apiConversionCollection);
@@ -365,6 +379,15 @@ public class HumanRewritingFlags {
       return this;
     }
 
+    public Builder covariantRetargetMethod(DexMethod key, DexType rewrittenType) {
+      put(
+          covariantRetarget,
+          key,
+          rewrittenType,
+          HumanDesugaredLibrarySpecificationParser.COVARIANT_RETARGET_METHOD_KEY);
+      return this;
+    }
+
     public Builder retargetStaticField(DexField key, DexType rewrittenType) {
       put(
           retargetStaticField,
@@ -429,6 +452,7 @@ public class HumanRewritingFlags {
           ImmutableMap.copyOf(rewriteDerivedPrefix),
           ImmutableMap.copyOf(emulatedInterfaces),
           ImmutableMap.copyOf(retargetStaticField),
+          ImmutableMap.copyOf(covariantRetarget),
           ImmutableMap.copyOf(retargetMethod),
           ImmutableMap.copyOf(retargetMethodEmulatedDispatch),
           ImmutableMap.copyOf(apiConversionCollection),
