@@ -21,6 +21,7 @@ import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.chrono.ChronoLocalDate;
 import java.time.chrono.Era;
 import java.time.chrono.IsoEra;
 import java.util.Collection;
@@ -106,13 +107,16 @@ public class LocaleDateGetEraTest extends DesugaredLibraryTestBase {
                       String name,
                       String descriptor,
                       boolean isInterface) {
-                    if (opcode == Opcodes.INVOKEVIRTUAL && name.equals("getEra")) {
+                    if (opcode == Opcodes.INVOKEINTERFACE && name.equals("getEra")) {
                       super.visitMethodInsn(
-                          opcode,
-                          owner,
+                          Opcodes.INVOKEVIRTUAL,
+                          "java/time/LocalDate",
                           name,
                           "()" + DescriptorUtils.javaTypeToDescriptor(eraClass.getTypeName()),
-                          isInterface);
+                          false);
+                      return;
+                    }
+                    if (opcode == Opcodes.CHECKCAST) {
                       return;
                     }
                     super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
@@ -124,7 +128,7 @@ public class LocaleDateGetEraTest extends DesugaredLibraryTestBase {
   static class Executor {
 
     public static void main(String[] args) {
-      System.out.println(LocalDate.ofEpochDay(123456789L).getEra());
+      System.out.println(((ChronoLocalDate) LocalDate.ofEpochDay(123456789L)).getEra());
     }
   }
 }
