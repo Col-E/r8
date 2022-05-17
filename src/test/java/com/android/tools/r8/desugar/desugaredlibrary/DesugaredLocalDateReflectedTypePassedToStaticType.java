@@ -60,9 +60,9 @@ public class DesugaredLocalDateReflectedTypePassedToStaticType extends Desugared
     } else {
       // TODO(b/232780224): Evaluate this.
       if (compilationSpecification.isL8Shrink()
+          && libraryDesugaringSpecification.isJdk11Based()
           && parameters.getApiLevel().betweenBothIncluded(AndroidApiLevel.O, AndroidApiLevel.Q)) {
         run.assertFailureWithErrorThatMatches(containsString("java.lang.NoSuchMethodException"));
-
       } else {
         run.assertSuccessWithOutput(EXPECTED);
       }
