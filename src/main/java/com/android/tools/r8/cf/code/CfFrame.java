@@ -211,6 +211,11 @@ public class CfFrame extends CfInstruction implements Cloneable {
       return null;
     }
 
+    public int getWidth() {
+      assert isSingle();
+      return 1;
+    }
+
     public boolean isUninitializedNew() {
       return false;
     }
@@ -734,6 +739,11 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
 
     @Override
+    public int getWidth() {
+      return 2;
+    }
+
+    @Override
     public WideFrameType join(WideFrameType frameType) {
       return this == frameType ? this : twoWord();
     }
@@ -990,6 +1000,11 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
 
     @Override
+    public int getWidth() {
+      return 2;
+    }
+
+    @Override
     public WideFrameType join(WideFrameType frameType) {
       // The join of wide with one of {double, long, wide} is wide.
       return this;
@@ -1131,7 +1146,7 @@ public class CfFrame extends CfInstruction implements Cloneable {
   public int computeStackSize() {
     int size = 0;
     for (FrameType frameType : stack) {
-      size += frameType.isWide() ? 2 : 1;
+      size += frameType.getWidth();
     }
     return size;
   }
@@ -1222,6 +1237,7 @@ public class CfFrame extends CfInstruction implements Cloneable {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {

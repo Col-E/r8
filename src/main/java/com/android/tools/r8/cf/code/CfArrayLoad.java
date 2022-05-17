@@ -141,6 +141,7 @@ public class CfArrayLoad extends CfInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
@@ -149,6 +150,6 @@ public class CfArrayLoad extends CfInstruction {
     return frame
         .popInitialized(appView, dexItemFactory.intType)
         .popInitialized(appView, dexItemFactory.objectArrayType)
-        .push(appView, type);
+        .push(appView, code, type);
   }
 }

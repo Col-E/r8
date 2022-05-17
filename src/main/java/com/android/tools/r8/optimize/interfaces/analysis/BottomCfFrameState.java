@@ -7,6 +7,7 @@ package com.android.tools.r8.optimize.interfaces.analysis;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -74,13 +75,13 @@ public class BottomCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState push(DexType type) {
-    return new ConcreteCfFrameState().push(type);
+  public CfFrameState push(CfCode code, DexType type) {
+    return new ConcreteCfFrameState().push(code, type);
   }
 
   @Override
-  public CfFrameState push(FrameType frameType) {
-    return new ConcreteCfFrameState().push(frameType);
+  public CfFrameState push(CfCode code, FrameType frameType) {
+    return new ConcreteCfFrameState().push(code, frameType);
   }
 
   @Override
@@ -93,8 +94,8 @@ public class BottomCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState storeLocal(int localIndex, FrameType frameType) {
-    return new ConcreteCfFrameState().storeLocal(localIndex, frameType);
+  public CfFrameState storeLocal(int localIndex, FrameType frameType, CfCode code) {
+    return new ConcreteCfFrameState().storeLocal(localIndex, frameType, code);
   }
 
   @Override

@@ -360,5 +360,9 @@ public abstract class CfInstruction implements CfOrDexInstruction {
       DexItemFactory dexItemFactory);
 
   public abstract CfFrameState evaluate(
-      CfFrameState frame, ProgramMethod context, AppView<?> appView, DexItemFactory dexItemFactory);
+      CfFrameState frame,
+      CfCode code,
+      ProgramMethod context,
+      AppView<?> appView,
+      DexItemFactory dexItemFactory);
 }

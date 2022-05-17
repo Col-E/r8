@@ -145,11 +145,12 @@ public class CfCheckCast extends CfInstruction implements CfTypeInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
     // ..., objectref →
     // ..., objectref
-    return frame.popInitialized(appView, dexItemFactory.objectType).push(type);
+    return frame.popInitialized(appView, dexItemFactory.objectType).push(code, type);
   }
 }

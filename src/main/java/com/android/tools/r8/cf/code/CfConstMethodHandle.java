@@ -116,11 +116,12 @@ public class CfConstMethodHandle extends CfInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
     // ... →
     // ..., value
-    return frame.push(dexItemFactory.methodHandleType);
+    return frame.push(code, dexItemFactory.methodHandleType);
   }
 }

@@ -144,11 +144,13 @@ public class CfLoad extends CfInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
     // ... →
     // ..., objectref
-    return frame.readLocal(appView, getLocalIndex(), type, CfFrameState::push);
+    return frame.readLocal(
+        appView, getLocalIndex(), type, (state, frameType) -> state.push(code, frameType));
   }
 }

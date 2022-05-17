@@ -206,11 +206,12 @@ public class CfNumberConversion extends CfInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
     // ..., value →
     // ..., result
-    return frame.popInitialized(appView, from).push(appView, to);
+    return frame.popInitialized(appView, from).push(appView, code, to);
   }
 }

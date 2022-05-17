@@ -220,11 +220,15 @@ public class CfArithmeticBinop extends CfInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState state,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
     // ..., value1, value2 →
     // ..., result
-    return state.popInitialized(appView, type).popInitialized(appView, type).push(appView, type);
+    return state
+        .popInitialized(appView, type)
+        .popInitialized(appView, type)
+        .push(appView, code, type);
   }
 }

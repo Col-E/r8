@@ -83,11 +83,12 @@ public class CfStaticFieldRead extends CfFieldInstruction implements CfOrDexStat
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
     // ..., →
     // ..., value
-    return frame.push(getField().getType());
+    return frame.push(code, getField().getType());
   }
 }

@@ -177,19 +177,21 @@ public class CfStore extends CfInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
     // ..., ref →
     // ...
     if (type.isObject()) {
-      return frame.popObject((state, head) -> state.storeLocal(getLocalIndex(), head));
+      return frame.popObject((state, head) -> state.storeLocal(getLocalIndex(), head, code));
     } else {
       assert type.isPrimitive();
       return frame.popInitialized(
           appView,
           type,
-          (state, head) -> state.storeLocal(getLocalIndex(), type.toPrimitiveType(), appView));
+          (state, head) ->
+              state.storeLocal(getLocalIndex(), type.toPrimitiveType(), appView, code));
     }
   }
 }

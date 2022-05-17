@@ -145,6 +145,7 @@ public class CfCmp extends CfInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
@@ -153,6 +154,6 @@ public class CfCmp extends CfInstruction {
     return frame
         .popInitialized(appView, type)
         .popInitialized(appView, type)
-        .push(dexItemFactory.intType);
+        .push(code, dexItemFactory.intType);
   }
 }

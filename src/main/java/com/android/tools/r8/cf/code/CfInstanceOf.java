@@ -139,11 +139,14 @@ public class CfInstanceOf extends CfInstruction implements CfTypeInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
     // ..., objectref →
     // ..., result
-    return frame.popInitialized(appView, dexItemFactory.objectType).push(dexItemFactory.intType);
+    return frame
+        .popInitialized(appView, dexItemFactory.objectType)
+        .push(code, dexItemFactory.intType);
   }
 }

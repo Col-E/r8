@@ -79,6 +79,7 @@ public class CfStaticFieldWrite extends CfFieldInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {

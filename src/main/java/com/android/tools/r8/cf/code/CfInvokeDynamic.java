@@ -183,6 +183,7 @@ public class CfInvokeDynamic extends CfInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
@@ -193,6 +194,6 @@ public class CfInvokeDynamic extends CfInstruction {
     if (returnType.isVoidType()) {
       return frame;
     }
-    return frame.push(returnType);
+    return frame.push(code, returnType);
   }
 }

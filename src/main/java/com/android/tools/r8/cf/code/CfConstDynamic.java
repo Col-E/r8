@@ -239,11 +239,12 @@ public class CfConstDynamic extends CfInstruction implements CfTypeInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
     // ... →
     // ..., value
-    return frame.push(dexItemFactory.classType);
+    return frame.push(code, dexItemFactory.classType);
   }
 }

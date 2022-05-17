@@ -80,11 +80,14 @@ public class CfInstanceFieldRead extends CfFieldInstruction implements CfOrDexIn
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
     // ..., objectref →
     // ..., value
-    return frame.popInitialized(appView, getField().getHolderType()).push(getField().getType());
+    return frame
+        .popInitialized(appView, getField().getHolderType())
+        .push(code, getField().getType());
   }
 }

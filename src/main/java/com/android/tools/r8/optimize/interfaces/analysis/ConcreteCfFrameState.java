@@ -14,10 +14,12 @@ import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.frame.SingleFrameType;
 import com.android.tools.r8.cf.code.frame.WideFrameType;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.FunctionUtils;
 import com.google.common.collect.Iterables;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
@@ -36,19 +38,22 @@ public class ConcreteCfFrameState extends CfFrameState {
 
   private final Int2ObjectAVLTreeMap<FrameType> locals;
   private final ArrayDeque<FrameType> stack;
+  private int stackHeight;
 
   ConcreteCfFrameState() {
-    this(new Int2ObjectAVLTreeMap<>(), new ArrayDeque<>());
+    this(new Int2ObjectAVLTreeMap<>(), new ArrayDeque<>(), 0);
   }
 
-  ConcreteCfFrameState(Int2ObjectAVLTreeMap<FrameType> locals, ArrayDeque<FrameType> stack) {
+  ConcreteCfFrameState(
+      Int2ObjectAVLTreeMap<FrameType> locals, ArrayDeque<FrameType> stack, int stackHeight) {
     this.locals = locals;
     this.stack = stack;
+    this.stackHeight = stackHeight;
   }
 
   @Override
   public CfFrameState clone() {
-    return new ConcreteCfFrameState(locals.clone(), stack.clone());
+    return new ConcreteCfFrameState(locals.clone(), stack.clone(), stackHeight);
   }
 
   @Override
@@ -70,7 +75,8 @@ public class ConcreteCfFrameState extends CfFrameState {
       return error(assignabilityResult.asFailed().getMessage());
     }
     CfFrame frameCopy = frame.mutableCopy();
-    return new ConcreteCfFrameState(frameCopy.getMutableLocals(), frameCopy.getMutableStack());
+    return new ConcreteCfFrameState(
+        frameCopy.getMutableLocals(), frameCopy.getMutableStack(), stackHeight);
   }
 
   @Override
@@ -97,7 +103,7 @@ public class ConcreteCfFrameState extends CfFrameState {
           getInitializedFrameType(uninitializedType, frameType, initializedType);
       newStack.addLast(initializedFrameType);
     }
-    return new ConcreteCfFrameState(locals, newStack);
+    return new ConcreteCfFrameState(locals, newStack, stackHeight);
   }
 
   @Override
@@ -112,6 +118,7 @@ public class ConcreteCfFrameState extends CfFrameState {
       return bottom().pop();
     }
     FrameType frameType = stack.removeLast();
+    stackHeight -= frameType.getWidth();
     return fn.apply(this, frameType);
   }
 
@@ -186,14 +193,29 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState push(DexType type) {
-    return push(FrameType.initialized(type));
+  public CfFrameState push(CfCode code, DexType type) {
+    return push(code, FrameType.initialized(type));
   }
 
   @Override
-  public CfFrameState push(FrameType frameType) {
+  public CfFrameState push(CfCode code, FrameType frameType) {
+    int newStackHeight = stackHeight + frameType.getWidth();
+    if (newStackHeight > code.getMaxStack()) {
+      return pushError(frameType, code);
+    }
     stack.addLast(frameType);
+    stackHeight = newStackHeight;
     return this;
+  }
+
+  private ErroneousCfFrameState pushError(FrameType frameType, CfCode code) {
+    return error(
+        "The max stack height of "
+            + code.getMaxStack()
+            + " is violated when pushing "
+            + formatActual(frameType)
+            + " to existing stack of size "
+            + stackHeight);
   }
 
   @Override
@@ -218,12 +240,30 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState storeLocal(int localIndex, FrameType frameType) {
+  public CfFrameState storeLocal(int localIndex, FrameType frameType, CfCode code) {
+    int maxLocalIndex = localIndex + BooleanUtils.intValue(frameType.isWide());
+    if (maxLocalIndex >= code.getMaxLocals()) {
+      return storeLocalError(localIndex, frameType, code);
+    }
     locals.put(localIndex, frameType);
     if (frameType.isWide()) {
       locals.put(localIndex + 1, frameType);
     }
     return this;
+  }
+
+  private ErroneousCfFrameState storeLocalError(int localIndex, FrameType frameType, CfCode code) {
+    StringBuilder message =
+        new StringBuilder("The max locals of ")
+            .append(code.getMaxLocals())
+            .append(" is violated when storing ")
+            .append(formatActual(frameType))
+            .append(" at local index ")
+            .append(localIndex);
+    if (frameType.isWide()) {
+      message.append(" and ").append(localIndex + 1);
+    }
+    return error(message.toString());
   }
 
   public CfFrameState join(
@@ -235,7 +275,7 @@ public class ConcreteCfFrameState extends CfFrameState {
       return error;
     }
     CfFrame frame = builder.buildMutable();
-    return new ConcreteCfFrameState(frame.getMutableLocals(), frame.getMutableStack());
+    return new ConcreteCfFrameState(frame.getMutableLocals(), frame.getMutableStack(), stackHeight);
   }
 
   private void joinLocals(

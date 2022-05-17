@@ -145,6 +145,7 @@ public class CfMultiANewArray extends CfInstruction implements CfTypeInstruction
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
@@ -153,6 +154,6 @@ public class CfMultiANewArray extends CfInstruction implements CfTypeInstruction
     for (int i = 0; i < dimensions; i++) {
       frame = frame.popInitialized(appView, dexItemFactory.intType);
     }
-    return frame.push(type);
+    return frame.push(code, type);
   }
 }

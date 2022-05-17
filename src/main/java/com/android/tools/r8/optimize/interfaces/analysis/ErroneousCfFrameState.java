@@ -7,6 +7,7 @@ package com.android.tools.r8.optimize.interfaces.analysis;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -157,12 +158,12 @@ public class ErroneousCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState push(DexType type) {
+  public CfFrameState push(CfCode code, DexType type) {
     return this;
   }
 
   @Override
-  public CfFrameState push(FrameType frameType) {
+  public CfFrameState push(CfCode code, FrameType frameType) {
     return this;
   }
 
@@ -176,7 +177,7 @@ public class ErroneousCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState storeLocal(int localIndex, FrameType frameType) {
+  public CfFrameState storeLocal(int localIndex, FrameType frameType, CfCode code) {
     return this;
   }
 

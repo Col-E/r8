@@ -129,11 +129,12 @@ public class CfInitClass extends CfInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
     // ..., →
     // ..., value
-    return frame.push(dexItemFactory.intType);
+    return frame.push(code, dexItemFactory.intType);
   }
 }

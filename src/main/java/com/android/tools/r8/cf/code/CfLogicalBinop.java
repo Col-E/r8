@@ -202,6 +202,7 @@ public class CfLogicalBinop extends CfInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
@@ -221,6 +222,6 @@ public class CfLogicalBinop extends CfInstruction {
     return frame
         .popInitialized(appView, value2Type)
         .popInitialized(appView, value1Type)
-        .push(appView, value1Type);
+        .push(appView, code, value1Type);
   }
 }

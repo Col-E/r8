@@ -96,6 +96,7 @@ public class CfArrayLength extends CfInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
@@ -103,6 +104,6 @@ public class CfArrayLength extends CfInstruction {
     // ..., length
     return frame
         .popInitialized(appView, dexItemFactory.objectArrayType)
-        .push(dexItemFactory.intType);
+        .push(code, dexItemFactory.intType);
   }
 }

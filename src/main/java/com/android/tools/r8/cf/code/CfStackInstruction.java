@@ -510,6 +510,7 @@ public class CfStackInstruction extends CfInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
@@ -532,13 +533,13 @@ public class CfStackInstruction extends CfInstruction {
       case Dup:
         // ..., value →
         // ..., value, value
-        return frame.popSingle((state, single) -> state.push(single, single));
+        return frame.popSingle((state, single) -> state.push(code, single, single));
       case DupX1:
         {
           // ..., value2, value1 →
           // ..., value1, value2, value1
           return frame.popSingles(
-              (state, single2, single1) -> state.push(single1, single2, single1));
+              (state, single2, single1) -> state.push(code, single1, single2, single1));
         }
       case DupX2:
         {
@@ -550,8 +551,9 @@ public class CfStackInstruction extends CfInstruction {
           return frame.popSingle(
               (state1, single1) ->
                   state1.popSingleSingleOrWide(
-                      (state2, single3, single2) -> state2.push(single1, single3, single2, single1),
-                      (state2, wide2) -> state2.push(single1, wide2, single1)));
+                      (state2, single3, single2) ->
+                          state2.push(code, single1, single3, single2, single1),
+                      (state2, wide2) -> state2.push(code, single1, wide2, single1)));
         }
       case Dup2:
         {
@@ -561,8 +563,8 @@ public class CfStackInstruction extends CfInstruction {
           // ..., value →
           // ..., value, value
           return frame.popSingleSingleOrWide(
-              (state, single2, single1) -> state.push(single2, single1, single2, single1),
-              (state, wide) -> state.push(wide, wide));
+              (state, single2, single1) -> state.push(code, single2, single1, single2, single1),
+              (state, wide) -> state.push(code, wide, wide));
         }
       case Dup2X1:
         {
@@ -575,9 +577,9 @@ public class CfStackInstruction extends CfInstruction {
               (state1, single2, single1) ->
                   state1.popSingle(
                       (state2, single3) ->
-                          state2.push(single2, single1, single3, single2, single1)),
+                          state2.push(code, single2, single1, single3, single2, single1)),
               (state1, wide1) ->
-                  state1.popSingle((state2, single2) -> state2.push(wide1, single2, wide1)));
+                  state1.popSingle((state2, single2) -> state2.push(code, wide1, single2, wide1)));
         }
       case Dup2X2:
         {
@@ -597,18 +599,20 @@ public class CfStackInstruction extends CfInstruction {
               (state1, single2, single1) ->
                   state1.popSingleSingleOrWide(
                       (state2, single4, single3) ->
-                          state2.push(single2, single1, single4, single3, single2, single1),
-                      (state2, wide3) -> state2.push(single2, single1, wide3, single2, single1)),
+                          state2.push(code, single2, single1, single4, single3, single2, single1),
+                      (state2, wide3) ->
+                          state2.push(code, single2, single1, wide3, single2, single1)),
               (state1, wide1) ->
                   state1.popSingleSingleOrWide(
-                      (state2, single3, single2) -> state2.push(wide1, single3, single2, wide1),
-                      (state2, wide2) -> state2.push(wide1, wide2, wide1)));
+                      (state2, single3, single2) ->
+                          state2.push(code, wide1, single3, single2, wide1),
+                      (state2, wide2) -> state2.push(code, wide1, wide2, wide1)));
         }
       case Swap:
         {
           // ..., value2, value1 →
           // ..., value1, value2
-          return frame.popSingles((state, single2, single1) -> state.push(single1, single2));
+          return frame.popSingles((state, single2, single1) -> state.push(code, single1, single2));
         }
       default:
         throw new Unreachable("Invalid opcode for CfStackInstruction");

@@ -134,11 +134,12 @@ public class CfNeg extends CfInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
     // ..., value →
     // ..., result
-    return frame.popInitialized(appView, type).push(appView, type);
+    return frame.popInitialized(appView, type).push(appView, code, type);
   }
 }

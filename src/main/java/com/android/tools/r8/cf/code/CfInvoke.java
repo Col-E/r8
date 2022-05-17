@@ -341,6 +341,7 @@ public class CfInvoke extends CfInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
@@ -359,7 +360,7 @@ public class CfInvoke extends CfInstruction {
     if (method.getReturnType().isVoidType()) {
       return frame;
     }
-    return frame.push(method.getReturnType());
+    return frame.push(code, method.getReturnType());
   }
 
   private Type computeInvokeTypeForInvokeSpecial(

@@ -53,16 +53,18 @@ public class CfOpenClosedInterfacesAnalysis {
   private class TransferFunction
       implements AbstractTransferFunction<CfBlock, CfInstruction, CfFrameState> {
 
+    private final CfCode code;
     private final ProgramMethod context;
 
     TransferFunction(ProgramMethod context) {
+      this.code = context.getDefinition().getCode().asCfCode();
       this.context = context;
     }
 
     @Override
     public TransferFunctionResult<CfFrameState> apply(
         CfInstruction instruction, CfFrameState state) {
-      return instruction.evaluate(state, context, appView, appView.dexItemFactory());
+      return instruction.evaluate(state, code, context, appView, appView.dexItemFactory());
     }
 
     @Override

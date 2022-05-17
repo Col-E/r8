@@ -244,12 +244,13 @@ public class CfConstNumber extends CfInstruction {
   @Override
   public CfFrameState evaluate(
       CfFrameState frame,
+      CfCode code,
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
     // ... →
     // ..., value
     assert type.isPrimitive();
-    return frame.push(appView, type);
+    return frame.push(appView, code, type);
   }
 }

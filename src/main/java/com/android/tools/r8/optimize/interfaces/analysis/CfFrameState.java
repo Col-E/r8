@@ -11,6 +11,7 @@ import com.android.tools.r8.cf.code.CfAssignability;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -204,61 +205,74 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
         wideFn);
   }
 
-  // TODO(b/214496607): Pushing a value should return an error if the stack grows larger than the
-  //  max stack height.
-  public abstract CfFrameState push(DexType type);
+  public abstract CfFrameState push(CfCode code, DexType type);
 
-  // TODO(b/214496607): Pushing a value should return an error if the stack grows larger than the
-  //  max stack height.
-  public abstract CfFrameState push(FrameType frameType);
+  public abstract CfFrameState push(CfCode code, FrameType frameType);
 
-  public final CfFrameState push(FrameType frameType, FrameType frameType2) {
-    return push(frameType).push(frameType2);
-  }
-
-  public final CfFrameState push(FrameType frameType, FrameType frameType2, FrameType frameType3) {
-    return push(frameType).push(frameType2).push(frameType3);
+  public final CfFrameState push(CfCode code, FrameType frameType, FrameType frameType2) {
+    return push(code, frameType).push(code, frameType2);
   }
 
   public final CfFrameState push(
-      FrameType frameType, FrameType frameType2, FrameType frameType3, FrameType frameType4) {
-    return push(frameType).push(frameType2).push(frameType3).push(frameType4);
+      CfCode code, FrameType frameType, FrameType frameType2, FrameType frameType3) {
+    return push(code, frameType).push(code, frameType2).push(code, frameType3);
   }
 
   public final CfFrameState push(
+      CfCode code,
+      FrameType frameType,
+      FrameType frameType2,
+      FrameType frameType3,
+      FrameType frameType4) {
+    return push(code, frameType)
+        .push(code, frameType2)
+        .push(code, frameType3)
+        .push(code, frameType4);
+  }
+
+  public final CfFrameState push(
+      CfCode code,
       FrameType frameType,
       FrameType frameType2,
       FrameType frameType3,
       FrameType frameType4,
       FrameType frameType5) {
-    return push(frameType).push(frameType2).push(frameType3).push(frameType4).push(frameType5);
+    return push(code, frameType)
+        .push(code, frameType2)
+        .push(code, frameType3)
+        .push(code, frameType4)
+        .push(code, frameType5);
   }
 
   public final CfFrameState push(
+      CfCode code,
       FrameType frameType,
       FrameType frameType2,
       FrameType frameType3,
       FrameType frameType4,
       FrameType frameType5,
       FrameType frameType6) {
-    return push(frameType)
-        .push(frameType2)
-        .push(frameType3)
-        .push(frameType4)
-        .push(frameType5)
-        .push(frameType6);
+    return push(code, frameType)
+        .push(code, frameType2)
+        .push(code, frameType3)
+        .push(code, frameType4)
+        .push(code, frameType5)
+        .push(code, frameType6);
   }
 
-  public final CfFrameState push(AppView<?> appView, MemberType memberType) {
-    return push(FrameType.fromPreciseMemberType(memberType, appView.dexItemFactory()));
+  @SuppressWarnings("InconsistentOverloads")
+  public final CfFrameState push(AppView<?> appView, CfCode code, MemberType memberType) {
+    return push(code, FrameType.fromPreciseMemberType(memberType, appView.dexItemFactory()));
   }
 
-  public final CfFrameState push(AppView<?> appView, NumericType numericType) {
-    return push(numericType.toDexType(appView.dexItemFactory()));
+  @SuppressWarnings("InconsistentOverloads")
+  public final CfFrameState push(AppView<?> appView, CfCode code, NumericType numericType) {
+    return push(code, numericType.toDexType(appView.dexItemFactory()));
   }
 
-  public final CfFrameState push(AppView<?> appView, ValueType valueType) {
-    return push(valueType.toDexType(appView.dexItemFactory()));
+  @SuppressWarnings("InconsistentOverloads")
+  public final CfFrameState push(AppView<?> appView, CfCode code, ValueType valueType) {
+    return push(code, valueType.toDexType(appView.dexItemFactory()));
   }
 
   public abstract CfFrameState readLocal(
@@ -267,16 +281,16 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
       ValueType expectedType,
       BiFunction<CfFrameState, FrameType, CfFrameState> consumer);
 
-  public abstract CfFrameState storeLocal(int localIndex, FrameType frameType);
+  public abstract CfFrameState storeLocal(int localIndex, FrameType frameType, CfCode code);
 
   public final CfFrameState storeLocal(
-      int localIndex, PrimitiveTypeElement primitiveType, AppView<?> appView) {
+      int localIndex, PrimitiveTypeElement primitiveType, AppView<?> appView, CfCode code) {
     assert primitiveType.isInt()
         || primitiveType.isFloat()
         || primitiveType.isLong()
         || primitiveType.isDouble();
     return storeLocal(
-        localIndex, FrameType.initialized(primitiveType.toDexType(appView.dexItemFactory())));
+        localIndex, FrameType.initialized(primitiveType.toDexType(appView.dexItemFactory())), code);
   }
 
   @Override
