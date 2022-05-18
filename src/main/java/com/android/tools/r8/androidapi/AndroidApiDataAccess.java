@@ -13,6 +13,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.io.ByteStreams;
 import com.google.common.primitives.Ints;
@@ -87,39 +88,41 @@ public abstract class AndroidApiDataAccess {
     }
   }
 
-  public static AndroidApiDataAccess create(DiagnosticsHandler diagnosticsHandler) {
+  public static AndroidApiDataAccess create(
+      InternalOptions options, DiagnosticsHandler diagnosticsHandler) {
     URL resource = AndroidApiDataAccess.class.getClassLoader().getResource(RESOURCE_NAME);
     if (resource == null) {
       throw new CompilationError("Could not find the api database at " + RESOURCE_NAME);
     }
-    try {
-      // The resource is encoded as protocol and a path, where we should have one of either:
-      // protocol: file, path: <path-to-file>
-      // protocol: jar, path: file:<path-to-jar>!/<resource-name-in-jar>
-      if (resource.getProtocol().equals("file")) {
-        return getDataAccessFromPathAndOffset(Paths.get(resource.toURI()), 0);
-      } else if (resource.getProtocol().equals("jar") && resource.getPath().startsWith("file:")) {
-        // The path is on form 'file:<path-to-jar>!/<resource-name-in-jar>
-        JarURLConnection jarUrl = (JarURLConnection) resource.openConnection();
-        File jarFile = new File(jarUrl.getJarFileURL().getFile());
-        String databaseEntry = jarUrl.getEntryName();
-        long offsetInJar = getOffsetOfResourceInZip(jarFile, databaseEntry);
-        if (offsetInJar > 0) {
-          return getDataAccessFromPathAndOffset(jarFile.toPath(), offsetInJar);
+    if (options.apiModelingOptions().useMemoryMappedByteBuffer) {
+      try {
+        // The resource is encoded as protocol and a path, where we should have one of either:
+        // protocol: file, path: <path-to-file>
+        // protocol: jar, path: file:<path-to-jar>!/<resource-name-in-jar>
+        if (resource.getProtocol().equals("file")) {
+          return getDataAccessFromPathAndOffset(Paths.get(resource.toURI()), 0);
+        } else if (resource.getProtocol().equals("jar") && resource.getPath().startsWith("file:")) {
+          // The path is on form 'file:<path-to-jar>!/<resource-name-in-jar>
+          JarURLConnection jarUrl = (JarURLConnection) resource.openConnection();
+          File jarFile = new File(jarUrl.getJarFileURL().getFile());
+          String databaseEntry = jarUrl.getEntryName();
+          long offsetInJar = getOffsetOfResourceInZip(jarFile, databaseEntry);
+          if (offsetInJar > 0) {
+            return getDataAccessFromPathAndOffset(jarFile.toPath(), offsetInJar);
+          }
         }
+        // On older DEX platforms creating a new byte channel may fail:
+        // Error: java.lang.NoSuchMethodError: No static method newByteChannel(Ljava/nio/file/Path;
+        // [Ljava/nio/file/OpenOption;)Ljava/nio/channels/SeekableByteChannel;
+        // in class Ljava/nio/file/Files
+      } catch (Exception | NoSuchMethodError e) {
+        diagnosticsHandler.warning(new ExceptionDiagnostic(e));
       }
-      // On older DEX platforms creating a new byte channel may fail:
-      // Error: java.lang.NoSuchMethodError: No static method newByteChannel(Ljava/nio/file/Path;
-      // [Ljava/nio/file/OpenOption;)Ljava/nio/channels/SeekableByteChannel;
-      // in class Ljava/nio/file/Files
-    } catch (Exception | NoSuchMethodError e) {
-      diagnosticsHandler.warning(new ExceptionDiagnostic(e));
-      return null;
+      diagnosticsHandler.warning(
+          new StringDiagnostic(
+              "Unable to use a memory mapped byte buffer to access the api database. Falling back"
+                  + " to loading the database into program which requires more memory"));
     }
-    diagnosticsHandler.warning(
-        new StringDiagnostic(
-            "Unable to use a memory mapped byte buffer to access the api database. Falling back"
-                + " to loading the database into program which requires more memory"));
     try (InputStream apiInputStream =
         AndroidApiDataAccess.class.getClassLoader().getResourceAsStream(RESOURCE_NAME)) {
       if (apiInputStream == null) {

@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.IntBox;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -120,7 +121,8 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
     DexItemFactory factory = new DexItemFactory();
     TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
     AndroidApiLevelHashingDatabaseImpl androidApiLevelDatabase =
-        new AndroidApiLevelHashingDatabaseImpl(ImmutableList.of(), diagnosticsHandler);
+        new AndroidApiLevelHashingDatabaseImpl(
+            ImmutableList.of(), new InternalOptions(), diagnosticsHandler);
     parsedApiClasses.forEach(
         parsedApiClass -> {
           DexType type = factory.createType(parsedApiClass.getClassReference().getDescriptor());

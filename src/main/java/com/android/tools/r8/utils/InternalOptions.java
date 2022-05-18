@@ -1643,6 +1643,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean enableOutliningOfMethods =
         System.getProperty("com.android.tools.r8.disableApiModeling") == null;
 
+    // TODO(b/232823652): Enable when we can compute the offset correctly.
+    public boolean useMemoryMappedByteBuffer = false;
+
     // A mapping from references to the api-level introducing them.
     public Map<MethodReference, AndroidApiLevel> methodApiMapping = new HashMap<>();
     public Map<FieldReference, AndroidApiLevel> fieldApiMapping = new HashMap<>();
