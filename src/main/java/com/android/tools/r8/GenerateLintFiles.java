@@ -38,7 +38,6 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecific
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.jar.CfApplicationWriter;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -348,11 +347,7 @@ public class GenerateLintFiles {
         AppView.createForD8(
             AppInfo.createInitialAppInfo(
                 builder.build(), GlobalSyntheticsStrategy.forNonSynthesizing()));
-    CfApplicationWriter writer =
-        new CfApplicationWriter(
-            appView,
-            options.getMarker(Tool.L8),
-            NamingLens.getIdentityLens());
+    CfApplicationWriter writer = new CfApplicationWriter(appView, options.getMarker(Tool.L8));
     ClassFileConsumer consumer =
         new ClassFileConsumer.ArchiveConsumer(
             lintFile(compilationApiLevel, minApiLevel, FileUtils.JAR_EXTENSION));

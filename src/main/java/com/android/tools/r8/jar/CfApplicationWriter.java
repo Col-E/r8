@@ -88,22 +88,24 @@ public class CfApplicationWriter {
 
   private final DexApplication application;
   private final AppView<?> appView;
-  private final NamingLens namingLens;
   private final InternalOptions options;
   private final Marker marker;
   private final Predicate<DexType> isTypeMissing;
 
   private static final CfVersion MIN_VERSION_FOR_COMPILER_GENERATED_CODE = CfVersion.V1_6;
 
-  public CfApplicationWriter(AppView<?> appView, Marker marker, NamingLens namingLens) {
+  public CfApplicationWriter(AppView<?> appView, Marker marker) {
     this.application = appView.appInfo().app();
     this.appView = appView;
-    this.namingLens = namingLens;
     this.options = appView.options();
     assert marker != null;
     this.marker = marker;
     this.isTypeMissing =
         PredicateUtils.isNull(appView.appInfo()::definitionForWithoutExistenceAssert);
+  }
+
+  private NamingLens getNamingLens() {
+    return appView.getNamingLens();
   }
 
   public void write(ClassFileConsumer consumer) {
@@ -138,7 +140,6 @@ public class CfApplicationWriter {
           runAndWriteMap(
               inputApp,
               appView,
-              namingLens,
               application.timing,
               OriginalSourceFiles.fromClasses(),
               DebugRepresentation.none(options));
@@ -174,9 +175,9 @@ public class CfApplicationWriter {
         writeClassCatchingErrors(
             clazz, globalsConsumer, rewriter, markerString, sourceFileEnvironment);
       }
-      globalsConsumer.finished(appView, namingLens);
+      globalsConsumer.finished(appView);
     }
-    ApplicationWriter.supplyAdditionalConsumers(application, appView, namingLens, options);
+    ApplicationWriter.supplyAdditionalConsumers(appView);
   }
 
   private void writeClassCatchingErrors(
@@ -248,16 +249,16 @@ public class CfApplicationWriter {
     if (clazz.isDeprecated()) {
       access = AsmUtils.withDeprecated(access);
     }
-    String desc = namingLens.lookupDescriptor(clazz.type).toString();
-    String name = namingLens.lookupInternalName(clazz.type);
-    String signature = clazz.getClassSignature().toRenamedString(namingLens, isTypeMissing);
+    String desc = getNamingLens().lookupDescriptor(clazz.type).toString();
+    String name = getNamingLens().lookupInternalName(clazz.type);
+    String signature = clazz.getClassSignature().toRenamedString(getNamingLens(), isTypeMissing);
     String superName =
         clazz.type == options.itemFactory.objectType
             ? null
-            : namingLens.lookupInternalName(clazz.superType);
+            : getNamingLens().lookupInternalName(clazz.superType);
     String[] interfaces = new String[clazz.interfaces.values.length];
     for (int i = 0; i < clazz.interfaces.values.length; i++) {
-      interfaces[i] = namingLens.lookupInternalName(clazz.interfaces.values[i]);
+      interfaces[i] = getNamingLens().lookupInternalName(clazz.interfaces.values[i]);
     }
     assert SyntheticNaming.verifyNotInternalSynthetic(name);
     writer.visit(version.raw(), access, name, signature, superName, interfaces);
@@ -266,15 +267,15 @@ public class CfApplicationWriter {
     ImmutableMap<DexString, DexValue> defaults = getAnnotationDefaults(clazz.annotations());
 
     if (clazz.getEnclosingMethodAttribute() != null) {
-      clazz.getEnclosingMethodAttribute().write(writer, namingLens);
+      clazz.getEnclosingMethodAttribute().write(writer, getNamingLens());
     }
 
     if (clazz.getNestHostClassAttribute() != null) {
-      clazz.getNestHostClassAttribute().write(writer, namingLens);
+      clazz.getNestHostClassAttribute().write(writer, getNamingLens());
     }
 
     for (NestMemberClassAttribute entry : clazz.getNestMembersClassAttributes()) {
-      entry.write(writer, namingLens);
+      entry.write(writer, getNamingLens());
       assert clazz.getNestHostClassAttribute() == null
           : "A nest host cannot also be a nest member.";
     }
@@ -282,17 +283,17 @@ public class CfApplicationWriter {
     if (clazz.isRecord()) {
       // TODO(b/169645628): Strip record components if not kept.
       for (DexEncodedField instanceField : clazz.instanceFields()) {
-        String componentName = namingLens.lookupName(instanceField.getReference()).toString();
+        String componentName = getNamingLens().lookupName(instanceField.getReference()).toString();
         String componentDescriptor =
-            namingLens.lookupDescriptor(instanceField.getReference().type).toString();
+            getNamingLens().lookupDescriptor(instanceField.getReference().type).toString();
         String componentSignature =
-            instanceField.getGenericSignature().toRenamedString(namingLens, isTypeMissing);
+            instanceField.getGenericSignature().toRenamedString(getNamingLens(), isTypeMissing);
         writer.visitRecordComponent(componentName, componentDescriptor, componentSignature);
       }
     }
 
     for (InnerClassAttribute entry : clazz.getInnerClasses()) {
-      entry.write(writer, namingLens, options);
+      entry.write(writer, getNamingLens(), options);
     }
 
     for (DexEncodedField field : clazz.staticFields()) {
@@ -328,11 +329,11 @@ public class CfApplicationWriter {
   }
 
   private int compareTypesThroughLens(DexType a, DexType b) {
-    return namingLens.lookupDescriptor(a).compareTo(namingLens.lookupDescriptor(b));
+    return getNamingLens().lookupDescriptor(a).compareTo(getNamingLens().lookupDescriptor(b));
   }
 
   private DexString returnTypeThroughLens(DexMethod method) {
-    return namingLens.lookupDescriptor(method.getReturnType());
+    return getNamingLens().lookupDescriptor(method.getReturnType());
   }
 
   private int compareMethodsThroughLens(ProgramMethod a, ProgramMethod b) {
@@ -422,7 +423,7 @@ public class CfApplicationWriter {
     DexValue[] values = value.asDexValueArray().getValues();
     String[] res = new String[values.length];
     for (int i = 0; i < values.length; i++) {
-      res[i] = namingLens.lookupInternalName(values[i].asDexValueType().value);
+      res[i] = getNamingLens().lookupInternalName(values[i].asDexValueType().value);
     }
     return res;
   }
@@ -439,9 +440,9 @@ public class CfApplicationWriter {
     if (field.isDeprecated()) {
       access = AsmUtils.withDeprecated(access);
     }
-    String name = namingLens.lookupName(field.getReference()).toString();
-    String desc = namingLens.lookupDescriptor(field.getReference().type).toString();
-    String signature = field.getGenericSignature().toRenamedString(namingLens, isTypeMissing);
+    String name = getNamingLens().lookupName(field.getReference()).toString();
+    String desc = getNamingLens().lookupDescriptor(field.getReference().type).toString();
+    String signature = field.getGenericSignature().toRenamedString(getNamingLens(), isTypeMissing);
     Object value = getStaticValue(field);
     FieldVisitor visitor = writer.visitField(access, name, desc, signature, value);
     writeAnnotations(visitor::visitAnnotation, field.annotations().annotations);
@@ -454,13 +455,11 @@ public class CfApplicationWriter {
       LensCodeRewriterUtils rewriter,
       ClassWriter writer,
       ImmutableMap<DexString, DexValue> defaults) {
-    NamingLens namingLens = this.namingLens;
-
     // For "pass through" classes which has already been library desugared use the identity lens.
-    if (appView.isAlreadyLibraryDesugared(method.getHolder())) {
-      namingLens = NamingLens.getIdentityLens();
-    }
-
+    NamingLens namingLens =
+        appView.isAlreadyLibraryDesugared(method.getHolder())
+            ? NamingLens.getIdentityLens()
+            : getNamingLens();
     DexEncodedMethod definition = method.getDefinition();
     int access = definition.getAccessFlags().getAsCfAccessFlags();
     if (definition.isDeprecated()) {
@@ -540,7 +539,7 @@ public class CfApplicationWriter {
       }
       AnnotationVisitor v =
           visitor.visit(
-              namingLens.lookupDescriptor(dexAnnotation.annotation.type).toString(),
+              getNamingLens().lookupDescriptor(dexAnnotation.annotation.type).toString(),
               dexAnnotation.visibility == DexAnnotation.VISIBILITY_RUNTIME);
       if (v != null) {
         writeAnnotation(v, dexAnnotation.annotation);
@@ -562,7 +561,7 @@ public class CfApplicationWriter {
           DexValueAnnotation valueAnnotation = value.asDexValueAnnotation();
           AnnotationVisitor innerVisitor =
               visitor.visitAnnotation(
-                  name, namingLens.lookupDescriptor(valueAnnotation.value.type).toString());
+                  name, getNamingLens().lookupDescriptor(valueAnnotation.value.type).toString());
           if (innerVisitor != null) {
             writeAnnotation(innerVisitor, valueAnnotation.value);
             innerVisitor.visitEnd();
@@ -587,8 +586,8 @@ public class CfApplicationWriter {
         DexField enumField = value.asDexValueEnum().getValue();
         visitor.visitEnum(
             name,
-            namingLens.lookupDescriptor(enumField.getType()).toString(),
-            namingLens.lookupName(enumField).toString());
+            getNamingLens().lookupDescriptor(enumField.getType()).toString(),
+            getNamingLens().lookupName(enumField).toString());
         break;
 
       case FIELD:
@@ -610,7 +609,8 @@ public class CfApplicationWriter {
       case TYPE:
         visitor.visit(
             name,
-            Type.getType(namingLens.lookupDescriptor(value.asDexValueType().value).toString()));
+            Type.getType(
+                getNamingLens().lookupDescriptor(value.asDexValueType().value).toString()));
         break;
 
       default:

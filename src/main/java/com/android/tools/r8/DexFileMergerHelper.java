@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -103,11 +102,7 @@ public class DexFileMergerHelper {
         List<Marker> markers = appView.dexItemFactory().extractMarkers();
 
         assert !options.hasMethodsFilter();
-        ApplicationWriter writer =
-            new ApplicationWriter(
-                appView,
-                markers,
-                NamingLens.getIdentityLens());
+        ApplicationWriter writer = new ApplicationWriter(appView, markers);
         writer.write(executor);
         options.printWarnings();
       } catch (ExecutionException e) {

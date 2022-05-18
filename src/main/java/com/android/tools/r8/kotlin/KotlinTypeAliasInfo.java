@@ -9,7 +9,6 @@ import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import java.util.List;
@@ -59,19 +58,15 @@ public class KotlinTypeAliasInfo implements EnqueuerMetadataTraceable {
   }
 
   boolean rewrite(
-      KmVisitorProviders.KmTypeAliasVisitorProvider visitorProvider,
-      AppView<?> appView,
-      NamingLens namingLens) {
+      KmVisitorProviders.KmTypeAliasVisitorProvider visitorProvider, AppView<?> appView) {
     KmTypeAliasVisitor kmTypeAliasVisitor = visitorProvider.get(flags, name);
-    boolean rewritten =
-        underlyingType.rewrite(kmTypeAliasVisitor::visitUnderlyingType, appView, namingLens);
-    rewritten |= expandedType.rewrite(kmTypeAliasVisitor::visitExpandedType, appView, namingLens);
+    boolean rewritten = underlyingType.rewrite(kmTypeAliasVisitor::visitUnderlyingType, appView);
+    rewritten |= expandedType.rewrite(kmTypeAliasVisitor::visitExpandedType, appView);
     for (KotlinTypeParameterInfo typeParameter : typeParameters) {
-      rewritten |=
-          typeParameter.rewrite(kmTypeAliasVisitor::visitTypeParameter, appView, namingLens);
+      rewritten |= typeParameter.rewrite(kmTypeAliasVisitor::visitTypeParameter, appView);
     }
     for (KotlinAnnotationInfo annotation : annotations) {
-      rewritten |= annotation.rewrite(kmTypeAliasVisitor::visitAnnotation, appView, namingLens);
+      rewritten |= annotation.rewrite(kmTypeAliasVisitor::visitAnnotation, appView);
     }
     rewritten |= versionRequirements.rewrite(kmTypeAliasVisitor::visitVersionRequirement);
     return rewritten;

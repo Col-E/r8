@@ -5,6 +5,7 @@ package com.android.tools.r8.dex.code;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.InternalCompilerError;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
@@ -88,9 +89,9 @@ public class DexConstMethodType extends DexFormat21c<DexProto> {
 
   @Override
   public void collectIndexedItems(
+      AppView<?> appView,
       IndexedItemCollection indexedItems,
       ProgramMethod context,
-      GraphLens graphLens,
       LensCodeRewriterUtils rewriter) {
     DexProto rewritten = rewriter.rewriteProto(getMethodType());
     rewritten.collectIndexedItems(indexedItems);

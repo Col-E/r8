@@ -67,7 +67,6 @@ import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.jasmin.JasminBuilder;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
@@ -892,8 +891,7 @@ public class MainDexListTests extends TestBase {
             AppView.createForD8(
                 AppInfo.createInitialAppInfo(
                     application, GlobalSyntheticsStrategy.forNonSynthesizing())),
-            null,
-            NamingLens.getIdentityLens());
+            null);
     ExecutorService executor = ThreadUtils.getExecutorService(options);
     AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
     try {

@@ -86,9 +86,9 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
 
   @Override
   public void collectIndexedItems(
+      AppView<?> appView,
       IndexedItemCollection indexedItems,
       ProgramMethod context,
-      GraphLens graphLens,
       LensCodeRewriterUtils rewriter) {
     // Intentionally empty.
   }

@@ -6,6 +6,7 @@ package com.android.tools.r8.dex.code;
 import static com.android.tools.r8.dex.Constants.U8BIT_MAX;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.IndexedDexItem;
@@ -69,9 +70,9 @@ abstract class DexFormat31c extends DexBase3Format {
 
   @Override
   public void collectIndexedItems(
+      AppView<?> appView,
       IndexedItemCollection indexedItems,
       ProgramMethod context,
-      GraphLens graphLens,
       LensCodeRewriterUtils rewriter) {
     BBBBBBBB.collectIndexedItems(indexedItems);
   }

@@ -9,7 +9,6 @@ import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
@@ -50,16 +49,14 @@ public class KotlinContractInfo implements EnqueuerMetadataTraceable {
   }
 
   boolean rewrite(
-      KmVisitorProviders.KmContractVisitorProvider visitorProvider,
-      AppView<?> appView,
-      NamingLens namingLens) {
+      KmVisitorProviders.KmContractVisitorProvider visitorProvider, AppView<?> appView) {
     if (this == NO_EFFECT) {
       return false;
     }
     boolean rewritten = false;
     KmContractVisitor kmContractVisitor = visitorProvider.get();
     for (KotlinEffectInfo effect : effects) {
-      rewritten |= effect.rewrite(kmContractVisitor::visitEffect, appView, namingLens);
+      rewritten |= effect.rewrite(kmContractVisitor::visitEffect, appView);
     }
     kmContractVisitor.visitEnd();
     return rewritten;

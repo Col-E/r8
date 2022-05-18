@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -56,8 +55,7 @@ public class KotlinMultiFileClassFacadeInfo implements KotlinClassLevelInfo {
   }
 
   @Override
-  public Pair<KotlinClassHeader, Boolean> rewrite(
-      DexClass clazz, AppView<?> appView, NamingLens namingLens) {
+  public Pair<KotlinClassHeader, Boolean> rewrite(DexClass clazz, AppView<?> appView) {
     List<String> partClassNameStrings = new ArrayList<>(partClassNames.size());
     boolean rewritten = false;
     for (KotlinTypeReference partClassName : partClassNames) {
@@ -69,7 +67,6 @@ public class KotlinMultiFileClassFacadeInfo implements KotlinClassLevelInfo {
                 }
               },
               appView,
-              namingLens,
               null);
     }
     KotlinClassMetadata.MultiFileClassFacade.Writer writer =

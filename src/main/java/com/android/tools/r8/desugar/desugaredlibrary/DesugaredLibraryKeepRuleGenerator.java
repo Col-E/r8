@@ -44,13 +44,10 @@ import java.util.function.Predicate;
 public class DesugaredLibraryKeepRuleGenerator {
 
   private final AppView<AppInfoWithClassHierarchy> appView;
-  private final NamingLens namingLens;
   private final InternalOptions options;
 
-  public DesugaredLibraryKeepRuleGenerator(
-      AppView<AppInfoWithClassHierarchy> appView, NamingLens namingLens) {
+  public DesugaredLibraryKeepRuleGenerator(AppView<AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
-    this.namingLens = namingLens;
     this.options = appView.options();
   }
 
@@ -68,7 +65,7 @@ public class DesugaredLibraryKeepRuleGenerator {
         || !options.testing.enableExperimentalDesugaredLibraryKeepRuleGenerator) {
       return false;
     }
-    return namingLens.hasPrefixRewritingLogic()
+    return appView.getNamingLens().hasPrefixRewritingLogic()
         || options.machineDesugaredLibrarySpecification.hasEmulatedInterfaces();
   }
 
@@ -83,6 +80,7 @@ public class DesugaredLibraryKeepRuleGenerator {
     byte[] synthesizedLibraryClassesPackageDescriptorPrefix =
         DexString.encodeToMutf8(
             "L" + desugaredLibrarySpecification.getSynthesizedLibraryClassesPackagePrefix());
+    NamingLens namingLens = appView.getNamingLens();
     return type ->
         namingLens.prefixRewrittenType(type) != null
             || desugaredLibrarySpecification.isEmulatedInterfaceRewrittenType(type)
@@ -91,7 +89,7 @@ public class DesugaredLibraryKeepRuleGenerator {
   }
 
   private KeepRuleGenerator createTraceReferencesConsumer() {
-    return new KeepRuleGenerator(appView, namingLens);
+    return new KeepRuleGenerator(appView);
   }
 
   private static class KeepRuleGenerator extends TraceReferencesConsumer.ForwardingConsumer {
@@ -111,14 +109,13 @@ public class DesugaredLibraryKeepRuleGenerator {
     // ArrayReference to DexType, nor conversions from (formal types, return type) to DexProto.
     private final Map<TypeReference, DexType> typeConversionCache = new ConcurrentHashMap<>();
 
-    private KeepRuleGenerator(
-        AppView<? extends AppInfoWithClassHierarchy> appView, NamingLens namingLens) {
+    private KeepRuleGenerator(AppView<? extends AppInfoWithClassHierarchy> appView) {
       super(
           TraceReferencesKeepRules.builder()
               .setOutputConsumer(appView.options().desugaredLibraryKeepRuleConsumer)
               .build());
       this.factory = appView.dexItemFactory();
-      this.namingLens = namingLens;
+      this.namingLens = appView.getNamingLens();
     }
 
     @Override

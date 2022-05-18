@@ -40,7 +40,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue.DexValueString;
-import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.OutlineCallerPosition;
@@ -57,7 +56,6 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapId;
 import com.android.tools.r8.naming.Range;
@@ -333,7 +331,6 @@ public class LineNumberOptimizer {
   public static ProguardMapId runAndWriteMap(
       AndroidApp inputApp,
       AppView<?> appView,
-      NamingLens namingLens,
       Timing timing,
       OriginalSourceFiles originalSourceFiles,
       DebugRepresentationPredicate representation) {
@@ -345,9 +342,7 @@ public class LineNumberOptimizer {
     ClassNameMapper mapper =
         run(
             appView,
-            appView.appInfo().app(),
             inputApp,
-            namingLens,
             originalSourceFiles,
             representation);
     timing.end();
@@ -470,9 +465,7 @@ public class LineNumberOptimizer {
 
   public static ClassNameMapper run(
       AppView<?> appView,
-      DexApplication application,
       AndroidApp inputApp,
-      NamingLens namingLens,
       OriginalSourceFiles originalSourceFiles,
       DebugRepresentationPredicate representation) {
     // For finding methods in kotlin files based on SourceDebugExtensions, we use a line method map.
@@ -490,17 +483,17 @@ public class LineNumberOptimizer {
             : new Pc2PcMappingSupport(appView.options().allowDiscardingResidualDebugInfo());
 
     // Collect which files contain which classes that need to have their line numbers optimized.
-    for (DexProgramClass clazz : application.classes()) {
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
       boolean isSyntheticClass = appView.getSyntheticItems().isSyntheticClass(clazz);
 
       IdentityHashMap<DexString, List<ProgramMethod>> methodsByRenamedName =
-          groupMethodsByRenamedName(appView.graphLens(), namingLens, clazz);
+          groupMethodsByRenamedName(appView, clazz);
 
       // At this point we don't know if we really need to add this class to the builder.
       // It depends on whether any methods/fields are renamed or some methods contain positions.
       // Create a supplier which creates a new, cached ClassNaming.Builder on-demand.
       DexType originalType = appView.graphLens().getOriginalType(clazz.type);
-      DexString renamedDescriptor = namingLens.lookupDescriptor(clazz.getType());
+      DexString renamedDescriptor = appView.getNamingLens().lookupDescriptor(clazz.getType());
       LazyBox<ClassNaming.Builder> onDemandClassNamingBuilder =
           new LazyBox<>(
               () ->
@@ -531,8 +524,7 @@ public class LineNumberOptimizer {
       addClassToClassNaming(originalType, renamedDescriptor, onDemandClassNamingBuilder);
 
       // First transfer renamed fields to classNamingBuilder.
-      addFieldsToClassNaming(
-          appView.graphLens(), namingLens, clazz, originalType, onDemandClassNamingBuilder);
+      addFieldsToClassNaming(appView, clazz, originalType, onDemandClassNamingBuilder);
 
       // Then process the methods, ordered by renamed name.
       List<DexString> renamedMethodNames = new ArrayList<>(methodsByRenamedName.keySet());
@@ -600,7 +592,8 @@ public class LineNumberOptimizer {
           MethodSignature originalSignature =
               MethodSignature.fromDexMethod(originalMethod, originalMethod.holder != originalType);
 
-          DexString obfuscatedNameDexString = namingLens.lookupName(method.getReference());
+          DexString obfuscatedNameDexString =
+              appView.getNamingLens().lookupName(method.getReference());
           String obfuscatedName = obfuscatedNameDexString.toString();
 
           List<MappingInformation> methodMappingInfo = new ArrayList<>();
@@ -903,16 +896,15 @@ public class LineNumberOptimizer {
   }
 
   private static void addFieldsToClassNaming(
-      GraphLens graphLens,
-      NamingLens namingLens,
+      AppView<?> appView,
       DexProgramClass clazz,
       DexType originalType,
       LazyBox<Builder> onDemandClassNamingBuilder) {
     clazz.forEachField(
         dexEncodedField -> {
           DexField dexField = dexEncodedField.getReference();
-          DexField originalField = graphLens.getOriginalFieldSignature(dexField);
-          DexString renamedName = namingLens.lookupName(dexField);
+          DexField originalField = appView.graphLens().getOriginalFieldSignature(dexField);
+          DexString renamedName = appView.getNamingLens().lookupName(dexField);
           if (renamedName != originalField.name || originalField.holder != originalType) {
             FieldSignature originalSignature =
                 FieldSignature.fromDexField(originalField, originalField.holder != originalType);
@@ -923,16 +915,16 @@ public class LineNumberOptimizer {
   }
 
   public static IdentityHashMap<DexString, List<ProgramMethod>> groupMethodsByRenamedName(
-      GraphLens graphLens, NamingLens namingLens, DexProgramClass clazz) {
+      AppView<?> appView, DexProgramClass clazz) {
     IdentityHashMap<DexString, List<ProgramMethod>> methodsByRenamedName =
         new IdentityHashMap<>(clazz.getMethodCollection().size());
     for (ProgramMethod programMethod : clazz.programMethods()) {
       // Add method only if renamed, moved, or contains positions.
       DexEncodedMethod definition = programMethod.getDefinition();
       DexMethod method = programMethod.getReference();
-      DexString renamedName = namingLens.lookupName(method);
+      DexString renamedName = appView.getNamingLens().lookupName(method);
       if (renamedName != method.name
-          || graphLens.getOriginalMethodSignature(method) != method
+          || appView.graphLens().getOriginalMethodSignature(method) != method
           || doesContainPositions(definition)
           || definition.isD8R8Synthesized()) {
         methodsByRenamedName

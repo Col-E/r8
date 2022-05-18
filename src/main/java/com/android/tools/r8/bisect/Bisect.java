@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
@@ -175,7 +174,7 @@ public class Bisect {
   }
 
   private DexApplication readApp(Path apk, InternalOptions options, ExecutorService executor)
-      throws IOException, ExecutionException {
+      throws IOException {
     AndroidApp app = AndroidApp.builder().addProgramFiles(apk).build();
     return new ApplicationReader(app, options, timing).read(executor);
   }
@@ -191,8 +190,7 @@ public class Bisect {
         new ApplicationWriter(
             AppView.createForD8(
                 AppInfo.createInitialAppInfo(app, GlobalSyntheticsStrategy.forNonSynthesizing())),
-            null,
-            NamingLens.getIdentityLens());
+            null);
     writer.write(executor);
     options.signalFinishedToConsumers();
     compatSink.build().writeToDirectory(output, OutputMode.DexIndexed);

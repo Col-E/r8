@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.Maps;
@@ -70,7 +69,7 @@ public class InheritanceClassInDexDistributor {
 
     public void updateNumbersOfIds() {
       // Use a temporary VirtualFile to evaluate the number of ids in the group.
-      VirtualFile virtualFile = new VirtualFile(0, appView, namingLens);
+      VirtualFile virtualFile = new VirtualFile(0, appView);
       // Note: sort not needed.
       for (DexProgramClass clazz : members) {
         virtualFile.addClass(clazz);
@@ -286,7 +285,6 @@ public class InheritanceClassInDexDistributor {
   private final Set<DexProgramClass> classes;
   private final AppView<?> appView;
   private final IntBox nextFileId;
-  private final NamingLens namingLens;
   private final DirectSubClassesInfo directSubClasses;
 
   public InheritanceClassInDexDistributor(
@@ -295,7 +293,6 @@ public class InheritanceClassInDexDistributor {
       List<VirtualFile> filesForDistribution,
       Set<DexProgramClass> classes,
       IntBox nextFileId,
-      NamingLens namingLens,
       AppView<?> appView,
       ExecutorService executorService) {
     this.mainDex = mainDex;
@@ -303,7 +300,6 @@ public class InheritanceClassInDexDistributor {
     this.filesForDistribution = filesForDistribution;
     this.classes = classes;
     this.nextFileId = nextFileId;
-    this.namingLens = namingLens;
     this.appView = appView;
     this.executorService = executorService;
 
@@ -320,7 +316,7 @@ public class InheritanceClassInDexDistributor {
     // Allocate member of groups depending on
     // the main dex members
     VirtualFileCycler cycler =
-        new VirtualFileCycler(files, filesForDistribution, appView, namingLens, nextFileId);
+        new VirtualFileCycler(files, filesForDistribution, appView, nextFileId);
     for (Iterator<ClassGroup> iter = remainingInheritanceGroups.iterator(); iter.hasNext();) {
       ClassGroup group = iter.next();
       if (group.dependsOnMainDexClasses) {

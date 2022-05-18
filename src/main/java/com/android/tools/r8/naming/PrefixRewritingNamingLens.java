@@ -16,27 +16,20 @@ import com.android.tools.r8.utils.InternalOptions;
 // Naming lens for rewriting type prefixes.
 public class PrefixRewritingNamingLens extends NonIdentityNamingLens {
 
-  final NamingLens namingLens;
-  final InternalOptions options;
-  final AppView<?> appView;
+  private final AppView<?> appView;
+  private final NamingLens namingLens;
 
   public static NamingLens createPrefixRewritingNamingLens(AppView<?> appView) {
-    return createPrefixRewritingNamingLens(appView, NamingLens.getIdentityLens());
-  }
-
-  public static NamingLens createPrefixRewritingNamingLens(
-      AppView<?> appView, NamingLens namingLens) {
     if (!appView.typeRewriter.isRewriting()) {
-      return namingLens;
+      return appView.getNamingLens();
     }
-    return new PrefixRewritingNamingLens(namingLens, appView);
+    return new PrefixRewritingNamingLens(appView);
   }
 
-  public PrefixRewritingNamingLens(NamingLens namingLens, AppView<?> appView) {
+  public PrefixRewritingNamingLens(AppView<?> appView) {
     super(appView.dexItemFactory());
     this.appView = appView;
-    this.namingLens = namingLens;
-    this.options = appView.options();
+    this.namingLens = appView.getNamingLens();
   }
 
   private boolean isRenamed(DexType type) {

@@ -5,6 +5,7 @@ package com.android.tools.r8.dex.code;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
@@ -51,9 +52,9 @@ public class DexNewUnboxedEnumInstance extends DexFormat21c<DexType> {
 
   @Override
   public void collectIndexedItems(
+      AppView<?> appView,
       IndexedItemCollection indexedItems,
       ProgramMethod context,
-      GraphLens graphLens,
       LensCodeRewriterUtils rewriter) {
     throw new Unreachable();
   }

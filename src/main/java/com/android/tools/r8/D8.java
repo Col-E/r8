@@ -281,9 +281,8 @@ public final class D8 {
       Marker.checkCompatibleDesugaredLibrary(markers, options.reporter);
 
       InspectorImpl.runInspections(options.outputInspections, appView.appInfo().classes());
-      NamingLens namingLens = NamingLens.getIdentityLens();
-      namingLens = PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView, namingLens);
-      namingLens = RecordRewritingNamingLens.createRecordRewritingNamingLens(appView, namingLens);
+      appView.setNamingLens(PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView));
+      appView.setNamingLens(RecordRewritingNamingLens.createRecordRewritingNamingLens(appView));
 
       if (options.isGeneratingDex()
           && hasDexResources
@@ -294,17 +293,15 @@ public final class D8 {
         // without iterating again the IR. We fall-back to writing one app with rewriting and
         // merging it with the other app in rewriteNonDexInputs.
         timing.begin("Rewrite non-dex inputs");
-        DexApplication app =
-            rewriteNonDexInputs(
-                appView, inputApp, options, executor, timing, appView.appInfo().app(), namingLens);
+        DexApplication app = rewriteNonDexInputs(appView, inputApp, executor, timing);
         timing.end();
         appView.setAppInfo(
             new AppInfo(
                 appView.appInfo().getSyntheticItems().commit(app),
                 appView.appInfo().getMainDexInfo()));
-        namingLens = NamingLens.getIdentityLens();
+        appView.setNamingLens(NamingLens.getIdentityLens());
       } else if (options.isGeneratingDex() && hasDexResources) {
-        namingLens = NamingLens.getIdentityLens();
+        appView.setNamingLens(NamingLens.getIdentityLens());
       }
 
       // Since tracing is not lens aware, this needs to be done prior to synthetic finalization
@@ -322,21 +319,16 @@ public final class D8 {
 
       HorizontalClassMerger.createForD8ClassMerging(appView).runIfNecessary(executor, timing);
 
-      new GenericSignatureRewriter(appView, namingLens)
-          .runForD8(appView.appInfo().classes(), executor);
-      new KotlinMetadataRewriter(appView, namingLens).runForD8(executor);
+      new GenericSignatureRewriter(appView).runForD8(appView.appInfo().classes(), executor);
+      new KotlinMetadataRewriter(appView).runForD8(executor);
 
       if (options.isGeneratingClassFiles()) {
-        new CfApplicationWriter(appView, marker, namingLens)
-            .write(options.getClassFileConsumer(), inputApp);
+        new CfApplicationWriter(appView, marker).write(options.getClassFileConsumer(), inputApp);
       } else {
         if (options.apiModelingOptions().enableStubbingOfClasses) {
           new ApiReferenceStubber(appView).run(executor);
         }
-        new ApplicationWriter(
-                appView,
-                marker == null ? null : ImmutableList.copyOf(markers),
-                namingLens)
+        new ApplicationWriter(appView, marker == null ? null : ImmutableList.copyOf(markers))
             .write(executor, inputApp);
       }
       options.printWarnings();
@@ -357,13 +349,7 @@ public final class D8 {
   }
 
   private static DexApplication rewriteNonDexInputs(
-      AppView<AppInfo> appView,
-      AndroidApp inputApp,
-      InternalOptions options,
-      ExecutorService executor,
-      Timing timing,
-      DexApplication app,
-      NamingLens desugaringLens)
+      AppView<AppInfo> appView, AndroidApp inputApp, ExecutorService executor, Timing timing)
       throws IOException, ExecutionException {
     // TODO(b/154575955): Remove the naming lens in D8.
     appView
@@ -376,33 +362,33 @@ public final class D8 {
                     + " dex the class file inputs and dex merging only dex files."));
     List<DexProgramClass> dexProgramClasses = new ArrayList<>();
     List<DexProgramClass> nonDexProgramClasses = new ArrayList<>();
-    for (DexProgramClass aClass : app.classes()) {
+    for (DexProgramClass aClass : appView.appInfo().classes()) {
       if (aClass.originatesFromDexResource()) {
         dexProgramClasses.add(aClass);
       } else {
         nonDexProgramClasses.add(aClass);
       }
     }
-    DexApplication cfApp = app.builder().replaceProgramClasses(nonDexProgramClasses).build();
+    DexApplication cfApp =
+        appView.app().builder().replaceProgramClasses(nonDexProgramClasses).build();
     appView.setAppInfo(
         new AppInfo(
             appView.appInfo().getSyntheticItems().commit(cfApp),
             appView.appInfo().getMainDexInfo()));
     ConvertedCfFiles convertedCfFiles = new ConvertedCfFiles();
-    new GenericSignatureRewriter(appView, desugaringLens)
-        .run(appView.appInfo().classes(), executor);
-    new KotlinMetadataRewriter(appView, desugaringLens).runForD8(executor);
+    new GenericSignatureRewriter(appView).run(appView.appInfo().classes(), executor);
+    new KotlinMetadataRewriter(appView).runForD8(executor);
     new ApplicationWriter(
             appView,
             null,
-            desugaringLens,
             convertedCfFiles)
         .write(executor);
     AndroidApp.Builder builder = AndroidApp.builder(inputApp);
     builder.getProgramResourceProviders().clear();
     builder.addProgramResourceProvider(convertedCfFiles);
     AndroidApp newAndroidApp = builder.build();
-    DexApplication newApp = new ApplicationReader(newAndroidApp, options, timing).read(executor);
+    DexApplication newApp =
+        new ApplicationReader(newAndroidApp, appView.options(), timing).read(executor);
     DexApplication.Builder<?> finalDexApp = newApp.builder();
     for (DexProgramClass dexProgramClass : dexProgramClasses) {
       finalDexApp.addProgramClass(dexProgramClass);

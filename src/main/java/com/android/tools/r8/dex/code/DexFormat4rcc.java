@@ -5,6 +5,7 @@ package com.android.tools.r8.dex.code;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.IndexedItemCollection;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.GraphLens;
@@ -111,12 +112,12 @@ public abstract class DexFormat4rcc extends DexBase4Format {
 
   @Override
   public void collectIndexedItems(
+      AppView<?> appView,
       IndexedItemCollection indexedItems,
       ProgramMethod context,
-      GraphLens graphLens,
       LensCodeRewriterUtils rewriter) {
     MethodLookupResult lookup =
-        graphLens.lookupMethod(getMethod(), context.getReference(), Type.POLYMORPHIC);
+        appView.graphLens().lookupMethod(getMethod(), context.getReference(), Type.POLYMORPHIC);
     assert lookup.getType() == Type.POLYMORPHIC;
     lookup.getReference().collectIndexedItems(indexedItems);
 

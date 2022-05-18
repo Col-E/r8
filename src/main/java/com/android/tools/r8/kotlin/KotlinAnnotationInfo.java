@@ -7,7 +7,6 @@ package com.android.tools.r8.kotlin;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -51,9 +50,7 @@ public class KotlinAnnotationInfo implements EnqueuerMetadataTraceable {
   }
 
   boolean rewrite(
-      KmVisitorProviders.KmAnnotationVisitorProvider visitorProvider,
-      AppView<?> appView,
-      NamingLens namingLens) {
+      KmVisitorProviders.KmAnnotationVisitorProvider visitorProvider, AppView<?> appView) {
     BooleanBox rewritten = new BooleanBox(false);
     rewritten.or(
         annotationType.toRenamedDescriptorOrDefault(
@@ -74,12 +71,10 @@ public class KotlinAnnotationInfo implements EnqueuerMetadataTraceable {
                                   rewrittenArguments.put(key, rewrittenArg);
                                 }
                               },
-                              appView,
-                              namingLens)));
+                              appView)));
               visitorProvider.get(new KmAnnotation(classifier, rewrittenArguments));
             },
             appView,
-            namingLens,
             null));
     return rewritten.get();
   }

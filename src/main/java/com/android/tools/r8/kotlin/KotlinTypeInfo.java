@@ -83,31 +83,24 @@ public class KotlinTypeInfo implements EnqueuerMetadataTraceable {
     return arguments.build();
   }
 
-  boolean rewrite(
-      KmVisitorProviders.KmTypeVisitorProvider visitorProvider,
-      AppView<?> appView,
-      NamingLens namingLens) {
+  boolean rewrite(KmVisitorProviders.KmTypeVisitorProvider visitorProvider, AppView<?> appView) {
     // TODO(b/154348683): Check for correct flags
     KmTypeVisitor kmTypeVisitor = visitorProvider.get(flags);
-    boolean rewritten = classifier.rewrite(kmTypeVisitor, appView, namingLens);
+    NamingLens namingLens = appView.getNamingLens();
+    boolean rewritten = classifier.rewrite(kmTypeVisitor, appView);
     if (abbreviatedType != null) {
-      rewritten |=
-          abbreviatedType.rewrite(kmTypeVisitor::visitAbbreviatedType, appView, namingLens);
+      rewritten |= abbreviatedType.rewrite(kmTypeVisitor::visitAbbreviatedType, appView);
     }
     if (outerType != null) {
-      rewritten |= outerType.rewrite(kmTypeVisitor::visitOuterType, appView, namingLens);
+      rewritten |= outerType.rewrite(kmTypeVisitor::visitOuterType, appView);
     }
     for (KotlinTypeProjectionInfo argument : arguments) {
       rewritten |=
           argument.rewrite(
-              kmTypeVisitor::visitArgument,
-              kmTypeVisitor::visitStarProjection,
-              appView,
-              namingLens);
+              kmTypeVisitor::visitArgument, kmTypeVisitor::visitStarProjection, appView);
     }
     rewritten |=
-        flexibleTypeUpperBound.rewrite(
-            kmTypeVisitor::visitFlexibleTypeUpperBound, appView, namingLens);
+        flexibleTypeUpperBound.rewrite(kmTypeVisitor::visitFlexibleTypeUpperBound, appView);
     if (annotations.isEmpty() && !isRaw) {
       return rewritten;
     }
@@ -115,7 +108,7 @@ public class KotlinTypeInfo implements EnqueuerMetadataTraceable {
         (JvmTypeExtensionVisitor) kmTypeVisitor.visitExtensions(JvmTypeExtensionVisitor.TYPE);
     if (extensionVisitor != null) {
       for (KotlinAnnotationInfo annotation : annotations) {
-        rewritten |= annotation.rewrite(extensionVisitor::visitAnnotation, appView, namingLens);
+        rewritten |= annotation.rewrite(extensionVisitor::visitAnnotation, appView);
       }
       extensionVisitor.visit(isRaw);
     }

@@ -15,7 +15,6 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.TypeRewriter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAmender;
 import com.android.tools.r8.jar.CfApplicationWriter;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.origin.CommandLineOrigin;
@@ -143,10 +142,10 @@ public class L8 {
 
       SyntheticFinalization.finalize(appView, executor);
 
-      NamingLens namingLens = PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView);
-      new GenericSignatureRewriter(appView, namingLens).run(appView.appInfo().classes(), executor);
+      appView.setNamingLens(PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView));
+      new GenericSignatureRewriter(appView).run(appView.appInfo().classes(), executor);
 
-      new CfApplicationWriter(appView, options.getMarker(Tool.L8), namingLens)
+      new CfApplicationWriter(appView, options.getMarker(Tool.L8))
           .write(options.getClassFileConsumer());
       options.printWarnings();
     } catch (ExecutionException e) {

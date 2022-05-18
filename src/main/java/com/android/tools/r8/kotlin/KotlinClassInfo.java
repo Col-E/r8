@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Pair;
@@ -255,14 +254,13 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
   }
 
   @Override
-  public Pair<KotlinClassHeader, Boolean> rewrite(
-      DexClass clazz, AppView<?> appView, NamingLens namingLens) {
+  public Pair<KotlinClassHeader, Boolean> rewrite(DexClass clazz, AppView<?> appView) {
     KmClass kmClass = new KmClass();
     // TODO(b/154348683): Set flags.
     kmClass.setFlags(flags);
     // Set potentially renamed class name.
     DexString originalDescriptor = clazz.type.descriptor;
-    DexString rewrittenDescriptor = namingLens.lookupDescriptor(clazz.type);
+    DexString rewrittenDescriptor = appView.getNamingLens().lookupDescriptor(clazz.type);
     boolean rewritten = !originalDescriptor.equals(rewrittenDescriptor);
     if (!nameCanBeSynthesizedFromClassOrAnonymousObjectOrigin) {
       kmClass.setName(this.name);
@@ -273,8 +271,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       if (anonymousObjectOrigin != null
           && name.equals(anonymousObjectOrigin.toKotlinClassifier(true))) {
         Box<String> rewrittenOrigin = new Box<>();
-        anonymousObjectOrigin.toRenamedBinaryNameOrDefault(
-            rewrittenOrigin::set, appView, namingLens, null);
+        anonymousObjectOrigin.toRenamedBinaryNameOrDefault(rewrittenOrigin::set, appView, null);
         if (rewrittenOrigin.isSet()) {
           rewrittenName = "." + rewrittenOrigin.get();
         }
@@ -290,19 +287,22 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     for (DexEncodedField field : clazz.fields()) {
       if (field.getKotlinInfo().isCompanion()) {
         rewritten |=
-            field.getKotlinInfo().asCompanion().rewrite(kmClass, field.getReference(), namingLens);
+            field
+                .getKotlinInfo()
+                .asCompanion()
+                .rewrite(kmClass, field.getReference(), appView.getNamingLens());
       }
     }
     // Take all not backed constructors because we will never find them in definitions.
     for (KotlinConstructorInfo constructorInfo : constructorsWithNoBacking) {
-      rewritten |= constructorInfo.rewrite(kmClass, null, appView, namingLens);
+      rewritten |= constructorInfo.rewrite(kmClass, null, appView);
     }
     // Find all constructors.
     KotlinMetadataMembersTracker rewrittenReferences = new KotlinMetadataMembersTracker(appView);
     for (DexEncodedMethod method : clazz.methods()) {
       if (method.getKotlinInfo().isConstructor()) {
         KotlinConstructorInfo constructorInfo = method.getKotlinInfo().asConstructor();
-        rewritten |= constructorInfo.rewrite(kmClass, method, appView, namingLens);
+        rewritten |= constructorInfo.rewrite(kmClass, method, appView);
         rewrittenReferences.add(method.getReference());
       }
     }
@@ -314,17 +314,16 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
             kmClass::visitTypeAlias,
             clazz,
             appView,
-            namingLens,
             rewrittenReferences);
     // Rewrite type parameters.
     for (KotlinTypeParameterInfo typeParameter : typeParameters) {
-      rewritten |= typeParameter.rewrite(kmClass::visitTypeParameter, appView, namingLens);
+      rewritten |= typeParameter.rewrite(kmClass::visitTypeParameter, appView);
     }
     // Rewrite super types.
     for (KotlinTypeInfo superType : superTypes) {
       // Ensure the rewritten super type is not this type.
       if (clazz.getType() != superType.rewriteType(appView.graphLens())) {
-        rewritten |= superType.rewrite(kmClass::visitSupertype, appView, namingLens);
+        rewritten |= superType.rewrite(kmClass::visitSupertype, appView);
       } else {
         rewritten = true;
       }
@@ -333,8 +332,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     for (KotlinTypeReference nestedClass : nestedClasses) {
       Box<String> nestedDescriptorBox = new Box<>();
       boolean nestedClassRewritten =
-          nestedClass.toRenamedBinaryNameOrDefault(
-              nestedDescriptorBox::set, appView, namingLens, null);
+          nestedClass.toRenamedBinaryNameOrDefault(nestedDescriptorBox::set, appView, null);
       if (nestedDescriptorBox.isSet()) {
         if (nestedClassRewritten) {
           // If the class is a nested class, it should be on the form Foo.Bar$Baz, where Baz
@@ -361,7 +359,6 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
                 }
               },
               appView,
-              namingLens,
               null);
     }
     // TODO(b/154347404): Understand enum entries.
@@ -370,8 +367,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     if (inlineClassUnderlyingPropertyName != null && inlineClassUnderlyingType != null) {
       kmClass.setInlineClassUnderlyingPropertyName(inlineClassUnderlyingPropertyName);
       rewritten |=
-          inlineClassUnderlyingType.rewrite(
-              kmClass::visitInlineClassUnderlyingType, appView, namingLens);
+          inlineClassUnderlyingType.rewrite(kmClass::visitInlineClassUnderlyingType, appView);
     }
     JvmClassExtensionVisitor extensionVisitor =
         (JvmClassExtensionVisitor) kmClass.visitExtensions(JvmClassExtensionVisitor.TYPE);
@@ -386,12 +382,10 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
                 }
               },
               appView,
-              namingLens,
               null);
     }
     rewritten |=
-        localDelegatedProperties.rewrite(
-            extensionVisitor::visitLocalDelegatedProperty, appView, namingLens);
+        localDelegatedProperties.rewrite(extensionVisitor::visitLocalDelegatedProperty, appView);
     extensionVisitor.visitEnd();
     KotlinClassMetadata.Class.Writer writer = new KotlinClassMetadata.Class.Writer();
     kmClass.accept(writer);

@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.kotlin.KmVisitorProviders.KmEffectExpressionVisitorProvider;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
@@ -85,8 +84,7 @@ public class KotlinEffectExpressionInfo implements EnqueuerMetadataTraceable {
     forEachApply(orArguments, arg -> arg::trace, definitionSupplier);
   }
 
-  boolean rewrite(
-      KmEffectExpressionVisitorProvider provider, AppView<?> appView, NamingLens namingLens) {
+  boolean rewrite(KmEffectExpressionVisitorProvider provider, AppView<?> appView) {
     if (this == NO_EXPRESSION) {
       return false;
     }
@@ -97,13 +95,13 @@ public class KotlinEffectExpressionInfo implements EnqueuerMetadataTraceable {
     }
     boolean rewritten = false;
     if (isInstanceType != null) {
-      rewritten |= isInstanceType.rewrite(visitor::visitIsInstanceType, appView, namingLens);
+      rewritten |= isInstanceType.rewrite(visitor::visitIsInstanceType, appView);
     }
     for (KotlinEffectExpressionInfo andArgument : andArguments) {
-      rewritten |= andArgument.rewrite(visitor::visitAndArgument, appView, namingLens);
+      rewritten |= andArgument.rewrite(visitor::visitAndArgument, appView);
     }
     for (KotlinEffectExpressionInfo orArgument : orArguments) {
-      rewritten |= orArgument.rewrite(visitor::visitAndArgument, appView, namingLens);
+      rewritten |= orArgument.rewrite(visitor::visitAndArgument, appView);
     }
     visitor.visitEnd();
     return rewritten;

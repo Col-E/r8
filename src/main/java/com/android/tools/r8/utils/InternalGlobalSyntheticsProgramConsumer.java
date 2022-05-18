@@ -17,7 +17,6 @@ import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.references.Reference;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -117,7 +116,7 @@ public abstract class InternalGlobalSyntheticsProgramConsumer
     }
 
     @Override
-    public void finished(AppView<?> appView, NamingLens namingLens) {
+    public void finished(AppView<?> appView) {
       byte[] bytes = null;
       try {
         bytes = builder.build();
@@ -201,9 +200,9 @@ public abstract class InternalGlobalSyntheticsProgramConsumer
     }
 
     @Override
-    public void finished(AppView<?> appView, NamingLens namingLens) {
+    public void finished(AppView<?> appView) {
       Map<DexType, Set<DexType>> globalsToContexts =
-          appView.getSyntheticItems().getFinalGlobalSyntheticContexts(appView, namingLens);
+          appView.getSyntheticItems().getFinalGlobalSyntheticContexts(appView);
       Map<DexType, Set<DexType>> contextToGlobals = new IdentityHashMap<>();
       for (DexType globalType : globalToBytes.keySet()) {
         // It would be good to assert that the global is a synthetic type, but the naming-lens
@@ -249,5 +248,5 @@ public abstract class InternalGlobalSyntheticsProgramConsumer
     }
   }
 
-  public abstract void finished(AppView<?> appView, NamingLens namingLens);
+  public abstract void finished(AppView<?> appView);
 }

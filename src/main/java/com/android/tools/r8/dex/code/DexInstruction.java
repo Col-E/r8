@@ -7,6 +7,7 @@ import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
@@ -396,9 +397,9 @@ public abstract class DexInstruction implements CfOrDexInstruction, StructuralIt
       LensCodeRewriterUtils rewriter);
 
   public abstract void collectIndexedItems(
+      AppView<?> appView,
       IndexedItemCollection indexedItems,
       ProgramMethod context,
-      GraphLens graphLens,
       LensCodeRewriterUtils rewriter);
 
   public boolean equals(

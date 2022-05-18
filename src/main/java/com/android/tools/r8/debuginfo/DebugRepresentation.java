@@ -5,15 +5,14 @@ package com.android.tools.r8.debuginfo;
 
 import com.android.tools.r8.dex.VirtualFile;
 import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexDebugInfo.PcBasedDebugInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LebUtils;
 import com.android.tools.r8.utils.LineNumberOptimizer;
@@ -69,8 +68,8 @@ public class DebugRepresentation {
     this.paramToInfo = paramToInfo;
   }
 
-  public static void computeForFile(
-      VirtualFile file, GraphLens graphLens, NamingLens namingLens, InternalOptions options) {
+  public static void computeForFile(AppView<?> appView, VirtualFile file) {
+    InternalOptions options = appView.options();
     if (!options.canUseDexPc2PcAsDebugInformation()
         || options.canUseNativeDexPcInsteadOfDebugInfo()
         || options.testing.forcePcBasedEncoding) {
@@ -81,7 +80,7 @@ public class DebugRepresentation {
     Int2ReferenceMap<CostSummary> paramCountToCosts = new Int2ReferenceOpenHashMap<>();
     for (DexProgramClass clazz : file.classes()) {
       IdentityHashMap<DexString, List<ProgramMethod>> overloads =
-          LineNumberOptimizer.groupMethodsByRenamedName(graphLens, namingLens, clazz);
+          LineNumberOptimizer.groupMethodsByRenamedName(appView, clazz);
       for (List<ProgramMethod> methods : overloads.values()) {
         if (methods.size() != 1) {
           // Never use PC info for overloaded methods. They need distinct lines to disambiguate.

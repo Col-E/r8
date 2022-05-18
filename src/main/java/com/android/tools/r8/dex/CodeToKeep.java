@@ -5,6 +5,7 @@
 package com.android.tools.r8.dex;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -24,7 +25,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class CodeToKeep {
 
-  static CodeToKeep createCodeToKeep(InternalOptions options, NamingLens namingLens) {
+  static CodeToKeep createCodeToKeep(AppView<?> appView) {
+    InternalOptions options = appView.options();
+    NamingLens namingLens = appView.getNamingLens();
     if ((!namingLens.hasPrefixRewritingLogic()
             && options.machineDesugaredLibrarySpecification.getMaintainType().isEmpty()
             && !options.machineDesugaredLibrarySpecification.hasEmulatedInterfaces())
@@ -32,7 +35,7 @@ public abstract class CodeToKeep {
         || options.testing.enableExperimentalDesugaredLibraryKeepRuleGenerator) {
       return new NopCodeToKeep();
     }
-    return new DesugaredLibraryCodeToKeep(namingLens, options);
+    return new DesugaredLibraryCodeToKeep(appView);
   }
 
   public abstract void recordMethod(DexMethod method);
@@ -58,17 +61,16 @@ public abstract class CodeToKeep {
       boolean all = false;
     }
 
-    private final NamingLens namingLens;
+    private final AppView<?> appView;
     private final Map<DexType, KeepStruct> toKeep = new ConcurrentHashMap<>();
-    private final InternalOptions options;
 
-    public DesugaredLibraryCodeToKeep(NamingLens namingLens, InternalOptions options) {
-      this.namingLens = namingLens;
-      this.options = options;
+    public DesugaredLibraryCodeToKeep(AppView<?> appView) {
+      this.appView = appView;
     }
 
     private boolean shouldKeep(DexType givenType) {
-      if (namingLens.prefixRewrittenType(givenType) != null
+      InternalOptions options = appView.options();
+      if (appView.getNamingLens().prefixRewrittenType(givenType) != null
           || options.machineDesugaredLibrarySpecification.isCustomConversionRewrittenType(givenType)
           || options.machineDesugaredLibrarySpecification.isEmulatedInterfaceRewrittenType(
               givenType)
@@ -84,14 +86,14 @@ public abstract class CodeToKeep {
       DexType type =
           InterfaceDesugaringSyntheticHelper.isCompanionClassType(givenType)
               ? InterfaceDesugaringSyntheticHelper.getInterfaceClassType(
-                  givenType, options.dexItemFactory())
+                  givenType, appView.dexItemFactory())
               : givenType;
       return options.machineDesugaredLibrarySpecification.getMaintainType().contains(type);
     }
 
     @Override
     public void recordMethod(DexMethod method) {
-      DexType baseType = method.holder.toBaseType(options.dexItemFactory());
+      DexType baseType = method.holder.toBaseType(appView.dexItemFactory());
       if (shouldKeep(baseType)) {
         keepClass(baseType);
         if (!method.holder.isArrayType()) {
@@ -110,7 +112,7 @@ public abstract class CodeToKeep {
 
     @Override
     public void recordField(DexField field) {
-      DexType baseType = field.holder.toBaseType(options.dexItemFactory());
+      DexType baseType = field.holder.toBaseType(appView.dexItemFactory());
       if (shouldKeep(baseType)) {
         keepClass(baseType);
         if (!field.holder.isArrayType()) {
@@ -146,7 +148,7 @@ public abstract class CodeToKeep {
     }
 
     private void keepClass(DexType type) {
-      DexType baseType = type.lookupBaseType(options.itemFactory);
+      DexType baseType = type.lookupBaseType(appView.dexItemFactory());
       toKeep.putIfAbsent(baseType, new KeepStruct());
     }
 
@@ -156,7 +158,7 @@ public abstract class CodeToKeep {
     }
 
     private String convertType(DexType type) {
-      DexString rewriteType = namingLens.prefixRewrittenType(type);
+      DexString rewriteType = appView.getNamingLens().prefixRewrittenType(type);
       DexString descriptor = rewriteType != null ? rewriteType : type.descriptor;
       return DescriptorUtils.descriptorToJavaType(descriptor.toString());
     }
@@ -166,13 +168,6 @@ public abstract class CodeToKeep {
       // TODO(b/134734081): Stream the consumer instead of building the String.
       StringBuilder sb = new StringBuilder();
       String cr = System.lineSeparator();
-      Comparator<DexReference> comparator =
-          new Comparator<DexReference>() {
-            @Override
-            public int compare(DexReference o1, DexReference o2) {
-              return o1.compareTo(o2);
-            }
-          };
       for (DexType type : CollectionUtils.sort(toKeep.keySet(), getComparator())) {
         KeepStruct keepStruct = toKeep.get(type);
         sb.append("-keep class ").append(convertType(type));
@@ -214,12 +209,7 @@ public abstract class CodeToKeep {
     }
 
     private static <T extends DexReference> Comparator<T> getComparator() {
-      return new Comparator<T>() {
-        @Override
-        public int compare(T o1, T o2) {
-          return o1.compareTo(o2);
-        }
-      };
+      return DexReference::compareTo;
     }
   }
 

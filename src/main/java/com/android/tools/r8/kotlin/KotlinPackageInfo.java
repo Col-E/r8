@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import java.util.HashMap;
 import java.util.Map;
@@ -74,7 +73,7 @@ public class KotlinPackageInfo implements EnqueuerMetadataTraceable {
         originalMembersWithKotlinInfo);
   }
 
-  boolean rewrite(KmPackage kmPackage, DexClass clazz, AppView<?> appView, NamingLens namingLens) {
+  boolean rewrite(KmPackage kmPackage, DexClass clazz, AppView<?> appView) {
     KotlinMetadataMembersTracker rewrittenReferences = new KotlinMetadataMembersTracker(appView);
     boolean rewritten =
         containerInfo.rewrite(
@@ -83,13 +82,11 @@ public class KotlinPackageInfo implements EnqueuerMetadataTraceable {
             kmPackage::visitTypeAlias,
             clazz,
             appView,
-            namingLens,
             rewrittenReferences);
     JvmPackageExtensionVisitor extensionVisitor =
         (JvmPackageExtensionVisitor) kmPackage.visitExtensions(JvmPackageExtensionVisitor.TYPE);
     rewritten |=
-        localDelegatedProperties.rewrite(
-            extensionVisitor::visitLocalDelegatedProperty, appView, namingLens);
+        localDelegatedProperties.rewrite(extensionVisitor::visitLocalDelegatedProperty, appView);
     extensionVisitor.visitModuleName(moduleName);
     extensionVisitor.visitEnd();
     return rewritten || !originalMembersWithKotlinInfo.isEqual(rewrittenReferences, appView);

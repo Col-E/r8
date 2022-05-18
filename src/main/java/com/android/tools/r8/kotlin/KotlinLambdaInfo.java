@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import kotlinx.metadata.KmLambda;
@@ -60,10 +59,9 @@ public class KotlinLambdaInfo implements EnqueuerMetadataTraceable {
   boolean rewrite(
       KmVisitorProviders.KmLambdaVisitorProvider visitorProvider,
       DexClass clazz,
-      AppView<?> appView,
-      NamingLens namingLens) {
+      AppView<?> appView) {
     if (!hasBacking) {
-      function.rewrite(visitorProvider.get()::visitFunction, null, appView, namingLens);
+      function.rewrite(visitorProvider.get()::visitFunction, null, appView);
       return true;
     }
     DexEncodedMethod backing = null;
@@ -73,7 +71,7 @@ public class KotlinLambdaInfo implements EnqueuerMetadataTraceable {
         break;
       }
     }
-    return function.rewrite(visitorProvider.get()::visitFunction, backing, appView, namingLens);
+    return function.rewrite(visitorProvider.get()::visitFunction, backing, appView);
   }
 
   @Override

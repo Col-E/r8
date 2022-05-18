@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.kotlin.Kotlin.ClassClassifiers;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Reporter;
@@ -50,7 +49,7 @@ public abstract class KotlinClassifierInfo implements EnqueuerMetadataTraceable 
     }
   }
 
-  abstract boolean rewrite(KmTypeVisitor visitor, AppView<?> appView, NamingLens namingLens);
+  abstract boolean rewrite(KmTypeVisitor visitor, AppView<?> appView);
 
   public DexType rewriteType(GraphLens graphLens) {
     return null;
@@ -67,14 +66,12 @@ public abstract class KotlinClassifierInfo implements EnqueuerMetadataTraceable 
     }
 
     @Override
-    boolean rewrite(KmTypeVisitor visitor, AppView<?> appView, NamingLens namingLens) {
+    boolean rewrite(KmTypeVisitor visitor, AppView<?> appView) {
       return type.toRenamedDescriptorOrDefault(
-          descriptor -> {
-            visitor.visitClass(
-                getKotlinLocalOrAnonymousNameFromDescriptor(descriptor, isLocalOrAnonymous));
-          },
+          descriptor ->
+              visitor.visitClass(
+                  getKotlinLocalOrAnonymousNameFromDescriptor(descriptor, isLocalOrAnonymous)),
           appView,
-          namingLens,
           ClassClassifiers.anyDescriptor);
     }
 
@@ -98,7 +95,7 @@ public abstract class KotlinClassifierInfo implements EnqueuerMetadataTraceable 
     }
 
     @Override
-    boolean rewrite(KmTypeVisitor visitor, AppView<?> appView, NamingLens namingLens) {
+    boolean rewrite(KmTypeVisitor visitor, AppView<?> appView) {
       visitor.visitTypeParameter(typeId);
       return false;
     }
@@ -118,7 +115,7 @@ public abstract class KotlinClassifierInfo implements EnqueuerMetadataTraceable 
     }
 
     @Override
-    boolean rewrite(KmTypeVisitor visitor, AppView<?> appView, NamingLens namingLens) {
+    boolean rewrite(KmTypeVisitor visitor, AppView<?> appView) {
       visitor.visitTypeAlias(typeAlias);
       return false;
     }
@@ -137,7 +134,7 @@ public abstract class KotlinClassifierInfo implements EnqueuerMetadataTraceable 
     }
 
     @Override
-    boolean rewrite(KmTypeVisitor visitor, AppView<?> appView, NamingLens namingLens) {
+    boolean rewrite(KmTypeVisitor visitor, AppView<?> appView) {
       visitor.visitClass(classifier);
       return false;
     }
@@ -156,7 +153,7 @@ public abstract class KotlinClassifierInfo implements EnqueuerMetadataTraceable 
     }
 
     @Override
-    boolean rewrite(KmTypeVisitor visitor, AppView<?> appView, NamingLens namingLens) {
+    boolean rewrite(KmTypeVisitor visitor, AppView<?> appView) {
       visitor.visitTypeAlias(classifier);
       return false;
     }

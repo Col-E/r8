@@ -7,7 +7,6 @@ package com.android.tools.r8.kotlin;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
@@ -67,15 +66,12 @@ class KotlinValueParameterInfo implements EnqueuerMetadataTraceable {
   }
 
   boolean rewrite(
-      KmVisitorProviders.KmValueParameterVisitorProvider visitorProvider,
-      AppView<?> appView,
-      NamingLens namingLens) {
+      KmVisitorProviders.KmValueParameterVisitorProvider visitorProvider, AppView<?> appView) {
     KmValueParameterVisitor kmValueParameterVisitor = visitorProvider.get(flags, name);
-    boolean rewritten = type.rewrite(kmValueParameterVisitor::visitType, appView, namingLens);
+    boolean rewritten = type.rewrite(kmValueParameterVisitor::visitType, appView);
     if (varargElementType != null) {
       rewritten |=
-          varargElementType.rewrite(
-              kmValueParameterVisitor::visitVarargElementType, appView, namingLens);
+          varargElementType.rewrite(kmValueParameterVisitor::visitVarargElementType, appView);
     }
     return rewritten;
   }

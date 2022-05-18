@@ -77,9 +77,9 @@ public class ThrowExceptionCode extends Code implements DexWritableCode {
 
   @Override
   public void collectIndexedItems(
+      AppView<?> appView,
       IndexedItemCollection indexedItems,
       ProgramMethod context,
-      GraphLens graphLens,
       LensCodeRewriterUtils rewriter) {
     rewriter
         .dexItemFactory()

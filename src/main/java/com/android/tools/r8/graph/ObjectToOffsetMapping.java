@@ -53,7 +53,6 @@ public class ObjectToOffsetMapping {
 
   public ObjectToOffsetMapping(
       AppView<?> appView,
-      NamingLens namingLens,
       LensCodeRewriterUtils lensCodeRewriter,
       Collection<DexProgramClass> classes,
       Collection<DexProto> protos,
@@ -77,7 +76,7 @@ public class ObjectToOffsetMapping {
     this.lazyDexStringsCount = lazyDexStringsCount;
     this.appView = appView;
     this.graphLens = appView.graphLens();
-    this.namingLens = namingLens;
+    this.namingLens = appView.getNamingLens();
     this.initClassLens = appView.initClassLens();
     this.lensCodeRewriter = lensCodeRewriter;
     timing.begin("Sort strings");

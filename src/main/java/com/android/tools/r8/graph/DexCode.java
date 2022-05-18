@@ -589,14 +589,14 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
 
   @Override
   public void collectIndexedItems(
+      AppView<?> appView,
       IndexedItemCollection indexedItems,
       ProgramMethod context,
-      GraphLens graphLens,
       LensCodeRewriterUtils rewriter) {
     highestSortingString = null;
     for (DexInstruction insn : instructions) {
       assert !insn.isDexItemBasedConstString();
-      insn.collectIndexedItems(indexedItems, context, graphLens, rewriter);
+      insn.collectIndexedItems(appView, indexedItems, context, rewriter);
       if (insn.isConstString()) {
         updateHighestSortingString(insn.asConstString().getString());
       } else if (insn.isConstStringJumbo()) {
@@ -604,10 +604,10 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       }
     }
     if (debugInfo != null) {
-      getDebugInfoForWriting().collectIndexedItems(indexedItems, graphLens);
+      getDebugInfoForWriting().collectIndexedItems(indexedItems, appView.graphLens());
     }
     for (TryHandler handler : handlers) {
-      handler.collectIndexedItems(indexedItems, graphLens);
+      handler.collectIndexedItems(indexedItems, appView.graphLens());
     }
   }
 

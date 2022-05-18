@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.Pair;
 import java.util.function.Consumer;
 import kotlinx.metadata.KmPackage;
@@ -65,10 +64,9 @@ public class KotlinMultiFileClassPartInfo implements KotlinClassLevelInfo {
   }
 
   @Override
-  public Pair<KotlinClassHeader, Boolean> rewrite(
-      DexClass clazz, AppView<?> appView, NamingLens namingLens) {
+  public Pair<KotlinClassHeader, Boolean> rewrite(DexClass clazz, AppView<?> appView) {
     KmPackage kmPackage = new KmPackage();
-    boolean rewritten = packageInfo.rewrite(kmPackage, clazz, appView, namingLens);
+    boolean rewritten = packageInfo.rewrite(kmPackage, clazz, appView);
     KotlinClassMetadata.MultiFileClassPart.Writer writer =
         new KotlinClassMetadata.MultiFileClassPart.Writer();
     kmPackage.accept(writer);

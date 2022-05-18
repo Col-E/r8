@@ -91,7 +91,6 @@ public class FileWriter {
   private final AppView<?> appView;
   private final GraphLens graphLens;
   private final ObjectToOffsetMapping mapping;
-  private final NamingLens namingLens;
   private final InternalOptions options;
   private final DexOutputBuffer dest;
   private final MixedSectionOffsets mixedSectionOffsets;
@@ -102,16 +101,18 @@ public class FileWriter {
       AppView<?> appView,
       ByteBufferProvider provider,
       ObjectToOffsetMapping mapping,
-      NamingLens namingLens,
       CodeToKeep desugaredLibraryCodeToKeep) {
     this.appView = appView;
     this.graphLens = appView.graphLens();
     this.mapping = mapping;
-    this.namingLens = namingLens;
     this.options = appView.options();
     this.dest = new DexOutputBuffer(provider);
     this.mixedSectionOffsets = new MixedSectionOffsets(options);
     this.desugaredLibraryCodeToKeep = desugaredLibraryCodeToKeep;
+  }
+
+  private NamingLens getNamingLens() {
+    return appView.getNamingLens();
   }
 
   public static void writeEncodedAnnotation(
@@ -410,7 +411,7 @@ public class FileWriter {
   }
 
   private void writeTypeItem(DexType type) {
-    DexString descriptor = namingLens.lookupDescriptor(type);
+    DexString descriptor = getNamingLens().lookupDescriptor(type);
     dest.putInt(mapping.getOffsetFor(descriptor));
   }
 
@@ -427,7 +428,7 @@ public class FileWriter {
     int typeIdx = mapping.getOffsetFor(field.type);
     assert (typeIdx & 0xFFFF) == typeIdx;
     dest.putShort((short) typeIdx);
-    DexString name = namingLens.lookupName(field);
+    DexString name = getNamingLens().lookupName(field);
     dest.putInt(mapping.getOffsetFor(name));
   }
 
@@ -438,7 +439,7 @@ public class FileWriter {
     int protoIdx = mapping.getOffsetFor(method.proto);
     assert (protoIdx & 0xFFFF) == protoIdx;
     dest.putShort((short) protoIdx);
-    DexString name = namingLens.lookupName(method);
+    DexString name = getNamingLens().lookupName(method);
     dest.putInt(mapping.getOffsetFor(name));
   }
 
@@ -662,7 +663,7 @@ public class FileWriter {
     // We have collected the individual components of this array due to the data stored in
     // DexEncodedField#staticValues. However, we have to collect the DexEncodedArray itself
     // here.
-    DexEncodedArray staticValues = clazz.computeStaticValuesArray(namingLens);
+    DexEncodedArray staticValues = clazz.computeStaticValuesArray(getNamingLens());
     if (staticValues != null) {
       staticFieldValues.put(clazz, staticValues);
       mixedSectionOffsets.add(staticValues);

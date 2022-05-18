@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.kotlin.Kotlin.ClassClassifiers;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.util.function.Consumer;
@@ -72,7 +71,6 @@ class KotlinTypeReference implements EnqueuerMetadataTraceable {
   boolean toRenamedDescriptorOrDefault(
       Consumer<String> rewrittenConsumer,
       AppView<?> appView,
-      NamingLens namingLens,
       String defaultValue) {
     if (known == null) {
       rewrittenConsumer.accept(originalName);
@@ -91,7 +89,7 @@ class KotlinTypeReference implements EnqueuerMetadataTraceable {
         return true;
       }
     }
-    String renamedString = namingLens.lookupDescriptor(rewrittenType).toString();
+    String renamedString = appView.getNamingLens().lookupDescriptor(rewrittenType).toString();
     rewrittenConsumer.accept(renamedString);
     return !known.toDescriptorString().equals(renamedString);
   }
@@ -107,7 +105,6 @@ class KotlinTypeReference implements EnqueuerMetadataTraceable {
   boolean toRenamedBinaryNameOrDefault(
       Consumer<String> rewrittenConsumer,
       AppView<?> appView,
-      NamingLens namingLens,
       String defaultValue) {
     if (known == null) {
       // Unknown values are always on the input form, so we can just return it.
@@ -124,7 +121,6 @@ class KotlinTypeReference implements EnqueuerMetadataTraceable {
           }
         },
         appView,
-        namingLens,
         defaultValue);
   }
 

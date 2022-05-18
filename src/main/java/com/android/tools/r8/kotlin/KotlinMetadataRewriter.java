@@ -20,7 +20,6 @@ import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.DexValue.DexValueString;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -71,13 +70,11 @@ public class KotlinMetadataRewriter {
   }
 
   private final AppView<?> appView;
-  private final NamingLens lens;
   private final DexItemFactory factory;
   private final Kotlin kotlin;
 
-  public KotlinMetadataRewriter(AppView<?> appView, NamingLens lens) {
+  public KotlinMetadataRewriter(AppView<?> appView) {
     this.appView = appView;
-    this.lens = lens;
     this.factory = appView.dexItemFactory();
     this.kotlin = factory.kotlin;
   }
@@ -130,7 +127,7 @@ public class KotlinMetadataRewriter {
   }
 
   public void runForD8(ExecutorService executorService) throws ExecutionException {
-    if (lens.isIdentityLens()) {
+    if (appView.getNamingLens().isIdentityLens()) {
       return;
     }
     final WriteMetadataFieldInfo writeMetadataFieldInfo = WriteMetadataFieldInfo.rewriteAll();
@@ -158,7 +155,7 @@ public class KotlinMetadataRewriter {
       DexAnnotation oldMeta,
       WriteMetadataFieldInfo writeMetadataFieldInfo) {
     try {
-      Pair<KotlinClassHeader, Boolean> kotlinClassHeader = kotlinInfo.rewrite(clazz, appView, lens);
+      Pair<KotlinClassHeader, Boolean> kotlinClassHeader = kotlinInfo.rewrite(clazz, appView);
       // TODO(b/185756596): Remove when special handling is no longer needed.
       if (!kotlinClassHeader.getSecond()
           && appView.options().testing.keepMetadataInR8IfNotRewritten) {

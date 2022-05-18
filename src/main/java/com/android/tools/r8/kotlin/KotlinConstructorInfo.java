@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.Reporter;
 import java.util.List;
 import kotlinx.metadata.KmClass;
@@ -55,8 +54,7 @@ public class KotlinConstructorInfo implements KotlinMethodLevelInfo {
             : null);
   }
 
-  boolean rewrite(
-      KmClass kmClass, DexEncodedMethod method, AppView<?> appView, NamingLens namingLens) {
+  boolean rewrite(KmClass kmClass, DexEncodedMethod method, AppView<?> appView) {
     // Note that JvmExtensionsKt.setSignature does not have an overload for KmConstructorVisitor,
     // thus we rely on creating the KmConstructor manually.
     // TODO(b/154348683): Check for special flags to pass in.
@@ -67,12 +65,10 @@ public class KotlinConstructorInfo implements KotlinMethodLevelInfo {
           signature.rewrite(
               rewrittenSignature -> JvmExtensionsKt.setSignature(kmConstructor, rewrittenSignature),
               method,
-              appView,
-              namingLens);
+              appView);
     }
     for (KotlinValueParameterInfo valueParameterInfo : valueParameters) {
-      rewritten |=
-          valueParameterInfo.rewrite(kmConstructor::visitValueParameter, appView, namingLens);
+      rewritten |= valueParameterInfo.rewrite(kmConstructor::visitValueParameter, appView);
     }
     rewritten |= versionRequirements.rewrite(kmConstructor::visitVersionRequirement);
     kmClass.getConstructors().add(kmConstructor);

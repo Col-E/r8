@@ -65,13 +65,13 @@ public final class ProgramMethod extends DexClassAndMethod
   }
 
   public void collectIndexedItems(
-      IndexedItemCollection indexedItems, GraphLens graphLens, LensCodeRewriterUtils rewriter) {
+      AppView<?> appView, IndexedItemCollection indexedItems, LensCodeRewriterUtils rewriter) {
     DexEncodedMethod definition = getDefinition();
     assert !definition.isObsolete();
     getReference().collectIndexedItems(indexedItems);
     if (definition.hasCode()) {
       Code code = definition.getCode();
-      code.asDexWritableCode().collectIndexedItems(indexedItems, this, graphLens, rewriter);
+      code.asDexWritableCode().collectIndexedItems(appView, indexedItems, this, rewriter);
     }
     definition.annotations().collectIndexedItems(indexedItems);
     definition.parameterAnnotationsList.collectIndexedItems(indexedItems);

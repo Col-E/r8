@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GenericSignatureContextBuilder;
 import com.android.tools.r8.graph.GenericSignaturePartialTypeArgumentApplier;
 import com.android.tools.r8.graph.GenericSignatureTypeRewriter;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.concurrent.ExecutionException;
@@ -24,23 +23,21 @@ import java.util.function.Predicate;
 public class GenericSignatureRewriter {
 
   private final AppView<?> appView;
-  private final NamingLens namingLens;
   private final GenericSignatureContextBuilder contextBuilder;
 
-  public GenericSignatureRewriter(AppView<?> appView, NamingLens namingLens) {
-    this(appView, namingLens, null);
+  public GenericSignatureRewriter(AppView<?> appView) {
+    this(appView, null);
   }
 
   public GenericSignatureRewriter(
-      AppView<?> appView, NamingLens namingLens, GenericSignatureContextBuilder contextBuilder) {
+      AppView<?> appView, GenericSignatureContextBuilder contextBuilder) {
     this.appView = appView;
-    this.namingLens = namingLens;
     this.contextBuilder = contextBuilder;
   }
 
   public void runForD8(Iterable<? extends DexProgramClass> classes, ExecutorService executorService)
       throws ExecutionException {
-    if (namingLens.isIdentityLens()) {
+    if (appView.getNamingLens().isIdentityLens()) {
       return;
     }
     run(classes, executorService);
@@ -50,7 +47,7 @@ public class GenericSignatureRewriter {
       throws ExecutionException {
     // Rewrite signature annotations for applications that are minified or if we have liveness
     // information, since we could have pruned types.
-    if (namingLens.isIdentityLens()
+    if (appView.getNamingLens().isIdentityLens()
         && !appView.appInfo().hasLiveness()
         && !appView.options().parseSignatureAttribute()) {
       return;

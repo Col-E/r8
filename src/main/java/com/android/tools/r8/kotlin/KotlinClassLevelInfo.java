@@ -6,7 +6,6 @@ package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Pair;
 import kotlinx.metadata.jvm.KotlinClassHeader;
@@ -57,8 +56,7 @@ public interface KotlinClassLevelInfo extends EnqueuerMetadataTraceable {
     return null;
   }
 
-  Pair<KotlinClassHeader, Boolean> rewrite(
-      DexClass clazz, AppView<?> appView, NamingLens namingLens);
+  Pair<KotlinClassHeader, Boolean> rewrite(DexClass clazz, AppView<?> appView);
 
   String getPackageName();
 

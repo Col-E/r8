@@ -17,25 +17,24 @@ import com.android.tools.r8.utils.InternalOptions;
 // Naming lens for rewriting java.lang.Record to the internal RecordTag type.
 public class RecordRewritingNamingLens extends NonIdentityNamingLens {
 
-  final NamingLens namingLens;
   private final DexItemFactory factory;
+  private final NamingLens namingLens;
 
-  public static NamingLens createRecordRewritingNamingLens(
-      AppView<?> appView, NamingLens namingLens) {
+  public static NamingLens createRecordRewritingNamingLens(AppView<?> appView) {
     if (appView.options().shouldDesugarRecords()
         && appView
                 .appInfo()
                 .definitionForWithoutExistenceAssert(appView.dexItemFactory().recordType)
             != null) {
-      return new RecordRewritingNamingLens(namingLens, appView);
+      return new RecordRewritingNamingLens(appView);
     }
-    return namingLens;
+    return appView.getNamingLens();
   }
 
-  public RecordRewritingNamingLens(NamingLens namingLens, AppView<?> appView) {
+  public RecordRewritingNamingLens(AppView<?> appView) {
     super(appView.dexItemFactory());
-    this.namingLens = namingLens;
-    factory = appView.dexItemFactory();
+    this.factory = appView.dexItemFactory();
+    this.namingLens = appView.getNamingLens();
   }
 
   private boolean isRenamed(DexType type) {

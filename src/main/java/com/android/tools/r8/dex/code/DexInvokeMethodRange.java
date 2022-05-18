@@ -4,6 +4,7 @@
 package com.android.tools.r8.dex.code;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
@@ -25,12 +26,15 @@ public abstract class DexInvokeMethodRange extends DexFormat3rc<DexMethod> {
 
   @Override
   public final void collectIndexedItems(
+      AppView<?> appView,
       IndexedItemCollection indexedItems,
       ProgramMethod context,
-      GraphLens graphLens,
       LensCodeRewriterUtils rewriter) {
     DexMethod rewritten =
-        graphLens.lookupMethod(getMethod(), context.getReference(), getInvokeType()).getReference();
+        appView
+            .graphLens()
+            .lookupMethod(getMethod(), context.getReference(), getInvokeType())
+            .getReference();
     rewritten.collectIndexedItems(indexedItems);
   }
 

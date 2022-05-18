@@ -7,7 +7,6 @@ package com.android.tools.r8.kotlin;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import kotlinx.metadata.KmFlexibleTypeUpperBound;
@@ -39,9 +38,7 @@ public class KotlinFlexibleTypeUpperBoundInfo implements EnqueuerMetadataTraceab
   }
 
   boolean rewrite(
-      KmVisitorProviders.KmFlexibleUpperBoundVisitorProvider visitorProvider,
-      AppView<?> appView,
-      NamingLens namingLens) {
+      KmVisitorProviders.KmFlexibleUpperBoundVisitorProvider visitorProvider, AppView<?> appView) {
     if (this == NO_FLEXIBLE_UPPER_BOUND) {
       // Nothing to do.
       return false;
@@ -50,8 +47,7 @@ public class KotlinFlexibleTypeUpperBoundInfo implements EnqueuerMetadataTraceab
       assert false;
       return false;
     }
-    return kotlinTypeInfo.rewrite(
-        flags -> visitorProvider.get(flags, typeFlexibilityId), appView, namingLens);
+    return kotlinTypeInfo.rewrite(flags -> visitorProvider.get(flags, typeFlexibilityId), appView);
   }
 
   @Override

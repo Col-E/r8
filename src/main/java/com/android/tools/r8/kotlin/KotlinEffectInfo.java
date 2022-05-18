@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.kotlin.KmVisitorProviders.KmEffectVisitorProvider;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import java.util.List;
@@ -51,16 +50,12 @@ public class KotlinEffectInfo implements EnqueuerMetadataTraceable {
     conclusion.trace(definitionSupplier);
   }
 
-  boolean rewrite(
-      KmEffectVisitorProvider visitorProvider, AppView<?> appView, NamingLens namingLens) {
+  boolean rewrite(KmEffectVisitorProvider visitorProvider, AppView<?> appView) {
     KmEffectVisitor kmEffectVisitor = visitorProvider.get(type, invocationKind);
     boolean rewritten =
-        conclusion.rewrite(
-            kmEffectVisitor::visitConclusionOfConditionalEffect, appView, namingLens);
+        conclusion.rewrite(kmEffectVisitor::visitConclusionOfConditionalEffect, appView);
     for (KotlinEffectExpressionInfo constructorArgument : constructorArguments) {
-      rewritten |=
-          constructorArgument.rewrite(
-              kmEffectVisitor::visitConstructorArgument, appView, namingLens);
+      rewritten |= constructorArgument.rewrite(kmEffectVisitor::visitConstructorArgument, appView);
     }
     kmEffectVisitor.visitEnd();
     return rewritten;

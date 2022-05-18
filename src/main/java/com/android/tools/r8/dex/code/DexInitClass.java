@@ -6,6 +6,7 @@ package com.android.tools.r8.dex.code;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
@@ -46,14 +47,14 @@ public class DexInitClass extends DexBase2Format {
 
   @Override
   public void collectIndexedItems(
+      AppView<?> appView,
       IndexedItemCollection indexedItems,
       ProgramMethod context,
-      GraphLens graphLens,
       LensCodeRewriterUtils rewriter) {
     // We intentionally apply the graph lens first, and then the init class lens, using the fact
     // that the init class lens maps classes in the final program to fields in the final program.
-    DexType rewrittenClass = graphLens.lookupType(clazz);
-    DexField clinitField = indexedItems.getInitClassLens().getInitClassField(rewrittenClass);
+    DexType rewrittenClass = appView.graphLens().lookupType(clazz);
+    DexField clinitField = appView.initClassLens().getInitClassField(rewrittenClass);
     clinitField.collectIndexedItems(indexedItems);
   }
 

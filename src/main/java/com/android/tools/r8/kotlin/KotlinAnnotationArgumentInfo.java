@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.kotlin.Kotlin.ClassClassifiers;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -28,8 +27,7 @@ abstract class KotlinAnnotationArgumentInfo implements EnqueuerMetadataTraceable
   private static final Map<String, KotlinAnnotationArgumentInfo> EMPTY_ARGUMENTS =
       ImmutableMap.of();
 
-  abstract boolean rewrite(
-      Consumer<KmAnnotationArgument> consumer, AppView<?> appView, NamingLens namingLens);
+  abstract boolean rewrite(Consumer<KmAnnotationArgument> consumer, AppView<?> appView);
 
   private static KotlinAnnotationArgumentInfo createArgument(
       KmAnnotationArgument arg, DexItemFactory factory) {
@@ -78,12 +76,10 @@ abstract class KotlinAnnotationArgumentInfo implements EnqueuerMetadataTraceable
     }
 
     @Override
-    boolean rewrite(
-        Consumer<KmAnnotationArgument> consumer, AppView<?> appView, NamingLens namingLens) {
+    boolean rewrite(Consumer<KmAnnotationArgument> consumer, AppView<?> appView) {
       return value.toRenamedBinaryNameOrDefault(
           rewrittenValue -> consumer.accept(new KClassValue(rewrittenValue, arrayDimensionCount)),
           appView,
-          namingLens,
           ClassClassifiers.anyName);
     }
   }
@@ -111,13 +107,11 @@ abstract class KotlinAnnotationArgumentInfo implements EnqueuerMetadataTraceable
     }
 
     @Override
-    boolean rewrite(
-        Consumer<KmAnnotationArgument> consumer, AppView<?> appView, NamingLens namingLens) {
+    boolean rewrite(Consumer<KmAnnotationArgument> consumer, AppView<?> appView) {
       return enumClassName.toRenamedBinaryNameOrDefault(
           rewrittenEnumClassName ->
               consumer.accept(new EnumValue(rewrittenEnumClassName, enumEntryName)),
           appView,
-          namingLens,
           ClassClassifiers.anyName);
     }
   }
@@ -142,16 +136,14 @@ abstract class KotlinAnnotationArgumentInfo implements EnqueuerMetadataTraceable
     }
 
     @Override
-    boolean rewrite(
-        Consumer<KmAnnotationArgument> consumer, AppView<?> appView, NamingLens namingLens) {
+    boolean rewrite(Consumer<KmAnnotationArgument> consumer, AppView<?> appView) {
       return value.rewrite(
           rewrittenAnnotation -> {
             if (rewrittenAnnotation != null) {
               consumer.accept(new AnnotationValue(rewrittenAnnotation));
             }
           },
-          appView,
-          namingLens);
+          appView);
     }
   }
 
@@ -185,8 +177,7 @@ abstract class KotlinAnnotationArgumentInfo implements EnqueuerMetadataTraceable
     }
 
     @Override
-    boolean rewrite(
-        Consumer<KmAnnotationArgument> consumer, AppView<?> appView, NamingLens namingLens) {
+    boolean rewrite(Consumer<KmAnnotationArgument> consumer, AppView<?> appView) {
       List<KmAnnotationArgument> rewrittenArguments = new ArrayList<>();
       boolean rewritten = false;
       for (KotlinAnnotationArgumentInfo kotlinAnnotationArgumentInfo : value) {
@@ -197,8 +188,7 @@ abstract class KotlinAnnotationArgumentInfo implements EnqueuerMetadataTraceable
                     rewrittenArguments.add(rewrittenArg);
                   }
                 },
-                appView,
-                namingLens);
+                appView);
       }
       consumer.accept(new ArrayValue(rewrittenArguments));
       return rewritten;
@@ -223,8 +213,7 @@ abstract class KotlinAnnotationArgumentInfo implements EnqueuerMetadataTraceable
     }
 
     @Override
-    boolean rewrite(
-        Consumer<KmAnnotationArgument> consumer, AppView<?> appView, NamingLens namingLens) {
+    boolean rewrite(Consumer<KmAnnotationArgument> consumer, AppView<?> appView) {
       consumer.accept(argument);
       return false;
     }

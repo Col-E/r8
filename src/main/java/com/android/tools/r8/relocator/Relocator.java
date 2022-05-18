@@ -16,7 +16,6 @@ import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.jar.CfApplicationWriter;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.AndroidApp;
@@ -85,12 +84,11 @@ public class Relocator {
       appView.setAppServices(AppServices.builder(appView).build());
 
       SimplePackagesRewritingMapper packageRemapper = new SimplePackagesRewritingMapper(appView);
-      NamingLens namingLens = packageRemapper.compute(command.getMapping());
+      appView.setNamingLens(packageRemapper.compute(command.getMapping()));
 
-      new GenericSignatureRewriter(appView, namingLens).run(appInfo.classes(), executor);
+      new GenericSignatureRewriter(appView).run(appInfo.classes(), executor);
 
-      new CfApplicationWriter(appView, new Marker(Tool.Relocator), namingLens)
-          .write(command.getConsumer());
+      new CfApplicationWriter(appView, new Marker(Tool.Relocator)).write(command.getConsumer());
       options.printWarnings();
     } catch (ExecutionException e) {
       throw unwrapExecutionException(e);

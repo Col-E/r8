@@ -23,7 +23,6 @@ import com.android.tools.r8.graph.AssemblyWriter;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.shaking.FilteredClassPath;
@@ -2275,12 +2274,7 @@ public class ToolHelper {
 
   public static void writeApplication(AppView<?> appView, InternalOptions options)
       throws ExecutionException {
-    R8.writeApplication(
-        Executors.newSingleThreadExecutor(),
-        appView,
-        NamingLens.getIdentityLens(),
-        options,
-        null);
+    R8.writeApplication(appView, null, Executors.newSingleThreadExecutor());
   }
 
   public static void disassemble(AndroidApp app, PrintStream ps) throws IOException {

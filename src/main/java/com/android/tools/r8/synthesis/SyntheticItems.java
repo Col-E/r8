@@ -229,11 +229,11 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     this.globalSyntheticsStrategy = globalSyntheticsStrategy;
   }
 
-  public Map<DexType, Set<DexType>> getFinalGlobalSyntheticContexts(
-      AppView appView, NamingLens namingLens) {
+  public Map<DexType, Set<DexType>> getFinalGlobalSyntheticContexts(AppView appView) {
     assert isFinalized();
     DexItemFactory factory = appView.dexItemFactory();
     ImmutableMap<DexType, Set<DexType>> globalContexts = committed.getGlobalContexts();
+    NamingLens namingLens = appView.getNamingLens();
     Map<DexType, Set<DexType>> rewritten = new IdentityHashMap<>(globalContexts.size());
     globalContexts.forEach(
         (global, contexts) -> {

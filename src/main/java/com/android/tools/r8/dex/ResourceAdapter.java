@@ -37,16 +37,12 @@ public class ResourceAdapter {
   private final NamingLens namingLens;
   private final InternalOptions options;
 
-  public ResourceAdapter(
-      AppView<?> appView,
-      DexItemFactory dexItemFactory,
-      NamingLens namingLens,
-      InternalOptions options) {
+  public ResourceAdapter(AppView<?> appView) {
     this.appView = appView;
-    this.dexItemFactory = dexItemFactory;
+    this.dexItemFactory = appView.dexItemFactory();
     this.graphLens = appView.graphLens();
-    this.namingLens = namingLens;
-    this.options = options;
+    this.namingLens = appView.getNamingLens();
+    this.options = appView.options();
   }
 
   public DataEntryResource adaptIfNeeded(DataEntryResource file) {

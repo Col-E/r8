@@ -174,9 +174,9 @@ public class DefaultInstanceInitializerCode extends Code
 
   @Override
   public void collectIndexedItems(
+      AppView<?> appView,
       IndexedItemCollection indexedItems,
       ProgramMethod context,
-      GraphLens graphLens,
       LensCodeRewriterUtils rewriter) {
     getParentConstructor(context, rewriter.dexItemFactory()).collectIndexedItems(indexedItems);
   }

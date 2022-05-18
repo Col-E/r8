@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardKeepRule;
@@ -51,8 +50,7 @@ public class KotlinMetadataUtils {
     }
 
     @Override
-    public Pair<KotlinClassHeader, Boolean> rewrite(
-        DexClass clazz, AppView<?> appView, NamingLens namingLens) {
+    public Pair<KotlinClassHeader, Boolean> rewrite(DexClass clazz, AppView<?> appView) {
       throw new Unreachable("Should never be called");
     }
 

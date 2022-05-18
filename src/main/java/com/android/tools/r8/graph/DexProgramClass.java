@@ -401,7 +401,7 @@ public class DexProgramClass extends DexClass
   }
 
   public void collectIndexedItems(
-      IndexedItemCollection indexedItems, GraphLens graphLens, LensCodeRewriterUtils rewriter) {
+      AppView<?> appView, IndexedItemCollection indexedItems, LensCodeRewriterUtils rewriter) {
     if (indexedItems.addClass(this)) {
       type.collectIndexedItems(indexedItems);
       if (superType != null) {
@@ -424,7 +424,7 @@ public class DexProgramClass extends DexClass
       }
       // We are explicitly not adding items referenced in signatures.
       forEachProgramField(field -> field.collectIndexedItems(indexedItems));
-      forEachProgramMethod(method -> method.collectIndexedItems(indexedItems, graphLens, rewriter));
+      forEachProgramMethod(method -> method.collectIndexedItems(appView, indexedItems, rewriter));
     }
   }
 

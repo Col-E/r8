@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
@@ -72,10 +71,7 @@ public class KotlinJvmMethodSignatureInfo implements EnqueuerMetadataTraceable {
   }
 
   boolean rewrite(
-      Consumer<JvmMethodSignature> consumer,
-      DexEncodedMethod method,
-      AppView<?> appView,
-      NamingLens namingLens) {
+      Consumer<JvmMethodSignature> consumer, DexEncodedMethod method, AppView<?> appView) {
     if (invalidDescriptor != null) {
       consumer.accept(new JvmMethodSignature(name, invalidDescriptor));
       return false;
@@ -85,7 +81,7 @@ public class KotlinJvmMethodSignatureInfo implements EnqueuerMetadataTraceable {
     boolean rewritten = false;
     if (method != null) {
       String methodName = method.getReference().name.toString();
-      String rewrittenName = namingLens.lookupName(method.getReference()).toString();
+      String rewrittenName = appView.getNamingLens().lookupName(method.getReference()).toString();
       if (!methodName.equals(rewrittenName)) {
         finalName = rewrittenName;
         rewritten = true;
@@ -95,13 +91,10 @@ public class KotlinJvmMethodSignatureInfo implements EnqueuerMetadataTraceable {
     descBuilder.append("(");
     String defValue = appView.dexItemFactory().objectType.toDescriptorString();
     for (KotlinTypeReference parameter : parameters) {
-      rewritten |=
-          parameter.toRenamedDescriptorOrDefault(
-              descBuilder::append, appView, namingLens, defValue);
+      rewritten |= parameter.toRenamedDescriptorOrDefault(descBuilder::append, appView, defValue);
     }
     descBuilder.append(")");
-    rewritten |=
-        returnType.toRenamedDescriptorOrDefault(descBuilder::append, appView, namingLens, defValue);
+    rewritten |= returnType.toRenamedDescriptorOrDefault(descBuilder::append, appView, defValue);
     consumer.accept(new JvmMethodSignature(finalName, descBuilder.toString()));
     return rewritten;
   }

@@ -63,7 +63,6 @@ import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.kotlin.KotlinMetadataRewriter;
 import com.android.tools.r8.kotlin.KotlinMetadataUtils;
 import com.android.tools.r8.naming.Minifier;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.naming.ProguardMapMinifier;
 import com.android.tools.r8.naming.RecordRewritingNamingLens;
@@ -208,29 +207,24 @@ public class R8 {
   }
 
   static void writeApplication(
-      ExecutorService executorService,
-      AppView<?> appView,
-      NamingLens namingLens,
-      InternalOptions options,
-      AndroidApp inputApp)
+      AppView<?> appView, AndroidApp inputApp, ExecutorService executorService)
       throws ExecutionException {
+    InternalOptions options = appView.options();
     InspectorImpl.runInspections(options.outputInspections, appView.appInfo().classes());
     try {
       Marker marker = options.getMarker(Tool.R8);
       assert marker != null;
       // Get the markers from the input which are different from the one created for this
       // compilation
-      Set<Marker> markers = new HashSet<>(options.itemFactory.extractMarkers());
+      Set<Marker> markers = new HashSet<>(appView.dexItemFactory().extractMarkers());
       markers.remove(marker);
       if (options.isGeneratingClassFiles()) {
-        new CfApplicationWriter(appView, marker, namingLens)
-            .write(options.getClassFileConsumer(), inputApp);
+        new CfApplicationWriter(appView, marker).write(options.getClassFileConsumer(), inputApp);
       } else {
         new ApplicationWriter(
                 appView,
                 // Ensure that the marker for this compilation is the first in the list.
-                ImmutableList.<Marker>builder().add(marker).addAll(markers).build(),
-                namingLens)
+                ImmutableList.<Marker>builder().add(marker).addAll(markers).build())
             .write(executorService, inputApp);
       }
     } catch (IOException e) {
@@ -431,7 +425,7 @@ public class R8 {
               annotationRemoverBuilder
                   .build(appViewWithLiveness, removedClasses);
           annotationRemover.ensureValid().run(executorService);
-          new GenericSignatureRewriter(appView, NamingLens.getIdentityLens(), genericContextBuilder)
+          new GenericSignatureRewriter(appView, genericContextBuilder)
               .run(appView.appInfo().classes(), executorService);
 
           assert appView.checkForTesting(() -> allReferencesAssignedApiLevel(appViewWithLiveness));
@@ -650,8 +644,7 @@ public class R8 {
             AnnotationRemover.builder(Mode.FINAL_TREE_SHAKING)
                 .build(appView.withLiveness(), removedClasses)
                 .run(executorService);
-            new GenericSignatureRewriter(
-                    appView, NamingLens.getIdentityLens(), genericContextBuilder)
+            new GenericSignatureRewriter(appView, genericContextBuilder)
                 .run(appView.appInfo().classes(), executorService);
             assert appView.checkForTesting(
                     () ->
@@ -761,19 +754,17 @@ public class R8 {
                   : null);
 
       // Perform minification.
-      NamingLens namingLens;
       if (options.getProguardConfiguration().hasApplyMappingFile()) {
         timing.begin("apply-mapping");
-        namingLens = new ProguardMapMinifier(appView.withLiveness()).run(executorService, timing);
+        appView.setNamingLens(
+            new ProguardMapMinifier(appView.withLiveness()).run(executorService, timing));
         timing.end();
         // Clear the applymapping data
         appView.clearApplyMappingSeedMapper();
       } else if (options.isMinifying()) {
         timing.begin("Minification");
-        namingLens = new Minifier(appView.withLiveness()).run(executorService, timing);
+        appView.setNamingLens(new Minifier(appView.withLiveness()).run(executorService, timing));
         timing.end();
-      } else {
-        namingLens = NamingLens.getIdentityLens();
       }
 
       assert verifyMovedMethodsHaveOriginalMethodPosition(appView, getDirectApp(appView));
@@ -808,16 +799,16 @@ public class R8 {
         options.syntheticProguardRulesConsumer.accept(synthesizedProguardRules);
       }
 
-      namingLens = PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView, namingLens);
-      namingLens = RecordRewritingNamingLens.createRecordRewritingNamingLens(appView, namingLens);
+      appView.setNamingLens(PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView));
+      appView.setNamingLens(RecordRewritingNamingLens.createRecordRewritingNamingLens(appView));
 
       new ApiReferenceStubber(appView).run(executorService);
 
       timing.begin("MinifyKotlinMetadata");
-      new KotlinMetadataRewriter(appView, namingLens).runForR8(executorService);
+      new KotlinMetadataRewriter(appView).runForR8(executorService);
       timing.end();
 
-      new GenericSignatureRewriter(appView, namingLens, genericContextBuilderBeforeFinalMerging)
+      new GenericSignatureRewriter(appView, genericContextBuilderBeforeFinalMerging)
           .run(appView.appInfo().classes(), executorService);
 
       assert appView.checkForTesting(
@@ -829,15 +820,10 @@ public class R8 {
                           .isValid())
           : "Could not validate generic signatures";
 
-      new DesugaredLibraryKeepRuleGenerator(appView, namingLens).runIfNecessary(timing);
+      new DesugaredLibraryKeepRuleGenerator(appView).runIfNecessary(timing);
 
       // Generate the resulting application resources.
-      writeApplication(
-          executorService,
-          appView,
-          namingLens,
-          options,
-          inputApp);
+      writeApplication(appView, inputApp, executorService);
 
       assert appView.getDontWarnConfiguration().validate(options);
 

@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.Reporter;
 import java.util.List;
@@ -144,25 +143,22 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
       DexEncodedField field,
       DexEncodedMethod getter,
       DexEncodedMethod setter,
-      AppView<?> appView,
-      NamingLens namingLens) {
+      AppView<?> appView) {
     // TODO(b/154348683): Flags again.
     KmPropertyVisitor kmProperty = visitorProvider.get(flags, name, getterFlags, setterFlags);
     // TODO(b/154348149): ReturnType could have been merged to a subtype.
     boolean rewritten = false;
     if (returnType != null) {
-      rewritten = returnType.rewrite(kmProperty::visitReturnType, appView, namingLens);
+      rewritten = returnType.rewrite(kmProperty::visitReturnType, appView);
     }
     if (receiverParameterType != null) {
-      rewritten |=
-          receiverParameterType.rewrite(
-              kmProperty::visitReceiverParameterType, appView, namingLens);
+      rewritten |= receiverParameterType.rewrite(kmProperty::visitReceiverParameterType, appView);
     }
     if (setterParameter != null) {
-      rewritten |= setterParameter.rewrite(kmProperty::visitSetterParameter, appView, namingLens);
+      rewritten |= setterParameter.rewrite(kmProperty::visitSetterParameter, appView);
     }
     for (KotlinTypeParameterInfo typeParameter : typeParameters) {
-      rewritten |= typeParameter.rewrite(kmProperty::visitTypeParameter, appView, namingLens);
+      rewritten |= typeParameter.rewrite(kmProperty::visitTypeParameter, appView);
     }
     rewritten |= versionRequirements.rewrite(kmProperty::visitVersionRequirement);
     JvmPropertyExtensionVisitor extensionVisitor =
@@ -170,18 +166,15 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
     if (extensionVisitor != null) {
       Box<JvmFieldSignature> rewrittenFieldSignature = new Box<>();
       if (fieldSignature != null) {
-        rewritten |=
-            fieldSignature.rewrite(rewrittenFieldSignature::set, field, appView, namingLens);
+        rewritten |= fieldSignature.rewrite(rewrittenFieldSignature::set, field, appView);
       }
       Box<JvmMethodSignature> rewrittenGetterSignature = new Box<>();
       if (getterSignature != null) {
-        rewritten |=
-            getterSignature.rewrite(rewrittenGetterSignature::set, getter, appView, namingLens);
+        rewritten |= getterSignature.rewrite(rewrittenGetterSignature::set, getter, appView);
       }
       Box<JvmMethodSignature> rewrittenSetterSignature = new Box<>();
       if (setterSignature != null) {
-        rewritten |=
-            setterSignature.rewrite(rewrittenSetterSignature::set, setter, appView, namingLens);
+        rewritten |= setterSignature.rewrite(rewrittenSetterSignature::set, setter, appView);
       }
       extensionVisitor.visit(
           jvmFlags,
@@ -191,12 +184,12 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
       if (syntheticMethodForAnnotations != null) {
         rewritten |=
             syntheticMethodForAnnotations.rewrite(
-                extensionVisitor::visitSyntheticMethodForAnnotations, null, appView, namingLens);
+                extensionVisitor::visitSyntheticMethodForAnnotations, null, appView);
       }
       if (syntheticMethodForDelegate != null) {
         rewritten |=
             syntheticMethodForDelegate.rewrite(
-                extensionVisitor::visitSyntheticMethodForDelegate, null, appView, namingLens);
+                extensionVisitor::visitSyntheticMethodForDelegate, null, appView);
       }
     }
     return rewritten;

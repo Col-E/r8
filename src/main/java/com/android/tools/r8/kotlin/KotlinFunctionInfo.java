@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.Reporter;
 import java.util.List;
 import kotlinx.metadata.KmFunction;
@@ -119,14 +118,13 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
   boolean rewrite(
       KmVisitorProviders.KmFunctionVisitorProvider visitorProvider,
       DexEncodedMethod method,
-      AppView<?> appView,
-      NamingLens namingLens) {
+      AppView<?> appView) {
     // TODO(b/154348683): Check method for flags to pass in.
     boolean rewritten = false;
     String finalName = this.name;
     if (method != null) {
       String methodName = method.getReference().name.toString();
-      String rewrittenName = namingLens.lookupName(method.getReference()).toString();
+      String rewrittenName = appView.getNamingLens().lookupName(method.getReference()).toString();
       if (!methodName.equals(rewrittenName)) {
         rewritten = true;
         finalName = rewrittenName;
@@ -134,23 +132,21 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
     }
     KmFunctionVisitor kmFunction = visitorProvider.get(flags, finalName);
     // TODO(b/154348149): ReturnType could have been merged to a subtype.
-    rewritten |= returnType.rewrite(kmFunction::visitReturnType, appView, namingLens);
+    rewritten |= returnType.rewrite(kmFunction::visitReturnType, appView);
     for (KotlinValueParameterInfo valueParameterInfo : valueParameters) {
-      rewritten |= valueParameterInfo.rewrite(kmFunction::visitValueParameter, appView, namingLens);
+      rewritten |= valueParameterInfo.rewrite(kmFunction::visitValueParameter, appView);
     }
     for (KotlinTypeParameterInfo typeParameterInfo : typeParameters) {
-      rewritten |= typeParameterInfo.rewrite(kmFunction::visitTypeParameter, appView, namingLens);
+      rewritten |= typeParameterInfo.rewrite(kmFunction::visitTypeParameter, appView);
     }
     if (receiverParameterType != null) {
-      rewritten |=
-          receiverParameterType.rewrite(
-              kmFunction::visitReceiverParameterType, appView, namingLens);
+      rewritten |= receiverParameterType.rewrite(kmFunction::visitReceiverParameterType, appView);
     }
     rewritten |= versionRequirements.rewrite(kmFunction::visitVersionRequirement);
     JvmFunctionExtensionVisitor extensionVisitor =
         (JvmFunctionExtensionVisitor) kmFunction.visitExtensions(JvmFunctionExtensionVisitor.TYPE);
     if (signature != null && extensionVisitor != null) {
-      rewritten |= signature.rewrite(extensionVisitor::visit, method, appView, namingLens);
+      rewritten |= signature.rewrite(extensionVisitor::visit, method, appView);
     }
     if (lambdaClassOrigin != null && extensionVisitor != null) {
       rewritten |=
@@ -161,10 +157,9 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
                 }
               },
               appView,
-              namingLens,
               null);
     }
-    rewritten |= contract.rewrite(kmFunction::visitContract, appView, namingLens);
+    rewritten |= contract.rewrite(kmFunction::visitContract, appView);
     return rewritten;
   }
 

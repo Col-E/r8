@@ -54,9 +54,9 @@ public interface DexWritableCode {
   int codeSizeInBytes();
 
   void collectIndexedItems(
+      AppView<?> appView,
       IndexedItemCollection indexedItems,
       ProgramMethod context,
-      GraphLens graphLens,
       LensCodeRewriterUtils rewriter);
 
   void collectMixedSectionItems(MixedSectionCollection mixedItems);
