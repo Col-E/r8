@@ -464,10 +464,10 @@ public class FileWriter {
   }
 
   private void writeCodeItem(ProgramMethod method) {
-    writeCodeItem(method.getDefinition().getCode().asDexWritableCode(), method);
+    writeCodeItem(method, method.getDefinition().getCode().asDexWritableCode());
   }
 
-  private void writeCodeItem(DexWritableCode code, ProgramMethod method) {
+  private void writeCodeItem(ProgramMethod method, DexWritableCode code) {
     mixedSectionOffsets.setOffsetFor(method.getDefinition(), code, dest.align(4));
     // Fixed size header information.
     dest.putShort((short) code.getRegisterSize(method));
