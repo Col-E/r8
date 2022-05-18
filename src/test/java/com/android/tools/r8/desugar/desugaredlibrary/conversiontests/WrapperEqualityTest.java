@@ -1,4 +1,4 @@
-// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -17,27 +17,29 @@ import com.android.tools.r8.desugar.desugaredlibrary.test.CustomLibrarySpecifica
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
-import java.time.Clock;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class ClockAPIConversionTest extends DesugaredLibraryTestBase {
+public class WrapperEqualityTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
   private final CompilationSpecification compilationSpecification;
 
-  private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.O;
+  private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.N;
   private static final String EXPECTED_RESULT =
-      StringUtils.lines("Z", "Z", "true", "Z", "Z", "true", "true", "true", "true", "true", "true");
+      StringUtils.lines("true", "true", "1", "1", "2", "2", "1", "1", "1", "0");
   // TODO(b/230800107): There should not be any unexpected results.
   private static final String UNEXPECTED_RESULT =
-      StringUtils.lines(
-          "Z", "Z", "true", "Z", "Z", "false", "true", "false", "false", "false", "false");
+      StringUtils.lines("false", "false", "1", "2", "3", "4", "2", "2", "4", "4");
 
   @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
@@ -47,7 +49,7 @@ public class ClockAPIConversionTest extends DesugaredLibraryTestBase {
         DEFAULT_SPECIFICATIONS);
   }
 
-  public ClockAPIConversionTest(
+  public WrapperEqualityTest(
       TestParameters parameters,
       LibraryDesugaringSpecification libraryDesugaringSpecification,
       CompilationSpecification compilationSpecification) {
@@ -57,69 +59,56 @@ public class ClockAPIConversionTest extends DesugaredLibraryTestBase {
   }
 
   @Test
-  public void testClock() throws Throwable {
+  public void test() throws Throwable {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClasses(Executor.class)
         .setCustomLibrarySpecification(
             new CustomLibrarySpecification(CustomLibClass.class, MIN_SUPPORTED))
         .addKeepMainRule(Executor.class)
+        .compile()
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(UNEXPECTED_RESULT);
   }
 
   @Test
   public void testD8() throws Throwable {
-    // Run a D8 test without desugared library on all runtimes which natively supports java.time to
-    // ensure the expectations. The API level check is just to not run the same test repeatedly.
-    assertEquals(AndroidApiLevel.O, MIN_SUPPORTED);
+    // Run a D8 test without desugared library on all runtimes which natively supports
+    // java.util.function to ensure the expectations. The API level check is just to not run the
+    // same test repeatedly.
+    assertEquals(AndroidApiLevel.N, MIN_SUPPORTED);
     assumeTrue(
-        parameters.getApiLevel().isEqualTo(AndroidApiLevel.N_MR1)
+        parameters.getApiLevel().isEqualTo(AndroidApiLevel.M)
             && parameters.isDexRuntime()
             && parameters.asDexRuntime().getVersion().isNewerThanOrEqual(Version.V8_1_0)
             && compilationSpecification == CompilationSpecification.D8_L8DEBUG);
     testForD8(parameters.getBackend())
         .addProgramClasses(Executor.class, CustomLibClass.class)
-        .setMinApi(MIN_SUPPORTED)
-        .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
-  }
-
-  @Test
-  public void testR8() throws Throwable {
-    // Run a R8 test without desugared library on all runtimes which natively supports java.time to
-    // ensure the expectations. The API level check is just to not run the same test repeatedly.
-    assertEquals(AndroidApiLevel.O, MIN_SUPPORTED);
-    assumeTrue(
-        parameters.getApiLevel().isEqualTo(AndroidApiLevel.N_MR1)
-            && parameters.isDexRuntime()
-            && parameters.asDexRuntime().getVersion().isNewerThanOrEqual(Version.V8_1_0)
-            && compilationSpecification == CompilationSpecification.D8_L8DEBUG);
-    testForR8(parameters.getBackend())
-        .addProgramClasses(Executor.class, CustomLibClass.class)
-        .addKeepMainRule(Executor.class)
-        .setMinApi(MIN_SUPPORTED)
+        .compile()
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
   static class Executor {
 
-    @SuppressWarnings("ConstantConditions")
     public static void main(String[] args) {
-      Clock clock1 = CustomLibClass.getClock();
-      Clock localClock = Clock.systemUTC();
-      Clock clock2 = CustomLibClass.mixClocks(localClock, Clock.systemUTC());
-      System.out.println(clock1.getZone());
-      System.out.println(clock2.getZone());
-      System.out.println(localClock == clock2);
-      System.out.println(CustomLibClass.getClocks()[0].getZone());
-      System.out.println(CustomLibClass.getClockss()[0][0].getZone());
-      System.out.println(clock1.equals(CustomLibClass.getClock()));
-      System.out.println(localClock.equals(Clock.systemUTC()));
-      System.out.println(localClock.equals(clock1));
-      System.out.println(clock1.equals(localClock));
-      System.out.println(clock1.equals(CustomLibClass.getClocks()[0]));
-      System.out.println(clock1.equals(CustomLibClass.getClockss()[0][0]));
+      Consumer<Boolean> consumer = b -> {};
+      Supplier<Boolean> supplier = () -> Boolean.TRUE;
+      System.out.println(CustomLibClass.equals(consumer, consumer));
+      System.out.println(CustomLibClass.equals(supplier, supplier));
+      CustomLibClass.register(consumer, new Object());
+      System.out.println(CustomLibClass.registrations());
+      CustomLibClass.register(consumer, new Object());
+      System.out.println(CustomLibClass.registrations());
+      CustomLibClass.register(supplier, new Object());
+      System.out.println(CustomLibClass.registrations());
+      CustomLibClass.register(supplier, new Object());
+      System.out.println(CustomLibClass.registrations());
+      System.out.println(CustomLibClass.suppliers());
+      System.out.println(CustomLibClass.consumers());
+      CustomLibClass.unregister(consumer);
+      System.out.println(CustomLibClass.registrations());
+      CustomLibClass.unregister(supplier);
+      System.out.println(CustomLibClass.registrations());
     }
   }
 
@@ -127,23 +116,42 @@ public class ClockAPIConversionTest extends DesugaredLibraryTestBase {
   // This class is convenient for easy testing. Each method plays the role of methods in the
   // platform APIs for which argument/return values need conversion.
   static class CustomLibClass {
+    static Map<Object, Object> map = new HashMap<>();
 
-    @SuppressWarnings("all")
-    public static Clock getClock() {
-      return Clock.systemUTC();
+    public static boolean equals(Consumer<Boolean> listener1, Consumer<Boolean> listene2) {
+      return listener1.equals(listene2) && listene2.equals(listener1);
     }
 
-    public static Clock[] getClocks() {
-      return new Clock[] {Clock.systemUTC()};
+    public static boolean equals(Supplier<Boolean> listener1, Supplier<Boolean> listene2) {
+      return listener1.equals(listene2) && listene2.equals(listener1);
     }
 
-    public static Clock[][] getClockss() {
-      return new Clock[][] {new Clock[] {Clock.systemUTC()}};
+    public static void register(Consumer<Boolean> listener, Object context) {
+      map.put(listener, context);
     }
 
-    @SuppressWarnings("WeakerAccess")
-    public static Clock mixClocks(Clock clock1, Clock clock2) {
-      return clock1;
+    public static void unregister(Consumer<Boolean> listener) {
+      map.remove(listener);
+    }
+
+    public static void register(Supplier<Boolean> listener, Object context) {
+      map.put(listener, context);
+    }
+
+    public static void unregister(Supplier<Boolean> listener) {
+      map.remove(listener);
+    }
+
+    public static int registrations() {
+      return map.size();
+    }
+
+    public static long consumers() {
+      return map.keySet().stream().filter(k -> k instanceof Consumer).count();
+    }
+
+    public static long suppliers() {
+      return map.keySet().stream().filter(k -> k instanceof Supplier).count();
     }
   }
 }
