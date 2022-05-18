@@ -9,6 +9,7 @@ import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.contexts.CompilationContext;
 import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.errors.dontwarn.DontWarnConfiguration;
+import com.android.tools.r8.experimental.startup.StartupOrder;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
@@ -201,12 +202,14 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
       DexApplication application, MainDexInfo mainDexInfo) {
     ClassToFeatureSplitMap classToFeatureSplitMap =
         ClassToFeatureSplitMap.createInitialClassToFeatureSplitMap(application.options);
+    StartupOrder startupOrder = StartupOrder.createInitialStartupOrder(application.options);
     AppInfoWithClassHierarchy appInfo =
         AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
             application,
             classToFeatureSplitMap,
             mainDexInfo,
-            GlobalSyntheticsStrategy.forSingleOutputMode());
+            GlobalSyntheticsStrategy.forSingleOutputMode(),
+            startupOrder);
     return new AppView<>(appInfo, WholeProgramOptimizations.ON, defaultTypeRewriter(appInfo));
   }
 

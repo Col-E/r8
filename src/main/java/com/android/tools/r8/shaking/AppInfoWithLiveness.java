@@ -9,6 +9,7 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult.isOverriding;
 
 import com.android.tools.r8.cf.CfVersion;
+import com.android.tools.r8.experimental.startup.StartupOrder;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -202,11 +203,12 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   // TODO(zerny): Clean up the constructors so we have just one.
   AppInfoWithLiveness(
-      CommittedItems syntheticItems,
+      CommittedItems committedItems,
       ClassToFeatureSplitMap classToFeatureSplitMap,
       MainDexInfo mainDexInfo,
-      Set<DexType> deadProtoTypes,
       MissingClasses missingClasses,
+      StartupOrder startupOrder,
+      Set<DexType> deadProtoTypes,
       Set<DexType> liveTypes,
       Set<DexMethod> targetedMethods,
       Set<DexMethod> failedMethodResolutionTargets,
@@ -239,7 +241,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexType> lockCandidates,
       Map<DexType, Visibility> initClassReferences,
       Set<DexMethod> recordFieldValuesReferences) {
-    super(syntheticItems, classToFeatureSplitMap, mainDexInfo, missingClasses);
+    super(committedItems, classToFeatureSplitMap, mainDexInfo, missingClasses, startupOrder);
     this.deadProtoTypes = deadProtoTypes;
     this.liveTypes = liveTypes;
     this.targetedMethods = targetedMethods;
@@ -281,8 +283,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         committedItems,
         previous.getClassToFeatureSplitMap(),
         previous.getMainDexInfo(),
-        previous.deadProtoTypes,
         previous.getMissingClasses(),
+        previous.getStartupOrder(),
+        previous.deadProtoTypes,
         CollectionUtils.addAll(previous.liveTypes, committedItems.getCommittedProgramTypes()),
         previous.targetedMethods,
         previous.failedMethodResolutionTargets,
@@ -326,8 +329,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.getSyntheticItems().commitPrunedItems(prunedItems),
         previous.getClassToFeatureSplitMap().withoutPrunedItems(prunedItems),
         previous.getMainDexInfo().withoutPrunedItems(prunedItems),
-        previous.deadProtoTypes,
         previous.getMissingClasses(),
+        previous.getStartupOrder().withoutPrunedItems(prunedItems),
+        previous.deadProtoTypes,
         pruneClasses(previous.liveTypes, prunedItems, executorService, futures),
         pruneMethods(previous.targetedMethods, prunedItems, executorService, futures),
         pruneMethods(previous.failedMethodResolutionTargets, prunedItems, executorService, futures),
@@ -531,8 +535,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         getSyntheticItems().commit(app()),
         getClassToFeatureSplitMap(),
         mainDexInfo,
-        deadProtoTypes,
         getMissingClasses(),
+        getStartupOrder(),
+        deadProtoTypes,
         liveTypes,
         targetedMethods,
         failedMethodResolutionTargets,
@@ -610,7 +615,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.getSyntheticItems().commit(previous.app()),
         previous.getClassToFeatureSplitMap(),
         previous.getMainDexInfo(),
-        previous.getMissingClasses());
+        previous.getMissingClasses(),
+        previous.getStartupOrder());
     this.deadProtoTypes = previous.deadProtoTypes;
     this.liveTypes = previous.liveTypes;
     this.targetedMethods = previous.targetedMethods;
@@ -1217,8 +1223,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         committedItems,
         getClassToFeatureSplitMap().rewrittenWithLens(lens),
         getMainDexInfo().rewrittenWithLens(getSyntheticItems(), lens),
-        deadProtoTypes,
         getMissingClasses(),
+        getStartupOrder().rewrittenWithLens(lens),
+        deadProtoTypes,
         lens.rewriteReferences(liveTypes),
         lens.rewriteReferences(targetedMethods),
         lens.rewriteReferences(failedMethodResolutionTargets),

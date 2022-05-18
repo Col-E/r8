@@ -7,6 +7,7 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.diagnostic.DefinitionContext;
 import com.android.tools.r8.diagnostic.internal.DefinitionContextUtils;
+import com.android.tools.r8.experimental.startup.StartupOrder;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -73,7 +74,8 @@ public class Tracer {
                 new ApplicationReader(inputApp, options, Timing.empty()).read().toDirect(),
                 ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
                 MainDexInfo.none(),
-                GlobalSyntheticsStrategy.forSingleOutputMode())),
+                GlobalSyntheticsStrategy.forSingleOutputMode(),
+                StartupOrder.empty())),
         diagnostics,
         type -> targetDescriptors.contains(type.toDescriptorString()));
   }

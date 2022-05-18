@@ -4096,11 +4096,12 @@ public class Enqueuer {
             appInfo.getSyntheticItems().commit(app),
             appInfo.getClassToFeatureSplitMap(),
             appInfo.getMainDexInfo(),
-            deadProtoTypes,
             mode.isInitialTreeShaking()
                 ? missingClassesBuilder.reportMissingClasses(
                     appView, lambdaSynthesizingContextOracle)
                 : missingClassesBuilder.assertNoMissingClasses(appView),
+            appInfo.getStartupOrder(),
+            deadProtoTypes,
             SetUtils.mapIdentityHashSet(liveTypes.getItems(), DexProgramClass::getType),
             Enqueuer.toDescriptorSet(targetedMethods.getItems()),
             failedMethodResolutionTargets,

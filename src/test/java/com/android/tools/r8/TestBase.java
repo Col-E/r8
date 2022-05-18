@@ -26,6 +26,7 @@ import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.experimental.startup.StartupOrder;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -776,7 +777,8 @@ public class TestBase {
         readApplicationForDexOutput(app, new InternalOptions()),
         ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
         MainDexInfo.none(),
-        GlobalSyntheticsStrategy.forSingleOutputMode());
+        GlobalSyntheticsStrategy.forSingleOutputMode(),
+        StartupOrder.empty());
   }
 
   protected static AppView<AppInfoWithClassHierarchy> computeAppViewWithClassHierarchy(

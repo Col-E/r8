@@ -7,6 +7,7 @@ package com.android.tools.r8.graph;
 import static com.android.tools.r8.utils.TraversalContinuation.doBreak;
 import static com.android.tools.r8.utils.TraversalContinuation.doContinue;
 
+import com.android.tools.r8.experimental.startup.StartupOrder;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.ir.analysis.type.InterfaceCollection;
 import com.android.tools.r8.ir.analysis.type.InterfaceCollection.Builder;
@@ -48,15 +49,18 @@ public class AppInfoWithClassHierarchy extends AppInfo {
       DexApplication application,
       ClassToFeatureSplitMap classToFeatureSplitMap,
       MainDexInfo mainDexInfo,
-      GlobalSyntheticsStrategy globalSyntheticsStrategy) {
+      GlobalSyntheticsStrategy globalSyntheticsStrategy,
+      StartupOrder startupOrder) {
     return new AppInfoWithClassHierarchy(
         SyntheticItems.createInitialSyntheticItems(application, globalSyntheticsStrategy),
         classToFeatureSplitMap,
         mainDexInfo,
-        MissingClasses.empty());
+        MissingClasses.empty(),
+        startupOrder);
   }
 
   private final ClassToFeatureSplitMap classToFeatureSplitMap;
+  private final StartupOrder startupOrder;
 
   /** Set of types that are mentioned in the program, but for which no definition exists. */
   // TODO(b/175659048): Consider hoisting to AppInfo to allow using MissingClasses in D8 desugar.
@@ -67,10 +71,12 @@ public class AppInfoWithClassHierarchy extends AppInfo {
       CommittedItems committedItems,
       ClassToFeatureSplitMap classToFeatureSplitMap,
       MainDexInfo mainDexInfo,
-      MissingClasses missingClasses) {
+      MissingClasses missingClasses,
+      StartupOrder startupOrder) {
     super(committedItems, mainDexInfo);
     this.classToFeatureSplitMap = classToFeatureSplitMap;
     this.missingClasses = missingClasses;
+    this.startupOrder = startupOrder;
   }
 
   // For desugaring.
@@ -80,6 +86,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     // TODO(b/175659048): Migrate the reporting of missing classes in D8 desugar to MissingClasses,
     //  and use the missing classes from AppInfo instead of MissingClasses.empty().
     this.missingClasses = MissingClasses.empty();
+    this.startupOrder = StartupOrder.empty();
   }
 
   public static AppInfoWithClassHierarchy createForDesugaring(AppInfo appInfo) {
@@ -89,7 +96,11 @@ public class AppInfoWithClassHierarchy extends AppInfo {
 
   public final AppInfoWithClassHierarchy rebuildWithClassHierarchy(CommittedItems commit) {
     return new AppInfoWithClassHierarchy(
-        commit, getClassToFeatureSplitMap(), getMainDexInfo(), getMissingClasses());
+        commit,
+        getClassToFeatureSplitMap(),
+        getMainDexInfo(),
+        getMissingClasses(),
+        getStartupOrder());
   }
 
   public AppInfoWithClassHierarchy rebuildWithClassHierarchy(
@@ -99,7 +110,8 @@ public class AppInfoWithClassHierarchy extends AppInfo {
         getSyntheticItems().commit(fn.apply(app())),
         getClassToFeatureSplitMap(),
         getMainDexInfo(),
-        getMissingClasses());
+        getMissingClasses(),
+        getStartupOrder());
   }
 
   @Override
@@ -110,7 +122,8 @@ public class AppInfoWithClassHierarchy extends AppInfo {
         getSyntheticItems().commit(app()),
         getClassToFeatureSplitMap(),
         mainDexInfo,
-        getMissingClasses());
+        getMissingClasses(),
+        getStartupOrder());
   }
 
   @Override
@@ -126,7 +139,8 @@ public class AppInfoWithClassHierarchy extends AppInfo {
         getSyntheticItems().commitPrunedItems(prunedItems),
         getClassToFeatureSplitMap().withoutPrunedItems(prunedItems),
         getMainDexInfo().withoutPrunedItems(prunedItems),
-        getMissingClasses());
+        getMissingClasses(),
+        getStartupOrder().withoutPrunedItems(prunedItems));
   }
 
   public ClassToFeatureSplitMap getClassToFeatureSplitMap() {
@@ -135,6 +149,10 @@ public class AppInfoWithClassHierarchy extends AppInfo {
 
   public MissingClasses getMissingClasses() {
     return missingClasses;
+  }
+
+  public StartupOrder getStartupOrder() {
+    return startupOrder;
   }
 
   @Override
