@@ -254,22 +254,22 @@ public class DexMethodHandle extends IndexedDexItem
     return builder.toString();
   }
 
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
     if (indexedItems.addMethodHandle(this)) {
       if (member.isDexField()) {
         DexField field = member.asDexField();
-        field.collectIndexedItems(indexedItems);
+        field.collectIndexedItems(appView, indexedItems);
       } else {
         DexMethod method = member.asDexMethod();
         if (rewrittenTarget != null) {
           // If there is a rewritten target we need to use that to get the right name of the
           // targeted method (only member rebound methods take part in naming). The rest of the
           // indexed items are collected from method.
-          if (method.collectIndexedItemsExceptName(indexedItems)) {
-            rewrittenTarget.collectIndexedItemsName(indexedItems);
+          if (method.collectIndexedItemsExceptName(appView, indexedItems)) {
+            rewrittenTarget.collectIndexedItemsName(appView, indexedItems);
           }
         } else {
-          method.collectIndexedItems(indexedItems);
+          method.collectIndexedItems(appView, indexedItems);
         }
       }
     }

@@ -68,13 +68,13 @@ public final class ProgramMethod extends DexClassAndMethod
       AppView<?> appView, IndexedItemCollection indexedItems, LensCodeRewriterUtils rewriter) {
     DexEncodedMethod definition = getDefinition();
     assert !definition.isObsolete();
-    getReference().collectIndexedItems(indexedItems);
+    getReference().collectIndexedItems(appView, indexedItems);
     if (definition.hasCode()) {
       Code code = definition.getCode();
       code.asDexWritableCode().collectIndexedItems(appView, indexedItems, this, rewriter);
     }
-    definition.annotations().collectIndexedItems(indexedItems);
-    definition.parameterAnnotationsList.collectIndexedItems(indexedItems);
+    definition.annotations().collectIndexedItems(appView, indexedItems);
+    definition.parameterAnnotationsList.collectIndexedItems(appView, indexedItems);
   }
 
   public boolean canBeConvertedToAbstractMethod(AppView<AppInfoWithLiveness> appView) {

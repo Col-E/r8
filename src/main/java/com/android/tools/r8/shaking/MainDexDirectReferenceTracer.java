@@ -93,7 +93,7 @@ public class MainDexDirectReferenceTracer {
   }
 
   private void traceAnnotationsDirectDependencies(DexAnnotationSet annotations) {
-    annotations.collectIndexedItems(annotationDirectReferenceCollector);
+    annotations.collectIndexedItems(appView, annotationDirectReferenceCollector);
   }
 
   private void traceMethodDirectDependencies(DexMethod method, Consumer<DexType> consumer) {

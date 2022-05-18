@@ -84,7 +84,7 @@ public class ThrowExceptionCode extends Code implements DexWritableCode {
     rewriter
         .dexItemFactory()
         .createInstanceInitializer(exceptionType)
-        .collectIndexedItems(indexedItems);
+        .collectIndexedItems(appView, indexedItems);
   }
 
   @Override

@@ -45,7 +45,7 @@ public class DexItemBasedConstString extends DexFormat21c<DexReference> {
       IndexedItemCollection indexedItems,
       ProgramMethod context,
       LensCodeRewriterUtils rewriter) {
-    getItem().collectIndexedItems(indexedItems);
+    getItem().collectIndexedItems(appView, indexedItems);
   }
 
   @Override

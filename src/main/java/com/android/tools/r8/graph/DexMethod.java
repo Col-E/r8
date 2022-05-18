@@ -174,23 +174,23 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
-    if (collectIndexedItemsExceptName(indexedItems)) {
-      collectIndexedItemsName(indexedItems);
+  public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
+    if (collectIndexedItemsExceptName(appView, indexedItems)) {
+      collectIndexedItemsName(appView, indexedItems);
     }
   }
 
-  boolean collectIndexedItemsExceptName(IndexedItemCollection indexedItems) {
+  boolean collectIndexedItemsExceptName(AppView<?> appView, IndexedItemCollection indexedItems) {
     if (indexedItems.addMethod(this)) {
-      holder.collectIndexedItems(indexedItems);
-      proto.collectIndexedItems(indexedItems);
+      holder.collectIndexedItems(appView, indexedItems);
+      proto.collectIndexedItems(appView, indexedItems);
       return true;
     }
     return false;
   }
 
-  void collectIndexedItemsName(IndexedItemCollection indexedItems) {
-    indexedItems.getRenamedName(this).collectIndexedItems(indexedItems);
+  void collectIndexedItemsName(AppView<?> appView, IndexedItemCollection indexedItems) {
+    appView.getNamingLens().lookupName(this).collectIndexedItems(indexedItems);
   }
 
   @Override

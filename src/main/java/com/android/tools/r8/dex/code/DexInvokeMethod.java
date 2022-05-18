@@ -35,7 +35,7 @@ public abstract class DexInvokeMethod extends DexFormat35c<DexMethod> {
             .graphLens()
             .lookupMethod(getMethod(), context.getReference(), getInvokeType())
             .getReference();
-    rewritten.collectIndexedItems(indexedItems);
+    rewritten.collectIndexedItems(appView, indexedItems);
   }
 
   @Override

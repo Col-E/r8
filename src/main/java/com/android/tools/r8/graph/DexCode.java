@@ -604,10 +604,10 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       }
     }
     if (debugInfo != null) {
-      getDebugInfoForWriting().collectIndexedItems(indexedItems, appView.graphLens());
+      getDebugInfoForWriting().collectIndexedItems(appView, indexedItems);
     }
     for (TryHandler handler : handlers) {
-      handler.collectIndexedItems(indexedItems, appView.graphLens());
+      handler.collectIndexedItems(appView, indexedItems);
     }
   }
 
@@ -813,9 +813,9 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       return Equatable.equalsImpl(this, other);
     }
 
-    public void collectIndexedItems(IndexedItemCollection indexedItems, GraphLens graphLens) {
+    public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
       for (TypeAddrPair pair : pairs) {
-        pair.collectIndexedItems(indexedItems, graphLens);
+        pair.collectIndexedItems(appView, indexedItems);
       }
     }
 
@@ -877,9 +877,9 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
         return lens.lookupType(type);
       }
 
-      public void collectIndexedItems(IndexedItemCollection indexedItems, GraphLens graphLens) {
-        DexType rewritten = getType(graphLens);
-        rewritten.collectIndexedItems(indexedItems);
+      public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
+        DexType rewritten = getType(appView.graphLens());
+        rewritten.collectIndexedItems(appView, indexedItems);
       }
 
       @Override

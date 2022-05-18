@@ -30,7 +30,7 @@ abstract class DexSgetOrSput extends DexFormat21c<DexField> {
       ProgramMethod context,
       LensCodeRewriterUtils rewriter) {
     DexField rewritten = appView.graphLens().lookupField(getField());
-    rewritten.collectIndexedItems(indexedItems);
+    rewritten.collectIndexedItems(appView, indexedItems);
   }
 
   @Override

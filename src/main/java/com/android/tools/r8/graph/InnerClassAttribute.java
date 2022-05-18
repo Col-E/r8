@@ -87,10 +87,10 @@ public class InnerClassAttribute {
         access);
   }
 
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
-    inner.collectIndexedItems(indexedItems);
+  public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
+    inner.collectIndexedItems(appView, indexedItems);
     if (outer != null) {
-      outer.collectIndexedItems(indexedItems);
+      outer.collectIndexedItems(appView, indexedItems);
     }
     if (innerName != null) {
       innerName.collectIndexedItems(indexedItems);

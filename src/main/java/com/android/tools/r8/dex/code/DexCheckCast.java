@@ -66,7 +66,7 @@ public class DexCheckCast extends DexFormat21c<DexType> {
       ProgramMethod context,
       LensCodeRewriterUtils rewriter) {
     DexType rewritten = appView.graphLens().lookupType(getType());
-    rewritten.collectIndexedItems(indexedItems);
+    rewritten.collectIndexedItems(appView, indexedItems);
   }
 
   @Override

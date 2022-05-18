@@ -51,7 +51,7 @@ public class DexInvokeCustomRange extends DexFormat3rc<DexCallSite> {
       ProgramMethod context,
       LensCodeRewriterUtils rewriter) {
     DexCallSite rewritten = rewriter.rewriteCallSite(getCallSite(), context);
-    rewritten.collectIndexedItems(indexedItems);
+    rewritten.collectIndexedItems(appView, indexedItems);
   }
 
   @Override

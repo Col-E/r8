@@ -119,9 +119,9 @@ public class ParameterAnnotationsList extends DexItem
     return false;
   }
 
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
     for (DexAnnotationSet value : values) {
-      value.collectIndexedItems(indexedItems);
+      value.collectIndexedItems(appView, indexedItems);
     }
   }
 

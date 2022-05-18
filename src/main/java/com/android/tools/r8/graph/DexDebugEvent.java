@@ -23,7 +23,7 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
 
   public static final DexDebugEvent[] EMPTY_ARRAY = {};
 
-  public void collectIndexedItems(IndexedItemCollection collection, GraphLens graphLens) {
+  public void collectIndexedItems(AppView<?> appView, IndexedItemCollection collection) {
     // Empty by default.
   }
 
@@ -350,13 +350,13 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection collection, GraphLens graphLens) {
+    public void collectIndexedItems(AppView<?> appView, IndexedItemCollection collection) {
       if (name != null) {
         name.collectIndexedItems(collection);
       }
       if (type != null) {
-        DexType rewritten = graphLens.lookupType(type);
-        rewritten.collectIndexedItems(collection);
+        DexType rewritten = appView.graphLens().lookupType(type);
+        rewritten.collectIndexedItems(appView, collection);
       }
       if (signature != null) {
         signature.collectIndexedItems(collection);
@@ -524,7 +524,7 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection collection, GraphLens graphLens) {
+    public void collectIndexedItems(AppView<?> appView, IndexedItemCollection collection) {
       fileName.collectIndexedItems(collection);
     }
 

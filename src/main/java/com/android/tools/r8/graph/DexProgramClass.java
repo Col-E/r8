@@ -403,27 +403,27 @@ public class DexProgramClass extends DexClass
   public void collectIndexedItems(
       AppView<?> appView, IndexedItemCollection indexedItems, LensCodeRewriterUtils rewriter) {
     if (indexedItems.addClass(this)) {
-      type.collectIndexedItems(indexedItems);
+      type.collectIndexedItems(appView, indexedItems);
       if (superType != null) {
-        superType.collectIndexedItems(indexedItems);
+        superType.collectIndexedItems(appView, indexedItems);
       } else {
         assert type.toDescriptorString().equals("Ljava/lang/Object;");
       }
       if (sourceFile != null) {
         sourceFile.collectIndexedItems(indexedItems);
       }
-      annotations().collectIndexedItems(indexedItems);
+      annotations().collectIndexedItems(appView, indexedItems);
       if (interfaces != null) {
-        interfaces.collectIndexedItems(indexedItems);
+        interfaces.collectIndexedItems(appView, indexedItems);
       }
       if (getEnclosingMethodAttribute() != null) {
-        getEnclosingMethodAttribute().collectIndexedItems(indexedItems);
+        getEnclosingMethodAttribute().collectIndexedItems(appView, indexedItems);
       }
       for (InnerClassAttribute attribute : getInnerClasses()) {
-        attribute.collectIndexedItems(indexedItems);
+        attribute.collectIndexedItems(appView, indexedItems);
       }
       // We are explicitly not adding items referenced in signatures.
-      forEachProgramField(field -> field.collectIndexedItems(indexedItems));
+      forEachProgramField(field -> field.collectIndexedItems(appView, indexedItems));
       forEachProgramMethod(method -> method.collectIndexedItems(appView, indexedItems, rewriter));
     }
   }

@@ -160,13 +160,13 @@ public final class DexCallSite extends IndexedDexItem implements StructuralItem<
     return builder.toString();
   }
 
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
     if (indexedItems.addCallSite(this)) {
       methodName.collectIndexedItems(indexedItems);
-      methodProto.collectIndexedItems(indexedItems);
-      bootstrapMethod.collectIndexedItems(indexedItems);
+      methodProto.collectIndexedItems(appView, indexedItems);
+      bootstrapMethod.collectIndexedItems(appView, indexedItems);
       for (DexValue arg : bootstrapArgs) {
-        arg.collectIndexedItems(indexedItems);
+        arg.collectIndexedItems(appView, indexedItems);
       }
     }
   }

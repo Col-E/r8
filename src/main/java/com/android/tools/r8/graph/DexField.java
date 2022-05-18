@@ -143,11 +143,11 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
     if (indexedItems.addField(this)) {
-      holder.collectIndexedItems(indexedItems);
-      type.collectIndexedItems(indexedItems);
-      indexedItems.getRenamedName(this).collectIndexedItems(indexedItems);
+      holder.collectIndexedItems(appView, indexedItems);
+      type.collectIndexedItems(appView, indexedItems);
+      appView.getNamingLens().lookupName(this).collectIndexedItems(indexedItems);
     }
   }
 

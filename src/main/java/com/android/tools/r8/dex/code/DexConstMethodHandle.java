@@ -100,7 +100,7 @@ public class DexConstMethodHandle extends DexFormat21c<DexMethodHandle> {
     DexMethodHandle rewritten =
         rewriter.rewriteDexMethodHandle(
             getMethodHandle(), MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY, context);
-    rewritten.collectIndexedItems(indexedItems);
+    rewritten.collectIndexedItems(appView, indexedItems);
   }
 
   @Override

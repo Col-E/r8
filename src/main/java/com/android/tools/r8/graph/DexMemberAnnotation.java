@@ -44,9 +44,9 @@ public class DexMemberAnnotation<R extends DexMember<?, R>, S extends DexItem> e
       super(item, annotations);
     }
 
-    public void collectIndexedItems(IndexedItemCollection indexedItems) {
-      item.collectIndexedItems(indexedItems);
-      annotations.collectIndexedItems(indexedItems);
+    public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
+      item.collectIndexedItems(appView, indexedItems);
+      annotations.collectIndexedItems(appView, indexedItems);
     }
   }
 
@@ -56,9 +56,9 @@ public class DexMemberAnnotation<R extends DexMember<?, R>, S extends DexItem> e
       super(item, annotations);
     }
 
-    public void collectIndexedItems(IndexedItemCollection indexedItems) {
-      item.collectIndexedItems(indexedItems);
-      annotations.collectIndexedItems(indexedItems);
+    public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
+      item.collectIndexedItems(appView, indexedItems);
+      annotations.collectIndexedItems(appView, indexedItems);
     }
   }
 
@@ -69,9 +69,9 @@ public class DexMemberAnnotation<R extends DexMember<?, R>, S extends DexItem> e
       super(item, annotations);
     }
 
-    public void collectIndexedItems(IndexedItemCollection indexedItems) {
-      item.collectIndexedItems(indexedItems);
-      annotations.collectIndexedItems(indexedItems);
+    public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
+      item.collectIndexedItems(appView, indexedItems);
+      annotations.collectIndexedItems(appView, indexedItems);
     }
   }
 }

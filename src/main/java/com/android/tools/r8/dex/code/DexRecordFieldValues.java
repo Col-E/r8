@@ -43,7 +43,7 @@ public class DexRecordFieldValues extends DexInstruction {
       ProgramMethod context,
       LensCodeRewriterUtils rewriter) {
     for (DexField field : fields) {
-      field.collectIndexedItems(indexedItems);
+      field.collectIndexedItems(appView, indexedItems);
     }
   }
 

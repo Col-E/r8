@@ -41,10 +41,10 @@ public class DexEncodedAnnotation extends DexItem implements StructuralItem<DexE
     return DexEncodedAnnotation::specify;
   }
 
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
-    type.collectIndexedItems(indexedItems);
+  public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
+    type.collectIndexedItems(appView, indexedItems);
     for (DexAnnotationElement element : elements) {
-      element.collectIndexedItems(indexedItems);
+      element.collectIndexedItems(appView, indexedItems);
     }
   }
 

@@ -83,8 +83,8 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
     String[] lines = stdOut.split("\n");
     for (int i = 0; i < lines.length; i += 4) {
       String className = lines[i];
-      String[] interfaces1 = lines[i + 1].split("(, com|, interface|, j)");
-      String[] interfaces2 = lines[i + 2].split("(, com|, interface|, j)");
+      String[] interfaces1 = lines[i + 1].split("(appView, com|, interface|, j)");
+      String[] interfaces2 = lines[i + 2].split("(appView, com|, interface|, j)");
       assertEquals(
           "Invalid number of interfaces in "
               + className

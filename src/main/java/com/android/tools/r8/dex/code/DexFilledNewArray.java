@@ -50,7 +50,7 @@ public class DexFilledNewArray extends DexFormat35c<DexType> {
       ProgramMethod context,
       LensCodeRewriterUtils rewriter) {
     DexType rewritten = appView.graphLens().lookupType(getType());
-    rewritten.collectIndexedItems(indexedItems);
+    rewritten.collectIndexedItems(appView, indexedItems);
   }
 
   public DexType getType() {

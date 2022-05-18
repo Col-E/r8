@@ -61,7 +61,7 @@ public class DexInstanceOf extends DexFormat22c<DexType> {
       ProgramMethod context,
       LensCodeRewriterUtils rewriter) {
     DexType rewritten = appView.graphLens().lookupType(getType());
-    rewritten.collectIndexedItems(indexedItems);
+    rewritten.collectIndexedItems(appView, indexedItems);
   }
 
   public DexType getType() {

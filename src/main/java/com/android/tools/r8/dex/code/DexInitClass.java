@@ -55,7 +55,7 @@ public class DexInitClass extends DexBase2Format {
     // that the init class lens maps classes in the final program to fields in the final program.
     DexType rewrittenClass = appView.graphLens().lookupType(clazz);
     DexField clinitField = appView.initClassLens().getInitClassField(rewrittenClass);
-    clinitField.collectIndexedItems(indexedItems);
+    clinitField.collectIndexedItems(appView, indexedItems);
   }
 
   @Override

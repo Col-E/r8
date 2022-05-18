@@ -101,8 +101,8 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
     return visibility + " " + annotation;
   }
 
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
-    annotation.collectIndexedItems(indexedItems);
+  public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
+    annotation.collectIndexedItems(appView, indexedItems);
   }
 
   @Override

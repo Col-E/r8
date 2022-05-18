@@ -14,12 +14,12 @@ public class ProgramField extends DexClassAndField
     super(holder, field);
   }
 
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
-    getReference().collectIndexedItems(indexedItems);
+  public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
+    getReference().collectIndexedItems(appView, indexedItems);
     DexEncodedField definition = getDefinition();
-    definition.annotations().collectIndexedItems(indexedItems);
+    definition.annotations().collectIndexedItems(appView, indexedItems);
     if (definition.isStatic() && definition.hasExplicitStaticValue()) {
-      definition.getStaticValue().collectIndexedItems(indexedItems);
+      definition.getStaticValue().collectIndexedItems(appView, indexedItems);
     }
   }
 

@@ -144,7 +144,7 @@ public abstract class DexDebugInfo extends CachedHashValueDexItem
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection indexedItems, GraphLens graphLens) {
+    public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
       // No indexed items to collect.
     }
 
@@ -255,14 +255,14 @@ public abstract class DexDebugInfo extends CachedHashValueDexItem
       return visitor.visit(this, other.asEventBasedInfo(), EventBasedDebugInfo::specify);
     }
 
-    public void collectIndexedItems(IndexedItemCollection indexedItems, GraphLens graphLens) {
+    public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
       for (DexString parameter : parameters) {
         if (parameter != null) {
           parameter.collectIndexedItems(indexedItems);
         }
       }
       for (DexDebugEvent event : events) {
-        event.collectIndexedItems(indexedItems, graphLens);
+        event.collectIndexedItems(appView, indexedItems);
       }
     }
 
@@ -337,8 +337,8 @@ public abstract class DexDebugInfo extends CachedHashValueDexItem
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection indexedItems, GraphLens graphLens) {
-      super.collectIndexedItems(indexedItems, graphLens);
+    public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
+      super.collectIndexedItems(appView, indexedItems);
     }
 
     @Override

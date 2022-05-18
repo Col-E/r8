@@ -2281,7 +2281,7 @@ public class Enqueuer {
     // annotation.
     AnnotationReferenceMarker referenceMarker =
         new AnnotationReferenceMarker(annotation, annotatedItem);
-    annotation.annotation.collectIndexedItems(referenceMarker);
+    annotation.annotation.collectIndexedItems(appView, referenceMarker);
   }
 
   private boolean shouldKeepAnnotation(

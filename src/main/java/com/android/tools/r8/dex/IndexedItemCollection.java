@@ -98,16 +98,4 @@ public interface IndexedItemCollection {
    * @return true if the method handle was not in the pool before.
    */
   boolean addMethodHandle(DexMethodHandle methodHandle);
-
-  default DexString getRenamedName(DexMethod method) {
-    return method.name;
-  }
-
-  default DexString getRenamedName(DexField field) {
-    return field.name;
-  }
-
-  default DexString getRenamedDescriptor(DexType type) {
-    return type.descriptor;
-  }
 }

@@ -51,7 +51,7 @@ public class DexNewArray extends DexFormat22c<DexType> {
       ProgramMethod context,
       LensCodeRewriterUtils rewriter) {
     DexType rewritten = appView.graphLens().lookupType(getType());
-    rewritten.collectIndexedItems(indexedItems);
+    rewritten.collectIndexedItems(appView, indexedItems);
   }
 
   @Override

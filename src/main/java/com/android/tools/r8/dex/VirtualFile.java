@@ -609,27 +609,6 @@ public class VirtualFile {
     int getNumberOfFields() {
       return fields.size();
     }
-
-    int getNumberOfStrings() {
-      return strings.size();
-    }
-
-    @Override
-    public DexString getRenamedDescriptor(DexType type) {
-      return namingLens.lookupDescriptor(type);
-    }
-
-    @Override
-    public DexString getRenamedName(DexMethod method) {
-      DexMethod mappedMethod = graphLens.lookupMethod(method);
-      assert namingLens.verifyRenamingConsistentWithResolution(mappedMethod);
-      return namingLens.lookupName(mappedMethod);
-    }
-
-    @Override
-    public DexString getRenamedName(DexField field) {
-      return namingLens.lookupName(graphLens.lookupField(field));
-    }
   }
 
   public static class IndexedItemTransaction implements IndexedItemCollection {
@@ -708,22 +687,6 @@ public class VirtualFile {
     @Override
     public boolean addMethodHandle(DexMethodHandle methodHandle) {
       return maybeInsert(methodHandle, methodHandles, base.methodHandles);
-    }
-
-    @Override
-    public DexString getRenamedDescriptor(DexType type) {
-      return getNamingLens().lookupDescriptor(type);
-    }
-
-    @Override
-    public DexString getRenamedName(DexMethod method) {
-      assert getNamingLens().verifyRenamingConsistentWithResolution(method);
-      return getNamingLens().lookupName(method);
-    }
-
-    @Override
-    public DexString getRenamedName(DexField field) {
-      return getNamingLens().lookupName(field);
     }
 
     int getNumberOfMethods() {

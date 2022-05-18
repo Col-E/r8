@@ -109,9 +109,9 @@ public class DexTypeList extends DexItem implements Iterable<DexType>, Structura
     return Arrays.hashCode(values);
   }
 
-  void collectIndexedItems(IndexedItemCollection indexedItems) {
+  void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
     for (DexType type : values) {
-      type.collectIndexedItems(indexedItems);
+      type.collectIndexedItems(appView, indexedItems);
     }
   }
 

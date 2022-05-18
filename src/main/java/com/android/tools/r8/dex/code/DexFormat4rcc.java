@@ -119,10 +119,10 @@ public abstract class DexFormat4rcc extends DexBase4Format {
     MethodLookupResult lookup =
         appView.graphLens().lookupMethod(getMethod(), context.getReference(), Type.POLYMORPHIC);
     assert lookup.getType() == Type.POLYMORPHIC;
-    lookup.getReference().collectIndexedItems(indexedItems);
+    lookup.getReference().collectIndexedItems(appView, indexedItems);
 
     DexProto rewrittenProto = rewriter.rewriteProto(getProto());
-    rewrittenProto.collectIndexedItems(indexedItems);
+    rewrittenProto.collectIndexedItems(appView, indexedItems);
   }
 
   @Override

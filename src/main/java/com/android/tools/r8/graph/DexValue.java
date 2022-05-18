@@ -350,7 +350,7 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     dest.putByte((byte) ((arg << 5) | kind.toByte()));
   }
 
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
     // Intentionally left empty
   }
 
@@ -1218,7 +1218,7 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
       value.collectIndexedItems(indexedItems);
     }
 
@@ -1305,8 +1305,8 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection indexedItems) {
-      value.collectIndexedItems(indexedItems);
+    public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
+      value.collectIndexedItems(appView, indexedItems);
     }
 
     public NameComputationInfo<?> getNameComputationInfo() {
@@ -1384,8 +1384,8 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection indexedItems) {
-      value.collectIndexedItems(indexedItems);
+    public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
+      value.collectIndexedItems(appView, indexedItems);
     }
 
     @Override
@@ -1426,8 +1426,8 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection indexedItems) {
-      value.collectIndexedItems(indexedItems);
+    public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
+      value.collectIndexedItems(appView, indexedItems);
     }
 
     @Override
@@ -1468,8 +1468,8 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection indexedItems) {
-      value.collectIndexedItems(indexedItems);
+    public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
+      value.collectIndexedItems(appView, indexedItems);
     }
 
     @Override
@@ -1510,8 +1510,8 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection indexedItems) {
-      value.collectIndexedItems(indexedItems);
+    public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
+      value.collectIndexedItems(appView, indexedItems);
     }
 
     @Override
@@ -1562,8 +1562,8 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection indexedItems) {
-      value.collectIndexedItems(indexedItems);
+    public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
+      value.collectIndexedItems(appView, indexedItems);
     }
 
     @Override
@@ -1606,9 +1606,9 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
       for (DexValue value : values) {
-        value.collectIndexedItems(indexedItems);
+        value.collectIndexedItems(appView, indexedItems);
       }
     }
 
@@ -1719,8 +1719,8 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection indexedItems) {
-      value.collectIndexedItems(indexedItems);
+    public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
+      value.collectIndexedItems(appView, indexedItems);
     }
 
     @Override
@@ -1994,8 +1994,8 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection indexedItems) {
-      value.collectIndexedItems(indexedItems);
+    public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
+      value.collectIndexedItems(appView, indexedItems);
     }
 
     @Override

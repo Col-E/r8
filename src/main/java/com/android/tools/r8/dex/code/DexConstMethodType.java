@@ -94,7 +94,7 @@ public class DexConstMethodType extends DexFormat21c<DexProto> {
       ProgramMethod context,
       LensCodeRewriterUtils rewriter) {
     DexProto rewritten = rewriter.rewriteProto(getMethodType());
-    rewritten.collectIndexedItems(indexedItems);
+    rewritten.collectIndexedItems(appView, indexedItems);
   }
 
   @Override

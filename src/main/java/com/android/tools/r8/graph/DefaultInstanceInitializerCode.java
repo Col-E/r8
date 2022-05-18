@@ -178,7 +178,8 @@ public class DefaultInstanceInitializerCode extends Code
       IndexedItemCollection indexedItems,
       ProgramMethod context,
       LensCodeRewriterUtils rewriter) {
-    getParentConstructor(context, rewriter.dexItemFactory()).collectIndexedItems(indexedItems);
+    getParentConstructor(context, rewriter.dexItemFactory())
+        .collectIndexedItems(appView, indexedItems);
   }
 
   @Override

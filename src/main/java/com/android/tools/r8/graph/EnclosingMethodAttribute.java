@@ -81,12 +81,12 @@ public final class EnclosingMethodAttribute {
         enclosingMethod == ((EnclosingMethodAttribute) obj).enclosingMethod;
   }
 
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
     if (enclosingClass != null) {
-      enclosingClass.collectIndexedItems(indexedItems);
+      enclosingClass.collectIndexedItems(appView, indexedItems);
     }
     if (enclosingMethod != null) {
-      enclosingMethod.collectIndexedItems(indexedItems);
+      enclosingMethod.collectIndexedItems(appView, indexedItems);
     }
   }
 

@@ -45,7 +45,7 @@ public abstract class DexReference extends IndexedDexItem {
     throw new Unreachable();
   }
 
-  public abstract void collectIndexedItems(IndexedItemCollection indexedItems);
+  public abstract void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems);
 
   public abstract int compareTo(DexReference other);
 

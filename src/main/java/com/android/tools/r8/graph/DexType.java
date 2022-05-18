@@ -238,9 +238,9 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection collection) {
+  public void collectIndexedItems(AppView<?> appView, IndexedItemCollection collection) {
     if (collection.addType(this)) {
-      collection.getRenamedDescriptor(this).collectIndexedItems(collection);
+      appView.getNamingLens().lookupDescriptor(this).collectIndexedItems(collection);
     }
   }
 

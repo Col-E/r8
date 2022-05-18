@@ -96,11 +96,11 @@ public class DexProto extends IndexedDexItem implements NamingLensComparable<Dex
     return "Proto " + shorty + " " + returnType + " " + parameters;
   }
 
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
     if (indexedItems.addProto(this)) {
       shorty.collectIndexedItems(indexedItems);
-      returnType.collectIndexedItems(indexedItems);
-      parameters.collectIndexedItems(indexedItems);
+      returnType.collectIndexedItems(appView, indexedItems);
+      parameters.collectIndexedItems(appView, indexedItems);
     }
   }
 

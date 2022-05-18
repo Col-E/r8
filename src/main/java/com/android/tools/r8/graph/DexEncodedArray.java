@@ -15,9 +15,9 @@ public class DexEncodedArray extends DexItem {
     this.values = values;
   }
 
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
     for (DexValue value : values) {
-      value.collectIndexedItems(indexedItems);
+      value.collectIndexedItems(appView, indexedItems);
     }
   }
 

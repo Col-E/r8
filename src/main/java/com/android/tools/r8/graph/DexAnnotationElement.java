@@ -60,9 +60,9 @@ public class DexAnnotationElement extends DexItem implements StructuralItem<DexA
     return name + "=" + value;
   }
 
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
     name.collectIndexedItems(indexedItems);
-    value.collectIndexedItems(indexedItems);
+    value.collectIndexedItems(appView, indexedItems);
   }
 
   @Override
