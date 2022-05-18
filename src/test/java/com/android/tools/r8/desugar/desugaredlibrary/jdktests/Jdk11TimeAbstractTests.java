@@ -58,8 +58,7 @@ public abstract class Jdk11TimeAbstractTests extends DesugaredLibraryTestBase {
   public static List<Object[]> data() {
     return buildParameters(
         // TODO(134732760): Support Dalvik VMs, currently fails because libjavacrypto is required
-        // and
-        // present only in ART runtimes.
+        // and present only in ART runtimes.
         getTestParameters()
             .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
             .withAllApiLevels()
@@ -174,9 +173,10 @@ public abstract class Jdk11TimeAbstractTests extends DesugaredLibraryTestBase {
         "test.java.time.temporal.TestDateTimeBuilderCombinations",
         "test.java.time.temporal.TestJulianFields",
         "test.java.time.temporal.TestChronoUnit",
-        "test.java.time.temporal.TestDateTimeValueRange",
-        "test.java.time.temporal.TestIsoWeekFields",
+        "test.java.time.temporal.TestDateTimeValueRange"
       };
+  static final String[] RAW_TEMPORAL_SUCCESSES_BUT_12 =
+      new String[] {"test.java.time.temporal.TestIsoWeekFields"};
   static final String[] FORMAT_CHRONO_SUCCESSES =
       new String[] {
         "test.java.time.format.TestFractionPrinterParser",
@@ -190,20 +190,24 @@ public abstract class Jdk11TimeAbstractTests extends DesugaredLibraryTestBase {
         "test.java.time.format.TestZoneOffsetParser",
         "test.java.time.format.TestReducedParser",
         "test.java.time.format.TestDateTimeParsing",
-        "test.java.time.format.TestDateTimeTextProviderWithLocale",
         "test.java.time.format.TestSettingsParser",
         "test.java.time.format.TestNumberParser",
         "test.java.time.format.TestTextParserWithLocale",
         "test.java.time.format.TestTextPrinterWithLocale",
         "test.java.time.format.TestReducedPrinter",
         "test.java.time.format.TestCharLiteralParser",
-        "test.java.time.format.TestUnicodeExtension",
-        "test.java.time.format.TestDateTimeFormatterBuilderWithLocale",
         "test.java.time.chrono.TestChronologyPerf",
         "test.java.time.chrono.TestExampleCode",
         "test.java.time.chrono.TestJapaneseChronology",
         "test.java.time.chrono.TestChronoLocalDate",
         "test.java.time.chrono.TestIsoChronoImpl",
+        "test.java.time.chrono.TestUmmAlQuraChronology",
+      };
+  static final String[] FORMAT_CHRONO_SUCCESSES_UP_TO_11 =
+      new String[] {
+        "test.java.time.format.TestDateTimeTextProviderWithLocale",
+        "test.java.time.format.TestUnicodeExtension",
+        "test.java.time.format.TestDateTimeFormatterBuilderWithLocale",
         "test.java.time.chrono.TestUmmAlQuraChronology",
       };
 
