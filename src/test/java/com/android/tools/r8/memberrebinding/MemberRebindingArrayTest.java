@@ -4,10 +4,6 @@
 
 package com.android.tools.r8.memberrebinding;
 
-import static org.hamcrest.core.StringContains.containsString;
-import static org.junit.Assert.assertThrows;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -40,21 +36,14 @@ public class MemberRebindingArrayTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    // TODO(b/233048876): We should not fail for arrays.
-    assertThrows(
-        CompilationFailedException.class,
-        () -> {
-          testForR8(parameters.getBackend())
-              .addProgramClassFileData(getMainWithRewrittenEqualsAndHashCode())
-              .addKeepMainRule(Main.class)
-              .setMinApi(parameters.getApiLevel())
-              .addOptionsModification(
-                  options -> options.apiModelingOptions().disableApiCallerIdentification())
-              .compileWithExpectedDiagnostics(
-                  diagnostics ->
-                      diagnostics.assertErrorMessageThatMatches(
-                          containsString("Cannot lookup definition for type: java.lang.String[]")));
-        });
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(getMainWithRewrittenEqualsAndHashCode())
+        .addKeepMainRule(Main.class)
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(
+            options -> options.apiModelingOptions().disableApiCallerIdentification())
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   private byte[] getMainWithRewrittenEqualsAndHashCode() throws Exception {

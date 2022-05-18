@@ -291,6 +291,14 @@ public class MemberRebindingAnalysis {
             return;
           }
 
+          if (method.getHolderType().isArrayType()) {
+            assert resolutionResult.getResolvedHolder().getType()
+                == appView.dexItemFactory().objectType;
+            lensBuilder.map(
+                method, resolutionResult.getResolvedMethod().getReference(), invokeType);
+            return;
+          }
+
           // TODO(b/128404854) Rebind to the lowest library class or program class. For now we allow
           //  searching in library for methods, but this should be done on classpath instead.
           DexClassAndMethod resolvedMethod = resolutionResult.getResolutionPair();
