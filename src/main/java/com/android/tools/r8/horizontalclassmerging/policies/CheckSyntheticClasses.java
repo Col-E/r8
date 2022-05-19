@@ -25,7 +25,8 @@ public class CheckSyntheticClasses extends SingleClassPolicy {
     if (!options.isSyntheticMergingEnabled() && syntheticItems.isSyntheticClass(clazz)) {
       return false;
     }
-    if (options.isRestrictedToSynthetics() && !syntheticItems.isSyntheticClass(clazz)) {
+    if (options.isRestrictedToSynthetics()
+        && !syntheticItems.isSyntheticClassEligibleForMerging(clazz)) {
       return false;
     }
     return true;

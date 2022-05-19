@@ -62,6 +62,21 @@ import org.objectweb.asm.ClassWriter;
 
 public class SyntheticItems implements SyntheticDefinitionsProvider {
 
+  public boolean isSyntheticClassEligibleForMerging(DexProgramClass clazz) {
+    SyntheticDefinition<?, ?, ?> definition = pending.definitions.get(clazz.type);
+    if (definition != null) {
+      return definition.getKind().isShareable();
+    }
+    Iterable<SyntheticReference<?, ?, ?>> references = committed.getItems(clazz.type);
+    Iterator<SyntheticReference<?, ?, ?>> iterator = references.iterator();
+    if (iterator.hasNext()) {
+      boolean sharable = iterator.next().getKind().isShareable();
+      assert Iterables.all(references, r -> sharable == r.getKind().isShareable());
+      return sharable;
+    }
+    return false;
+  }
+
   public interface GlobalSyntheticsStrategy {
     ContextsForGlobalSynthetics getStrategy();
 
