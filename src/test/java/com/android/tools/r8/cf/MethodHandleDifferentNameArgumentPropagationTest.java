@@ -44,8 +44,7 @@ public class MethodHandleDifferentNameArgumentPropagationTest extends TestBase {
         .addOptionsModification(
             options -> options.apiModelingOptions().disableApiCallerIdentification())
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/231662249): Should not throw an error.
-        .assertFailureWithErrorThatThrows(BootstrapMethodError.class);
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   public interface Foreachable {

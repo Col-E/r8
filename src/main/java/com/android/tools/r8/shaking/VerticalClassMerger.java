@@ -1157,6 +1157,20 @@ public class VerticalClassMerger {
           add(virtualMethods, shadowedBy, MethodSignatureEquivalence.get());
         }
 
+        // Copy over any keep info from the original virtual method.
+        ProgramMethod programMethod = new ProgramMethod(target, shadowedBy);
+        appView
+            .getKeepInfo()
+            .mutate(
+                mutableKeepInfoCollection ->
+                    mutableKeepInfoCollection.joinMethod(
+                        programMethod,
+                        info ->
+                            info.merge(
+                                mutableKeepInfoCollection
+                                    .getMethodInfo(virtualMethod, source)
+                                    .joiner())));
+
         deferredRenamings.map(virtualMethod.getReference(), shadowedBy.getReference());
         deferredRenamings.recordMove(
             virtualMethod.getReference(),
