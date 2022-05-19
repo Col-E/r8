@@ -143,17 +143,35 @@ public class StartupMixedSectionLayoutStrategy extends DefaultMixedSectionLayout
 
   private class StartupIndexedItemCollection implements IndexedItemCollection {
 
+    private void addAnnotation(DexAnnotation annotation) {
+      annotationLayout.add(annotation);
+    }
+
+    private void addAnnotationSet(DexAnnotationSet annotationSet) {
+      if (appView.options().canHaveDalvikEmptyAnnotationSetBug() || !annotationSet.isEmpty()) {
+        annotationSetLayout.add(annotationSet);
+      }
+    }
+
+    private void addAnnotationSetRefList(ParameterAnnotationsList annotationSetRefList) {
+      if (!annotationSetRefList.isEmpty()) {
+        annotationSetRefListLayout.add(annotationSetRefList);
+      }
+    }
+
     @Override
     public boolean addClass(DexProgramClass clazz) {
-      classDataLayout.add(clazz);
-      typeListLayout.add(clazz.getInterfaces());
+      if (clazz.hasMethodsOrFields()) {
+        classDataLayout.add(clazz);
+      }
+      addTypeList(clazz.getInterfaces());
       clazz.forEachProgramMethodMatching(DexEncodedMethod::hasCode, codeLayout::add);
       DexAnnotationDirectory annotationDirectory =
           mixedSectionOffsets.getAnnotationDirectoryForClass(clazz);
       if (annotationDirectory != null) {
         annotationDirectoryLayout.add(annotationDirectory);
         annotationDirectory.visitAnnotations(
-            annotationLayout::add, annotationSetLayout::add, annotationSetRefListLayout::add);
+            this::addAnnotation, this::addAnnotationSet, this::addAnnotationSetRefList);
       }
       DexEncodedArray staticFieldValues = mixedSectionOffsets.getStaticFieldValuesForClass(clazz);
       if (staticFieldValues != null) {
@@ -179,13 +197,19 @@ public class StartupMixedSectionLayoutStrategy extends DefaultMixedSectionLayout
 
     @Override
     public boolean addProto(DexProto proto) {
-      typeListLayout.add(proto.getParameters());
+      addTypeList(proto.getParameters());
       return true;
     }
 
     @Override
     public boolean addType(DexType type) {
       return true;
+    }
+
+    private void addTypeList(DexTypeList typeList) {
+      if (!typeList.isEmpty()) {
+        typeListLayout.add(typeList);
+      }
     }
 
     @Override

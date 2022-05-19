@@ -1076,7 +1076,7 @@ public class FileWriter {
     private final Map<DexProgramClass, DexEncodedArray> classToStaticFieldValues =
         new IdentityHashMap<>();
 
-    private final AndroidApiLevel minApiLevel;
+    private final InternalOptions options;
 
     private static <T> Object2IntMap<T> createObject2IntMap() {
       Object2IntMap<T> result = new Object2IntLinkedOpenHashMap<>();
@@ -1091,7 +1091,7 @@ public class FileWriter {
     }
 
     private MixedSectionOffsets(InternalOptions options) {
-      this.minApiLevel = options.getMinApiLevel();
+      this.options = options;
     }
 
     private <T> boolean add(Object2IntMap<T> map, T item) {
@@ -1122,9 +1122,7 @@ public class FileWriter {
 
     @Override
     public boolean add(DexAnnotationSet annotationSet) {
-      // Until we fully drop support for API levels < 17, we have to emit an empty annotation set to
-      // work around a DALVIK bug. See b/36951668.
-      if (minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.J_MR1) && annotationSet.isEmpty()) {
+      if (!options.canHaveDalvikEmptyAnnotationSetBug() && annotationSet.isEmpty()) {
         return false;
       }
       return add(annotationSets, annotationSet);
@@ -1281,9 +1279,7 @@ public class FileWriter {
     }
 
     public int getOffsetFor(DexAnnotationSet annotationSet) {
-      // Until we fully drop support for API levels < 17, we have to emit an empty annotation set to
-      // work around a DALVIK bug. See b/36951668.
-      if ((minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.J_MR1)) && annotationSet.isEmpty()) {
+      if (!options.canHaveDalvikEmptyAnnotationSetBug() && annotationSet.isEmpty()) {
         return 0;
       }
       return lookup(annotationSet, annotationSets);
@@ -1332,9 +1328,7 @@ public class FileWriter {
     }
 
     void setOffsetFor(DexAnnotationSet annotationSet, int offset) {
-      // Until we fully drop support for API levels < 17, we have to emit an empty annotation set to
-      // work around a DALVIK bug. See b/36951668.
-      assert (minApiLevel.isLessThan(AndroidApiLevel.J_MR1)) || !annotationSet.isEmpty();
+      assert options.canHaveDalvikEmptyAnnotationSetBug() || !annotationSet.isEmpty();
       setOffsetFor(annotationSet, offset, annotationSets);
     }
 

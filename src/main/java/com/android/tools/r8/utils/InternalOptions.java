@@ -2517,4 +2517,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean canHaveInvokeInterfaceToObjectMethodBug() {
     return isGeneratingDex() && getMinApiLevel().isLessThan(AndroidApiLevel.P);
   }
+
+  // Until we fully drop support for API levels < 16, we have to emit an empty annotation set to
+  // work around a DALVIK bug. See b/36951668.
+  public boolean canHaveDalvikEmptyAnnotationSetBug() {
+    return minApiLevel.isLessThan(AndroidApiLevel.J_MR1);
+  }
 }
