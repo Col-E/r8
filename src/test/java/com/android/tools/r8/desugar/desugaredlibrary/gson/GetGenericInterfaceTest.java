@@ -83,8 +83,9 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
     String[] lines = stdOut.split("\n");
     for (int i = 0; i < lines.length; i += 4) {
       String className = lines[i];
-      String[] interfaces1 = lines[i + 1].split("(appView, com|, interface|, j)");
-      String[] interfaces2 = lines[i + 2].split("(appView, com|, interface|, j)");
+      String[] interfaces1 = lines[i + 1].substring(1, lines[i + 1].length() - 1).split(",");
+      String[] interfaces2 =
+          lines[i + 2].substring(1, lines[i + 2].length() - 1).split("(>, |, interface)");
       assertEquals(
           "Invalid number of interfaces in "
               + className
@@ -95,7 +96,7 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
           interfaces1.length,
           interfaces2.length);
       // Ignore the empty list of interface case.
-      if (!interfaces1[0].equals("[]")) {
+      if (!interfaces1[0].isEmpty()) {
         for (int j = 0; j < interfaces1.length; j++) {
           String interfaceName = interfaces1[j].substring("interface ".length()).trim();
           while (interfaceName.charAt(interfaceName.length() - 1) == ']') {
