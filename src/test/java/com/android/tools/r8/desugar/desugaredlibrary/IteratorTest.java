@@ -4,20 +4,19 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8CF2CF_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8SHRINK;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.fail;
-import static org.hamcrest.CoreMatchers.containsString;
 
-import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.LibraryDesugaringTestConfiguration.AbsentKeepRuleConsumer;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.ZipUtils;
-import java.nio.file.Path;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
@@ -29,22 +28,28 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class IteratorTest extends DesugaredLibraryTestBase {
 
-  private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
-  private final boolean canUseDefaultAndStaticInterfaceMethods;
-
   private static final String EXPECTED_OUTPUT = StringUtils.lines("1", "2", "3");
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  private final TestParameters parameters;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
+  private final boolean canUseDefaultAndStaticInterfaceMethods;
+
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(),
-        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build());
+        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
+        getJdk8Jdk11(),
+        ImmutableList.of(D8_L8DEBUG, D8_L8SHRINK, D8CF2CF_L8DEBUG));
   }
 
-  public IteratorTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public IteratorTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
     this.canUseDefaultAndStaticInterfaceMethods =
         parameters
             .getApiLevel()
@@ -52,126 +57,28 @@ public class IteratorTest extends DesugaredLibraryTestBase {
   }
 
   @Test
-  public void testIterator() throws Exception {
-    if (parameters.isCfRuntime()) {
-      testForJvm()
-          .addInnerClasses(IteratorTest.class)
-          .run(parameters.getRuntime(), Main.class)
-          .assertSuccessWithOutput(EXPECTED_OUTPUT);
-      return;
-    }
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
-        .addInnerClasses(IteratorTest.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+  public void testIterator() throws Throwable {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Main.class)
         .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
+        .inspect(this::assertInterface)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
-  @Test
-  public void testD8Cf() throws Exception {
-    // Use D8 to desugar with Java classfile output.
-    Path firstJar =
-        testForD8(Backend.CF)
-            .setMinApi(parameters.getApiLevel())
-            .addProgramClasses(Main.class, MyIterator.class)
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), new AbsentKeepRuleConsumer())
-            .compile()
-            .writeToZip();
-
-    ClassFileInfo info =
-        extractClassFileInfo(
-            ZipUtils.readSingleEntry(firstJar, ZipUtils.zipEntryNameForClass(MyIterator.class)));
-    assertEquals(
-        MyIterator.class.getTypeName(),
-        DescriptorUtils.getJavaTypeFromBinaryName(info.getClassBinaryName()));
+  private void assertInterface(CodeInspector inspector) {
+    ClassSubject clazz = inspector.clazz(MyIterator.class);
     assertEquals(
         canUseDefaultAndStaticInterfaceMethods ? 0 : 1,
-        info.getInterfaces().stream().filter(name -> name.equals("j$/util/Iterator")).count());
+        clazz.getDexProgramClass().getInterfaces().stream()
+            .filter(name -> name.toString().equals("j$.util.Iterator"))
+            .count());
     assertEquals(
         canUseDefaultAndStaticInterfaceMethods ? 1 : 2,
-        info.getMethodNames().stream().filter(name -> name.equals("forEachRemaining")).count());
-
-    AndroidApiLevel apiLevelNotRequiringDesugaring = AndroidApiLevel.N;
-    if (parameters.getApiLevel().isLessThan(apiLevelNotRequiringDesugaring)) {
-      try {
-        // Use D8 to desugar with Java classfile output.
-        testForD8(Backend.CF)
-            .setMinApi(parameters.getApiLevel())
-            .addProgramFiles(firstJar)
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), new AbsentKeepRuleConsumer())
-            .compileWithExpectedDiagnostics(
-                diagnostics ->
-                    diagnostics.assertErrorsMatch(
-                        diagnosticMessage(
-                            containsString(
-                                "Code has already been library desugared. "
-                                    + "Interface Lj$/util/Iterator; is already implemented by "
-                                    + "Lcom/android/tools/r8/desugar/desugaredlibrary/"
-                                    + "IteratorTest$MyIterator;"))));
-        fail("Expected failure");
-      } catch (CompilationFailedException e) {
-        // Expected.
-      }
-    }
-
-    // Use D8 to desugar with Java classfile output.
-    Path secondJar =
-        testForD8(Backend.CF)
-            .addOptionsModification(
-                options ->
-                    options.desugarSpecificOptions().allowAllDesugaredInput =
-                        parameters.getApiLevel().isLessThan(apiLevelNotRequiringDesugaring))
-            .setMinApi(parameters.getApiLevel())
-            .addProgramFiles(firstJar)
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), new AbsentKeepRuleConsumer())
-            .compile()
-            .writeToZip();
-
-    info =
-        extractClassFileInfo(
-            ZipUtils.readSingleEntry(secondJar, ZipUtils.zipEntryNameForClass(MyIterator.class)));
-    assertEquals(
-        MyIterator.class.getTypeName(),
-        DescriptorUtils.getJavaTypeFromBinaryName(info.getClassBinaryName()));
-    assertEquals(
-        canUseDefaultAndStaticInterfaceMethods ? 0 : 1,
-        info.getInterfaces().stream().filter(name -> name.equals("j$/util/Iterator")).count());
-    assertEquals(
-        canUseDefaultAndStaticInterfaceMethods ? 1 : 2,
-        info.getMethodNames().stream().filter(name -> name.equals("forEachRemaining")).count());
-
-    if (parameters.getRuntime().isDex()) {
-      // Convert to DEX without desugaring and run.
-      testForD8()
-          .addProgramFiles(firstJar)
-          .setMinApi(parameters.getApiLevel())
-          .disableDesugaring()
-          .compile()
-          .addDesugaredCoreLibraryRunClassPath(
-              this::buildDesugaredLibrary,
-              parameters.getApiLevel(),
-              collectKeepRulesWithTraceReferences(
-                  firstJar, buildDesugaredLibraryClassFile(parameters.getApiLevel())),
-              shrinkDesugaredLibrary)
-          .run(parameters.getRuntime(), Main.class)
-          .assertSuccessWithOutput(EXPECTED_OUTPUT);
-    } else {
-      // Run on the JVM with desugared library on classpath.
-      testForJvm()
-          .addProgramFiles(firstJar)
-          .addRunClasspathFiles(buildDesugaredLibraryClassFile(parameters.getApiLevel()))
-          .run(parameters.getRuntime(), Main.class)
-          .assertSuccessWithOutput(EXPECTED_OUTPUT);
-    }
+        clazz.getDexProgramClass().allMethodsSorted().stream()
+            .filter(m -> m.getReference().getName().toString().equals("forEachRemaining"))
+            .count());
   }
 
   static class Main {

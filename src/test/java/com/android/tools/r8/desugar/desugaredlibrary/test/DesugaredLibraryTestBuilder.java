@@ -120,6 +120,11 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
+  public DesugaredLibraryTestBuilder<T> addClasspathClasses(Class<?>... clazz) throws IOException {
+    builder.addClasspathClasses(clazz);
+    return this;
+  }
+
   public DesugaredLibraryTestBuilder<T> addProgramClasses(Class<?>... clazz) throws IOException {
     builder.addProgramClasses(clazz);
     return this;

@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static junit.framework.TestCase.assertTrue;
 
 import com.android.tools.r8.TestParameters;
@@ -11,6 +13,9 @@ import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.google.common.collect.ImmutableList;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -26,8 +31,6 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class J$ExtensionTest extends DesugaredLibraryTestBase {
-
-  private final TestParameters parameters;
 
   private static final String MAIN_CLASS_NAME = "Main";
   private static final String MAIN_CLASS =
@@ -51,13 +54,25 @@ public class J$ExtensionTest extends DesugaredLibraryTestBase {
           + "}";
   private static Path[] compiledClasses = new Path[2];
 
-  @Parameters(name = "{0}")
+  private final TestParameters parameters;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
+
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimes().withAllApiLevels().build());
+    return buildParameters(
+        getTestParameters().withAllRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        ImmutableList.of(D8_L8DEBUG));
   }
 
-  public J$ExtensionTest(TestParameters parameters) {
+  public J$ExtensionTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   @BeforeClass
@@ -134,21 +149,13 @@ public class J$ExtensionTest extends DesugaredLibraryTestBase {
   }
 
   @Test
-  public void testJ$ExtensionDesugaring() throws Exception {
+  public void testJ$ExtensionDesugaring() throws Throwable {
     Assume.assumeFalse(parameters.isCfRuntime());
-    // Above O no desugaring is required.
     Assume.assumeTrue(requiresTimeDesugaring(parameters));
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-
     String stdErr =
-        testForD8()
-            .addLibraryFiles(getLibraryFile())
+        testForDesugaredLibrary(
+                parameters, libraryDesugaringSpecification, compilationSpecification)
             .addProgramFiles(compiledClasses)
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .compile()
-            .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibrary, parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN_CLASS_NAME)
             .assertFailure()
             .getStdErr();
