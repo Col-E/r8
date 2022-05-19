@@ -391,6 +391,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean createSingletonsForStatelessLambdas =
       System.getProperty("com.android.tools.r8.createSingletonsForStatelessLambdas") != null;
 
+  // Flag to allow nest annotations in DEX. See b/231930852 for context.
+  public boolean emitNestAnnotationsInDex =
+      System.getProperty("com.android.tools.r8.emitNestAnnotationsInDex") != null;
+
   // Contain the contents of the build properties file from the compiler command.
   public DumpOptions dumpOptions;
 
@@ -2016,7 +2020,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean canUseNestBasedAccess() {
-    return !isDesugaring();
+    return !isDesugaring() || emitNestAnnotationsInDex;
   }
 
   public boolean canUseRecords() {

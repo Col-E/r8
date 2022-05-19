@@ -215,6 +215,16 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
+  public TypeSubject getFinalNestHostAttribute() {
+    throw new Unreachable("Cannot determine NestHost attribute of an absent class");
+  }
+
+  @Override
+  public List<TypeSubject> getFinalNestMembersAttribute() {
+    throw new Unreachable("Cannot determine NestMembers attribute of an absent class");
+  }
+
+  @Override
   public KmClassSubject getKmClass() {
     return null;
   }

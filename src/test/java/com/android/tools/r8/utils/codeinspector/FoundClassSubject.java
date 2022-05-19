@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.kotlin.KotlinClassMetadataReader;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.MemberNaming;
@@ -483,6 +484,23 @@ public class FoundClassSubject extends ClassSubject {
   @Override
   public String getFinalSignatureAttribute() {
     return dexClass.getClassSignature().toString();
+  }
+
+  @Override
+  public TypeSubject getFinalNestHostAttribute() {
+    if (dexClass.getNestHost() == null) {
+      return null;
+    }
+    return new TypeSubject(codeInspector, dexClass.getNestHost());
+  }
+
+  @Override
+  public List<TypeSubject> getFinalNestMembersAttribute() {
+    List<TypeSubject> result = new ArrayList<>();
+    for (NestMemberClassAttribute member : dexClass.getNestMembersClassAttributes()) {
+      result.add(new TypeSubject(codeInspector, member.getNestMember()));
+    }
+    return result;
   }
 
   @Override

@@ -61,6 +61,8 @@ import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.NestHostClassAttribute;
+import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.logging.Log;
@@ -855,8 +857,8 @@ public class DexParser<T extends DexClass> {
               superclass,
               typeListAt(interfacesOffsets[i]),
               source,
-              null,
-              Collections.emptyList(),
+              attrs.nestHostAttribute,
+              attrs.nestMembersAttribute,
               attrs.getEnclosingMethodAttribute(),
               attrs.getInnerClasses(),
               attrs.classSignature,
@@ -1423,6 +1425,8 @@ public class DexParser<T extends DexClass> {
     private List<InnerClassAttribute> innerClasses = null;
     private List<DexAnnotation> lazyAnnotations = null;
     private ClassSignature classSignature = ClassSignature.noSignature();
+    private NestHostClassAttribute nestHostAttribute;
+    private List<NestMemberClassAttribute> nestMembersAttribute = Collections.emptyList();
 
     public DexAnnotationSet getAnnotations() {
       if (lazyAnnotations != null) {
@@ -1486,6 +1490,20 @@ public class DexParser<T extends DexClass> {
           classSignature =
               GenericSignature.parseClassSignature(
                   type.getName(), signature, origin, factory, options.reporter);
+        } else if (DexAnnotation.isNestHostAnnotation(annotation, factory)) {
+          ensureAnnotations(i);
+          nestHostAttribute =
+              new NestHostClassAttribute(
+                  DexAnnotation.getNestHostFromAnnotation(annotation, factory));
+        } else if (DexAnnotation.isNestMembersAnnotation(annotation, factory)) {
+          ensureAnnotations(i);
+          List<DexType> members = DexAnnotation.getNestMembersFromAnnotation(annotation, factory);
+          if (members != null) {
+            nestMembersAttribute = new ArrayList<>(members.size());
+            for (DexType member : members) {
+              nestMembersAttribute.add(new NestMemberClassAttribute(member));
+            }
+          }
         } else {
           copyAnnotation(annotation);
         }

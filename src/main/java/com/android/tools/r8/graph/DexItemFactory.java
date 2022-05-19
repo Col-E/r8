@@ -642,6 +642,10 @@ public class DexItemFactory {
       createStaticallyKnownType("Ldalvik/annotation/MethodParameters;");
   public final DexType annotationSignature =
       createStaticallyKnownType(dalvikAnnotationSignatureString);
+  public final DexType annotationNestHost =
+      createStaticallyKnownType("Ldalvik/annotation/NestHost;");
+  public final DexType annotationNestMembers =
+      createStaticallyKnownType("Ldalvik/annotation/NestMembers;");
   public final DexType annotationSourceDebugExtension =
       createStaticallyKnownType("Ldalvik/annotation/SourceDebugExtension;");
   public final DexType annotationThrows = createStaticallyKnownType("Ldalvik/annotation/Throws;");

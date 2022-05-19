@@ -242,6 +242,10 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
 
   public abstract String getFinalSignatureAttribute();
 
+  public abstract TypeSubject getFinalNestHostAttribute();
+
+  public abstract List<TypeSubject> getFinalNestMembersAttribute();
+
   public abstract KmClassSubject getKmClass();
 
   public abstract KmPackageSubject getKmPackage();

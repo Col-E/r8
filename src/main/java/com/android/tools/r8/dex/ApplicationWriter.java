@@ -727,6 +727,18 @@ public class ApplicationWriter {
               options.itemFactory));
     }
 
+    if (clazz.isNestHost()) {
+      annotations.add(
+          DexAnnotation.createNestMembersAnnotation(
+              clazz.getNestMembersClassAttributes(), options.itemFactory));
+    }
+
+    if (clazz.isNestMember()) {
+      annotations.add(
+          DexAnnotation.createNestHostAnnotation(
+              clazz.getNestHostClassAttribute(), options.itemFactory));
+    }
+
     if (!annotations.isEmpty()) {
       // Append the annotations to annotations array of the class.
       DexAnnotation[] copy =

@@ -178,6 +178,14 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
     return annotation.annotation.type == factory.annotationMemberClasses;
   }
 
+  public static boolean isNestHostAnnotation(DexAnnotation annotation, DexItemFactory factory) {
+    return annotation.annotation.type == factory.annotationNestHost;
+  }
+
+  public static boolean isNestMembersAnnotation(DexAnnotation annotation, DexItemFactory factory) {
+    return annotation.annotation.type == factory.annotationNestMembers;
+  }
+
   public static DexAnnotation createInnerClassAnnotation(
       DexString clazz, int access, DexItemFactory factory) {
     return new DexAnnotation(
@@ -235,6 +243,29 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
     return types;
   }
 
+  public static DexType getNestHostFromAnnotation(
+      DexAnnotation annotation, DexItemFactory factory) {
+    DexValue value = getSystemValueAnnotationValue(factory.annotationNestHost, annotation);
+    if (value == null) {
+      return null;
+    }
+    return value.asDexValueType().getValue();
+  }
+
+  public static List<DexType> getNestMembersFromAnnotation(
+      DexAnnotation annotation, DexItemFactory factory) {
+    DexValue value = getSystemValueAnnotationValue(factory.annotationNestMembers, annotation);
+    if (value == null) {
+      return null;
+    }
+    DexValueArray membersArray = value.asDexValueArray();
+    List<DexType> types = new ArrayList<>(membersArray.getValues().length);
+    for (DexValue elementValue : membersArray.getValues()) {
+      types.add(elementValue.asDexValueType().value);
+    }
+    return types;
+  }
+
   public static DexAnnotation createSourceDebugExtensionAnnotation(DexValue value,
       DexItemFactory factory) {
     return new DexAnnotation(VISIBILITY_SYSTEM,
@@ -271,6 +302,24 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
   public static DexAnnotation createSignatureAnnotation(String signature, DexItemFactory factory) {
     return createSystemValueAnnotation(factory.annotationSignature, factory,
         compressSignature(signature, factory));
+  }
+
+  public static DexAnnotation createNestHostAnnotation(
+      NestHostClassAttribute host, DexItemFactory factory) {
+    return createSystemValueAnnotation(
+        factory.annotationNestHost, factory, new DexValue.DexValueType(host.getNestHost()));
+  }
+
+  public static DexAnnotation createNestMembersAnnotation(
+      List<NestMemberClassAttribute> members, DexItemFactory factory) {
+    List<DexValueType> list = new ArrayList<>(members.size());
+    for (NestMemberClassAttribute member : members) {
+      list.add(new DexValue.DexValueType(member.getNestMember()));
+    }
+    return createSystemValueAnnotation(
+        factory.annotationNestMembers,
+        factory,
+        new DexValue.DexValueArray(list.toArray(DexValue.EMPTY_ARRAY)));
   }
 
   public static String getSignature(DexAnnotation signatureAnnotation) {
