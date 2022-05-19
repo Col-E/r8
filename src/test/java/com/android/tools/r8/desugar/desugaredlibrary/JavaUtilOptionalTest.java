@@ -4,22 +4,26 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InvokeInstructionSubject;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Paths;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
@@ -27,19 +31,30 @@ import java.util.OptionalLong;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class JavaUtilOptionalTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+  @Parameters(name = "{0}, spec: {1}, {2}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        ImmutableList.of(D8_L8DEBUG));
   }
 
-  public JavaUtilOptionalTest(TestParameters parameters) {
+  public JavaUtilOptionalTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   private void checkRewrittenInvokes(CodeInspector inspector) {
@@ -63,7 +78,7 @@ public class JavaUtilOptionalTest extends DesugaredLibraryTestBase {
   }
 
   @Test
-  public void testJavaUtilOptional() throws Exception {
+  public void testJavaUtilOptional() throws Throwable {
     String expectedOutput =
         StringUtils.lines(
             "false",
@@ -78,12 +93,8 @@ public class JavaUtilOptionalTest extends DesugaredLibraryTestBase {
             "false",
             "true",
             "42.42");
-    testForD8()
-        .addInnerClasses(JavaUtilOptionalTest.class)
-        .addLibraryFiles(getLibraryFile())
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(
-            LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+        .addInnerClasses(getClass())
         .compile()
         .inspect(this::checkRewrittenInvokes)
         .run(parameters.getRuntime(), TestClass.class)
@@ -92,14 +103,9 @@ public class JavaUtilOptionalTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testJavaOptionalJava9() throws Exception {
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramFiles(
             Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR).resolve("backport" + JAR_EXTENSION))
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(
-            LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
-        .compile()
         .run(parameters.getRuntime(), "backport.OptionalBackportJava9Main")
         .assertSuccess();
   }

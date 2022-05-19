@@ -239,8 +239,18 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
+  public DesugaredLibraryTestBuilder<T> enableNoVerticalClassMergingAnnotations() {
+    withR8TestBuilder(R8TestBuilder::enableNoVerticalClassMergingAnnotations);
+    return this;
+  }
+
   public DesugaredLibraryTestBuilder<T> noMinification() {
     withR8TestBuilder(R8TestBuilder::noMinification);
+    return this;
+  }
+
+  public DesugaredLibraryTestBuilder<T> enableConstantArgumentAnnotations() {
+    withR8TestBuilder(R8TestBuilder::enableConstantArgumentAnnotations);
     return this;
   }
 

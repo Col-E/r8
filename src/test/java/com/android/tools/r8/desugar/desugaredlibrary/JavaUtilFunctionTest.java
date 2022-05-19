@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -11,7 +13,8 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -25,19 +28,27 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class JavaUtilFunctionTest extends DesugaredLibraryTestBase {
 
-  private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
-  private static final String expectedOutput = StringUtils.lines("Hello, world", "Hello, world");
+  private static final String EXPECTED_OUTPUT = StringUtils.lines("Hello, world", "Hello, world");
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  private final TestParameters parameters;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
+
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
+        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
+        getJdk8Jdk11(),
+        DEFAULT_SPECIFICATIONS);
   }
 
-  public JavaUtilFunctionTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public JavaUtilFunctionTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   private void checkRewrittenArguments(CodeInspector inspector) {
@@ -59,46 +70,17 @@ public class JavaUtilFunctionTest extends DesugaredLibraryTestBase {
   }
 
   @Test
-  public void testJavaUtilFunctionD8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
-        .addInnerClasses(JavaUtilFunctionTest.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .setIncludeClassesChecksum(true)
-        .compile()
-        .inspect(this::checkRewrittenArguments)
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(expectedOutput);
-  }
-
-  @Test
-  public void testJavaUtilFunctionR8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForR8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
+  public void testJavaUtilFunction() throws Throwable {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+        .addInnerClasses(getClass())
+        .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
         .noMinification()
-        .addKeepMainRule(TestClass.class)
-        .addInnerClasses(JavaUtilFunctionTest.class)
-        .setMinApi(parameters.getApiLevel())
         .enableConstantArgumentAnnotations()
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
         .inspect(this::checkRewrittenArguments)
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(expectedOutput);
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   static class TestClass {

@@ -16,7 +16,7 @@ import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
@@ -117,7 +117,9 @@ public class LegacyDesugaredLibraryConfigurationParsingTest extends DesugaredLib
   public void testReference() throws Exception {
     // Just test that the reference file parses without issues.
     LegacyDesugaredLibrarySpecification spec =
-        runPassing(StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()));
+        runPassing(
+            StringResource.fromFile(
+                LibraryDesugaringSpecification.RELEASED_1_1_5.getSpecification()));
     assertEquals(libraryCompilation, spec.isLibraryCompilation());
   }
 

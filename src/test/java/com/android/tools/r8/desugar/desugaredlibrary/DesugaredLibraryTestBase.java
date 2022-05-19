@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 
@@ -28,27 +27,18 @@ import com.android.tools.r8.desugar.desugaredlibrary.test.DesugaredLibraryTestBu
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
-import com.android.tools.r8.tracereferences.TraceReferences;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import org.junit.BeforeClass;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.MethodVisitor;
 
 public class DesugaredLibraryTestBase extends TestBase {
 
@@ -259,20 +249,6 @@ public class DesugaredLibraryTestBase extends TestBase {
     return desugaredLib;
   }
 
-  protected DesugaredLibrarySpecification configurationWithSupportAllCallbacksFromLibrary(
-      InternalOptions options,
-      boolean libraryCompilation,
-      TestParameters parameters,
-      boolean supportAllCallbacksFromLibrary) {
-    return DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecificationforTesting(
-        StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()),
-        options.dexItemFactory(),
-        options.reporter,
-        libraryCompilation,
-        parameters.getApiLevel().getLevel(),
-        builder -> builder.setSupportAllCallbacksFromLibrary(supportAllCallbacksFromLibrary));
-  }
-
   private Map<AndroidApiLevel, Path> desugaredLibraryClassFileCache = new HashMap<>();
 
   // Build the desugared library in class file format.
@@ -297,67 +273,6 @@ public class DesugaredLibraryTestBase extends TestBase {
     return desugaredLib;
   }
 
-  public String collectKeepRulesWithTraceReferences(
-      Path desugaredProgramClassFile, Path desugaredLibraryClassFile) throws Exception {
-    Path generatedKeepRules = temp.newFile().toPath();
-    TraceReferences.run(
-        "--keep-rules",
-        "--lib",
-        getLibraryFile().toString(),
-        "--target",
-        desugaredLibraryClassFile.toString(),
-        "--source",
-        desugaredProgramClassFile.toString(),
-        "--output",
-        generatedKeepRules.toString(),
-        "--map-diagnostics",
-        "error",
-        "info");
-    return FileUtils.readTextFile(generatedKeepRules, Charsets.UTF_8);
-  }
-
-  protected static ClassFileInfo extractClassFileInfo(byte[] classFileBytes) {
-    class ClassFileInfoExtractor extends ClassVisitor {
-      private String classBinaryName;
-      private List<String> interfaces = new ArrayList<>();
-      private final List<String> methodNames = new ArrayList<>();
-
-      private ClassFileInfoExtractor() {
-        super(ASM_VERSION);
-      }
-
-      @Override
-      public void visit(
-          int version,
-          int access,
-          String name,
-          String signature,
-          String superName,
-          String[] interfaces) {
-        classBinaryName = name;
-        this.interfaces.addAll(Arrays.asList(interfaces));
-        super.visit(version, access, name, signature, superName, interfaces);
-      }
-
-      @Override
-      public MethodVisitor visitMethod(
-          int access, String name, String desc, String signature, String[] exceptions) {
-        methodNames.add(name);
-        return super.visitMethod(access, name, desc, signature, exceptions);
-      }
-
-      ClassFileInfo getClassFileInfo() {
-        return new ClassFileInfo(classBinaryName, interfaces, methodNames);
-      }
-    }
-
-    ClassReader reader = new ClassReader(classFileBytes);
-    ClassFileInfoExtractor extractor = new ClassFileInfoExtractor();
-    reader.accept(
-        extractor, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
-    return extractor.getClassFileInfo();
-  }
-
   public interface KeepRuleConsumer extends StringConsumer {
 
     String get();
@@ -375,30 +290,6 @@ public class DesugaredLibraryTestBase extends TestBase {
           // Intentionally empty.
         }
       };
-    }
-  }
-
-  protected static class ClassFileInfo {
-    private final String classBinaryName;
-    private List<String> interfaces;
-    private final List<String> methodNames;
-
-    ClassFileInfo(String classBinaryNamename, List<String> interfaces, List<String> methodNames) {
-      this.classBinaryName = classBinaryNamename;
-      this.interfaces = interfaces;
-      this.methodNames = methodNames;
-    }
-
-    public String getClassBinaryName() {
-      return classBinaryName;
-    }
-
-    public List<String> getInterfaces() {
-      return interfaces;
-    }
-
-    public List<String> getMethodNames() {
-      return methodNames;
     }
   }
 }

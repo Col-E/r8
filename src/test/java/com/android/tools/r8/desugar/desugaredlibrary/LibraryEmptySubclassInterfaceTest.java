@@ -4,11 +4,14 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import org.junit.Test;
@@ -20,66 +23,48 @@ import org.junit.runners.Parameterized.Parameters;
 public class LibraryEmptySubclassInterfaceTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        DEFAULT_SPECIFICATIONS);
   }
 
   public LibraryEmptySubclassInterfaceTest(
-      boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   @Test
-  public void testD8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
-        .addInnerClasses(LibraryEmptySubclassInterfaceTest.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+  public void testEmptySubclassInterface() throws Throwable {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Executor.class)
+        .noMinification()
         .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
+        .inspectKeepRules(this::assertExpectedKeepRules)
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutputLines(getResult());
-    assertExpectedKeepRules(keepRuleConsumer);
   }
 
-  private void assertExpectedKeepRules(KeepRuleConsumer keepRuleConsumer) {
+  private void assertExpectedKeepRules(List<String> keepRuleList) {
     if (!requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
       return;
     }
-    String keepRules = keepRuleConsumer.get();
-    assertThat(keepRules, containsString("-keep class j$.util.concurrent.ConcurrentHashMap"));
-  }
-
-  @Test
-  public void testR8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForR8(Backend.DEX)
-        .addLibraryFiles(getLibraryFile())
-        .addInnerClasses(LibraryEmptySubclassInterfaceTest.class)
-        .addKeepMainRule(Executor.class)
-        .noMinification()
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutputLines(getResult());
-    assertExpectedKeepRules(keepRuleConsumer);
+    StringBuilder keepRules = new StringBuilder();
+    for (String kr : keepRuleList) {
+      keepRules.append("\n").append(kr);
+    }
+    assertThat(
+        keepRules.toString(), containsString("-keep class j$.util.concurrent.ConcurrentHashMap"));
   }
 
   private String getResult() {
