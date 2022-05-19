@@ -19,14 +19,12 @@ public enum CompilationSpecification {
   R8_L8SHRINK(true, true, false, RELEASE),
   // The D8CFTOCF specifications can run either in CF or be dexed afterwards.
   D8CF2CF_L8DEBUG(false, false, true, DEBUG),
-  // D8CF2CF_L8SHRINK is to be implemented (Only the dex back-end outputs the keep rule).
   D8CF2CF_L8SHRINK(false, true, true, RELEASE);
 
   public static Set<CompilationSpecification> DEFAULT_SPECIFICATIONS =
       ImmutableSet.of(D8_L8DEBUG, D8_L8SHRINK, R8_L8SHRINK);
-  // Add D8CF2CF_L8SHRINK when tracereference is supported.
   public static Set<CompilationSpecification> SPECIFICATIONS_WITH_CF2CF =
-      ImmutableSet.of(D8_L8DEBUG, D8_L8SHRINK, R8_L8SHRINK, D8CF2CF_L8DEBUG);
+      ImmutableSet.of(D8_L8DEBUG, D8_L8SHRINK, R8_L8SHRINK, D8CF2CF_L8DEBUG, D8CF2CF_L8SHRINK);
 
   private final boolean programShrink;
   private final boolean l8Shrink;
