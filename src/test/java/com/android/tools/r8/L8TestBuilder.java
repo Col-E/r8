@@ -44,6 +44,7 @@ public class L8TestBuilder {
       StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting());
   private List<Path> libraryFiles = new ArrayList<>();
   private ProgramConsumer programConsumer;
+  private boolean finalPrefixVerification = true;
 
   private L8TestBuilder(AndroidApiLevel apiLevel, Backend backend, TestState state) {
     this.apiLevel = apiLevel;
@@ -53,6 +54,11 @@ public class L8TestBuilder {
 
   public static L8TestBuilder create(AndroidApiLevel apiLevel, Backend backend, TestState state) {
     return new L8TestBuilder(apiLevel, backend, state);
+  }
+
+  public L8TestBuilder ignoreFinalPrefixVerification() {
+    finalPrefixVerification = false;
+    return this;
   }
 
   public L8TestBuilder addProgramFiles(Collection<Path> programFiles) {
@@ -216,13 +222,16 @@ public class L8TestBuilder {
             mapping,
             state,
             backend.isCf() ? OutputMode.ClassFile : OutputMode.DexIndexed)
-        .inspect(
-            inspector ->
-                inspector.forAllClasses(
-                    clazz ->
-                        assertTrue(
-                            clazz.getFinalName().startsWith("j$.")
-                                || clazz.getFinalName().startsWith("java."))));
+        .applyIf(
+            finalPrefixVerification,
+            compileResult ->
+                compileResult.inspect(
+                    inspector ->
+                        inspector.forAllClasses(
+                            clazz ->
+                                assertTrue(
+                                    clazz.getFinalName().startsWith("j$.")
+                                        || clazz.getFinalName().startsWith("java.")))));
   }
 
   private Collection<Path> getProgramFiles() {

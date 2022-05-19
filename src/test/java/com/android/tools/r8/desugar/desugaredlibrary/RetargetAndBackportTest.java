@@ -7,6 +7,9 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyRewritingFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyTopLevelFlags;
@@ -27,15 +30,16 @@ import org.objectweb.asm.Opcodes;
 @RunWith(Parameterized.class)
 public class RetargetAndBackportTest extends DesugaredLibraryTestBase implements Opcodes {
 
-  Backend backend;
+  private final TestParameters parameters;
 
   @Parameters(name = "{0} {1}")
   public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withNoneRuntime().build(), Backend.values());
+    return buildParameters(
+        getTestParameters().withDexRuntime(Version.DEFAULT).withCfRuntime(CfVm.JDK11).build());
   }
 
-  public RetargetAndBackportTest(TestParameters parameters, Backend backend) {
-    this.backend = backend;
+  public RetargetAndBackportTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   /**
@@ -60,10 +64,10 @@ public class RetargetAndBackportTest extends DesugaredLibraryTestBase implements
 
   @Test
   public void test() throws Exception {
-    testForL8(AndroidApiLevel.B, backend)
+    testForL8(AndroidApiLevel.B, parameters.getBackend())
         .noDefaultDesugarJDKLibs()
         .addProgramClassFileData(dump())
-        .addLibraryFiles(getLibraryFile())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P.getLevel()))
         .addOptionsModifier(RetargetAndBackportTest::specifyDesugaredLibrary)
         .compile()
         .inspect(

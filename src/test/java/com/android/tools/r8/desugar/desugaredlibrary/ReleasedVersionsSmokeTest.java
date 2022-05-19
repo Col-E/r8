@@ -4,12 +4,18 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.LibraryDesugaringTestConfiguration;
-import com.android.tools.r8.LibraryDesugaringTestConfiguration.Configuration;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_LEGACY;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
+
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.ZoneId;
@@ -22,73 +28,60 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class ReleasedVersionsSmokeTest extends DesugaredLibraryTestBase {
 
+  private static final String EXPECTED_OUTPUT =
+      StringUtils.lines(
+          "true",
+          "Caught java.time.format.DateTimeParseException",
+          "true",
+          "1970-01-02T10:17:36.789Z",
+          "GMT",
+          "GMT",
+          "1000",
+          "Hello, world");
+  private static final String EXPECTED_OUTPUT_1_0_9 =
+      StringUtils.lines(
+          "true",
+          "Caught java.time.format.DateTimeParseException",
+          "true",
+          "1970-01-02T10:17:36.789Z",
+          "1000",
+          "Hello, world");
+
   private final TestParameters parameters;
-  private final Configuration configuration;
-  private static final String expectedOutput =
-      StringUtils.lines(
-          "true",
-          "Caught java.time.format.DateTimeParseException",
-          "true",
-          "1970-01-02T10:17:36.789Z",
-          "GMT",
-          "GMT",
-          "1000",
-          "Hello, world");
-  private static final String expectedOutput_1_0_9 =
-      StringUtils.lines(
-          "true",
-          "Caught java.time.format.DateTimeParseException",
-          "true",
-          "1970-01-02T10:17:36.789Z",
-          "1000",
-          "Hello, world");
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameters(name = "{0}, {1}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
+    ImmutableList.Builder<LibraryDesugaringSpecification> builder = ImmutableList.builder();
+    builder.addAll(LibraryDesugaringSpecification.getReleased());
+    builder.add(JDK8, JDK11, JDK11_LEGACY, JDK11_PATH);
     return buildParameters(
-        Configuration.getReleased(),
-        getTestParameters().withDexRuntimes().withApiLevel(AndroidApiLevel.B).build());
+        getTestParameters().withDexRuntimes().withApiLevel(AndroidApiLevel.B).build(),
+        builder.build(),
+        DEFAULT_SPECIFICATIONS);
   }
 
-  public ReleasedVersionsSmokeTest(Configuration configuration, TestParameters parameters) {
-    this.configuration = configuration;
+  public ReleasedVersionsSmokeTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   @Test
-  public void testD8() throws Exception {
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
-        .addInnerClasses(ReleasedVersionsSmokeTest.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(
-            LibraryDesugaringTestConfiguration.builder()
-                .setMinApi(parameters.getApiLevel())
-                .setConfiguration(configuration)
-                .withKeepRuleConsumer()
-                .setMode(CompilationMode.DEBUG)
-                .build())
-        .run(parameters.getRuntime(), TestClass.class, configuration.name())
-        .assertSuccessWithOutput(
-            configuration != Configuration.RELEASED_1_0_9 ? expectedOutput : expectedOutput_1_0_9);
-  }
-
-  @Test
-  public void testR8() throws Exception {
-    testForR8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
-        .addInnerClasses(ReleasedVersionsSmokeTest.class)
+  public void testSmoke() throws Throwable {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+        .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(
-            LibraryDesugaringTestConfiguration.builder()
-                .setMinApi(parameters.getApiLevel())
-                .withKeepRuleConsumer()
-                .setMode(CompilationMode.RELEASE)
-                .build())
-        .run(parameters.getRuntime(), TestClass.class, configuration.name())
+        .ignoreL8FinalPrefixVerification()
+        .run(parameters.getRuntime(), TestClass.class, libraryDesugaringSpecification.toString())
         .assertSuccessWithOutput(
-            configuration != Configuration.RELEASED_1_0_9 ? expectedOutput : expectedOutput_1_0_9);
+            libraryDesugaringSpecification != LibraryDesugaringSpecification.RELEASED_1_0_9
+                ? EXPECTED_OUTPUT
+                : EXPECTED_OUTPUT_1_0_9);
   }
 
   static class TestClass {
@@ -106,7 +99,7 @@ public class ReleasedVersionsSmokeTest extends DesugaredLibraryTestBase {
           java.util.Date.from(new java.util.Date(123456789).toInstant()).toInstant());
 
       // Support for this was added in 1.0.10.
-      if (!configurationVersion.equals("RELEASED_1_0_9")) {
+      if (!configurationVersion.equals("RELEASED_1.0.9")) {
         java.util.TimeZone timeZone = java.util.TimeZone.getTimeZone(ZoneId.of("GMT"));
         System.out.println(timeZone.getID());
         System.out.println(timeZone.toZoneId().getId());

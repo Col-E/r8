@@ -4,9 +4,12 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.SPECIFICATIONS_WITH_CF2CF;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
+
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
-import java.nio.file.Path;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.Date;
@@ -14,7 +17,6 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntUnaryOperator;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -24,119 +26,33 @@ import org.junit.runners.Parameterized.Parameters;
 public class RetargetOverrideTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameters(name = "{1}, shrink: {0}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(),
-        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build());
+        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
+        getJdk8Jdk11(),
+        SPECIFICATIONS_WITH_CF2CF);
   }
 
-  public RetargetOverrideTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public RetargetOverrideTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   @Test
-  public void testRetargetOverrideCf() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    Path desugaredTwice =
-        testForD8(Backend.CF)
-            .addLibraryFiles(getLibraryFile())
-            .addProgramFiles(
-                testForD8(Backend.CF)
-                    .addLibraryFiles(getLibraryFile())
-                    .addInnerClasses(RetargetOverrideTest.class)
-                    .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-                    .setMinApi(parameters.getApiLevel())
-                    .compile()
-                    .writeToZip())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .setMinApi(parameters.getApiLevel())
-            .addOptionsModification(
-                options -> options.desugarSpecificOptions().allowAllDesugaredInput = true)
-            .compile()
-            .writeToZip();
-
-    String stdout;
-    if (parameters.getRuntime().isDex()) {
-      // Convert to DEX without desugaring and run.
-      stdout =
-          testForD8(Backend.DEX)
-              .addProgramFiles(desugaredTwice)
-              .setMinApi(parameters.getApiLevel())
-              .disableDesugaring()
-              .compile()
-              .addDesugaredCoreLibraryRunClassPath(
-                  this::buildDesugaredLibrary,
-                  parameters.getApiLevel(),
-                  keepRuleConsumer.get(),
-                  shrinkDesugaredLibrary)
-              .run(
-                  parameters.getRuntime(),
-                  Executor.class,
-                  Boolean.toString(parameters.getRuntime().isCf()))
-              .assertSuccess()
-              .getStdOut();
-    } else {
-      // Run on the JVM with desugared library on classpath.
-      stdout =
-          testForJvm()
-              .addProgramFiles(desugaredTwice)
-              .addRunClasspathFiles(buildDesugaredLibraryClassFile(parameters.getApiLevel()))
-              .run(
-                  parameters.getRuntime(),
-                  Executor.class,
-                  Boolean.toString(parameters.getRuntime().isCf()))
-              .assertSuccess()
-              .getStdOut();
-    }
-    assertLines2By2Correct(stdout);
-  }
-
-  @Test
-  public void testRetargetOverrideD8() throws Exception {
-    Assume.assumeTrue(parameters.getRuntime().isDex());
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+  public void testRetargetOverride() throws Throwable {
     String stdout =
-        testForD8()
-            .addLibraryFiles(getLibraryFile())
-            .addInnerClasses(RetargetOverrideTest.class)
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibrary,
-                parameters.getApiLevel(),
-                keepRuleConsumer.get(),
-                shrinkDesugaredLibrary)
-            .run(
-                parameters.getRuntime(),
-                Executor.class,
-                Boolean.toString(parameters.getRuntime().isCf()))
-            .assertSuccess()
-            .getStdOut();
-    assertLines2By2Correct(stdout);
-  }
-
-  @Test
-  public void testRetargetOverrideR8() throws Exception {
-    Assume.assumeTrue(parameters.getRuntime().isDex());
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    String stdout =
-        testForR8(Backend.DEX)
-            .addLibraryFiles(getLibraryFile())
+        testForDesugaredLibrary(
+                parameters, libraryDesugaringSpecification, compilationSpecification)
+            .addInnerClasses(getClass())
             .addKeepMainRule(Executor.class)
-            .addInnerClasses(RetargetOverrideTest.class)
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibrary,
-                parameters.getApiLevel(),
-                keepRuleConsumer.get(),
-                shrinkDesugaredLibrary)
             .run(
                 parameters.getRuntime(),
                 Executor.class,

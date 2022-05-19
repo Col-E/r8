@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.desugaredlibrary.test;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.FeatureSplit;
+import com.android.tools.r8.L8TestBuilder;
 import com.android.tools.r8.L8TestCompileResult;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.R8TestBuilder;
@@ -21,7 +22,6 @@ import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
-import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -37,9 +37,9 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
   private final CompilationSpecification compilationSpecification;
   private final TestCompilerBuilder<?, ?, ?, ? extends SingleTestRunResult<?>, ?> builder;
+  private final L8TestBuilder l8Builder;
 
   private CustomLibrarySpecification customLibrarySpecification = null;
-  private Consumer<InternalOptions> l8OptionModifier = ConsumerUtils.emptyConsumer();
   private TestingKeepRuleConsumer keepRuleConsumer = null;
 
   public DesugaredLibraryTestBuilder(
@@ -52,6 +52,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     this.libraryDesugaringSpecification = libraryDesugaringSpecification;
     this.compilationSpecification = runSpecification;
     this.builder = generateBuilder();
+    this.l8Builder = generateL8Builder();
     setUp();
   }
 
@@ -85,6 +86,10 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return test.testForD8(Backend.DEX);
   }
 
+  private L8TestBuilder generateL8Builder() {
+    return test.testForL8(parameters.getApiLevel(), parameters.getBackend());
+  }
+
   public DesugaredLibraryTestBuilder<T> setCustomLibrarySpecification(
       CustomLibrarySpecification customLibrarySpecification) {
     this.customLibrarySpecification = customLibrarySpecification;
@@ -94,7 +99,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
 
   public DesugaredLibraryTestBuilder<T> addL8OptionsModification(
       Consumer<InternalOptions> optionModifier) {
-    l8OptionModifier = l8OptionModifier.andThen(optionModifier);
+    l8Builder.addOptionsModifier(optionModifier);
     return this;
   }
 
@@ -133,6 +138,11 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
 
   public DesugaredLibraryTestBuilder<T> addProgramFiles(Collection<Path> files) {
     builder.addProgramFiles(files);
+    return this;
+  }
+
+  public DesugaredLibraryTestBuilder<T> ignoreL8FinalPrefixVerification() {
+    l8Builder.ignoreFinalPrefixVerification();
     return this;
   }
 
@@ -229,7 +239,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   }
 
   public DesugaredLibraryTestBuilder<T> disableL8AnnotationRemoval() {
-    l8OptionModifier = l8OptionModifier.andThen(opt -> opt.disableL8AnnotationRemoval = true);
+    l8Builder.setDisableL8AnnotationRemoval(true);
     return this;
   }
 
@@ -271,12 +281,11 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   }
 
   private L8TestCompileResult compileDesugaredLibrary(String keepRule) throws Exception {
-    return test.testForL8(parameters.getApiLevel(), parameters.getBackend())
+    return l8Builder
         .apply(
             b ->
                 libraryDesugaringSpecification.configureL8TestBuilder(
                     b, compilationSpecification.isL8Shrink(), keepRule))
-        .addOptionsModifier(l8OptionModifier)
         .compile();
   }
 
