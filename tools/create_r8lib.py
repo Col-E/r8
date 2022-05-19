@@ -23,30 +23,35 @@ public class VersionExtractor {
 def parse_options():
   parser = argparse.ArgumentParser(description='Tag R8 Versions')
   parser.add_argument(
-      '--r8jar',
-      required=True,
-      help='The R8 jar to compile')
+    '--classpath',
+    action='append',
+    help='Dependencies to add to classpath')
   parser.add_argument(
-      '--output',
-      required=True,
-      help='The output path for the r8lib')
+    '--debug-agent',
+    action='store_true',
+    default=False,
+    help='Create a socket for debugging')
   parser.add_argument(
-      '--pg-conf',
-      action='append',
-      help='Keep configuration')
+    '--excldeps-variant',
+    action='store_true',
+    default=False,
+    help='Mark this artifact as an "excldeps" variant of the compiler')
   parser.add_argument(
-      '--lib',
-      action='append',
-      help='Additional libraries (JDK 1.8 rt.jar already included)')
+    '--lib',
+    action='append',
+    help='Additional libraries (JDK 1.8 rt.jar already included)')
   parser.add_argument(
-      '--classpath',
-      action='append',
-      help='Dependencies to add to classpath')
+    '--output',
+    required=True,
+    help='The output path for the r8lib')
   parser.add_argument(
-      '--excldeps-variant',
-      action='store_true',
-      default=False,
-      help='Mark this artifact as an "excldeps" variant of the compiler')
+    '--pg-conf',
+    action='append',
+    help='Keep configuration')
+  parser.add_argument(
+    '--r8jar',
+    required=True,
+    help='The R8 jar to compile')
   return parser.parse_args()
 
 def get_r8_version(r8jar):
@@ -82,6 +87,8 @@ def main():
   source_file_template = 'R8_%MAP_ID_%MAP_HASH'
   # TODO(b/139725780): See if we can remove or lower the heap size (-Xmx8g).
   cmd = [jdk.GetJavaExecutable(), '-Xmx8g', '-ea']
+  if args.debug_agent:
+    cmd.extend(['-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'])
   cmd.extend(['-cp', 'build/libs/r8_with_deps.jar', 'com.android.tools.r8.R8'])
   cmd.append(args.r8jar)
   cmd.append('--classfile')
