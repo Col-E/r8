@@ -169,12 +169,13 @@ public abstract class Jdk11TimeAbstractTests extends DesugaredLibraryTestBase {
         "test.java.time.TestPeriod",
         "test.java.time.TestClock_System",
         "test.java.time.TestOffsetDateTime_instants",
-        "tck.java.time.TestIsoChronology",
         "test.java.time.temporal.TestDateTimeBuilderCombinations",
         "test.java.time.temporal.TestJulianFields",
         "test.java.time.temporal.TestChronoUnit",
         "test.java.time.temporal.TestDateTimeValueRange"
       };
+  static final String[] RAW_TEMPORAL_SUCCESSES_IF_BRIDGE =
+      new String[] {"tck.java.time.TestIsoChronology"};
   static final String[] RAW_TEMPORAL_SUCCESSES_BUT_12 =
       new String[] {"test.java.time.temporal.TestIsoWeekFields"};
   static final String[] FORMAT_CHRONO_SUCCESSES =
@@ -192,8 +193,6 @@ public abstract class Jdk11TimeAbstractTests extends DesugaredLibraryTestBase {
         "test.java.time.format.TestDateTimeParsing",
         "test.java.time.format.TestSettingsParser",
         "test.java.time.format.TestNumberParser",
-        "test.java.time.format.TestTextParserWithLocale",
-        "test.java.time.format.TestTextPrinterWithLocale",
         "test.java.time.format.TestReducedPrinter",
         "test.java.time.format.TestCharLiteralParser",
         "test.java.time.chrono.TestChronologyPerf",
@@ -201,13 +200,14 @@ public abstract class Jdk11TimeAbstractTests extends DesugaredLibraryTestBase {
         "test.java.time.chrono.TestJapaneseChronology",
         "test.java.time.chrono.TestChronoLocalDate",
         "test.java.time.chrono.TestIsoChronoImpl",
-        "test.java.time.chrono.TestUmmAlQuraChronology",
       };
   static final String[] FORMAT_CHRONO_SUCCESSES_UP_TO_11 =
       new String[] {
         "test.java.time.format.TestDateTimeTextProviderWithLocale",
         "test.java.time.format.TestUnicodeExtension",
         "test.java.time.format.TestDateTimeFormatterBuilderWithLocale",
+        "test.java.time.format.TestTextParserWithLocale",
+        "test.java.time.format.TestTextPrinterWithLocale",
         "test.java.time.chrono.TestUmmAlQuraChronology",
       };
 

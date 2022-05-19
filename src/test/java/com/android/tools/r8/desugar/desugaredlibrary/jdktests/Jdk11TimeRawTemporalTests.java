@@ -4,10 +4,13 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
+
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -28,6 +31,12 @@ public class Jdk11TimeRawTemporalTests extends Jdk11TimeAbstractTests {
     if (!parameters.getDexRuntimeVersion().isEqualTo(Version.V12_0_0)) {
       // In 12 some ISO is supported that other versions do not support.
       testTime(RAW_TEMPORAL_SUCCESSES_BUT_12);
+    }
+    // The bridge is always present with JDK11 due to partial desugaring between 26 and 33.
+    // On JDK8 the bridge is absent in between 26 and 33.
+    if (libraryDesugaringSpecification != JDK8
+        || !parameters.getApiLevel().betweenBothIncluded(AndroidApiLevel.O, AndroidApiLevel.Sv2)) {
+      testTime(RAW_TEMPORAL_SUCCESSES_IF_BRIDGE);
     }
   }
 }
