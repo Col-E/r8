@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -11,8 +13,8 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.GenerateLintFiles;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
@@ -33,13 +35,17 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class LintFilesTest extends DesugaredLibraryTestBase {
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withNoneRuntime().build();
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+
+  @Parameters(name = "{0}, spec: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(getTestParameters().withNoneRuntime().build(), getJdk8Jdk11());
   }
 
-  public LintFilesTest(TestParameters parameters) {
-    parameters.assertNoneRuntime();
+  public LintFilesTest(
+      TestParameters parameters, LibraryDesugaringSpecification libraryDesugaringSpecification) {
+    assert parameters.isNoneRuntime();
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   private void checkFileContent(AndroidApiLevel minApiLevel, Path lintFile) throws Exception {
@@ -52,7 +58,8 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
 
     // ConcurrentHashMap is fully supported on JDK 11.
     assertEquals(
-        isJDK11DesugaredLibrary(), methods.contains("java/util/concurrent/ConcurrentHashMap"));
+        libraryDesugaringSpecification != JDK8,
+        methods.contains("java/util/concurrent/ConcurrentHashMap"));
 
     // No parallel* methods pre L, and all stream methods supported from L.
     assertEquals(
@@ -79,7 +86,7 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
         methods.contains(
             "java/util/stream/IntStream#allMatch(Ljava/util/function/IntPredicate;)Z"));
 
-    if (isJDK11DesugaredLibrary()) {
+    if (libraryDesugaringSpecification != JDK8) {
       // TODO(b/203382252): Investigate why the following assertions are not working on JDK 11.
       return;
     }
@@ -118,16 +125,20 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
   @Test
   public void testFileContent() throws Exception {
     Path directory = temp.newFolder().toPath();
+    Path jdkLibJar =
+        libraryDesugaringSpecification == JDK8
+            ? ToolHelper.DESUGARED_JDK_8_LIB_JAR
+            : ToolHelper.DESUGARED_JDK_11_LIB_JAR;
     GenerateLintFiles.main(
         new String[] {
-          ToolHelper.getDesugarLibJsonForTesting().toString(),
-          ToolHelper.getDesugarJDKLibs().toString(),
+          libraryDesugaringSpecification.getSpecification().toString(),
+          jdkLibJar.toString(),
           directory.toString()
         });
     InternalOptions options = new InternalOptions(new DexItemFactory(), new Reporter());
     DesugaredLibrarySpecification desugaredLibrarySpecification =
         DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecification(
-            StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()),
+            StringResource.fromFile(libraryDesugaringSpecification.getSpecification()),
             options.itemFactory,
             options.reporter,
             false,

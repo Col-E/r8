@@ -6,6 +6,7 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11TestLibraryDesugaringSpecification.EXTENSION_PATH;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -21,9 +22,9 @@ import com.android.tools.r8.L8Command;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11TestLibraryDesugaringSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.errors.DuplicateTypesDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -40,13 +41,17 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class MergingJ$Test extends DesugaredLibraryTestBase {
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withNoneRuntime().build();
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+
+  @Parameters(name = "{0}, spec: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(getTestParameters().withNoneRuntime().build(), getJdk8Jdk11());
   }
 
-  public MergingJ$Test(TestParameters parameters) {
-    parameters.assertNoneRuntime();
+  public MergingJ$Test(
+      TestParameters parameters, LibraryDesugaringSpecification libraryDesugaringSpecification) {
+    assert parameters.isNoneRuntime();
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   @Test
@@ -58,7 +63,7 @@ public class MergingJ$Test extends DesugaredLibraryTestBase {
         () ->
             testForD8()
                 .addProgramFiles(mergerInputPart1, mergerInputPart2)
-                .addLibraryFiles(getLibraryFile())
+                .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
                 .compileWithExpectedDiagnostics(
                     diagnostics -> {
                       diagnostics
@@ -75,7 +80,7 @@ public class MergingJ$Test extends DesugaredLibraryTestBase {
     D8Command command =
         D8Command.builder()
             .addProgramFiles(mergerInputPart1, mergerInputPart2)
-            .addLibraryFiles(getLibraryFile())
+            .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
             .setOutput(merged, OutputMode.DexIndexed)
             .build();
     try {
@@ -109,10 +114,10 @@ public class MergingJ$Test extends DesugaredLibraryTestBase {
     Path outputDex = temp.newFolder().toPath().resolve("merger-input-dex.zip");
     L8.run(
         L8Command.builder()
-            .addLibraryFiles(getLibraryFile())
-            .addProgramFiles(ToolHelper.getDesugarJDKLibs())
+            .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
+            .addProgramFiles(libraryDesugaringSpecification.getDesugarJdkLibs())
             .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
+                StringResource.fromFile(libraryDesugaringSpecification.getSpecification()))
             .setMinApiLevel(AndroidApiLevel.B.getLevel())
             .setOutput(outputDex, OutputMode.DexIndexed)
             .build());
@@ -127,11 +132,11 @@ public class MergingJ$Test extends DesugaredLibraryTestBase {
     Jdk11TestLibraryDesugaringSpecification.setUp();
     L8.run(
         L8Command.builder()
-            .addLibraryFiles(getLibraryFile())
-            .addLibraryFiles(ToolHelper.getDesugarJDKLibs())
+            .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
+            .addLibraryFiles(libraryDesugaringSpecification.getDesugarJdkLibs())
             .addProgramFiles(EXTENSION_PATH)
             .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
+                StringResource.fromFile(libraryDesugaringSpecification.getSpecification()))
             .setMinApiLevel(AndroidApiLevel.B.getLevel())
             .setOutput(outputDex, OutputMode.DexIndexed)
             .build());

@@ -4,38 +4,53 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import com.android.tools.r8.LibraryDesugaringTestConfiguration;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
+
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.AbstractCollection;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.Predicate;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @SuppressWarnings("ALL")
 @RunWith(Parameterized.class)
 public class MinimalInterfaceSuperTest extends DesugaredLibraryTestBase {
 
-  private final TestParameters parameters;
-
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
-  }
-
-  public MinimalInterfaceSuperTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
-
   private static final String EXPECTED_OUTPUT = StringUtils.lines("removeIf from Col1Itf");
 
+  private final TestParameters parameters;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
+
+  @Parameters(name = "{0}, spec: {1}, {2}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        DEFAULT_SPECIFICATIONS);
+  }
+
+  public MinimalInterfaceSuperTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
+    this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
+  }
+
   @Test
-  public void testCustomCollectionR8() throws Exception {
+  public void testMinimalInterfaceSuper() throws Exception {
     if (parameters.isCfRuntime()) {
       testForJvm()
           .addInnerClasses(MinimalInterfaceSuperTest.class)
@@ -43,15 +58,9 @@ public class MinimalInterfaceSuperTest extends DesugaredLibraryTestBase {
           .assertSuccessWithOutput(EXPECTED_OUTPUT);
       return;
     }
-    testForR8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
-        .addInnerClasses(MinimalInterfaceSuperTest.class)
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+        .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(
-            LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
-        .compile()
-        .assertNoMessages()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }

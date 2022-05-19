@@ -198,6 +198,11 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
+  public DesugaredLibraryTestBuilder<T> addKeepClassAndMembersRules(Class<?>... clazz) {
+    withR8TestBuilder(b -> b.addKeepClassAndMembersRules(clazz));
+    return this;
+  }
+
   public DesugaredLibraryTestBuilder<T> addKeepAttributes(String... attributes) {
     withR8TestBuilder(b -> b.addKeepAttributes(attributes));
     return this;

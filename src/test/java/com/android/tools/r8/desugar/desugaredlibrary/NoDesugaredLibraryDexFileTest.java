@@ -4,10 +4,13 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -16,6 +19,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.SortedSet;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -26,50 +30,37 @@ import org.junit.runners.Parameterized.Parameters;
 public class NoDesugaredLibraryDexFileTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        DEFAULT_SPECIFICATIONS);
   }
 
-  public NoDesugaredLibraryDexFileTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public NoDesugaredLibraryDexFileTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   @Test
-  public void testCustomCollectionD8() throws Exception {
+  public void testNoDesugaredLibraryDexFile() throws Throwable {
     Assume.assumeTrue(requiresEmulatedInterfaceCoreLibDesugaring(parameters));
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
-        .addInnerClasses(NoDesugaredLibraryDexFileTest.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .inspect(this::assertNoForwardingStreamMethod)
-        .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutputLines("1", "0");
-    assertTrue(keepRuleConsumer.get().isEmpty());
-  }
-
-  @Test
-  public void testCustomCollectionR8() throws Exception {
-    Assume.assumeTrue(requiresEmulatedInterfaceCoreLibDesugaring(parameters));
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForR8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
-        .addInnerClasses(NoDesugaredLibraryDexFileTest.class)
-        .setMinApi(parameters.getApiLevel())
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+        .addInnerClasses(getClass())
         .addKeepClassAndMembersRules(Executor.class)
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
         .inspect(this::assertNoForwardingStreamMethod)
+        .inspectKeepRules(Assert::assertNull)
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutputLines("1", "0");
-    assertTrue(keepRuleConsumer.get().isEmpty());
   }
 
   private void assertNoForwardingStreamMethod(CodeInspector inspector) {

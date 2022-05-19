@@ -4,10 +4,15 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import com.android.tools.r8.LibraryDesugaringTestConfiguration;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
+
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.google.common.collect.ImmutableList;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
@@ -15,31 +20,38 @@ import java.util.function.Predicate;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class LinkedHashSetTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+  @Parameters(name = "{0}, spec: {1}, {2}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        ImmutableList.of(D8_L8DEBUG));
   }
 
-  public LinkedHashSetTest(TestParameters parameters) {
+  public LinkedHashSetTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   @Test
-  public void testLinkedHashSetOverrides() throws Exception {
+  public void testLinkedHashSet() throws Throwable {
     String stdOut =
-        testForD8()
-            .addLibraryFiles(getLibraryFile())
-            .addInnerClasses(LinkedHashSetTest.class)
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(
-                LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
-            .compile()
+        testForDesugaredLibrary(
+                parameters, libraryDesugaringSpecification, compilationSpecification)
+            .addInnerClasses(getClass())
             .run(parameters.getRuntime(), Executor.class)
             .assertSuccess()
             .getStdOut();

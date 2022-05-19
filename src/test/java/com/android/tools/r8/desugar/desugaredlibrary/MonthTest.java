@@ -4,33 +4,49 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import com.android.tools.r8.LibraryDesugaringTestConfiguration;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
+
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.StringUtils;
 import java.time.Month;
 import java.time.format.TextStyle;
+import java.util.List;
 import java.util.Locale;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class MonthTest extends DesugaredLibraryTestBase {
-  private final TestParameters parameters;
 
   private static final String EXPECTED_JAVA_8_OUTPUT = StringUtils.lines("4");
   private static final String EXPECTED_JAVA_9_OUTPUT = StringUtils.lines("April");
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
+  private final TestParameters parameters;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
+
+  @Parameters(name = "{0}, spec: {1}, {2}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        DEFAULT_SPECIFICATIONS);
   }
 
-  public MonthTest(TestParameters parameters) {
+  public MonthTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   private String getExpectedResult(TestParameters parameters) {
@@ -41,14 +57,14 @@ public class MonthTest extends DesugaredLibraryTestBase {
       return EXPECTED_JAVA_8_OUTPUT;
     }
     assert parameters.isDexRuntime();
-    if (requiresTimeDesugaring(parameters)) {
+    if (requiresTimeDesugaring(parameters, libraryDesugaringSpecification != JDK8)) {
       return EXPECTED_JAVA_8_OUTPUT;
     }
     return EXPECTED_JAVA_9_OUTPUT;
   }
 
   @Test
-  public void testMonthD8() throws Exception {
+  public void testMonth() throws Exception {
     if (parameters.isCfRuntime()) {
       testForJvm()
           .addInnerClasses(MonthTest.class)
@@ -56,28 +72,9 @@ public class MonthTest extends DesugaredLibraryTestBase {
           .assertSuccessWithOutput(getExpectedResult(parameters));
       return;
     }
-    testForD8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
-        .addInnerClasses(MonthTest.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(
-            LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
-        .compile()
-        .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutput(getExpectedResult(parameters));
-  }
-
-  @Test
-  public void testMonthR8() throws Exception {
-    Assume.assumeTrue(parameters.isDexRuntime());
-    testForR8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
-        .addInnerClasses(MonthTest.class)
-        .addKeepMainRule(MonthTest.Main.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(
-            LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
-        .compile()
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(getExpectedResult(parameters));
   }
