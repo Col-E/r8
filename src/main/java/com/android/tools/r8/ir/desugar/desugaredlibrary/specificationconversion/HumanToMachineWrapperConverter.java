@@ -70,7 +70,11 @@ public class HumanToMachineWrapperConverter {
     while (!workList.isEmpty()) {
       DexClass dexClass = workList.removeFirst();
       for (DexEncodedMethod virtualMethod : dexClass.virtualMethods()) {
-        if (!virtualMethod.isPrivateMethod()) {
+        if (!virtualMethod.isPrivateMethod()
+            // Don't include hashCode and equals overrides, as hashCode and equals are added to
+            // all wrappers regardless.
+            && (!appInfo.dexItemFactory().objectMembers.hashCode.match(virtualMethod))
+            && (!appInfo.dexItemFactory().objectMembers.equals.match(virtualMethod))) {
           assert virtualMethod.isProtectedMethod() || virtualMethod.isPublicMethod();
           boolean alreadyAdded = wrappers.contains(equivalence.wrap(virtualMethod.getReference()));
           // This looks quadratic but given the size of the collections met in practice for

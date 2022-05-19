@@ -42,6 +42,7 @@ import com.android.tools.r8.synthesis.SyntheticClassBuilder;
 import com.android.tools.r8.synthesis.SyntheticItems.SyntheticKindSelector;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -632,6 +633,13 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     return generatedMethods;
   }
 
+  private Collection<DexEncodedMethod> synthesizeHashCodeAndEquals(
+      DexProgramClass wrapper, DexEncodedField wrapperField) {
+    return ImmutableList.of(
+        conversionCfProvider.generateWrapperHashCode(wrapperField.getReference()),
+        conversionCfProvider.generateWrapperEquals(wrapperField.getReference()));
+  }
+
   DexEncodedMethod newSynthesizedMethod(DexMethod methodToInstall, Code code) {
     MethodAccessFlags newFlags =
         MethodAccessFlags.fromSharedAccessFlags(
@@ -752,6 +760,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
                     field,
                     eventConsumer,
                     () -> processingContext.createUniqueContext(wrapper))));
+    wrapper.addVirtualMethods(synthesizeHashCodeAndEquals(wrapper, wrapperField));
     DexProgramClass vivifiedWrapper =
         getExistingProgramWrapper(context, kinds -> kinds.VIVIFIED_WRAPPER);
     DexEncodedField vivifiedWrapperField = getWrapperUniqueEncodedField(vivifiedWrapper);
@@ -765,5 +774,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
                     field,
                     eventConsumer,
                     () -> processingContext.createUniqueContext(wrapper))));
+    vivifiedWrapper.addVirtualMethods(
+        synthesizeHashCodeAndEquals(vivifiedWrapper, vivifiedWrapperField));
   }
 }
