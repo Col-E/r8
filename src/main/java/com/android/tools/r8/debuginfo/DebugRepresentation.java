@@ -53,7 +53,7 @@ public class DebugRepresentation {
       file.classes().forEach(c -> classMapping.put(c, file));
     }
     return (holder, method) -> {
-      if (!isPcCandidate(method)) {
+      if (!isPcCandidate(method, options)) {
         return false;
       }
       VirtualFile file = classMapping.get(holder);
@@ -88,11 +88,19 @@ public class DebugRepresentation {
         }
         ProgramMethod method = methods.get(0);
         DexEncodedMethod definition = method.getDefinition();
-        if (!isPcCandidate(definition)) {
+        if (!isPcCandidate(definition, options)) {
           continue;
         }
         DexCode code = definition.getCode().asDexCode();
         DexDebugInfo debugInfo = code.getDebugInfo();
+        if (debugInfo == null) {
+          // If debug info is "null" then the cost of representing it as normal events will be a
+          // single default event to ensure its source file content is active.
+          debugInfo =
+              LineNumberOptimizer.createEventBasedInfoForMethodWithoutDebugInfo(
+                  definition, options.dexItemFactory());
+        }
+        assert debugInfo.getParameterCount() == method.getParameters().size();
         DexInstruction lastInstruction = getLastExecutableInstruction(code);
         if (lastInstruction == null) {
           continue;
@@ -113,8 +121,8 @@ public class DebugRepresentation {
 
   private boolean usesPcEncoding(DexEncodedMethod method) {
     DexCode code = method.getCode().asDexCode();
-    DexDebugInfo debugInfo = code.getDebugInfo();
-    int paramCount = debugInfo.getParameterCount();
+    int paramCount = method.getParameters().size();
+    assert code.getDebugInfo() == null || code.getDebugInfo().getParameterCount() == paramCount;
     CostSummary conversionInfo = paramToInfo.get(paramCount);
     if (conversionInfo.cutoff < 0) {
       return false;
@@ -134,12 +142,12 @@ public class DebugRepresentation {
     return StringUtils.join("\n", sorted, CostSummary::toString);
   }
 
-  private static boolean isPcCandidate(DexEncodedMethod method) {
+  private static boolean isPcCandidate(DexEncodedMethod method, InternalOptions options) {
     if (!method.hasCode() || !method.getCode().isDexCode()) {
       return false;
     }
     DexCode code = method.getCode().asDexCode();
-    return LineNumberOptimizer.doesContainPositions(code);
+    return LineNumberOptimizer.mustHaveResidualDebugInfo(code, options);
   }
 
   /** The cost of representing normal debug info for all methods with this max pc value. */

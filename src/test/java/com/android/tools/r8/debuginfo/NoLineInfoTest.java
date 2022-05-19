@@ -145,10 +145,27 @@ public class NoLineInfoTest extends TestBase {
 
   // Residual line depends on the source file parameter.
   private StackTraceLine residualLine(String method, int line) {
-    String defaultFile =
-        isCompileWithPcAsLineNumberSupport() ? UNKNOWN_SOURCE_FILE : DEFAULT_SOURCE_FILE;
-    String file = customSourceFile ? CUSTOM_SOURCE_FILE : defaultFile;
-    return line(file, method, line);
+    if (customSourceFile) {
+      return line(CUSTOM_SOURCE_FILE, method, line);
+    }
+    if (isCompileWithPcAsLineNumberSupport()) {
+      return line(UNKNOWN_SOURCE_FILE, method, line);
+    }
+    return line(DEFAULT_SOURCE_FILE, method, line);
+  }
+
+  // A residual line that is either null debug info or pc2pc mapping.
+  private StackTraceLine residualPcOrNoLine(String method, int pc) {
+    // If compiling with custom source file the debug info must be non-null and have a pc mapping.
+    if (customSourceFile) {
+      return line(CUSTOM_SOURCE_FILE, method, pc);
+    }
+    // If debug info is null, then on native pc support VMs it will print "unknown" and pc.
+    if (isRuntimeWithPcAsLineNumberSupport()) {
+      return line(UNKNOWN_SOURCE_FILE, method, pc);
+    }
+    // On old runtimes it will print "default" and no line info.
+    return line(DEFAULT_SOURCE_FILE, method, -1);
   }
 
   // This is the real "reference" stack trace as given by JVM on inputs and should be retraced to.
@@ -174,10 +191,18 @@ public class NoLineInfoTest extends TestBase {
 
   // TODO(b/232212653): The retraced stack trace should be the same as `getExpectedInputStacktrace`.
   private StackTrace getUnexpectedRetracedStacktrace() {
-
-    // TODO(b/232212653): Retracing the PC 1 preserves it but it should map to <noline>
-    StackTraceLine fooLine =
-        isRuntimeWithPcAsLineNumberSupport() ? inputLine("foo", 1) : inputLine("foo", -1);
+    StackTraceLine fooLine;
+    if (parameters.isCfRuntime()) {
+      fooLine = inputLine("foo", -1);
+    } else if (customSourceFile) {
+      // TODO(b/232212653): Should retrace convert out of "0" and represent it as <noline>/-1?
+      fooLine = inputLine("foo", 0);
+    } else if (isRuntimeWithPcAsLineNumberSupport()) {
+      // TODO(b/232212653): Retrace should convert PC 1 to line <noline>/-1/0.
+      fooLine = inputLine("foo", 1);
+    } else {
+      fooLine = inputLine("foo", -1);
+    }
 
     // TODO(b/232212653): Normal line-opt will cause a single-line mapping. Retrace should not
     //  optimize that to mean it represents a single possible line. (<noline> should not match 1:x).
@@ -207,17 +232,9 @@ public class NoLineInfoTest extends TestBase {
           .build();
     }
 
-    // TODO(b/232212653): The correct line should be with CUSTOM_SOURCE_FILE and PC 1.
-    //   When compiling with debug info encoding PCs this is almost the expected output. The issue
-    //   being that even "foo" should have PC based encoding too to ensure the SF remains on
-    //   newer VMs too.
-    StackTraceLine fooLine =
-        isRuntimeWithPcAsLineNumberSupport()
-            ? line(UNKNOWN_SOURCE_FILE, "foo", 1)
-            : residualLine("foo", -1);
-
     return StackTrace.builder()
-        .add(fooLine)
+        // Foo has only <noline> on input and so it is allowed to compile it to a null debug-info.
+        .add(residualPcOrNoLine("foo", 1))
         .add(residualLine("bar", 0))
         .add(residualLine("baz", 0))
         .add(residualLine("main", 6))

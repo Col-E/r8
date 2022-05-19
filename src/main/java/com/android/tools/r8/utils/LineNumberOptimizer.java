@@ -566,7 +566,8 @@ public class LineNumberOptimizer {
           boolean canUseDexPc =
               methods.size() == 1 && representation.useDexPcEncoding(clazz, definition);
           if (code != null) {
-            if (code.isDexCode() && doesContainPositions(code.asDexCode())) {
+            if (code.isDexCode()
+                && mustHaveResidualDebugInfo(code.asDexCode(), appView.options())) {
               if (canUseDexPc) {
                 mappedPositions =
                     optimizeDexCodePositionsForPc(
@@ -577,7 +578,7 @@ public class LineNumberOptimizer {
                         definition, appView, kotlinRemapper, identityMapping, methods.size() != 1);
               }
             } else if (code.isCfCode()
-                && doesContainPositions(code.asCfCode())
+                && mustHaveResidualDebugInfo(code.asCfCode())
                 && !appView.isCfByteCodePassThrough(definition)) {
               mappedPositions = optimizeCfCodePositions(method, kotlinRemapper, appView);
             } else {
@@ -607,7 +608,7 @@ public class LineNumberOptimizer {
               && obfuscatedNameDexString == originalMethod.name
               && originalMethod.holder == originalType) {
             assert appView.options().lineNumberOptimization == LineNumberOptimization.OFF
-                || !doesContainPositions(definition)
+                || hasAtMostOnePosition(definition, appView.options())
                 || appView.isCfByteCodePassThrough(definition);
             continue;
           }
@@ -756,6 +757,20 @@ public class LineNumberOptimizer {
     pcBasedDebugInfo.updateDebugInfoInCodeObjects();
 
     return classNameMapperBuilder.build();
+  }
+
+  private static boolean hasAtMostOnePosition(
+      DexEncodedMethod definition, InternalOptions options) {
+    if (!mustHaveResidualDebugInfo(definition, options)) {
+      return true;
+    }
+    Code code = definition.getCode();
+    if (code.isDexCode() && code.asDexCode().instructions.length == 1) {
+      // If the dex code is a single PC code then that also qualifies as having at most one
+      // position.
+      return true;
+    }
+    return false;
   }
 
   private static DexMethod getOutlineMethod(MappedPosition mappedPosition) {
@@ -919,13 +934,13 @@ public class LineNumberOptimizer {
     IdentityHashMap<DexString, List<ProgramMethod>> methodsByRenamedName =
         new IdentityHashMap<>(clazz.getMethodCollection().size());
     for (ProgramMethod programMethod : clazz.programMethods()) {
-      // Add method only if renamed, moved, or contains positions.
+      // Add method only if renamed, moved, or if it has debug info to map.
       DexEncodedMethod definition = programMethod.getDefinition();
       DexMethod method = programMethod.getReference();
       DexString renamedName = appView.getNamingLens().lookupName(method);
       if (renamedName != method.name
           || appView.graphLens().getOriginalMethodSignature(method) != method
-          || doesContainPositions(definition)
+          || mustHaveResidualDebugInfo(definition, appView.options())
           || definition.isD8R8Synthesized()) {
         methodsByRenamedName
             .computeIfAbsent(renamedName, key -> new ArrayList<>())
@@ -935,20 +950,26 @@ public class LineNumberOptimizer {
     return methodsByRenamedName;
   }
 
-  private static boolean doesContainPositions(DexEncodedMethod method) {
+  private static boolean mustHaveResidualDebugInfo(
+      DexEncodedMethod method, InternalOptions options) {
     Code code = method.getCode();
     if (code == null) {
       return false;
     }
     if (code.isDexCode()) {
-      return doesContainPositions(code.asDexCode());
+      return mustHaveResidualDebugInfo(code.asDexCode(), options);
     } else if (code.isCfCode()) {
-      return doesContainPositions(code.asCfCode());
+      return mustHaveResidualDebugInfo(code.asCfCode());
     }
     return false;
   }
 
-  public static boolean doesContainPositions(DexCode dexCode) {
+  public static boolean mustHaveResidualDebugInfo(DexCode dexCode, InternalOptions options) {
+    // All code objects must have debug info if discarding it is not allowed.
+    if (!options.allowDiscardingResidualDebugInfo()) {
+      return true;
+    }
+    // Otherwise debug info is only needed for code sequences with at least one position.
     DexDebugInfo debugInfo = dexCode.getDebugInfo();
     if (debugInfo == null) {
       return false;
@@ -964,7 +985,7 @@ public class LineNumberOptimizer {
     return false;
   }
 
-  private static boolean doesContainPositions(CfCode cfCode) {
+  private static boolean mustHaveResidualDebugInfo(CfCode cfCode) {
     List<CfInstruction> instructions = cfCode.getInstructions();
     for (CfInstruction instruction : instructions) {
       if (instruction instanceof CfPosition) {
@@ -984,10 +1005,8 @@ public class LineNumberOptimizer {
     // Do the actual processing for each method.
     DexApplication application = appView.appInfo().app();
     DexCode dexCode = method.getCode().asDexCode();
-    // TODO(b/213411850): Do we need to reconsider conversion here to support pc-based D8 merging?
-    EventBasedDebugInfo debugInfo =
-        DexDebugInfo.convertToEventBased(dexCode, appView.dexItemFactory());
-    assert debugInfo != null;
+    EventBasedDebugInfo debugInfo = getEventBasedDebugInfo(method, dexCode, appView);
+
     List<DexDebugEvent> processedEvents = new ArrayList<>();
 
     PositionEventEmitter positionEventEmitter =
@@ -1099,6 +1118,29 @@ public class LineNumberOptimizer {
     return mappedPositions;
   }
 
+  // This conversion *always* creates an event based debug info encoding as any non-info will
+  // be created as an implicit PC encoding.
+  private static EventBasedDebugInfo getEventBasedDebugInfo(
+      DexEncodedMethod method, DexCode dexCode, AppView<?> appView) {
+    // TODO(b/213411850): Do we need to reconsider conversion here to support pc-based D8 merging?
+    if (dexCode.getDebugInfo() == null) {
+      return createEventBasedInfoForMethodWithoutDebugInfo(method, appView.dexItemFactory());
+    }
+    assert method.getParameters().size() == dexCode.getDebugInfo().getParameterCount();
+    EventBasedDebugInfo debugInfo =
+        DexDebugInfo.convertToEventBased(dexCode, appView.dexItemFactory());
+    assert debugInfo != null;
+    return debugInfo;
+  }
+
+  public static EventBasedDebugInfo createEventBasedInfoForMethodWithoutDebugInfo(
+      DexEncodedMethod method, DexItemFactory factory) {
+    return new EventBasedDebugInfo(
+        0,
+        new DexString[method.getParameters().size()],
+        new DexDebugEvent[] {factory.zeroChangeDefaultEvent});
+  }
+
   private static Position getPositionFromPositionState(DexDebugPositionState state) {
     PositionBuilder<?, ?> positionBuilder;
     if (state.getOutlineCallee() != null) {
@@ -1128,10 +1170,7 @@ public class LineNumberOptimizer {
     List<MappedPosition> mappedPositions = new ArrayList<>();
     // Do the actual processing for each method.
     DexCode dexCode = method.getCode().asDexCode();
-    // TODO(b/213411850): Do we need to reconsider conversion here to support pc-based D8 merging?
-    EventBasedDebugInfo debugInfo =
-        DexDebugInfo.convertToEventBased(dexCode, appView.dexItemFactory());
-    assert debugInfo != null;
+    EventBasedDebugInfo debugInfo = getEventBasedDebugInfo(method, dexCode, appView);
     IntBox firstDefaultEventPc = new IntBox(-1);
     BooleanBox singleOriginalLine = new BooleanBox(true);
     Pair<Integer, Position> lastPosition = new Pair<>();
@@ -1193,11 +1232,10 @@ public class LineNumberOptimizer {
           mappedPositions);
     }
 
-    // If we only have one original line we can always retrace back uniquely.
-    assert !mappedPositions.isEmpty();
+    assert !mappedPositions.isEmpty() || dexCode.instructions.length == 1;
     if (singleOriginalLine.isTrue()
         && lastPosition.getSecond() != null
-        && !mappedPositions.get(0).isOutlineCaller()) {
+        && (mappedPositions.isEmpty() || !mappedPositions.get(0).isOutlineCaller())) {
       dexCode.setDebugInfo(DexDebugInfoForSingleLineMethod.getInstance());
       debugInfoProvider.recordSingleLineFor(
           dexCode, method.getParameters().size(), lastInstructionPc);
