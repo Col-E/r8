@@ -65,6 +65,10 @@ public class DexAnnotationSet extends CachedHashValueDexItem
     return this;
   }
 
+  public DexAnnotation[] getAnnotations() {
+    return annotations;
+  }
+
   @Override
   public StructuralMapping<DexAnnotationSet> getStructuralMapping() {
     return DexAnnotationSet::specify;

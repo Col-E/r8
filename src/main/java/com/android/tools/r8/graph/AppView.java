@@ -249,8 +249,12 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return appInfo;
   }
 
+  public AppInfoWithClassHierarchy appInfoWithClassHierarchy() {
+    return hasClassHierarchy() ? appInfo.withClassHierarchy() : null;
+  }
+
   public AppInfoWithLiveness appInfoWithLiveness() {
-    return appInfo.hasLiveness() ? appInfo.withLiveness() : null;
+    return hasLiveness() ? appInfo.withLiveness() : null;
   }
 
   public AppInfoWithClassHierarchy appInfoForDesugaring() {

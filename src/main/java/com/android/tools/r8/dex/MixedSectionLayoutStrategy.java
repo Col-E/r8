@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.dex;
 
+import com.android.tools.r8.dex.FileWriter.MixedSectionOffsets;
+import com.android.tools.r8.experimental.startup.StartupOrder;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -16,6 +19,22 @@ import com.android.tools.r8.graph.ProgramMethod;
 import java.util.Collection;
 
 public abstract class MixedSectionLayoutStrategy {
+
+  public static MixedSectionLayoutStrategy create(
+      AppView<?> appView, MixedSectionOffsets mixedSectionOffsets, VirtualFile virtualFile) {
+    StartupOrder startupOrderForWriting =
+        virtualFile.getId() == 0 && appView.hasClassHierarchy()
+            ? appView
+                .appInfoWithClassHierarchy()
+                .getStartupOrder()
+                .toStartupOrderForWriting(appView)
+            : StartupOrder.empty();
+    if (startupOrderForWriting.isEmpty()) {
+      return new DefaultMixedSectionLayoutStrategy(appView, mixedSectionOffsets);
+    }
+    return new StartupMixedSectionLayoutStrategy(
+        appView, mixedSectionOffsets, startupOrderForWriting, virtualFile);
+  }
 
   public abstract Collection<DexAnnotation> getAnnotationLayout();
 

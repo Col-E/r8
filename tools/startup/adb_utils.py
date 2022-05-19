@@ -98,12 +98,12 @@ def drop_caches(device_id=None):
 def ensure_screen_on(device_id=None):
   if get_screen_state(device_id).is_off():
     toggle_screen(device_id)
-  assert adb_utils.get_screen_state(options.device_id).is_on()
+  assert get_screen_state(device_id).is_on()
 
 def ensure_screen_off(device_id=None):
   if get_screen_state(device_id).is_on():
     toggle_screen(device_id)
-  assert adb_utils.get_screen_state(options.device_id).is_off()
+  assert get_screen_state(device_id).is_off()
 
 def force_compilation(app_id, device_id=None):
   print('Applying AOT (full)')

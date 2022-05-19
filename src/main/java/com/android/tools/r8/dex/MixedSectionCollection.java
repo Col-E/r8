@@ -110,10 +110,16 @@ public abstract class MixedSectionCollection {
   /**
    * Adds the given annotation directory to the collection.
    *
-   * Add a dependency between the clazz and the annotation directory.
-   *
-   * @return true if the item was not added before
+   * <p>Adds a dependency between the clazz and the annotation directory.
    */
-  public abstract boolean setAnnotationsDirectoryForClass(DexProgramClass clazz,
-      DexAnnotationDirectory annotationDirectory);
+  public abstract void setAnnotationsDirectoryForClass(
+      DexProgramClass clazz, DexAnnotationDirectory annotationDirectory);
+
+  /**
+   * Adds the given static field values array to the collection.
+   *
+   * <p>Adds a dependency between the clazz and the static field values array.
+   */
+  public abstract void setStaticFieldValuesForClass(
+      DexProgramClass clazz, DexEncodedArray staticFieldValues);
 }

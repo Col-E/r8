@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class DexAnnotationDirectory extends DexItem {
 
@@ -38,6 +39,46 @@ public class DexAnnotationDirectory extends DexItem {
       if (!field.annotations().isEmpty()) {
         fieldAnnotations.add(field);
       }
+    }
+  }
+
+  public void visitAnnotations(
+      Consumer<DexAnnotation> annotationConsumer,
+      Consumer<DexAnnotationSet> annotationSetConsumer,
+      Consumer<ParameterAnnotationsList> parameterAnnotationsListConsumer) {
+    visitAnnotationSet(clazz.annotations(), annotationConsumer, annotationSetConsumer);
+    clazz.forEachField(
+        field ->
+            visitAnnotationSet(field.annotations(), annotationConsumer, annotationSetConsumer));
+    clazz.forEachMethod(
+        method -> {
+          visitAnnotationSet(method.annotations(), annotationConsumer, annotationSetConsumer);
+          visitParameterAnnotationsList(
+              method.getParameterAnnotations(),
+              annotationConsumer,
+              annotationSetConsumer,
+              parameterAnnotationsListConsumer);
+        });
+  }
+
+  private void visitAnnotationSet(
+      DexAnnotationSet annotationSet,
+      Consumer<DexAnnotation> annotationConsumer,
+      Consumer<DexAnnotationSet> annotationSetConsumer) {
+    annotationSetConsumer.accept(annotationSet);
+    for (DexAnnotation annotation : annotationSet.getAnnotations()) {
+      annotationConsumer.accept(annotation);
+    }
+  }
+
+  private void visitParameterAnnotationsList(
+      ParameterAnnotationsList parameterAnnotationsList,
+      Consumer<DexAnnotation> annotationConsumer,
+      Consumer<DexAnnotationSet> annotationSetConsumer,
+      Consumer<ParameterAnnotationsList> parameterAnnotationsListConsumer) {
+    parameterAnnotationsListConsumer.accept(parameterAnnotationsList);
+    for (DexAnnotationSet annotationSet : parameterAnnotationsList.getAnnotationSets()) {
+      visitAnnotationSet(annotationSet, annotationConsumer, annotationSetConsumer);
     }
   }
 

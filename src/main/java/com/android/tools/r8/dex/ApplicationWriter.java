@@ -150,9 +150,15 @@ public class ApplicationWriter {
     }
 
     @Override
-    public boolean setAnnotationsDirectoryForClass(DexProgramClass clazz,
-        DexAnnotationDirectory annotationDirectory) {
-      return true;
+    public void setAnnotationsDirectoryForClass(
+        DexProgramClass clazz, DexAnnotationDirectory annotationDirectory) {
+      // Intentionally empty.
+    }
+
+    @Override
+    public void setStaticFieldValuesForClass(
+        DexProgramClass clazz, DexEncodedArray staticFieldValues) {
+      add(staticFieldValues);
     }
   }
 
@@ -523,7 +529,7 @@ public class ApplicationWriter {
     timing.end();
 
     timing.begin("Write bytes");
-    ByteBufferResult result = writeDexFile(objectMapping, byteBufferProvider, timing);
+    ByteBufferResult result = writeDexFile(objectMapping, byteBufferProvider, virtualFile, timing);
     ByteDataView data =
         new ByteDataView(result.buffer.array(), result.buffer.arrayOffset(), result.length);
     timing.end();
@@ -818,9 +824,12 @@ public class ApplicationWriter {
   }
 
   private ByteBufferResult writeDexFile(
-      ObjectToOffsetMapping objectMapping, ByteBufferProvider provider, Timing timing) {
+      ObjectToOffsetMapping objectMapping,
+      ByteBufferProvider provider,
+      VirtualFile virtualFile,
+      Timing timing) {
     FileWriter fileWriter =
-        new FileWriter(appView, provider, objectMapping, desugaredLibraryCodeToKeep);
+        new FileWriter(appView, provider, objectMapping, desugaredLibraryCodeToKeep, virtualFile);
     // Collect the non-fixed sections.
     timing.time("collect", fileWriter::collect);
     // Generate and write the bytes.

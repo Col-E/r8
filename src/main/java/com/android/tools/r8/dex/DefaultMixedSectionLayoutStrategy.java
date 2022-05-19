@@ -28,8 +28,8 @@ import java.util.List;
 
 public class DefaultMixedSectionLayoutStrategy extends MixedSectionLayoutStrategy {
 
-  private final AppView<?> appView;
-  private final MixedSectionOffsets mixedSectionOffsets;
+  final AppView<?> appView;
+  final MixedSectionOffsets mixedSectionOffsets;
 
   public DefaultMixedSectionLayoutStrategy(
       AppView<?> appView, MixedSectionOffsets mixedSectionOffsets) {
@@ -64,9 +64,13 @@ public class DefaultMixedSectionLayoutStrategy extends MixedSectionLayoutStrateg
 
   @Override
   public Collection<ProgramMethod> getCodeLayout() {
+    return getCodeLayoutForClasses(mixedSectionOffsets.getClassesWithData());
+  }
+
+  final Collection<ProgramMethod> getCodeLayoutForClasses(Collection<DexProgramClass> classes) {
     ProgramMethodMap<String> codeToSignatureMap = ProgramMethodMap.create();
     List<ProgramMethod> codesSorted = new ArrayList<>();
-    for (DexProgramClass clazz : mixedSectionOffsets.getClassesWithData()) {
+    for (DexProgramClass clazz : classes) {
       clazz.forEachProgramMethodMatching(
           DexEncodedMethod::hasCode,
           method -> {

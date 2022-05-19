@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.ForEachable;
 import com.google.common.collect.ImmutableMap;
 import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
@@ -62,8 +61,12 @@ public class ProgramMethodSet extends DexClassAndMethodSetBase<ProgramMethod> {
     return new ProgramMethodSet(ConcurrentHashMap::new);
   }
 
-  public static ProgramMethodSet createLinked() {
-    return new ProgramMethodSet(LinkedHashMap::new);
+  public static LinkedProgramMethodSet createLinked() {
+    return new LinkedProgramMethodSet();
+  }
+
+  public static LinkedProgramMethodSet createLinked(int capacity) {
+    return new LinkedProgramMethodSet(capacity);
   }
 
   public static ProgramMethodSet empty() {

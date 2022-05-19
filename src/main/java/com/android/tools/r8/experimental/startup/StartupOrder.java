@@ -4,9 +4,12 @@
 
 package com.android.tools.r8.experimental.startup;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.utils.InternalOptions;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 
 public abstract class StartupOrder {
@@ -29,7 +32,15 @@ public abstract class StartupOrder {
     return new EmptyStartupOrder();
   }
 
+  public abstract boolean contains(DexType type);
+
+  public abstract Collection<DexType> getClasses();
+
+  public abstract boolean isEmpty();
+
   public abstract StartupOrder rewrittenWithLens(GraphLens graphLens);
+
+  public abstract StartupOrder toStartupOrderForWriting(AppView<?> appView);
 
   public abstract StartupOrder withoutPrunedItems(PrunedItems prunedItems);
 }

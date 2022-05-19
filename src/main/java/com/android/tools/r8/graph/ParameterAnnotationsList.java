@@ -132,6 +132,10 @@ public class ParameterAnnotationsList extends DexItem
     mixedItems.add(this);
   }
 
+  public DexAnnotationSet[] getAnnotationSets() {
+    return values;
+  }
+
   public boolean isEmpty() {
     return values.length == 0;
   }

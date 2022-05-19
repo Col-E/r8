@@ -95,13 +95,14 @@ public class FileWriter {
   private final DexOutputBuffer dest;
   private final MixedSectionOffsets mixedSectionOffsets;
   private final CodeToKeep desugaredLibraryCodeToKeep;
-  private final Map<DexProgramClass, DexEncodedArray> staticFieldValues = new IdentityHashMap<>();
+  private final VirtualFile virtualFile;
 
   public FileWriter(
       AppView<?> appView,
       ByteBufferProvider provider,
       ObjectToOffsetMapping mapping,
-      CodeToKeep desugaredLibraryCodeToKeep) {
+      CodeToKeep desugaredLibraryCodeToKeep,
+      VirtualFile virtualFile) {
     this.appView = appView;
     this.graphLens = appView.graphLens();
     this.mapping = mapping;
@@ -109,6 +110,7 @@ public class FileWriter {
     this.dest = new DexOutputBuffer(provider);
     this.mixedSectionOffsets = new MixedSectionOffsets(options);
     this.desugaredLibraryCodeToKeep = desugaredLibraryCodeToKeep;
+    this.virtualFile = virtualFile;
   }
 
   private NamingLens getNamingLens() {
@@ -166,7 +168,7 @@ public class FileWriter {
 
     // Sort the codes first, as their order might impact size due to alignment constraints.
     MixedSectionLayoutStrategy mixedSectionLayoutStrategy =
-        new DefaultMixedSectionLayoutStrategy(appView, mixedSectionOffsets);
+        MixedSectionLayoutStrategy.create(appView, mixedSectionOffsets, virtualFile);
     Collection<ProgramMethod> codes = mixedSectionLayoutStrategy.getCodeLayout();
 
     // Output the debug_info_items first, as they have no dependencies.
@@ -445,7 +447,6 @@ public class FileWriter {
 
   private void writeClassDefItem(DexProgramClass clazz) {
     desugaredLibraryCodeToKeep.recordHierarchyOf(clazz);
-
     dest.putInt(mapping.getOffsetFor(clazz.type));
     dest.putInt(clazz.accessFlags.getAsDexAccessFlags());
     dest.putInt(
@@ -456,7 +457,8 @@ public class FileWriter {
     dest.putInt(mixedSectionOffsets.getOffsetForAnnotationsDirectory(clazz));
     dest.putInt(
         clazz.hasMethodsOrFields() ? mixedSectionOffsets.getOffsetFor(clazz) : Constants.NO_OFFSET);
-    dest.putInt(mixedSectionOffsets.getOffsetFor(staticFieldValues.get(clazz)));
+    dest.putInt(
+        mixedSectionOffsets.getOffsetFor(mixedSectionOffsets.getStaticFieldValuesForClass(clazz)));
   }
 
   private void writeDebugItem(DexDebugInfoForWriting debugInfo) {
@@ -665,8 +667,7 @@ public class FileWriter {
     // here.
     DexEncodedArray staticValues = clazz.computeStaticValuesArray(getNamingLens());
     if (staticValues != null) {
-      staticFieldValues.put(clazz, staticValues);
-      mixedSectionOffsets.add(staticValues);
+      mixedSectionOffsets.setStaticFieldValuesForClass(clazz, staticValues);
     }
   }
 
@@ -1070,7 +1071,9 @@ public class FileWriter {
         = createObject2IntMap();
     private final Reference2IntMap<DexProgramClass> classesWithData = createReference2IntMap();
     private final Object2IntMap<DexEncodedArray> encodedArrays = createObject2IntMap();
-    private final Map<DexProgramClass, DexAnnotationDirectory> clazzToAnnotationDirectory =
+    private final Map<DexProgramClass, DexAnnotationDirectory> classToAnnotationDirectory =
+        new IdentityHashMap<>();
+    private final Map<DexProgramClass, DexEncodedArray> classToStaticFieldValues =
         new IdentityHashMap<>();
 
     private final AndroidApiLevel minApiLevel;
@@ -1164,11 +1167,19 @@ public class FileWriter {
     }
 
     @Override
-    public boolean setAnnotationsDirectoryForClass(DexProgramClass clazz,
-        DexAnnotationDirectory annotationDirectory) {
-      DexAnnotationDirectory previous = clazzToAnnotationDirectory.put(clazz, annotationDirectory);
+    public void setAnnotationsDirectoryForClass(
+        DexProgramClass clazz, DexAnnotationDirectory annotationDirectory) {
+      DexAnnotationDirectory previous = classToAnnotationDirectory.put(clazz, annotationDirectory);
       assert previous == null;
-      return add(annotationDirectories, annotationDirectory);
+      add(annotationDirectories, annotationDirectory);
+    }
+
+    @Override
+    public void setStaticFieldValuesForClass(
+        DexProgramClass clazz, DexEncodedArray staticFieldValues) {
+      DexEncodedArray previous = classToStaticFieldValues.put(clazz, staticFieldValues);
+      assert previous == null;
+      add(staticFieldValues);
     }
 
     public boolean add(DexString string) {
@@ -1256,12 +1267,11 @@ public class FileWriter {
       return lookup(debugInfo, debugInfos);
     }
 
-
     public int getOffsetForAnnotationsDirectory(DexProgramClass clazz) {
       if (!clazz.hasClassOrMemberAnnotations()) {
         return Constants.NO_OFFSET;
       }
-      int offset = annotationDirectories.getInt(clazzToAnnotationDirectory.get(clazz));
+      int offset = annotationDirectories.getInt(getAnnotationDirectoryForClass(clazz));
       assert offset != NOT_KNOWN;
       return offset;
     }
@@ -1343,6 +1353,14 @@ public class FileWriter {
     void setOffsetFor(ParameterAnnotationsList annotationSetRefList, int offset) {
       assert offset != 0 && !annotationSetRefList.isEmpty();
       setOffsetFor(annotationSetRefList, offset, annotationSetRefLists);
+    }
+
+    DexAnnotationDirectory getAnnotationDirectoryForClass(DexProgramClass clazz) {
+      return classToAnnotationDirectory.get(clazz);
+    }
+
+    DexEncodedArray getStaticFieldValuesForClass(DexProgramClass clazz) {
+      return classToStaticFieldValues.get(clazz);
     }
   }
 

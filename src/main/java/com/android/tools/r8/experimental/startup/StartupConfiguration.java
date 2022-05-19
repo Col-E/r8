@@ -14,6 +14,7 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,15 +47,18 @@ public class StartupConfiguration {
   public static StartupConfiguration createStartupConfiguration(
       DexItemFactory dexItemFactory, Reporter reporter) {
     String propertyValue = System.getProperty("com.android.tools.r8.startup.config");
-    if (propertyValue == null) {
-      return null;
-    }
+    return propertyValue != null
+        ? createStartupConfigurationFromFile(dexItemFactory, reporter, Paths.get(propertyValue))
+        : null;
+  }
 
+  public static StartupConfiguration createStartupConfigurationFromFile(
+      DexItemFactory dexItemFactory, Reporter reporter, Path path) {
     reporter.warning("Use of startupconfig is experimental");
 
     List<String> startupDescriptors;
     try {
-      startupDescriptors = FileUtils.readAllLines(Paths.get(propertyValue));
+      startupDescriptors = FileUtils.readAllLines(path);
     } catch (IOException e) {
       throw reporter.fatalError(new ExceptionDiagnostic(e));
     }

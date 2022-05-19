@@ -45,6 +45,13 @@ public class MapUtils {
     return map;
   }
 
+  public static <K, V> IdentityHashMap<K, V> newIdentityHashMap(
+      BiForEachable<K, V> forEachable, int capacity) {
+    IdentityHashMap<K, V> map = new IdentityHashMap<>(capacity);
+    forEachable.forEach(map::put);
+    return map;
+  }
+
   public static <T> void removeIdentityMappings(Map<T, T> map) {
     map.entrySet().removeIf(entry -> entry.getKey() == entry.getValue());
   }

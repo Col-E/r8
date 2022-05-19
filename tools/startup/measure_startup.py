@@ -100,6 +100,8 @@ def setup_for_run(apk, out_dir, options):
     time.sleep(options.cooldown)
     teardown_options = adb_utils.prepare_for_interaction_with_device(
         options.device_id, options.device_pin)
+  else:
+    teardown_options = None
 
   # Prelaunch for hot startup.
   if options.hot_startup:
