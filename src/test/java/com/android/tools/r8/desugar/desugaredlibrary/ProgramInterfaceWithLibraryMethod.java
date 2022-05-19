@@ -3,134 +3,68 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import static org.junit.Assume.assumeTrue;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.SPECIFICATIONS_WITH_CF2CF;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 
-import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CustomLibrarySpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.List;
 import java.util.function.Consumer;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 // See b/204518518.
 @RunWith(Parameterized.class)
 public class ProgramInterfaceWithLibraryMethod extends DesugaredLibraryTestBase {
 
-  @Parameter(0)
-  public TestParameters parameters;
-
   private static final String EXPECTED_RESULT = StringUtils.lines("Hello, world!");
-  private static Path CUSTOM_LIB_DEX;
-  private static Path CUSTOM_LIB_CF;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
+  private final TestParameters parameters;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
+
+  @Parameters(name = "{0}, spec: {1}, {2}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getJdk8Jdk11(),
+        SPECIFICATIONS_WITH_CF2CF);
   }
 
-  @BeforeClass
-  public static void compileCustomLib() throws Exception {
-    CUSTOM_LIB_DEX = getStaticTemp().newFolder().toPath().resolve("customLibDex.jar");
-    testForD8(getStaticTemp())
-        .addProgramClasses(LibraryClass.class)
-        .setMinApi(AndroidApiLevel.B)
-        .compile()
-        .writeToZip(CUSTOM_LIB_DEX);
-    CUSTOM_LIB_CF = getStaticTemp().newFolder().toPath().resolve("customLibCf.jar");
-    ZipBuilder.builder(CUSTOM_LIB_CF)
-        .addBytes(
-            DescriptorUtils.getPathFromJavaType(LibraryClass.class),
-            Files.readAllBytes(ToolHelper.getClassFileForTestClass(LibraryClass.class)))
-        .build();
+  public ProgramInterfaceWithLibraryMethod(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
+    this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   @Test
-  public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8()
-        .addLibraryFiles(getLibraryFile())
-        .addLibraryClasses(LibraryClass.class)
-        .setMinApi(parameters.getApiLevel())
+  public void testProgramInterfaceWithLibraryMethod() throws Throwable {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClasses(Executor.class, ProgramInterface.class, ProgramClass.class)
-        .enableCoreLibraryDesugaring(
-            LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
-        .compile()
-        .addRunClasspathFiles(CUSTOM_LIB_DEX)
-        .run(parameters.getRuntime(), Executor.class)
-        .applyIf(
-            parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N),
-            r -> r.assertSuccessWithOutput(EXPECTED_RESULT),
-            r -> r.assertFailureWithErrorThatThrows(AbstractMethodError.class));
-  }
-
-  @Test
-  public void testD8CfToCf() throws Exception {
-    Path jar =
-        testForD8(Backend.CF)
-            .addLibraryFiles(getLibraryFile())
-            .addLibraryClasses(LibraryClass.class)
-            .addProgramClasses(Executor.class, ProgramInterface.class, ProgramClass.class)
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(
-                LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
-            .compile()
-            .writeToZip();
-    if (parameters.getRuntime().isDex()) {
-      testForD8()
-          .addProgramFiles(jar)
-          .setMinApi(parameters.getApiLevel())
-          .disableDesugaring()
-          .compile()
-          .addDesugaredCoreLibraryRunClassPath(
-              this::buildDesugaredLibrary, parameters.getApiLevel())
-          .addRunClasspathFiles(CUSTOM_LIB_DEX)
-          .run(parameters.getRuntime(), Executor.class)
-          .applyIf(
-              parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N),
-              r -> r.assertSuccessWithOutput(EXPECTED_RESULT),
-              r -> r.assertFailureWithErrorThatThrows(AbstractMethodError.class));
-    } else {
-      testForJvm()
-          .addProgramFiles(jar)
-          .addRunClasspathFiles(getDesugaredLibraryInCF(parameters, options -> {}))
-          .addRunClasspathFiles(CUSTOM_LIB_CF)
-          .run(parameters.getRuntime(), Executor.class)
-          .applyIf(
-              parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N),
-              r -> r.assertSuccessWithOutput(EXPECTED_RESULT),
-              r -> r.assertFailureWithErrorThatThrows(AbstractMethodError.class));
-    }
-  }
-
-  @Test
-  public void testR8() throws Exception {
-    testForR8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
-        .addLibraryClasses(LibraryClass.class)
-        .setMinApi(parameters.getApiLevel())
-        .addProgramClasses(Executor.class, ProgramInterface.class, ProgramClass.class)
+        .setCustomLibrarySpecification(
+            new CustomLibrarySpecification(LibraryClass.class, AndroidApiLevel.B))
         .addKeepMainRule(Executor.class)
-        .enableCoreLibraryDesugaring(
-            LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
-        .compile()
-        .addRunClasspathFiles(parameters.isDexRuntime() ? CUSTOM_LIB_DEX : CUSTOM_LIB_CF)
         .run(parameters.getRuntime(), Executor.class)
         .applyIf(
             parameters.isDexRuntime()
                 && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N),
             r -> r.assertSuccessWithOutput(EXPECTED_RESULT),
-            r -> r.assertFailureWithErrorThatThrows(NoSuchMethodError.class));
+            r -> {
+              if (compilationSpecification.isProgramShrink()) {
+                r.assertFailureWithErrorThatThrows(NoSuchMethodError.class);
+              } else {
+                r.assertFailureWithErrorThatThrows(AbstractMethodError.class);
+              }
+            });
   }
 
   static class Executor {

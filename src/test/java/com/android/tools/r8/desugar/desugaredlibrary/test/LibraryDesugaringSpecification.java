@@ -5,10 +5,10 @@ package com.android.tools.r8.desugar.desugaredlibrary.test;
 
 import static com.android.tools.r8.ToolHelper.DESUGARED_JDK_8_LIB_JAR;
 import static com.android.tools.r8.ToolHelper.DESUGARED_LIB_RELEASES_DIR;
+import static com.android.tools.r8.ToolHelper.UNDESUGARED_JDK_11_LIB_JAR;
 
 import com.android.tools.r8.L8TestBuilder;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.desugar.desugaredlibrary.jdk11.DesugaredLibraryJDK11Undesugarer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -18,11 +18,6 @@ import java.util.List;
 import java.util.Set;
 
 public class LibraryDesugaringSpecification {
-
-  private static final String RELEASES_DIR = "third_party/openjdk/desugar_jdk_libs_releases/";
-  private static final Path UNDESUGARED_JDK_11_LIB_JAR =
-      DesugaredLibraryJDK11Undesugarer.undesugaredJarJDK11(
-          Paths.get("third_party/openjdk/desugar_jdk_libs_11/desugar_jdk_libs.jar"));
 
   // Main head specifications.
   public static LibraryDesugaringSpecification JDK8 =
@@ -74,25 +69,21 @@ public class LibraryDesugaringSpecification {
       new LibraryDesugaringSpecification("1.1.1", AndroidApiLevel.P);
   public static final LibraryDesugaringSpecification RELEASED_1_1_5 =
       new LibraryDesugaringSpecification("1.1.5", AndroidApiLevel.P);
+
   private final String name;
   private final Set<Path> desugarJdkLibs;
   private final Path specification;
   private final Set<Path> libraryFiles;
   private final String extraKeepRules;
 
-  private LibraryDesugaringSpecification(
+  public LibraryDesugaringSpecification(
       String name, Path desugarJdkLibs, String specificationPath, AndroidApiLevel androidJarLevel) {
     this(
         name,
         ImmutableSet.of(desugarJdkLibs, ToolHelper.DESUGAR_LIB_CONVERSIONS),
         Paths.get("src/library_desugar/" + specificationPath),
-        ToolHelper.getAndroidJar(androidJarLevel));
-  }
-
-  // This can be used to build custom specifications for testing purposes.
-  public LibraryDesugaringSpecification(
-      String name, Set<Path> desugarJdkLibs, Path specification, Path androidJar) {
-    this(name, desugarJdkLibs, specification, ImmutableSet.of(androidJar), "");
+        ImmutableSet.of(ToolHelper.getAndroidJar(androidJarLevel)),
+        "");
   }
 
   // This can be used to build custom specifications for testing purposes.
@@ -116,7 +107,8 @@ public class LibraryDesugaringSpecification {
             Paths.get(DESUGARED_LIB_RELEASES_DIR, version, "desugar_jdk_libs.jar"),
             Paths.get(DESUGARED_LIB_RELEASES_DIR, version, "desugar_jdk_libs_configuration.jar")),
         Paths.get(DESUGARED_LIB_RELEASES_DIR, version, "desugar.json"),
-        ToolHelper.getAndroidJar(androidJarLevel));
+        ImmutableSet.of(ToolHelper.getAndroidJar(androidJarLevel)),
+        "");
   }
 
   @Override

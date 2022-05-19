@@ -8,14 +8,10 @@ import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.L8Command;
 import com.android.tools.r8.L8TestBuilder;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
-import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.StringConsumer;
-import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -26,16 +22,13 @@ import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecificati
 import com.android.tools.r8.desugar.desugaredlibrary.test.DesugaredLibraryTestBuilder;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import org.junit.BeforeClass;
@@ -58,11 +51,6 @@ public class DesugaredLibraryTestBase extends TestBase {
   public static boolean isJDK11DesugaredLibrary() {
     String property = System.getProperty("desugar_jdk_json_dir", "");
     return property.contains("jdk11");
-  }
-
-  public void setDesugaredLibrarySpecificationForTesting(
-      InternalOptions options, DesugaredLibrarySpecification specification) {
-    options.setDesugaredLibrarySpecification(specification);
   }
 
   // For conversions tests, we need DexRuntimes where classes to convert are present (DexRuntimes
@@ -133,19 +121,6 @@ public class DesugaredLibraryTestBase extends TestBase {
 
   public L8TestBuilder testForL8(AndroidApiLevel apiLevel, Backend backend) {
     return L8TestBuilder.create(apiLevel, backend, new TestState(temp));
-  }
-
-  protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel) {
-    return buildDesugaredLibrary(apiLevel, null, false);
-  }
-
-  protected Path buildDesugaredLibrary(
-      AndroidApiLevel apiLevel, Consumer<InternalOptions> optionsModifier) {
-    return buildDesugaredLibrary(apiLevel, null, false, ImmutableList.of(), optionsModifier);
-  }
-
-  protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel, String keepRules) {
-    return buildDesugaredLibrary(apiLevel, keepRules, true);
   }
 
   protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel, String keepRules, boolean shrink) {
@@ -228,49 +203,6 @@ public class DesugaredLibraryTestBase extends TestBase {
 
   protected KeepRuleConsumer createKeepRuleConsumer(TestParameters parameters) {
     return LibraryDesugaringTestConfiguration.createKeepRuleConsumer(parameters);
-  }
-
-  public Path getDesugaredLibraryInCF(
-      TestParameters parameters, Consumer<InternalOptions> configurationForLibraryCompilation)
-      throws IOException, CompilationFailedException {
-    Path desugaredLib = temp.newFolder().toPath().resolve("desugar_jdk_libs.jar");
-    L8Command.Builder l8Builder =
-        L8Command.builder()
-            .addLibraryFiles(getLibraryFile())
-            .addProgramFiles(ToolHelper.getDesugarJDKLibs())
-            .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
-            .setMode(CompilationMode.DEBUG)
-            .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
-            .setMinApiLevel(parameters.getApiLevel().getLevel())
-            .setOutput(desugaredLib, OutputMode.ClassFile);
-
-    ToolHelper.runL8(l8Builder.build(), configurationForLibraryCompilation);
-    return desugaredLib;
-  }
-
-  private Map<AndroidApiLevel, Path> desugaredLibraryClassFileCache = new HashMap<>();
-
-  // Build the desugared library in class file format.
-  public Path buildDesugaredLibraryClassFile(AndroidApiLevel apiLevel) throws Exception {
-    Path desugaredLib = desugaredLibraryClassFileCache.get(apiLevel);
-    if (desugaredLib != null) {
-      return desugaredLib;
-    }
-    desugaredLib = temp.newFolder().toPath().resolve("desugar_jdk_libs.jar");
-    L8Command.Builder l8Builder =
-        L8Command.builder()
-            .addLibraryFiles(getLibraryFile())
-            .addProgramFiles(ToolHelper.getDesugarJDKLibs())
-            .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
-            .setMode(CompilationMode.DEBUG)
-            .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
-            .setMinApiLevel(apiLevel.getLevel())
-            .setOutput(desugaredLib, OutputMode.ClassFile);
-    ToolHelper.runL8(l8Builder.build());
-    desugaredLibraryClassFileCache.put(apiLevel, desugaredLib);
-    return desugaredLib;
   }
 
   public interface KeepRuleConsumer extends StringConsumer {

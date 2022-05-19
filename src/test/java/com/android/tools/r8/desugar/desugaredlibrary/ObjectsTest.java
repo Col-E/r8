@@ -4,28 +4,27 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.ToolHelper.DESUGARED_JDK_8_LIB_JAR;
+import static com.android.tools.r8.ToolHelper.UNDESUGARED_JDK_11_LIB_JAR;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.SPECIFICATIONS_WITH_CF2CF;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.collect.ImmutableList;
-import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -63,43 +62,39 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
           "3",
           "4");
 
-  private final TestParameters parameters;
   private final boolean libraryDesugarJavaUtilObjects;
-  private final boolean shrinkDesugaredLibrary = false;
-  private final Path androidJar;
 
-  @Parameters(name = "{0}")
+  private final TestParameters parameters;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
+
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
+
+    LibraryDesugaringSpecification jdk8MaxCompileSdk =
+        new LibraryDesugaringSpecification(
+            "JDK8_MAX", DESUGARED_JDK_8_LIB_JAR, "desugar_jdk_libs.json", AndroidApiLevel.LATEST);
+    LibraryDesugaringSpecification jdk11MaxCompileSdk =
+        new LibraryDesugaringSpecification(
+            "JDK11_MAX",
+            UNDESUGARED_JDK_11_LIB_JAR,
+            "jdk11/desugar_jdk_libs.json",
+            AndroidApiLevel.LATEST);
     return buildParameters(
-        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build());
+        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
+        ImmutableList.of(JDK8, JDK11, jdk8MaxCompileSdk, jdk11MaxCompileSdk),
+        SPECIFICATIONS_WITH_CF2CF);
   }
 
-  public ObjectsTest(TestParameters parameters) {
+  public ObjectsTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
-    this.libraryDesugarJavaUtilObjects = isJDK11DesugaredLibrary();
-    this.androidJar =
-        ToolHelper.getAndroidJar(
-            Ordered.max(parameters.getApiLevel(), getRequiredCompilationAPILevel()));
-  }
-
-  DesugaredLibrarySpecification desugaredLibrarySpecification(
-      InternalOptions options, boolean libraryCompilation, TestParameters parameters) {
-    return DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecification(
-        StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()),
-        options.dexItemFactory(),
-        options.reporter,
-        libraryCompilation,
-        parameters.getApiLevel().getLevel());
-  }
-
-  private void configurationForProgramCompilation(InternalOptions options) {
-    setDesugaredLibrarySpecificationForTesting(
-        options, desugaredLibrarySpecification(options, false, parameters));
-  }
-
-  private void configurationForLibraryCompilation(InternalOptions options) {
-    setDesugaredLibrarySpecificationForTesting(
-        options, desugaredLibrarySpecification(options, true, parameters));
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugarJavaUtilObjects =
+        !libraryDesugaringSpecification.toString().contains("JDK8");
   }
 
   private Matcher<MethodSubject> invokesObjectsCompare(String holder) {
@@ -291,129 +286,20 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
   }
 
   @Test
-  public void testD8Cf() throws Exception {
-    // Adjust API level if running on JDK 8. The java.util.Objects methods added in
-    // Android R where added in JDK 9, so setting the the API level to Android P will backport
-    // these methods for JDK 8.
-    AndroidApiLevel apiLevel = parameters.getApiLevel();
-    if (parameters.getRuntime().isCf()
-        && parameters.getRuntime().asCf().getVm() == CfVm.JDK8
-        && apiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.R)) {
-      apiLevel = AndroidApiLevel.P;
-    }
-
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    // Use D8 to desugar with Java classfile output.
-    Path jar =
-        testForD8(Backend.CF)
-            .addLibraryFiles(androidJar)
-            .addOptionsModification(this::configurationForProgramCompilation)
-            .addInnerClasses(ObjectsTest.class)
-            .addProgramClassFileData(dumpAndroidRUtilsObjectsMethods())
-            .setMinApi(apiLevel)
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .compile()
-            .inspect(this::inspect)
-            .writeToZip();
-
-    if (parameters.getRuntime().isDex()) {
-      // Collection keep rules is only implemented in the DEX writer.
-      String desugaredLibraryKeepRules = keepRuleConsumer.get();
-      if (desugaredLibraryKeepRules != null) {
-        assertEquals(0, desugaredLibraryKeepRules.length());
-        desugaredLibraryKeepRules = "-keep class * { *; }";
-      }
-
-      // Convert to DEX without desugaring and run.
-      testForD8()
-          .addLibraryFiles(androidJar)
-          .addProgramFiles(jar)
-          .setMinApi(apiLevel)
-          .disableDesugaring()
-          .compile()
-          .addDesugaredCoreLibraryRunClassPath(
-              (apiLevel_, keepRules, shrink) ->
-                  buildDesugaredLibrary(
-                      apiLevel_,
-                      keepRules,
-                      shrink,
-                      ImmutableList.of(),
-                      this::configurationForLibraryCompilation),
-              parameters.getApiLevel(),
-              desugaredLibraryKeepRules,
-              shrinkDesugaredLibrary)
-          .run(parameters.getRuntime(), TestClass.class)
-          .assertSuccessWithOutput(EXPECTED_OUTPUT);
-    } else {
-      // Build the desugared library in class file format.
-      Path desugaredLib =
-          getDesugaredLibraryInCF(parameters, this::configurationForLibraryCompilation);
-
-      // Run on the JVM with desugared library on classpath.
-      testForJvm()
-          .addProgramFiles(jar)
-          .addRunClasspathFiles(desugaredLib)
-          .run(parameters.getRuntime(), TestClass.class)
-          .assertSuccessWithOutput(EXPECTED_OUTPUT);
-    }
-  }
-
-  @Test
-  public void testD8() throws Exception {
-    Assume.assumeTrue(parameters.getRuntime().isDex());
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForD8()
-        .addLibraryFiles(androidJar)
-        .addOptionsModification(this::configurationForProgramCompilation)
-        .addInnerClasses(ObjectsTest.class)
-        .addProgramClassFileData(dumpAndroidRUtilsObjectsMethods())
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            (apiLevel, keepRules, shrink) ->
-                buildDesugaredLibrary(
-                    apiLevel,
-                    keepRules,
-                    shrink,
-                    ImmutableList.of(),
-                    this::configurationForLibraryCompilation),
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .inspect(this::inspect)
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(EXPECTED_OUTPUT);
-  }
-
-  @Test
-  public void testR8() throws Exception {
-    Assume.assumeTrue(parameters.getRuntime().isDex());
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForR8(parameters.getBackend())
-        .addLibraryFiles(androidJar)
-        .addOptionsModification(this::configurationForProgramCompilation)
-        .addInnerClasses(ObjectsTest.class)
+  public void testObjects() throws Throwable {
+    Assume.assumeFalse(
+        "Method is absent on JDK8",
+        parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.R)
+            && parameters.isCfRuntime(CfVm.JDK8));
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+        .addInnerClasses(getClass())
+        .addProgramClassFileData(ImmutableList.of(dumpAndroidRUtilsObjectsMethods()))
         .addKeepMainRule(TestClass.class)
-        .addProgramClassFileData(dumpAndroidRUtilsObjectsMethods())
         .enableInliningAnnotations()
         .noMinification()
         .addKeepRules("-keep class AndroidRUtilsObjectsMethods { *; }")
         .addKeepRules("-neverinline class AndroidRUtilsObjectsMethods { *; }")
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            (apiLevel, keepRules, shrink) ->
-                buildDesugaredLibrary(
-                    apiLevel,
-                    keepRules,
-                    shrink,
-                    ImmutableList.of(),
-                    this::configurationForLibraryCompilation),
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);

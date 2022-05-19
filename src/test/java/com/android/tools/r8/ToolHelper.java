@@ -184,7 +184,7 @@ public class ToolHelper {
       OPEN_JDK_DIR + "desugar_jdk_libs_releases/";
   public static final Path DESUGARED_JDK_8_LIB_JAR =
       Paths.get(OPEN_JDK_DIR + "desugar_jdk_libs/desugar_jdk_libs.jar");
-  public static final Path DESUGARED_JDK_11_LIB_JAR =
+  public static final Path UNDESUGARED_JDK_11_LIB_JAR =
       DesugaredLibraryJDK11Undesugarer.undesugaredJarJDK11(
           Paths.get(OPEN_JDK_DIR + "desugar_jdk_libs_11/desugar_jdk_libs.jar"));
 
