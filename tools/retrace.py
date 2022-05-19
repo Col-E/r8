@@ -122,6 +122,9 @@ def get_map_file(args, temp):
     else:
       args.commit_hash = r8_version_or_hash
     map_path = None
+    if get_hash_from_map_file(utils.R8LIB_MAP) == maphash:
+      return utils.R8LIB_MAP
+
     try:
       map_path = utils.find_cloud_storage_file_from_options(
         'r8lib' + ('-exclude-deps' if is_excldeps else '') + '.jar.map', args)
@@ -134,23 +137,25 @@ def get_map_file(args, temp):
       return map_path
 
   # If no other map file was found, use the local mapping file.
-  return utils.R8LIB_JAR + '.map'
+  return utils.R8LIB_MAP
 
 
 def check_maphash(mapping_path, maphash, args):
+  infile_maphash = get_hash_from_map_file(mapping_path)
+  if infile_maphash != maphash:
+    print('ERROR: The mapping file hash does not match the R8 line')
+    print('  In mapping file: ' + infile_maphash)
+    print('  In source file:  ' + maphash)
+    if (not args.exclude_deps):
+      print('If this could be a version without internalized dependencies '
+            + 'try passing --exclude-deps')
+    sys.exit(1)
+
+def get_hash_from_map_file(mapping_path):
   map_hash_header = "# pg_map_hash: SHA-256 "
   for line in open(mapping_path, 'r'):
     if line.startswith(map_hash_header):
-      infile_maphash = line[len(map_hash_header):].strip()
-      if infile_maphash != maphash:
-        print('ERROR: The mapping file hash does not match the R8 line')
-        print('  In mapping file: ' + infile_maphash)
-        print('  In source file:  ' + maphash)
-        if (not args.exclude_deps):
-          print('If this could be a version without internalized dependencies '
-              + 'try passing --exclude-deps')
-        sys.exit(1)
-
+      return line[len(map_hash_header):].strip()
 
 def main():
   args = parse_arguments()
