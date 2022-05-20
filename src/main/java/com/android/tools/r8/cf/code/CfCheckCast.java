@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
@@ -130,17 +129,6 @@ public class CfCheckCast extends CfInstruction implements CfTypeInstruction {
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, CfCode code, ProgramMethod context) {
     return inliningConstraints.forCheckCast(type, context);
-  }
-
-  @Override
-  public void evaluate(
-      CfFrameVerificationHelper frameBuilder,
-      DexMethod context,
-      AppView<?> appView,
-      DexItemFactory dexItemFactory) {
-    // ..., objectref →
-    // ..., objectref
-    frameBuilder.popAndDiscardInitialized(dexItemFactory.objectType).push(type);
   }
 
   @Override

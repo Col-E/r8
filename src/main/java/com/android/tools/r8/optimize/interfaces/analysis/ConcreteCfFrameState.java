@@ -42,7 +42,7 @@ public class ConcreteCfFrameState extends CfFrameState {
     this(new Int2ObjectAVLTreeMap<>(), new ArrayDeque<>(), 0);
   }
 
-  ConcreteCfFrameState(
+  public ConcreteCfFrameState(
       Int2ObjectAVLTreeMap<FrameType> locals, ArrayDeque<FrameType> stack, int stackHeight) {
     this.locals = locals;
     this.stack = stack;
@@ -75,6 +75,26 @@ public class ConcreteCfFrameState extends CfFrameState {
     CfFrame frameCopy = frame.mutableCopy();
     return new ConcreteCfFrameState(
         frameCopy.getMutableLocals(), frameCopy.getMutableStack(), stackHeight);
+  }
+
+  @Override
+  public CfFrameState checkLocals(AppView<?> appView, CfFrame frame) {
+    AssignabilityResult assignabilityResult =
+        CfAssignability.isLocalsAssignable(locals, frame.getLocals(), appView);
+    if (assignabilityResult.isFailed()) {
+      return error(assignabilityResult.asFailed().getMessage());
+    }
+    return this;
+  }
+
+  @Override
+  public CfFrameState checkStack(AppView<?> appView, CfFrame frame) {
+    AssignabilityResult assignabilityResult =
+        CfAssignability.isStackAssignable(stack, frame.getStack(), appView);
+    if (assignabilityResult.isFailed()) {
+      return error(assignabilityResult.asFailed().getMessage());
+    }
+    return this;
   }
 
   @Override

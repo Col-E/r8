@@ -31,7 +31,6 @@ import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
-import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
@@ -40,9 +39,12 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
+import com.android.tools.r8.optimize.interfaces.analysis.ConcreteCfFrameState;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralItem;
@@ -950,60 +952,60 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
       return reportStackMapError(
           CfCodeStackMapValidatingException.noFramesForMethodWithJumps(method, appView), appView);
     }
-    CfFrameVerificationHelper builder =
-        new CfFrameVerificationHelper(
-            appView, previousMethodSignature.getHolderType(), stateMap, tryCatchRanges, maxStack);
-    for (CfTryCatch tryCatchRange : tryCatchRanges) {
-      try {
-        builder.checkTryCatchRange(tryCatchRange);
-      } catch (CfCodeStackMapValidatingException ex) {
-        return reportStackMapError(
-            CfCodeStackMapValidatingException.invalidTryCatchRange(
-                method, tryCatchRange, ex.getMessage(), appView),
-            appView);
-      }
+    CfFrameVerificationHelper helper =
+        new CfFrameVerificationHelper(appView, this, method, stateMap, tryCatchRanges);
+    CfCodeDiagnostics diagnostics = helper.checkTryCatchRanges();
+    if (diagnostics != null) {
+      return reportStackMapError(diagnostics, appView);
     }
-    if (stateMap.containsKey(null)) {
-      assert !shouldComputeInitialFrame();
-      builder.checkFrameAndSet(stateMap.get(null));
-    } else if (shouldComputeInitialFrame()) {
-      builder.checkFrameAndSet(
-          computeInitialFrame(
-              appView, previousMethodSignature, previousMethodSignatureIsInstance, protoChanges));
+    TraversalContinuation<CfCodeDiagnostics, CfFrameState> initialState =
+        computeInitialState(
+            appView, helper, method, previousMethodSignature, previousMethodSignatureIsInstance);
+    if (initialState.shouldBreak()) {
+      return reportStackMapError(initialState.asBreak().getValue(), appView);
     }
+    CfFrameState state = initialState.asContinue().getValue();
     for (int i = 0; i < instructions.size(); i++) {
       CfInstruction instruction = instructions.get(i);
-      try {
-        // Check the exceptional edge prior to evaluating the instruction. The local state is stable
-        // at this point as store operations are not throwing and the current stack does not
-        // affect the exceptional transfer (the exception edge is always a singleton stack).
-        if (instruction.canThrow()) {
-          assert !instruction.isStore();
-          builder.checkExceptionEdges();
-        }
-        if (instruction.isLabel()) {
-          builder.seenLabel(instruction.asLabel());
-        }
-        instruction.evaluate(builder, previousMethodSignature, appView, appView.dexItemFactory());
-        if (instruction.isJumpWithNormalTarget()) {
-          CfInstruction fallthroughInstruction =
-              (i + 1) < instructions.size() ? instructions.get(i + 1) : null;
-          instruction.forEachNormalTarget(
-              target -> {
-                if (target != fallthroughInstruction) {
-                  assert target.isLabel();
-                  builder.checkTarget(target.asLabel());
-                }
-              },
-              fallthroughInstruction);
-          if (!instruction.asJump().hasFallthrough()) {
-            builder.setNoFrame();
-          }
-        }
-      } catch (CfCodeStackMapValidatingException ex) {
+      assert !state.isError();
+      // Check the exceptional edge prior to evaluating the instruction. The local state is stable
+      // at this point as store operations are not throwing and the current stack does not
+      // affect the exceptional transfer (the exception edge is always a singleton stack).
+      if (instruction.canThrow()) {
+        assert !instruction.isStore();
+        state = helper.checkExceptionEdges(state);
+      }
+      if (instruction.isLabel()) {
+        helper.seenLabel(instruction.asLabel());
+      }
+      state = instruction.evaluate(state, appView, helper, appView.dexItemFactory());
+      if (instruction.isJumpWithNormalTarget()) {
+        CfInstruction fallthroughInstruction =
+            (i + 1) < instructions.size() ? instructions.get(i + 1) : null;
+        TraversalContinuation<CfCodeDiagnostics, CfFrameState> traversalContinuation =
+            instruction.traverseNormalTargets(
+                (target, currentState) -> {
+                  if (target != fallthroughInstruction) {
+                    assert target.isLabel();
+                    currentState = helper.checkTarget(currentState, target.asLabel());
+                  }
+                  return TraversalContinuation.doContinue(currentState);
+                },
+                fallthroughInstruction,
+                state);
+        state = traversalContinuation.asContinue().getValue();
+      }
+      TraversalContinuation<CfCodeDiagnostics, CfFrameState> traversalContinuation =
+          helper.computeStateForNextInstruction(instruction, i, state);
+      if (traversalContinuation.isContinue()) {
+        state = traversalContinuation.asContinue().getValue();
+      } else {
+        return reportStackMapError(traversalContinuation.asBreak().getValue(), appView);
+      }
+      if (state.isError()) {
         return reportStackMapError(
             CfCodeStackMapValidatingException.invalidStackMapForInstruction(
-                method, i, instruction, ex.getMessage(), appView),
+                method, i, instruction, state.asError().getMessage(), appView),
             appView);
       }
     }
@@ -1037,40 +1039,37 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
     throw new Unreachable("Instruction " + instruction + " should be in instructions");
   }
 
-  private boolean shouldComputeInitialFrame() {
-    for (CfInstruction instruction : instructions) {
-      if (instruction.isFrame()) {
-        return false;
-      } else if (!instruction.isLabel() && !instruction.isPosition()) {
-        return true;
-      }
-    }
-    // We should never see a method with only labels and positions.
-    assert false;
-    return true;
-  }
-
-  private CfFrame computeInitialFrame(
+  private TraversalContinuation<CfCodeDiagnostics, CfFrameState> computeInitialState(
       AppView<?> appView,
-      DexMethod method,
-      boolean isInstance,
-      RewrittenPrototypeDescription prototypeChanges) {
+      CfFrameVerificationHelper helper,
+      ProgramMethod method,
+      DexMethod previousMethodSignature,
+      boolean previousMethodSignatureIsInstance) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
-    CfFrame.Builder builder = CfFrame.builder();
-    if (isInstance) {
-      builder.appendLocal(
-          method.isInstanceInitializer(dexItemFactory)
-                  || method.mustBeInlinedIntoInstanceInitializer(appView)
-                  || method.isHorizontallyMergedInstanceInitializer(dexItemFactory)
-              ? FrameType.uninitializedThis()
-              : FrameType.initialized(method.getHolderType()));
+    CfFrameState state = ConcreteCfFrameState.bottom();
+    int localIndex = 0;
+    if (previousMethodSignatureIsInstance) {
+      state =
+          state.storeLocal(
+              localIndex,
+              previousMethodSignature.isInstanceInitializer(dexItemFactory)
+                      || previousMethodSignature.mustBeInlinedIntoInstanceInitializer(appView)
+                      || previousMethodSignature.isHorizontallyMergedInstanceInitializer(
+                          dexItemFactory)
+                  ? FrameType.uninitializedThis()
+                  : FrameType.initialized(previousMethodSignature.getHolderType()),
+              helper);
+      localIndex++;
     }
-    for (DexType parameter : method.getParameters()) {
-      builder.appendLocal(FrameType.initialized(parameter));
+    for (DexType parameter : previousMethodSignature.getParameters()) {
+      state = state.storeLocal(localIndex, FrameType.initialized(parameter), helper);
+      localIndex += parameter.getRequiredRegisters();
     }
-    for (ExtraParameter extraParameter : prototypeChanges.getExtraParameters()) {
-      builder.appendLocal(FrameType.initialized(extraParameter.getType(dexItemFactory)));
+    if (state.isError()) {
+      return TraversalContinuation.doBreak(
+          CfCodeStackMapValidatingException.invalidStackMapForInstruction(
+              method, 0, instructions.get(0), state.asError().getMessage(), appView));
     }
-    return builder.build();
+    return TraversalContinuation.doContinue(state);
   }
 }

@@ -8,8 +8,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -102,18 +100,6 @@ public class CfIfCmp extends CfConditionalJumpInstruction {
     int trueTargetOffset = code.getLabelOffset(target);
     int falseTargetOffset = code.getCurrentInstructionIndex() + 1;
     builder.addIf(kind, type, left, right, trueTargetOffset, falseTargetOffset);
-  }
-
-  @Override
-  public void evaluate(
-      CfFrameVerificationHelper frameBuilder,
-      DexMethod context,
-      AppView<?> appView,
-      DexItemFactory dexItemFactory) {
-    // ..., value1, value2 →
-    // ...
-    DexType type = this.type.toDexType(dexItemFactory);
-    frameBuilder.popAndDiscardInitialized(type, type);
   }
 
   @Override

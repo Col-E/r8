@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
@@ -127,20 +126,6 @@ public class CfMultiANewArray extends CfInstruction implements CfTypeInstruction
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, CfCode code, ProgramMethod context) {
     return inliningConstraints.forInvokeMultiNewArray(type, context);
-  }
-
-  @Override
-  public void evaluate(
-      CfFrameVerificationHelper frameBuilder,
-      DexMethod context,
-      AppView<?> appView,
-      DexItemFactory dexItemFactory) {
-    // ..., count1, [count2, ...] →
-    // ..., arrayref
-    for (int i = 0; i < dimensions; i++) {
-      frameBuilder.popInitialized(dexItemFactory.intType);
-    }
-    frameBuilder.push(type);
   }
 
   @Override

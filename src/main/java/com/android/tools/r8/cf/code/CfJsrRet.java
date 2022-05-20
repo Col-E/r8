@@ -7,10 +7,8 @@ import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
-import com.android.tools.r8.graph.CfCodeStackMapValidatingException;
 import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -82,17 +80,6 @@ public class CfJsrRet extends CfInstruction {
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, CfCode code, ProgramMethod context) {
     throw error();
-  }
-
-  @Override
-  public void evaluate(
-      CfFrameVerificationHelper frameBuilder,
-      DexMethod context,
-      AppView<?> appView,
-      DexItemFactory dexItemFactory) {
-    // JSR/RET instructions cannot be verified since we have not type-checking way for addresses
-    // on the stack/locals. We have to abandon.
-    throw CfCodeStackMapValidatingException.error("Unexpected JSR/RET instruction");
   }
 
   @Override

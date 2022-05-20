@@ -316,30 +316,6 @@ public class CfInvoke extends CfInstruction {
   }
 
   @Override
-  public void evaluate(
-      CfFrameVerificationHelper frameBuilder,
-      DexMethod context,
-      AppView<?> appView,
-      DexItemFactory dexItemFactory) {
-    // ..., objectref, [arg1, [arg2 ...]] →
-    // ... [ returnType ]
-    // OR, for static method calls:
-    // ..., [arg1, [arg2 ...]] →
-    // ...
-    frameBuilder.popAndDiscardInitialized(method.proto.parameters.values);
-    if (opcode == Opcodes.INVOKESPECIAL
-        && (method.isInstanceInitializer(dexItemFactory)
-            || method.mustBeInlinedIntoInstanceInitializer(appView))) {
-      frameBuilder.popAndInitialize(context.getHolderType(), method.holder);
-    } else if (opcode != Opcodes.INVOKESTATIC) {
-      frameBuilder.popInitialized(method.holder);
-    }
-    if (!method.getReturnType().isVoidType()) {
-      frameBuilder.push(method.getReturnType());
-    }
-  }
-
-  @Override
   public CfFrameState evaluate(
       CfFrameState frame,
       AppView<?> appView,

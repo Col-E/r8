@@ -75,6 +75,7 @@ public enum MemberType {
   public static MemberType fromTypeDescriptorChar(char descriptor) {
     switch (descriptor) {
       case 'L':
+      case 'N':
       case '[':
         return MemberType.OBJECT;
       case 'Z':

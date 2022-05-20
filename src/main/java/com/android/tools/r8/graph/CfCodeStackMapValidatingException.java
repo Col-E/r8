@@ -8,15 +8,7 @@ import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.utils.StringUtils;
 
-public class CfCodeStackMapValidatingException extends RuntimeException {
-
-  private CfCodeStackMapValidatingException(String message) {
-    super(message);
-  }
-
-  public static CfCodeStackMapValidatingException error(String message) {
-    return new CfCodeStackMapValidatingException(message);
-  }
+public class CfCodeStackMapValidatingException {
 
   public static CfCodeDiagnostics unexpectedStackMapFrame(
       ProgramMethod method, AppView<?> appView) {
@@ -78,7 +70,7 @@ public class CfCodeStackMapValidatingException extends RuntimeException {
       String detailMessage,
       AppView<?> appView) {
     StringBuilder sb =
-        new StringBuilder("Invalid stack map table at ")
+        new StringBuilder("Invalid stack map table at instruction ")
             .append(instructionIndex)
             .append(": ")
             .append(instruction)

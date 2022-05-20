@@ -5,7 +5,6 @@
 package com.android.tools.r8.cf.code;
 
 import static com.android.tools.r8.optimize.interfaces.analysis.ErroneousCfFrameState.formatActual;
-import static com.android.tools.r8.utils.BiPredicateUtils.or;
 
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.graph.AppView;
@@ -13,7 +12,6 @@ import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
@@ -65,23 +63,6 @@ public class CfInstanceFieldWrite extends CfFieldInstruction {
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, CfCode code, ProgramMethod context) {
     return inliningConstraints.forInstancePut(getField(), context);
-  }
-
-  @Override
-  public void evaluate(
-      CfFrameVerificationHelper frameBuilder,
-      DexMethod context,
-      AppView<?> appView,
-      DexItemFactory dexItemFactory) {
-    // ..., objectref, value →
-    // ...
-    frameBuilder
-        .popAndDiscardInitialized(getField().getType())
-        .pop(
-            getField().getHolderType(),
-            or(
-                frameBuilder::isUninitializedThisAndTarget,
-                frameBuilder::isAssignableAndInitialized));
   }
 
   @Override

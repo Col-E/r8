@@ -11,11 +11,13 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.FieldVisitor;
@@ -25,16 +27,12 @@ import org.objectweb.asm.Opcodes;
 @RunWith(Parameterized.class)
 public class UninitializedGetFieldTest extends TestBase {
 
-  private final String[] EXPECTED = new String[] {"Main::foo"};
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
-  }
-
-  public UninitializedGetFieldTest(TestParameters parameters) {
-    this.parameters = parameters;
   }
 
   @Test
@@ -52,11 +50,7 @@ public class UninitializedGetFieldTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(dump())
         .setMinApi(parameters.getApiLevel())
-        .compileWithExpectedDiagnostics(
-            diagnostics -> {
-              diagnostics.assertWarningThatMatches(
-                  diagnosticMessage(containsString("The expected type uninitialized")));
-            });
+        .compileWithExpectedDiagnostics(this::inspect);
   }
 
   @Test
@@ -65,13 +59,18 @@ public class UninitializedGetFieldTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(dump())
         .setMinApi(parameters.getApiLevel())
-        .compileWithExpectedDiagnostics(
-            diagnostics -> {
-              diagnostics.assertWarningThatMatches(
-                  diagnosticMessage(containsString("The expected type uninitialized")));
-            })
+        .compileWithExpectedDiagnostics(this::inspect)
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(VerifyError.class);
+  }
+
+  private void inspect(TestDiagnosticMessages diagnostics) {
+    diagnostics.assertWarningThatMatches(
+        diagnosticMessage(
+            containsString(
+                "Expected initialized "
+                    + Main.class.getTypeName()
+                    + " on stack, but was uninitialized-this")));
   }
 
   public static class Main {

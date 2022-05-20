@@ -10,6 +10,7 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
@@ -17,6 +18,7 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
@@ -25,7 +27,8 @@ import org.objectweb.asm.Opcodes;
 @RunWith(Parameterized.class)
 public class UninitializedInstanceOfTest extends TestBase {
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -47,13 +50,7 @@ public class UninitializedInstanceOfTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(dump())
         .setMinApi(parameters.getApiLevel())
-        .compileWithExpectedDiagnostics(
-            diagnostics -> {
-              diagnostics.assertWarningMessageThatMatches(
-                  containsString("The expected type uninitialized new is not assignable"));
-              diagnostics.assertErrorMessageThatMatches(
-                  containsString("Could not validate stack map frames"));
-            });
+        .compileWithExpectedDiagnostics(this::inspect);
   }
 
   @Test()
@@ -63,11 +60,7 @@ public class UninitializedInstanceOfTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(dump())
         .setMinApi(parameters.getApiLevel())
-        .compileWithExpectedDiagnostics(
-            diagnostics -> {
-              diagnostics.assertWarningMessageThatMatches(
-                  containsString("The expected type uninitialized new is not assignable"));
-            })
+        .compileWithExpectedDiagnostics(this::inspect)
         .run(parameters.getRuntime(), Main.class)
         .applyIf(
             expectFailure,
@@ -75,8 +68,15 @@ public class UninitializedInstanceOfTest extends TestBase {
             TestRunResult::assertSuccessWithOutputLines);
   }
 
-  public UninitializedInstanceOfTest(TestParameters parameters) {
-    this.parameters = parameters;
+  private void inspect(TestDiagnosticMessages diagnostics) {
+    diagnostics.assertWarningMessageThatMatches(
+        containsString(
+            "Expected initialized java.lang.Object on stack, but was uninitialized"
+                + " java.lang.Object"));
+    if (parameters.isCfRuntime()) {
+      diagnostics.assertErrorMessageThatMatches(
+          containsString("Could not validate stack map frames"));
+    }
   }
 
   public static class Main {

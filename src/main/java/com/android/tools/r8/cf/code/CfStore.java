@@ -3,16 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf.code;
 
-import static com.android.tools.r8.utils.BiPredicateUtils.or;
-
 import com.android.tools.r8.cf.CfPrinter;
-import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -126,53 +122,6 @@ public class CfStore extends CfInstruction {
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, CfCode code, ProgramMethod context) {
     return inliningConstraints.forStore();
-  }
-
-  @Override
-  public void evaluate(
-      CfFrameVerificationHelper frameBuilder,
-      DexMethod context,
-      AppView<?> appView,
-      DexItemFactory dexItemFactory) {
-    // ..., ref →
-    // ...
-    FrameType pop = frameBuilder.pop();
-    switch (type) {
-      case OBJECT:
-        frameBuilder.checkIsAssignable(
-            pop,
-            dexItemFactory.objectType,
-            or(
-                frameBuilder::isUninitializedThisAndTarget,
-                frameBuilder::isUninitializedNewAndTarget,
-                frameBuilder::isAssignableAndInitialized));
-        frameBuilder.storeLocal(var, pop);
-        return;
-      case INT:
-        frameBuilder.checkIsAssignable(
-            pop, dexItemFactory.intType, frameBuilder::isAssignableAndInitialized);
-        frameBuilder.storeLocal(var, FrameType.initialized(dexItemFactory.intType));
-        return;
-      case FLOAT:
-        frameBuilder.checkIsAssignable(
-            pop, dexItemFactory.floatType, frameBuilder::isAssignableAndInitialized);
-        frameBuilder.storeLocal(var, FrameType.initialized(dexItemFactory.floatType));
-        return;
-      case LONG:
-        frameBuilder.checkIsAssignable(
-            pop, dexItemFactory.longType, frameBuilder::isAssignableAndInitialized);
-        frameBuilder.storeLocal(var, FrameType.longType());
-        frameBuilder.storeLocal(var + 1, FrameType.longType());
-        return;
-      case DOUBLE:
-        frameBuilder.checkIsAssignable(
-            pop, dexItemFactory.doubleType, frameBuilder::isAssignableAndInitialized);
-        frameBuilder.storeLocal(var, FrameType.doubleType());
-        frameBuilder.storeLocal(var + 1, FrameType.doubleType());
-        return;
-      default:
-        throw new Unreachable("Unexpected type " + type);
-    }
   }
 
   @Override

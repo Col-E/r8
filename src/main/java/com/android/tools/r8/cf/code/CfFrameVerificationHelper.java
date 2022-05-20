@@ -4,52 +4,59 @@
 
 package com.android.tools.r8.cf.code;
 
-import static com.android.tools.r8.utils.BiPredicateUtils.or;
-
 import com.android.tools.r8.cf.code.CfAssignability.AssignabilityResult;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.CfCodeDiagnostics;
 import com.android.tools.r8.graph.CfCodeStackMapValidatingException;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
+import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
+import com.android.tools.r8.optimize.interfaces.analysis.ConcreteCfFrameState;
+import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.collections.ImmutableDeque;
 import com.google.common.collect.Sets;
-import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiPredicate;
 
-public class CfFrameVerificationHelper {
-
-  private static final CfFrame NO_FRAME = new CfFrame();
+public class CfFrameVerificationHelper implements CfAnalysisConfig {
 
   private final AppView<?> appView;
+  private final CfCode code;
+  private final GraphLens codeLens;
   private final DexItemFactory factory;
+  private final ProgramMethod method;
+  private final DexMethod previousMethod;
 
-  private CfFrame currentFrame = NO_FRAME;
-  private final DexType context;
   private final Map<CfLabel, CfFrame> stateMap;
   private final List<CfTryCatch> tryCatchRanges;
-  private final int maxStackHeight;
 
   private final Deque<CfTryCatch> currentCatchRanges = new ArrayDeque<>();
   private final Set<CfLabel> tryCatchRangeLabels;
 
   public CfFrameVerificationHelper(
       AppView<?> appView,
-      DexType context,
+      CfCode code,
+      ProgramMethod method,
       Map<CfLabel, CfFrame> stateMap,
-      List<CfTryCatch> tryCatchRanges,
-      int maxStackHeight) {
+      List<CfTryCatch> tryCatchRanges) {
     this.appView = appView;
-    this.context = context;
+    this.code = code;
+    this.codeLens = code.getCodeLens(appView);
+    this.method = method;
+    this.previousMethod =
+        appView.graphLens().getOriginalMethodSignature(method.getReference(), codeLens);
     this.stateMap = stateMap;
     this.tryCatchRanges = tryCatchRanges;
     this.factory = appView.dexItemFactory();
-    this.maxStackHeight = maxStackHeight;
     // Compute all labels that marks a start or end to catch ranges.
     tryCatchRangeLabels = Sets.newIdentityHashSet();
     for (CfTryCatch tryCatchRange : tryCatchRanges) {
@@ -58,106 +65,36 @@ public class CfFrameVerificationHelper {
     }
   }
 
-  public FrameType readLocal(int index, DexType expectedType) {
-    checkFrameIsSet();
-    FrameType frameType = currentFrame.getLocals().get(index);
-    if (frameType == null) {
-      throw CfCodeStackMapValidatingException.error("No local at index " + index);
+  @Override
+  public DexMethod getCurrentContext() {
+    return previousMethod;
+  }
+
+  @Override
+  public int getMaxLocals() {
+    return code.getMaxLocals();
+  }
+
+  @Override
+  public int getMaxStack() {
+    return code.getMaxStack();
+  }
+
+  @Override
+  public boolean isImmediateSuperClassOfCurrentContext(DexType type) {
+    // If the code is rewritten according to the graph lens, we perform a strict check that the
+    // given type is the same as the current holder's super class.
+    if (codeLens == appView.graphLens()) {
+      return type == method.getHolder().getSuperType();
     }
-    checkIsAssignable(
-        frameType,
-        expectedType,
-        or(
-            this::isUninitializedThisAndTarget,
-            this::isUninitializedNewAndTarget,
-            this::isAssignableAndInitialized));
-    return frameType;
+    // Otherwise, we don't know what the super class of the current class was at the point of the
+    // code lens. We return true, which has the consequence that we may accept a constructor call
+    // for an uninitialized-this value where the constructor is not defined in the immediate parent
+    // class.
+    return true;
   }
 
-  public void storeLocal(int index, FrameType frameType) {
-    checkFrameIsSet();
-    currentFrame.getLocals().put(index, frameType);
-  }
-
-  public FrameType pop() {
-    checkFrameIsSet();
-    if (currentFrame.getStack().isEmpty()) {
-      throw CfCodeStackMapValidatingException.error("Cannot pop() from an empty stack");
-    }
-    return currentFrame.getStack().removeLast();
-  }
-
-  public FrameType popInitialized(DexType expectedType) {
-    return pop(expectedType, this::isAssignableAndInitialized);
-  }
-
-  public FrameType pop(DexType expectedType, BiPredicate<FrameType, DexType> isAssignable) {
-    FrameType frameType = pop();
-    checkIsAssignable(frameType, expectedType, isAssignable);
-    return frameType;
-  }
-
-  public CfFrameVerificationHelper popAndDiscardInitialized(DexType expectedType) {
-    checkFrameIsSet();
-    popInitialized(expectedType);
-    return this;
-  }
-
-  public CfFrameVerificationHelper popAndDiscardInitialized(DexType... expectedTypes) {
-    checkFrameIsSet();
-    for (int i = expectedTypes.length - 1; i >= 0; i--) {
-      popInitialized(expectedTypes[i]);
-    }
-    return this;
-  }
-
-  public FrameType pop(FrameType expectedType) {
-    FrameType frameType = pop();
-    checkIsAssignable(frameType, expectedType);
-    return frameType;
-  }
-
-  public CfFrameVerificationHelper popAndDiscard(FrameType... expectedTypes) {
-    checkFrameIsSet();
-    for (int i = expectedTypes.length - 1; i >= 0; i--) {
-      pop(expectedTypes[i]);
-    }
-    return this;
-  }
-
-  public void popAndInitialize(DexType context, DexType methodHolder) {
-    checkFrameIsSet();
-    FrameType objectRef =
-        pop(
-            factory.objectType,
-            or(this::isUninitializedThisAndTarget, this::isUninitializedNewAndTarget));
-    CfFrame newFrame =
-        currentFrame.markInstantiated(
-            objectRef, objectRef.isUninitializedNew() ? methodHolder : context);
-    setNoFrame();
-    checkFrameAndSet(newFrame);
-  }
-
-  public CfFrameVerificationHelper push(FrameType type) {
-    checkFrameIsSet();
-    currentFrame.getStack().addLast(type);
-    if (currentFrame.computeStackSize() > maxStackHeight) {
-      throw CfCodeStackMapValidatingException.error(
-          "The max stack height of "
-              + maxStackHeight
-              + " is violated when pushing type "
-              + type
-              + " to existing stack of size "
-              + currentFrame.getStack().size());
-    }
-    return this;
-  }
-
-  public CfFrameVerificationHelper push(DexType type) {
-    return push(FrameType.initialized(type));
-  }
-
-  public CfFrameVerificationHelper seenLabel(CfLabel label) {
+  public void seenLabel(CfLabel label) {
     if (tryCatchRangeLabels.contains(label)) {
       for (CfTryCatch tryCatchRange : tryCatchRanges) {
         if (tryCatchRange.start == label) {
@@ -166,148 +103,109 @@ public class CfFrameVerificationHelper {
       }
       currentCatchRanges.removeIf(currentRange -> currentRange.end == label);
     }
-    return this;
   }
 
-  public void checkTryCatchRange(CfTryCatch tryCatchRange) {
+  public CfCodeDiagnostics checkTryCatchRanges() {
+    for (CfTryCatch tryCatchRange : tryCatchRanges) {
+      CfCodeDiagnostics diagnostics = checkTryCatchRange(tryCatchRange);
+      if (diagnostics != null) {
+        return diagnostics;
+      }
+    }
+    return null;
+  }
+
+  public CfCodeDiagnostics checkTryCatchRange(CfTryCatch tryCatchRange) {
     // According to the spec:
     // https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.10.1
     // saying ` and the handler's target (the initial instruction of the handler code) is type
     // safe assuming an incoming type state T. The type state T is derived from ExcStackFrame
     // by replacing the operand stack with a stack whose sole element is the handler's
     // exception class.
-    tryCatchRange.targets.forEach(
-        target -> {
-          CfFrame destinationFrame = stateMap.get(target);
-          if (destinationFrame == null) {
-            throw CfCodeStackMapValidatingException.error("No frame for target catch range target");
-          }
-          // From the spec: the handler's exception class is assignable to the class Throwable.
-          tryCatchRange.guards.forEach(
-              guard -> {
-                if (!CfAssignability.isAssignable(guard, factory.throwableType, appView)) {
-                  throw CfCodeStackMapValidatingException.error(
-                      "Could not assign '" + guard.toSourceString() + "' to throwable.");
-                }
-                checkStackIsAssignable(
-                    ImmutableDeque.of(FrameType.initialized(guard)), destinationFrame.getStack());
-              });
-        });
-  }
-
-  private void checkFrameIsSet() {
-    if (currentFrame == NO_FRAME) {
-      throw CfCodeStackMapValidatingException.error("Unexpected state change");
-    }
-  }
-
-  public void checkFrameAndSet(CfFrame newFrame) {
-    if (currentFrame != NO_FRAME) {
-      checkFrame(newFrame);
-    }
-    setFrame(newFrame);
-  }
-
-  private void setFrame(CfFrame frame) {
-    assert frame != NO_FRAME;
-    currentFrame = frame.mutableCopy();
-  }
-
-  public void checkExceptionEdges() {
-    for (CfTryCatch currentCatchRange : currentCatchRanges) {
-      for (CfLabel target : currentCatchRange.targets) {
-        CfFrame destinationFrame = stateMap.get(target);
-        if (destinationFrame == null) {
-          throw CfCodeStackMapValidatingException.error("No frame for target catch range target");
+    for (CfLabel target : tryCatchRange.getTargets()) {
+      CfFrame destinationFrame = stateMap.get(target);
+      if (destinationFrame == null) {
+        return CfCodeStackMapValidatingException.invalidTryCatchRange(
+            method, tryCatchRange, "No frame for target catch range target", appView);
+      }
+      // From the spec: the handler's exception class is assignable to the class Throwable.
+      for (DexType guard : tryCatchRange.guards) {
+        if (!CfAssignability.isAssignable(guard, factory.throwableType, appView)) {
+          return CfCodeStackMapValidatingException.invalidTryCatchRange(
+              method,
+              tryCatchRange,
+              "Could not assign " + guard.getTypeName() + " to java.lang.Throwable",
+              appView);
         }
-        checkLocalsIsAssignable(currentFrame.getLocals(), destinationFrame.getLocals());
+        Deque<FrameType> sourceStack = ImmutableDeque.of(FrameType.initialized(guard));
+        AssignabilityResult assignabilityResult =
+            CfAssignability.isStackAssignable(sourceStack, destinationFrame.getStack(), appView);
+        if (assignabilityResult.isFailed()) {
+          return CfCodeStackMapValidatingException.invalidTryCatchRange(
+              method, tryCatchRange, assignabilityResult.asFailed().getMessage(), appView);
+        }
       }
     }
+    return null;
   }
 
-  public CfFrame getFrame() {
-    return currentFrame;
-  }
-
-  public void checkTarget(CfLabel label) {
-    checkFrame(stateMap.get(label));
-  }
-
-  public void checkFrame(CfFrame destinationFrame) {
-    if (destinationFrame == null) {
-      throw CfCodeStackMapValidatingException.error("No destination frame");
+  public CfFrameState checkExceptionEdges(CfFrameState state) {
+    for (CfTryCatch currentCatchRange : currentCatchRanges) {
+      for (CfLabel target : currentCatchRange.getTargets()) {
+        CfFrame destinationFrame = stateMap.get(target);
+        if (destinationFrame == null) {
+          return CfFrameState.error("No frame for target catch range target");
+        }
+        state = state.checkLocals(appView, destinationFrame);
+      }
     }
-    checkFrame(destinationFrame.getLocals(), destinationFrame.getStack());
+    return state;
   }
 
-  public void checkFrame(Int2ObjectSortedMap<FrameType> locals, Deque<FrameType> stack) {
-    checkIsAssignable(currentFrame.getLocals(), currentFrame.getStack(), locals, stack);
+  public CfFrameState checkTarget(CfFrameState state, CfLabel label) {
+    CfFrame destinationFrame = getDestinationFrame(label);
+    return destinationFrame != null
+        ? state.checkLocals(appView, destinationFrame).checkStack(appView, destinationFrame)
+        : CfFrameState.error("No destination frame");
   }
 
-  public void setNoFrame() {
-    currentFrame = NO_FRAME;
+  private CfFrame getDestinationFrame(CfLabel label) {
+    return stateMap.get(label);
   }
 
-  public boolean isUninitializedThisAndTarget(FrameType source, DexType target) {
-    if (!source.isUninitializedThis()) {
-      return false;
+  public TraversalContinuation<CfCodeDiagnostics, CfFrameState> computeStateForNextInstruction(
+      CfInstruction instruction, int instructionIndex, CfFrameState state) {
+    if (!instruction.isJump()) {
+      return TraversalContinuation.doContinue(state);
     }
-    return target == factory.objectType || target == context;
-  }
-
-  public boolean isUninitializedNewAndTarget(FrameType source, DexType target) {
-    if (!source.isUninitializedNew()) {
-      return false;
+    if (instructionIndex == code.getInstructions().size() - 1) {
+      return TraversalContinuation.doContinue(CfFrameState.bottom());
     }
-    return target == factory.objectType || target == context;
-  }
-
-  public boolean isAssignableAndInitialized(FrameType source, DexType target) {
-    if (!source.isInitialized()) {
-      return false;
+    if (instructionIndex == code.getInstructions().size() - 2
+        && code.getInstructions().get(instructionIndex + 1).isLabel()) {
+      return TraversalContinuation.doContinue(CfFrameState.bottom());
     }
-    return CfAssignability.isAssignable(source.getInitializedType(factory), target, appView);
-  }
-
-  public void checkIsAssignable(
-      FrameType source, DexType target, BiPredicate<FrameType, DexType> predicate) {
-    if (predicate.test(source, target)) {
-      return;
+    if (instruction.asJump().hasFallthrough()) {
+      return TraversalContinuation.doContinue(state);
     }
-    throw CfCodeStackMapValidatingException.error(
-        "The expected type " + source + " is not assignable to " + target.toSourceString());
-  }
-
-  public void checkIsAssignable(FrameType source, FrameType target) {
-    if (!CfAssignability.isFrameTypeAssignable(source, target, appView)) {
-      throw CfCodeStackMapValidatingException.error(
-          "The expected type " + source + " is not assignable to " + target);
+    int nextInstructionIndex = instructionIndex + 1;
+    CfInstruction nextInstruction = code.getInstructions().get(nextInstructionIndex);
+    CfFrame nextFrame = null;
+    if (nextInstruction.isFrame()) {
+      nextFrame = nextInstruction.asFrame();
+    } else if (nextInstruction.isLabel()) {
+      nextFrame = getDestinationFrame(nextInstruction.asLabel());
     }
-  }
-
-  // Based on https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.10.1.4.
-  private void checkIsAssignable(
-      Int2ObjectSortedMap<FrameType> sourceLocals,
-      Deque<FrameType> sourceStack,
-      Int2ObjectSortedMap<FrameType> destLocals,
-      Deque<FrameType> destStack) {
-    checkLocalsIsAssignable(sourceLocals, destLocals);
-    checkStackIsAssignable(sourceStack, destStack);
-  }
-
-  private void checkLocalsIsAssignable(
-      Int2ObjectSortedMap<FrameType> sourceLocals, Int2ObjectSortedMap<FrameType> destLocals) {
-    AssignabilityResult result =
-        CfAssignability.isLocalsAssignable(sourceLocals, destLocals, appView);
-    if (result.isFailed()) {
-      throw CfCodeStackMapValidatingException.error(result.asFailed().getMessage());
+    if (nextFrame != null) {
+      CfFrame currentFrameCopy = nextFrame.mutableCopy();
+      return TraversalContinuation.doContinue(
+          new ConcreteCfFrameState(
+              currentFrameCopy.getMutableLocals(),
+              currentFrameCopy.getMutableStack(),
+              currentFrameCopy.computeStackSize()));
     }
-  }
-
-  private void checkStackIsAssignable(Deque<FrameType> sourceStack, Deque<FrameType> destStack) {
-    AssignabilityResult result = CfAssignability.isStackAssignable(sourceStack, destStack, appView);
-    if (result.isFailed()) {
-      throw CfCodeStackMapValidatingException.error(result.asFailed().getMessage());
-    }
+    return TraversalContinuation.doBreak(
+        CfCodeStackMapValidatingException.invalidStackMapForInstruction(
+            method, nextInstructionIndex, nextInstruction, "Expected frame instruction", appView));
   }
 }

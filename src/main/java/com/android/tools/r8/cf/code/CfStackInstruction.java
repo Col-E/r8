@@ -4,14 +4,12 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
-import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -353,159 +351,6 @@ public class CfStackInstruction extends CfInstruction {
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, CfCode code, ProgramMethod context) {
     return ConstraintWithTarget.ALWAYS;
-  }
-
-  @Override
-  public void evaluate(
-      CfFrameVerificationHelper frameBuilder,
-      DexMethod context,
-      AppView<?> appView,
-      DexItemFactory dexItemFactory) {
-    switch (opcode) {
-      case Pop:
-        // ..., value →
-        // ...
-        frameBuilder.pop(FrameType.oneWord());
-        return;
-      case Pop2:
-        // ..., value2, value1 →
-        // ...
-        // or, for double and long:
-        // ..., value →
-        // ...
-        final FrameType pop = frameBuilder.pop();
-        if (pop.isSingle()) {
-          frameBuilder.pop(FrameType.oneWord());
-        }
-        return;
-      case Dup:
-        {
-          // ..., value →
-          // ..., value, value
-          FrameType topValue = frameBuilder.pop(FrameType.oneWord());
-          frameBuilder.push(topValue).push(topValue);
-          return;
-        }
-      case DupX1:
-        {
-          // ..., value2, value1 →
-          // ..., value1, value2, value1
-          FrameType value1 = frameBuilder.pop(FrameType.oneWord());
-          FrameType value2 = frameBuilder.pop(FrameType.oneWord());
-          frameBuilder.push(value1).push(value2).push(value1);
-          return;
-        }
-      case DupX2:
-        {
-          // ..., value3, value2, value1 →
-          // ..., value1, value3, value2, value1
-          // or, if value2 is double or long:
-          // ..., value2, value1 →
-          // ..., value1, value2, value1
-          FrameType value1 = frameBuilder.pop(FrameType.oneWord());
-          FrameType value2 = frameBuilder.pop();
-          if (value2.isSingle()) {
-            FrameType value3 = frameBuilder.pop(FrameType.oneWord());
-            frameBuilder.push(value1).push(value3);
-          } else {
-            frameBuilder.push(value1);
-          }
-          frameBuilder.push(value2).push(value1);
-          return;
-        }
-      case Dup2:
-        {
-          // ..., value2, value1 →
-          // ..., value2, value1, value2, value1
-          // or, for value1 being long or double:
-          // ..., value →
-          // ..., value, value
-          FrameType value1 = frameBuilder.pop();
-          if (value1.isSingle()) {
-            FrameType value2 = frameBuilder.pop(FrameType.oneWord());
-            frameBuilder.push(value2).push(value1).push(value2);
-          } else {
-            frameBuilder.push(value1);
-          }
-          frameBuilder.push(value1);
-          return;
-        }
-      case Dup2X1:
-        {
-          // ..., value3, value2, value1 →
-          // ..., value2, value1, value3, value2, value1
-          // or, for value1 being a long or double:
-          // ..., value2, value1 →
-          // ..., value1, value2, value1
-          FrameType value1 = frameBuilder.pop();
-          FrameType value2 = frameBuilder.pop(FrameType.oneWord());
-          if (value1.isSingle()) {
-            FrameType value3 = frameBuilder.pop(FrameType.oneWord());
-            frameBuilder.push(value2).push(value1).push(value3);
-          } else {
-            frameBuilder.push(value1);
-          }
-          frameBuilder.push(value2);
-          frameBuilder.push(value1);
-          return;
-        }
-      case Dup2X2:
-        {
-          // (1)
-          // ..., value4, value3, value2, value1 →
-          // ..., value2, value1, value4, value3, value2, value1
-          // (2) OR, if value1 is long or double
-          // ..., value3, value2, value1 →
-          // ..., value1, value3, value2, value1
-          // (3) OR if value3 is long or double
-          // ..., value3, value2, value1 →
-          // ..., value2, value1, value3, value2, value1
-          // (4) OR, where value1 and value2 is double or long:
-          // ..., value2, value1 →
-          // ..., value1, value2, value1
-          FrameType value1 = frameBuilder.pop();
-          if (value1.isSingle()) {
-            FrameType value2 = frameBuilder.pop(FrameType.oneWord());
-            FrameType value3 = frameBuilder.pop();
-            if (value3.isSingle()) {
-              // (1)
-              FrameType value4 = frameBuilder.pop(FrameType.oneWord());
-              frameBuilder
-                  .push(value2)
-                  .push(value1)
-                  .push(value4)
-                  .push(value3)
-                  .push(value2)
-                  .push(value1);
-            } else {
-              // (3)
-              frameBuilder.push(value2).push(value1).push(value3).push(value2).push(value1);
-            }
-          } else {
-            FrameType value2 = frameBuilder.pop();
-            if (value2.isSingle()) {
-              // (2)
-              FrameType value3 = frameBuilder.pop(FrameType.oneWord());
-              frameBuilder.push(value1).push(value3).push(value2).push(value1);
-            } else {
-              // (4)
-              frameBuilder.push(value1).push(value2).push(value1);
-            }
-          }
-          return;
-        }
-      case Swap:
-        {
-          // ..., value2, value1 →
-          // ..., value1, value2
-          FrameType value1 = frameBuilder.pop(FrameType.oneWord());
-          FrameType value2 = frameBuilder.pop(FrameType.oneWord());
-          frameBuilder.push(value1).push(value2);
-          return;
-        }
-      default:
-        throw new Unreachable("Invalid opcode for CfStackInstruction");
-    }
   }
 
   @Override

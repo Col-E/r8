@@ -35,7 +35,7 @@ public class StackMapVerificationNoFrameForHandlerTest extends TestBase {
   private final String EXPECTED_JVM_ERROR =
       "java.lang.VerifyError: Expecting a stackmap frame at branch target";
 
-  @Parameters(name = "{0}")
+  @Parameters(name = "{0}, include frame in handler: {1}")
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());

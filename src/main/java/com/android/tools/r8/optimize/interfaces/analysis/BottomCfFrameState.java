@@ -33,6 +33,16 @@ public class BottomCfFrameState extends CfFrameState {
   }
 
   @Override
+  public CfFrameState checkLocals(AppView<?> appView, CfFrame frame) {
+    return new ConcreteCfFrameState().checkLocals(appView, frame);
+  }
+
+  @Override
+  public CfFrameState checkStack(AppView<?> appView, CfFrame frame) {
+    return new ConcreteCfFrameState().checkStack(appView, frame);
+  }
+
+  @Override
   public CfFrameState clear() {
     return this;
   }

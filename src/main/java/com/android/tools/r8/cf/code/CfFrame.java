@@ -13,10 +13,8 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
-import com.android.tools.r8.graph.CfCodeStackMapValidatingException;
 import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
@@ -1227,37 +1225,12 @@ public class CfFrame extends CfInstruction implements Cloneable {
   }
 
   @Override
-  public void evaluate(
-      CfFrameVerificationHelper frameBuilder,
-      DexMethod context,
-      AppView<?> appView,
-      DexItemFactory dexItemFactory) {
-    frameBuilder.checkFrameAndSet(this);
-  }
-
-  @Override
   public CfFrameState evaluate(
       CfFrameState frame,
       AppView<?> appView,
       CfAnalysisConfig config,
       DexItemFactory dexItemFactory) {
     return frame.check(appView, this);
-  }
-
-  public CfFrame markInstantiated(FrameType uninitializedType, DexType initType) {
-    if (uninitializedType.isInitialized()) {
-      throw CfCodeStackMapValidatingException.error(
-          "Cannot instantiate already instantiated type " + uninitializedType);
-    }
-    CfFrame.Builder builder = CfFrame.builder().allocateStack(stack.size());
-    forEachLocal(
-        (localIndex, frameType) ->
-            builder.store(
-                localIndex, getInitializedFrameType(uninitializedType, frameType, initType)));
-    for (FrameType frameType : stack) {
-      builder.push(getInitializedFrameType(uninitializedType, frameType, initType));
-    }
-    return builder.build();
   }
 
   public static FrameType getInitializedFrameType(

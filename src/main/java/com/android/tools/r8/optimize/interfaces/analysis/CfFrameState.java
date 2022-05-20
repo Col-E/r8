@@ -101,6 +101,10 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
 
   public abstract CfFrameState check(AppView<?> appView, CfFrame frame);
 
+  public abstract CfFrameState checkLocals(AppView<?> appView, CfFrame frame);
+
+  public abstract CfFrameState checkStack(AppView<?> appView, CfFrame frame);
+
   public abstract CfFrameState clear();
 
   public abstract CfFrameState markInitialized(

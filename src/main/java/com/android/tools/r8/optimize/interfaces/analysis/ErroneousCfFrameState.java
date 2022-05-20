@@ -117,6 +117,16 @@ public class ErroneousCfFrameState extends CfFrameState {
   }
 
   @Override
+  public CfFrameState checkLocals(AppView<?> appView, CfFrame frame) {
+    return this;
+  }
+
+  @Override
+  public CfFrameState checkStack(AppView<?> appView, CfFrame frame) {
+    return this;
+  }
+
+  @Override
   public CfFrameState clear() {
     return this;
   }

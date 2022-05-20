@@ -10,6 +10,7 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
@@ -47,13 +48,7 @@ public class UninitializedPutFieldSelfTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(dump())
         .setMinApi(parameters.getApiLevel())
-        .compileWithExpectedDiagnostics(
-            diagnostics -> {
-              diagnostics.assertWarningMessageThatMatches(
-                  containsString("The expected type uninitialized this is not assignable"));
-              diagnostics.assertErrorMessageThatMatches(
-                  containsString("Could not validate stack map frames"));
-            });
+        .compileWithExpectedDiagnostics(this::inspect);
   }
 
   @Test
@@ -65,14 +60,22 @@ public class UninitializedPutFieldSelfTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(dump())
         .setMinApi(parameters.getApiLevel())
-        .compileWithExpectedDiagnostics(
-            diagnostics -> {
-              diagnostics.assertWarningMessageThatMatches(
-                  containsString("The expected type uninitialized this is not assignable"));
-            })
+        .compileWithExpectedDiagnostics(this::inspect)
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrowsIf(willFailVerification, VerifyError.class)
         .assertSuccessWithOutputLinesIf(!willFailVerification, "Main::foo");
+  }
+
+  private void inspect(TestDiagnosticMessages diagnostics) {
+    diagnostics.assertWarningMessageThatMatches(
+        containsString(
+            "Expected initialized "
+                + Main.class.getTypeName()
+                + " on stack, but was uninitialized-this"));
+    if (parameters.isCfRuntime()) {
+      diagnostics.assertErrorMessageThatMatches(
+          containsString("Could not validate stack map frames"));
+    }
   }
 
   public UninitializedPutFieldSelfTest(TestParameters parameters) {
