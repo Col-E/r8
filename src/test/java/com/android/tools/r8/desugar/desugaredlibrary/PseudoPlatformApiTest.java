@@ -97,13 +97,14 @@ public class PseudoPlatformApiTest extends TestBase {
 
   @Test
   public void testD8WithLibraryDesugaringOemClassNotPresent() throws Exception {
+    // Enable library desugaring with an effective min API of 1.
     testForD8(parameters.getBackend())
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
         .addLibraryFiles(androidJarAdditions())
         .addProgramClasses(ProgramClass.class)
         .setMinApi(AndroidApiLevel.H_MR2)
-        // Enable library desugaring with an effective min API of 1.
-        .enableLibraryDesugaring(LibraryDesugaringTestConfiguration.forApiLevel(AndroidApiLevel.B))
+        .enableCoreLibraryDesugaring(
+            LibraryDesugaringTestConfiguration.forApiLevel(AndroidApiLevel.B))
         .addRunClasspathFiles(androidJarAdditionsDex())
         .run(parameters.getRuntime(), ProgramClass.class)
         .assertSuccessWithOutputLines("DEFAULT-X", "Y-DEFAULT");
@@ -111,13 +112,14 @@ public class PseudoPlatformApiTest extends TestBase {
 
   @Test
   public void testD8WithLibraryDesugaringOemClassPresent() throws Exception {
+    // Enable library desugaring with an effective min API of 1.
     testForD8(parameters.getBackend())
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
         .addLibraryFiles(androidJarAdditions())
         .addProgramClasses(ProgramClass.class)
         .setMinApi(AndroidApiLevel.H_MR2)
-        // Enable library desugaring with an effective min API of 1.
-        .enableLibraryDesugaring(LibraryDesugaringTestConfiguration.forApiLevel(AndroidApiLevel.B))
+        .enableCoreLibraryDesugaring(
+            LibraryDesugaringTestConfiguration.forApiLevel(AndroidApiLevel.B))
         .addRunClasspathFiles(androidJarAdditionsDex())
         .addRunClasspathFiles(oemDex())
         .run(parameters.getRuntime(), ProgramClass.class)

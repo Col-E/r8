@@ -29,6 +29,7 @@ import com.android.tools.r8.tracereferences.TraceReferences;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.codeinspector.VerticallyMergedClassesInspector;
 import com.google.common.base.Charsets;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -249,6 +250,11 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
+  public DesugaredLibraryTestBuilder<T> enableNeverClassInliningAnnotations() {
+    withR8TestBuilder(R8TestBuilder::enableNeverClassInliningAnnotations);
+    return this;
+  }
+
   public DesugaredLibraryTestBuilder<T> enableInliningAnnotations() {
     withR8TestBuilder(R8TestBuilder::enableInliningAnnotations);
     return this;
@@ -259,6 +265,12 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
+  public DesugaredLibraryTestBuilder<T> addVerticallyMergedClassesInspector(
+      Consumer<VerticallyMergedClassesInspector> inspector) {
+    withR8TestBuilder(b -> b.addVerticallyMergedClassesInspector(inspector));
+    return this;
+  }
+
   public DesugaredLibraryTestBuilder<T> noMinification() {
     withR8TestBuilder(R8TestBuilder::noMinification);
     return this;
@@ -266,6 +278,12 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
 
   public DesugaredLibraryTestBuilder<T> enableConstantArgumentAnnotations() {
     withR8TestBuilder(R8TestBuilder::enableConstantArgumentAnnotations);
+    return this;
+  }
+
+  public DesugaredLibraryTestBuilder<T> applyOnBuilder(
+      Consumer<TestCompilerBuilder<?, ?, ?, ?, ?>> consumer) {
+    consumer.accept(builder);
     return this;
   }
 

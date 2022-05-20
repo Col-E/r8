@@ -5,12 +5,9 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.L8TestBuilder;
-import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -23,14 +20,9 @@ import com.android.tools.r8.desugar.desugaredlibrary.test.DesugaredLibraryTestBu
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
 import org.junit.BeforeClass;
 
 public class DesugaredLibraryTestBase extends TestBase {
@@ -123,57 +115,6 @@ public class DesugaredLibraryTestBase extends TestBase {
     return L8TestBuilder.create(apiLevel, backend, new TestState(temp));
   }
 
-  protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel, String keepRules, boolean shrink) {
-    return buildDesugaredLibrary(apiLevel, keepRules, shrink, ImmutableList.of(), options -> {});
-  }
-
-  protected Path buildDesugaredLibrary(
-      AndroidApiLevel apiLevel,
-      String generatedKeepRules,
-      boolean release,
-      List<Path> additionalProgramFiles,
-      Consumer<InternalOptions> optionsModifier) {
-    try {
-      return testForL8(apiLevel)
-          .addProgramFiles(additionalProgramFiles)
-          .addLibraryFiles(getLibraryFile())
-          .applyIf(
-              release,
-              builder -> {
-                if (generatedKeepRules != null && !generatedKeepRules.trim().isEmpty()) {
-                  builder.addGeneratedKeepRules(generatedKeepRules);
-                }
-              },
-              L8TestBuilder::setDebug)
-          .addOptionsModifier(optionsModifier)
-          .setDesugarJDKLibsCustomConversions(ToolHelper.DESUGAR_LIB_CONVERSIONS)
-          // If we compile extended library here, it means we use TestNG. TestNG requires
-          // annotations, hence we disable annotation removal. This implies that extra warnings are
-          // generated.
-          .setDisableL8AnnotationRemoval(!additionalProgramFiles.isEmpty())
-          .compile()
-          .applyIf(
-              additionalProgramFiles.isEmpty(),
-              builder ->
-                  builder.inspectDiagnosticMessages(
-                      diagnostics ->
-                          assertTrue(
-                              // TODO(b/193597730): Fix JDK11 desugared library message,
-                              isJDK11DesugaredLibrary()
-                                  || diagnostics.getInfos().stream()
-                                      .noneMatch(
-                                          string ->
-                                              string
-                                                  .getDiagnosticMessage()
-                                                  .startsWith(
-                                                      "Invalid parameter counts in MethodParameter"
-                                                          + " attributes.")))))
-          .writeToZip();
-    } catch (CompilationFailedException | ExecutionException | IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   protected void assertLines2By2Correct(String stdOut) {
     String[] lines = stdOut.split("\n");
     assert lines.length % 2 == 0;
@@ -190,10 +131,6 @@ public class DesugaredLibraryTestBase extends TestBase {
     return Files.walk(directory)
         .filter(path -> path.toString().endsWith(suffix))
         .toArray(Path[]::new);
-  }
-
-  protected KeepRuleConsumer createKeepRuleConsumer(TestParameters parameters) {
-    return LibraryDesugaringTestConfiguration.createKeepRuleConsumer(parameters);
   }
 
   public interface KeepRuleConsumer extends StringConsumer {
