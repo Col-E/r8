@@ -46,7 +46,6 @@ public class VerticalClassMergingWithMissingTypeArgsSubstitutionTest extends Tes
         .enableInliningAnnotations()
         .enableNoMethodStaticizingAnnotations()
         .enableConstantArgumentAnnotations()
-        .noMinification()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("T", "Hello World")
