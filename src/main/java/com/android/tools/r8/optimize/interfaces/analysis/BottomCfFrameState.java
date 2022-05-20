@@ -5,7 +5,9 @@
 package com.android.tools.r8.optimize.interfaces.analysis;
 
 import com.android.tools.r8.cf.code.CfFrame;
-import com.android.tools.r8.cf.code.CfFrame.FrameType;
+import com.android.tools.r8.cf.code.CfFrame.UninitializedFrameType;
+import com.android.tools.r8.cf.code.FrameType;
+import com.android.tools.r8.cf.code.frame.PreciseFrameType;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -48,7 +50,8 @@ public class BottomCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState markInitialized(FrameType uninitializedType, DexType initializedType) {
+  public CfFrameState markInitialized(
+      UninitializedFrameType uninitializedType, DexType initializedType) {
     // Initializing an uninitialized type is a no-op when the frame is empty.
     return this;
   }
@@ -59,7 +62,7 @@ public class BottomCfFrameState extends CfFrameState {
   }
 
   @Override
-  public ErroneousCfFrameState pop(BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
+  public ErroneousCfFrameState pop(BiFunction<CfFrameState, PreciseFrameType, CfFrameState> fn) {
     return pop();
   }
 
@@ -73,7 +76,7 @@ public class BottomCfFrameState extends CfFrameState {
   public ErroneousCfFrameState popInitialized(
       AppView<?> appView,
       DexType expectedType,
-      BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
+      BiFunction<CfFrameState, PreciseFrameType, CfFrameState> fn) {
     return pop();
   }
 
@@ -88,7 +91,7 @@ public class BottomCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState push(CfAnalysisConfig config, FrameType frameType) {
+  public CfFrameState push(CfAnalysisConfig config, PreciseFrameType frameType) {
     return new ConcreteCfFrameState().push(config, frameType);
   }
 

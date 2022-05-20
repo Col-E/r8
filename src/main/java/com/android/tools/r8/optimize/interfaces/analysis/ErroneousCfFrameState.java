@@ -5,7 +5,9 @@
 package com.android.tools.r8.optimize.interfaces.analysis;
 
 import com.android.tools.r8.cf.code.CfFrame;
-import com.android.tools.r8.cf.code.CfFrame.FrameType;
+import com.android.tools.r8.cf.code.CfFrame.UninitializedFrameType;
+import com.android.tools.r8.cf.code.FrameType;
+import com.android.tools.r8.cf.code.frame.PreciseFrameType;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -52,7 +54,7 @@ public class ErroneousCfFrameState extends CfFrameState {
   private static String format(FrameType frameType, FormatKind formatKind) {
     if (frameType.isInitialized()) {
       if (frameType.isObject()) {
-        DexType initializedType = frameType.asSingleInitializedType().getInitializedType();
+        DexType initializedType = frameType.asInitializedReferenceType().getInitializedType();
         if (initializedType.isArrayType()) {
           return initializedType.getTypeName();
         } else if (initializedType.isClassType()) {
@@ -65,7 +67,7 @@ public class ErroneousCfFrameState extends CfFrameState {
         assert frameType.isPrimitive();
         return "primitive " + frameType.asPrimitive().getTypeName();
       }
-    } else if (frameType.isUninitializedObject()) {
+    } else if (frameType.isUninitialized()) {
       if (frameType.isUninitializedNew()) {
         DexType uninitializedNewType = frameType.getUninitializedNewType();
         if (uninitializedNewType != null) {
@@ -132,7 +134,8 @@ public class ErroneousCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState markInitialized(FrameType uninitializedType, DexType initializedType) {
+  public CfFrameState markInitialized(
+      UninitializedFrameType uninitializedType, DexType initializedType) {
     return this;
   }
 
@@ -142,7 +145,7 @@ public class ErroneousCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState pop(BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
+  public CfFrameState pop(BiFunction<CfFrameState, PreciseFrameType, CfFrameState> fn) {
     return this;
   }
 
@@ -156,7 +159,7 @@ public class ErroneousCfFrameState extends CfFrameState {
   public CfFrameState popInitialized(
       AppView<?> appView,
       DexType expectedType,
-      BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
+      BiFunction<CfFrameState, PreciseFrameType, CfFrameState> fn) {
     return this;
   }
 
@@ -171,7 +174,7 @@ public class ErroneousCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState push(CfAnalysisConfig config, FrameType frameType) {
+  public CfFrameState push(CfAnalysisConfig config, PreciseFrameType frameType) {
     return this;
   }
 

@@ -4,17 +4,9 @@
 
 package com.android.tools.r8.cf.code.frame;
 
-import com.android.tools.r8.cf.code.CfFrame.FrameType;
+import com.android.tools.r8.cf.code.FrameType;
 
-public interface WideFrameType {
-
-  FrameType asFrameType();
-
-  boolean isDouble();
-
-  boolean isLong();
-
-  boolean isTwoWord();
+public interface WideFrameType extends FrameType {
 
   default boolean lessThanOrEqualTo(WideFrameType frameType) {
     return join(frameType) == frameType;

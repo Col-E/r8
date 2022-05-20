@@ -6,7 +6,7 @@ package com.android.tools.r8.cf.code;
 
 import static com.android.tools.r8.optimize.interfaces.analysis.ErroneousCfFrameState.formatActual;
 
-import com.android.tools.r8.cf.code.CfFrame.FrameType;
+import com.android.tools.r8.cf.code.frame.PreciseFrameType;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -82,7 +82,7 @@ public class CfInstanceFieldWrite extends CfFieldInstruction {
             (state, head) -> head.isUninitializedNew() ? error(head) : state);
   }
 
-  private ErroneousCfFrameState error(FrameType objectType) {
+  private ErroneousCfFrameState error(PreciseFrameType objectType) {
     return CfFrameState.error(
         "Frame type "
             + formatActual(objectType)

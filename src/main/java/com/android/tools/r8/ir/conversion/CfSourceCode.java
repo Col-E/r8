@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.conversion;
 import static it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMaps.emptyMap;
 
 import com.android.tools.r8.cf.code.CfFrame;
-import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.CfGoto;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfLabel;
@@ -15,6 +14,8 @@ import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.cf.code.CfTryCatch;
+import com.android.tools.r8.cf.code.FrameType;
+import com.android.tools.r8.cf.code.frame.PreciseFrameType;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
@@ -610,7 +611,7 @@ public class CfSourceCode implements SourceCode {
     frame.forEachLocal(
         (localIndex, frameType) -> locals[localIndex] = convertUninitialized(frameType));
     int index = 0;
-    for (FrameType frameType : frame.getStack()) {
+    for (PreciseFrameType frameType : frame.getStack()) {
       stack[index++] = convertUninitialized(frameType);
     }
     // TODO(b/169135126) Assert that all values are precise.

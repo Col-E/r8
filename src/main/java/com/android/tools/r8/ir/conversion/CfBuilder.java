@@ -13,12 +13,14 @@ import com.android.tools.r8.cf.TypeVerificationHelper.NewInstanceInfo;
 import com.android.tools.r8.cf.TypeVerificationHelper.ThisInstanceInfo;
 import com.android.tools.r8.cf.TypeVerificationHelper.TypeInfo;
 import com.android.tools.r8.cf.code.CfFrame;
-import com.android.tools.r8.cf.code.CfFrame.FrameType;
+import com.android.tools.r8.cf.code.CfFrame.UninitializedFrameType;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfTryCatch;
+import com.android.tools.r8.cf.code.FrameType;
+import com.android.tools.r8.cf.code.frame.PreciseFrameType;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -622,16 +624,16 @@ public class CfBuilder {
     instructions.add(frame);
   }
 
-  private FrameType getFrameType(BasicBlock liveBlock, TypeInfo typeInfo) {
+  private PreciseFrameType getFrameType(BasicBlock liveBlock, TypeInfo typeInfo) {
     if (typeInfo instanceof InitializedTypeInfo) {
       return FrameType.initialized(typeInfo.getDexType());
     }
-    FrameType type = findAllocator(liveBlock, typeInfo);
+    UninitializedFrameType type = findAllocator(liveBlock, typeInfo);
     return type != null ? type : FrameType.initialized(typeInfo.getDexType());
   }
 
-  private FrameType findAllocator(BasicBlock liveBlock, TypeInfo typeInfo) {
-    FrameType res;
+  private UninitializedFrameType findAllocator(BasicBlock liveBlock, TypeInfo typeInfo) {
+    UninitializedFrameType res;
     Instruction definition;
     if (typeInfo instanceof NewInstanceInfo) {
       NewInstanceInfo newInstanceInfo = (NewInstanceInfo) typeInfo;

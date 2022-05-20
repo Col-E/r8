@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-
 import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.cf.code.CfArrayLength;
 import com.android.tools.r8.cf.code.CfArrayLoad;
@@ -19,7 +18,7 @@ import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfFrame;
-import com.android.tools.r8.cf.code.CfFrame.FrameType;
+import com.android.tools.r8.cf.code.CfFrame.UninitializedNew;
 import com.android.tools.r8.cf.code.CfGoto;
 import com.android.tools.r8.cf.code.CfIf;
 import com.android.tools.r8.cf.code.CfIfCmp;
@@ -47,6 +46,8 @@ import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.cf.code.CfTryCatch;
+import com.android.tools.r8.cf.code.FrameType;
+import com.android.tools.r8.cf.code.frame.PreciseFrameType;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
@@ -72,6 +73,8 @@ import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.StringDiagnostic;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -452,12 +455,12 @@ public class LazyCfCode extends Code {
         for (Int2ObjectMap.Entry<FrameType> entry : frame.getLocals().int2ObjectEntrySet()) {
           FrameType frameType = entry.getValue();
           if (frameType.isUninitializedNew() && frameType.getUninitializedNewType() == null) {
-            entry.setValue(fixupUninitializedNew(frameType));
+            entry.setValue(fixupUninitializedNew(frameType.asUninitializedNew()));
           }
         }
-        for (FrameType frameType : frame.getStack()) {
+        for (PreciseFrameType frameType : frame.getStack()) {
           if (frameType.isUninitializedNew() && frameType.getUninitializedNewType() == null) {
-            builder.push(fixupUninitializedNew(frameType));
+            builder.push(fixupUninitializedNew(frameType.asUninitializedNew()));
           } else {
             builder.push(frameType);
           }
@@ -466,7 +469,7 @@ public class LazyCfCode extends Code {
       }
     }
 
-    private FrameType fixupUninitializedNew(FrameType frameType) {
+    private UninitializedNew fixupUninitializedNew(UninitializedNew frameType) {
       CfLabel label = frameType.getUninitializedLabel();
       CfNew cfNew = labelToNewMap.get(label);
       return cfNew != null ? FrameType.uninitializedNew(label, cfNew.getType()) : frameType;
@@ -490,7 +493,9 @@ public class LazyCfCode extends Code {
       assert frameType == Opcodes.F_NEW;
       CfFrame.Builder builder = CfFrame.builder();
       parseLocals(nLocals, localTypes, builder);
-      parseStack(nStack, stackTypes, builder);
+      if (!parseStack(nStack, stackTypes, builder)) {
+        return;
+      }
       if (builder.hasIncompleteUninitializedNew()) {
         framesWithIncompleteUninitializedNew.add(instructions.size());
       }
@@ -505,11 +510,20 @@ public class LazyCfCode extends Code {
       }
     }
 
-    private void parseStack(int nStack, Object[] stackTypes, CfFrame.Builder builder) {
+    private boolean parseStack(int nStack, Object[] stackTypes, CfFrame.Builder builder) {
       builder.allocateStack(nStack);
       for (int i = 0; i < nStack; i++) {
-        builder.push(getFrameType(stackTypes[i], builder));
+        FrameType frameType = getFrameType(stackTypes[i], builder);
+        if (frameType.isPrecise()) {
+          builder.push(frameType.asPrecise());
+        } else {
+          Reporter reporter = application.options.reporter;
+          reporter.warning(
+              new StringDiagnostic("Unexpected frame with imprecise value on stack", origin));
+          return false;
+        }
       }
+      return true;
     }
 
     private FrameType getFrameType(Object localType, CfFrame.Builder builder) {

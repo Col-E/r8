@@ -1,0 +1,36 @@
+// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
+package com.android.tools.r8.cf.code.frame;
+
+import static com.android.tools.r8.cf.code.FrameType.initialized;
+import static com.android.tools.r8.cf.code.FrameType.uninitializedNew;
+
+import com.android.tools.r8.cf.code.FrameType;
+import com.android.tools.r8.graph.DexType;
+import java.util.function.Function;
+
+public interface PreciseFrameType extends FrameType {
+
+  @Override
+  default PreciseFrameType map(Function<DexType, DexType> fn) {
+    if (isObject()) {
+      if (isInitialized()) {
+        DexType type = asInitializedReferenceType().getInitializedType();
+        DexType newType = fn.apply(type);
+        if (type != newType) {
+          return initialized(newType);
+        }
+      }
+      if (isUninitializedNew()) {
+        DexType type = getUninitializedNewType();
+        DexType newType = fn.apply(type);
+        if (type != newType) {
+          return uninitializedNew(getUninitializedLabel(), newType);
+        }
+      }
+    }
+    return this;
+  }
+}

@@ -5,7 +5,6 @@
 package com.android.tools.r8.horizontalclassmerging;
 
 import com.android.tools.r8.cf.code.CfFrame;
-import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.CfInstanceFieldRead;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
@@ -15,6 +14,7 @@ import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfSwitch.Kind;
+import com.android.tools.r8.cf.code.FrameType;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -167,8 +167,7 @@ public class IncompleteVirtuallyMergedMethodCode extends IncompleteHorizontalCla
     for (int argumentIndex = 0;
         argumentIndex < representative.getDefinition().getNumberOfArguments();
         argumentIndex++) {
-      FrameType frameType = FrameType.initialized(representative.getArgumentType(argumentIndex));
-      builder.appendLocal(frameType);
+      builder.appendLocal(FrameType.initialized(representative.getArgumentType(argumentIndex)));
     }
     CfFrame frame = builder.build();
     assert frame.getLocals().size() == localsSize;

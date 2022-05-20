@@ -4,37 +4,9 @@
 
 package com.android.tools.r8.cf.code.frame;
 
-import com.android.tools.r8.cf.code.CfFrame.FrameType;
-import com.android.tools.r8.cf.code.CfFrame.SingleInitializedType;
-import com.android.tools.r8.cf.code.CfFrame.SinglePrimitiveFrameType;
-import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.cf.code.FrameType;
 
-public interface SingleFrameType {
-
-  FrameType asFrameType();
-
-  boolean isInitialized();
-
-  DexType getInitializedType(DexItemFactory dexItemFactory);
-
-  boolean isInt();
-
-  SingleInitializedType asSingleInitializedType();
-
-  boolean isNullType();
-
-  boolean isOneWord();
-
-  boolean isPrimitive();
-
-  SinglePrimitiveFrameType asSinglePrimitive();
-
-  boolean isUninitializedNew();
-
-  DexType getUninitializedNewType();
-
-  boolean isUninitializedObject();
+public interface SingleFrameType extends FrameType {
 
   SingleFrameType join(SingleFrameType frameType);
 }

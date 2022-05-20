@@ -9,7 +9,9 @@ import static com.android.tools.r8.optimize.interfaces.analysis.ErroneousCfFrame
 
 import com.android.tools.r8.cf.code.CfAssignability;
 import com.android.tools.r8.cf.code.CfFrame;
-import com.android.tools.r8.cf.code.CfFrame.FrameType;
+import com.android.tools.r8.cf.code.CfFrame.UninitializedFrameType;
+import com.android.tools.r8.cf.code.FrameType;
+import com.android.tools.r8.cf.code.frame.PreciseFrameType;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -108,11 +110,11 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
   public abstract CfFrameState clear();
 
   public abstract CfFrameState markInitialized(
-      FrameType uninitializedType, DexType initializedType);
+      UninitializedFrameType uninitializedType, DexType initializedType);
 
   public abstract CfFrameState pop();
 
-  public abstract CfFrameState pop(BiFunction<CfFrameState, FrameType, CfFrameState> fn);
+  public abstract CfFrameState pop(BiFunction<CfFrameState, PreciseFrameType, CfFrameState> fn);
 
   public abstract CfFrameState popAndInitialize(
       AppView<?> appView, DexMethod constructor, CfAnalysisConfig config);
@@ -124,7 +126,7 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
   public abstract CfFrameState popInitialized(
       AppView<?> appView,
       DexType expectedType,
-      BiFunction<CfFrameState, FrameType, CfFrameState> fn);
+      BiFunction<CfFrameState, PreciseFrameType, CfFrameState> fn);
 
   public abstract CfFrameState popInitialized(AppView<?> appView, DexType... expectedTypes);
 
@@ -147,11 +149,11 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
   public final CfFrameState popInitialized(
       AppView<?> appView,
       ValueType valueType,
-      BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
+      BiFunction<CfFrameState, PreciseFrameType, CfFrameState> fn) {
     return popInitialized(appView, valueType.toDexType(appView.dexItemFactory()), fn);
   }
 
-  public final CfFrameState popObject(BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
+  public final CfFrameState popObject(BiFunction<CfFrameState, PreciseFrameType, CfFrameState> fn) {
     return pop(
         (state, head) ->
             head.isObject() ? fn.apply(state, head) : errorUnexpectedStack(head, ValueType.OBJECT));
@@ -162,7 +164,7 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
       AppView<?> appView,
       DexType expectedType,
       CfAnalysisConfig config,
-      BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
+      BiFunction<CfFrameState, PreciseFrameType, CfFrameState> fn) {
     return pop(
         (state, head) ->
             head.isObject()
@@ -178,7 +180,7 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
     return popSingle((state, single) -> state);
   }
 
-  public final CfFrameState popSingle(BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
+  public final CfFrameState popSingle(BiFunction<CfFrameState, PreciseFrameType, CfFrameState> fn) {
     return pop(
         (state, single) ->
             single.isSingle()
@@ -187,22 +189,22 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
   }
 
   public final CfFrameState popSingles(
-      TriFunction<CfFrameState, FrameType, FrameType, CfFrameState> fn) {
+      TriFunction<CfFrameState, PreciseFrameType, PreciseFrameType, CfFrameState> fn) {
     return popSingle(
         (state1, single1) ->
             state1.popSingle((state2, single2) -> fn.apply(state2, single2, single1)));
   }
 
   public final CfFrameState popSingleOrWide(
-      BiFunction<CfFrameState, FrameType, CfFrameState> singleFn,
-      BiFunction<CfFrameState, FrameType, CfFrameState> wideFn) {
+      BiFunction<CfFrameState, PreciseFrameType, CfFrameState> singleFn,
+      BiFunction<CfFrameState, PreciseFrameType, CfFrameState> wideFn) {
     return pop(
         (state, head) -> head.isSingle() ? singleFn.apply(state, head) : wideFn.apply(state, head));
   }
 
   public final CfFrameState popSingleSingleOrWide(
-      TriFunction<CfFrameState, FrameType, FrameType, CfFrameState> singleSingleFn,
-      BiFunction<CfFrameState, FrameType, CfFrameState> wideFn) {
+      TriFunction<CfFrameState, PreciseFrameType, PreciseFrameType, CfFrameState> singleSingleFn,
+      BiFunction<CfFrameState, PreciseFrameType, CfFrameState> wideFn) {
     return popSingleOrWide(
         (state1, single1) ->
             state1.popSingle((state2, single2) -> singleSingleFn.apply(state2, single2, single1)),
@@ -211,24 +213,27 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
 
   public abstract CfFrameState push(CfAnalysisConfig config, DexType type);
 
-  public abstract CfFrameState push(CfAnalysisConfig config, FrameType frameType);
+  public abstract CfFrameState push(CfAnalysisConfig config, PreciseFrameType frameType);
 
   public final CfFrameState push(
-      CfAnalysisConfig config, FrameType frameType, FrameType frameType2) {
+      CfAnalysisConfig config, PreciseFrameType frameType, PreciseFrameType frameType2) {
     return push(config, frameType).push(config, frameType2);
   }
 
   public final CfFrameState push(
-      CfAnalysisConfig config, FrameType frameType, FrameType frameType2, FrameType frameType3) {
+      CfAnalysisConfig config,
+      PreciseFrameType frameType,
+      PreciseFrameType frameType2,
+      PreciseFrameType frameType3) {
     return push(config, frameType).push(config, frameType2).push(config, frameType3);
   }
 
   public final CfFrameState push(
       CfAnalysisConfig config,
-      FrameType frameType,
-      FrameType frameType2,
-      FrameType frameType3,
-      FrameType frameType4) {
+      PreciseFrameType frameType,
+      PreciseFrameType frameType2,
+      PreciseFrameType frameType3,
+      PreciseFrameType frameType4) {
     return push(config, frameType)
         .push(config, frameType2)
         .push(config, frameType3)
@@ -237,11 +242,11 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
 
   public final CfFrameState push(
       CfAnalysisConfig config,
-      FrameType frameType,
-      FrameType frameType2,
-      FrameType frameType3,
-      FrameType frameType4,
-      FrameType frameType5) {
+      PreciseFrameType frameType,
+      PreciseFrameType frameType2,
+      PreciseFrameType frameType3,
+      PreciseFrameType frameType4,
+      PreciseFrameType frameType5) {
     return push(config, frameType)
         .push(config, frameType2)
         .push(config, frameType3)
@@ -251,12 +256,12 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
 
   public final CfFrameState push(
       CfAnalysisConfig config,
-      FrameType frameType,
-      FrameType frameType2,
-      FrameType frameType3,
-      FrameType frameType4,
-      FrameType frameType5,
-      FrameType frameType6) {
+      PreciseFrameType frameType,
+      PreciseFrameType frameType2,
+      PreciseFrameType frameType3,
+      PreciseFrameType frameType4,
+      PreciseFrameType frameType5,
+      PreciseFrameType frameType6) {
     return push(config, frameType)
         .push(config, frameType2)
         .push(config, frameType3)

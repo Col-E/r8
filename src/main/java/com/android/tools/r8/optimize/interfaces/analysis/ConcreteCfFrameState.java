@@ -10,7 +10,9 @@ import static com.android.tools.r8.optimize.interfaces.analysis.ErroneousCfFrame
 import com.android.tools.r8.cf.code.CfAssignability;
 import com.android.tools.r8.cf.code.CfAssignability.AssignabilityResult;
 import com.android.tools.r8.cf.code.CfFrame;
-import com.android.tools.r8.cf.code.CfFrame.FrameType;
+import com.android.tools.r8.cf.code.CfFrame.UninitializedFrameType;
+import com.android.tools.r8.cf.code.FrameType;
+import com.android.tools.r8.cf.code.frame.PreciseFrameType;
 import com.android.tools.r8.cf.code.frame.SingleFrameType;
 import com.android.tools.r8.cf.code.frame.WideFrameType;
 import com.android.tools.r8.graph.AppView;
@@ -35,7 +37,7 @@ import java.util.function.UnaryOperator;
 public class ConcreteCfFrameState extends CfFrameState {
 
   private final Int2ObjectAVLTreeMap<FrameType> locals;
-  private final ArrayDeque<FrameType> stack;
+  private final ArrayDeque<PreciseFrameType> stack;
   private int stackHeight;
 
   ConcreteCfFrameState() {
@@ -43,7 +45,7 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   public ConcreteCfFrameState(
-      Int2ObjectAVLTreeMap<FrameType> locals, ArrayDeque<FrameType> stack, int stackHeight) {
+      Int2ObjectAVLTreeMap<FrameType> locals, ArrayDeque<PreciseFrameType> stack, int stackHeight) {
     this.locals = locals;
     this.stack = stack;
     this.stackHeight = stackHeight;
@@ -103,23 +105,28 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState markInitialized(FrameType uninitializedType, DexType initializedType) {
+  public CfFrameState markInitialized(
+      UninitializedFrameType uninitializedType, DexType initializedType) {
     if (uninitializedType.isInitialized()) {
       return error("Unexpected attempt to initialize already initialized type");
     }
     for (Int2ObjectMap.Entry<FrameType> entry : locals.int2ObjectEntrySet()) {
       FrameType frameType = entry.getValue();
-      FrameType initializedFrameType =
-          getInitializedFrameType(uninitializedType, frameType, initializedType);
-      entry.setValue(initializedFrameType);
+      if (frameType.isUninitialized()) {
+        entry.setValue(
+            getInitializedFrameType(
+                uninitializedType, frameType.asUninitialized(), initializedType));
+      }
     }
     // TODO(b/214496607): By using a collection that supports element replacement this could mutate
     //  the existing stack instead of building a new one.
-    ArrayDeque<FrameType> newStack = new ArrayDeque<>();
-    for (FrameType frameType : stack) {
-      FrameType initializedFrameType =
-          getInitializedFrameType(uninitializedType, frameType, initializedType);
-      newStack.addLast(initializedFrameType);
+    ArrayDeque<PreciseFrameType> newStack = new ArrayDeque<>();
+    for (PreciseFrameType frameType : stack) {
+      newStack.addLast(
+          frameType.isUninitialized()
+              ? getInitializedFrameType(
+                  uninitializedType, frameType.asUninitialized(), initializedType)
+              : frameType);
     }
     return new ConcreteCfFrameState(locals, newStack, stackHeight);
   }
@@ -130,12 +137,12 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState pop(BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
+  public CfFrameState pop(BiFunction<CfFrameState, PreciseFrameType, CfFrameState> fn) {
     if (stack.isEmpty()) {
       // Return the same error as when popping from the bottom state.
       return bottom().pop();
     }
-    FrameType frameType = stack.removeLast();
+    PreciseFrameType frameType = stack.removeLast();
     stackHeight -= frameType.getWidth();
     return fn.apply(this, frameType);
   }
@@ -145,16 +152,17 @@ public class ConcreteCfFrameState extends CfFrameState {
       AppView<?> appView, DexMethod constructor, CfAnalysisConfig config) {
     return pop(
         (state, frameType) -> {
-          if (frameType.isUninitializedObject()) {
+          if (frameType.isUninitialized()) {
             if (frameType.isUninitializedThis()) {
               if (constructor.getHolderType() == config.getCurrentContext().getHolderType()
                   || config.isImmediateSuperClassOfCurrentContext(constructor.getHolderType())) {
-                return state.markInitialized(frameType, config.getCurrentContext().getHolderType());
+                return state.markInitialized(
+                    frameType.asUninitializedThis(), config.getCurrentContext().getHolderType());
               }
             } else if (frameType.isUninitializedNew()) {
               DexType uninitializedNewType = frameType.getUninitializedNewType();
               if (constructor.getHolderType() == uninitializedNewType) {
-                return state.markInitialized(frameType, uninitializedNewType);
+                return state.markInitialized(frameType.asUninitializedNew(), uninitializedNewType);
               }
             }
             return popAndInitializeConstructorMismatchError(frameType, constructor, config);
@@ -164,8 +172,8 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   private ErroneousCfFrameState popAndInitializeConstructorMismatchError(
-      FrameType frameType, DexMethod constructor, CfAnalysisConfig config) {
-    assert frameType.isUninitializedObject();
+      PreciseFrameType frameType, DexMethod constructor, CfAnalysisConfig config) {
+    assert frameType.isUninitialized();
     StringBuilder message = new StringBuilder("Constructor mismatch, expected constructor from ");
     if (frameType.isUninitializedNew()) {
       message.append(frameType.getUninitializedNewType().getTypeName());
@@ -179,7 +187,7 @@ public class ConcreteCfFrameState extends CfFrameState {
     return error(message.toString());
   }
 
-  private ErroneousCfFrameState popAndInitializeInitializedObjectError(FrameType frameType) {
+  private ErroneousCfFrameState popAndInitializeInitializedObjectError(PreciseFrameType frameType) {
     return error("Unexpected attempt to initialize " + formatActual(frameType));
   }
 
@@ -187,7 +195,7 @@ public class ConcreteCfFrameState extends CfFrameState {
   public CfFrameState popInitialized(
       AppView<?> appView,
       DexType expectedType,
-      BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
+      BiFunction<CfFrameState, PreciseFrameType, CfFrameState> fn) {
     return pop(
         (state, frameType) -> {
           if (frameType.isInitialized()) {
@@ -215,7 +223,7 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState push(CfAnalysisConfig config, FrameType frameType) {
+  public CfFrameState push(CfAnalysisConfig config, PreciseFrameType frameType) {
     int newStackHeight = stackHeight + frameType.getWidth();
     if (newStackHeight > config.getMaxStack()) {
       return pushError(config, frameType);
@@ -225,7 +233,7 @@ public class ConcreteCfFrameState extends CfFrameState {
     return this;
   }
 
-  private ErroneousCfFrameState pushError(CfAnalysisConfig config, FrameType frameType) {
+  private ErroneousCfFrameState pushError(CfAnalysisConfig config, PreciseFrameType frameType) {
     return error(
         "The max stack height of "
             + config.getMaxStack()
@@ -250,7 +258,7 @@ public class ConcreteCfFrameState extends CfFrameState {
           frameType.getInitializedType(appView.dexItemFactory()), expectedType, appView)) {
         return fn.apply(this, frameType);
       }
-    } else if (frameType.isUninitializedObject() && expectedType.isObject()) {
+    } else if (frameType.isUninitialized() && expectedType.isObject()) {
       return fn.apply(this, frameType);
     }
     return errorUnexpectedLocal(frameType, expectedType, localIndex);
@@ -400,7 +408,7 @@ public class ConcreteCfFrameState extends CfFrameState {
       SingleFrameType frameType,
       SingleFrameType otherFrameType,
       CfFrame.Builder builder) {
-    builder.store(localIndex, frameType.join(otherFrameType).asFrameType());
+    builder.store(localIndex, frameType.join(otherFrameType));
   }
 
   private void joinWideLocalsWithSameIndex(
@@ -408,7 +416,7 @@ public class ConcreteCfFrameState extends CfFrameState {
       WideFrameType frameType,
       WideFrameType otherFrameType,
       CfFrame.Builder builder) {
-    builder.store(localIndex, frameType.join(otherFrameType).asFrameType());
+    builder.store(localIndex, frameType.join(otherFrameType));
   }
 
   // TODO(b/231521474): By splitting each wide type into single left/right types, the join of each
@@ -513,13 +521,13 @@ public class ConcreteCfFrameState extends CfFrameState {
     setSingleLocalToTop(localIndex + 1, builder);
   }
 
-  private ErroneousCfFrameState joinStack(Deque<FrameType> stack, CfFrame.Builder builder) {
-    Iterator<FrameType> iterator = this.stack.iterator();
-    Iterator<FrameType> otherIterator = stack.iterator();
+  private ErroneousCfFrameState joinStack(Deque<PreciseFrameType> stack, CfFrame.Builder builder) {
+    Iterator<PreciseFrameType> iterator = this.stack.iterator();
+    Iterator<PreciseFrameType> otherIterator = stack.iterator();
     int stackIndex = 0;
     while (iterator.hasNext() && otherIterator.hasNext()) {
-      FrameType frameType = iterator.next();
-      FrameType otherFrameType = otherIterator.next();
+      PreciseFrameType frameType = iterator.next();
+      PreciseFrameType otherFrameType = otherIterator.next();
       if (frameType.isSingle() != otherFrameType.isSingle()) {
         return error(
             "Cannot join stacks, expected frame types at stack index "
@@ -529,19 +537,23 @@ public class ConcreteCfFrameState extends CfFrameState {
                 + " and "
                 + formatActual(otherFrameType));
       }
+      PreciseFrameType preciseJoin;
       if (frameType.isSingle()) {
         SingleFrameType join = frameType.asSingle().join(otherFrameType.asSingle());
         if (join.isOneWord()) {
           return joinStackImpreciseJoinError(stackIndex, frameType, otherFrameType);
         }
-        builder.push(join.asFrameType());
+        assert join.isPrecise();
+        preciseJoin = join.asPrecise();
       } else {
         WideFrameType join = frameType.asWide().join(otherFrameType.asWide());
         if (join.isTwoWord()) {
           return joinStackImpreciseJoinError(stackIndex, frameType, otherFrameType);
         }
-        builder.push(join.asFrameType());
+        assert join.isPrecise();
+        preciseJoin = join.asPrecise();
       }
+      builder.push(preciseJoin);
       stackIndex++;
     }
     if (iterator.hasNext() || otherIterator.hasNext()) {
@@ -551,7 +563,7 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   private ErroneousCfFrameState joinStackImpreciseJoinError(
-      int stackIndex, FrameType first, FrameType second) {
+      int stackIndex, PreciseFrameType first, PreciseFrameType second) {
     return error(
         "Cannot join stacks, expected frame types at stack index "
             + stackIndex

@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.cf.code;
 
-import com.android.tools.r8.cf.code.CfFrame.FrameType;
+import com.android.tools.r8.cf.code.frame.PreciseFrameType;
 import com.android.tools.r8.cf.code.frame.SingleFrameType;
 import com.android.tools.r8.cf.code.frame.WideFrameType;
 import com.android.tools.r8.graph.AppView;
@@ -27,7 +27,7 @@ public class CfAssignability {
     }
     return source.isSingle()
         ? isFrameTypeAssignable(source.asSingle(), target.asSingle(), appView)
-        : isFrameTypeAssignable(source.asWide(), target.asWide(), appView);
+        : isFrameTypeAssignable(source.asWide(), target.asWide());
   }
 
   // Based on https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.10.1.2.
@@ -61,17 +61,16 @@ public class CfAssignability {
       if (source.isInitialized()) {
         // Both are instantiated types and we resort to primitive type/java type hierarchy checking.
         return isAssignable(
-            source.asSingleInitializedType().getInitializedType(),
-            target.asSingleInitializedType().getInitializedType(),
+            source.asInitializedReferenceType().getInitializedType(),
+            target.asInitializedReferenceType().getInitializedType(),
             appView);
       }
-      return target.asSingleInitializedType().getInitializedType() == factory.objectType;
+      return target.asInitializedReferenceType().getInitializedType() == factory.objectType;
     }
     return false;
   }
 
-  public static boolean isFrameTypeAssignable(
-      WideFrameType source, WideFrameType target, AppView<?> appView) {
+  public static boolean isFrameTypeAssignable(WideFrameType source, WideFrameType target) {
     assert !source.isTwoWord();
     return source.lessThanOrEqualTo(target);
   }
@@ -174,7 +173,9 @@ public class CfAssignability {
   }
 
   public static AssignabilityResult isStackAssignable(
-      Deque<FrameType> sourceStack, Deque<FrameType> targetStack, AppView<?> appView) {
+      Deque<PreciseFrameType> sourceStack,
+      Deque<PreciseFrameType> targetStack,
+      AppView<?> appView) {
     if (sourceStack.size() != targetStack.size()) {
       return new FailedAssignabilityResult(
           "Source stack "
@@ -183,14 +184,10 @@ public class CfAssignability {
               + Arrays.toString(targetStack.toArray())
               + " is not the same size");
     }
-    Iterator<FrameType> otherIterator = targetStack.iterator();
+    Iterator<PreciseFrameType> otherIterator = targetStack.iterator();
     int stackIndex = 0;
-    for (FrameType sourceType : sourceStack) {
-      FrameType destinationType = otherIterator.next();
-      // TODO(b/231260627): By strengthening the stack to Deque<SpecificFrameType> the following
-      //  asserts would be trivial as a result of type checking.
-      assert sourceType.isSpecific();
-      assert destinationType.isSpecific();
+    for (PreciseFrameType sourceType : sourceStack) {
+      PreciseFrameType destinationType = otherIterator.next();
       if (!isFrameTypeAssignable(sourceType, destinationType, appView)) {
         return new FailedAssignabilityResult(
             "Could not assign '"

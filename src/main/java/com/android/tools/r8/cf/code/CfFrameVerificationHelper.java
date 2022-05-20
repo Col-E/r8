@@ -5,7 +5,7 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.code.CfAssignability.AssignabilityResult;
-import com.android.tools.r8.cf.code.CfFrame.FrameType;
+import com.android.tools.r8.cf.code.frame.PreciseFrameType;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCodeDiagnostics;
@@ -137,7 +137,7 @@ public class CfFrameVerificationHelper implements CfAnalysisConfig {
               "Could not assign " + guard.getTypeName() + " to java.lang.Throwable",
               appView);
         }
-        Deque<FrameType> sourceStack = ImmutableDeque.of(FrameType.initialized(guard));
+        Deque<PreciseFrameType> sourceStack = ImmutableDeque.of(FrameType.initialized(guard));
         AssignabilityResult assignabilityResult =
             CfAssignability.isStackAssignable(sourceStack, destinationFrame.getStack(), appView);
         if (assignabilityResult.isFailed()) {

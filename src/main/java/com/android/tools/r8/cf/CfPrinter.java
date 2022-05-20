@@ -19,7 +19,6 @@ import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfDexItemBasedConstString;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfFrame;
-import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.CfGoto;
 import com.android.tools.r8.cf.code.CfIf;
 import com.android.tools.r8.cf.code.CfIfCmp;
@@ -55,6 +54,8 @@ import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfSwitch.Kind;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.cf.code.CfTryCatch;
+import com.android.tools.r8.cf.code.FrameType;
+import com.android.tools.r8.cf.code.frame.PreciseFrameType;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
@@ -445,7 +446,7 @@ public class CfPrinter {
     builder.append("] [");
     {
       String separator = "";
-      for (FrameType element : frame.getStack()) {
+      for (PreciseFrameType element : frame.getStack()) {
         builder.append(separator);
         print(element);
         separator = ", ";
@@ -458,7 +459,7 @@ public class CfPrinter {
     if (type.isPrimitive()) {
       builder.append(type.asPrimitive().getTypeName());
     } else if (type.isInitialized()) {
-      appendType(type.asSingleInitializedType().getInitializedType());
+      appendType(type.asInitializedReferenceType().getInitializedType());
     } else if (type.isUninitializedNew()) {
       builder.append("uninitialized ").append(getLabel(type.getUninitializedLabel()));
     } else {
