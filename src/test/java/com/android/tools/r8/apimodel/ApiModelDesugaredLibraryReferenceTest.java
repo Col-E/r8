@@ -4,17 +4,12 @@
 
 package com.android.tools.r8.apimodel;
 
-import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.R8_L8DEBUG;
-import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.R8_L8SHRINK;
-import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
-import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
-import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.references.Reference;
-import com.google.common.collect.ImmutableList;
+import com.android.tools.r8.utils.BooleanUtils;
 import java.lang.reflect.Method;
 import java.time.Clock;
 import java.util.List;
@@ -27,43 +22,45 @@ import org.junit.runners.Parameterized.Parameters;
 public class ApiModelDesugaredLibraryReferenceTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
-  private final CompilationSpecification compilationSpecification;
+  private final boolean shrinkDesugaredLibrary;
 
-  @Parameters(name = "{0}, spec: {1}, {2}")
+  @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
-        getJdk8Jdk11(),
-        ImmutableList.of(R8_L8DEBUG, R8_L8SHRINK));
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(), BooleanUtils.values());
   }
 
   public ApiModelDesugaredLibraryReferenceTest(
-      TestParameters parameters,
-      LibraryDesugaringSpecification libraryDesugaringSpecification,
-      CompilationSpecification compilationSpecification) {
+      TestParameters parameters, boolean shrinkDesugaredLibrary) {
     this.parameters = parameters;
-    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
-    this.compilationSpecification = compilationSpecification;
+    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
   }
 
   @Test
-  public void testClock() throws Throwable {
+  public void testClockR8() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     Method printZone = DesugaredLibUser.class.getDeclaredMethod("printZone");
     Method main = Executor.class.getDeclaredMethod("main", String[].class);
-    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+    testForR8(parameters.getBackend())
         .addProgramClasses(Executor.class, DesugaredLibUser.class)
+        .addLibraryFiles(getLibraryFile())
         .addKeepMainRule(Executor.class)
-        .applyOnBuilder(ApiModelingTestHelper::enableApiCallerIdentification)
-        .applyOnBuilder(
-            b ->
-                ApiModelingTestHelper.addTracedApiReferenceLevelCallBack(
-                        (reference, apiLevel) -> {
-                          if (reference.equals(Reference.methodFromMethod(printZone))) {
-                            assertEquals(parameters.getApiLevel(), apiLevel);
-                          }
-                        })
-                    .acceptWithRuntimeException(b))
+        .setMinApi(parameters.getApiLevel())
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        .apply(
+            ApiModelingTestHelper.addTracedApiReferenceLevelCallBack(
+                (reference, apiLevel) -> {
+                  if (reference.equals(Reference.methodFromMethod(printZone))) {
+                    assertEquals(parameters.getApiLevel(), apiLevel);
+                  }
+                }))
+        .compile()
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutputLines("Z")
         .inspect(
