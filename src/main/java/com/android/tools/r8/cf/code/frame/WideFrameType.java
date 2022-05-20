@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.cf.code.frame;
 
-import com.android.tools.r8.cf.code.FrameType;
 
 public interface WideFrameType extends FrameType {
 

@@ -2,28 +2,9 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.cf.code;
+package com.android.tools.r8.cf.code.frame;
 
-import com.android.tools.r8.cf.code.CfFrame.BooleanFrameType;
-import com.android.tools.r8.cf.code.CfFrame.ByteFrameType;
-import com.android.tools.r8.cf.code.CfFrame.CharFrameType;
-import com.android.tools.r8.cf.code.CfFrame.DoubleFrameType;
-import com.android.tools.r8.cf.code.CfFrame.FloatFrameType;
-import com.android.tools.r8.cf.code.CfFrame.InitializedReferenceFrameType;
-import com.android.tools.r8.cf.code.CfFrame.IntFrameType;
-import com.android.tools.r8.cf.code.CfFrame.LongFrameType;
-import com.android.tools.r8.cf.code.CfFrame.OneWord;
-import com.android.tools.r8.cf.code.CfFrame.ShortFrameType;
-import com.android.tools.r8.cf.code.CfFrame.SinglePrimitiveFrameType;
-import com.android.tools.r8.cf.code.CfFrame.TwoWord;
-import com.android.tools.r8.cf.code.CfFrame.UninitializedFrameType;
-import com.android.tools.r8.cf.code.CfFrame.UninitializedNew;
-import com.android.tools.r8.cf.code.CfFrame.UninitializedThis;
-import com.android.tools.r8.cf.code.frame.InitializedFrameType;
-import com.android.tools.r8.cf.code.frame.PreciseFrameType;
-import com.android.tools.r8.cf.code.frame.PrimitiveFrameType;
-import com.android.tools.r8.cf.code.frame.SingleFrameType;
-import com.android.tools.r8.cf.code.frame.WideFrameType;
+import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;

@@ -51,7 +51,7 @@ import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.cf.code.CfTryCatch;
-import com.android.tools.r8.cf.code.FrameType;
+import com.android.tools.r8.cf.code.frame.FrameType;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.CfCode;
@@ -201,7 +201,7 @@ public class CfCodePrinter extends CfPrinter {
   }
 
   private String frameTypeType() {
-    return r8Type("FrameType", ImmutableList.of("cf", "code"));
+    return r8Type("FrameType", ImmutableList.of("cf", "code", "frame"));
   }
 
   private String monitorType() {

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.cf.code;
 
+import com.android.tools.r8.cf.code.frame.FrameType;
 import com.android.tools.r8.cf.code.frame.PreciseFrameType;
 import com.android.tools.r8.cf.code.frame.SingleFrameType;
 import com.android.tools.r8.cf.code.frame.WideFrameType;

@@ -4,8 +4,15 @@
 
 package com.android.tools.r8.cf.code.frame;
 
+public abstract class SingletonFrameType extends BaseFrameType {
 
-public interface SingleFrameType extends FrameType {
+  @Override
+  public final boolean equals(Object obj) {
+    return this == obj;
+  }
 
-  SingleFrameType join(SingleFrameType frameType);
+  @Override
+  public final int hashCode() {
+    return System.identityHashCode(this);
+  }
 }
