@@ -46,6 +46,7 @@ public class VerticalClassMergingWithMissingTypeArgsSubstitutionTest extends Tes
         .enableInliningAnnotations()
         .enableNoMethodStaticizingAnnotations()
         .enableConstantArgumentAnnotations()
+        .noMinification()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("T", "Hello World")
@@ -59,17 +60,21 @@ public class VerticalClassMergingWithMissingTypeArgsSubstitutionTest extends Tes
               MethodSubject bar = classSubject.uniqueMethodWithName("bar");
               assertThat(bar, isPresentAndRenamed());
               assertEquals("(TT;)V", bar.getFinalSignatureAttribute());
-              // The NeverInline is transferred to the private vertically merged method, making
-              // it hard to lookup.
-              MethodSubject movedFooSubject =
+              // The NeverInline is transferred to the private vertically merged method but also
+              // copied to the virtual bridge.
+              MethodSubject fooMovedFromB =
                   classSubject.uniqueMethodThatMatches(
-                      method ->
-                          method.getMethod().getReference() != bar.getMethod().getReference()
-                              && !method.isInstanceInitializer());
-              assertThat(movedFooSubject, isPresentAndRenamed());
+                      method -> !method.isVirtual() && method.getOriginalName(false).equals("foo"));
+              assertThat(fooMovedFromB, isPresentAndRenamed());
               assertEquals(
                   "(Ljava/lang/Object;)Ljava/lang/Object;",
-                  movedFooSubject.getFinalSignatureAttribute());
+                  fooMovedFromB.getFinalSignatureAttribute());
+              MethodSubject fooBridge =
+                  classSubject.uniqueMethodThatMatches(
+                      method -> method.isVirtual() && method.getOriginalName(false).equals("foo"));
+              assertThat(fooBridge, isPresentAndRenamed());
+              assertEquals(
+                  "(Ljava/lang/Object;)Ljava/lang/Object;", fooBridge.getFinalSignatureAttribute());
             });
   }
 
