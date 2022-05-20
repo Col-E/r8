@@ -62,7 +62,10 @@ public class VerticalClassMergingWithNonVisibleAnnotationTest extends TestBase {
               // Assert that the merged class has no annotations from Base
               assertTrue(sub.getDexProgramClass().annotations().isEmpty());
               // Assert that foo has the private annotation from the Base.foo
-              MethodSubject foo = sub.uniqueMethodWithName("foo");
+              MethodSubject foo =
+                  sub.uniqueMethodThatMatches(
+                      method ->
+                          method.getOriginalName(false).equals("foo") && !method.isSynthetic());
               assertThat(foo, isPresent());
               AnnotationSubject privateMethodAnnotation =
                   foo.annotation(
