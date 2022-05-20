@@ -4,30 +4,34 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.ToolHelper.DESUGARED_JDK_8_LIB_JAR;
+import static com.android.tools.r8.ToolHelper.UNDESUGARED_JDK_11_LIB_JAR;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 
-import com.android.tools.r8.D8TestCompileResult;
-import com.android.tools.r8.D8TestRunResult;
-import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
-import java.nio.file.Path;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -39,66 +43,77 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
   private static final String TEST_CLASS = "stream.ProgramRewritingTestClass";
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
+    LibraryDesugaringSpecification jdk8CoreLambdaStubs =
+        new LibraryDesugaringSpecification(
+            "JDK8_CL",
+            ImmutableSet.of(
+                DESUGARED_JDK_8_LIB_JAR,
+                ToolHelper.DESUGAR_LIB_CONVERSIONS,
+                ToolHelper.getCoreLambdaStubs()),
+            JDK8.getSpecification(),
+            ImmutableSet.of(ToolHelper.getAndroidJar(AndroidApiLevel.O)),
+            "");
+    LibraryDesugaringSpecification jdk11CoreLambdaStubs =
+        new LibraryDesugaringSpecification(
+            "JDK11_CL",
+            ImmutableSet.of(
+                UNDESUGARED_JDK_11_LIB_JAR,
+                ToolHelper.DESUGAR_LIB_CONVERSIONS,
+                ToolHelper.getCoreLambdaStubs()),
+            JDK11.getSpecification(),
+            ImmutableSet.of(ToolHelper.getAndroidJar(AndroidApiLevel.R)),
+            "");
     return buildParameters(
-        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        ImmutableList.of(JDK8, JDK11, jdk8CoreLambdaStubs, jdk11CoreLambdaStubs),
+        DEFAULT_SPECIFICATIONS);
   }
 
-  public ProgramRewritingTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public ProgramRewritingTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   @Test
-  public void testProgramD8() throws Exception {
-    ArrayList<Path> coreLambdaStubs = new ArrayList<>();
-    coreLambdaStubs.add(ToolHelper.getCoreLambdaStubs());
-    for (Boolean coreLambdaStubsActive : BooleanUtils.values()) {
-      KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-      D8TestCompileResult compileResult =
-          testForD8()
-              .addLibraryFiles(getLibraryFile())
-              .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR + "stream.jar"))
-              .setMinApi(parameters.getApiLevel())
-              .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-              .compile()
-              .inspect(this::checkRewrittenInvokes);
-      if (parameters.getApiLevel().getLevel() < AndroidApiLevel.O.getLevel()) {
-        compileResult.addRunClasspathFiles(
-            buildCoreLambdaDesugaredLibrary(
-                parameters.getApiLevel(),
-                keepRuleConsumer.get(),
-                shrinkDesugaredLibrary,
-                coreLambdaStubsActive,
-                coreLambdaStubs));
-      }
-      D8TestRunResult runResult =
-          compileResult.run(parameters.getRuntime(), TEST_CLASS).assertSuccess();
-      assertResultIsCorrect(runResult.getStdOut(), runResult.getStdErr(), keepRuleConsumer.get());
-    }
-  }
-
-  private Path buildCoreLambdaDesugaredLibrary(
-      AndroidApiLevel apiLevel,
-      String keepRules,
-      boolean shrink,
-      boolean coreLambdaStubsActive,
-      ArrayList<Path> coreLambdaStubs) {
-    return coreLambdaStubsActive
-        ? buildDesugaredLibrary(apiLevel, keepRules, shrink, coreLambdaStubs)
-        : buildDesugaredLibrary(apiLevel, keepRules, shrink);
+  public void testPriorityQueue() throws Throwable {
+    Box<String> keepRules = new Box<>();
+    SingleTestRunResult<?> run =
+        testForDesugaredLibrary(
+                parameters, libraryDesugaringSpecification, compilationSpecification)
+            .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR + "stream.jar"))
+            .addKeepMainRule(TEST_CLASS)
+            .applyIf(
+                compilationSpecification.isProgramShrink(),
+                b ->
+                    b.addOptionsModification(
+                        options -> {
+                          // TODO(b/140233505): Allow devirtualization once fixed.
+                          options.enableDevirtualization = false;
+                        }))
+            .compile()
+            .inspect(this::checkRewrittenInvokes)
+            .inspectKeepRules(kr -> keepRules.set(String.join("\n", kr)))
+            .run(parameters.getRuntime(), TEST_CLASS);
+    assertResultIsCorrect(run.getStdOut(), run.getStdErr(), keepRules.get());
   }
 
   private void assertResultIsCorrect(String stdOut, String stdErr, String keepRules) {
     if (parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel()) {
-      if (!shrinkDesugaredLibrary) {
+      if (compilationSpecification.isL8Shrink()) {
+        assertGeneratedKeepRulesAreCorrect(keepRules);
+      } else {
         // When shrinking the class names are not printed correctly anymore due to minification.
         assertLines2By2Correct(stdOut);
       }
-      assertGeneratedKeepRulesAreCorrect(keepRules);
     }
     if (parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
       // Flaky: There might be a missing method on lambda deserialization.
@@ -107,39 +122,6 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
               || stdErr.contains("Could not find method java.lang.invoke.SerializedLambda"));
     } else {
       assertFalse(stdErr.contains("Could not find method"));
-    }
-  }
-
-  @Test
-  public void testProgramR8() throws Exception {
-    Assume.assumeTrue(
-        "TODO(b/139451198): Make the test run with new SDK.",
-        parameters.getApiLevel().getLevel() < AndroidApiLevel.O.getLevel());
-    for (Boolean minifying : BooleanUtils.values()) {
-      KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-      R8TestRunResult runResult =
-          testForR8(parameters.getBackend())
-              .addLibraryFiles(getLibraryFile())
-              .minification(minifying)
-              .addKeepMainRule(TEST_CLASS)
-              .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR + "stream.jar"))
-              .setMinApi(parameters.getApiLevel())
-              .addOptionsModification(
-                  options -> {
-                    // TODO(b/140233505): Allow devirtualization once fixed.
-                    options.enableDevirtualization = false;
-                  })
-              .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-              .compile()
-              .inspect(this::checkRewrittenInvokes)
-              .addDesugaredCoreLibraryRunClassPath(
-                  this::buildDesugaredLibrary,
-                  parameters.getApiLevel(),
-                  keepRuleConsumer.get(),
-                  shrinkDesugaredLibrary)
-              .run(parameters.getRuntime(), TEST_CLASS)
-              .assertSuccess();
-      assertResultIsCorrect(runResult.getStdOut(), runResult.getStdErr(), keepRuleConsumer.get());
     }
   }
 
@@ -213,6 +195,6 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
             "}",
             "-keep class j$.util.stream.IntStream",
             "-keep class j$.util.stream.Stream");
-    assertEquals(expectedResult, keepRules);
+    assertEquals(expectedResult.trim(), keepRules.trim());
   }
 }

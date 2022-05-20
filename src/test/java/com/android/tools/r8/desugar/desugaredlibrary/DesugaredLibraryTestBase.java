@@ -129,15 +129,6 @@ public class DesugaredLibraryTestBase extends TestBase {
 
   protected Path buildDesugaredLibrary(
       AndroidApiLevel apiLevel,
-      String keepRules,
-      boolean shrink,
-      List<Path> additionalProgramFiles) {
-    return buildDesugaredLibrary(
-        apiLevel, keepRules, shrink, additionalProgramFiles, options -> {});
-  }
-
-  protected Path buildDesugaredLibrary(
-      AndroidApiLevel apiLevel,
       String generatedKeepRules,
       boolean release,
       List<Path> additionalProgramFiles,
