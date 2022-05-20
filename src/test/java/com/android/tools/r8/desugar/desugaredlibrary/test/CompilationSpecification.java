@@ -12,14 +12,17 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 
 public enum CompilationSpecification {
-  D8_L8DEBUG(false, false, false, DEBUG),
-  D8_L8SHRINK(false, true, false, RELEASE),
+  D8_L8DEBUG(false, false, false, false, DEBUG),
+  D8_L8SHRINK(false, true, false, false, RELEASE),
   // In theory no build system uses R8_L8DEBUG, for local debugging only.
-  R8_L8DEBUG(true, false, false, RELEASE),
-  R8_L8SHRINK(true, true, false, RELEASE),
+  R8_L8DEBUG(true, false, false, false, RELEASE),
+  R8_L8SHRINK(true, true, false, false, RELEASE),
   // The D8CFTOCF specifications can run either in CF or be dexed afterwards.
-  D8CF2CF_L8DEBUG(false, false, true, DEBUG),
-  D8CF2CF_L8SHRINK(false, true, true, RELEASE);
+  D8CF2CF_L8DEBUG(false, false, true, false, DEBUG),
+  D8CF2CF_L8SHRINK(false, true, true, true, RELEASE),
+  // Variants with trace reference in dex.
+  D8_L8SHRINK_TR(false, true, false, true, RELEASE),
+  R8_L8SHRINK_TR(true, true, false, true, RELEASE);
 
   public static Set<CompilationSpecification> DEFAULT_SPECIFICATIONS =
       ImmutableSet.of(D8_L8DEBUG, D8_L8SHRINK, R8_L8SHRINK);
@@ -29,13 +32,19 @@ public enum CompilationSpecification {
   private final boolean programShrink;
   private final boolean l8Shrink;
   private final boolean cfToCf;
+  private final boolean traceReferences;
   private final CompilationMode programCompilationMode;
 
   CompilationSpecification(
-      boolean programShrink, boolean l8Shrink, boolean cfToCf, CompilationMode mode) {
+      boolean programShrink,
+      boolean l8Shrink,
+      boolean cfToCf,
+      boolean traceReferences,
+      CompilationMode mode) {
     this.programShrink = programShrink;
     this.l8Shrink = l8Shrink;
     this.cfToCf = cfToCf;
+    this.traceReferences = traceReferences;
     this.programCompilationMode = mode;
   }
 
@@ -53,5 +62,9 @@ public enum CompilationSpecification {
 
   public boolean isCfToCf() {
     return cfToCf;
+  }
+
+  public boolean isTraceReferences() {
+    return traceReferences;
   }
 }

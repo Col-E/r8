@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.test;
 
-import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8CF2CF_L8SHRINK;
-
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.FeatureSplit;
@@ -321,13 +319,11 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     if (!compilationSpecification.isL8Shrink()) {
       return compileDesugaredLibrary(null);
     }
-    if (!compilationSpecification.isCfToCf()) {
+    if (!compilationSpecification.isTraceReferences()) {
       // When going to dex we can get the generated keep rule through the keep rule consumer.
       assert keepRuleConsumer != null;
       return compileDesugaredLibrary(keepRuleConsumer.get());
     }
-    // In D8CF2CF_L8SHRINK, we use trace reference to extract the keep rules.
-    assert compilationSpecification == D8CF2CF_L8SHRINK;
     L8TestCompileResult nonShrunk =
         test.testForL8(parameters.getApiLevel(), Backend.CF)
             .apply(libraryDesugaringSpecification::configureL8TestBuilder)
