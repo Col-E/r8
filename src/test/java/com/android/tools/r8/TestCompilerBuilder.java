@@ -494,14 +494,6 @@ public abstract class TestCompilerBuilder<
     return allowStderrMessages();
   }
 
-  public T enableCoreLibraryDesugaring(
-      AndroidApiLevel minApiLevel, KeepRuleConsumer keepRuleConsumer) {
-    return enableCoreLibraryDesugaring(
-        minApiLevel,
-        keepRuleConsumer,
-        StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()));
-  }
-
   public T enableCoreLibraryDesugaring(LibraryDesugaringTestConfiguration configuration) {
     this.libraryDesugaringTestConfiguration = configuration;
     return self();
