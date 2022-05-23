@@ -63,7 +63,7 @@ public class ConversionAndMergeTest extends DesugaredLibraryTestBase {
 
   private Path buildClass(Class<?> cls) throws Exception {
     return testForD8()
-        .addLibraryFiles(getLibraryFile())
+        .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(cls)
         .enableCoreLibraryDesugaring(

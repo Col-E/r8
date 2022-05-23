@@ -3,37 +3,52 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
-import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class InvokeSuperToEmulatedDefaultMethodTest extends DesugaredLibraryTestBase {
 
   private static final String EXPECTED = StringUtils.lines("bar", "bar");
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  private final TestParameters parameters;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+  private final CompilationSpecification compilationSpecification;
+
+  @Parameters(name = "{0}, spec: {1}, {2}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        getJdk8Jdk11(),
+        ImmutableList.of(D8_L8DEBUG));
   }
 
-  private final TestParameters parameters;
-
-  public InvokeSuperToEmulatedDefaultMethodTest(TestParameters parameters) {
+  public InvokeSuperToEmulatedDefaultMethodTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
+    this.compilationSpecification = compilationSpecification;
   }
 
   private boolean needsDefaultInterfaceMethodDesugaring() {
@@ -43,6 +58,7 @@ public class InvokeSuperToEmulatedDefaultMethodTest extends DesugaredLibraryTest
 
   @Test
   public void testReference() throws Exception {
+    assumeTrue("Run only once", libraryDesugaringSpecification == JDK11);
     assumeFalse(needsDefaultInterfaceMethodDesugaring());
     testForRuntime(parameters)
         .addInnerClasses(InvokeSuperToEmulatedDefaultMethodTest.class)
@@ -51,15 +67,10 @@ public class InvokeSuperToEmulatedDefaultMethodTest extends DesugaredLibraryTest
   }
 
   @Test
-  public void testDesugaring() throws Exception {
+  public void testDesugaring() throws Throwable {
     assumeTrue(needsDefaultInterfaceMethodDesugaring());
-
-    testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-        .addInnerClasses(InvokeSuperToEmulatedDefaultMethodTest.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableLibraryDesugaring(parameters.getApiLevel())
-        .compile()
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+        .addInnerClasses(getClass())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }

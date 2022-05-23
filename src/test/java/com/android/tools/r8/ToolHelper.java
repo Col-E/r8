@@ -204,24 +204,8 @@ public class ToolHelper {
     return System.getProperty("desugar_jdk_json_dir", "src/library_desugar");
   }
 
-  public static Path getDesugarLibJsonMinimalForTesting() {
-    return Paths.get(getDesugarLibraryJsonDir(), "desugar_jdk_libs_minimal.json");
-  }
-
   public static Path getDesugarLibJsonForTesting() {
     return Paths.get(getDesugarLibraryJsonDir(), "desugar_jdk_libs.json");
-  }
-
-  public static Path getDesugarLibJsonForTestingWithPath() {
-    return Paths.get(getDesugarLibraryJsonDir(), "desugar_jdk_libs_path.json");
-  }
-
-  public static Path getCHMOnlyDesugarLibJsonForTesting() {
-    return Paths.get(getDesugarLibraryJsonDir(), "chm_only_desugar_jdk_libs.json");
-  }
-
-  public static Path getDesugarLibJsonForTestingAlternative3() {
-    return Paths.get(getDesugarLibraryJsonDir(), "desugar_jdk_libs_path_alternative_3.json");
   }
 
   public static boolean isLocalDevelopment() {

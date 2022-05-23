@@ -70,7 +70,6 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
 
   @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
-
     LibraryDesugaringSpecification jdk8MaxCompileSdk =
         new LibraryDesugaringSpecification(
             "JDK8_MAX", DESUGARED_JDK_8_LIB_JAR, "desugar_jdk_libs.json", AndroidApiLevel.LATEST);

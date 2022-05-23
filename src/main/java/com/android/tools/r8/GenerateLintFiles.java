@@ -48,6 +48,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.io.File;
 import java.io.PrintStream;
@@ -87,7 +88,8 @@ public class GenerateLintFiles {
         readDesugaredLibraryConfiguration(desugarConfigurationPath);
     Path androidJarPath = getAndroidJarPath(specification.getRequiredCompilationApiLevel());
     this.desugaredLibrarySpecification =
-        specification.toMachineSpecification(options, androidJarPath, Timing.empty());
+        specification.toMachineSpecification(
+            options, ImmutableList.of(androidJarPath), Timing.empty());
 
     this.desugaredLibraryImplementation = Paths.get(desugarImplementationPath);
     this.outputDirectory = Paths.get(outputDirectory);

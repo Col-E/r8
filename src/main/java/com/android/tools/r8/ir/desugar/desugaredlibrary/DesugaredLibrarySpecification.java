@@ -11,6 +11,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
 
 public interface DesugaredLibrarySpecification {
@@ -39,11 +40,14 @@ public interface DesugaredLibrarySpecification {
       throws IOException;
 
   MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options, Path library, Timing timing, Path desugaredJDKLib)
+      InternalOptions options,
+      Collection<Path> library,
+      Timing timing,
+      Collection<Path> desugaredJDKLib)
       throws IOException;
 
   default MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options, Path library, Timing timing) throws IOException {
+      InternalOptions options, Collection<Path> library, Timing timing) throws IOException {
     assert !isLibraryCompilation();
     return toMachineSpecification(options, library, timing, null);
   }

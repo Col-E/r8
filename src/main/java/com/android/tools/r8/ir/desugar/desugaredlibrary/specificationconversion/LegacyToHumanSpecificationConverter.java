@@ -41,6 +41,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -61,8 +62,8 @@ public class LegacyToHumanSpecificationConverter {
 
   public void convertAllAPILevels(
       StringResource inputSpecification,
-      Path desugaredJDKLib,
-      Path androidLib,
+      Collection<Path> desugaredJDKLib,
+      Collection<Path> androidLib,
       StringConsumer output)
       throws IOException {
     InternalOptions options = new InternalOptions();
@@ -77,8 +78,8 @@ public class LegacyToHumanSpecificationConverter {
 
   public MultiAPILevelHumanDesugaredLibrarySpecification convertAllAPILevels(
       MultiAPILevelLegacyDesugaredLibrarySpecification legacySpec,
-      Path desugaredJDKLib,
-      Path androidLib,
+      Collection<Path> desugaredJDKLib,
+      Collection<Path> androidLib,
       InternalOptions options)
       throws IOException {
     timing.begin("Legacy to human all API convert");
@@ -108,8 +109,8 @@ public class LegacyToHumanSpecificationConverter {
 
   public HumanDesugaredLibrarySpecification convertForTesting(
       LegacyDesugaredLibrarySpecification legacySpec,
-      Path desugaredJDKLib,
-      Path androidLib,
+      Collection<Path> desugaredJDKLib,
+      Collection<Path> androidLib,
       InternalOptions options)
       throws IOException {
     DexApplication app =

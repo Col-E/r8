@@ -7,8 +7,8 @@ package com.android.tools.r8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.AppForSpecConversion;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
@@ -311,11 +311,12 @@ public abstract class CommandTestBase<C extends BaseCompilerCommand> extends Tes
   protected InternalOptions getOptionsWithLoadedDesugaredLibraryConfiguration(
       C command, boolean libraryCompilation) throws IOException {
     InternalOptions options = command.getInternalOptions();
+    LibraryDesugaringSpecification spec = LibraryDesugaringSpecification.JDK11;
     options.loadMachineDesugaredLibrarySpecification(
         Timing.empty(),
         AppForSpecConversion.readAppForTesting(
-            libraryCompilation ? ToolHelper.getDesugarJDKLibs() : null,
-            ToolHelper.getAndroidJar(AndroidApiLevel.R),
+            libraryCompilation ? spec.getDesugarJdkLibs() : null,
+            spec.getLibraryFiles(),
             options,
             libraryCompilation,
             Timing.empty()));

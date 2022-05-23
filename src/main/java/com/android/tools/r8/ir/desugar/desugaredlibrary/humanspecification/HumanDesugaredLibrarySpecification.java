@@ -12,6 +12,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
 
 public class HumanDesugaredLibrarySpecification implements DesugaredLibrarySpecification {
@@ -97,7 +98,10 @@ public class HumanDesugaredLibrarySpecification implements DesugaredLibrarySpeci
 
   @Override
   public MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options, Path library, Timing timing, Path desugaredJDKLib)
+      InternalOptions options,
+      Collection<Path> library,
+      Timing timing,
+      Collection<Path> desugaredJDKLib)
       throws IOException {
     return new HumanToMachineSpecificationConverter(timing)
         .convertForTesting(this, desugaredJDKLib, library, options);

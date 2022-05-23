@@ -12,13 +12,14 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.concurrent.ExecutorService;
 
 public class AppForSpecConversion {
 
   public static DexApplication readAppForTesting(
-      Path desugaredJDKLib,
-      Path androidLib,
+      Collection<Path> desugaredJDKLib,
+      Collection<Path> androidLib,
       InternalOptions options,
       boolean libraryCompilation,
       Timing timing)
@@ -27,9 +28,9 @@ public class AppForSpecConversion {
     assert !libraryCompilation || desugaredJDKLib != null;
     AndroidApp.Builder builder = AndroidApp.builder();
     if (libraryCompilation) {
-      builder.addProgramFile(desugaredJDKLib);
+      builder.addProgramFiles(desugaredJDKLib);
     }
-    AndroidApp inputApp = builder.addLibraryFile(androidLib).build();
+    AndroidApp inputApp = builder.addLibraryFiles(androidLib).build();
     DexApplication app = internalReadApp(inputApp, options, timing);
     timing.end();
     return app;

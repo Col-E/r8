@@ -147,7 +147,9 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
             minApi.getLevel());
     MachineDesugaredLibrarySpecification specification =
         spec.toMachineSpecification(
-            new InternalOptions(factory, new Reporter()), getLibraryFile(), Timing.empty());
+            new InternalOptions(factory, new Reporter()),
+            libraryDesugaringSpecification.getLibraryFiles(),
+            Timing.empty());
     Set<String> wrappersInSpec =
         specification.getWrappers().keySet().stream()
             .map(DexType::toString)

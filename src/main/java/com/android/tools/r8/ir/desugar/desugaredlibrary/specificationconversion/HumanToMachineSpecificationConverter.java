@@ -29,6 +29,7 @@ import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -45,8 +46,8 @@ public class HumanToMachineSpecificationConverter {
 
   public MachineDesugaredLibrarySpecification convertForTesting(
       HumanDesugaredLibrarySpecification humanSpec,
-      Path desugaredJDKLib,
-      Path androidLib,
+      Collection<Path> desugaredJDKLib,
+      Collection<Path> androidLib,
       InternalOptions options)
       throws IOException {
     DexApplication app =

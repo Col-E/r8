@@ -18,6 +18,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -127,7 +128,10 @@ public class LegacyDesugaredLibrarySpecification implements DesugaredLibrarySpec
 
   @Override
   public MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options, Path library, Timing timing, Path desugaredJDKLib)
+      InternalOptions options,
+      Collection<Path> library,
+      Timing timing,
+      Collection<Path> desugaredJDKLib)
       throws IOException {
     return new LegacyToHumanSpecificationConverter(timing)
         .convertForTesting(this, desugaredJDKLib, library, options)
