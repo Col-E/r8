@@ -84,7 +84,7 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
   }
 
   @Test
-  public void testPriorityQueue() throws Throwable {
+  public void testRewriting() throws Throwable {
     Box<String> keepRules = new Box<>();
     SingleTestRunResult<?> run =
         testForDesugaredLibrary(
@@ -101,7 +101,15 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
                         }))
             .compile()
             .inspect(this::checkRewrittenInvokes)
-            .inspectKeepRules(kr -> keepRules.set(String.join("\n", kr)))
+            .inspectKeepRules(
+                kr -> {
+                  if (parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel()) {
+                    keepRules.set(String.join("\n", kr));
+                  } else {
+                    assert kr == null;
+                    keepRules.set("");
+                  }
+                })
             .run(parameters.getRuntime(), TEST_CLASS);
     assertResultIsCorrect(run.getStdOut(), run.getStdErr(), keepRules.get());
   }
