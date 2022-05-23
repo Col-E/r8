@@ -291,8 +291,8 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
     Path out = temp.newFolder().toPath();
     GenerateLintFiles desugaredApi =
         new GenerateLintFiles(
-            ToolHelper.getDesugarLibJsonForTesting().toString(),
-            ToolHelper.getDesugarJDKLibs().toString(),
+            libraryDesugaringSpecification.getSpecification().toString(),
+            libraryDesugaringSpecification.getDesugarJdkLibs().toString(),
             out.toString());
     desugaredApi.run(targetApi.getLevel());
     return new CodeInspector(

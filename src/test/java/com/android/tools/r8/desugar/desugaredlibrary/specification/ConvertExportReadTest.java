@@ -59,8 +59,7 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
     MultiAPILevelLegacyDesugaredLibrarySpecification spec =
         new MultiAPILevelLegacyDesugaredLibrarySpecificationParser(
                 options.dexItemFactory(), options.reporter)
-            .parseMultiLevelConfiguration(
-                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()));
+            .parseMultiLevelConfiguration(StringResource.fromFile(legacySpec.getSpecification()));
 
     MultiAPILevelHumanDesugaredLibrarySpecification humanSpec1 =
         converter.convertAllAPILevels(

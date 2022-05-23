@@ -3,11 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import static com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.isJDK11DesugaredLibrary;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,7 +28,8 @@ public class BackportedMethodListTest {
   enum Mode {
     NO_LIBRARY,
     LIBRARY,
-    LIBRARY_DESUGAR
+    LIBRARY_DESUGAR,
+    LIBRARY_DESUGAR_11
   }
 
   @Parameterized.Parameters(name = "Mode: {0}")
@@ -40,6 +41,16 @@ public class BackportedMethodListTest {
 
   public BackportedMethodListTest(Mode mode) {
     this.mode = mode;
+  }
+
+  private LibraryDesugaringSpecification getLibraryDesugaringSpecification() {
+    if (mode == Mode.LIBRARY_DESUGAR) {
+      return LibraryDesugaringSpecification.JDK8;
+    }
+    if (mode == Mode.LIBRARY_DESUGAR_11) {
+      return LibraryDesugaringSpecification.JDK11;
+    }
+    return null;
   }
 
   private static class ListStringConsumer implements StringConsumer {
@@ -71,17 +82,14 @@ public class BackportedMethodListTest {
     // Java 9, 10 and 11 Optional methods which require Android N or library desugaring.
     // The methods are not backported in desugared library JDK 11 (already present).
     assertEquals(
-        (mode == Mode.LIBRARY_DESUGAR && !isJDK11DesugaredLibrary())
-            || apiLevel >= AndroidApiLevel.N.getLevel(),
+        (mode == Mode.LIBRARY_DESUGAR) || apiLevel >= AndroidApiLevel.N.getLevel(),
         backports.contains(
             "java/util/Optional#or(Ljava/util/function/Supplier;)Ljava/util/Optional;"));
     assertEquals(
-        (mode == Mode.LIBRARY_DESUGAR && !isJDK11DesugaredLibrary())
-            || apiLevel >= AndroidApiLevel.N.getLevel(),
+        (mode == Mode.LIBRARY_DESUGAR) || apiLevel >= AndroidApiLevel.N.getLevel(),
         backports.contains("java/util/OptionalInt#orElseThrow()I"));
     assertEquals(
-        (mode == Mode.LIBRARY_DESUGAR && !isJDK11DesugaredLibrary())
-            || apiLevel >= AndroidApiLevel.N.getLevel(),
+        (mode == Mode.LIBRARY_DESUGAR) || apiLevel >= AndroidApiLevel.N.getLevel(),
         backports.contains("java/util/OptionalLong#isEmpty()Z"));
 
     // Java 9, 10 and 11 method added at API level S.
@@ -103,8 +111,8 @@ public class BackportedMethodListTest {
   private void addLibraryDesugaring(BackportedMethodListCommand.Builder builder) {
     builder
         .addDesugaredLibraryConfiguration(
-            StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.R.getLevel()));
+            StringResource.fromFile(getLibraryDesugaringSpecification().getSpecification()))
+        .addLibraryFiles(getLibraryDesugaringSpecification().getLibraryFiles());
   }
 
   @Test
@@ -115,7 +123,7 @@ public class BackportedMethodListTest {
           BackportedMethodListCommand.builder().setMinApiLevel(apiLevel).setConsumer(consumer);
       if (mode == Mode.LIBRARY) {
         builder.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P.getLevel()));
-      } else if (mode == Mode.LIBRARY_DESUGAR) {
+      } else if (mode == Mode.LIBRARY_DESUGAR || mode == Mode.LIBRARY_DESUGAR_11) {
         addLibraryDesugaring(builder);
       }
       BackportedMethodList.run(builder.build());
@@ -132,7 +140,7 @@ public class BackportedMethodListTest {
           BackportedMethodListCommand.builder().setMinApiLevel(apiLevel).setOutputPath(output);
       if (mode == Mode.LIBRARY) {
         builder.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P.getLevel()));
-      } else if (mode == Mode.LIBRARY_DESUGAR) {
+      } else if (mode == Mode.LIBRARY_DESUGAR || mode == Mode.LIBRARY_DESUGAR_11) {
         addLibraryDesugaring(builder);
       }
       BackportedMethodList.run(builder.build());
@@ -152,13 +160,13 @@ public class BackportedMethodListTest {
 
   @Test
   public void requireLibraryForDesugar() {
-    Assume.assumeTrue(mode == Mode.LIBRARY_DESUGAR);
+    Assume.assumeTrue(mode == Mode.LIBRARY_DESUGAR || mode == Mode.LIBRARY_DESUGAR_11);
     // Require library when a desugar configuration is passed.
     try {
       BackportedMethodList.run(
           BackportedMethodListCommand.builder()
               .addDesugaredLibraryConfiguration(
-                  StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
+                  StringResource.fromFile(getLibraryDesugaringSpecification().getSpecification()))
               .setConsumer(new ListStringConsumer())
               .build());
       fail("Expected failure");
