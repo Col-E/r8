@@ -696,15 +696,6 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return enableProguardTestOptions();
   }
 
-  @Override
-  public T enableCoreLibraryDesugaring(
-      AndroidApiLevel minApiLevel,
-      KeepRuleConsumer keepRuleConsumer,
-      StringResource desugaredLibrarySpecification) {
-    super.enableCoreLibraryDesugaring(minApiLevel, keepRuleConsumer, desugaredLibrarySpecification);
-    return self();
-  }
-
   public T addFeatureSplitRuntime() {
     addProgramClasses(SplitRunner.class, RunInterface.class);
     addKeepClassAndMembersRules(SplitRunner.class, RunInterface.class);

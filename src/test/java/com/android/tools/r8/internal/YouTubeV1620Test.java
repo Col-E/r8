@@ -16,6 +16,7 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.L8TestCompileResult;
+import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration.PresentKeepRuleConsumer;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
@@ -119,9 +120,13 @@ public class YouTubeV1620Test extends YouTubeCompilationTestBase {
         .apply(configuration)
         .setMinApi(getApiLevel())
         .enableCoreLibraryDesugaring(
-            getApiLevel(),
-            keepRuleConsumer,
-            StringResource.fromFile(getDesugaredLibraryConfiguration()))
+            LibraryDesugaringTestConfiguration.builder()
+                .setMinApi(getApiLevel())
+                .setKeepRuleConsumer(keepRuleConsumer)
+                .addDesugaredLibraryConfiguration(
+                    StringResource.fromFile(getDesugaredLibraryConfiguration()))
+                .dontAddRunClasspath()
+                .build())
         .compile()
         .assertAllInfoMessagesMatch(
             anyOf(

@@ -9,17 +9,12 @@ import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpec
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 
-import com.android.tools.r8.D8TestBuilder;
-import com.android.tools.r8.LibraryDesugaringTestConfiguration;
-import com.android.tools.r8.StringResource;
-import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
@@ -62,39 +57,6 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
     this.parameters = parameters;
     this.compilationSpecification = compilationSpecification;
     this.libraryDesugaringSpecification = libraryDesugaringSpecification;
-  }
-
-  @Test
-  public void testInvalidLibrary() {
-    Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
-    // This is handwritten since this is really a special case: library desugaring with an
-    // invalid library file passed.
-    D8TestBuilder testBuilder =
-        testForD8()
-            .setMinApi(parameters.getApiLevel())
-            .addProgramClasses(GuineaPig.class)
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.L))
-            .enableCoreLibraryDesugaring(
-                LibraryDesugaringTestConfiguration.builder()
-                    .setMinApi(parameters.getApiLevel())
-                    .addDesugaredLibraryConfiguration(
-                        StringResource.fromFile(libraryDesugaringSpecification.getSpecification()))
-                    .dontAddRunClasspath()
-                    .build());
-    try {
-      testBuilder.compile();
-    } catch (Throwable t) {
-      // Expected since we are compiling with an invalid set-up.
-    }
-    TestDiagnosticMessages diagnosticMessages = testBuilder.getState().getDiagnosticsMessages();
-    assertTrue(
-        diagnosticMessages
-            .getWarnings()
-            .get(0)
-            .getDiagnosticMessage()
-            .contains(
-                "Desugared library requires to be compiled with a library file of API greater or"
-                    + " equal to"));
   }
 
   @Test
