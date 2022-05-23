@@ -50,7 +50,7 @@ public class KotlinMetadataTest extends DesugaredLibraryTestBase {
   private final CompilationSpecification compilationSpecification;
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameters(name = "{0}, spec: {1}, {2}")
+  @Parameters(name = "{0}, kotlin: {1}, spec: {2}, {3}")
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters().withAllRuntimesAndApiLevels().build(),
@@ -86,6 +86,9 @@ public class KotlinMetadataTest extends DesugaredLibraryTestBase {
         .addProgramFiles(compiledJars.getForConfiguration(kotlinParameters))
         .addProgramFiles(kotlinc.getKotlinStdlibJar())
         .addProgramFiles(kotlinc.getKotlinReflectJar())
+        .applyIf(
+            compilationSpecification.isProgramShrink(),
+            builder -> builder.addProgramFiles(kotlinc.getKotlinAnnotationJar()))
         .addOptionsModification(
             options -> {
               options.testing.enableD8ResourcesPassThrough = true;
