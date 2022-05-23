@@ -28,9 +28,9 @@ public class Jdk11TimeRawTemporalTests extends Jdk11TimeAbstractTests {
   @Test
   public void testTime() throws Exception {
     testTime(RAW_TEMPORAL_SUCCESSES);
-    if (!parameters.getDexRuntimeVersion().isEqualTo(Version.V12_0_0)) {
+    if (parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0)) {
       // In 12 some ISO is supported that other versions do not support.
-      testTime(RAW_TEMPORAL_SUCCESSES_BUT_12);
+      testTime(RAW_TEMPORAL_SUCCESSES_UP_TO_11);
     }
     // The bridge is always present with JDK11 due to partial desugaring between 26 and 33.
     // On JDK8 the bridge is absent in between 26 and 33.

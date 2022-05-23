@@ -176,7 +176,7 @@ public abstract class Jdk11TimeAbstractTests extends DesugaredLibraryTestBase {
       };
   static final String[] RAW_TEMPORAL_SUCCESSES_IF_BRIDGE =
       new String[] {"tck.java.time.TestIsoChronology"};
-  static final String[] RAW_TEMPORAL_SUCCESSES_BUT_12 =
+  static final String[] RAW_TEMPORAL_SUCCESSES_UP_TO_11 =
       new String[] {"test.java.time.temporal.TestIsoWeekFields"};
   static final String[] FORMAT_CHRONO_SUCCESSES =
       new String[] {
