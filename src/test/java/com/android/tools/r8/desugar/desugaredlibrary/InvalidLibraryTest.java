@@ -6,7 +6,6 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8SHRINK;
-import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.hamcrest.core.StringContains.containsString;
 
@@ -83,8 +82,8 @@ public class InvalidLibraryTest extends DesugaredLibraryTestBase {
   @Test
   public void testClasspathSupertype() throws Exception {
     Assume.assumeTrue(
-        requiresAnyCoreLibDesugaring(
-            parameters.getApiLevel(), libraryDesugaringSpecification != JDK8));
+        "Date is present in the library above O",
+        parameters.getApiLevel().isLessThan(AndroidApiLevel.O));
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClasses(Executor.class, LocalClass.class, LocalClassOverride.class)
         .addClasspathClasses(SuperLibraryClass.class)
@@ -104,8 +103,8 @@ public class InvalidLibraryTest extends DesugaredLibraryTestBase {
   @Test
   public void testNullSupertype() throws Exception {
     Assume.assumeTrue(
-        requiresAnyCoreLibDesugaring(
-            parameters.getApiLevel(), libraryDesugaringSpecification != JDK8));
+        "Date is present in the library above O",
+        parameters.getApiLevel().isLessThan(AndroidApiLevel.O));
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClasses(Executor.class, LocalClass.class, LocalClassOverride.class)
         .setCustomLibrarySpecification(
