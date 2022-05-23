@@ -27,17 +27,36 @@ import java.util.function.Consumer;
 
 public class VirtualMethodMerger {
 
+  static class SuperMethodReference {
+
+    DexMethod reference;
+    DexMethod reboundReference;
+
+    SuperMethodReference(DexMethod reference, DexMethod reboundReference) {
+      this.reference = reference;
+      this.reboundReference = reboundReference;
+    }
+
+    public DexMethod getReference() {
+      return reference;
+    }
+
+    public DexMethod getReboundReference() {
+      return reboundReference;
+    }
+  }
+
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final DexItemFactory dexItemFactory;
   private final MergeGroup group;
   private final List<ProgramMethod> methods;
-  private final DexMethod superMethod;
+  private final SuperMethodReference superMethod;
 
   public VirtualMethodMerger(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       MergeGroup group,
       List<ProgramMethod> methods,
-      DexMethod superMethod) {
+      SuperMethodReference superMethod) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
     this.group = group;
@@ -54,7 +73,7 @@ public class VirtualMethodMerger {
     }
 
     /** Get the super method handle if this method overrides a parent method. */
-    private DexMethod superMethod(
+    private SuperMethodReference superMethod(
         AppView<? extends AppInfoWithClassHierarchy> appView, MergeGroup group) {
       DexMethod template = methods.iterator().next().getReference();
       SingleResolutionResult<?> resolutionResult =
@@ -66,20 +85,22 @@ public class VirtualMethodMerger {
         // If there is no super method or the method is abstract it should not be called.
         return null;
       }
-      if (resolutionResult.getResolvedHolder().isInterface()) {
-        // Ensure that invoke virtual isn't called on an interface method.
-        return resolutionResult
-            .getResolvedMethod()
-            .getReference()
-            .withHolder(group.getSuperType(), appView.dexItemFactory());
-      }
-      return resolutionResult.getResolvedMethod().getReference();
+      DexMethod reboundReference = resolutionResult.getResolvedMethod().getReference();
+      DexMethod reference =
+          resolutionResult.getResolvedHolder().isInterface()
+              ? resolutionResult
+                  .getResolvedMethod()
+                  .getReference()
+                  .withHolder(group.getSuperType(), appView.dexItemFactory())
+              : reboundReference;
+      return new SuperMethodReference(reference, reboundReference);
     }
 
     public VirtualMethodMerger build(
         AppView<? extends AppInfoWithClassHierarchy> appView, MergeGroup group) {
       // If not all the classes are in the merge group, find the fallback super method to call.
-      DexMethod superMethod = methods.size() < group.size() ? superMethod(appView, group) : null;
+      SuperMethodReference superMethod =
+          methods.size() < group.size() ? superMethod(appView, group) : null;
       return new VirtualMethodMerger(appView, group, methods, superMethod);
     }
   }

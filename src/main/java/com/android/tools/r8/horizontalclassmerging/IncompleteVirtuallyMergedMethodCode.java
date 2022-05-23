@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.horizontalclassmerging.VirtualMethodMerger.SuperMethodReference;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.IterableUtils;
@@ -42,13 +43,13 @@ public class IncompleteVirtuallyMergedMethodCode extends IncompleteHorizontalCla
   private final DexField classIdField;
   private final Int2ReferenceSortedMap<DexMethod> mappedMethods;
   private final DexMethod originalMethod;
-  private final DexMethod superMethod;
+  private final SuperMethodReference superMethod;
 
   public IncompleteVirtuallyMergedMethodCode(
       DexField classIdField,
       Int2ReferenceSortedMap<DexMethod> mappedMethods,
       DexMethod originalMethod,
-      DexMethod superMethod) {
+      SuperMethodReference superMethod) {
     this.mappedMethods = mappedMethods;
     this.classIdField = classIdField;
     this.superMethod = superMethod;
@@ -136,7 +137,12 @@ public class IncompleteVirtuallyMergedMethodCode extends IncompleteHorizontalCla
       fallthroughTarget =
           lens.getNextMethodSignature(mappedMethods.get(mappedMethods.lastIntKey()));
     } else {
-      fallthroughTarget = lens.lookupInvokeSuper(superMethod, method).getReference();
+      DexMethod reboundFallthroughTarget =
+          lens.lookupInvokeSuper(superMethod.getReboundReference(), method).getReference();
+      fallthroughTarget =
+          reboundFallthroughTarget.withHolder(
+              lens.lookupClassType(superMethod.getReference().getHolderType()),
+              appView.dexItemFactory());
     }
     instructions.add(
         new CfInvoke(Opcodes.INVOKESPECIAL, fallthroughTarget, method.getHolder().isInterface()));
