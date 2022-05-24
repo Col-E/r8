@@ -779,11 +779,16 @@ task repackageSources11(type: Jar) {
     archiveFileName = 'sources_main_11.jar'
 }
 
-def r8CreateTask(name, baseName, sources, includeSwissArmyKnife) {
+def r8CreateTask(name, baseName, sources, includeLibraryLicenses, includeSwissArmyKnife) {
     return tasks.create("r8Create${name}", Jar) {
         entryCompression ZipEntryCompression.STORED
         dependsOn sources
-        from consolidatedLicense.outputs.files
+        dependsOn files('LICENSE')
+        if (includeLibraryLicenses) {
+            from consolidatedLicense.outputs.files
+        } else {
+            from files('LICENSE')
+        }
         from sources.collect { zipTree(it) }
         exclude "$buildDir/classes/**"
         archiveFileName = baseName
@@ -844,6 +849,7 @@ task r8WithDeps {
             'WithDeps',
             'r8_with_deps.jar',
             repackageSources.outputs.files + repackageDeps.outputs.files,
+            true,
             true)
     dependsOn r8Task
     outputs.files r8Task.outputs.files
@@ -857,6 +863,7 @@ task r8WithDeps11 {
             'WithDeps11',
             'r8_with_deps_11.jar',
             repackageSources11.outputs.files + repackageDeps.outputs.files,
+            true,
             true)
     dependsOn r8Task
     outputs.files r8Task.outputs.files
@@ -883,6 +890,7 @@ task r8WithoutDeps {
             'WithoutDeps',
             'r8_without_deps.jar',
             repackageSources.outputs.files,
+            false,
             true)
     dependsOn r8Task
     outputs.files r8Task.outputs.files
@@ -905,6 +913,7 @@ task r8NoManifestWithoutDeps {
             'NoManifestWithoutDeps',
             'r8_no_manifest_without_deps.jar',
             repackageSources.outputs.files,
+            false,
             false)
     dependsOn r8Task
     outputs.files r8Task.outputs.files
@@ -917,6 +926,7 @@ task r8NoManifestWithDeps {
             'NoManifestWithDeps',
             'r8_no_manifest_with_deps.jar',
             repackageSources.outputs.files + repackageDeps.outputs.files,
+            true,
             false)
     dependsOn r8Task
     outputs.files r8Task.outputs.files
