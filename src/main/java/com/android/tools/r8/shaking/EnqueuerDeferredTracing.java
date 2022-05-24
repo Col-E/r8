@@ -25,7 +25,9 @@ public abstract class EnqueuerDeferredTracing {
       return empty();
     }
     InternalOptions options = appView.options();
-    if (!options.isOptimizing() || !options.isShrinking()) {
+    if (!options.isOptimizing()
+        || !options.isShrinking()
+        || !options.enableEnqueuerDeferredTracing) {
       return empty();
     }
     return new EnqueuerDeferredTracingImpl(appView, enqueuer, mode);

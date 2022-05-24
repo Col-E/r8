@@ -611,6 +611,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // public boolean lookupLibraryBeforeProgram =
   //     System.getProperty("com.android.tools.r8.lookupProgramBeforeLibrary") == null;
 
+  public boolean enableEnqueuerDeferredTracing =
+      System.getProperty("com.android.tools.r8.disableEnqueuerDeferredTracing") == null;
+
   public boolean loadAllClassDefinitions = false;
 
   // Whether or not to check for valid multi-dex builds.
