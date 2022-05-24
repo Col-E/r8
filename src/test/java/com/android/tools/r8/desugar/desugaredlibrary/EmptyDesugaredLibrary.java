@@ -75,10 +75,7 @@ public class EmptyDesugaredLibrary extends DesugaredLibraryTestBase {
   }
 
   private boolean expectsEmptyDesugaredLibrary(AndroidApiLevel apiLevel) {
-    if (libraryDesugaringSpecification != JDK8) {
-      return apiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.S);
-    }
-    return !requiresAnyCoreLibDesugaring(apiLevel);
+    return !requiresAnyCoreLibDesugaring(apiLevel, libraryDesugaringSpecification != JDK8);
   }
 
   @Test

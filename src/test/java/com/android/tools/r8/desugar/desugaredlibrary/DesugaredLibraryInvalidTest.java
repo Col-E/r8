@@ -8,6 +8,7 @@ import static com.android.tools.r8.ToolHelper.DESUGARED_JDK_8_LIB_JAR;
 import static com.android.tools.r8.ToolHelper.UNDESUGARED_JDK_11_LIB_JAR;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
 import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
@@ -62,7 +63,9 @@ public class DesugaredLibraryInvalidTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testInvalidLibrary() throws IOException {
-    Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
+    Assume.assumeTrue(
+        requiresAnyCoreLibDesugaring(
+            parameters.getApiLevel(), !libraryDesugaringSpecification.toString().contains("JDK8")));
     DesugaredLibraryTestBuilder<?> testBuilder =
         testForDesugaredLibrary(
                 parameters, libraryDesugaringSpecification, compilationSpecification)
@@ -75,6 +78,7 @@ public class DesugaredLibraryInvalidTest extends DesugaredLibraryTestBase {
     testBuilder.applyOnBuilder(
         b -> {
           TestDiagnosticMessages diagnosticsMessages = b.getState().getDiagnosticsMessages();
+          assertFalse(diagnosticsMessages.getWarnings().isEmpty());
           assertTrue(
               diagnosticsMessages
                   .getWarnings()

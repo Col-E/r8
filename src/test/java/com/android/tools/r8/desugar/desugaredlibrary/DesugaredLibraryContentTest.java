@@ -61,7 +61,9 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testDesugaredLibraryContent() throws Exception {
-    Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
+    Assume.assumeTrue(
+        requiresAnyCoreLibDesugaring(
+            parameters.getApiLevel(), libraryDesugaringSpecification != JDK8));
     testForL8(parameters.getApiLevel())
         .apply(libraryDesugaringSpecification::configureL8TestBuilder)
         .compile()
@@ -70,7 +72,9 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testDesugaredLibraryContentWithCoreLambdaStubsAsProgram() throws Exception {
-    Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
+    Assume.assumeTrue(
+        requiresAnyCoreLibDesugaring(
+            parameters.getApiLevel(), libraryDesugaringSpecification != JDK8));
     ArrayList<Path> coreLambdaStubs = new ArrayList<>();
     coreLambdaStubs.add(ToolHelper.getCoreLambdaStubs());
     testForL8(parameters.getApiLevel())
@@ -82,7 +86,9 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testDesugaredLibraryContentWithCoreLambdaStubsAsLibrary() throws Exception {
-    Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
+    Assume.assumeTrue(
+        requiresAnyCoreLibDesugaring(
+            parameters.getApiLevel(), libraryDesugaringSpecification != JDK8));
     testForL8(parameters.getApiLevel())
         .apply(libraryDesugaringSpecification::configureL8TestBuilder)
         .addLibraryFiles(ToolHelper.getCoreLambdaStubs())
