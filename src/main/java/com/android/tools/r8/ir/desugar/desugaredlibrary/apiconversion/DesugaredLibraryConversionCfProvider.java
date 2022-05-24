@@ -41,6 +41,8 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredL
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryClasspathWrapperSynthesizeEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer;
 import com.android.tools.r8.ir.synthetic.apiconverter.APIConversionCfCodeProvider;
+import com.android.tools.r8.ir.synthetic.apiconverter.EqualsCfCodeProvider;
+import com.android.tools.r8.ir.synthetic.apiconverter.HashCodeCfCodeProvider;
 import com.android.tools.r8.utils.OptionalBool;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -95,6 +97,33 @@ public class DesugaredLibraryConversionCfProvider {
                 wrapperField)
             .generateCfCode();
     return wrapperSynthesizer.newSynthesizedMethod(methodToInstall, cfCode);
+  }
+
+  public DexEncodedMethod generateWrapperHashCode(DexField wrapperField) {
+    return wrapperSynthesizer.newSynthesizedMethod(
+        appView
+            .dexItemFactory()
+            .createMethod(
+                wrapperField.getHolderType(),
+                appView.dexItemFactory().createProto(appView.dexItemFactory().intType),
+                appView.dexItemFactory().hashCodeMethodName),
+        new HashCodeCfCodeProvider(appView, wrapperField.getHolderType(), wrapperField)
+            .generateCfCode());
+  }
+
+  public DexEncodedMethod generateWrapperEquals(DexField wrapperField) {
+    return wrapperSynthesizer.newSynthesizedMethod(
+        appView
+            .dexItemFactory()
+            .createMethod(
+                wrapperField.getHolderType(),
+                appView
+                    .dexItemFactory()
+                    .createProto(
+                        appView.dexItemFactory().booleanType, appView.dexItemFactory().objectType),
+                appView.dexItemFactory().equalsMethodName),
+        new EqualsCfCodeProvider(appView, wrapperField.getHolderType(), wrapperField)
+            .generateCfCode());
   }
 
   public DexEncodedMethod generateVivifiedWrapperConversionWithoutCode(
