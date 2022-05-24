@@ -34,9 +34,10 @@ public class ClockAPIConversionTest extends DesugaredLibraryTestBase {
   private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.O;
   private static final String EXPECTED_RESULT =
       StringUtils.lines("Z", "Z", "true", "Z", "Z", "true", "true", "true", "true", "true", "true");
-  private static final String DESUGARED_LIBRARY_EXPECTED_RESULT =
+  // TODO(b/230800107): There should not be any unexpected results.
+  private static final String UNEXPECTED_RESULT =
       StringUtils.lines(
-          "Z", "Z", "true", "Z", "Z", "true", "true", "false", "false", "true", "true");
+          "Z", "Z", "true", "Z", "Z", "false", "true", "false", "false", "false", "false");
 
   @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
@@ -63,7 +64,7 @@ public class ClockAPIConversionTest extends DesugaredLibraryTestBase {
             new CustomLibrarySpecification(CustomLibClass.class, MIN_SUPPORTED))
         .addKeepMainRule(Executor.class)
         .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutput(DESUGARED_LIBRARY_EXPECTED_RESULT);
+        .assertSuccessWithOutput(UNEXPECTED_RESULT);
   }
 
   @Test
@@ -115,8 +116,8 @@ public class ClockAPIConversionTest extends DesugaredLibraryTestBase {
       System.out.println(CustomLibClass.getClockss()[0][0].getZone());
       System.out.println(clock1.equals(CustomLibClass.getClock()));
       System.out.println(localClock.equals(Clock.systemUTC()));
-      System.out.println(localClock.equals(clock1)); // Prints false with desugared library.
-      System.out.println(clock1.equals(localClock)); // Prints false with desugared library.
+      System.out.println(localClock.equals(clock1));
+      System.out.println(clock1.equals(localClock));
       System.out.println(clock1.equals(CustomLibClass.getClocks()[0]));
       System.out.println(clock1.equals(CustomLibClass.getClockss()[0][0]));
     }

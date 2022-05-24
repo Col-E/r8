@@ -17,7 +17,6 @@ import com.android.tools.r8.desugar.desugaredlibrary.test.CustomLibrarySpecifica
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,13 +36,10 @@ public class WrapperEqualityTest extends DesugaredLibraryTestBase {
 
   private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.N;
   private static final String EXPECTED_RESULT =
-      StringUtils.lines(
-          "true", "true", "true", "true", "true", "true", "true", "true", "false", "false", "1",
-          "1", "2", "2", "1", "1", "1", "0", "true", "true", "true", "true");
-  private static final String DESUGARED_LIBRARY_EXPECTED_RESULT =
-      StringUtils.lines(
-          "true", "true", "true", "true", "false", "true", "false", "true", "false", "false", "1",
-          "1", "2", "2", "1", "1", "1", "0", "false", "true", "false", "true");
+      StringUtils.lines("true", "true", "1", "1", "2", "2", "1", "1", "1", "0");
+  // TODO(b/230800107): There should not be any unexpected results.
+  private static final String UNEXPECTED_RESULT =
+      StringUtils.lines("false", "false", "1", "2", "3", "4", "2", "2", "4", "4");
 
   @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
@@ -71,7 +67,7 @@ public class WrapperEqualityTest extends DesugaredLibraryTestBase {
         .addKeepMainRule(Executor.class)
         .compile()
         .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutput(DESUGARED_LIBRARY_EXPECTED_RESULT);
+        .assertSuccessWithOutput(UNEXPECTED_RESULT);
   }
 
   @Test
@@ -97,22 +93,8 @@ public class WrapperEqualityTest extends DesugaredLibraryTestBase {
     public static void main(String[] args) {
       Consumer<Boolean> consumer = b -> {};
       Supplier<Boolean> supplier = () -> Boolean.TRUE;
-      // Prints true for desugared library as the same wrapper is used for both arguments.
-      System.out.println(CustomLibClass.same(consumer, consumer));
       System.out.println(CustomLibClass.equals(consumer, consumer));
-      // Prints true for desugared library as the same wrapper is used for both arguments.
-      System.out.println(CustomLibClass.same(supplier, supplier));
       System.out.println(CustomLibClass.equals(supplier, supplier));
-
-      CustomLibClass.setConsumer(consumer);
-      CustomLibClass.setSupplier(supplier);
-      System.out.println(CustomLibClass.same(consumer));
-      System.out.println(CustomLibClass.equals(consumer));
-      System.out.println(CustomLibClass.same(supplier));
-      System.out.println(CustomLibClass.equals(supplier));
-      System.out.println(CustomLibClass.equalsWithObject(consumer, new HashMap<>()));
-      System.out.println(CustomLibClass.equalsWithObject(supplier, new ArrayList<>()));
-
       CustomLibClass.register(consumer, new Object());
       System.out.println(CustomLibClass.registrations());
       CustomLibClass.register(consumer, new Object());
@@ -127,19 +109,6 @@ public class WrapperEqualityTest extends DesugaredLibraryTestBase {
       System.out.println(CustomLibClass.registrations());
       CustomLibClass.unregister(supplier);
       System.out.println(CustomLibClass.registrations());
-
-      // Prints false for desugared library as wrappers does not keep identity.
-      System.out.println(
-          CustomLibClass.getConsumerFromPlatform() == CustomLibClass.getConsumerFromPlatform());
-      System.out.println(
-          CustomLibClass.getConsumerFromPlatform()
-              .equals(CustomLibClass.getConsumerFromPlatform()));
-      // Prints false for desugared library as wrappers does not keep identity.
-      System.out.println(
-          CustomLibClass.getSupplierFromPlatform() == CustomLibClass.getSupplierFromPlatform());
-      System.out.println(
-          CustomLibClass.getSupplierFromPlatform()
-              .equals(CustomLibClass.getSupplierFromPlatform()));
     }
   }
 
@@ -147,59 +116,14 @@ public class WrapperEqualityTest extends DesugaredLibraryTestBase {
   // This class is convenient for easy testing. Each method plays the role of methods in the
   // platform APIs for which argument/return values need conversion.
   static class CustomLibClass {
-    private static final Map<Object, Object> map = new HashMap<>();
-    private static final Consumer<Boolean> consumer = b -> {};
-    private static final Supplier<Boolean> supplier = () -> Boolean.TRUE;
+    static Map<Object, Object> map = new HashMap<>();
 
-    private static Consumer<Boolean> appConsumer;
-    private static Supplier<Boolean> appSupplier;
-
-    public static boolean equals(Consumer<Boolean> consumer1, Consumer<Boolean> consumer2) {
-      return consumer1.equals(consumer2) && consumer2.equals(consumer1);
+    public static boolean equals(Consumer<Boolean> listener1, Consumer<Boolean> listene2) {
+      return listener1.equals(listene2) && listene2.equals(listener1);
     }
 
-    public static boolean equals(Supplier<Boolean> supplier1, Supplier<Boolean> supplier2) {
-      return supplier1.equals(supplier2) && supplier2.equals(supplier1);
-    }
-
-    public static boolean same(Consumer<Boolean> consumer1, Consumer<Boolean> consumer2) {
-      return consumer1.equals(consumer2) && consumer2.equals(consumer1);
-    }
-
-    public static boolean same(Supplier<Boolean> supplier1, Supplier<Boolean> supplier2) {
-      return supplier1.equals(supplier2) && supplier2.equals(supplier1);
-    }
-
-    public static void setConsumer(Consumer<Boolean> consumer) {
-      appConsumer = consumer;
-    }
-
-    public static void setSupplier(Supplier supplier) {
-      appSupplier = supplier;
-    }
-
-    public static boolean equals(Consumer<Boolean> consumer) {
-      return consumer.equals(appConsumer) && appConsumer.equals(consumer);
-    }
-
-    public static boolean equals(Supplier<Boolean> supplier) {
-      return supplier.equals(appSupplier) && appSupplier.equals(supplier);
-    }
-
-    public static boolean same(Consumer<Boolean> consumer) {
-      return appConsumer == consumer;
-    }
-
-    public static boolean same(Supplier supplier) {
-      return appSupplier == supplier;
-    }
-
-    public static boolean equalsWithObject(Consumer<Boolean> consumer, Object object) {
-      return consumer.equals(object);
-    }
-
-    public static boolean equalsWithObject(Supplier<Boolean> supplier, Object object) {
-      return supplier.equals(object);
+    public static boolean equals(Supplier<Boolean> listener1, Supplier<Boolean> listene2) {
+      return listener1.equals(listene2) && listene2.equals(listener1);
     }
 
     public static void register(Consumer<Boolean> listener, Object context) {
@@ -228,14 +152,6 @@ public class WrapperEqualityTest extends DesugaredLibraryTestBase {
 
     public static long suppliers() {
       return map.keySet().stream().filter(k -> k instanceof Supplier).count();
-    }
-
-    public static Supplier<Boolean> getSupplierFromPlatform() {
-      return supplier;
-    }
-
-    public static Consumer<Boolean> getConsumerFromPlatform() {
-      return consumer;
     }
   }
 }
