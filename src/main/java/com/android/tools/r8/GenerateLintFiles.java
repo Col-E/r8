@@ -57,6 +57,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -76,13 +77,29 @@ public class GenerateLintFiles {
   private final InternalOptions options = new InternalOptions(factory, reporter);
 
   private final MachineDesugaredLibrarySpecification desugaredLibrarySpecification;
-  private final Path desugaredLibraryImplementation;
+  private final Collection<Path> desugaredLibraryImplementation;
   private final Path outputDirectory;
 
   private final Set<DexMethod> parallelMethods = Sets.newIdentityHashSet();
 
+  public static GenerateLintFiles createForTesting(
+      Path specification, Set<Path> implementation, Path outputDirectory) throws Exception {
+    return new GenerateLintFiles(specification, implementation, outputDirectory);
+  }
+
   public GenerateLintFiles(
       String desugarConfigurationPath, String desugarImplementationPath, String outputDirectory)
+      throws Exception {
+    this(
+        Paths.get(desugarConfigurationPath),
+        ImmutableList.of(Paths.get(desugarImplementationPath)),
+        Paths.get(outputDirectory));
+  }
+
+  private GenerateLintFiles(
+      Path desugarConfigurationPath,
+      Collection<Path> desugarImplementationPath,
+      Path outputDirectory)
       throws Exception {
     DesugaredLibrarySpecification specification =
         readDesugaredLibraryConfiguration(desugarConfigurationPath);
@@ -91,8 +108,8 @@ public class GenerateLintFiles {
         specification.toMachineSpecification(
             options, ImmutableList.of(androidJarPath), Timing.empty());
 
-    this.desugaredLibraryImplementation = Paths.get(desugarImplementationPath);
-    this.outputDirectory = Paths.get(outputDirectory);
+    this.desugaredLibraryImplementation = desugarImplementationPath;
+    this.outputDirectory = outputDirectory;
     if (!Files.isDirectory(this.outputDirectory)) {
       throw new Exception("Output directory " + outputDirectory + " is not a directory");
     }
@@ -127,9 +144,9 @@ public class GenerateLintFiles {
   }
 
   private DesugaredLibrarySpecification readDesugaredLibraryConfiguration(
-      String desugarConfigurationPath) {
+      Path desugarConfigurationPath) {
     return DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecification(
-        StringResource.fromFile(Paths.get(desugarConfigurationPath)),
+        StringResource.fromFile(desugarConfigurationPath),
         factory,
         reporter,
         false,

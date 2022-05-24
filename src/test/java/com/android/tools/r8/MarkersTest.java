@@ -93,7 +93,9 @@ public class MarkersTest extends DesugaredLibraryTestBase {
     Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
     JsonObject jsonObject =
         new JsonParser()
-            .parse(FileUtils.readTextFile(ToolHelper.getDesugarLibJsonForTesting(), Charsets.UTF_8))
+            .parse(
+                FileUtils.readTextFile(
+                    libraryDesugaringSpecification.getSpecification(), Charsets.UTF_8))
             .getAsJsonObject();
     String identifier =
         jsonObject.has("version")
