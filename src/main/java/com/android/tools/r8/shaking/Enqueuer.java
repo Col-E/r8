@@ -3923,10 +3923,31 @@ public class Enqueuer {
       }
     }
 
+    BiConsumer<LambdaClass, ProgramMethod> lambdaCallback = this::recordLambdaSynthesizingContext;
+    // TODO(b/233868787): If a lambda implements unknown interfaces its methods won't be live and if
+    //  the tree-pruner is disabled they won't be removed. Workaround this by making them live.
+    if (!options.isShrinking()) {
+      lambdaCallback =
+          lambdaCallback.andThen(
+              (clazz, context) -> {
+                for (DexType itf : clazz.getLambdaProgramClass().getInterfaces()) {
+                  if (definitionFor(itf, context) == null) {
+                    for (ProgramMethod method :
+                        clazz.getLambdaProgramClass().virtualProgramMethods()) {
+                      synchronized (additions) {
+                        additions.addLiveMethod(method);
+                      }
+                    }
+                    break;
+                  }
+                }
+              });
+    }
+
     R8CfInstructionDesugaringEventConsumer eventConsumer =
         CfInstructionDesugaringEventConsumer.createForR8(
             appView,
-            this::recordLambdaSynthesizingContext,
+            lambdaCallback,
             this::recordConstantDynamicSynthesizingContext,
             this::recordTwrCloseResourceMethodSynthesizingContext,
             additions,
