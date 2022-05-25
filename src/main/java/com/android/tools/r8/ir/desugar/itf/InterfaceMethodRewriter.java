@@ -44,7 +44,6 @@ import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.collect.Iterables;
@@ -712,23 +711,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
       }
     }
 
-    DesugarDescription emulatedInterfaceDesugaring =
-        computeEmulatedInterfaceInvokeSpecial(clazz, invokedMethod, context);
-    if (!emulatedInterfaceDesugaring.needsDesugaring() && context.isDefaultMethod()) {
-      return AlwaysThrowingInstructionDesugaring.computeInvokeAsThrowNSMERewrite(
-          appView,
-          invoke,
-          () ->
-              appView
-                  .reporter()
-                  .warning(
-                      new StringDiagnostic(
-                          "Interface method desugaring has inserted NoSuchMethodError replacing a"
-                              + " super call in "
-                              + context.toSourceString(),
-                          context.getOrigin())));
-    }
-    return emulatedInterfaceDesugaring;
+    return computeEmulatedInterfaceInvokeSpecial(clazz, invokedMethod, context);
   }
 
   private DesugarDescription computeEmulatedInterfaceInvokeSpecial(

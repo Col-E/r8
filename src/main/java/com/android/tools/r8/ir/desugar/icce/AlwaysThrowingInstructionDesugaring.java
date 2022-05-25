@@ -24,7 +24,6 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.DesugarDescription;
-import com.android.tools.r8.ir.desugar.DesugarDescription.ScanCallback;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations;
@@ -106,46 +105,46 @@ public class AlwaysThrowingInstructionDesugaring implements CfInstructionDesugar
                 getThrowInstructions(
                     appView,
                     invoke,
+                    resolutionResult,
                     localStackAllocator,
                     eventConsumer,
                     context,
-                    methodProcessingContext,
-                    getMethodSynthesizerForThrowing(appView, invoke, resolutionResult, context)))
+                    methodProcessingContext))
         .build();
-  }
-
-  public static DesugarDescription computeInvokeAsThrowNSMERewrite(
-      AppView<?> appView, CfInvoke invoke, ScanCallback scanCallback) {
-    DesugarDescription.Builder builder =
-        DesugarDescription.builder()
-            .setDesugarRewrite(
-                (freshLocalProvider,
-                    localStackAllocator,
-                    eventConsumer,
-                    context,
-                    methodProcessingContext,
-                    dexItemFactory) ->
-                    getThrowInstructions(
-                        appView,
-                        invoke,
-                        localStackAllocator,
-                        eventConsumer,
-                        context,
-                        methodProcessingContext,
-                        UtilityMethodsForCodeOptimizations
-                            ::synthesizeThrowNoSuchMethodErrorMethod));
-    builder.addScanEffect(scanCallback);
-    return builder.build();
   }
 
   private static Collection<CfInstruction> getThrowInstructions(
       AppView<?> appView,
       CfInvoke invoke,
+      MethodResolutionResult resolutionResult,
       LocalStackAllocator localStackAllocator,
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
-      MethodProcessingContext methodProcessingContext,
-      MethodSynthesizerConsumer methodSynthesizerConsumer) {
+      MethodProcessingContext methodProcessingContext) {
+    MethodSynthesizerConsumer methodSynthesizerConsumer = null;
+    if (resolutionResult == null) {
+      methodSynthesizerConsumer =
+          UtilityMethodsForCodeOptimizations::synthesizeThrowNoSuchMethodErrorMethod;
+    } else if (resolutionResult.isSingleResolution()) {
+      if (resolutionResult.getResolvedMethod().isStatic() != invoke.isInvokeStatic()) {
+        methodSynthesizerConsumer =
+            UtilityMethodsForCodeOptimizations::synthesizeThrowIncompatibleClassChangeErrorMethod;
+      }
+    } else if (resolutionResult.isFailedResolution()) {
+      FailedResolutionResult failedResolutionResult = resolutionResult.asFailedResolution();
+      AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
+      if (failedResolutionResult.isIllegalAccessErrorResult(context.getHolder(), appInfo)) {
+        methodSynthesizerConsumer =
+            UtilityMethodsForCodeOptimizations::synthesizeThrowIllegalAccessErrorMethod;
+      } else if (failedResolutionResult.isNoSuchMethodErrorResult(context.getHolder(), appInfo)) {
+        methodSynthesizerConsumer =
+            UtilityMethodsForCodeOptimizations::synthesizeThrowNoSuchMethodErrorMethod;
+      } else if (failedResolutionResult.isIncompatibleClassChangeErrorResult()) {
+        methodSynthesizerConsumer =
+            UtilityMethodsForCodeOptimizations::synthesizeThrowIncompatibleClassChangeErrorMethod;
+      }
+    }
+
     if (methodSynthesizerConsumer == null) {
       assert false;
       return null;
@@ -198,33 +197,5 @@ public class AlwaysThrowingInstructionDesugaring implements CfInstructionDesugar
       localStackAllocator.allocateLocalStack(1);
     }
     return replacement;
-  }
-
-  private static MethodSynthesizerConsumer getMethodSynthesizerForThrowing(
-      AppView<?> appView,
-      CfInvoke invoke,
-      MethodResolutionResult resolutionResult,
-      ProgramMethod context) {
-    if (resolutionResult == null) {
-      return UtilityMethodsForCodeOptimizations::synthesizeThrowNoSuchMethodErrorMethod;
-    } else if (resolutionResult.isSingleResolution()) {
-      if (resolutionResult.getResolvedMethod().isStatic() != invoke.isInvokeStatic()) {
-        return UtilityMethodsForCodeOptimizations
-            ::synthesizeThrowIncompatibleClassChangeErrorMethod;
-      }
-    } else if (resolutionResult.isFailedResolution()) {
-      FailedResolutionResult failedResolutionResult = resolutionResult.asFailedResolution();
-      AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
-      if (failedResolutionResult.isIllegalAccessErrorResult(context.getHolder(), appInfo)) {
-        return UtilityMethodsForCodeOptimizations::synthesizeThrowIllegalAccessErrorMethod;
-      } else if (failedResolutionResult.isNoSuchMethodErrorResult(context.getHolder(), appInfo)) {
-        return UtilityMethodsForCodeOptimizations::synthesizeThrowNoSuchMethodErrorMethod;
-      } else if (failedResolutionResult.isIncompatibleClassChangeErrorResult()) {
-        return UtilityMethodsForCodeOptimizations
-            ::synthesizeThrowIncompatibleClassChangeErrorMethod;
-      }
-    }
-
-    return null;
   }
 }
