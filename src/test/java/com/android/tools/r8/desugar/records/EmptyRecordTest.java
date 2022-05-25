@@ -4,15 +4,20 @@
 
 package com.android.tools.r8.desugar.records;
 
-import com.android.tools.r8.R8FullTestBuilder;
+import static org.junit.Assume.assumeFalse;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.AssertUtils;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class EmptyRecordTest extends TestBase {
@@ -21,17 +26,20 @@ public class EmptyRecordTest extends TestBase {
   private static final byte[][] PROGRAM_DATA = RecordTestUtils.getProgramData(RECORD_NAME);
   private static final String MAIN_TYPE = RecordTestUtils.getMainType(RECORD_NAME);
   private static final String EXPECTED_RESULT_D8 = StringUtils.lines("Empty[]");
-  private static final String EXPECTED_RESULT_R8 = StringUtils.lines("a[]");
+  private static final String EXPECTED_RESULT_R8_MINIFICATION = StringUtils.lines("a[]");
+  private static final String EXPECTED_RESULT_R8_NO_MINIFICATION =
+      StringUtils.lines("EmptyRecord$Empty[]");
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public boolean enableMinification;
 
-  public EmptyRecordTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  @Parameter(1)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{1}, minification: {0}")
   public static List<Object[]> data() {
     return buildParameters(
+        BooleanUtils.values(),
         getTestParameters()
             .withCfRuntimesStartingFromIncluding(CfVm.JDK17)
             .withDexRuntimes()
@@ -41,6 +49,7 @@ public class EmptyRecordTest extends TestBase {
 
   @Test
   public void testD8AndJvm() throws Exception {
+    assumeFalse("Only applicable for R8", enableMinification);
     if (parameters.isCfRuntime()) {
       testForJvm()
           .addProgramClassFileData(PROGRAM_DATA)
@@ -57,20 +66,28 @@ public class EmptyRecordTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    R8FullTestBuilder builder =
-        testForR8(parameters.getBackend())
-            .addProgramClassFileData(PROGRAM_DATA)
-            .setMinApi(parameters.getApiLevel())
-            .addKeepMainRule(MAIN_TYPE);
-    if (parameters.isCfRuntime()) {
-      builder
-          .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
-          .compile()
-          .inspect(RecordTestUtils::assertRecordsAreRecords)
-          .run(parameters.getRuntime(), MAIN_TYPE)
-          .assertSuccessWithOutput(EXPECTED_RESULT_R8);
-      return;
-    }
-    builder.run(parameters.getRuntime(), MAIN_TYPE).assertSuccessWithOutput(EXPECTED_RESULT_R8);
+    // TODO(b/233857841): Should always succeed.
+    AssertUtils.assertFailsCompilationIf(
+        parameters.isDexRuntime() && !enableMinification,
+        () ->
+            testForR8(parameters.getBackend())
+                .addProgramClassFileData(PROGRAM_DATA)
+                .addKeepMainRule(MAIN_TYPE)
+                .applyIf(
+                    parameters.isCfRuntime(),
+                    testBuilder ->
+                        testBuilder.addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp)))
+                .minification(enableMinification)
+                .setMinApi(parameters.getApiLevel())
+                .compile()
+                .applyIf(
+                    parameters.isCfRuntime(),
+                    compileResult ->
+                        compileResult.inspect(RecordTestUtils::assertRecordsAreRecords))
+                .run(parameters.getRuntime(), MAIN_TYPE)
+                .assertSuccessWithOutput(
+                    enableMinification
+                        ? EXPECTED_RESULT_R8_MINIFICATION
+                        : EXPECTED_RESULT_R8_NO_MINIFICATION));
   }
 }
