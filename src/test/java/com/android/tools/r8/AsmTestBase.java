@@ -12,6 +12,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.QuadConsumer;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -46,6 +47,36 @@ public class AsmTestBase extends TestBase {
     Assert.assertEquals(javaResult.stdout, d8Result.stdout);
     Assert.assertEquals(javaResult.stdout, r8Result.stdout);
     Assert.assertEquals(javaResult.stdout, r8ShakenResult.stdout);
+  }
+
+  protected void ensureCustomCheck(
+      QuadConsumer<ProcessResult, ProcessResult, ProcessResult, ProcessResult> checker,
+      String main,
+      AndroidApiLevel apiLevel,
+      List<String> args,
+      byte[]... classes)
+      throws Exception {
+    AndroidApp app = buildAndroidApp(classes);
+    Consumer<InternalOptions> setMinApiLevel = o -> o.setMinApiLevel(apiLevel);
+    ProcessResult javaResult = runOnJavaRaw(main, Arrays.asList(classes), args);
+    Consumer<ArtCommandBuilder> cmdBuilder =
+        builder -> {
+          for (String arg : args) {
+            builder.appendProgramArgument(arg);
+          }
+        };
+    ProcessResult d8Result =
+        runOnArtRaw(compileWithD8(app, setMinApiLevel), main, cmdBuilder, null);
+    ProcessResult r8Result =
+        runOnArtRaw(compileWithR8(app, setMinApiLevel), main, cmdBuilder, null);
+    ProcessResult r8ShakenResult =
+        runOnArtRaw(
+            compileWithR8(
+                app, keepMainProguardConfiguration(main) + "-dontobfuscate\n", setMinApiLevel),
+            main,
+            cmdBuilder,
+            null);
+    checker.accept(javaResult, d8Result, r8Result, r8ShakenResult);
   }
 
   protected void ensureSameOutput(String main, byte[]... classes) throws Exception {

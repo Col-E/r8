@@ -7,7 +7,6 @@ package com.android.tools.r8.desugaring.interfacemethods;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.AsmTestBase;
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.VmTestRunner;
@@ -28,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.objectweb.asm.ClassReader;
@@ -137,10 +137,18 @@ public class InterfaceMethodDesugaringTests extends AsmTestBase {
         ToolHelper.getClassAsBytes(TestMainDefault0.class));
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   @IgnoreForRangeOfVmVersions(from = Version.V7_0_0, to = Version.V13_0_0) // No desugaring
   public void testInvokeDefault1() throws Exception {
-    ensureSameOutput(
+    ensureCustomCheck(
+        (javaResult, d8Result, r8Result, r8ShakenResult) -> {
+          Assert.assertEquals(1, d8Result.exitCode);
+          Assert.assertTrue(d8Result.stderr.contains("NoSuchMethodError"));
+          Assert.assertEquals(1, r8Result.exitCode);
+          Assert.assertTrue(r8Result.stderr.contains("NoSuchMethodError"));
+          // R8 can determine that the super interface invokes are all overridden in the program
+          Assert.assertEquals(javaResult.stdout, r8ShakenResult.stdout);
+        },
         TestMainDefault1.class.getCanonicalName(),
         ToolHelper.getMinApiLevelForDexVm(),
         getArgs(AndroidApiLevel.N.getLevel()),
