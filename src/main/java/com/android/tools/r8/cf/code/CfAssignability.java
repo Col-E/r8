@@ -11,6 +11,7 @@ import com.android.tools.r8.cf.code.frame.WideFrameType;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.MapUtils;
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
@@ -77,7 +78,6 @@ public class CfAssignability {
 
   // Rules found at https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.10.1.2
   public static boolean isAssignable(DexType source, DexType target, AppView<?> appView) {
-    assert !target.isNullValueType();
     DexItemFactory factory = appView.dexItemFactory();
     source = byteCharShortOrBooleanToInt(source, factory);
     target = byteCharShortOrBooleanToInt(target, factory);
@@ -88,28 +88,23 @@ public class CfAssignability {
       return false;
     }
     // Both are now references - everything is assignable to object.
-    assert source.isReferenceType();
-    assert target.isReferenceType();
     if (target == factory.objectType) {
       return true;
     }
     // isAssignable(null, class(_, _)).
     // isAssignable(null, arrayOf(_)).
-    if (source.isNullValueType()) {
+    if (source == DexItemFactory.nullValueType) {
       return true;
     }
+    if (target.isArrayType() != target.isArrayType()) {
+      return false;
+    }
     if (target.isArrayType()) {
-      return source.isArrayType()
-          && isAssignable(
-              source.toArrayElementType(factory), target.toArrayElementType(factory), appView);
+      return isAssignable(
+          target.toArrayElementType(factory), target.toArrayElementType(factory), appView);
     }
-    assert target.isClassType();
-    if (source.isArrayType()) {
-      return target == factory.cloneableType || target == factory.serializableType;
-    }
-    assert source.isClassType();
     // TODO(b/166570659): Do a sub-type check that allows for missing classes in hierarchy.
-    return true;
+    return MemberType.fromDexType(source) == MemberType.fromDexType(target);
   }
 
   public static boolean isAssignable(DexType source, ValueType target, AppView<?> appView) {
