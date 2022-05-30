@@ -137,8 +137,8 @@ public class YouTubeV1620Test extends YouTubeCompilationTestBase {
   private L8TestCompileResult compileDesugaredLibraryWithL8(KeepRuleConsumer keepRuleConsumer)
       throws CompilationFailedException, IOException, ExecutionException {
     return testForL8(getApiLevel())
-        .setDesugaredLibraryConfiguration(getDesugaredLibraryConfiguration())
-        .setDesugarJDKLibs(getDesugaredLibraryJDKLibs())
+        .setDesugaredLibrarySpecification(getDesugaredLibraryConfiguration())
+        .addProgramFiles(getDesugaredLibraryJDKLibs())
         .addGeneratedKeepRules(keepRuleConsumer.get())
         .addKeepRuleFiles(getDesugaredLibraryKeepRuleFiles())
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))

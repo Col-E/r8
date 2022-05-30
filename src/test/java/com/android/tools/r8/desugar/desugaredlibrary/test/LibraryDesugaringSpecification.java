@@ -141,8 +141,7 @@ public class LibraryDesugaringSpecification {
     l8TestBuilder
         .addProgramFiles(getDesugarJdkLibs())
         .addLibraryFiles(getLibraryFiles())
-        .setDesugaredLibraryConfiguration(getSpecification())
-        .noDefaultDesugarJDKLibs()
+        .setDesugaredLibrarySpecification(getSpecification())
         .applyIf(
             l8Shrink,
             builder -> {

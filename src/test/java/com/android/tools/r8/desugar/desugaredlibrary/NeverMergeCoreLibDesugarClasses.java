@@ -12,7 +12,6 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.smali.SmaliBuilder;
@@ -85,9 +84,7 @@ public class NeverMergeCoreLibDesugarClasses extends DesugaredLibraryTestBase {
     try {
       Path input =
           testForL8(parameters.getApiLevel())
-              .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
-              .setDebug()
-              .setDesugarJDKLibsCustomConversions(ToolHelper.DESUGAR_LIB_CONVERSIONS)
+              .apply(libraryDesugaringSpecification::configureL8TestBuilder)
               .compile()
               .writeToZip();
       testForD8()

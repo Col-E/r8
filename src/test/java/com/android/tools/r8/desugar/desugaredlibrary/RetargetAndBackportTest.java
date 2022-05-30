@@ -8,8 +8,8 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyRewritingFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyTopLevelFlags;
@@ -31,15 +31,19 @@ import org.objectweb.asm.Opcodes;
 public class RetargetAndBackportTest extends DesugaredLibraryTestBase implements Opcodes {
 
   private final TestParameters parameters;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameters(name = "{0} {1}")
+  @Parameters(name = "{0}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withDexRuntime(Version.DEFAULT).withCfRuntime(CfVm.JDK11).build());
+        getTestParameters().withDexRuntime(Version.DEFAULT).withCfRuntime(CfVm.JDK11).build(),
+        LibraryDesugaringSpecification.getJdk8Jdk11());
   }
 
-  public RetargetAndBackportTest(TestParameters parameters) {
+  public RetargetAndBackportTest(
+      TestParameters parameters, LibraryDesugaringSpecification libraryDesugaringSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   /**
@@ -65,9 +69,9 @@ public class RetargetAndBackportTest extends DesugaredLibraryTestBase implements
   @Test
   public void test() throws Exception {
     testForL8(AndroidApiLevel.B, parameters.getBackend())
-        .noDefaultDesugarJDKLibs()
         .addProgramClassFileData(dump())
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P.getLevel()))
+        .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
+        .setDesugaredLibrarySpecification(libraryDesugaringSpecification.getSpecification())
         .addOptionsModifier(RetargetAndBackportTest::specifyDesugaredLibrary)
         .compile()
         .inspect(

@@ -47,10 +47,7 @@ public class LibraryDesugaringTestConfiguration {
     }
 
     public LibraryDesugaringTestConfiguration build() {
-      if (desugaredLibrarySpecificationResources.isEmpty()) {
-        desugaredLibrarySpecificationResources.add(
-            StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()));
-      }
+      assert !desugaredLibrarySpecificationResources.isEmpty();
       return new LibraryDesugaringTestConfiguration(
           desugaredLibrarySpecificationResources, keepRuleConsumer);
     }

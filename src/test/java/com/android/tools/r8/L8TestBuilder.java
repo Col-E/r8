@@ -35,13 +35,10 @@ public class L8TestBuilder {
   private CompilationMode mode = CompilationMode.RELEASE;
   private String generatedKeepRules = null;
   private List<String> keepRules = new ArrayList<>();
-  private List<Path> additionalProgramFiles = new ArrayList<>();
-  private List<byte[]> additionalProgramClassFileData = new ArrayList<>();
+  private List<Path> programFiles = new ArrayList<>();
+  private List<byte[]> programClassFileData = new ArrayList<>();
   private Consumer<InternalOptions> optionsModifier = ConsumerUtils.emptyConsumer();
-  private Path desugarJDKLibs = ToolHelper.getDesugarJDKLibs();
-  private Path customConversions = null;
-  private StringResource desugaredLibrarySpecification =
-      StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting());
+  private StringResource desugaredLibrarySpecification = null;
   private List<Path> libraryFiles = new ArrayList<>();
   private ProgramConsumer programConsumer;
   private boolean finalPrefixVerification = true;
@@ -61,13 +58,18 @@ public class L8TestBuilder {
     return this;
   }
 
+  public L8TestBuilder addProgramFiles(Path... programFiles) {
+    this.programFiles.addAll(Arrays.asList(programFiles));
+    return this;
+  }
+
   public L8TestBuilder addProgramFiles(Collection<Path> programFiles) {
-    this.additionalProgramFiles.addAll(programFiles);
+    this.programFiles.addAll(programFiles);
     return this;
   }
 
   public L8TestBuilder addProgramClassFileData(byte[]... classes) {
-    this.additionalProgramClassFileData.addAll(Arrays.asList(classes));
+    this.programClassFileData.addAll(Arrays.asList(classes));
     return this;
   }
 
@@ -134,40 +136,14 @@ public class L8TestBuilder {
     return this;
   }
 
-  public L8TestBuilder setDesugarJDKLibs(Path desugarJDKLibs) {
-    assert desugarJDKLibs != null : "Use noDefaultDesugarJDKLibs to clear the default.";
-    this.desugarJDKLibs = desugarJDKLibs;
-    return this;
-  }
-
-  public L8TestBuilder noDefaultDesugarJDKLibs() {
-    this.desugarJDKLibs = null;
-    return this;
-  }
-
   public L8TestBuilder setProgramConsumer(ProgramConsumer programConsumer) {
     this.programConsumer = programConsumer;
     return this;
   }
 
-  public L8TestBuilder setDesugarJDKLibsCustomConversions(Path desugarJDKLibsConfiguration) {
-    this.customConversions = desugarJDKLibsConfiguration;
-    return this;
-  }
-
-  public L8TestBuilder setDesugaredLibraryConfiguration(Path path) {
+  public L8TestBuilder setDesugaredLibrarySpecification(Path path) {
     this.desugaredLibrarySpecification = StringResource.fromFile(path);
     return this;
-  }
-
-  public L8TestBuilder setDesugaredLibraryConfiguration(StringResource configuration) {
-    this.desugaredLibrarySpecification = configuration;
-    return this;
-  }
-
-  public L8TestBuilder setDisableL8AnnotationRemoval(boolean disableL8AnnotationRemoval) {
-    return addOptionsModifier(
-        options -> options.disableL8AnnotationRemoval = disableL8AnnotationRemoval);
   }
 
   private ProgramConsumer computeProgramConsumer(AndroidAppConsumers sink) {
@@ -185,7 +161,7 @@ public class L8TestBuilder {
     AndroidAppConsumers sink = new AndroidAppConsumers();
     L8Command.Builder l8Builder =
         L8Command.builder(state.getDiagnosticsHandler())
-            .addProgramFiles(getProgramFiles())
+            .addProgramFiles(programFiles)
             .addLibraryFiles(getLibraryFiles())
             .setMode(mode)
             .setIncludeClassesChecksum(true)
@@ -234,20 +210,8 @@ public class L8TestBuilder {
                                         || clazz.getFinalName().startsWith("java.")))));
   }
 
-  private Collection<Path> getProgramFiles() {
-    ImmutableList.Builder<Path> builder = ImmutableList.builder();
-    if (desugarJDKLibs != null) {
-      builder.add(desugarJDKLibs);
-    }
-    if (customConversions != null) {
-      builder.add(customConversions);
-    }
-    return builder.addAll(additionalProgramFiles).build();
-  }
-
   private L8Command.Builder addProgramClassFileData(L8Command.Builder builder) {
-    additionalProgramClassFileData.forEach(
-        data -> builder.addClassProgramData(data, Origin.unknown()));
+    programClassFileData.forEach(data -> builder.addClassProgramData(data, Origin.unknown()));
     return builder;
   }
 
