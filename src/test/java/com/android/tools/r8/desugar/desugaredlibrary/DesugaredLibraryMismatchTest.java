@@ -158,7 +158,8 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
           .setMinApi(parameters.getApiLevel())
           .compileWithExpectedDiagnostics(
               diagnostics -> {
-                if (requiresAnyCoreLibDesugaring(parameters.getApiLevel())) {
+                if (requiresAnyCoreLibDesugaring(
+                    parameters.getApiLevel(), libraryDesugaringSpecification != JDK8)) {
                   diagnostics.assertOnlyErrors();
                   diagnostics.assertErrorsMatch(
                       diagnosticType(DesugaredLibraryMismatchDiagnostic.class));

@@ -11,6 +11,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Paths;
@@ -44,7 +45,7 @@ public class YouTubeV1533TreeShakeJarVerificationTest extends YouTubeCompilation
     LibrarySanitizer librarySanitizer =
         new LibrarySanitizer(temp)
             .addProgramFiles(getProgramFiles())
-            .addLibraryFiles(ImmutableList.of(getLibraryFile()))
+            .addLibraryFiles(ImmutableList.of(ToolHelper.getAndroidJar(AndroidApiLevel.R)))
             .sanitize()
             .assertSanitizedProguardConfigurationIsEmpty();
 

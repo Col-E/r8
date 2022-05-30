@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.jdk11;
 
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.transformers.MethodTransformer;
@@ -39,17 +38,6 @@ public class DesugaredLibraryJDK11Undesugarer extends DesugaredLibraryTestBase {
           .put("wrapper/adapter/HybridFileTypeDetector", "java/adapter/HybridFileTypeDetector")
           .build();
 
-  public static void main(String[] args) throws Exception {
-    setUpDesugaredLibrary();
-    undesugaredJar();
-  }
-
-  public static Path undesugaredJar() {
-    if (!isJDK11DesugaredLibrary()) {
-      return ToolHelper.getDesugarJDKLibsBazelGeneratedFile();
-    }
-    return undesugaredJarJDK11(ToolHelper.getDesugarJDKLibsBazelGeneratedFile());
-  }
 
   public static Path undesugaredJarJDK11(Path jdk11Jar) {
     String string = jdk11Jar.toString();

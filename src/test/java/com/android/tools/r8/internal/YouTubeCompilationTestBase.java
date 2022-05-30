@@ -101,7 +101,7 @@ public abstract class YouTubeCompilationTestBase extends CompilationTestBase {
   }
 
   Path getLibraryFileWithoutDesugaredLibrary() throws IOException {
-    Path libraryFile = getLibraryFile();
+    Path libraryFile = ToolHelper.getAndroidJar(AndroidApiLevel.R);
     Path filteredLibraryFile =
         Paths.get(libraryFile.toString().replace(".jar", "desugared_lib_filtered.jar"));
     ArchiveConsumer consumer = new ArchiveConsumer(filteredLibraryFile);

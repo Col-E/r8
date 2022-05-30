@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
@@ -64,7 +65,7 @@ public class ConversionsPresentTest extends DesugaredLibraryTestBase {
       assertTrue(inspector.clazz("j$.util.LongSummaryStatisticsConversions").isPresent());
       assertTrue(inspector.clazz("j$.util.IntSummaryStatisticsConversions").isPresent());
       assertTrue(inspector.clazz("j$.util.DoubleSummaryStatisticsConversions").isPresent());
-    } else if (requiresTimeDesugaring(parameters)) {
+    } else if (requiresTimeDesugaring(parameters, libraryDesugaringSpecification != JDK8)) {
       assertEquals(1, conversionsClasses.size());
       assertTrue(inspector.clazz("j$.time.TimeConversions").isPresent());
     } else {

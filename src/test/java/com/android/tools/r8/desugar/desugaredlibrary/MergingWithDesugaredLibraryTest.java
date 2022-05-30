@@ -68,7 +68,7 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
     try {
       compileResult =
           testForD8()
-              .addLibraryFiles(getLibraryFile())
+              .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
               .addProgramFiles(buildPart1DesugaredLibrary(), buildPart2NoDesugaredLibrary())
               .setMinApi(parameters.getApiLevel())
               .applyIf(
@@ -118,7 +118,7 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
     Path app =
         testForD8()
             .addProgramFiles(buildPart1DesugaredLibrary(), shrunkenLib)
-            .addLibraryFiles(getLibraryFile())
+            .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
             .setMinApi(parameters.getApiLevel())
             .applyIf(
                 someLibraryDesugaringRequired(),
@@ -232,7 +232,7 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
         testForD8()
             .addProgramFiles(buildPart1DesugaredLibrary())
             .addProgramClasses(Part2.class)
-            .addLibraryFiles(getLibraryFile())
+            .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
             .setMinApi(parameters.getApiLevel())
             .applyIf(
                 someLibraryDesugaringRequired(),
@@ -273,7 +273,7 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
 
   private Path buildPart1DesugaredLibrary() throws Exception {
     return testForD8()
-        .addLibraryFiles(getLibraryFile())
+        .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
         .addProgramClasses(Part1.class)
         .setMinApi(parameters.getApiLevel())
         .applyIf(

@@ -6,6 +6,7 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexField;
@@ -18,6 +19,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.Human
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanTopLevelFlags;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.transformers.MethodTransformer;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
@@ -52,7 +54,7 @@ public class LocalDateEpochTest extends DesugaredLibraryTestBase {
   @Test
   public void testD8() throws Exception {
     testForD8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.R))
         .addProgramClasses(DesugarLocalDate.class)
         .addProgramClassFileData(getMainClassFileData())
         .setMinApi(parameters.getApiLevel())
@@ -66,7 +68,7 @@ public class LocalDateEpochTest extends DesugaredLibraryTestBase {
   public void testR8() throws Exception {
     Assume.assumeTrue(parameters.isDexRuntime());
     testForR8(parameters.getBackend())
-        .addLibraryFiles(getLibraryFile())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.R))
         .addProgramClasses(DesugarLocalDate.class)
         .addProgramClassFileData(getMainClassFileData())
         .addKeepMainRule(Main.class)

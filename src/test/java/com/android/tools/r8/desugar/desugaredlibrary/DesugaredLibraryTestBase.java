@@ -13,7 +13,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestState;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.DesugaredLibraryTestBuilder;
@@ -23,27 +22,8 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.junit.BeforeClass;
 
 public class DesugaredLibraryTestBase extends TestBase {
-
-  private static final boolean FORCE_JDK11_DESUGARED_LIB = false;
-
-  @BeforeClass
-  public static void setUpDesugaredLibrary() {
-    if (!FORCE_JDK11_DESUGARED_LIB) {
-      return;
-    }
-    System.setProperty("desugar_jdk_json_dir", "src/library_desugar/jdk11");
-    System.setProperty(
-        "desugar_jdk_libs", "third_party/openjdk/desugar_jdk_libs_11/desugar_jdk_libs.jar");
-    System.out.println("Forcing the usage of JDK11 desugared library.");
-  }
-
-  public static boolean isJDK11DesugaredLibrary() {
-    String property = System.getProperty("desugar_jdk_json_dir", "");
-    return property.contains("jdk11");
-  }
 
   // For conversions tests, we need DexRuntimes where classes to convert are present (DexRuntimes
   // above N and O depending if Stream or Time APIs are used), but we need to compile the program
@@ -65,14 +45,6 @@ public class DesugaredLibraryTestBase extends TestBase {
     throw new Error("Unsupported conversion parameters");
   }
 
-  protected AndroidApiLevel getRequiredCompilationAPILevel() {
-    return isJDK11DesugaredLibrary() ? AndroidApiLevel.R : AndroidApiLevel.P;
-  }
-
-  protected Path getLibraryFile() {
-    return ToolHelper.getAndroidJar(getRequiredCompilationAPILevel());
-  }
-
   protected boolean requiresEmulatedInterfaceCoreLibDesugaring(TestParameters parameters) {
     return parameters.getApiLevel().isLessThan(apiLevelWithDefaultInterfaceMethodsSupport());
   }
@@ -82,21 +54,9 @@ public class DesugaredLibraryTestBase extends TestBase {
         < (isJDK11 ? AndroidApiLevel.S.getLevel() : AndroidApiLevel.O.getLevel());
   }
 
-  protected boolean requiresTimeDesugaring(TestParameters parameters) {
-    return requiresTimeDesugaring(parameters, isJDK11DesugaredLibrary());
-  }
-
-  protected boolean requiresAnyCoreLibDesugaring(TestParameters parameters) {
-    return requiresAnyCoreLibDesugaring(parameters.getApiLevel());
-  }
-
   protected boolean requiresAnyCoreLibDesugaring(AndroidApiLevel apiLevel, boolean isJDK11) {
     return apiLevel.getLevel()
         <= (isJDK11 ? AndroidApiLevel.R.getLevel() : AndroidApiLevel.N_MR1.getLevel());
-  }
-
-  protected boolean requiresAnyCoreLibDesugaring(AndroidApiLevel apiLevel) {
-    return requiresAnyCoreLibDesugaring(apiLevel, isJDK11DesugaredLibrary());
   }
 
   protected DesugaredLibraryTestBuilder<?> testForDesugaredLibrary(
