@@ -4,88 +4,15 @@
 
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.LongInterval;
 import com.google.common.collect.ImmutableList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class ProguardConfigurationUtils {
-
-  private static Origin proguardCompatOrigin =
-      new Origin(Origin.root()) {
-        @Override
-        public String part() {
-          return "<PROGUARD_COMPATIBILITY_RULE>";
-        }
-      };
-
-  private static Origin synthesizedRecompilationOrigin =
-      new Origin(Origin.root()) {
-        @Override
-        public String part() {
-          return "<SYNTHESIZED_RECOMPILATION_RULE>";
-        }
-      };
-
-  public static ProguardKeepRule buildDefaultInitializerKeepRule(DexClass clazz) {
-    ProguardKeepRule.Builder builder = ProguardKeepRule.builder();
-    builder.setOrigin(proguardCompatOrigin);
-    builder.setType(ProguardKeepRuleType.KEEP);
-    builder.getModifiersBuilder().setAllowsObfuscation(true);
-    builder.getModifiersBuilder().setAllowsOptimization(true);
-    builder.getClassAccessFlags().setVisibility(clazz.accessFlags);
-    builder.setClassType(ProguardClassType.CLASS);
-    builder.setClassNames(
-        ProguardClassNameList.singletonList(ProguardTypeMatcher.create(clazz.type)));
-    if (clazz.hasDefaultInitializer()) {
-      ProguardMemberRule.Builder memberRuleBuilder = ProguardMemberRule.builder();
-      memberRuleBuilder.setRuleType(ProguardMemberType.INIT);
-      memberRuleBuilder.setName(IdentifierPatternWithWildcards.withoutWildcards("<init>"));
-      memberRuleBuilder.setArguments(ImmutableList.of());
-      builder.getMemberRules().add(memberRuleBuilder.build());
-    }
-    return builder.build();
-  }
-
-  public static ProguardKeepRule buildMethodKeepRule(DexClass clazz, DexEncodedMethod method) {
-    // TODO(b/122295241): These generated rules should be linked into the graph, eg, the method
-    // using identified reflection should be the source keeping the target alive.
-    assert clazz.type == method.getHolderType();
-    ProguardKeepRule.Builder builder = ProguardKeepRule.builder();
-    builder.setOrigin(proguardCompatOrigin);
-    builder.setType(ProguardKeepRuleType.KEEP_CLASS_MEMBERS);
-    builder.getModifiersBuilder().setAllowsObfuscation(true);
-    builder.getModifiersBuilder().setAllowsOptimization(true);
-    builder.getClassAccessFlags().setVisibility(clazz.accessFlags);
-    if (clazz.isInterface()) {
-      builder.setClassType(ProguardClassType.INTERFACE);
-    } else {
-      builder.setClassType(ProguardClassType.CLASS);
-    }
-    builder.setClassNames(
-        ProguardClassNameList.singletonList(ProguardTypeMatcher.create(clazz.type)));
-    ProguardMemberRule.Builder memberRuleBuilder = ProguardMemberRule.builder();
-    memberRuleBuilder.setRuleType(ProguardMemberType.METHOD);
-    memberRuleBuilder.getAccessFlags().setFlags(method.accessFlags);
-    memberRuleBuilder.setName(
-        IdentifierPatternWithWildcards.withoutWildcards(method.getReference().name.toString()));
-    memberRuleBuilder.setTypeMatcher(
-        ProguardTypeMatcher.create(method.getReference().proto.returnType));
-    List<ProguardTypeMatcher> arguments =
-        Arrays.stream(method.getReference().proto.parameters.values)
-            .map(ProguardTypeMatcher::create)
-            .collect(Collectors.toList());
-    memberRuleBuilder.setArguments(arguments);
-    builder.getMemberRules().add(memberRuleBuilder.build());
-    return builder.build();
-  }
 
   public static ProguardAssumeNoSideEffectRule buildAssumeNoSideEffectsRuleForApiLevel(
       DexItemFactory factory, AndroidApiLevel apiLevel) {

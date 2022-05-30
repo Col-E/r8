@@ -18,21 +18,22 @@ public class ProguardAccessFlags {
   private int flags = 0;
 
   // Ordered list of flag names. Must be consistent with getPredicates.
-  private static final List<String> NAMES = ImmutableList.of(
-      "public",
-      "private",
-      "protected",
-      "static",
-      "final",
-      "abstract",
-      "volatile",
-      "transient",
-      "synchronized",
-      "native",
-      "strictfp",
-      "synthetic",
-      "bridge"
-  );
+  private static final List<String> NAMES =
+      ImmutableList.of(
+          "public",
+          "private",
+          "protected",
+          "static",
+          "final",
+          "abstract",
+          "volatile",
+          "transient",
+          "synchronized",
+          "native",
+          "strictfp",
+          "synthetic",
+          "bridge",
+          "constructor");
 
   // Get ordered list of flag predicates. Must be consistent with getNames.
   private List<BooleanSupplier> getPredicates() {
@@ -49,7 +50,8 @@ public class ProguardAccessFlags {
         this::isNative,
         this::isStrict,
         this::isSynthetic,
-        this::isBridge);
+        this::isBridge,
+        this::isConstructor);
   }
 
   private boolean containsAll(int other) {
@@ -192,6 +194,14 @@ public class ProguardAccessFlags {
 
   public boolean isBridge() {
     return isSet(Constants.ACC_BRIDGE);
+  }
+
+  public void setConstructor() {
+    set(Constants.ACC_CONSTRUCTOR);
+  }
+
+  public boolean isConstructor() {
+    return isSet(Constants.ACC_CONSTRUCTOR);
   }
 
   private boolean isSet(int flag) {

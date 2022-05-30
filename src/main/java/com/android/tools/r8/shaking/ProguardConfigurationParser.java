@@ -1275,6 +1275,11 @@ public class ProguardConfigurationParser {
               flags.setBridge();
             }
             break;
+          case 'c':
+            if ((found = acceptString("constructor"))) {
+              flags.setConstructor();
+            }
+            break;
           case 'f':
             if ((found = acceptString("final"))) {
               flags.setFinal();
