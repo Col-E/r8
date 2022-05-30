@@ -155,7 +155,7 @@ def run_cmd(options, commit):
   output_path = options.output or 'build'
   time_commit = '%s_%s' % (commit.timestamp, commit.git_hash)
   time_commit_path = os.path.join(output_path, time_commit)
-  print ' '.join(cmd)
+  print(' '.join(cmd))
   if not options.dry_run:
     if not os.path.exists(time_commit_path):
       os.makedirs(time_commit_path)
@@ -170,7 +170,7 @@ def run_cmd(options, commit):
           timeout -= 1
         if process.poll() is None:
           process.kill()
-          print "Task timed out"
+          print("Task timed out")
           stderr.write("timeout\n")
   print('Wrote outputs to: %s' % time_commit_path)
 
