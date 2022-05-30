@@ -40,9 +40,9 @@ public class DesugaredLibraryJDK11Undesugarer extends DesugaredLibraryTestBase {
 
 
   public static Path undesugaredJarJDK11(Path jdk11Jar) {
-    String string = jdk11Jar.toString();
-    Path desugaredLibJDK11Undesugared =
-        Paths.get(string.substring(0, string.length() - 4) + "_undesugared.jar");
+    String fileName = jdk11Jar.getFileName().toString();
+    String newFileName = fileName.substring(0, fileName.length() - 4) + "_undesugared.jar";
+    Path desugaredLibJDK11Undesugared = Paths.get("build").resolve("libs").resolve(newFileName);
     return generateUndesugaredJar(jdk11Jar, desugaredLibJDK11Undesugared);
   }
 
