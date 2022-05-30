@@ -34,6 +34,11 @@ public class InitializedReferenceFrameType extends BaseFrameType
   }
 
   @Override
+  public boolean isInitializedReferenceType() {
+    return true;
+  }
+
+  @Override
   public InitializedReferenceFrameType asInitializedReferenceType() {
     return this;
   }

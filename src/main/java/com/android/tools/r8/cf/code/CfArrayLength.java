@@ -4,6 +4,7 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.cf.code.frame.FrameType;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCompareHelper;
@@ -89,7 +90,19 @@ public class CfArrayLength extends CfInstruction {
     // ..., arrayref →
     // ..., length
     return frame
-        .popInitialized(appView, dexItemFactory.objectArrayType)
+        .pop(
+            (state, head) ->
+                isArrayTypeOrNull(head)
+                    ? state
+                    : CfFrameState.errorUnexpectedStack(head, "an array type"))
         .push(config, dexItemFactory.intType);
+  }
+
+  private static boolean isArrayTypeOrNull(FrameType frameType) {
+    if (frameType.isInitializedReferenceType()
+        && frameType.asInitializedReferenceType().getInitializedType().isArrayType()) {
+      return true;
+    }
+    return frameType.isNullType();
   }
 }

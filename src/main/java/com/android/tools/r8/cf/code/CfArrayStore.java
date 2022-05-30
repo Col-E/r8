@@ -7,7 +7,6 @@ import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
-import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
@@ -23,21 +22,13 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
-import com.android.tools.r8.utils.structural.CompareToVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class CfArrayStore extends CfInstruction {
-
-  private final MemberType type;
+public class CfArrayStore extends CfArrayLoadOrStore {
 
   public CfArrayStore(MemberType type) {
-    assert type.isPrecise();
-    this.type = type;
-  }
-
-  public MemberType getType() {
-    return type;
+    super(type);
   }
 
   @Override
@@ -45,14 +36,8 @@ public class CfArrayStore extends CfInstruction {
     return getStoreType();
   }
 
-  @Override
-  public int internalAcceptCompareTo(
-      CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
-    return CfCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
-  }
-
   private int getStoreType() {
-    switch (type) {
+    switch (getType()) {
       case OBJECT:
         return Opcodes.AASTORE;
       case BOOLEAN_OR_BYTE:
@@ -70,7 +55,7 @@ public class CfArrayStore extends CfInstruction {
       case DOUBLE:
         return Opcodes.DASTORE;
       default:
-        throw new Unreachable("Unexpected type " + type);
+        throw new Unreachable("Unexpected type " + getType());
     }
   }
 
@@ -88,18 +73,8 @@ public class CfArrayStore extends CfInstruction {
   }
 
   @Override
-  public int bytecodeSizeUpperBound() {
-    return 1;
-  }
-
-  @Override
   public void print(CfPrinter printer) {
     printer.print(this);
-  }
-
-  @Override
-  public boolean canThrow() {
-    return true;
   }
 
   @Override
@@ -107,7 +82,7 @@ public class CfArrayStore extends CfInstruction {
     Slot value = state.pop();
     Slot index = state.pop();
     Slot array = state.pop();
-    builder.addArrayPut(type, value.register, array.register, index.register);
+    builder.addArrayPut(getType(), value.register, array.register, index.register);
   }
 
   @Override
@@ -125,8 +100,8 @@ public class CfArrayStore extends CfInstruction {
     // ..., arrayref, index, value →
     // ...
     return frame
-        .popInitialized(appView, type)
+        .popInitialized(appView, getType())
         .popInitialized(appView, dexItemFactory.intType)
-        .popInitialized(appView, dexItemFactory.objectArrayType);
+        .popInitialized(appView, getExpectedArrayType(dexItemFactory));
   }
 }

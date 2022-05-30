@@ -145,6 +145,8 @@ public interface FrameType {
 
   boolean isInitialized();
 
+  boolean isInitializedReferenceType();
+
   InitializedReferenceFrameType asInitializedReferenceType();
 
   boolean isInt();

@@ -104,6 +104,11 @@ public abstract class BaseFrameType implements FrameType {
   }
 
   @Override
+  public boolean isInitializedReferenceType() {
+    return true;
+  }
+
+  @Override
   public InitializedReferenceFrameType asInitializedReferenceType() {
     return null;
   }

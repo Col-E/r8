@@ -44,22 +44,21 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
 
   public static ErroneousCfFrameState errorUnexpectedStack(
       FrameType frameType, DexType expectedType) {
-    return internalErrorUnexpectedStack(formatActual(frameType), formatExpected(expectedType));
+    return errorUnexpectedStack(frameType, formatExpected(expectedType));
   }
 
   public static ErroneousCfFrameState errorUnexpectedStack(
       FrameType frameType, FrameType expectedType) {
-    return internalErrorUnexpectedStack(formatActual(frameType), formatExpected(expectedType));
+    return errorUnexpectedStack(frameType, formatExpected(expectedType));
   }
 
   public static ErroneousCfFrameState errorUnexpectedStack(
       FrameType frameType, ValueType expectedType) {
-    return internalErrorUnexpectedStack(formatActual(frameType), formatExpected(expectedType));
+    return errorUnexpectedStack(frameType, formatExpected(expectedType));
   }
 
-  private static ErroneousCfFrameState internalErrorUnexpectedStack(
-      String actual, String expected) {
-    return internalError(actual, expected, "on stack");
+  public static ErroneousCfFrameState errorUnexpectedStack(FrameType frameType, String expected) {
+    return internalError(formatActual(frameType), expected, "on stack");
   }
 
   private static ErroneousCfFrameState internalError(
