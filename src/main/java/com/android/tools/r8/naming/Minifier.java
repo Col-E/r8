@@ -91,6 +91,14 @@ public class Minifier {
     return lens;
   }
 
+  public void replaceDexItemBasedConstString(ExecutorService executorService, Timing timing)
+      throws ExecutionException {
+    timing.begin("ReplaceDexItemBasedConstString");
+    new IdentifierMinifier(appView, NamingLens.getIdentityLens())
+        .replaceDexItemBasedConstString(executorService);
+    timing.end();
+  }
+
   private List<DexClass> computeReachableInterfacesWithDeterministicOrder(
       SubtypingInfo subtypingInfo) {
     List<DexClass> interfaces = new ArrayList<>();

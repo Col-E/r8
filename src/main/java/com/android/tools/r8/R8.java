@@ -774,6 +774,13 @@ public class R8 {
         timing.end();
       }
 
+      if (!options.isMinifying()
+          && appView.options().testing.enableRecordModeling
+          && appView.appInfo().app().getFlags().hasReadRecordReferenceFromProgramClass()) {
+        new Minifier(appView.withLiveness())
+            .replaceDexItemBasedConstString(executorService, timing);
+      }
+
       assert verifyMovedMethodsHaveOriginalMethodPosition(appView, getDirectApp(appView));
 
       // If a method filter is present don't produce output since the application is likely partial.

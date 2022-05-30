@@ -11,7 +11,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.codeinspector.AssertUtils;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -66,28 +65,22 @@ public class EmptyRecordTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    // TODO(b/233857841): Should always succeed.
-    AssertUtils.assertFailsCompilationIf(
-        parameters.isDexRuntime() && !enableMinification,
-        () ->
-            testForR8(parameters.getBackend())
-                .addProgramClassFileData(PROGRAM_DATA)
-                .addKeepMainRule(MAIN_TYPE)
-                .applyIf(
-                    parameters.isCfRuntime(),
-                    testBuilder ->
-                        testBuilder.addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp)))
-                .minification(enableMinification)
-                .setMinApi(parameters.getApiLevel())
-                .compile()
-                .applyIf(
-                    parameters.isCfRuntime(),
-                    compileResult ->
-                        compileResult.inspect(RecordTestUtils::assertRecordsAreRecords))
-                .run(parameters.getRuntime(), MAIN_TYPE)
-                .assertSuccessWithOutput(
-                    enableMinification
-                        ? EXPECTED_RESULT_R8_MINIFICATION
-                        : EXPECTED_RESULT_R8_NO_MINIFICATION));
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(PROGRAM_DATA)
+        .addKeepMainRule(MAIN_TYPE)
+        .applyIf(
+            parameters.isCfRuntime(),
+            testBuilder -> testBuilder.addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp)))
+        .minification(enableMinification)
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .applyIf(
+            parameters.isCfRuntime(),
+            compileResult -> compileResult.inspect(RecordTestUtils::assertRecordsAreRecords))
+        .run(parameters.getRuntime(), MAIN_TYPE)
+        .assertSuccessWithOutput(
+            enableMinification
+                ? EXPECTED_RESULT_R8_MINIFICATION
+                : EXPECTED_RESULT_R8_NO_MINIFICATION);
   }
 }

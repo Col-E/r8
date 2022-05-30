@@ -530,9 +530,6 @@ public class JarClassFileReader<T extends DexClass> {
     }
 
     private void checkRecord() {
-      if (!application.options.shouldDesugarRecords()) {
-        return;
-      }
       if (!accessFlags.isRecord()) {
         return;
       }

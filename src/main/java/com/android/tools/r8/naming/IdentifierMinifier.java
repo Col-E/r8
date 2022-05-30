@@ -132,8 +132,7 @@ class IdentifierMinifier {
         : appView.dexItemFactory().createString(descriptorToJavaType(rewrittenString.toString()));
   }
 
-  private void replaceDexItemBasedConstString(ExecutorService executorService)
-      throws ExecutionException {
+  void replaceDexItemBasedConstString(ExecutorService executorService) throws ExecutionException {
     ThreadUtils.processItems(
         appView.appInfo().classes(),
         clazz -> {
