@@ -55,6 +55,7 @@ import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.IntSwitch;
+import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.Position;
@@ -351,11 +352,10 @@ public class DexBuilder {
         && currentBlock.getPredecessors().get(0) == previousBlock;
   }
 
-  private static void removeTrivialFallthroughBlocks(IRCode code) {
-    for (int blockIndex = 1; blockIndex < code.blocks.size() - 1; blockIndex++) {
-      // We skip the last block as it has no fallthrough. We also skip checking the entry block as
-      // it has no predecessors and must define the initial position. Any subsequent block must be
-      // statically reachable and thus have predecessors.
+  private static void removeTrivialGotoBlocks(IRCode code) {
+    for (int blockIndex = 1; blockIndex < code.blocks.size(); blockIndex++) {
+      // We skip checking the entry block as it has no predecessors and must define the initial
+      // position. Any subsequent block must be statically reachable and thus have predecessors.
       BasicBlock currentBlock = code.blocks.get(blockIndex);
       assert !currentBlock.getPredecessors().isEmpty();
       if (currentBlock.size() != 2) {
@@ -366,33 +366,60 @@ public class DexBuilder {
       if (debugPosition == null || exit == null || debugPosition.getPosition().isNone()) {
         continue;
       }
-      BasicBlock nextBlock = code.blocks.get(blockIndex + 1);
-      if (exit.getTarget() != nextBlock) {
-        continue;
-      }
-      // The block is a trivial position block that falls through to the following.
-      // If the position is equal to each predecessor block then the line is already active on
-      // each entry to the fallthrough and it can be safely removed.
       boolean allMatch = true;
       Position position = debugPosition.getPosition();
       for (BasicBlock pred : currentBlock.getPredecessors()) {
-        // Do to the target == next check this cannot be a trivial loop.
-        assert pred != currentBlock;
+        // If the block is a trivial loop it must remain.
+        if (pred == currentBlock) {
+          allMatch = false;
+          break;
+        }
+        // If the position is already active on each predecessor exit it can be safely removed
+        // (except for if/switch fallthrough cases guarded below).
         Position predExit = pred.exit().getPosition();
         if (!position.equals(predExit)) {
+          allMatch = false;
+          break;
+        }
+        // If this is a required fallthrough, we can only remove it if it targets the next block.
+        // Note that this could fail for a given block but then become valid after an intermediate
+        // block is removed. See the reset of blockIndex below for dealing with that case.
+        if (isFallthroughTargetToNonFallthroughTarget(pred, currentBlock, blockIndex, code)) {
           allMatch = false;
           break;
         }
       }
       if (allMatch) {
         currentBlock.removeInstruction(debugPosition);
-        CodeRewriter.unlinkTrivialGotoBlock(currentBlock, nextBlock);
+        CodeRewriter.unlinkTrivialGotoBlock(currentBlock, exit.getTarget());
         code.removeBlocks(Collections.singleton(currentBlock));
         // Having removed the block at blockIndex, the previous block may now be a trivial
-        // fallthrough. Rewind to that point and retry. This avoids iterating to a fixed point.
+        // fallthrough from an if/switch. Rewind to that point and retry. This avoids iterating to
+        // a fixed point.
         blockIndex = Math.max(0, blockIndex - 2);
       }
     }
+  }
+
+  private static boolean isFallthroughTargetToNonFallthroughTarget(
+      BasicBlock pred, BasicBlock current, int blockIndex, IRCode code) {
+    JumpInstruction exit = pred.exit();
+    BasicBlock fallthrough;
+    if (exit.isIf()) {
+      fallthrough = exit.asIf().fallthroughBlock();
+    } else if (exit.isSwitch()) {
+      fallthrough = exit.asSwitch().fallthroughBlock();
+    } else {
+      return false;
+    }
+    if (fallthrough != current) {
+      return false;
+    }
+    if (blockIndex + 1 >= code.blocks.size()) {
+      return false;
+    }
+    BasicBlock nextBlock = code.blocks.get(blockIndex + 1);
+    return current.exit().asGoto().getTarget() != nextBlock;
   }
 
   // Eliminates unneeded debug positions.
@@ -407,7 +434,7 @@ public class DexBuilder {
     // We must start by removing any blocks that are already trivial fallthrough blocks with no
     // position change. With these removed it is then sound to make the fallthrough judgement when
     // determining if a goto will materialize or not.
-    removeTrivialFallthroughBlocks(code);
+    removeTrivialGotoBlocks(code);
 
     // Current position known to have a materializing instruction associated with it.
     Position currentMaterializedPosition = Position.none();
