@@ -352,9 +352,6 @@ public class JarClassFileReader<T extends DexClass> {
       assert permittedSubclass != null;
       DexType permittedSubclassType = application.getTypeFromName(permittedSubclass);
       permittedSubclasses.add(new PermittedSubclassAttribute(permittedSubclassType));
-      if (classKind == ClassKind.PROGRAM) {
-        throw new CompilationError("Sealed classes are not supported as program classes", origin);
-      }
     }
 
     @Override
