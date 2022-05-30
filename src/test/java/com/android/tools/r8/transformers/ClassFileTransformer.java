@@ -6,9 +6,8 @@ package com.android.tools.r8.transformers;
 import static com.android.tools.r8.references.Reference.classFromTypeName;
 import static com.android.tools.r8.transformers.ClassFileTransformer.InnerClassPredicate.always;
 import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromDescriptor;
+import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 import static com.android.tools.r8.utils.StringUtils.replaceAll;
-import static org.objectweb.asm.Opcodes.ASM7;
-import static org.objectweb.asm.Opcodes.ASM9;
 
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
@@ -83,7 +82,7 @@ public class ClassFileTransformer {
     final List<MethodTransformer> methodTransformers;
 
     InnerMostClassTransformer(ClassWriter writer, List<MethodTransformer> methodTransformers) {
-      super(ASM7, writer);
+      super(ASM_VERSION, writer);
       this.methodTransformers = methodTransformers;
     }
 
@@ -871,7 +870,7 @@ public class ClassFileTransformer {
 
           @Override
           public AnnotationVisitor visitAnnotationDefault() {
-            return new AnnotationVisitor(ASM9, super.visitAnnotationDefault()) {
+            return new AnnotationVisitor(ASM_VERSION, super.visitAnnotationDefault()) {
               @Override
               public void visit(String name, Object value) {
                 super.visit(name, value);
@@ -947,7 +946,7 @@ public class ClassFileTransformer {
 
   private MethodVisitor redirectVisitInvokeDynamicInsn(
       MethodVisitor visitor, VisitInvokeDynamicInsnCallback callback) {
-    return new MethodVisitor(ASM7, visitor) {
+    return new MethodVisitor(ASM_VERSION, visitor) {
       @Override
       public void visitInvokeDynamicInsn(
           String name,
@@ -1038,7 +1037,7 @@ public class ClassFileTransformer {
 
   private MethodVisitor redirectVisitFieldInsn(
       MethodVisitor visitor, VisitFieldInsnCallback callback) {
-    return new MethodVisitor(ASM7, visitor) {
+    return new MethodVisitor(ASM_VERSION, visitor) {
       @Override
       public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
         callback.visitFieldInsn(opcode, owner, name, descriptor);
@@ -1106,7 +1105,7 @@ public class ClassFileTransformer {
 
   private MethodVisitor redirectVisitMethodInsn(
       MethodVisitor visitor, VisitMethodInsnCallback callback) {
-    return new MethodVisitor(ASM7, visitor) {
+    return new MethodVisitor(ASM_VERSION, visitor) {
       @Override
       public void visitMethodInsn(
           int opcode, String owner, String name, String descriptor, boolean isInterface) {
@@ -1144,7 +1143,7 @@ public class ClassFileTransformer {
 
   private MethodVisitor redirectVisitTypeInsn(
       MethodVisitor visitor, VisitTypeInsnCallback callback) {
-    return new MethodVisitor(ASM7, visitor) {
+    return new MethodVisitor(ASM_VERSION, visitor) {
       @Override
       public void visitTypeInsn(int opcode, String type) {
         callback.visitTypeInsn(opcode, type);
@@ -1175,7 +1174,7 @@ public class ClassFileTransformer {
 
   private MethodVisitor redirectVisitTryCatchBlock(
       MethodVisitor visitor, VisitTryCatchBlockCallback callback) {
-    return new MethodVisitor(ASM7, visitor) {
+    return new MethodVisitor(ASM_VERSION, visitor) {
       @Override
       public void visitTryCatchBlock(Label start, Label end, Label handler, String type) {
         callback.visitTryCatchBlock(start, end, handler, type);
@@ -1209,7 +1208,7 @@ public class ClassFileTransformer {
   }
 
   private MethodVisitor redirectVisitLdcInsn(MethodVisitor visitor, VisitLdcInsnCallback callback) {
-    return new MethodVisitor(ASM7, visitor) {
+    return new MethodVisitor(ASM_VERSION, visitor) {
       @Override
       public void visitLdcInsn(Object value) {
         callback.visitLdcInsn(value);

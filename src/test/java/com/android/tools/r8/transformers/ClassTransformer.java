@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.transformers;
 
-import static org.objectweb.asm.Opcodes.ASM7;
+import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 
 import org.objectweb.asm.ClassVisitor;
 
@@ -14,7 +14,7 @@ import org.objectweb.asm.ClassVisitor;
  */
 public class ClassTransformer extends ClassVisitor {
   public ClassTransformer() {
-    super(ASM7, null);
+    super(ASM_VERSION, null);
   }
 
   // Package internals.
