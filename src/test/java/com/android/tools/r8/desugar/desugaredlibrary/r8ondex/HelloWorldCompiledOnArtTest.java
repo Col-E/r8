@@ -4,30 +4,32 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.r8ondex;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8;
-import com.android.tools.r8.D8TestBuilder;
-import com.android.tools.r8.D8TestCompileResult;
-import com.android.tools.r8.D8TestRunResult;
-import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.R8;
-import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.DesugaredLibraryTestCompileResult;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -57,17 +59,27 @@ public class HelloWorldCompiledOnArtTest extends DesugaredLibraryTestBase {
   }
 
   private final TestParameters parameters;
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters()
-        .withDexRuntimesStartingFromIncluding(Version.V7_0_0)
-        .withApiLevelsStartingAtIncluding(AndroidApiLevel.L)
-        .build();
+  @Parameters(name = "{0}, spec: {1}, {2}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters()
+            .withDexRuntimesStartingFromIncluding(Version.V7_0_0)
+            .withApiLevelsStartingAtIncluding(AndroidApiLevel.L)
+            .build(),
+        ImmutableList.of(JDK8, JDK11_PATH),
+        ImmutableList.of(D8_L8DEBUG));
   }
 
-  public HelloWorldCompiledOnArtTest(TestParameters parameters) {
+  public HelloWorldCompiledOnArtTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   private static String commandLinePathFor(String string) {
@@ -101,18 +113,17 @@ public class HelloWorldCompiledOnArtTest extends DesugaredLibraryTestBase {
   @Test
   public void testHelloCompiledWithD8Dex() throws Exception {
     Path helloOutput = temp.newFolder("helloOutput").toPath().resolve("out.zip").toAbsolutePath();
-    D8TestRunResult run =
-        compileR8ToDexWithD8()
-            .run(
-                parameters.getRuntime(),
-                D8.class,
-                "--release",
-                "--output",
-                helloOutput.toString(),
-                "--lib",
-                commandLinePathFor(ToolHelper.JAVA_8_RUNTIME),
-                HELLO_PATH);
-    run.assertSuccess();
+    compileR8ToDexWithD8()
+        .run(
+            parameters.getRuntime(),
+            D8.class,
+            "--release",
+            "--output",
+            helloOutput.toString(),
+            "--lib",
+            commandLinePathFor(ToolHelper.JAVA_8_RUNTIME),
+            HELLO_PATH)
+        .assertSuccess();
     verifyResult(helloOutput);
   }
 
@@ -121,32 +132,29 @@ public class HelloWorldCompiledOnArtTest extends DesugaredLibraryTestBase {
     assertEquals(StringUtils.lines("Hello, world"), processResult.stdout);
   }
 
-  private D8TestCompileResult compileR8ToDexWithD8() throws Exception {
-    D8TestBuilder d8TestBuilder =
-        testForD8().addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR);
-    if (parameters.getApiLevel().getLevel() < AndroidApiLevel.O.getLevel()) {
-      d8TestBuilder.addProgramFiles(getPathBackport());
-    }
-    D8TestCompileResult compile =
-        d8TestBuilder
-            .addLibraryFiles(getLibraryFile())
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(
-                LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
-            .addOptionsModification(
-                options -> {
-                  options.testing.enableD8ResourcesPassThrough = true;
-                  options.dataResourceConsumer = options.programConsumer.getDataResourceConsumer();
-                  options.testing.trackDesugaredAPIConversions = true;
-                })
-            .compile();
-    TestDiagnosticMessages diagnosticMessages = compile.getDiagnosticMessages();
-    assertTrue(
-        diagnosticMessages.getWarnings().isEmpty()
-            || diagnosticMessages.getWarnings().stream()
-                .noneMatch(x -> x.getDiagnosticMessage().contains("andThen")));
-    return compile
-        .withArt6Plus64BitsLib()
-        .withArtFrameworks();
+  private DesugaredLibraryTestCompileResult<?> compileR8ToDexWithD8() throws Exception {
+    Path[] pathBackport = getPathBackport();
+    return testForDesugaredLibrary(
+            parameters, libraryDesugaringSpecification, compilationSpecification)
+        .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
+        .applyIf(
+            parameters.getApiLevel().getLevel() < AndroidApiLevel.O.getLevel()
+                && libraryDesugaringSpecification != JDK11_PATH,
+            b -> b.addProgramFiles(pathBackport))
+        .addOptionsModification(
+            options -> {
+              options.testing.enableD8ResourcesPassThrough = true;
+              options.dataResourceConsumer = options.programConsumer.getDataResourceConsumer();
+              options.testing.trackDesugaredAPIConversions = true;
+            })
+        .compile()
+        .inspectDiagnosticMessages(
+            diagnosticMessages -> {
+              assertTrue(
+                  diagnosticMessages.getWarnings().isEmpty()
+                      || diagnosticMessages.getWarnings().stream()
+                          .noneMatch(x -> x.getDiagnosticMessage().contains("andThen")));
+            })
+        .withArt6Plus64BitsLib();
   }
 }

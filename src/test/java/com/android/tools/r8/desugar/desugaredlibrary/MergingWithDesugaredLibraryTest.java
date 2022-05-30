@@ -11,6 +11,8 @@ import static com.android.tools.r8.MarkerMatcher.markerHasDesugaredLibraryIdenti
 import static com.android.tools.r8.MarkerMatcher.markerIsDesugared;
 import static com.android.tools.r8.MarkerMatcher.markerMinApi;
 import static com.android.tools.r8.MarkerMatcher.markerTool;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
@@ -25,7 +27,7 @@ import com.android.tools.r8.ExtractMarker;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -37,6 +39,7 @@ import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
@@ -45,14 +48,18 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
   private static final String J$_RESULT = "j$.util.stream.ReferencePipeline$Head";
 
   private final TestParameters parameters;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+  @Parameters(name = "{0}, spec: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(), getJdk8Jdk11());
   }
 
-  public MergingWithDesugaredLibraryTest(TestParameters parameters) {
+  public MergingWithDesugaredLibraryTest(
+      TestParameters parameters, LibraryDesugaringSpecification libraryDesugaringSpecification) {
     this.parameters = parameters;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   @Test
@@ -68,8 +75,11 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
                   someLibraryDesugaringRequired(),
                   b ->
                       b.enableCoreLibraryDesugaring(
-                          LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel())))
-              .compileWithExpectedDiagnostics(this::assertError);
+                          LibraryDesugaringTestConfiguration.forSpecification(
+                              libraryDesugaringSpecification.getSpecification())))
+              .compileWithExpectedDiagnostics(this::assertError)
+              .addRunClasspathFiles(
+                  getNonShrunkDesugaredLib(parameters, libraryDesugaringSpecification));
       assertFalse(expectError());
     } catch (CompilationFailedException e) {
       assertTrue(expectError());
@@ -114,7 +124,8 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
                 someLibraryDesugaringRequired(),
                 b ->
                     b.enableCoreLibraryDesugaring(
-                        LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel())))
+                        LibraryDesugaringTestConfiguration.forSpecification(
+                            libraryDesugaringSpecification.getSpecification())))
             .compile()
             .writeToZip();
 
@@ -123,7 +134,9 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
         allOf(
             markerTool(Tool.D8),
             markerIsDesugared(),
-            markerHasDesugaredLibraryIdentifier(requiresAnyCoreLibDesugaring(parameters)));
+            markerHasDesugaredLibraryIdentifier(
+                requiresAnyCoreLibDesugaring(
+                    parameters.getApiLevel(), libraryDesugaringSpecification != JDK8)));
     assertMarkersMatch(
         ExtractMarker.extractMarkerFromDexFile(app), ImmutableList.of(libraryMatcher, d8Matcher));
   }
@@ -209,7 +222,8 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
   }
 
   private boolean someLibraryDesugaringRequired() {
-    return requiresAnyCoreLibDesugaring(parameters);
+    return requiresAnyCoreLibDesugaring(
+        parameters.getApiLevel(), libraryDesugaringSpecification != JDK8);
   }
 
   @Test
@@ -224,8 +238,11 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
                 someLibraryDesugaringRequired(),
                 b ->
                     b.enableCoreLibraryDesugaring(
-                        LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel())))
+                        LibraryDesugaringTestConfiguration.forSpecification(
+                            libraryDesugaringSpecification.getSpecification())))
             .compile()
+            .addRunClasspathFiles(
+                getNonShrunkDesugaredLib(parameters, libraryDesugaringSpecification))
             .inspectDiagnosticMessages(this::assertWarningPresent);
     if (parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel()) {
       compileResult
@@ -263,7 +280,8 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
             someLibraryDesugaringRequired(),
             b ->
                 b.enableCoreLibraryDesugaring(
-                    LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel())))
+                    LibraryDesugaringTestConfiguration.forSpecification(
+                        libraryDesugaringSpecification.getSpecification())))
         .compile()
         .writeToZip();
   }
@@ -278,6 +296,7 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
 
   @SuppressWarnings("RedundantOperationOnEmptyContainer")
   static class Part1 {
+
     public static void main(String[] args) {
       System.out.println(new ArrayList<>().stream().getClass().getName());
     }
@@ -285,6 +304,7 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
 
   @SuppressWarnings("RedundantOperationOnEmptyContainer")
   static class Part2 {
+
     public static void main(String[] args) {
       System.out.println(new ArrayList<>().stream().getClass().getName());
     }

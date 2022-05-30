@@ -126,6 +126,15 @@ public class DesugaredLibraryTestBase extends TestBase {
     }
   }
 
+  public Path getNonShrunkDesugaredLib(
+      TestParameters parameters, LibraryDesugaringSpecification libraryDesugaringSpecification)
+      throws Exception {
+    return testForL8(parameters.getApiLevel(), parameters.getBackend())
+        .apply(libraryDesugaringSpecification::configureL8TestBuilder)
+        .compile()
+        .writeToZip();
+  }
+
   public static Path[] getAllFilesWithSuffixInDirectory(Path directory, String suffix)
       throws IOException {
     return Files.walk(directory)

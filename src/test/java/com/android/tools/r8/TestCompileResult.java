@@ -198,10 +198,6 @@ public abstract class TestCompileResult<
   public RR run(TestRuntime runtime, String mainClass, String... args)
       throws ExecutionException, IOException {
     assert getBackend() == runtime.getBackend();
-    if (libraryDesugaringTestConfiguration.isEnabled()
-        && libraryDesugaringTestConfiguration.isAddRunClassPath()) {
-      additionalRunClassPath.add(libraryDesugaringTestConfiguration.buildDesugaredLibrary(state));
-    }
     ClassSubject mainClassSubject = inspector().clazz(mainClass);
     if (!mainClassSubject.isPresent()) {
       for (Path classpathFile : additionalRunClassPath) {

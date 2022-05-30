@@ -20,9 +20,7 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.errors.DesugaredLibraryMismatchDiagnostic;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.Box;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.List;
@@ -147,7 +145,8 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
             .addProgramClasses(Library.class)
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(
-                LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
+                LibraryDesugaringTestConfiguration.forSpecification(
+                    libraryDesugaringSpecification.getSpecification()))
             .compile()
             .writeToZip();
 
@@ -213,14 +212,12 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
   public void testMergeDifferentLibraryDesugarVersions() throws Exception {
     // DEX code with library desugaring using a desugared library configuration with a
     // different identifier.
-    Box<LegacyDesugaredLibrarySpecification> box = new Box<>();
     Path libraryDex =
         testForD8(Backend.DEX)
             .addProgramClasses(Library.class)
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(
                 LibraryDesugaringTestConfiguration.builder()
-                    .setMinApi(parameters.getApiLevel())
                     // Minimal configuration with a different identifier.
                     // The j$.time is rewritten because empty flags are equivalent to an empty
                     // specification, and no marker is set for empty specifications.

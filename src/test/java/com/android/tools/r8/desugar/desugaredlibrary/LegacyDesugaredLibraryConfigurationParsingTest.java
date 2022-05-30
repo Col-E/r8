@@ -5,6 +5,7 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticOrigin;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.RELEASED_1_1_5;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -15,7 +16,6 @@ import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -45,13 +44,18 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class LegacyDesugaredLibraryConfigurationParsingTest extends DesugaredLibraryTestBase {
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withNoneRuntime().build();
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
+
+  @Parameterized.Parameters(name = "{0}, spec: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withNoneRuntime().build(), ImmutableList.of(RELEASED_1_1_5));
   }
 
-  public LegacyDesugaredLibraryConfigurationParsingTest(TestParameters parameters) {
+  public LegacyDesugaredLibraryConfigurationParsingTest(
+      TestParameters parameters, LibraryDesugaringSpecification libraryDesugaringSpecification) {
     parameters.assertNoneRuntime();
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   final AndroidApiLevel minApi = AndroidApiLevel.B;
@@ -87,7 +91,6 @@ public class LegacyDesugaredLibraryConfigurationParsingTest extends DesugaredLib
   }
 
   private LegacyDesugaredLibrarySpecificationParser parser(DiagnosticsHandler handler) {
-    Assume.assumeFalse(isJDK11DesugaredLibrary());
     return new LegacyDesugaredLibrarySpecificationParser(
         factory, new Reporter(handler), libraryCompilation, minApi.getLevel());
   }
@@ -117,9 +120,7 @@ public class LegacyDesugaredLibraryConfigurationParsingTest extends DesugaredLib
   public void testReference() throws Exception {
     // Just test that the reference file parses without issues.
     LegacyDesugaredLibrarySpecification spec =
-        runPassing(
-            StringResource.fromFile(
-                LibraryDesugaringSpecification.RELEASED_1_1_5.getSpecification()));
+        runPassing(StringResource.fromFile(libraryDesugaringSpecification.getSpecification()));
     assertEquals(libraryCompilation, spec.isLibraryCompilation());
   }
 

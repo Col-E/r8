@@ -67,7 +67,8 @@ public class ConversionAndMergeTest extends DesugaredLibraryTestBase {
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(cls)
         .enableCoreLibraryDesugaring(
-            LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
+            LibraryDesugaringTestConfiguration.forSpecification(
+                libraryDesugaringSpecification.getSpecification()))
         .compile()
         .writeToZip();
   }

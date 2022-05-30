@@ -121,11 +121,9 @@ public class YouTubeV1620Test extends YouTubeCompilationTestBase {
         .setMinApi(getApiLevel())
         .enableCoreLibraryDesugaring(
             LibraryDesugaringTestConfiguration.builder()
-                .setMinApi(getApiLevel())
                 .setKeepRuleConsumer(keepRuleConsumer)
                 .addDesugaredLibraryConfiguration(
                     StringResource.fromFile(getDesugaredLibraryConfiguration()))
-                .dontAddRunClasspath()
                 .build())
         .compile()
         .assertAllInfoMessagesMatch(

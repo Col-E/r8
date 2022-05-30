@@ -70,10 +70,8 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
         .setMode(compilationSpecification.getProgramCompilationMode());
     LibraryDesugaringTestConfiguration.Builder libraryConfBuilder =
         LibraryDesugaringTestConfiguration.builder()
-            .setMinApi(parameters.getApiLevel())
             .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(libraryDesugaringSpecification.getSpecification()))
-            .dontAddRunClasspath();
+                StringResource.fromFile(libraryDesugaringSpecification.getSpecification()));
     if (compilationSpecification.isL8Shrink() && !compilationSpecification.isCfToCf()) {
       keepRuleConsumer = new TestingKeepRuleConsumer();
       libraryConfBuilder.setKeepRuleConsumer(keepRuleConsumer);
