@@ -286,6 +286,14 @@ public class StringUtils {
     return codePoint == BOM;
   }
 
+  public static boolean isFalsy(String string) {
+    return string.equals("0") || string.toLowerCase().equals("false");
+  }
+
+  public static boolean isTruthy(String string) {
+    return string.equals("1") || string.toLowerCase().equals("true");
+  }
+
   public static boolean isWhitespace(int codePoint) {
     return Character.isWhitespace(codePoint) || isBOM(codePoint);
   }

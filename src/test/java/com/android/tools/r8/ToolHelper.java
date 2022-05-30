@@ -2207,7 +2207,7 @@ public class ToolHelper {
   }
 
   public static R8Command.Builder allowTestProguardOptions(R8Command.Builder builder) {
-    builder.allowTestProguardOptions();
+    builder.setEnableTestProguardOptions();
     return builder;
   }
 

@@ -47,12 +47,10 @@ import java.util.function.Predicate;
 public class ProguardConfigurationParser {
 
   private final Builder configurationBuilder;
-
   private final DexItemFactory dexItemFactory;
-
+  private final ProguardConfigurationParserOptions options;
   private final Reporter reporter;
   private final InputDependencyGraphConsumer inputDependencyConsumer;
-  private final boolean allowTestOptions;
 
   public static final String FLATTEN_PACKAGE_HIERARCHY = "flattenpackagehierarchy";
   public static final String REPACKAGE_CLASSES = "repackageclasses";
@@ -122,23 +120,35 @@ public class ProguardConfigurationParser {
 
   public ProguardConfigurationParser(
       DexItemFactory dexItemFactory, Reporter reporter) {
-    this(dexItemFactory, reporter, null, false);
+    this(
+        dexItemFactory,
+        reporter,
+        ProguardConfigurationParserOptions.builder()
+            .setEnableExperimentalWhyAreYouNotInlining(false)
+            .setEnableTestingOptions(false)
+            .build());
   }
 
   public ProguardConfigurationParser(
       DexItemFactory dexItemFactory,
       Reporter reporter,
-      InputDependencyGraphConsumer inputDependencyConsumer,
-      boolean allowTestOptions) {
-    this.dexItemFactory = dexItemFactory;
-    configurationBuilder = ProguardConfiguration.builder(dexItemFactory, reporter);
+      ProguardConfigurationParserOptions options) {
+    this(dexItemFactory, reporter, options, null);
+  }
 
+  public ProguardConfigurationParser(
+      DexItemFactory dexItemFactory,
+      Reporter reporter,
+      ProguardConfigurationParserOptions options,
+      InputDependencyGraphConsumer inputDependencyConsumer) {
+    this.configurationBuilder = ProguardConfiguration.builder(dexItemFactory, reporter);
+    this.dexItemFactory = dexItemFactory;
+    this.options = options;
     this.reporter = reporter;
     this.inputDependencyConsumer =
         inputDependencyConsumer != null
             ? inputDependencyConsumer
             : emptyInputDependencyGraphConsumer();
-    this.allowTestOptions = allowTestOptions;
   }
 
   private static InputDependencyGraphConsumer emptyInputDependencyGraphConsumer() {
@@ -272,6 +282,7 @@ public class ProguardConfigurationParser {
       expectChar('-');
       if (parseIgnoredOption(optionStart)
           || parseIgnoredOptionAndWarn(optionStart)
+          || parseExperimentalOption(optionStart)
           || parseTestingOption(optionStart)
           || parseUnsupportedOptionAndErr(optionStart)) {
         // Intentionally left empty.
@@ -472,9 +483,20 @@ public class ProguardConfigurationParser {
       return true;
     }
 
+    private boolean parseExperimentalOption(TextPosition optionStart)
+        throws ProguardRuleParserException {
+      if (options.isExperimentalWhyAreYouNotInliningEnabled()) {
+        if (acceptString("whyareyounotinlining")) {
+          configurationBuilder.addRule(parseWhyAreYouNotInliningRule(optionStart));
+          return true;
+        }
+      }
+      return false;
+    }
+
     private boolean parseTestingOption(TextPosition optionStart)
         throws ProguardRuleParserException {
-      if (allowTestOptions) {
+      if (options.isTestingOptionsEnabled()) {
         if (acceptString("assumemayhavesideeffects")) {
           ProguardAssumeMayHaveSideEffectsRule rule =
               parseAssumeMayHaveSideEffectsRule(optionStart);
@@ -589,11 +611,6 @@ public class ProguardConfigurationParser {
         if (acceptString("reprocessmethod")) {
           configurationBuilder.addRule(
               parseReprocessMethodRule(ReprocessMethodRule.Type.ALWAYS, optionStart));
-          return true;
-        }
-        if (acceptString("whyareyounotinlining")) {
-          WhyAreYouNotInliningRule rule = parseWhyAreYouNotInliningRule(optionStart);
-          configurationBuilder.addRule(rule);
           return true;
         }
       }
@@ -1106,7 +1123,7 @@ public class ProguardConfigurationParser {
             builder.getModifiersBuilder().setAllowsObfuscation(true);
           } else if (acceptString("accessmodification")) {
             builder.getModifiersBuilder().setAllowsAccessModification(true);
-          } else if (allowTestOptions) {
+          } else if (options.isTestingOptionsEnabled()) {
             if (acceptString("annotationremoval")) {
               builder.getModifiersBuilder().setAllowsAnnotationRemoval(true);
             }

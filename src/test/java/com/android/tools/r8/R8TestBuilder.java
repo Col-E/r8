@@ -10,7 +10,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.proguardConfigur
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.benchmarks.BenchmarkResults;
-import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.KeepRuleConsumer;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.RunInterface;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.SplitRunner;
 import com.android.tools.r8.errors.Unreachable;
@@ -28,7 +27,6 @@ import com.android.tools.r8.shaking.NoUnusedInterfaceRemovalRule;
 import com.android.tools.r8.shaking.NoVerticalClassMergingRule;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -657,8 +655,13 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return self();
   }
 
+  public T enableExperimentalWhyAreYouNotInlining() {
+    builder.setEnableExperimentalWhyAreYouNotInlining();
+    return self();
+  }
+
   public T enableProguardTestOptions() {
-    builder.allowTestProguardOptions();
+    builder.setEnableTestProguardOptions();
     return self();
   }
 

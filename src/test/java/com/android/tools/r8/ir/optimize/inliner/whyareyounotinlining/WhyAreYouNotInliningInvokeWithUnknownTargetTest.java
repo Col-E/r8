@@ -44,7 +44,7 @@ public class WhyAreYouNotInliningInvokeWithUnknownTargetTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-whyareyounotinlining class " + A.class.getTypeName() + " { void m(); }")
         .addOptionsModification(options -> options.testing.whyAreYouNotInliningConsumer = out)
-        .enableProguardTestOptions()
+        .enableExperimentalWhyAreYouNotInlining()
         .enableNoHorizontalClassMergingAnnotations()
         .compile();
     out.close();

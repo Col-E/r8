@@ -183,7 +183,14 @@ public class ProguardConfigurationParserTest extends TestBase {
   public void resetAllowTestOptions() {
     handler = new KeepingDiagnosticHandler();
     reporter = new Reporter(handler);
-    parser = new ProguardConfigurationParser(new DexItemFactory(), reporter, null, true);
+    parser =
+        new ProguardConfigurationParser(
+            new DexItemFactory(),
+            reporter,
+            ProguardConfigurationParserOptions.builder()
+                .setEnableExperimentalWhyAreYouNotInlining(false)
+                .setEnableTestingOptions(true)
+                .build());
   }
 
   @Test
@@ -992,7 +999,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseKeepdirectories() {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), reporter, null, false);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(KEEPDIRECTORIES));
     verifyParserEndsCleanly();
   }

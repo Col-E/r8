@@ -21,6 +21,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
+import com.android.tools.r8.shaking.ProguardConfigurationParserOptions;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardConfigurationSource;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceBytes;
@@ -116,8 +117,8 @@ public final class R8Command extends BaseCompilerCommand {
     private boolean skipDump = false;
     private boolean enableMissingLibraryApiModeling = false;
 
-    private boolean allowTestProguardOptions =
-        System.getProperty("com.android.tools.r8.allowTestProguardOptions") != null;
+    private final ProguardConfigurationParserOptions.Builder parserOptionsBuilder =
+        ProguardConfigurationParserOptions.builder().readEnvironment();
 
     // TODO(zerny): Consider refactoring CompatProguardCommandBuilder to avoid subclassing.
     Builder() {
@@ -520,7 +521,7 @@ public final class R8Command extends BaseCompilerCommand {
 
       ProguardConfigurationParser parser =
           new ProguardConfigurationParser(
-              factory, reporter, inputDependencyGraphConsumer, allowTestProguardOptions);
+              factory, reporter, parserOptionsBuilder.build(), inputDependencyGraphConsumer);
       if (!proguardConfigs.isEmpty()) {
         parser.parse(proguardConfigs);
       }
@@ -662,9 +663,13 @@ public final class R8Command extends BaseCompilerCommand {
 
     }
 
+    void setEnableExperimentalWhyAreYouNotInlining() {
+      parserOptionsBuilder.setEnableExperimentalWhyAreYouNotInlining(true);
+    }
+
     // Internal for-testing method to allow proguard options only available for testing.
-    void allowTestProguardOptions() {
-      allowTestProguardOptions = true;
+    void setEnableTestProguardOptions() {
+      parserOptionsBuilder.setEnableTestingOptions(true);
     }
   }
 

@@ -9,6 +9,8 @@ import java.util.List;
 
 public class WhyAreYouNotInliningRule extends ProguardConfigurationRule {
 
+  public static final String RULE_NAME = "whyareyounotinlining";
+
   public static class Builder
       extends ProguardConfigurationRule.Builder<WhyAreYouNotInliningRule, Builder> {
 
@@ -76,6 +78,6 @@ public class WhyAreYouNotInliningRule extends ProguardConfigurationRule {
 
   @Override
   String typeString() {
-    return "whyareyounotinlining";
+    return RULE_NAME;
   }
 }

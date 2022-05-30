@@ -4,20 +4,21 @@
 
 package com.android.tools.r8.experimental.startup;
 
-import static com.android.tools.r8.utils.InternalOptions.getSystemPropertyForDevelopmentOrDefault;
-import static com.android.tools.r8.utils.InternalOptions.isSystemPropertyForDevelopmentSet;
+import static com.android.tools.r8.utils.SystemPropertyUtils.getSystemPropertyForDevelopment;
+import static com.android.tools.r8.utils.SystemPropertyUtils.parseSystemPropertyForDevelopmentOrDefault;
 
 public class StartupOptions {
 
   private boolean enableMinimalStartupDex =
-      isSystemPropertyForDevelopmentSet("com.android.tools.r8.startup.minimalstartupdex");
+      parseSystemPropertyForDevelopmentOrDefault(
+          "com.android.tools.r8.startup.minimalstartupdex", false);
   private boolean enableStartupCompletenessCheckForTesting =
-      isSystemPropertyForDevelopmentSet("com.android.tools.r8.startup.completenesscheck");
+      parseSystemPropertyForDevelopmentOrDefault(
+          "com.android.tools.r8.startup.completenesscheck", false);
   private boolean enableStartupInstrumentation =
-      isSystemPropertyForDevelopmentSet("com.android.tools.r8.startup.instrument");
+      parseSystemPropertyForDevelopmentOrDefault("com.android.tools.r8.startup.instrument", false);
   private String startupInstrumentationTag =
-      getSystemPropertyForDevelopmentOrDefault(
-          "com.android.tools.r8.startup.instrumentationtag", null);
+      getSystemPropertyForDevelopment("com.android.tools.r8.startup.instrumentationtag");
 
   private StartupConfiguration startupConfiguration;
 
