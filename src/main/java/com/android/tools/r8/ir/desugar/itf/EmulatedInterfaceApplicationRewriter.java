@@ -78,6 +78,7 @@ public final class EmulatedInterfaceApplicationRewriter {
             emulatedInterface.getSourceFile(),
             null,
             Collections.emptyList(),
+            Collections.emptyList(),
             null, // Note that we clear the enclosing and inner class attributes.
             Collections.emptyList(),
             emulatedInterface.getClassSignature(),

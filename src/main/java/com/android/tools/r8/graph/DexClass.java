@@ -80,6 +80,8 @@ public abstract class DexClass extends DexDefinition
 
   private List<NestMemberClassAttribute> nestMembers;
 
+  private List<PermittedSubclassAttribute> permittedSubclasses;
+
   /** Generic signature information if the attribute is present in the input */
   protected ClassSignature classSignature;
 
@@ -94,6 +96,7 @@ public abstract class DexClass extends DexDefinition
       MethodCollectionFactory methodCollectionFactory,
       NestHostClassAttribute nestHost,
       List<NestMemberClassAttribute> nestMembers,
+      List<PermittedSubclassAttribute> permittedSubclasses,
       EnclosingMethodAttribute enclosingMethod,
       List<InnerClassAttribute> innerClasses,
       ClassSignature classSignature,
@@ -114,6 +117,8 @@ public abstract class DexClass extends DexDefinition
     this.nestHost = nestHost;
     this.nestMembers = nestMembers;
     assert nestMembers != null;
+    this.permittedSubclasses = permittedSubclasses;
+    assert permittedSubclasses != null;
     this.enclosingMethod = enclosingMethod;
     this.innerClasses = innerClasses;
     assert classSignature != null;
@@ -1180,7 +1185,7 @@ public abstract class DexClass extends DexDefinition
   }
 
   public boolean hasNestMemberAttributes() {
-    return nestMembers != null && !nestMembers.isEmpty();
+    return !nestMembers.isEmpty();
   }
 
   public List<NestMemberClassAttribute> getNestMembersClassAttributes() {
@@ -1193,6 +1198,14 @@ public abstract class DexClass extends DexDefinition
 
   public void removeNestMemberAttributes(Predicate<NestMemberClassAttribute> predicate) {
     nestMembers.removeIf(predicate);
+  }
+
+  public boolean hasPermittedSubclassAttributes() {
+    return !permittedSubclasses.isEmpty();
+  }
+
+  public List<PermittedSubclassAttribute> getPermittedSubclassAttributes() {
+    return permittedSubclasses;
   }
 
   /** Returns kotlin class info if the class is synthesized by kotlin compiler. */

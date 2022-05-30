@@ -34,6 +34,7 @@ class CallGraphTestBase extends TestBase {
           null,
           null,
           Collections.emptyList(),
+          Collections.emptyList(),
           null,
           Collections.emptyList(),
           ClassSignature.noSignature(),

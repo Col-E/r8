@@ -65,6 +65,7 @@ import com.android.tools.r8.graph.NestHostClassAttribute;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.graph.PermittedSubclassAttribute;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -859,6 +860,7 @@ public class DexParser<T extends DexClass> {
               source,
               attrs.nestHostAttribute,
               attrs.nestMembersAttribute,
+              attrs.permittedSubclasses,
               attrs.getEnclosingMethodAttribute(),
               attrs.getInnerClasses(),
               attrs.classSignature,
@@ -1427,6 +1429,7 @@ public class DexParser<T extends DexClass> {
     private ClassSignature classSignature = ClassSignature.noSignature();
     private NestHostClassAttribute nestHostAttribute;
     private List<NestMemberClassAttribute> nestMembersAttribute = Collections.emptyList();
+    private List<PermittedSubclassAttribute> permittedSubclasses = Collections.emptyList();
 
     public DexAnnotationSet getAnnotations() {
       if (lazyAnnotations != null) {

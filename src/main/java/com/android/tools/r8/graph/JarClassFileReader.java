@@ -226,6 +226,7 @@ public class JarClassFileReader<T extends DexClass> {
     private DexString sourceFile;
     private NestHostClassAttribute nestHost = null;
     private final List<NestMemberClassAttribute> nestMembers = new ArrayList<>();
+    private final List<PermittedSubclassAttribute> permittedSubclasses = new ArrayList<>();
     private final Set<DexField> recordComponents = Sets.newIdentityHashSet();
     private EnclosingMethodAttribute enclosingMember = null;
     private final List<InnerClassAttribute> innerClasses = new ArrayList<>();
@@ -348,11 +349,12 @@ public class JarClassFileReader<T extends DexClass> {
 
     @Override
     public void visitPermittedSubclass(String permittedSubclass) {
+      assert permittedSubclass != null;
+      DexType permittedSubclassType = application.getTypeFromName(permittedSubclass);
+      permittedSubclasses.add(new PermittedSubclassAttribute(permittedSubclassType));
       if (classKind == ClassKind.PROGRAM) {
         throw new CompilationError("Sealed classes are not supported as program classes", origin);
       }
-      // For library and classpath just ignore the permitted subclasses, as the compiler is not
-      // validating the code with respect to sealed classes.
     }
 
     @Override
@@ -476,6 +478,7 @@ public class JarClassFileReader<T extends DexClass> {
               sourceFile,
               nestHost,
               nestMembers,
+              permittedSubclasses,
               enclosingMember,
               innerClasses,
               classSignature,

@@ -107,6 +107,7 @@ public abstract class TreeFixerBase {
             clazz.getSourceFile(),
             fixupNestHost(clazz.getNestHostClassAttribute()),
             fixupNestMemberAttributes(clazz.getNestMembersClassAttributes()),
+            fixupPermittedSubclassAttribute(clazz.getPermittedSubclassAttributes()),
             fixupEnclosingMethodAttribute(clazz.getEnclosingMethodAttribute()),
             fixupInnerClassAttributes(clazz.getInnerClasses()),
             clazz.getClassSignature(),
@@ -269,6 +270,23 @@ public abstract class TreeFixerBase {
       changed |= newNestMemberType != nestMemberType;
     }
     return changed ? newNestMemberAttributes : nestMemberAttributes;
+  }
+
+  protected List<PermittedSubclassAttribute> fixupPermittedSubclassAttribute(
+      List<PermittedSubclassAttribute> permittedSubclassAttributes) {
+    if (permittedSubclassAttributes.isEmpty()) {
+      return permittedSubclassAttributes;
+    }
+    boolean changed = false;
+    List<PermittedSubclassAttribute> newPermittedSubclassAttributes =
+        new ArrayList<>(permittedSubclassAttributes.size());
+    for (PermittedSubclassAttribute permittedSubclassAttribute : permittedSubclassAttributes) {
+      DexType permittedSubclassType = permittedSubclassAttribute.getPermittedSubclass();
+      DexType newPermittedSubclassType = fixupType(permittedSubclassType);
+      newPermittedSubclassAttributes.add(new PermittedSubclassAttribute(newPermittedSubclassType));
+      changed |= newPermittedSubclassType != permittedSubclassType;
+    }
+    return changed ? newPermittedSubclassAttributes : permittedSubclassAttributes;
   }
 
   /** Fixup a proto descriptor. */
