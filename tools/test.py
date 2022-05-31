@@ -134,6 +134,9 @@ def ParseOptions():
   result.add_option('--no-r8lib', '--no_r8lib',
       default=False, action='store_true',
       help='Run the tests on R8 full with relocated dependencies.')
+  result.add_option('--no-arttests', '--no_arttests',
+      default=False, action='store_true',
+      help='Do not run the art tests.')
   result.add_option('--r8lib-no-deps', '--r8lib_no_deps',
       default=False, action='store_true',
       help='Run the tests on r8lib without relocated dependencies.')
@@ -345,6 +348,8 @@ def Main():
     gradle_args.append('-Pdesugar_jdk_json_dir=' + desugar_jdk_json_dir)
   if desugar_jdk_libs:
     gradle_args.append('-Pdesugar_jdk_libs=' + desugar_jdk_libs)
+  if options.no_arttests:
+    gradle_args.append('-Pno_arttests=true')
   if options.reset_testing_state:
     gradle_args.append('-Ptesting-state')
     gradle_args.append('-Preset-testing-state')

@@ -2274,6 +2274,9 @@ test { task ->
     if (!project.hasProperty('all_tests')) {
         exclude "com/android/tools/r8/art/dx/**"
     }
+    if (project.hasProperty('no_arttests')) {
+        exclude "com/android/tools/r8/art/**"
+    }
     if (project.hasProperty('shard_count') ) {
       assert project.hasProperty('shard_number')
       int shard_count = project.getProperty('shard_count') as Integer

@@ -342,6 +342,7 @@ def desugared_library():
         "--one_line_per_test",
         "--archive_failures",
         "--no_internal",
+        "--no_arttests",
         "--desugared-library",
         "HEAD"
     ]
