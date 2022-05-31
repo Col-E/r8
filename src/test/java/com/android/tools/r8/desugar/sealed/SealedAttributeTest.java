@@ -69,14 +69,13 @@ public class SealedAttributeTest extends TestBase {
     if (parameters.isCfRuntime()) {
       assertThrows(
           CompilationFailedException.class,
-          () -> {
-            builder.compileWithExpectedDiagnostics(
-                diagnostics -> {
-                  diagnostics.assertErrorThatMatches(
-                      diagnosticMessage(
-                          containsString("Sealed classes are not supported as program classes")));
-                });
-          });
+          () ->
+              builder.compileWithExpectedDiagnostics(
+                  diagnostics ->
+                      diagnostics.assertErrorThatMatches(
+                          diagnosticMessage(
+                              containsString(
+                                  "Sealed classes are not supported as program classes")))));
     } else {
       builder
           .run(parameters.getRuntime(), Sealed.Main.typeName())

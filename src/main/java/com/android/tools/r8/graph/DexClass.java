@@ -1116,6 +1116,10 @@ public abstract class DexClass extends DexDefinition
     this.classSignature = classSignature;
   }
 
+  public void clearPermittedSubclasses() {
+    permittedSubclasses.clear();
+  }
+
   public boolean isLocalClass() {
     InnerClassAttribute innerClass = getInnerClassAttributeForThisClass();
     // The corresponding enclosing-method attribute might be not available, e.g., CF version 50.

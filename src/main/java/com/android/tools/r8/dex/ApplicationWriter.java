@@ -739,6 +739,12 @@ public class ApplicationWriter {
               clazz.getNestHostClassAttribute(), options.itemFactory));
     }
 
+    if (clazz.hasPermittedSubclassAttributes() && options.canUseSealedClasses()) {
+      annotations.add(
+          DexAnnotation.createPermittedSubclassesAnnotation(
+              clazz.getPermittedSubclassAttributes(), options.itemFactory));
+    }
+
     if (!annotations.isEmpty()) {
       // Append the annotations to annotations array of the class.
       DexAnnotation[] copy =
@@ -753,6 +759,7 @@ public class ApplicationWriter {
     clazz.clearEnclosingMethodAttribute();
     clazz.clearInnerClasses();
     clazz.clearClassSignature();
+    clazz.clearPermittedSubclasses();
   }
 
   private void insertAttributeAnnotationsForField(DexEncodedField field) {

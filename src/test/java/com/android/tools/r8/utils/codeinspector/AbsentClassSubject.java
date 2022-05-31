@@ -225,6 +225,11 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
+  public List<TypeSubject> getFinalPermittedSubclassAttributes() {
+    throw new Unreachable("Cannot determine PermittedSubclasses attribute of an absent class");
+  }
+
+  @Override
   public KmClassSubject getKmClass() {
     return null;
   }

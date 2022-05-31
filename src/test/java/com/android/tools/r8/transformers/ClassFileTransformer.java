@@ -424,6 +424,50 @@ public class ClassFileTransformer {
             });
   }
 
+  public ClassFileTransformer setPermittedSubclasses(
+      Class<?> clazz, Class<?>... permittedSubclasses) {
+    assert !Arrays.asList(permittedSubclasses).contains(clazz);
+    return setMinVersion(CfVm.JDK17)
+        .addClassTransformer(
+            new ClassTransformer() {
+
+              final String name = DescriptorUtils.getBinaryNameFromJavaType(clazz.getTypeName());
+
+              final List<String> permittedSubclassesNames =
+                  Arrays.stream(permittedSubclasses)
+                      .map(m -> DescriptorUtils.getBinaryNameFromJavaType(m.getTypeName()))
+                      .collect(Collectors.toList());
+              String className;
+
+              @Override
+              public void visit(
+                  int version,
+                  int access,
+                  String name,
+                  String signature,
+                  String superName,
+                  String[] interfaces) {
+                super.visit(version, access, name, signature, superName, interfaces);
+                className = name;
+              }
+
+              @Override
+              public void visitPermittedSubclass(String permittedSubclass) {
+                // Ignore/remove existing permitted subclasses.
+              }
+
+              @Override
+              public void visitEnd() {
+                if (className.equals(name)) {
+                  for (String permittedSubclass : permittedSubclassesNames) {
+                    super.visitPermittedSubclass(permittedSubclass);
+                  }
+                }
+                super.visitEnd();
+              }
+            });
+  }
+
   public ClassFileTransformer unsetAbstract() {
     return setAccessFlags(ClassAccessFlags::unsetAbstract);
   }

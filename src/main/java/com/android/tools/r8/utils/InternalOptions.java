@@ -396,6 +396,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean emitNestAnnotationsInDex =
       System.getProperty("com.android.tools.r8.emitNestAnnotationsInDex") != null;
 
+  // Flag to allow permitted subclasses annotations in DEX. See b/231930852 for context.
+  public boolean emitPermittedSubclassesAnnotationsInDex =
+      System.getProperty("com.android.tools.r8.emitPermittedSubclassesAnnotationsInDex") != null;
+
   // Contain the contents of the build properties file from the compiler command.
   public DumpOptions dumpOptions;
 
@@ -2000,6 +2004,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public boolean canUseRecords() {
     return !isDesugaring();
+  }
+
+  public boolean canUseSealedClasses() {
+    return !isDesugaring() || emitPermittedSubclassesAnnotationsInDex;
   }
 
   public boolean canLeaveStaticInterfaceMethodInvokes() {

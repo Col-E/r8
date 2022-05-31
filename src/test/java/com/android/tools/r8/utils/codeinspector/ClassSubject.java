@@ -246,6 +246,8 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
 
   public abstract List<TypeSubject> getFinalNestMembersAttribute();
 
+  public abstract List<TypeSubject> getFinalPermittedSubclassAttributes();
+
   public abstract KmClassSubject getKmClass();
 
   public abstract KmPackageSubject getKmPackage();

@@ -70,6 +70,7 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.io.ByteStreams;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
@@ -860,7 +861,7 @@ public class DexParser<T extends DexClass> {
               source,
               attrs.nestHostAttribute,
               attrs.nestMembersAttribute,
-              attrs.permittedSubclasses,
+              attrs.permittedSubclassesAttribute,
               attrs.getEnclosingMethodAttribute(),
               attrs.getInnerClasses(),
               attrs.classSignature,
@@ -1429,7 +1430,7 @@ public class DexParser<T extends DexClass> {
     private ClassSignature classSignature = ClassSignature.noSignature();
     private NestHostClassAttribute nestHostAttribute;
     private List<NestMemberClassAttribute> nestMembersAttribute = Collections.emptyList();
-    private List<PermittedSubclassAttribute> permittedSubclasses = Collections.emptyList();
+    private List<PermittedSubclassAttribute> permittedSubclassesAttribute = Collections.emptyList();
 
     public DexAnnotationSet getAnnotations() {
       if (lazyAnnotations != null) {
@@ -1506,6 +1507,14 @@ public class DexParser<T extends DexClass> {
             for (DexType member : members) {
               nestMembersAttribute.add(new NestMemberClassAttribute(member));
             }
+          }
+        } else if (DexAnnotation.isPermittedSubclassesAnnotation(annotation, factory)) {
+          ensureAnnotations(i);
+          List<DexType> permittedSubclasses =
+              DexAnnotation.getPermittedSubclassesFromAnnotation(annotation, factory);
+          if (permittedSubclasses != null) {
+            permittedSubclassesAttribute =
+                ListUtils.map(permittedSubclasses, PermittedSubclassAttribute::new);
           }
         } else {
           copyAnnotation(annotation);

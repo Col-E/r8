@@ -186,6 +186,11 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
     return annotation.annotation.type == factory.annotationNestMembers;
   }
 
+  public static boolean isPermittedSubclassesAnnotation(
+      DexAnnotation annotation, DexItemFactory factory) {
+    return annotation.annotation.type == factory.annotationPermittedSubclasses;
+  }
+
   public static DexAnnotation createInnerClassAnnotation(
       DexString clazz, int access, DexItemFactory factory) {
     return new DexAnnotation(
@@ -252,9 +257,9 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
     return value.asDexValueType().getValue();
   }
 
-  public static List<DexType> getNestMembersFromAnnotation(
-      DexAnnotation annotation, DexItemFactory factory) {
-    DexValue value = getSystemValueAnnotationValue(factory.annotationNestMembers, annotation);
+  private static List<DexType> getTypesFromAnnotation(
+      DexType annotationType, DexAnnotation annotation) {
+    DexValue value = getSystemValueAnnotationValue(annotationType, annotation);
     if (value == null) {
       return null;
     }
@@ -264,6 +269,16 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
       types.add(elementValue.asDexValueType().value);
     }
     return types;
+  }
+
+  public static List<DexType> getNestMembersFromAnnotation(
+      DexAnnotation annotation, DexItemFactory factory) {
+    return getTypesFromAnnotation(factory.annotationNestMembers, annotation);
+  }
+
+  public static List<DexType> getPermittedSubclassesFromAnnotation(
+      DexAnnotation annotation, DexItemFactory factory) {
+    return getTypesFromAnnotation(factory.annotationPermittedSubclasses, annotation);
   }
 
   public static DexAnnotation createSourceDebugExtensionAnnotation(DexValue value,
@@ -318,6 +333,18 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
     }
     return createSystemValueAnnotation(
         factory.annotationNestMembers,
+        factory,
+        new DexValue.DexValueArray(list.toArray(DexValue.EMPTY_ARRAY)));
+  }
+
+  public static DexAnnotation createPermittedSubclassesAnnotation(
+      List<PermittedSubclassAttribute> permittedSubclasses, DexItemFactory factory) {
+    List<DexValueType> list = new ArrayList<>(permittedSubclasses.size());
+    for (PermittedSubclassAttribute permittedSubclass : permittedSubclasses) {
+      list.add(new DexValue.DexValueType(permittedSubclass.getPermittedSubclass()));
+    }
+    return createSystemValueAnnotation(
+        factory.annotationPermittedSubclasses,
         factory,
         new DexValue.DexValueArray(list.toArray(DexValue.EMPTY_ARRAY)));
   }
