@@ -416,7 +416,9 @@ public class DexBuilder {
       return false;
     }
     if (blockIndex + 1 >= code.blocks.size()) {
-      return false;
+      // The current block is a if/switch fallthrough target and there is no next-block.
+      // The current jump is thus to a non-fallthrough block.
+      return true;
     }
     BasicBlock nextBlock = code.blocks.get(blockIndex + 1);
     return current.exit().asGoto().getTarget() != nextBlock;
