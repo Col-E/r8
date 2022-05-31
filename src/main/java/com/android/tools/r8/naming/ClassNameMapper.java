@@ -159,8 +159,7 @@ public class ClassNameMapper implements ProguardMap {
       LineReader reader,
       DiagnosticsHandler diagnosticsHandler,
       boolean allowEmptyMappedRanges,
-      boolean allowExperimentalMapping,
-      Set<String> buildForClass)
+      boolean allowExperimentalMapping)
       throws IOException {
     try (ProguardMapReader proguardReader =
         new ProguardMapReader(

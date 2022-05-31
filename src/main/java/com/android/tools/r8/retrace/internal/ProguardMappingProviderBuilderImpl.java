@@ -73,7 +73,7 @@ public class ProguardMappingProviderBuilderImpl extends ProguardMappingProvider.
                   proguardMapProducer.get(), buildForClass);
       return new ProguardMappingProviderImpl(
           ClassNameMapper.mapperFromLineReaderWithFiltering(
-              reader, diagnosticsHandler, true, allowExperimental, buildForClass));
+              reader, diagnosticsHandler, true, allowExperimental));
     } catch (Exception e) {
       throw new InvalidMappingFileException(e);
     }
