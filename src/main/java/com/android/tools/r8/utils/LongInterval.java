@@ -36,6 +36,10 @@ public class LongInterval {
     return min == max;
   }
 
+  public boolean isSingleValue(int value) {
+    return isSingleValue() && getSingleValue() == value;
+  }
+
   public long getSingleValue() {
     assert isSingleValue();
     return min;

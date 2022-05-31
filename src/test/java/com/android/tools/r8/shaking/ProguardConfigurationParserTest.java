@@ -454,7 +454,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertTrue(rule.getReturnValue().isBoolean());
         assertFalse(rule.getReturnValue().isValueRange());
         assertFalse(rule.getReturnValue().isField());
-        assertFalse(rule.getReturnValue().isNull());
+        assertFalse(rule.getReturnValue().isNullability());
         assertEquals(rule.getName().matches("returnsTrue"), rule.getReturnValue().getBoolean());
         matches |= 1 << 0;
       } else if (rule.getName().matches("returns1")) {
@@ -462,19 +462,16 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertFalse(rule.getReturnValue().isBoolean());
         assertTrue(rule.getReturnValue().isValueRange());
         assertFalse(rule.getReturnValue().isField());
-        assertFalse(rule.getReturnValue().isNull());
-        assertTrue(rule.getReturnValue().isSingleValue());
+        assertFalse(rule.getReturnValue().isNullability());
         assertEquals(1, rule.getReturnValue().getValueRange().getMin());
         assertEquals(1, rule.getReturnValue().getValueRange().getMax());
-        assertEquals(1, rule.getReturnValue().getSingleValue());
         matches |= 1 << 1;
       } else if (rule.getName().matches("returns2To4")) {
         assertTrue(rule.hasReturnValue());
         assertFalse(rule.getReturnValue().isBoolean());
         assertTrue(rule.getReturnValue().isValueRange());
         assertFalse(rule.getReturnValue().isField());
-        assertFalse(rule.getReturnValue().isNull());
-        assertFalse(rule.getReturnValue().isSingleValue());
+        assertFalse(rule.getReturnValue().isNullability());
         assertEquals(2, rule.getReturnValue().getValueRange().getMin());
         assertEquals(4, rule.getReturnValue().getValueRange().getMax());
         matches |= 1 << 2;
@@ -483,8 +480,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertFalse(rule.getReturnValue().isBoolean());
         assertTrue(rule.getReturnValue().isValueRange());
         assertFalse(rule.getReturnValue().isField());
-        assertFalse(rule.getReturnValue().isNull());
-        assertFalse(rule.getReturnValue().isSingleValue());
+        assertFalse(rule.getReturnValue().isNullability());
         assertEquals(234, rule.getReturnValue().getValueRange().getMin());
         assertEquals(567, rule.getReturnValue().getValueRange().getMax());
         matches |= 1 << 3;
@@ -493,7 +489,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertFalse(rule.getReturnValue().isBoolean());
         assertFalse(rule.getReturnValue().isValueRange());
         assertTrue(rule.getReturnValue().isField());
-        assertFalse(rule.getReturnValue().isNull());
+        assertFalse(rule.getReturnValue().isNullability());
         assertEquals("com.google.C", rule.getReturnValue().getFieldHolder().getTypeName());
         assertEquals("X", rule.getReturnValue().getFieldName().toString());
         matches |= 1 << 4;
@@ -502,18 +498,23 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertFalse(rule.getReturnValue().isBoolean());
         assertFalse(rule.getReturnValue().isValueRange());
         assertFalse(rule.getReturnValue().isField());
-        assertTrue(rule.getReturnValue().isNull());
-        assertTrue(rule.getReturnValue().isSingleValue());
+        assertTrue(rule.getReturnValue().isNullability());
+        assertTrue(rule.getReturnValue().getNullability().isDefinitelyNull());
         matches |= 1 << 5;
       } else if (rule.getName().matches("returnsNonNull")) {
-        assertFalse(rule.hasReturnValue());
+        assertTrue(rule.hasReturnValue());
+        assertFalse(rule.getReturnValue().isBoolean());
+        assertFalse(rule.getReturnValue().isValueRange());
+        assertFalse(rule.getReturnValue().isField());
+        assertTrue(rule.getReturnValue().isNullability());
+        assertTrue(rule.getReturnValue().getNullability().isDefinitelyNotNull());
         matches |= 1 << 6;
       } else if (rule.getName().matches("returnsNonNullField")) {
         assertTrue(rule.hasReturnValue());
         assertFalse(rule.getReturnValue().isBoolean());
         assertFalse(rule.getReturnValue().isValueRange());
         assertTrue(rule.getReturnValue().isField());
-        assertFalse(rule.getReturnValue().isNull());
+        assertFalse(rule.getReturnValue().isNullability());
         assertEquals("com.google.C", rule.getReturnValue().getFieldHolder().getTypeName());
         assertEquals("X", rule.getReturnValue().getFieldName().toString());
         matches |= 1 << 7;
@@ -539,7 +540,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertTrue(rule.getReturnValue().isBoolean());
         assertFalse(rule.getReturnValue().isValueRange());
         assertFalse(rule.getReturnValue().isField());
-        assertFalse(rule.getReturnValue().isNull());
+        assertFalse(rule.getReturnValue().isNullability());
         assertEquals(rule.getName().matches("isTrue"), rule.getReturnValue().getBoolean());
         matches |= 1 << 0;
       } else if (rule.getName().matches("is1")) {
@@ -547,19 +548,16 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertFalse(rule.getReturnValue().isBoolean());
         assertTrue(rule.getReturnValue().isValueRange());
         assertFalse(rule.getReturnValue().isField());
-        assertFalse(rule.getReturnValue().isNull());
-        assertTrue(rule.getReturnValue().isSingleValue());
+        assertFalse(rule.getReturnValue().isNullability());
         assertEquals(1, rule.getReturnValue().getValueRange().getMin());
         assertEquals(1, rule.getReturnValue().getValueRange().getMax());
-        assertEquals(1, rule.getReturnValue().getSingleValue());
         matches |= 1 << 1;
       } else if (rule.getName().matches("is2To4")) {
         assertTrue(rule.hasReturnValue());
         assertFalse(rule.getReturnValue().isBoolean());
         assertTrue(rule.getReturnValue().isValueRange());
         assertFalse(rule.getReturnValue().isField());
-        assertFalse(rule.getReturnValue().isNull());
-        assertFalse(rule.getReturnValue().isSingleValue());
+        assertFalse(rule.getReturnValue().isNullability());
         assertEquals(2, rule.getReturnValue().getValueRange().getMin());
         assertEquals(4, rule.getReturnValue().getValueRange().getMax());
         matches |= 1 << 2;
@@ -568,8 +566,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertFalse(rule.getReturnValue().isBoolean());
         assertTrue(rule.getReturnValue().isValueRange());
         assertFalse(rule.getReturnValue().isField());
-        assertFalse(rule.getReturnValue().isNull());
-        assertFalse(rule.getReturnValue().isSingleValue());
+        assertFalse(rule.getReturnValue().isNullability());
         assertEquals(234, rule.getReturnValue().getValueRange().getMin());
         assertEquals(567, rule.getReturnValue().getValueRange().getMax());
         matches |= 1 << 3;
@@ -578,7 +575,8 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertFalse(rule.getReturnValue().isBoolean());
         assertFalse(rule.getReturnValue().isValueRange());
         assertTrue(rule.getReturnValue().isField());
-        assertFalse(rule.getReturnValue().isNull());
+        assertFalse(rule.getReturnValue().isNullability());
+        assertTrue(rule.getReturnValue().getNullability().isMaybeNull());
         assertEquals("com.google.C", rule.getReturnValue().getFieldHolder().getTypeName());
         assertEquals("X", rule.getReturnValue().getFieldName().toString());
         matches |= 1 << 4;
@@ -587,18 +585,24 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertFalse(rule.getReturnValue().isBoolean());
         assertFalse(rule.getReturnValue().isValueRange());
         assertFalse(rule.getReturnValue().isField());
-        assertTrue(rule.getReturnValue().isNull());
-        assertTrue(rule.getReturnValue().isSingleValue());
+        assertTrue(rule.getReturnValue().isNullability());
+        assertTrue(rule.getReturnValue().getNullability().isDefinitelyNull());
         matches |= 1 << 5;
       } else if (rule.getName().matches("returnsNonNull")) {
-        assertFalse(rule.hasReturnValue());
+        assertTrue(rule.hasReturnValue());
+        assertFalse(rule.getReturnValue().isBoolean());
+        assertFalse(rule.getReturnValue().isValueRange());
+        assertFalse(rule.getReturnValue().isField());
+        assertTrue(rule.getReturnValue().isNullability());
+        assertTrue(rule.getReturnValue().getNullability().isDefinitelyNotNull());
         matches |= 1 << 6;
       } else if (rule.getName().matches("returnsNonNullField")) {
         assertTrue(rule.hasReturnValue());
         assertFalse(rule.getReturnValue().isBoolean());
         assertFalse(rule.getReturnValue().isValueRange());
         assertTrue(rule.getReturnValue().isField());
-        assertFalse(rule.getReturnValue().isNull());
+        assertFalse(rule.getReturnValue().isNullability());
+        assertTrue(rule.getReturnValue().getNullability().isDefinitelyNotNull());
         assertEquals("com.google.C", rule.getReturnValue().getFieldHolder().getTypeName());
         assertEquals("X", rule.getReturnValue().getFieldName().toString());
         matches |= 1 << 7;
