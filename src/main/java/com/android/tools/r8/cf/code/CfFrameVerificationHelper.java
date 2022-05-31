@@ -46,12 +46,13 @@ public class CfFrameVerificationHelper implements CfAnalysisConfig {
   public CfFrameVerificationHelper(
       AppView<?> appView,
       CfCode code,
+      GraphLens codeLens,
       ProgramMethod method,
       Map<CfLabel, CfFrame> stateMap,
       List<CfTryCatch> tryCatchRanges) {
     this.appView = appView;
     this.code = code;
-    this.codeLens = code.getCodeLens(appView);
+    this.codeLens = codeLens;
     this.method = method;
     this.previousMethod =
         appView.graphLens().getOriginalMethodSignature(method.getReference(), codeLens);

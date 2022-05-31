@@ -953,7 +953,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
           CfCodeStackMapValidatingException.noFramesForMethodWithJumps(method, appView), appView);
     }
     CfFrameVerificationHelper helper =
-        new CfFrameVerificationHelper(appView, this, method, stateMap, tryCatchRanges);
+        new CfFrameVerificationHelper(appView, this, codeLens, method, stateMap, tryCatchRanges);
     CfCodeDiagnostics diagnostics = helper.checkTryCatchRanges();
     if (diagnostics != null) {
       return reportStackMapError(diagnostics, appView);
