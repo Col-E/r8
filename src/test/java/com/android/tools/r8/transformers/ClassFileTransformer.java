@@ -32,7 +32,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -1059,6 +1061,38 @@ public class ClassFileTransformer {
                   redirectVisitFieldInsn(this, super::visitFieldInsn));
             } else {
               super.visitMethodInsn(opcode, owner, name, descriptor);
+            }
+          }
+        });
+  }
+
+  public ClassFileTransformer setPredictiveLineNumbering() {
+    return setPredictiveLineNumbering(MethodPredicate.all());
+  }
+
+  public ClassFileTransformer setPredictiveLineNumbering(MethodPredicate predicate) {
+    return setPredictiveLineNumbering(predicate, 0);
+  }
+
+  public ClassFileTransformer setPredictiveLineNumbering(
+      MethodPredicate predicate, int startingLineNumber) {
+    return addMethodTransformer(
+        new MethodTransformer() {
+          private final Map<MethodReference, Integer> lines = new HashMap<>();
+
+          @Override
+          public void visitLineNumber(int line, Label start) {
+            if (MethodPredicate.testContext(predicate, getContext())) {
+              Integer nextLine =
+                  lines.getOrDefault(getContext().getReference(), startingLineNumber);
+              if (nextLine > 0) {
+                super.visitLineNumber(nextLine, start);
+              }
+              // Increment the actual line content by 100 so that each one is clearly distinct
+              // from a PC value for any of the methods.
+              lines.put(getContext().getReference(), nextLine + 100);
+            } else {
+              super.visitLineNumber(line, start);
             }
           }
         });

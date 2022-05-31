@@ -71,6 +71,24 @@ public class StackTrace {
       return this;
     }
 
+    public Builder addWithoutLineNumber(Class<?> clazz, String methodName, String fileName) {
+      return addWithoutLineNumber(clazz.getTypeName(), methodName, fileName);
+    }
+
+    public Builder addWithoutLineNumber(ClassReference clazz, String methodName, String fileName) {
+      return addWithoutLineNumber(clazz.getTypeName(), methodName, fileName);
+    }
+
+    public Builder addWithoutLineNumber(String className, String methodName, String fileName) {
+      stackTraceLines.add(
+          StackTraceLine.builder()
+              .setClassName(className)
+              .setMethodName(methodName)
+              .setFileName(fileName)
+              .build());
+      return this;
+    }
+
     public Builder map(int i, Function<StackTraceLine, StackTraceLine> map) {
       stackTraceLines.set(i, map.apply(stackTraceLines.get(i)));
       return this;

@@ -10,17 +10,12 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
-import com.android.tools.r8.references.MethodReference;
-import com.android.tools.r8.transformers.MethodTransformer;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.objectweb.asm.Label;
 
 @RunWith(Parameterized.class)
 public class NoLineInfoTest extends TestBase {
@@ -47,21 +42,7 @@ public class NoLineInfoTest extends TestBase {
   private byte[] getTestClassTransformed() throws IOException {
     return transformer(TestClass.class)
         .setSourceFile(INPUT_SOURCE_FILE)
-        .addMethodTransformer(
-            new MethodTransformer() {
-              private final Map<MethodReference, Integer> lines = new HashMap<>();
-
-              @Override
-              public void visitLineNumber(int line, Label start) {
-                Integer nextLine = lines.getOrDefault(getContext().getReference(), 0);
-                if (nextLine > 0) {
-                  super.visitLineNumber(nextLine, start);
-                }
-                // Increment the actual line content by 100 so that each one is clearly distinct
-                // from a PC value for any of the methods.
-                lines.put(getContext().getReference(), nextLine + 100);
-              }
-            })
+        .setPredictiveLineNumbering()
         .transform();
   }
 
