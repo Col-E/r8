@@ -950,9 +950,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       assert info.isRead() || info.isWritten();
       return true;
     }
-    // TODO(b/192924387): When we enqueue a field as a root item, we should maybe create a
-    //  FieldAccessInfo that describes the field is read and written using reflection.
-    return !getKeepInfo().getFieldInfo(reference, this).isShrinkingAllowed(options());
+    assert getKeepInfo().getFieldInfo(reference, this).isShrinkingAllowed(options());
+    return false;
   }
 
   public boolean isFieldRead(DexEncodedField encodedField) {

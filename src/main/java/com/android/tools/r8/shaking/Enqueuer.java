@@ -1045,6 +1045,19 @@ public class Enqueuer {
     }
   }
 
+  private FieldAccessInfoImpl getOrCreateFieldAccessInfo(DexEncodedField field) {
+    // Check if we have previously created a FieldAccessInfo object for the field definition.
+    FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field.getReference());
+
+    // If not, we must create one.
+    if (info == null) {
+      info = new FieldAccessInfoImpl(field.getReference());
+      fieldAccessInfoCollection.extend(field.getReference(), info);
+    }
+
+    return info;
+  }
+
   private boolean registerFieldAccess(
       DexField field, ProgramMethod context, boolean isRead, boolean isReflective) {
     FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field);
@@ -1058,14 +1071,7 @@ public class Enqueuer {
         return true;
       }
 
-      // Check if we have previously created a FieldAccessInfo object for the field definition.
-      info = fieldAccessInfoCollection.get(encodedField.getReference());
-
-      // If not, we must create one.
-      if (info == null) {
-        info = new FieldAccessInfoImpl(encodedField.getReference());
-        fieldAccessInfoCollection.extend(encodedField.getReference(), info);
-      }
+      info = getOrCreateFieldAccessInfo(encodedField);
 
       // If `field` is an indirect reference, then create a mapping for it, such that we don't have
       // to resolve the field the next time we see the reference.
@@ -4553,6 +4559,10 @@ public class Enqueuer {
 
   // Package protected due to entry point from worklist.
   void markFieldAsKept(ProgramField field, KeepReason reason) {
+    FieldAccessInfoImpl fieldAccessInfo = getOrCreateFieldAccessInfo(field.getDefinition());
+    fieldAccessInfo.setHasReflectiveRead();
+    fieldAccessInfo.setHasReflectiveWrite();
+
     if (field.getDefinition().isStatic()) {
       markFieldAsLive(field, field, reason);
     } else {

@@ -736,7 +736,7 @@ public abstract class EnqueuerWorklist {
     @Override
     public void enqueueTraceReflectiveFieldAccessAction(ProgramField field, ProgramMethod context) {
       FieldAccessInfo info = enqueuer.getFieldAccessInfoCollection().get(field.getReference());
-      if (info == null || !info.hasReflectiveAccess()) {
+      if (info == null || !info.hasReflectiveRead() || !info.hasReflectiveWrite()) {
         queue.add(new TraceReflectiveFieldAccessAction(field, context));
       }
     }
