@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
@@ -63,10 +62,7 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
 
   @Override
   public boolean removeOrReplaceCurrentInstructionByInitClassIfPossible(
-      AppView<AppInfoWithLiveness> appView,
-      IRCode code,
-      DexType type,
-      Consumer<InitClass> consumer) {
+      AppView<?> appView, IRCode code, DexType type, Consumer<InitClass> consumer) {
     return instructionIterator.removeOrReplaceCurrentInstructionByInitClassIfPossible(
         appView, code, type, consumer);
   }

@@ -37,7 +37,7 @@ public class AssumeInfoCollection {
     return backing.containsKey(member.getReference());
   }
 
-  private AssumeInfo get(DexMember<?, ?> member) {
+  public AssumeInfo get(DexMember<?, ?> member) {
     return backing.getOrDefault(member, AssumeInfo.empty());
   }
 
@@ -117,14 +117,22 @@ public class AssumeInfoCollection {
       return this;
     }
 
-    public Builder meetAssumeValue(DexClassAndMember<?, ?> member, AbstractValue assumeValue) {
+    public Builder meetAssumeValue(DexMember<?, ?> member, AbstractValue assumeValue) {
       getOrCreateAssumeInfo(member).meetAssumeValue(assumeValue);
       return this;
     }
 
-    public Builder setIsSideEffectFree(DexClassAndMember<?, ?> member) {
+    public Builder meetAssumeValue(DexClassAndMember<?, ?> member, AbstractValue assumeValue) {
+      return meetAssumeValue(member.getReference(), assumeValue);
+    }
+
+    public Builder setIsSideEffectFree(DexMember<?, ?> member) {
       getOrCreateAssumeInfo(member).setIsSideEffectFree();
       return this;
+    }
+
+    public Builder setIsSideEffectFree(DexClassAndMember<?, ?> member) {
+      return setIsSideEffectFree(member.getReference());
     }
 
     public AssumeInfoCollection build() {

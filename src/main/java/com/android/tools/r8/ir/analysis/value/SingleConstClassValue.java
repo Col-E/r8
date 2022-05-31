@@ -67,7 +67,7 @@ public class SingleConstClassValue extends SingleConstValue {
 
   @Override
   public Instruction createMaterializingInstruction(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
+      AppView<?> appView,
       ProgramMethod context,
       NumberGenerator valueNumberGenerator,
       TypeAndLocalInfoSupplier info) {
@@ -88,8 +88,8 @@ public class SingleConstClassValue extends SingleConstValue {
   }
 
   @Override
-  public boolean isMaterializableInContext(
-      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
+  boolean internalIsMaterializableInContext(
+      AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
     DexType baseType = type.toBaseType(appView.dexItemFactory());
     if (baseType.isClassType()) {
       DexClass clazz = appView.definitionFor(baseType);

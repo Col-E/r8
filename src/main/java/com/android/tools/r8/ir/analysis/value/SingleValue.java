@@ -37,20 +37,27 @@ public abstract class SingleValue extends AbstractValue implements InstanceField
    * #isMaterializableInContext}.
    */
   public final Instruction createMaterializingInstruction(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
-      IRCode code,
-      TypeAndLocalInfoSupplier info) {
+      AppView<?> appView, IRCode code, TypeAndLocalInfoSupplier info) {
     return createMaterializingInstruction(appView, code.context(), code.valueNumberGenerator, info);
   }
 
   public abstract Instruction createMaterializingInstruction(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
+      AppView<?> appView,
       ProgramMethod context,
       NumberGenerator valueNumberGenerator,
       TypeAndLocalInfoSupplier info);
 
-  public abstract boolean isMaterializableInContext(
-      AppView<AppInfoWithLiveness> appView, ProgramMethod context);
+  public final boolean isMaterializableInContext(AppView<?> appView, ProgramMethod context) {
+    if (appView.enableWholeProgramOptimizations()) {
+      assert appView.hasClassHierarchy();
+      return internalIsMaterializableInContext(appView.withClassHierarchy(), context);
+    }
+    // All abstract values created in D8 should be accessible in all contexts.
+    return true;
+  }
+
+  abstract boolean internalIsMaterializableInContext(
+      AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context);
 
   public abstract boolean isMaterializableInAllContexts(AppView<AppInfoWithLiveness> appView);
 

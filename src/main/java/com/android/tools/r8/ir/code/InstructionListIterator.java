@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
@@ -111,16 +110,13 @@ public interface InstructionListIterator
   boolean replaceCurrentInstructionByNullCheckIfPossible(AppView<?> appView, ProgramMethod context);
 
   default boolean removeOrReplaceCurrentInstructionByInitClassIfPossible(
-      AppView<AppInfoWithLiveness> appView, IRCode code, DexType type) {
+      AppView<?> appView, IRCode code, DexType type) {
     return removeOrReplaceCurrentInstructionByInitClassIfPossible(
         appView, code, type, ConsumerUtils.emptyConsumer());
   }
 
   boolean removeOrReplaceCurrentInstructionByInitClassIfPossible(
-      AppView<AppInfoWithLiveness> appView,
-      IRCode code,
-      DexType type,
-      Consumer<InitClass> consumer);
+      AppView<?> appView, IRCode code, DexType type, Consumer<InitClass> consumer);
 
   void replaceCurrentInstructionWithConstClass(
       AppView<?> appView, IRCode code, DexType type, DebugLocalInfo localInfo);

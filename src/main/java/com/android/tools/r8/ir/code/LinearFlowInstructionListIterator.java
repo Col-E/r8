@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.ListIterator;
@@ -87,10 +86,7 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
 
   @Override
   public boolean removeOrReplaceCurrentInstructionByInitClassIfPossible(
-      AppView<AppInfoWithLiveness> appView,
-      IRCode code,
-      DexType type,
-      Consumer<InitClass> consumer) {
+      AppView<?> appView, IRCode code, DexType type, Consumer<InitClass> consumer) {
     return currentBlockIterator.removeOrReplaceCurrentInstructionByInitClassIfPossible(
         appView, code, type, consumer);
   }

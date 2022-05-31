@@ -28,7 +28,6 @@ import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.LinkedList;
@@ -87,10 +86,7 @@ public class RegisterMoveSchedulerTest {
 
     @Override
     public boolean removeOrReplaceCurrentInstructionByInitClassIfPossible(
-        AppView<AppInfoWithLiveness> appView,
-        IRCode code,
-        DexType type,
-        Consumer<InitClass> consumer) {
+        AppView<?> appView, IRCode code, DexType type, Consumer<InitClass> consumer) {
       throw new Unimplemented();
     }
 

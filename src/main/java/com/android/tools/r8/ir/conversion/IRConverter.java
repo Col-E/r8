@@ -61,7 +61,6 @@ import com.android.tools.r8.ir.optimize.DynamicTypeOptimization;
 import com.android.tools.r8.ir.optimize.IdempotentFunctionCallCanonicalizer;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
-import com.android.tools.r8.ir.optimize.MemberValuePropagation;
 import com.android.tools.r8.ir.optimize.NaturalIntLoopRemover;
 import com.android.tools.r8.ir.optimize.RedundantFieldLoadAndStoreElimination;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer;
@@ -76,6 +75,9 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
+import com.android.tools.r8.ir.optimize.membervaluepropagation.D8MemberValuePropagation;
+import com.android.tools.r8.ir.optimize.membervaluepropagation.MemberValuePropagation;
+import com.android.tools.r8.ir.optimize.membervaluepropagation.R8MemberValuePropagation;
 import com.android.tools.r8.ir.optimize.outliner.Outliner;
 import com.android.tools.r8.ir.optimize.string.StringBuilderOptimizer;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
@@ -128,7 +130,7 @@ public class IRConverter {
   public final CodeRewriter codeRewriter;
   private final NaturalIntLoopRemover naturalIntLoopRemover = new NaturalIntLoopRemover();
   private final ConstantCanonicalizer constantCanonicalizer;
-  public final MemberValuePropagation memberValuePropagation;
+  public final MemberValuePropagation<?> memberValuePropagation;
   private final LensCodeRewriter lensCodeRewriter;
   private final Inliner inliner;
   private final IdentifierNameStringMarker identifierNameStringMarker;
@@ -256,7 +258,7 @@ public class IRConverter {
       this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness, enumUnboxer);
       this.inliner = new Inliner(appViewWithLiveness, this, lensCodeRewriter);
       this.outliner = Outliner.create(appViewWithLiveness);
-      this.memberValuePropagation = new MemberValuePropagation(appViewWithLiveness);
+      this.memberValuePropagation = new R8MemberValuePropagation(appViewWithLiveness);
       this.methodOptimizationInfoCollector =
           new MethodOptimizationInfoCollector(appViewWithLiveness, this);
       // TODO(b/214496607): Enable open/closed interfaces analysis.
@@ -276,6 +278,7 @@ public class IRConverter {
       this.enumValueOptimizer =
           options.enableEnumValueOptimization ? new EnumValueOptimizer(appViewWithLiveness) : null;
     } else {
+      AppView<AppInfo> appViewWithoutClassHierarchy = appView.withoutClassHierarchy();
       this.assumeInserter = null;
       this.classInliner = null;
       this.dynamicTypeOptimization = null;
@@ -283,7 +286,10 @@ public class IRConverter {
       this.libraryMethodOverrideAnalysis = null;
       this.inliner = null;
       this.outliner = Outliner.empty();
-      this.memberValuePropagation = null;
+      this.memberValuePropagation =
+          options.isGeneratingDex()
+              ? new D8MemberValuePropagation(appViewWithoutClassHierarchy)
+              : null;
       this.lensCodeRewriter = null;
       this.identifierNameStringMarker = null;
       this.devirtualizer = null;

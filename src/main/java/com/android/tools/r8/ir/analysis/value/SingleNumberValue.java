@@ -127,7 +127,7 @@ public class SingleNumberValue extends SingleConstValue
 
   @Override
   public Instruction createMaterializingInstruction(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
+      AppView<?> appView,
       ProgramMethod context,
       NumberGenerator valueNumberGenerator,
       TypeAndLocalInfoSupplier info) {
@@ -143,8 +143,8 @@ public class SingleNumberValue extends SingleConstValue
   }
 
   @Override
-  public boolean isMaterializableInContext(
-      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
+  boolean internalIsMaterializableInContext(
+      AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
     return true;
   }
 

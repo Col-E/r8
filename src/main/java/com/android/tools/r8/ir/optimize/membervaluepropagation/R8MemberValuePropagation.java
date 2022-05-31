@@ -1,9 +1,7 @@
-// Copyright (c) 2017, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.ir.optimize;
-
-import static com.google.common.base.Predicates.alwaysTrue;
+package com.android.tools.r8.ir.optimize.membervaluepropagation;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndField;
@@ -16,7 +14,6 @@ import com.android.tools.r8.graph.FieldResolutionResult.SingleFieldResolutionRes
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
@@ -25,7 +22,7 @@ import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.IRMetadata;
+import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -39,23 +36,19 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfoLookup;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.IteratorUtils;
-import com.google.common.collect.Sets;
 import java.util.ListIterator;
 import java.util.Set;
-import java.util.function.Predicate;
 
-public class MemberValuePropagation {
+public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWithLiveness> {
 
   private static final OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
 
-  private final AppView<AppInfoWithLiveness> appView;
-
-  public MemberValuePropagation(AppView<AppInfoWithLiveness> appView) {
-    this.appView = appView;
+  public R8MemberValuePropagation(AppView<AppInfoWithLiveness> appView) {
+    super(appView);
   }
 
-  private void rewriteArrayGet(
+  @Override
+  void rewriteArrayGet(
       IRCode code,
       Set<Value> affectedValues,
       ListIterator<BasicBlock> blocks,
@@ -125,85 +118,8 @@ public class MemberValuePropagation {
     return appView.getAssumeInfoCollection().contains(method);
   }
 
-  private Instruction createReplacementFromAssumeInfo(
-      AssumeInfo assumeInfo, IRCode code, Instruction instruction) {
-    if (assumeInfo.getAssumeValue().isUnknown()) {
-      return null;
-    }
-
-    AbstractValue assumeValue = assumeInfo.getAssumeValue();
-    if (assumeValue.isSingleValue()) {
-      SingleValue singleValue = assumeValue.asSingleValue();
-      if (singleValue.isMaterializableInContext(appView, code.context())) {
-        return singleValue.createMaterializingInstruction(appView, code, instruction);
-      }
-    }
-
-    return null;
-  }
-
-  private void setValueRangeFromAssumeInfo(AssumeInfo assumeInfo, Value value) {
-    if (assumeInfo.getAssumeValue().isNumberFromIntervalValue()) {
-      value.setValueRange(assumeInfo.getAssumeValue().asNumberFromIntervalValue());
-    }
-  }
-
-  private boolean applyAssumeInfoIfPossible(
-      IRCode code,
-      Set<Value> affectedValues,
-      ListIterator<BasicBlock> blocks,
-      InstructionListIterator iterator,
-      Instruction current,
-      AssumeInfo assumeInfo) {
-    Instruction replacement = createReplacementFromAssumeInfo(assumeInfo, code, current);
-    if (replacement == null) {
-      // Check to see if a value range can be assumed.
-      if (current.getOutType().isPrimitiveType()) {
-        setValueRangeFromAssumeInfo(assumeInfo, current.outValue());
-      }
-      return false;
-    }
-    affectedValues.addAll(current.outValue().affectedValues());
-    if (assumeInfo.isSideEffectFree()) {
-      iterator.replaceCurrentInstruction(replacement);
-    } else {
-      BasicBlock block = current.getBlock();
-      Position position = current.getPosition();
-      if (current.hasOutValue()) {
-        assert replacement.outValue() != null;
-        current.outValue().replaceUsers(replacement.outValue());
-      }
-      if (current.isInstanceGet()) {
-        iterator.replaceCurrentInstructionByNullCheckIfPossible(appView, code.context());
-      } else if (current.isStaticGet()) {
-        StaticGet staticGet = current.asStaticGet();
-        iterator.removeOrReplaceCurrentInstructionByInitClassIfPossible(
-            appView, code, staticGet.getField().holder);
-      }
-      replacement.setPosition(position);
-      if (block.hasCatchHandlers()) {
-        BasicBlock splitBlock = iterator.split(code, blocks);
-        splitBlock.listIterator(code).add(replacement);
-
-        // Process the materialized value.
-        blocks.previous();
-        assert !iterator.hasNext();
-        assert IteratorUtils.peekNext(blocks) == splitBlock;
-
-        return true;
-      } else {
-        iterator.add(replacement);
-      }
-    }
-
-    // Process the materialized value.
-    iterator.previous();
-    assert iterator.peekNext() == replacement;
-
-    return true;
-  }
-
-  private void rewriteInvokeMethodWithConstantValues(
+  @Override
+  void rewriteInvokeMethod(
       IRCode code,
       ProgramMethod context,
       Set<Value> affectedValues,
@@ -231,8 +147,7 @@ public class MemberValuePropagation {
 
     DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, context);
     AssumeInfo lookup = AssumeInfoLookup.lookupAssumeInfo(appView, resolutionResult, singleTarget);
-    if (lookup != null
-        && applyAssumeInfoIfPossible(code, affectedValues, blocks, iterator, invoke, lookup)) {
+    if (applyAssumeInfo(code, affectedValues, blocks, iterator, invoke, lookup)) {
       return;
     }
 
@@ -289,7 +204,27 @@ public class MemberValuePropagation {
     }
   }
 
-  private void rewriteFieldGetWithConstantValues(
+  @Override
+  void rewriteInstanceGet(
+      IRCode code,
+      Set<Value> affectedValues,
+      ListIterator<BasicBlock> blocks,
+      InstructionListIterator iterator,
+      InstanceGet current) {
+    rewriteFieldGet(code, affectedValues, blocks, iterator, current);
+  }
+
+  @Override
+  void rewriteStaticGet(
+      IRCode code,
+      Set<Value> affectedValues,
+      ListIterator<BasicBlock> blocks,
+      InstructionListIterator iterator,
+      StaticGet current) {
+    rewriteFieldGet(code, affectedValues, blocks, iterator, current);
+  }
+
+  private void rewriteFieldGet(
       IRCode code,
       Set<Value> affectedValues,
       ListIterator<BasicBlock> blocks,
@@ -298,7 +233,7 @@ public class MemberValuePropagation {
     DexField field = current.getField();
 
     // TODO(b/123857022): Should be able to use definitionFor().
-    SingleFieldResolutionResult resolutionResult =
+    SingleFieldResolutionResult<?> resolutionResult =
         appView.appInfo().resolveField(field).asSingleFieldResolutionResult();
     if (resolutionResult == null) {
       boolean replaceCurrentInstructionWithConstNull =
@@ -329,8 +264,7 @@ public class MemberValuePropagation {
 
     // Check if there is a Proguard configuration rule that specifies the value of the field.
     AssumeInfo lookup = appView.getAssumeInfoCollection().get(target);
-    if (lookup != null
-        && applyAssumeInfoIfPossible(code, affectedValues, blocks, iterator, current, lookup)) {
+    if (applyAssumeInfo(code, affectedValues, blocks, iterator, current, lookup)) {
       return;
     }
 
@@ -401,6 +335,11 @@ public class MemberValuePropagation {
     }
   }
 
+  @Override
+  void rewriteInstancePut(IRCode code, InstructionListIterator iterator, InstancePut current) {
+    replaceInstancePutByNullCheckIfNeverRead(code, iterator, current);
+  }
+
   private void replaceInstancePutByNullCheckIfNeverRead(
       IRCode code, InstructionListIterator iterator, InstancePut current) {
     DexEncodedField field = appView.appInfo().resolveField(current.getField()).getResolvedField();
@@ -416,6 +355,11 @@ public class MemberValuePropagation {
     }
 
     iterator.replaceCurrentInstructionByNullCheckIfPossible(appView, code.context());
+  }
+
+  @Override
+  void rewriteStaticPut(IRCode code, InstructionListIterator iterator, StaticPut current) {
+    replaceStaticPutByInitClassIfNeverRead(code, iterator, current);
   }
 
   private void replaceStaticPutByInitClassIfNeverRead(
@@ -434,55 +378,5 @@ public class MemberValuePropagation {
 
     iterator.removeOrReplaceCurrentInstructionByInitClassIfPossible(
         appView, code, field.getHolderType());
-  }
-
-  /**
-   * Replace invoke targets and field accesses with constant values where possible.
-   *
-   * <p>Also assigns value ranges to values where possible.
-   */
-  public void run(IRCode code) {
-    IRMetadata metadata = code.metadata();
-    if (!metadata.mayHaveFieldInstruction() && !metadata.mayHaveInvokeMethod()) {
-      return;
-    }
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
-    run(code, code.listIterator(), affectedValues, alwaysTrue());
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
-    assert code.isConsistentSSA(appView);
-    assert code.verifyTypes(appView);
-  }
-
-  public void run(
-      IRCode code,
-      ListIterator<BasicBlock> blockIterator,
-      Set<Value> affectedValues,
-      Predicate<BasicBlock> blockTester) {
-    ProgramMethod context = code.context();
-    while (blockIterator.hasNext()) {
-      BasicBlock block = blockIterator.next();
-      if (!blockTester.test(block)) {
-        continue;
-      }
-      InstructionListIterator iterator = block.listIterator(code);
-      while (iterator.hasNext()) {
-        Instruction current = iterator.next();
-        if (current.isArrayGet()) {
-          rewriteArrayGet(code, affectedValues, blockIterator, iterator, current.asArrayGet());
-        } else if (current.isInvokeMethod()) {
-          rewriteInvokeMethodWithConstantValues(
-              code, context, affectedValues, blockIterator, iterator, current.asInvokeMethod());
-        } else if (current.isFieldGet()) {
-          rewriteFieldGetWithConstantValues(
-              code, affectedValues, blockIterator, iterator, current.asFieldInstruction());
-        } else if (current.isInstancePut()) {
-          replaceInstancePutByNullCheckIfNeverRead(code, iterator, current.asInstancePut());
-        } else if (current.isStaticPut()) {
-          replaceStaticPutByInitClassIfNeverRead(code, iterator, current.asStaticPut());
-        }
-      }
-    }
   }
 }

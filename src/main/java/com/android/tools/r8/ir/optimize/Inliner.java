@@ -58,6 +58,7 @@ import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.inliner.InliningReasonStrategy;
 import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
+import com.android.tools.r8.ir.optimize.membervaluepropagation.R8MemberValuePropagation;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.utils.ConsumerUtils;
@@ -1215,7 +1216,7 @@ public class Inliner {
       ListIterator<BasicBlock> blockIterator,
       Set<BasicBlock> inlineeBlocks) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
-    new MemberValuePropagation(appView)
+    new R8MemberValuePropagation(appView)
         .run(code, blockIterator, affectedValues, inlineeBlocks::contains);
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);

@@ -15,12 +15,14 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
+import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.TypeRewriter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAmender;
@@ -34,6 +36,7 @@ import com.android.tools.r8.naming.RecordRewritingNamingLens;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.AssumeInfoCollection;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.synthesis.SyntheticFinalization;
 import com.android.tools.r8.synthesis.SyntheticItems;
@@ -211,6 +214,9 @@ public final class D8 {
       timing.begin("Read input app");
       AppView<AppInfo> appView = readApp(inputApp, options, executor, timing);
       timing.end();
+      timing.begin("Initialize assume info collection");
+      initializeAssumeInfoCollection(appView);
+      timing.end();
       timing.begin("Desugared library amend");
       DesugaredLibraryAmender.run(appView);
       timing.end();
@@ -341,6 +347,22 @@ public final class D8 {
         timing.report();
       }
     }
+  }
+
+  private static void initializeAssumeInfoCollection(AppView<AppInfo> appView) {
+    AssumeInfoCollection.Builder assumeInfoCollectionBuilder = AssumeInfoCollection.builder();
+    AbstractValueFactory abstractValueFactory = appView.abstractValueFactory();
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    InternalOptions options = appView.options();
+    if (options.isGeneratingDex()) {
+      assumeInfoCollectionBuilder
+          .meetAssumeValue(
+              dexItemFactory.androidOsBuildVersionMembers.SDK_INT,
+              abstractValueFactory.createNumberFromIntervalValue(
+                  options.getMinApiLevel().getLevel(), Integer.MAX_VALUE))
+          .setIsSideEffectFree(dexItemFactory.androidOsBuildVersionMembers.SDK_INT);
+    }
+    appView.setAssumeInfoCollection(assumeInfoCollectionBuilder.build());
   }
 
   private static void finalizeApplication(AppView<AppInfo> appView, ExecutorService executorService)

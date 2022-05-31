@@ -154,6 +154,15 @@ public class StaticGet extends FieldInstruction implements FieldGet, StaticField
   }
 
   @Override
+  public boolean instructionInstanceCanThrow(
+      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
+    if (appView.getAssumeInfoCollection().isSideEffectFree(getField())) {
+      return false;
+    }
+    return super.instructionInstanceCanThrow(appView, context, assumption);
+  }
+
+  @Override
   public int maxInValueRegister() {
     return Constants.U8BIT_MAX;
   }

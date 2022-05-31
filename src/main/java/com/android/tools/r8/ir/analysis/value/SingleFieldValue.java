@@ -85,19 +85,21 @@ public abstract class SingleFieldValue extends SingleValue {
 
   @Override
   public Instruction createMaterializingInstruction(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
+      AppView<?> appView,
       ProgramMethod context,
       NumberGenerator valueNumberGenerator,
       TypeAndLocalInfoSupplier info) {
     TypeElement type = TypeElement.fromDexType(field.type, maybeNull(), appView);
-    assert type.lessThanOrEqual(info.getOutType(), appView) || type.isBasedOnMissingClass(appView);
+    assert type.lessThanOrEqual(info.getOutType(), appView)
+        || !appView.enableWholeProgramOptimizations()
+        || type.isBasedOnMissingClass(appView.withClassHierarchy());
     Value outValue = new Value(valueNumberGenerator.next(), type, info.getLocalInfo());
     return new StaticGet(outValue, field);
   }
 
   @Override
-  public boolean isMaterializableInContext(
-      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
+  boolean internalIsMaterializableInContext(
+      AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
     return allMatch(
         appView.appInfo().resolveField(field)::forEachFieldResolutionResult,
         resolutionResult -> {

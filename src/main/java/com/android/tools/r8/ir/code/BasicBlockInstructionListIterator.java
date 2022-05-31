@@ -22,7 +22,6 @@ import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.optimize.NestUtils;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.ImmutableList;
@@ -331,10 +330,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
 
   @Override
   public boolean removeOrReplaceCurrentInstructionByInitClassIfPossible(
-      AppView<AppInfoWithLiveness> appView,
-      IRCode code,
-      DexType type,
-      Consumer<InitClass> consumer) {
+      AppView<?> appView, IRCode code, DexType type, Consumer<InitClass> consumer) {
     Instruction toBeReplaced = current;
     assert toBeReplaced != null;
     assert toBeReplaced.isStaticFieldInstruction() || toBeReplaced.isInvokeStatic();
