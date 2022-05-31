@@ -63,20 +63,22 @@ public class ProguardConfigurationParser {
   private static final List<String> IGNORED_OPTIONAL_SINGLE_ARG_OPTIONS =
       ImmutableList.of("runtype", "laststageoutput");
 
-  private static final List<String> IGNORED_FLAG_OPTIONS = ImmutableList.of(
-      "forceprocessing",
-      "dontpreverify",
-      "experimentalshrinkunusedprotofields",
-      "filterlibraryjarswithorginalprogramjars",
-      "dontskipnonpubliclibraryclasses",
-      "dontskipnonpubliclibraryclassmembers",
-      "invokebasemethod",
-      // TODO(b/62524562): we may support this later.
-      "mergeinterfacesaggressively",
-      "android",
-      "allowruntypeandignoreoptimizationpasses",
-      "dontshrinkduringoptimization",
-      "convert_proto_enum_to_string");
+  private static final List<String> IGNORED_FLAG_OPTIONS =
+      ImmutableList.of(
+          "forceprocessing",
+          "dontpreverify",
+          "experimentalshrinkunusedprotofields",
+          "filterlibraryjarswithorginalprogramjars",
+          "dontskipnonpubliclibraryclasses",
+          "dontskipnonpubliclibraryclassmembers",
+          "invokebasemethod",
+          // TODO(b/62524562): we may support this later.
+          "mergeinterfacesaggressively",
+          "android",
+          "allowruntypeandignoreoptimizationpasses",
+          "dontshrinkduringoptimization",
+          "convert_proto_enum_to_string",
+          "keepkotlinmetadata");
 
   private static final List<String> IGNORED_CLASS_DESCRIPTOR_OPTIONS =
       ImmutableList.of(
