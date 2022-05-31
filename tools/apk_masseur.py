@@ -39,6 +39,10 @@ def parse_options():
   parser.add_option('--quiet',
                     help='disable verbose logging',
                     default=False)
+  parser.add_option('--sign-before-align',
+                    help='Sign the apk before aligning',
+                    default=False,
+                    action='store_true')
   (options, args) = parser.parse_args()
   if len(args) != 1:
     parser.error('Expected <apk> argument, got: ' + ' '.join(args))
@@ -86,8 +90,9 @@ def align(signed_apk, temp, quiet, logging):
   return apk_utils.align(signed_apk, aligned_apk)
 
 def masseur(
-    apk, dex=None, resources=None, out=None, adb_options=None, keystore=None,
-    install=False, quiet=False, logging=True):
+    apk, dex=None, resources=None, out=None, adb_options=None,
+    sign_before_align=False, keystore=None, install=False, quiet=False,
+    logging=True):
   if not out:
     out = os.path.basename(apk)
   if not keystore:
@@ -101,11 +106,18 @@ def masseur(
           'Signing original APK without modifying dex files', quiet=quiet)
       processed_apk = os.path.join(temp, 'processed.apk')
       shutil.copyfile(apk, processed_apk)
-    signed_apk = sign(
-        processed_apk, keystore, temp, quiet=quiet, logging=logging)
-    aligned_apk = align(signed_apk, temp, quiet=quiet, logging=logging)
-    utils.Print('Writing result to {}'.format(out), quiet=quiet)
-    shutil.copyfile(aligned_apk, out)
+    if sign_before_align:
+      signed_apk = sign(
+          processed_apk, keystore, temp, quiet=quiet, logging=logging)
+      aligned_apk = align(signed_apk, temp, quiet=quiet, logging=logging)
+      utils.Print('Writing result to {}'.format(out), quiet=quiet)
+      shutil.copyfile(aligned_apk, out)
+    else:
+      aligned_apk = align(processed_apk, temp, quiet=quiet, logging=logging)
+      signed_apk = sign(
+          aligned_apk, keystore, temp, quiet=quiet, logging=logging)
+      utils.Print('Writing result to {}'.format(out), quiet=quiet)
+      shutil.copyfile(signed_apk, out)
     if install:
       adb_cmd = ['adb']
       if adb_options:

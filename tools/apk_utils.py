@@ -90,6 +90,7 @@ def sign_with_apksigner(
     '--ks-pass', 'pass:' + password,
     '--min-sdk-version', '19',
     '--out', signed_apk,
+    '--v2-signing-enabled',
     unsigned_apk
   ]
   utils.RunCmd(cmd, quiet=quiet, logging=logging)

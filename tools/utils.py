@@ -159,8 +159,18 @@ def getAndroidHome():
       ANDROID_HOME_ENVIROMENT_NAME, os.path.join(USER_HOME, 'Android', 'Sdk'))
 
 def getAndroidBuildTools():
-  version = os.environ.get(ANDROID_TOOLS_VERSION_ENVIRONMENT_NAME, '28.0.3')
-  return os.path.join(getAndroidHome(), 'build-tools', version)
+  if ANDROID_TOOLS_VERSION_ENVIRONMENT_NAME in os.environ:
+    version = os.environ.get(ANDROID_TOOLS_VERSION_ENVIRONMENT_NAME)
+    build_tools_dir = os.path.join(getAndroidHome(), 'build-tools', version)
+    assert os.path.exists(build_tools_dir)
+    return build_tools_dir
+  else:
+    versions = ['30.0.3', '30.0.2', '30.0.1', '30.0.0']
+    for version in versions:
+      build_tools_dir = os.path.join(getAndroidHome(), 'build-tools', version)
+      if os.path.exists(build_tools_dir):
+        return build_tools_dir
+  raise Exception('Unable to find Android build-tools')
 
 def is_python3():
   return sys.version_info.major == 3
