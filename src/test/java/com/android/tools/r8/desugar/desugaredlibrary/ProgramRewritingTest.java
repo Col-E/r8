@@ -5,7 +5,6 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.ToolHelper.DESUGARED_JDK_8_LIB_JAR;
-import static com.android.tools.r8.ToolHelper.UNDESUGARED_JDK_11_LIB_JAR;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
@@ -62,7 +61,7 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
         new LibraryDesugaringSpecification(
             "JDK11_CL",
             ImmutableSet.of(
-                UNDESUGARED_JDK_11_LIB_JAR,
+                ToolHelper.getUndesugaredJdk11LibJarForTesting(),
                 ToolHelper.DESUGAR_LIB_CONVERSIONS,
                 ToolHelper.getCoreLambdaStubs()),
             JDK11.getSpecification(),

@@ -5,13 +5,13 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.ToolHelper.DESUGARED_JDK_8_LIB_JAR;
-import static com.android.tools.r8.ToolHelper.UNDESUGARED_JDK_11_LIB_JAR;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.DesugaredLibraryTestBuilder;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
@@ -43,7 +43,7 @@ public class DesugaredLibraryInvalidTest extends DesugaredLibraryTestBase {
     LibraryDesugaringSpecification jdk11InvalidLib =
         new LibraryDesugaringSpecification(
             "JDK11_INVALID_LIB",
-            UNDESUGARED_JDK_11_LIB_JAR,
+            ToolHelper.getUndesugaredJdk11LibJarForTesting(),
             "jdk11/desugar_jdk_libs.json",
             AndroidApiLevel.L);
     return buildParameters(

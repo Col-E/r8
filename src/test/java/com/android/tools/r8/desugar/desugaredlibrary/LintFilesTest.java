@@ -128,7 +128,7 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
     Path jdkLibJar =
         libraryDesugaringSpecification == JDK8
             ? ToolHelper.DESUGARED_JDK_8_LIB_JAR
-            : ToolHelper.UNDESUGARED_JDK_11_LIB_JAR;
+            : ToolHelper.getUndesugaredJdk11LibJarForTesting();
     GenerateLintFiles.main(
         new String[] {
           libraryDesugaringSpecification.getSpecification().toString(),

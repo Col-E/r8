@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Map;
 import java.util.zip.ZipEntry;
@@ -38,11 +37,10 @@ public class DesugaredLibraryJDK11Undesugarer extends DesugaredLibraryTestBase {
           .put("wrapper/adapter/HybridFileTypeDetector", "java/adapter/HybridFileTypeDetector")
           .build();
 
-
-  public static Path undesugaredJarJDK11(Path jdk11Jar) {
+  public static Path undesugaredJarJDK11(Path undesugarFolder, Path jdk11Jar) {
     String fileName = jdk11Jar.getFileName().toString();
     String newFileName = fileName.substring(0, fileName.length() - 4) + "_undesugared.jar";
-    Path desugaredLibJDK11Undesugared = Paths.get("build").resolve("libs").resolve(newFileName);
+    Path desugaredLibJDK11Undesugared = undesugarFolder.resolve(newFileName);
     return generateUndesugaredJar(jdk11Jar, desugaredLibJDK11Undesugared);
   }
 

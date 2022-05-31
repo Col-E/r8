@@ -3,9 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.desugaredlibrary.test;
 
+import static com.android.tools.r8.ToolHelper.DESUGARED_JDK_11_LIB_JAR;
 import static com.android.tools.r8.ToolHelper.DESUGARED_JDK_8_LIB_JAR;
 import static com.android.tools.r8.ToolHelper.DESUGARED_LIB_RELEASES_DIR;
-import static com.android.tools.r8.ToolHelper.UNDESUGARED_JDK_11_LIB_JAR;
+import static com.android.tools.r8.ToolHelper.getUndesugaredJdk11LibJarForTesting;
 
 import com.android.tools.r8.L8TestBuilder;
 import com.android.tools.r8.ToolHelper;
@@ -25,17 +26,20 @@ public class LibraryDesugaringSpecification {
           "JDK8", DESUGARED_JDK_8_LIB_JAR, "desugar_jdk_libs.json", AndroidApiLevel.P);
   public static LibraryDesugaringSpecification JDK11 =
       new LibraryDesugaringSpecification(
-          "JDK11", UNDESUGARED_JDK_11_LIB_JAR, "jdk11/desugar_jdk_libs.json", AndroidApiLevel.R);
+          "JDK11",
+          getUndesugaredJdk11LibJarForTesting(),
+          "jdk11/desugar_jdk_libs.json",
+          AndroidApiLevel.R);
   public static LibraryDesugaringSpecification JDK11_MINIMAL =
       new LibraryDesugaringSpecification(
           "JDK11_MINIMAL",
-          UNDESUGARED_JDK_11_LIB_JAR,
+          getUndesugaredJdk11LibJarForTesting(),
           "jdk11/desugar_jdk_libs_minimal.json",
           AndroidApiLevel.R);
   public static LibraryDesugaringSpecification JDK11_PATH =
       new LibraryDesugaringSpecification(
           "JDK11_PATH",
-          UNDESUGARED_JDK_11_LIB_JAR,
+          getUndesugaredJdk11LibJarForTesting(),
           "jdk11/desugar_jdk_libs_path.json",
           AndroidApiLevel.R);
 
@@ -43,20 +47,20 @@ public class LibraryDesugaringSpecification {
   public static LibraryDesugaringSpecification JDK11_PATH_ALTERNATIVE_3 =
       new LibraryDesugaringSpecification(
           "JDK11_PATH_ALTERNATIVE_3",
-          UNDESUGARED_JDK_11_LIB_JAR,
+          getUndesugaredJdk11LibJarForTesting(),
           "jdk11/desugar_jdk_libs_path_alternative_3.json",
           AndroidApiLevel.R);
   public static LibraryDesugaringSpecification JDK11_CHM_ONLY =
       new LibraryDesugaringSpecification(
           "JDK11_CHM_ONLY",
-          UNDESUGARED_JDK_11_LIB_JAR,
+          getUndesugaredJdk11LibJarForTesting(),
           "jdk11/chm_only_desugar_jdk_libs.json",
           AndroidApiLevel.R);
   public static LibraryDesugaringSpecification JDK11_LEGACY =
       new LibraryDesugaringSpecification(
           "JDK11_LEGACY",
           // The legacy specification is not using the undesugared JAR.
-          Paths.get("third_party/openjdk/desugar_jdk_libs_11/desugar_jdk_libs.jar"),
+          DESUGARED_JDK_11_LIB_JAR,
           "jdk11/desugar_jdk_libs_legacy.json",
           AndroidApiLevel.R);
   public static final LibraryDesugaringSpecification RELEASED_1_0_9 =
