@@ -38,7 +38,12 @@ import com.android.tools.r8.retrace.stacktraces.IdentityMappingStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineFileNameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineFileNameWithInnerClassesStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineInOutlineStackTrace;
+import com.android.tools.r8.retrace.stacktraces.InlineNoLineAssumeNoInlineAmbiguousStackTrace;
+import com.android.tools.r8.retrace.stacktraces.InlineNoLineNumberAssumeNoInlineStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineNoLineNumberStackTrace;
+import com.android.tools.r8.retrace.stacktraces.InlineNoLineWithBaseEntryNumberAssumeNoInlineStackTrace;
+import com.android.tools.r8.retrace.stacktraces.InlinePreambleNoOriginalStackTrace;
+import com.android.tools.r8.retrace.stacktraces.InlinePreambleWithOriginalStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineSourceFileContextStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineWithLineNumbersStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InvalidStackTrace;
@@ -210,6 +215,31 @@ public class RetraceTests extends TestBase {
   @Test
   public void testInliningNoLineNumberInfoStackTraces() throws Exception {
     runRetraceTest(new InlineNoLineNumberStackTrace());
+  }
+
+  @Test
+  public void testInlineNoLineNumberAssumeNoInlineStackTrace() throws Exception {
+    runRetraceTest(new InlineNoLineNumberAssumeNoInlineStackTrace());
+  }
+
+  @Test
+  public void testInlineNoLineAssumeNoInlineAmbiguousStackTrace() throws Exception {
+    runRetraceTest(new InlineNoLineAssumeNoInlineAmbiguousStackTrace());
+  }
+
+  @Test
+  public void testInlinePreambleWithOriginalStackTrace() throws Exception {
+    runRetraceTest(new InlinePreambleWithOriginalStackTrace());
+  }
+
+  @Test
+  public void testInlinePreambleNoOriginalStackTrace() throws Exception {
+    runRetraceTest(new InlinePreambleNoOriginalStackTrace());
+  }
+
+  @Test
+  public void testInlineNoLineWithBaseEntryNumberAssumeNoInlineStackTrace() throws Exception {
+    runRetraceTest(new InlineNoLineWithBaseEntryNumberAssumeNoInlineStackTrace());
   }
 
   @Test
