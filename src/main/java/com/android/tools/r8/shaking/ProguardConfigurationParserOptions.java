@@ -39,7 +39,7 @@ public class ProguardConfigurationParserOptions {
           parseSystemPropertyOrDefault(
               "com.android.tools.r8.experimental.enablewhyareyounotinlining", false);
       enableTestingOptions =
-          parseSystemPropertyOrDefault("com.android.tools.r8.allowTestingOptions", false);
+          parseSystemPropertyOrDefault("com.android.tools.r8.allowTestProguardOptions", false);
       return this;
     }
 
