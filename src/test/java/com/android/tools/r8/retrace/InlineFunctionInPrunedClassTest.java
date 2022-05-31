@@ -42,7 +42,7 @@ public class InlineFunctionInPrunedClassTest extends TestBase {
         .addProgramClassFileData(getAWithCustomSourceFile(), getMainWithStaticPosition())
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(NullPointerException.class)
-        .inspectStackTrace(stackTrace -> checkExpectedStackTrace(stackTrace, false));
+        .inspectStackTrace(this::checkExpectedStackTrace);
   }
 
   @Test
@@ -63,11 +63,11 @@ public class InlineFunctionInPrunedClassTest extends TestBase {
                   inspector.allClasses().stream()
                       .map(FoundClassSubject::getFinalName)
                       .collect(Collectors.toSet()));
-              checkExpectedStackTrace(stackTrace, true);
+              checkExpectedStackTrace(stackTrace);
             });
   }
 
-  private void checkExpectedStackTrace(StackTrace stackTrace, boolean errorInASourceFile) {
+  private void checkExpectedStackTrace(StackTrace stackTrace) {
     assertThat(
         stackTrace,
         isSame(
@@ -76,8 +76,7 @@ public class InlineFunctionInPrunedClassTest extends TestBase {
                     StackTraceLine.builder()
                         .setClassName(typeName(A.class))
                         .setMethodName("foo")
-                        // TODO(b/226885646): We should keep the original source file.
-                        .setFileName(errorInASourceFile ? ORIGINAL_SOURCE_FILE : NEW_SOURCE_FILE)
+                        .setFileName(NEW_SOURCE_FILE)
                         .setLineNumber(1)
                         .build())
                 .add(

@@ -476,6 +476,7 @@ public class LineNumberOptimizer {
     ClassNameMapper.Builder classNameMapperBuilder = ClassNameMapper.builder();
 
     Map<DexMethod, OutlineFixupBuilder> outlinesToFix = new IdentityHashMap<>();
+    Map<DexType, String> prunedInlinedClasses = new IdentityHashMap<>();
 
     PcBasedDebugInfoRecorder pcBasedDebugInfo =
         appView.options().canUseNativeDexPcInsteadOfDebugInfo()
@@ -698,14 +699,15 @@ public class LineNumberOptimizer {
             ClassNaming.Builder classNamingBuilder = onDemandClassNamingBuilder.computeIfAbsent();
             MappedRange lastMappedRange =
                 getMappedRangesForPosition(
-                    appView.options().dexItemFactory(),
+                    appView,
                     getOriginalMethodSignature,
                     classNamingBuilder,
                     firstPosition.method,
                     obfuscatedName,
                     obfuscatedRange,
                     new Range(firstPosition.originalLine, lastPosition.originalLine),
-                    firstPosition.caller);
+                    firstPosition.caller,
+                    prunedInlinedClasses);
             for (MappingInformation info : methodMappingInfo) {
               lastMappedRange.addMappingInformation(info, Unreachable::raise);
             }
@@ -724,14 +726,15 @@ public class LineNumberOptimizer {
                     }
                     positionMap.put((int) line, placeHolderLineToBeFixed);
                     getMappedRangesForPosition(
-                        appView.options().dexItemFactory(),
+                        appView,
                         getOriginalMethodSignature,
                         classNamingBuilder,
                         position.getMethod(),
                         obfuscatedName,
                         new Range(placeHolderLineToBeFixed, placeHolderLineToBeFixed),
                         new Range(position.getLine(), position.getLine()),
-                        position.getCallerPosition());
+                        position.getCallerPosition(),
+                        prunedInlinedClasses);
                   });
               outlinesToFix
                   .computeIfAbsent(
@@ -755,6 +758,22 @@ public class LineNumberOptimizer {
 
     // Update all the debug-info objects.
     pcBasedDebugInfo.updateDebugInfoInCodeObjects();
+
+    // Add all pruned inline classes to the mapping to recover source files.
+    List<Entry<DexType, String>> prunedEntries = new ArrayList<>(prunedInlinedClasses.entrySet());
+    prunedEntries.sort(Entry.comparingByKey());
+    prunedEntries.forEach(
+        entry -> {
+          DexType holder = entry.getKey();
+          assert appView.appInfo().definitionForWithoutExistenceAssert(holder) == null;
+          String typeName = holder.toSourceString();
+          String sourceFile = entry.getValue();
+          assert !RetraceUtils.hasPredictableSourceFileName(typeName, sourceFile);
+          classNameMapperBuilder
+              .classNamingBuilder(
+                  typeName, typeName, com.android.tools.r8.position.Position.UNKNOWN)
+              .addMappingInformation(FileNameInformation.build(sourceFile), Unreachable::raise);
+        });
 
     return classNameMapperBuilder.build();
   }
@@ -785,14 +804,15 @@ public class LineNumberOptimizer {
   }
 
   private static MappedRange getMappedRangesForPosition(
-      DexItemFactory factory,
+      AppView<?> appView,
       Function<DexMethod, MethodSignature> getOriginalMethodSignature,
       Builder classNamingBuilder,
       DexMethod method,
       String obfuscatedName,
       Range obfuscatedRange,
       Range originalLine,
-      Position caller) {
+      Position caller,
+      Map<DexType, String> prunedInlineHolder) {
     MappedRange lastMappedRange =
         classNamingBuilder.addMappedRange(
             obfuscatedRange,
@@ -802,6 +822,13 @@ public class LineNumberOptimizer {
     int inlineFramesCount = 0;
     while (caller != null) {
       inlineFramesCount += 1;
+      String prunedClassSourceFileInfo =
+          appView.getPrunedClassSourceFileInfo(method.getHolderType());
+      if (prunedClassSourceFileInfo != null) {
+        String originalValue =
+            prunedInlineHolder.put(method.getHolderType(), prunedClassSourceFileInfo);
+        assert originalValue == null || originalValue.equals(prunedClassSourceFileInfo);
+      }
       lastMappedRange =
           classNamingBuilder.addMappedRange(
               obfuscatedRange,
@@ -813,7 +840,8 @@ public class LineNumberOptimizer {
             RewriteFrameMappingInformation.builder()
                 .addCondition(
                     ThrowsCondition.create(
-                        Reference.classFromDescriptor(factory.npeDescriptor.toString())))
+                        Reference.classFromDescriptor(
+                            appView.dexItemFactory().npeDescriptor.toString())))
                 .addRewriteAction(RemoveInnerFramesAction.create(inlineFramesCount))
                 .build(),
             Unreachable::raise);

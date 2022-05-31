@@ -34,6 +34,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.SeedMapper;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
 import com.android.tools.r8.optimize.interfaces.collection.OpenClosedInterfacesCollection;
+import com.android.tools.r8.retrace.internal.RetraceUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.AssumeInfoCollection;
 import com.android.tools.r8.shaking.KeepClassInfo;
@@ -117,7 +118,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
       OpenClosedInterfacesCollection.getDefault();
   // TODO(b/169115389): Remove
   private Set<DexMethod> cfByteCodePassThrough = ImmutableSet.of();
-  private Map<DexType, DexValueString> sourceDebugExtensions = new IdentityHashMap<>();
+  private final Map<DexType, DexValueString> sourceDebugExtensions = new IdentityHashMap<>();
+  private final Map<DexType, String> sourceFileForPrunedTypes = new IdentityHashMap<>();
 
   private SeedMapper applyMappingSeedMapper;
 
@@ -927,5 +929,15 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public ComputedApiLevel computedMinApiLevel() {
     return computedMinApiLevel;
+  }
+
+  public void addPrunedClassSourceFile(DexType prunedType, String sourceFile) {
+    if (!RetraceUtils.hasPredictableSourceFileName(prunedType.toSourceString(), sourceFile)) {
+      sourceFileForPrunedTypes.put(prunedType, sourceFile);
+    }
+  }
+
+  public String getPrunedClassSourceFileInfo(DexType dexType) {
+    return sourceFileForPrunedTypes.get(dexType);
   }
 }

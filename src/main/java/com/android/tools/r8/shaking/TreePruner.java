@@ -124,6 +124,9 @@ public class TreePruner {
           Log.debug(getClass(), "Removing class: " + clazz);
         }
         prunedTypes.add(clazz.type);
+        if (clazz.getSourceFile() != null) {
+          appView.addPrunedClassSourceFile(clazz.type, clazz.getSourceFile().toString());
+        }
         unusedItemsPrinter.registerUnusedClass(clazz);
       }
     }
