@@ -4143,8 +4143,6 @@ public class Enqueuer {
             callSites,
             keepInfo,
             rootSet.mayHaveSideEffects,
-            rootSet.noSideEffects,
-            rootSet.assumedValues,
             amendWithCompanionMethods(rootSet.alwaysInline),
             amendWithCompanionMethods(rootSet.neverInlineDueToSingleCaller),
             amendWithCompanionMethods(rootSet.whyAreYouNotInlining),

@@ -60,7 +60,7 @@ public class PreserveMethodCharacteristics extends MultiClassPolicy {
         AppView<AppInfoWithLiveness> appView, DexEncodedMethod method) {
       return new MethodCharacteristics(
           method,
-          appView.appInfo().isAssumeNoSideEffectsMethod(method.getReference()),
+          appView.getAssumeInfoCollection().isSideEffectFree(method.getReference()),
           appView.appInfo().getMainDexInfo().isTracedMethodRoot(method.getReference()));
     }
 

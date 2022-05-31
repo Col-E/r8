@@ -220,7 +220,7 @@ public class InvokeStatic extends InvokeMethod {
     }
 
     // Verify that the target method does not have side-effects.
-    if (appViewWithLiveness.appInfo().isAssumeNoSideEffectsMethod(singleTarget)) {
+    if (appView.getAssumeInfoCollection().isSideEffectFree(singleTarget)) {
       return false;
     }
 

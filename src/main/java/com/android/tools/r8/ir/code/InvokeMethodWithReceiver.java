@@ -216,12 +216,10 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
     }
 
     DexClassAndMethod resolvedMethod = resolutionResult.getResolutionPair();
-    if (appView.hasLiveness()) {
-      if (appView.appInfoWithLiveness().isAssumeNoSideEffectsMethod(getInvokedMethod())
-          || appView.appInfoWithLiveness().isAssumeNoSideEffectsMethod(resolvedMethod)) {
+    if (appView.getAssumeInfoCollection().isSideEffectFree(getInvokedMethod())
+        || appView.getAssumeInfoCollection().isSideEffectFree(resolvedMethod)) {
         return false;
       }
-    }
 
     // Find the target and check if the invoke may have side effects.
     DexClassAndMethod singleTarget = lookupSingleTarget(appView, context);
@@ -237,10 +235,8 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
     }
 
     // Verify that the target method does not have side-effects.
-    if (appView.hasLiveness()) {
-      if (appView.appInfoWithLiveness().isAssumeNoSideEffectsMethod(singleTarget)) {
-        return false;
-      }
+    if (appView.getAssumeInfoCollection().isSideEffectFree(singleTarget)) {
+      return false;
     }
 
     DexEncodedMethod singleTargetDefinition = singleTarget.getDefinition();

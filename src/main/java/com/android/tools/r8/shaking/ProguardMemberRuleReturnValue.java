@@ -4,7 +4,17 @@
 
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
+import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.LongInterval;
 
 public class ProguardMemberRuleReturnValue {
@@ -18,34 +28,44 @@ public class ProguardMemberRuleReturnValue {
   private final Type type;
   private final boolean booleanValue;
   private final LongInterval longInterval;
-  private final DexField field;
+  private final DexType fieldHolder;
+  private final DexString fieldName;
+  private final boolean notNull;
 
   ProguardMemberRuleReturnValue(boolean value) {
     this.type = Type.BOOLEAN;
     this.booleanValue = value;
     this.longInterval = null;
-    this.field = null;
+    this.fieldHolder = null;
+    this.fieldName = null;
+    this.notNull = false;
   }
 
   ProguardMemberRuleReturnValue(LongInterval value) {
     this.type = Type.VALUE_RANGE;
     this.booleanValue = false;
     this.longInterval = value;
-    this.field = null;
+    this.fieldHolder = null;
+    this.fieldName = null;
+    this.notNull = false;
   }
 
-  ProguardMemberRuleReturnValue(DexField field) {
+  ProguardMemberRuleReturnValue(DexType fieldHolder, DexString fieldName) {
     this.type = Type.FIELD;
     this.booleanValue = false;
     this.longInterval = null;
-    this.field = field;
+    this.fieldHolder = fieldHolder;
+    this.fieldName = fieldName;
+    this.notNull = false;
   }
 
   ProguardMemberRuleReturnValue() {
     this.type = Type.NULL;
     this.booleanValue = false;
     this.longInterval = null;
-    this.field = null;
+    this.fieldHolder = null;
+    this.fieldName = null;
+    this.notNull = false;
   }
 
   public boolean isBoolean() {
@@ -105,9 +125,60 @@ public class ProguardMemberRuleReturnValue {
     return longInterval;
   }
 
-  public DexField getField() {
+  public DexType getFieldHolder() {
     assert isField();
-    return field;
+    return fieldHolder;
+  }
+
+  public DexString getFieldName() {
+    assert isField();
+    return fieldName;
+  }
+
+  public AbstractValue toAbstractValue(AppView<?> appView, DexType valueType) {
+    AbstractValueFactory abstractValueFactory = appView.abstractValueFactory();
+    switch (type) {
+      case BOOLEAN:
+        return abstractValueFactory.createSingleNumberValue(BooleanUtils.intValue(booleanValue));
+      case FIELD:
+        DexClass holder = appView.definitionFor(fieldHolder);
+        if (holder != null) {
+          DexEncodedField field = holder.lookupUniqueStaticFieldWithName(fieldName);
+          if (field != null) {
+            return abstractValueFactory.createSingleFieldValue(
+                field.getReference(), ObjectState.empty());
+          }
+        }
+        return AbstractValue.unknown();
+      case NULL:
+        return abstractValueFactory.createNullValue();
+      case VALUE_RANGE:
+        if (longInterval.isSingleValue()) {
+          long singleValue = longInterval.getSingleValue();
+          if (valueType.isReferenceType()) {
+            return singleValue == 0
+                ? abstractValueFactory.createNullValue()
+                : AbstractValue.unknown();
+          }
+          return abstractValueFactory.createSingleNumberValue(singleValue);
+        }
+        return abstractValueFactory.createNumberFromIntervalValue(
+            longInterval.getMin(), longInterval.getMax());
+      default:
+        throw new Unreachable("Unexpected type: " + type);
+    }
+  }
+
+  public DynamicType toDynamicType(AppView<?> appView, DexType valueType) {
+    if (valueType.isReferenceType()) {
+      if (type == Type.VALUE_RANGE && !longInterval.containsValue(0)) {
+        return DynamicType.definitelyNotNull();
+      }
+      if (notNull) {
+        return DynamicType.definitelyNotNull();
+      }
+    }
+    return DynamicType.unknown();
   }
 
   @Override
@@ -126,7 +197,7 @@ public class ProguardMemberRuleReturnValue {
       }
     } else {
       assert isField();
-      result.append(field.holder.toSourceString() + '.' + field.name);
+      result.append(getFieldHolder().getTypeName()).append('.').append(getFieldName());
     }
     return result.toString();
   }

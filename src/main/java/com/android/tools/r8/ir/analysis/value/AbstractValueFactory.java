@@ -31,6 +31,11 @@ public class AbstractValueFactory {
     return knownArrayLengthStates.computeIfAbsent(length, KnownLengthArrayState::new);
   }
 
+  public NumberFromIntervalValue createNumberFromIntervalValue(
+      long minInclusive, long maxInclusive) {
+    return new NumberFromIntervalValue(minInclusive, maxInclusive);
+  }
+
   public SingleFieldValue createSingleFieldValue(DexField field, ObjectState state) {
     return state.isEmpty()
         ? new SingleStatelessFieldValue(field)

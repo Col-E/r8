@@ -10,6 +10,7 @@ import static java.util.Collections.emptyMap;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.AssumeNoSideEffectsRuleForObjectMembersDiagnostic;
+import com.android.tools.r8.errors.AssumeValuesMissingStaticFieldDiagnostic;
 import com.android.tools.r8.errors.InlinableStaticFinalFieldPreconditionDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -45,9 +46,12 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinker;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodDesugaringBaseEventConsumer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
+import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AnnotationMatchResult.AnnotationsIgnoredMatchResult;
 import com.android.tools.r8.shaking.AnnotationMatchResult.ConcreteAnnotationMatchResult;
@@ -105,6 +109,7 @@ public class RootSetUtils {
   public static class RootSetBuilder {
 
     private final AppView<? extends AppInfoWithClassHierarchy> appView;
+    private AssumeInfoCollection.Builder assumeInfoCollectionBuilder;
     private final SubtypingInfo subtypingInfo;
     private final DirectMappedDexApplication application;
     private final Iterable<? extends ProguardConfigurationRule> rules;
@@ -127,8 +132,6 @@ public class RootSetUtils {
         new IdentityHashMap<>();
     private final Map<DexReference, ProguardMemberRule> mayHaveSideEffects =
         new IdentityHashMap<>();
-    private final Map<DexMember<?, ?>, ProguardMemberRule> noSideEffects = new IdentityHashMap<>();
-    private final Map<DexMember<?, ?>, ProguardMemberRule> assumedValues = new IdentityHashMap<>();
     private final Set<DexMember<?, ?>> identifierNameStrings = Sets.newIdentityHashSet();
     private final Map<DexMethod, ProgramMethod> keptMethodBridges = new ConcurrentHashMap<>();
     private final Queue<DelayedRootSetActionItem> delayedRootSetActionItems =
@@ -174,6 +177,12 @@ public class RootSetUtils {
 
     void handleMatchedAnnotation(AnnotationMatchResult annotation) {
       // Intentionally empty.
+    }
+
+    public RootSetBuilder setAssumeInfoCollectionBuilder(
+        AssumeInfoCollection.Builder assumeInfoCollectionBuilder) {
+      this.assumeInfoCollectionBuilder = assumeInfoCollectionBuilder;
+      return this;
     }
 
     // Process a class with the keep rule.
@@ -256,13 +265,17 @@ public class RootSetUtils {
         markClass(clazz, rule, ifRule);
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
         markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
-      } else if (rule instanceof ProguardAssumeMayHaveSideEffectsRule
-          || rule instanceof ProguardAssumeNoSideEffectRule
-          || rule instanceof ProguardAssumeValuesRule) {
+      } else if (rule instanceof ProguardAssumeMayHaveSideEffectsRule) {
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
-        markMatchingOverriddenMethods(
-            appView.appInfo(), clazz, memberKeepRules, rule, null, true, ifRule);
+        markMatchingOverriddenMethods(clazz, memberKeepRules, rule, null, true, ifRule);
         markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
+      } else if (rule instanceof ProguardAssumeNoSideEffectRule
+          || rule instanceof ProguardAssumeValuesRule) {
+        if (assumeInfoCollectionBuilder != null) {
+          markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
+          markMatchingOverriddenMethods(clazz, memberKeepRules, rule, null, true, ifRule);
+          markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
+        }
       } else if (rule instanceof NoFieldTypeStrengtheningRule) {
         markMatchingFields(clazz, memberKeepRules, rule, null, ifRule);
       } else if (rule instanceof InlineRule
@@ -349,7 +362,7 @@ public class RootSetUtils {
       }
       finalizeCheckDiscardedInformation();
       generateAssumeNoSideEffectsWarnings();
-      if (!noSideEffects.isEmpty() || !assumedValues.isEmpty()) {
+      if (assumeInfoCollectionBuilder != null && !assumeInfoCollectionBuilder.isEmpty()) {
         BottomUpClassHierarchyTraversal.forAllClasses(appView, subtypingInfo)
             .visit(appView.appInfo().classes(), this::propagateAssumeRules);
       }
@@ -381,8 +394,6 @@ public class RootSetUtils {
           noHorizontalClassMerging,
           neverPropagateValue,
           mayHaveSideEffects,
-          noSideEffects,
-          assumedValues,
           dependentKeepClassCompatRule,
           identifierNameStrings,
           ifRules,
@@ -401,17 +412,12 @@ public class RootSetUtils {
           assert !encodedMethod.shouldNotHaveCode();
           continue;
         }
-        propagateAssumeRules(clazz.type, encodedMethod.getReference(), subTypes, noSideEffects);
-        propagateAssumeRules(clazz.type, encodedMethod.getReference(), subTypes, assumedValues);
+        propagateAssumeRules(clazz, encodedMethod.getReference(), subTypes);
       }
     }
 
-    private void propagateAssumeRules(
-        DexType type,
-        DexMethod reference,
-        Set<DexType> subTypes,
-        Map<DexMember<?, ?>, ProguardMemberRule> assumeRulePool) {
-      ProguardMemberRule ruleToBePropagated = null;
+    private void propagateAssumeRules(DexClass clazz, DexMethod reference, Set<DexType> subTypes) {
+      AssumeInfo infoToBePropagated = null;
       for (DexType subType : subTypes) {
         DexMethod referenceInSubType =
             appView.dexItemFactory().createMethod(subType, reference.proto, reference.name);
@@ -419,34 +425,34 @@ public class RootSetUtils {
         // override the method, and when the retrieval of bound rule fails, it is unclear whether it
         // is due to the lack of the definition or it indeed means no matching rules. Similar to how
         // we apply those assume rules, here we use a resolved target.
-        DexEncodedMethod target =
+        DexClassAndMethod target =
             appView
                 .appInfo()
                 .unsafeResolveMethodDueToDexFormatLegacy(referenceInSubType)
-                .getSingleTarget();
+                .getResolutionPair();
         // But, the resolution should not be landed on the current type we are visiting.
-        if (target == null || target.getHolderType() == type) {
+        if (target == null || target.getHolder() == clazz) {
           continue;
         }
-        ProguardMemberRule ruleInSubType = assumeRulePool.get(target.getReference());
+        AssumeInfo ruleInSubType = assumeInfoCollectionBuilder.buildInfo(target);
         // We are looking for the greatest lower bound of assume rules from all sub types.
         // If any subtype doesn't have a matching assume rule, the lower bound is literally nothing.
         if (ruleInSubType == null) {
-          ruleToBePropagated = null;
+          infoToBePropagated = null;
           break;
         }
-        if (ruleToBePropagated == null) {
-          ruleToBePropagated = ruleInSubType;
+        if (infoToBePropagated == null) {
+          infoToBePropagated = ruleInSubType;
         } else {
           // TODO(b/133208961): Introduce comparison/meet of assume rules.
-          if (!ruleToBePropagated.equals(ruleInSubType)) {
-            ruleToBePropagated = null;
+          if (!infoToBePropagated.equals(ruleInSubType)) {
+            infoToBePropagated = null;
             break;
           }
         }
       }
-      if (ruleToBePropagated != null) {
-        assumeRulePool.put(reference, ruleToBePropagated);
+      if (infoToBePropagated != null) {
+        assumeInfoCollectionBuilder.meet(reference, infoToBePropagated);
       }
     }
 
@@ -663,7 +669,6 @@ public class RootSetUtils {
     }
 
     private void markMatchingOverriddenMethods(
-        AppInfoWithClassHierarchy appInfoWithSubtyping,
         DexClass clazz,
         Collection<ProguardMemberRule> memberKeepRules,
         ProguardConfigurationRule rule,
@@ -1156,36 +1161,17 @@ public class RootSetUtils {
           return;
         }
         evaluateKeepRule(
-            item.asProgramDefinition(), context.asProguardKeepRule(), rule, precondition, ifRule);
+            item.asProgramDefinition(), context.asProguardKeepRule(), precondition, ifRule);
       } else if (context instanceof ProguardAssumeMayHaveSideEffectsRule) {
         mayHaveSideEffects.put(item.getReference(), rule);
         context.markAsUsed();
       } else if (context instanceof ProguardAssumeNoSideEffectRule) {
-        if (item.isMember()) {
-          DexClassAndMember<?, ?> member = item.asMember();
-          if (member.getHolderType() == appView.dexItemFactory().objectType) {
-            assert member.isMethod();
-            reportAssumeNoSideEffectsWarningForJavaLangClassMethod(
-                member.asMethod(), (ProguardAssumeNoSideEffectRule) context);
-          } else {
-            noSideEffects.put(member.getReference(), rule);
-            if (member.isMethod()) {
-              DexClassAndMethod method = member.asMethod();
-              if (method.getDefinition().isClassInitializer()) {
-                feedback.classInitializerMayBePostponed(method.getDefinition());
-              }
-            }
-          }
-          context.markAsUsed();
-        }
+        evaluateAssumeNoSideEffectsRule(item, (ProguardAssumeNoSideEffectRule) context, rule);
+      } else if (context instanceof ProguardAssumeValuesRule) {
+        evaluateAssumeValuesRule(item, (ProguardAssumeValuesRule) context, rule);
       } else if (context instanceof ProguardWhyAreYouKeepingRule) {
         reasonAsked.computeIfAbsent(item.getReference(), i -> i);
         context.markAsUsed();
-      } else if (context instanceof ProguardAssumeValuesRule) {
-        if (item.isMember()) {
-          assumedValues.put(item.asMember().getReference(), rule);
-          context.markAsUsed();
-        }
       } else if (context.isProguardCheckDiscardRule()) {
         assert item.isProgramMember();
         evaluateCheckDiscardMemberRule(
@@ -1427,10 +1413,60 @@ public class RootSetUtils {
       }
     }
 
+    private void evaluateAssumeNoSideEffectsRule(
+        Definition item, ProguardAssumeNoSideEffectRule context, ProguardMemberRule rule) {
+      assert assumeInfoCollectionBuilder != null;
+      if (!item.isMember()) {
+        return;
+      }
+      DexClassAndMember<?, ?> member = item.asMember();
+      if (member.getHolderType() == appView.dexItemFactory().objectType) {
+        assert member.isMethod();
+        reportAssumeNoSideEffectsWarningForJavaLangClassMethod(member.asMethod(), context);
+      } else {
+        DexType valueType =
+            member.getReference().apply(DexField::getType, DexMethod::getReturnType);
+        assumeInfoCollectionBuilder
+            .applyIf(
+                rule.hasReturnValue(),
+                builder -> {
+                  DynamicType assumeType = rule.getReturnValue().toDynamicType(appView, valueType);
+                  AbstractValue assumeValue =
+                      rule.getReturnValue().toAbstractValue(appView, valueType);
+                  builder.meetAssumeType(member, assumeType).meetAssumeValue(member, assumeValue);
+                  reportAssumeValuesWarningForMissingReturnField(context, rule, assumeValue);
+                })
+            .setIsSideEffectFree(member);
+        if (member.isMethod()) {
+          DexClassAndMethod method = member.asMethod();
+          if (method.getDefinition().isClassInitializer()) {
+            feedback.classInitializerMayBePostponed(method.getDefinition());
+          }
+        }
+      }
+      context.markAsUsed();
+    }
+
+    private void evaluateAssumeValuesRule(
+        Definition item, ProguardAssumeValuesRule context, ProguardMemberRule rule) {
+      assert assumeInfoCollectionBuilder != null;
+      if (!item.isMember() || !rule.hasReturnValue()) {
+        return;
+      }
+      DexClassAndMember<?, ?> member = item.asMember();
+      DexType valueType = member.getReference().apply(DexField::getType, DexMethod::getReturnType);
+      DynamicType assumeType = rule.getReturnValue().toDynamicType(appView, valueType);
+      AbstractValue assumeValue = rule.getReturnValue().toAbstractValue(appView, valueType);
+      assumeInfoCollectionBuilder
+          .meetAssumeType(member, assumeType)
+          .meetAssumeValue(member, assumeValue);
+      reportAssumeValuesWarningForMissingReturnField(context, rule, assumeValue);
+      context.markAsUsed();
+    }
+
     private void evaluateKeepRule(
         ProgramDefinition item,
         ProguardKeepRule context,
-        ProguardMemberRule rule,
         DexProgramClass precondition,
         ProguardIfRule ifRule) {
       if (item.isField()) {
@@ -1663,6 +1699,22 @@ public class RootSetUtils {
                     .build());
           });
     }
+
+    private void reportAssumeValuesWarningForMissingReturnField(
+        ProguardConfigurationRule context, ProguardMemberRule rule, AbstractValue assumeValue) {
+      if (rule.hasReturnValue() && rule.getReturnValue().isField()) {
+        assert assumeValue.isSingleFieldValue() || assumeValue.isUnknown();
+        if (assumeValue.isUnknown()) {
+          ProguardMemberRuleReturnValue returnValue = rule.getReturnValue();
+          options.reporter.warning(
+              new AssumeValuesMissingStaticFieldDiagnostic.Builder()
+                  .setField(returnValue.getFieldHolder(), returnValue.getFieldName())
+                  .setOrigin(context.getOrigin())
+                  .setPosition(context.getPosition())
+                  .build());
+        }
+      }
+    }
   }
 
   abstract static class RootSetBase {
@@ -1712,8 +1764,6 @@ public class RootSetUtils {
     public final Set<DexType> noHorizontalClassMerging;
     public final Set<DexMember<?, ?>> neverPropagateValue;
     public final Map<DexReference, ProguardMemberRule> mayHaveSideEffects;
-    public final Map<DexMember<?, ?>, ProguardMemberRule> noSideEffects;
-    public final Map<DexMember<?, ?>, ProguardMemberRule> assumedValues;
     public final Set<DexMember<?, ?>> identifierNameStrings;
     public final Set<ProguardIfRule> ifRules;
 
@@ -1733,8 +1783,6 @@ public class RootSetUtils {
         Set<DexType> noHorizontalClassMerging,
         Set<DexMember<?, ?>> neverPropagateValue,
         Map<DexReference, ProguardMemberRule> mayHaveSideEffects,
-        Map<DexMember<?, ?>, ProguardMemberRule> noSideEffects,
-        Map<DexMember<?, ?>, ProguardMemberRule> assumedValues,
         Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule,
         Set<DexMember<?, ?>> identifierNameStrings,
         Set<ProguardIfRule> ifRules,
@@ -1759,8 +1807,6 @@ public class RootSetUtils {
       this.noHorizontalClassMerging = noHorizontalClassMerging;
       this.neverPropagateValue = neverPropagateValue;
       this.mayHaveSideEffects = mayHaveSideEffects;
-      this.noSideEffects = noSideEffects;
-      this.assumedValues = assumedValues;
       this.identifierNameStrings = Collections.unmodifiableSet(identifierNameStrings);
       this.ifRules = Collections.unmodifiableSet(ifRules);
     }
@@ -1819,7 +1865,6 @@ public class RootSetUtils {
       pruneDeadReferences(noVerticalClassMerging, definitions, enqueuer);
       pruneDeadReferences(noHorizontalClassMerging, definitions, enqueuer);
       pruneDeadReferences(alwaysInline, definitions, enqueuer);
-      pruneDeadReferences(noSideEffects.keySet(), definitions, enqueuer);
     }
 
     private static void pruneDeadReferences(
@@ -1871,8 +1916,6 @@ public class RootSetUtils {
           noHorizontalClassMerging,
           neverPropagateValue,
           mayHaveSideEffects,
-          noSideEffects,
-          assumedValues,
           dependentKeepClassCompatRule,
           identifierNameStrings,
           ifRules,
@@ -2044,8 +2087,6 @@ public class RootSetUtils {
       StringBuilder builder = new StringBuilder();
       builder.append("RootSet");
       builder.append("\nreasonAsked: " + reasonAsked.size());
-      builder.append("\nnoSideEffects: " + noSideEffects.size());
-      builder.append("\nassumedValues: " + assumedValues.size());
       builder.append("\nidentifierNameStrings: " + identifierNameStrings.size());
       builder.append("\nifRules: " + ifRules.size());
       return builder.toString();
@@ -2162,8 +2203,6 @@ public class RootSetUtils {
           Collections.emptySet(),
           Collections.emptySet(),
           Collections.emptySet(),
-          emptyMap(),
-          emptyMap(),
           emptyMap(),
           emptyMap(),
           Collections.emptySet(),

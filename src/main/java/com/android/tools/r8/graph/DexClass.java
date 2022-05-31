@@ -539,17 +539,26 @@ public abstract class DexClass extends DexDefinition
     return lookupTarget(instanceFields, field);
   }
 
-  public DexField lookupUniqueInstanceFieldWithName(DexString name) {
-    DexField field = null;
-    for (DexEncodedField encodedField : instanceFields()) {
-      if (encodedField.getReference().name == name) {
-        if (field != null) {
+  public DexEncodedField lookupUniqueInstanceFieldWithName(DexString name) {
+    return internalLookupUniqueFieldThatMatches(field -> field.getName() == name, instanceFields());
+  }
+
+  public DexEncodedField lookupUniqueStaticFieldWithName(DexString name) {
+    return internalLookupUniqueFieldThatMatches(field -> field.getName() == name, staticFields());
+  }
+
+  private static DexEncodedField internalLookupUniqueFieldThatMatches(
+      Predicate<DexEncodedField> predicate, List<DexEncodedField> fields) {
+    DexEncodedField result = null;
+    for (DexEncodedField field : fields) {
+      if (predicate.test(field)) {
+        if (result != null) {
           return null;
         }
-        field = encodedField.getReference();
+        result = field;
       }
     }
-    return field;
+    return result;
   }
 
   /** Find method in this class matching {@param method}. */

@@ -79,6 +79,7 @@ import com.android.tools.r8.repackaging.RepackagingLens;
 import com.android.tools.r8.shaking.AbstractMethodRemover;
 import com.android.tools.r8.shaking.AnnotationRemover;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.AssumeInfoCollection;
 import com.android.tools.r8.shaking.ClassInitFieldSynthesizer;
 import com.android.tools.r8.shaking.DefaultTreePrunerConfiguration;
 import com.android.tools.r8.shaking.DiscardedChecker;
@@ -338,6 +339,7 @@ public class R8 {
                     options.itemFactory, options.getMinApiLevel()));
           }
         }
+        AssumeInfoCollection.Builder assumeInfoCollectionBuilder = AssumeInfoCollection.builder();
         SubtypingInfo subtypingInfo = SubtypingInfo.create(appView);
         appView.setRootSet(
             RootSet.builder(
@@ -345,7 +347,9 @@ public class R8 {
                     subtypingInfo,
                     Iterables.concat(
                         options.getProguardConfiguration().getRules(), synthesizedProguardRules))
+                .setAssumeInfoCollectionBuilder(assumeInfoCollectionBuilder)
                 .build(executorService));
+        appView.setAssumeInfoCollection(assumeInfoCollectionBuilder.build());
 
         // Compute the main dex rootset that will be the base of first and final main dex tracing
         // before building a new appview with only live classes (and invalidating subtypingInfo).

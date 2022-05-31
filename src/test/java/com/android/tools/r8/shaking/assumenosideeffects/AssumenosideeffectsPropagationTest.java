@@ -88,15 +88,8 @@ public class AssumenosideeffectsPropagationTest extends TestBase {
               ? StringUtils.lines(
                   "[AnotherSub2, debug]: message08", "[AnotherSub2, debug]: message5", "The end")
               : StringUtils.lines(
-                  // TODO(b/133208961): Introduce comparison/meet of assume rules.
-                  // Itf has side effects for all methods, since we don't compute the meet yet.
-                  "[Sub1, info]: message00",
                   "[Base1, debug]: message00",
-                  "[Sub1, verbose]: message00",
-                  "[Base2, info]: message08",
                   "[AnotherSub2, debug]: message08",
-                  "[AnotherSub2, verbose]: message08",
-                  // Base2#debug also has side effects.
                   "[AnotherSub2, debug]: message5",
                   "The end");
         case NON_SPECIFIC_RULES_ALL:

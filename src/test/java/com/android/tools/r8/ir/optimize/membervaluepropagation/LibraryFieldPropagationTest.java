@@ -35,7 +35,8 @@ public class LibraryFieldPropagationTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}, with assume values rule: {1}")
   public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimes().build(), BooleanUtils.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
   public LibraryFieldPropagationTest(TestParameters parameters, boolean withAssumeValuesRule) {
@@ -71,7 +72,7 @@ public class LibraryFieldPropagationTest extends TestBase {
             withAssumeValuesRule
                 ? "-assumevalues class java.lang.Thread { public int MIN_PRIORITY return 1; }"
                 : "")
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verifyFieldValueNotPropagated)
         .run(parameters.getRuntime(), MAIN)

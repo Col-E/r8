@@ -4,64 +4,188 @@
 
 package com.android.tools.r8.ir.optimize.membervaluepropagation.assume;
 
-import com.android.tools.r8.shaking.ProguardMemberRule;
-import com.android.tools.r8.shaking.ProguardMemberRuleReturnValue;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
+import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
+import java.util.Objects;
 
 public class AssumeInfo {
 
-  public enum AssumeType {
-    ASSUME_NO_SIDE_EFFECTS,
-    ASSUME_VALUES;
+  private static final AssumeInfo EMPTY =
+      new AssumeInfo(DynamicType.unknown(), AbstractValue.unknown(), false);
 
-    AssumeType meet(AssumeType type) {
-      return this == ASSUME_NO_SIDE_EFFECTS || type == ASSUME_NO_SIDE_EFFECTS
-          ? ASSUME_NO_SIDE_EFFECTS
-          : ASSUME_VALUES;
+  private final DynamicType assumeType;
+  private final AbstractValue assumeValue;
+  private final boolean isSideEffectFree;
+
+  private AssumeInfo(DynamicType assumeType, AbstractValue assumeValue, boolean isSideEffectFree) {
+    this.assumeType = assumeType;
+    this.assumeValue = assumeValue;
+    this.isSideEffectFree = isSideEffectFree;
+  }
+
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  public static AssumeInfo create(
+      DynamicType assumeType, AbstractValue assumeValue, boolean isSideEffectFree) {
+    return assumeType.isUnknown() && assumeValue.isUnknown() && !isSideEffectFree
+        ? empty()
+        : new AssumeInfo(assumeType, assumeValue, isSideEffectFree);
+  }
+
+  public static AssumeInfo empty() {
+    return EMPTY;
+  }
+
+  public DynamicType getAssumeType() {
+    return assumeType;
+  }
+
+  public AbstractValue getAssumeValue() {
+    return assumeValue;
+  }
+
+  public boolean isEmpty() {
+    if (this == empty()) {
+      return true;
     }
+    assert !assumeType.isUnknown() || !assumeValue.isUnknown() || isSideEffectFree;
+    return false;
   }
 
-  private final AssumeType type;
-  private final ProguardMemberRule rule;
-
-  public AssumeInfo(AssumeType type, ProguardMemberRule rule) {
-    this.type = type;
-    this.rule = rule;
+  public boolean isSideEffectFree() {
+    return isSideEffectFree;
   }
 
-  public boolean hasReturnInfo() {
-    return rule.hasReturnValue();
+  public AssumeInfo meet(AssumeInfo other) {
+    DynamicType meetType = internalMeetType(assumeType, other.assumeType);
+    AbstractValue meetValue = internalMeetValue(assumeValue, other.assumeValue);
+    boolean meetIsSideEffectFree =
+        internalMeetIsSideEffectFree(isSideEffectFree, other.isSideEffectFree);
+    return AssumeInfo.create(meetType, meetValue, meetIsSideEffectFree);
   }
 
-  public ProguardMemberRuleReturnValue getReturnInfo() {
-    return rule.getReturnValue();
+  private static DynamicType internalMeetType(DynamicType type, DynamicType other) {
+    if (type.equals(other)) {
+      return type;
+    }
+    if (type.isUnknown()) {
+      return other;
+    }
+    if (other.isUnknown()) {
+      return type;
+    }
+    return DynamicType.unknown();
   }
 
-  public boolean isAssumeNoSideEffects() {
-    return type == AssumeType.ASSUME_NO_SIDE_EFFECTS;
+  private static AbstractValue internalMeetValue(AbstractValue value, AbstractValue other) {
+    if (value.equals(other)) {
+      return value;
+    }
+    if (value.isUnknown()) {
+      return other;
+    }
+    if (other.isUnknown()) {
+      return value;
+    }
+    return AbstractValue.unknown();
   }
 
-  public boolean isAssumeValues() {
-    return type == AssumeType.ASSUME_VALUES;
+  private static boolean internalMeetIsSideEffectFree(
+      boolean isSideEffectFree, boolean otherIsSideEffectFree) {
+    return isSideEffectFree || otherIsSideEffectFree;
   }
 
-  public AssumeInfo meet(AssumeInfo lookup) {
-    return new AssumeInfo(type.meet(lookup.type), rule.hasReturnValue() ? rule : lookup.rule);
+  public AssumeInfo rewrittenWithLens(AppView<?> appView, GraphLens graphLens) {
+    // Verify that there is no need to rewrite the assumed type.
+    assert assumeType.isNotNullType() || assumeType.isUnknown();
+    // If the assumed value is a static field, then rewrite it.
+    if (assumeValue.isSingleFieldValue()) {
+      DexField field = assumeValue.asSingleFieldValue().getField();
+      DexField rewrittenField = graphLens.getRenamedFieldSignature(field);
+      if (rewrittenField != field) {
+        SingleFieldValue rewrittenAssumeValue =
+            appView
+                .abstractValueFactory()
+                .createSingleFieldValue(rewrittenField, ObjectState.empty());
+        return create(assumeType, rewrittenAssumeValue, isSideEffectFree);
+      }
+    }
+    return this;
+  }
+
+  public AssumeInfo withoutPrunedItems(PrunedItems prunedItems) {
+    // Verify that there is no need to prune the assumed type.
+    assert assumeType.isNotNullType() || assumeType.isUnknown();
+    // If the assumed value is a static field, and the static field is removed, then prune the
+    // assumed value.
+    if (assumeValue.isSingleFieldValue()
+        && prunedItems.isRemoved(assumeValue.asSingleFieldValue().getField())) {
+      return create(assumeType, AbstractValue.unknown(), isSideEffectFree);
+    }
+    return this;
   }
 
   @Override
   public boolean equals(Object other) {
-    if (other == null) {
-      return false;
+    if (this == other) {
+      return true;
     }
-    if (!(other instanceof AssumeInfo)) {
+    if (other == null || getClass() != other.getClass()) {
       return false;
     }
     AssumeInfo assumeInfo = (AssumeInfo) other;
-    return type == assumeInfo.type && rule == assumeInfo.rule;
+    return assumeValue.equals(assumeInfo.assumeValue)
+        && assumeType.equals(assumeInfo.assumeType)
+        && isSideEffectFree == assumeInfo.isSideEffectFree;
   }
 
   @Override
   public int hashCode() {
-    return type.ordinal() * 31 + rule.hashCode();
+    return Objects.hash(assumeValue, assumeType, isSideEffectFree);
+  }
+
+  public static class Builder {
+
+    private DynamicType assumeType = DynamicType.unknown();
+    private AbstractValue assumeValue = AbstractValue.unknown();
+    private boolean isSideEffectFree = false;
+
+    public Builder meet(AssumeInfo assumeInfo) {
+      return meetAssumeType(assumeInfo.assumeType)
+          .meetAssumeValue(assumeInfo.assumeValue)
+          .meetIsSideEffectFree(assumeInfo.isSideEffectFree);
+    }
+
+    public Builder meetAssumeType(DynamicType assumeType) {
+      this.assumeType = internalMeetType(this.assumeType, assumeType);
+      return this;
+    }
+
+    public Builder meetAssumeValue(AbstractValue assumeValue) {
+      this.assumeValue = internalMeetValue(this.assumeValue, assumeValue);
+      return this;
+    }
+
+    public Builder meetIsSideEffectFree(boolean isSideEffectFree) {
+      this.isSideEffectFree = internalMeetIsSideEffectFree(this.isSideEffectFree, isSideEffectFree);
+      return this;
+    }
+
+    public Builder setIsSideEffectFree() {
+      this.isSideEffectFree = true;
+      return this;
+    }
+
+    public AssumeInfo build() {
+      return create(assumeType, assumeValue, isSideEffectFree);
+    }
   }
 }

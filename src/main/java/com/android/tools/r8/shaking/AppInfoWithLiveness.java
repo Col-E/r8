@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMember;
-import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
@@ -143,10 +142,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   private final KeepInfoCollection keepInfo;
   /** All items with assumemayhavesideeffects rule. */
   public final Map<DexReference, ProguardMemberRule> mayHaveSideEffects;
-  /** All items with assumenosideeffects rule. */
-  public final Map<DexMember<?, ?>, ProguardMemberRule> noSideEffects;
-  /** All items with assumevalues rule. */
-  public final Map<DexMember<?, ?>, ProguardMemberRule> assumedValues;
   /** All methods that should be inlined if possible due to a configuration directive. */
   private final Set<DexMethod> alwaysInline;
   /**
@@ -222,8 +217,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Map<DexCallSite, ProgramMethodSet> callSites,
       KeepInfoCollection keepInfo,
       Map<DexReference, ProguardMemberRule> mayHaveSideEffects,
-      Map<DexMember<?, ?>, ProguardMemberRule> noSideEffects,
-      Map<DexMember<?, ?>, ProguardMemberRule> assumedValues,
       Set<DexMethod> alwaysInline,
       Set<DexMethod> neverInlineDueToSingleCaller,
       Set<DexMethod> whyAreYouNotInlining,
@@ -255,8 +248,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.objectAllocationInfoCollection = objectAllocationInfoCollection;
     this.keepInfo = keepInfo;
     this.mayHaveSideEffects = mayHaveSideEffects;
-    this.noSideEffects = noSideEffects;
-    this.assumedValues = assumedValues;
     this.callSites = callSites;
     this.alwaysInline = alwaysInline;
     this.neverInlineDueToSingleCaller = neverInlineDueToSingleCaller;
@@ -299,8 +290,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.callSites,
         previous.keepInfo,
         previous.mayHaveSideEffects,
-        previous.noSideEffects,
-        previous.assumedValues,
         previous.alwaysInline,
         previous.neverInlineDueToSingleCaller,
         previous.whyAreYouNotInlining,
@@ -346,8 +335,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.callSites,
         extendPinnedItems(previous, prunedItems.getAdditionalPinnedItems()),
         previous.mayHaveSideEffects,
-        pruneMapFromMembers(previous.noSideEffects, prunedItems, executorService, futures),
-        pruneMapFromMembers(previous.assumedValues, prunedItems, executorService, futures),
         pruneMethods(previous.alwaysInline, prunedItems, executorService, futures),
         pruneMethods(previous.neverInlineDueToSingleCaller, prunedItems, executorService, futures),
         pruneMethods(previous.whyAreYouNotInlining, prunedItems, executorService, futures),
@@ -551,8 +538,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         callSites,
         keepInfo,
         mayHaveSideEffects,
-        noSideEffects,
-        assumedValues,
         alwaysInline,
         neverInlineDueToSingleCaller,
         whyAreYouNotInlining,
@@ -630,8 +615,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.objectAllocationInfoCollection = previous.objectAllocationInfoCollection;
     this.keepInfo = previous.keepInfo;
     this.mayHaveSideEffects = previous.mayHaveSideEffects;
-    this.noSideEffects = previous.noSideEffects;
-    this.assumedValues = previous.assumedValues;
     this.callSites = previous.callSites;
     this.alwaysInline = previous.alwaysInline;
     this.neverInlineDueToSingleCaller = previous.neverInlineDueToSingleCaller;
@@ -760,26 +743,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   public boolean isNeverInlineDueToSingleCallerMethod(ProgramMethod method) {
     return neverInlineDueToSingleCaller.contains(method.getReference());
-  }
-
-  public boolean isAssumeMethod(DexClassAndMethod method) {
-    return isAssumeNoSideEffectsMethod(method) || isAssumeValuesMethod(method);
-  }
-
-  public boolean isAssumeNoSideEffectsMethod(DexMethod method) {
-    return noSideEffects.containsKey(method);
-  }
-
-  public boolean isAssumeNoSideEffectsMethod(DexClassAndMethod method) {
-    return isAssumeNoSideEffectsMethod(method.getReference());
-  }
-
-  public boolean isAssumeValuesMethod(DexMethod method) {
-    return assumedValues.containsKey(method);
-  }
-
-  public boolean isAssumeValuesMethod(DexClassAndMethod method) {
-    return isAssumeValuesMethod(method.getReference());
   }
 
   public boolean isWhyAreYouNotInliningMethod(DexMethod method) {
@@ -1239,13 +1202,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         keepInfo.rewrite(definitionSupplier, lens, application.options),
         // Take any rule in case of collisions.
         lens.rewriteReferenceKeys(mayHaveSideEffects, (reference, rules) -> ListUtils.first(rules)),
-        // Take the assume rule from the representative in case of collisions.
-        lens.rewriteReferenceKeys(
-            noSideEffects,
-            (reference, rules) -> noSideEffects.get(lens.getOriginalMemberSignature(reference))),
-        lens.rewriteReferenceKeys(
-            assumedValues,
-            (reference, rules) -> assumedValues.get(lens.getOriginalMemberSignature(reference))),
         lens.rewriteReferences(alwaysInline),
         lens.rewriteReferences(neverInlineDueToSingleCaller),
         lens.rewriteReferences(whyAreYouNotInlining),

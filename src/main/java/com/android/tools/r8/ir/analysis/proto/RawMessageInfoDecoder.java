@@ -202,10 +202,10 @@ public class RawMessageInfoDecoder {
         return new ProtoTypeObject(constClass.getValue());
       } else if (definition.isConstString()) {
         ConstString constString = definition.asConstString();
-        DexField field =
+        DexEncodedField field =
             context.getHolder().lookupUniqueInstanceFieldWithName(constString.getValue());
         if (field != null) {
-          return new LiveProtoFieldObject(field);
+          return new LiveProtoFieldObject(field.getReference());
         }
         // This const-string refers to a field that no longer exists. In this case, we create a
         // special dead-object instead of failing with an InvalidRawMessageInfoException below.

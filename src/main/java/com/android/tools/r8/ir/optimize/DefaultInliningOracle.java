@@ -43,6 +43,7 @@ import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.inliner.InliningReasonStrategy;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.AssumeInfoCollection;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -339,16 +340,16 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       SingleResolutionResult<?> resolutionResult,
       ProgramMethod singleTarget,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod singleTargetReference = singleTarget.getReference();
     if (!appView.getKeepInfo(singleTarget).isInliningAllowed(appView.options())) {
       whyAreYouNotInliningReporter.reportPinned();
       return true;
     }
 
-    if (appInfo.noSideEffects.containsKey(invoke.getInvokedMethod())
-        || appInfo.noSideEffects.containsKey(resolutionResult.getResolvedMethod().getReference())
-        || appInfo.noSideEffects.containsKey(singleTargetReference)) {
+    AssumeInfoCollection assumeInfoCollection = appView.getAssumeInfoCollection();
+    if (assumeInfoCollection.isSideEffectFree(invoke.getInvokedMethod())
+        || assumeInfoCollection.isSideEffectFree(resolutionResult.getResolutionPair())
+        || assumeInfoCollection.isSideEffectFree(singleTargetReference)) {
       return !singleTarget.getDefinition().getOptimizationInfo().forceInline();
     }
 

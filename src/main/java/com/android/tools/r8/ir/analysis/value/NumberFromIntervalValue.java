@@ -31,6 +31,14 @@ public class NumberFromIntervalValue extends NonConstantNumberValue {
     return maxInclusive - minInclusive + 1;
   }
 
+  public long getMinInclusive() {
+    return minInclusive;
+  }
+
+  public long getMaxInclusive() {
+    return maxInclusive;
+  }
+
   @Override
   public boolean isNumberFromIntervalValue() {
     return true;

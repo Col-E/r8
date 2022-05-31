@@ -494,9 +494,8 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertFalse(rule.getReturnValue().isValueRange());
         assertTrue(rule.getReturnValue().isField());
         assertFalse(rule.getReturnValue().isNull());
-        assertEquals("com.google.C", rule.getReturnValue().getField().holder.toString());
-        assertEquals("int", rule.getReturnValue().getField().type.toString());
-        assertEquals("X", rule.getReturnValue().getField().name.toString());
+        assertEquals("com.google.C", rule.getReturnValue().getFieldHolder().getTypeName());
+        assertEquals("X", rule.getReturnValue().getFieldName().toString());
         matches |= 1 << 4;
       } else if (rule.getName().matches("returnsNull")) {
         assertTrue(rule.hasReturnValue());
@@ -515,9 +514,8 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertFalse(rule.getReturnValue().isValueRange());
         assertTrue(rule.getReturnValue().isField());
         assertFalse(rule.getReturnValue().isNull());
-        assertEquals("com.google.C", rule.getReturnValue().getField().holder.toString());
-        assertEquals("Object", rule.getReturnValue().getField().type.toString());
-        assertEquals("X", rule.getReturnValue().getField().name.toString());
+        assertEquals("com.google.C", rule.getReturnValue().getFieldHolder().getTypeName());
+        assertEquals("X", rule.getReturnValue().getFieldName().toString());
         matches |= 1 << 7;
       } else {
         fail("Unexpected");
@@ -581,9 +579,8 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertFalse(rule.getReturnValue().isValueRange());
         assertTrue(rule.getReturnValue().isField());
         assertFalse(rule.getReturnValue().isNull());
-        assertEquals("com.google.C", rule.getReturnValue().getField().holder.toString());
-        assertEquals("int", rule.getReturnValue().getField().type.toString());
-        assertEquals("X", rule.getReturnValue().getField().name.toString());
+        assertEquals("com.google.C", rule.getReturnValue().getFieldHolder().getTypeName());
+        assertEquals("X", rule.getReturnValue().getFieldName().toString());
         matches |= 1 << 4;
       } else if (rule.getName().matches("isNull")) {
         assertTrue(rule.hasReturnValue());
@@ -602,9 +599,8 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertFalse(rule.getReturnValue().isValueRange());
         assertTrue(rule.getReturnValue().isField());
         assertFalse(rule.getReturnValue().isNull());
-        assertEquals("com.google.C", rule.getReturnValue().getField().holder.toString());
-        assertEquals("Object", rule.getReturnValue().getField().type.toString());
-        assertEquals("X", rule.getReturnValue().getField().name.toString());
+        assertEquals("com.google.C", rule.getReturnValue().getFieldHolder().getTypeName());
+        assertEquals("X", rule.getReturnValue().getFieldName().toString());
         matches |= 1 << 7;
       } else {
         fail("Unexpected");

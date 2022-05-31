@@ -26,7 +26,6 @@ import com.android.tools.r8.ir.conversion.IRToCfFinalizer;
 import com.android.tools.r8.ir.conversion.IRToDexFinalizer;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo;
-import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfoLookup;
 import com.android.tools.r8.shaking.Enqueuer.FieldAccessKind;
 import com.android.tools.r8.shaking.Enqueuer.FieldAccessMetadata;
 import com.android.tools.r8.shaking.Enqueuer.Mode;
@@ -99,8 +98,8 @@ public class EnqueuerDeferredTracingImpl extends EnqueuerDeferredTracing {
       // If the value of the field is not guaranteed to be the default value, even if it is never
       // assigned, then give up.
       // TODO(b/205810841): Allow this by handling this in the corresponding IR rewriter.
-      AssumeInfo assumeInfo = AssumeInfoLookup.lookupAssumeInfo(appView, field);
-      if (assumeInfo != null && assumeInfo.hasReturnInfo()) {
+      AssumeInfo assumeInfo = appView.getAssumeInfoCollection().get(field);
+      if (!assumeInfo.getAssumeValue().isUnknown()) {
         return enqueueDeferredEnqueuerActions(field);
       }
       if (field.getAccessFlags().isStatic() && field.getDefinition().hasExplicitStaticValue()) {

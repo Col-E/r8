@@ -37,13 +37,13 @@ public class JavaLangObjectsSideEffectCollection {
       return false;
     }
 
+    // Check if there is an -assumenosideeffects rule for the toString() method.
+    if (appView.getAssumeInfoCollection().isSideEffectFree(toStringMethodReference)) {
+      return false;
+    }
+
     if (appView.appInfo().hasLiveness()) {
       AppInfoWithLiveness appInfo = appView.appInfo().withLiveness();
-
-      // Check if there is an -assumenosideeffects rule for the toString() method.
-      if (appInfo.isAssumeNoSideEffectsMethod(toStringMethodReference)) {
-        return false;
-      }
 
       // Check if this is a program class with a toString() method that does not have side effects.
       DexClass clazz = appInfo.definitionFor(classType);

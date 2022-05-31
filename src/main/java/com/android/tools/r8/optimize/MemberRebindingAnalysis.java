@@ -106,7 +106,7 @@ public class MemberRebindingAnalysis {
           invokeType)) {
         eligibleLibraryMethod = currentResolvedMethod.asLibraryMethod();
       }
-      if (appView.appInfo().isAssumeMethod(currentResolvedMethod)) {
+      if (appView.getAssumeInfoCollection().contains(currentResolvedMethod)) {
         break;
       }
       DexClass currentResolvedHolder = currentResolvedMethod.getHolder();

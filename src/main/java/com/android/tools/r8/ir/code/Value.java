@@ -27,6 +27,7 @@ import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.NumberFromIntervalValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
@@ -940,8 +941,8 @@ public class Value implements Comparable<Value> {
     return isThis;
   }
 
-  public void setValueRange(LongInterval range) {
-    valueRange = range;
+  public void setValueRange(NumberFromIntervalValue range) {
+    valueRange = new LongInterval(range.getMinInclusive(), range.getMaxInclusive());
   }
 
   public boolean hasValueRange() {

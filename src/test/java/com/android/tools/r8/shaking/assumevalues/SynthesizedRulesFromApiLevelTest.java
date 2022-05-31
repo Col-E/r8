@@ -303,13 +303,17 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
           "-assumevalues class android.os.Build$VERSION { *; }"
         };
 
-    for (String rule : rules) {
+    for (int ruleIndex = 0; ruleIndex < rules.length; ruleIndex++) {
+      final int finalRuleIndex = ruleIndex;
+      String rule = rules[ruleIndex];
       runTest(
           AndroidApiLevel.O_MR1,
           AndroidApiLevel.O_MR1,
           AndroidApiLevel.O_MR1,
           expectedResultForNative(AndroidApiLevel.O_MR1),
-          builder -> builder.allowUnusedProguardConfigurationRules(backend == Backend.CF),
+          builder ->
+              builder.allowUnusedProguardConfigurationRules(
+                  backend == Backend.CF || finalRuleIndex >= 4),
           this::compatCodePresent,
           ImmutableList.of(rule),
           SynthesizedRule.NOT_PRESENT);

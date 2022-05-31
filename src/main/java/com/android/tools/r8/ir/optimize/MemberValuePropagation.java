@@ -3,10 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
-import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.google.common.base.Predicates.alwaysTrue;
 
-import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -41,10 +39,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfoLookup;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.ProguardMemberRuleReturnValue;
 import com.android.tools.r8.utils.IteratorUtils;
-import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
 import java.util.ListIterator;
 import java.util.Set;
@@ -55,19 +50,13 @@ public class MemberValuePropagation {
   private static final OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final Reporter reporter;
-
-  // Fields for which we have reported warnings to due Proguard configuration rules.
-  private final Set<DexField> warnedFields = Sets.newIdentityHashSet();
 
   public MemberValuePropagation(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
-    this.reporter = appView.options().reporter;
   }
 
   private void rewriteArrayGet(
       IRCode code,
-      ProgramMethod context,
       Set<Value> affectedValues,
       ListIterator<BasicBlock> blocks,
       InstructionListIterator iterator,
@@ -126,93 +115,36 @@ public class MemberValuePropagation {
     if (field.isProgramField()) {
       return appView.appInfo().mayPropagateValueFor(appView, field.getReference());
     }
-    return appView.appInfo().assumedValues.containsKey(field.getReference())
-        || appView.appInfo().noSideEffects.containsKey(field.getReference());
+    return appView.getAssumeInfoCollection().contains(field);
   }
 
   private boolean mayPropagateValueFor(DexClassAndMethod method) {
     if (method.isProgramMethod()) {
       return appView.appInfo().mayPropagateValueFor(appView, method.getReference());
     }
-    return appView.appInfo().assumedValues.containsKey(method.getReference())
-        || appView.appInfo().noSideEffects.containsKey(method.getReference());
+    return appView.getAssumeInfoCollection().contains(method);
   }
 
   private Instruction createReplacementFromAssumeInfo(
       AssumeInfo assumeInfo, IRCode code, Instruction instruction) {
-    if (!assumeInfo.hasReturnInfo()) {
+    if (assumeInfo.getAssumeValue().isUnknown()) {
       return null;
     }
 
-    ProguardMemberRuleReturnValue returnValueRule = assumeInfo.getReturnInfo();
-
-    // Check if this value can be assumed constant.
-    if (returnValueRule.isSingleValue()) {
-      if (instruction.getOutType().isReferenceType()) {
-        if (returnValueRule.getSingleValue() == 0) {
-          return appView
-              .abstractValueFactory()
-              .createNullValue()
-              .createMaterializingInstruction(appView, code, instruction);
-        }
-        return null;
+    AbstractValue assumeValue = assumeInfo.getAssumeValue();
+    if (assumeValue.isSingleValue()) {
+      SingleValue singleValue = assumeValue.asSingleValue();
+      if (singleValue.isMaterializableInContext(appView, code.context())) {
+        return singleValue.createMaterializingInstruction(appView, code, instruction);
       }
-      return appView.abstractValueFactory()
-          .createSingleNumberValue(returnValueRule.getSingleValue())
-          .createMaterializingInstruction(appView, code, instruction);
-    }
-
-    if (returnValueRule.isField()) {
-      DexField field = returnValueRule.getField();
-      assert instruction.getOutType() == TypeElement.fromDexType(field.type, maybeNull(), appView);
-
-      DexClassAndField staticField = appView.appInfo().lookupStaticTarget(field);
-      if (staticField == null) {
-        if (warnedFields.add(field)) {
-          reporter.warning(
-              new StringDiagnostic(
-                  "Field `"
-                      + field.toSourceString()
-                      + "` is used in an -assumevalues rule but does not exist.",
-                  code.origin));
-        }
-        return null;
-      }
-
-      if (AccessControl.isMemberAccessible(
-              staticField, staticField.getHolder(), code.context(), appView)
-          .isTrue()) {
-        return StaticGet.builder()
-            .setField(field)
-            .setFreshOutValue(code, field.getTypeElement(appView), instruction.getLocalInfo())
-            .build();
-      }
-
-      Instruction replacement =
-          staticField
-              .getDefinition()
-              .valueAsConstInstruction(code, instruction.getLocalInfo(), appView);
-      if (replacement == null) {
-        reporter.warning(
-            new StringDiagnostic(
-                "Unable to apply the rule `"
-                    + returnValueRule.toString()
-                    + "`: Could not determine the value of field `"
-                    + field.toSourceString()
-                    + "`",
-                code.origin));
-        return null;
-      }
-      return replacement;
     }
 
     return null;
   }
 
   private void setValueRangeFromAssumeInfo(AssumeInfo assumeInfo, Value value) {
-    if (assumeInfo.hasReturnInfo() && assumeInfo.getReturnInfo().isValueRange()) {
-      assert !assumeInfo.getReturnInfo().isSingleValue();
-      value.setValueRange(assumeInfo.getReturnInfo().getValueRange());
+    if (assumeInfo.getAssumeValue().isNumberFromIntervalValue()) {
+      value.setValueRange(assumeInfo.getAssumeValue().asNumberFromIntervalValue());
     }
   }
 
@@ -232,10 +164,9 @@ public class MemberValuePropagation {
       return false;
     }
     affectedValues.addAll(current.outValue().affectedValues());
-    if (assumeInfo.isAssumeNoSideEffects()) {
+    if (assumeInfo.isSideEffectFree()) {
       iterator.replaceCurrentInstruction(replacement);
     } else {
-      assert assumeInfo.isAssumeValues();
       BasicBlock block = current.getBlock();
       Position position = current.getPosition();
       if (current.hasOutValue()) {
@@ -397,7 +328,7 @@ public class MemberValuePropagation {
     }
 
     // Check if there is a Proguard configuration rule that specifies the value of the field.
-    AssumeInfo lookup = AssumeInfoLookup.lookupAssumeInfo(appView, target);
+    AssumeInfo lookup = appView.getAssumeInfoCollection().get(target);
     if (lookup != null
         && applyAssumeInfoIfPossible(code, affectedValues, blocks, iterator, current, lookup)) {
       return;
@@ -539,8 +470,7 @@ public class MemberValuePropagation {
       while (iterator.hasNext()) {
         Instruction current = iterator.next();
         if (current.isArrayGet()) {
-          rewriteArrayGet(
-              code, context, affectedValues, blockIterator, iterator, current.asArrayGet());
+          rewriteArrayGet(code, affectedValues, blockIterator, iterator, current.asArrayGet());
         } else if (current.isInvokeMethod()) {
           rewriteInvokeMethodWithConstantValues(
               code, context, affectedValues, blockIterator, iterator, current.asInvokeMethod());

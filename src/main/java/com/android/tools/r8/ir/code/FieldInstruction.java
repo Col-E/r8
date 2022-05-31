@@ -8,6 +8,7 @@ import static com.android.tools.r8.shaking.ObjectAllocationInfoCollectionUtils.m
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -83,9 +84,9 @@ public abstract class FieldInstruction extends Instruction {
     }
     SingleFieldResolutionResult<?> singleFieldResolutionResult =
         resolutionResult.asSingleFieldResolutionResult();
-    DexEncodedField resolvedField = singleFieldResolutionResult.getResolvedField();
+    DexClassAndField resolvedField = singleFieldResolutionResult.getResolutionPair();
     // Check if the instruction may fail with an IncompatibleClassChangeError.
-    if (resolvedField.isStatic() != isStaticFieldInstruction()) {
+    if (resolvedField.getAccessFlags().isStatic() != isStaticFieldInstruction()) {
       return true;
     }
     // Check if the resolution target is accessible.
@@ -115,11 +116,8 @@ public abstract class FieldInstruction extends Instruction {
         isStaticFieldInstruction() && !assumption.canAssumeClassIsAlreadyInitialized();
     if (mayTriggerClassInitialization) {
       // Only check for <clinit> side effects if there is no -assumenosideeffects rule.
-      if (appView.appInfo().hasLiveness()) {
-        AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
-        if (appInfoWithLiveness.noSideEffects.containsKey(resolvedField.getReference())) {
-          return false;
-        }
+      if (appView.getAssumeInfoCollection().isSideEffectFree(resolvedField)) {
+        return false;
       }
       // May trigger <clinit> that may have side effects.
       if (field.holder.classInitializationMayHaveSideEffectsInContext(appView, context)) {

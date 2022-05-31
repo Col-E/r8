@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.DescriptorUtils.javaTypeToDescriptor;
 import com.android.tools.r8.InputDependencyGraphConsumer;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -19,7 +18,6 @@ import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.position.TextRange;
 import com.android.tools.r8.shaking.ProguardConfiguration.Builder;
 import com.android.tools.r8.shaking.ProguardTypeMatcher.ClassOrType;
-import com.android.tools.r8.shaking.ProguardTypeMatcher.MatchSpecificType;
 import com.android.tools.r8.shaking.ProguardWildcard.BackReference;
 import com.android.tools.r8.shaking.ProguardWildcard.Pattern;
 import com.android.tools.r8.utils.IdentifierUtils;
@@ -1475,23 +1473,16 @@ public class ProguardConfigurationParser {
                             ruleBuilder.setReturnValue(
                                 new ProguardMemberRuleReturnValue(new LongInterval(min, max)));
                           } else {
-                            if (ruleBuilder.getTypeMatcher() instanceof MatchSpecificType) {
-                              int lastDotIndex = qualifiedFieldNameOrInteger.lastIndexOf(".");
-                              DexType fieldType =
-                                  ((MatchSpecificType) ruleBuilder.getTypeMatcher()).type;
-                              DexType fieldClass =
-                                  dexItemFactory.createType(
-                                      javaTypeToDescriptor(
-                                          qualifiedFieldNameOrInteger.substring(0, lastDotIndex)));
-                              DexString fieldName =
-                                  dexItemFactory.createString(
-                                      qualifiedFieldNameOrInteger.substring(lastDotIndex + 1));
-                              DexField field =
-                                  dexItemFactory.createField(fieldClass, fieldType, fieldName);
-                              ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue(field));
-                            } else {
-                              throw parseError("Expected specific type", fieldOrValueStart);
-                            }
+                            int lastDotIndex = qualifiedFieldNameOrInteger.lastIndexOf(".");
+                            DexType fieldHolder =
+                                dexItemFactory.createType(
+                                    javaTypeToDescriptor(
+                                        qualifiedFieldNameOrInteger.substring(0, lastDotIndex)));
+                            DexString fieldName =
+                                dexItemFactory.createString(
+                                    qualifiedFieldNameOrInteger.substring(lastDotIndex + 1));
+                            ruleBuilder.setReturnValue(
+                                new ProguardMemberRuleReturnValue(fieldHolder, fieldName));
                           }
                         }
                       }
