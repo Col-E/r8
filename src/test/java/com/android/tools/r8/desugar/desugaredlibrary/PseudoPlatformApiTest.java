@@ -31,8 +31,11 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class PseudoPlatformApiTest extends DesugaredLibraryTestBase {
 
-  @Parameter() public TestParameters parameters;
-  @Parameter() public LibraryDesugaringSpecification libraryDesugaringSpecification;
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameter(1)
+  public LibraryDesugaringSpecification libraryDesugaringSpecification;
 
   @Parameters(name = "{0}, spec: {1}")
   public static List<Object[]> data() {
@@ -111,7 +114,9 @@ public class PseudoPlatformApiTest extends DesugaredLibraryTestBase {
             LibraryDesugaringTestConfiguration.forSpecification(
                 libraryDesugaringSpecification.getSpecification()))
         .addRunClasspathFiles(androidJarAdditionsDex())
-        .addRunClasspathFiles(getNonShrunkDesugaredLib(parameters, libraryDesugaringSpecification))
+        .addRunClasspathFiles(
+            getNonShrunkDesugaredLib(
+                AndroidApiLevel.H_MR2, parameters.getBackend(), libraryDesugaringSpecification))
         .run(parameters.getRuntime(), ProgramClass.class)
         .assertSuccessWithOutputLines("DEFAULT-X", "Y-DEFAULT");
   }
@@ -129,7 +134,9 @@ public class PseudoPlatformApiTest extends DesugaredLibraryTestBase {
                 libraryDesugaringSpecification.getSpecification()))
         .addRunClasspathFiles(androidJarAdditionsDex())
         .addRunClasspathFiles(oemDex())
-        .addRunClasspathFiles(getNonShrunkDesugaredLib(parameters, libraryDesugaringSpecification))
+        .addRunClasspathFiles(
+            getNonShrunkDesugaredLib(
+                AndroidApiLevel.H_MR2, parameters.getBackend(), libraryDesugaringSpecification))
         .run(parameters.getRuntime(), ProgramClass.class)
         .assertSuccessWithOutputLines("OEM-X", "Y-OEM");
   }

@@ -95,6 +95,17 @@ public class DesugaredLibraryTestBase extends TestBase {
         .writeToZip();
   }
 
+  public Path getNonShrunkDesugaredLib(
+      AndroidApiLevel apiLevel,
+      Backend backend,
+      LibraryDesugaringSpecification libraryDesugaringSpecification)
+      throws Exception {
+    return testForL8(apiLevel, backend)
+        .apply(libraryDesugaringSpecification::configureL8TestBuilder)
+        .compile()
+        .writeToZip();
+  }
+
   public static Path[] getAllFilesWithSuffixInDirectory(Path directory, String suffix)
       throws IOException {
     return Files.walk(directory)
