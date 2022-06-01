@@ -188,6 +188,7 @@ public class ProguardConfigurationParserTest extends TestBase {
             new DexItemFactory(),
             reporter,
             ProguardConfigurationParserOptions.builder()
+                .setEnableExperimentalConvertCheckNotNull(false)
                 .setEnableExperimentalWhyAreYouNotInlining(false)
                 .setEnableTestingOptions(true)
                 .build());
@@ -736,6 +737,30 @@ public class ProguardConfigurationParserTest extends TestBase {
                       .toString()
                       .endsWith("IdentifierNameString"));
             });
+  }
+
+  @Test
+  public void testConvertCheckNotNullWithReturn() {
+    DexItemFactory dexItemFactory = new DexItemFactory();
+    ProguardConfigurationParser parser = new ProguardConfigurationParser(dexItemFactory, reporter);
+    String rule = "-convertchecknotnull class C { ** m(**, ...); }";
+    parser.parse(createConfigurationForTesting(ImmutableList.of(rule)));
+    verifyParserEndsCleanly();
+    ProguardConfiguration config = parser.getConfig();
+    assertEquals(1, config.getRules().size());
+    assertTrue(config.getRules().get(0) instanceof ConvertCheckNotNullRule);
+  }
+
+  @Test
+  public void testConvertCheckNotNullWithoutReturn() {
+    DexItemFactory dexItemFactory = new DexItemFactory();
+    ProguardConfigurationParser parser = new ProguardConfigurationParser(dexItemFactory, reporter);
+    String rule = "-convertchecknotnull class C { void m(**, ...); }";
+    parser.parse(createConfigurationForTesting(ImmutableList.of(rule)));
+    verifyParserEndsCleanly();
+    ProguardConfiguration config = parser.getConfig();
+    assertEquals(1, config.getRules().size());
+    assertTrue(config.getRules().get(0) instanceof ConvertCheckNotNullRule);
   }
 
   @Test

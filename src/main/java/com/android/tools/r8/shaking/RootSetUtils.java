@@ -300,9 +300,11 @@ public class RootSetUtils {
       } else if (rule instanceof MemberValuePropagationRule) {
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
         markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
-      } else {
-        assert rule instanceof ProguardIdentifierNameStringRule;
+      } else if (rule instanceof ProguardIdentifierNameStringRule) {
         markMatchingFields(clazz, memberKeepRules, rule, null, ifRule);
+        markMatchingMethods(clazz, memberKeepRules, rule, null, ifRule);
+      } else {
+        assert rule instanceof ConvertCheckNotNullRule;
         markMatchingMethods(clazz, memberKeepRules, rule, null, ifRule);
       }
     }
@@ -1349,6 +1351,17 @@ public class RootSetUtils {
             .getOrCreateUnconditionalMinimumKeepInfoFor(item.getReference())
             .asMethodJoiner()
             .disallowUnusedReturnValueOptimization();
+        context.markAsUsed();
+      } else if (context instanceof ConvertCheckNotNullRule) {
+        assert item.isMethod();
+        feedback.setConvertCheckNotNull(item.asMethod());
+        if (item.isProgramMethod()) {
+          // Disallow optimization to prevent inlining.
+          dependentMinimumKeepInfo
+              .getOrCreateUnconditionalMinimumKeepInfoFor(item.getReference())
+              .asMethodJoiner()
+              .disallowOptimization();
+        }
         context.markAsUsed();
       } else {
         throw new Unreachable();

@@ -663,6 +663,10 @@ public final class R8Command extends BaseCompilerCommand {
 
     }
 
+    void setEnableExperimentalConvertCheckNotNull() {
+      parserOptionsBuilder.setEnableExperimentalConvertCheckNotNull(true);
+    }
+
     void setEnableExperimentalWhyAreYouNotInlining() {
       parserOptionsBuilder.setEnableExperimentalWhyAreYouNotInlining(true);
     }

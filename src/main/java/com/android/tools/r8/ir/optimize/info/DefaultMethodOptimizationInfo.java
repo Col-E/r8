@@ -147,6 +147,11 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   }
 
   @Override
+  public boolean isConvertCheckNotNull() {
+    return false;
+  }
+
+  @Override
   public boolean isInitializerEnablingJavaVmAssertions() {
     return UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS;
   }

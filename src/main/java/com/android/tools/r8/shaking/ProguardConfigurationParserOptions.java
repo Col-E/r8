@@ -8,17 +8,25 @@ import static com.android.tools.r8.utils.SystemPropertyUtils.parseSystemProperty
 
 public class ProguardConfigurationParserOptions {
 
+  private final boolean enableExperimentalConvertCheckNotNull;
   private final boolean enableExperimentalWhyAreYouNotInlining;
   private final boolean enableTestingOptions;
 
   ProguardConfigurationParserOptions(
-      boolean enableExperimentalWhyAreYouNotInlining, boolean enableTestingOptions) {
+      boolean enableExperimentalConvertCheckNotNull,
+      boolean enableExperimentalWhyAreYouNotInlining,
+      boolean enableTestingOptions) {
+    this.enableExperimentalConvertCheckNotNull = enableExperimentalConvertCheckNotNull;
     this.enableExperimentalWhyAreYouNotInlining = enableExperimentalWhyAreYouNotInlining;
     this.enableTestingOptions = enableTestingOptions;
   }
 
   public static Builder builder() {
     return new Builder();
+  }
+
+  public boolean isExperimentalConvertCheckNotNullEnabled() {
+    return enableExperimentalConvertCheckNotNull;
   }
 
   public boolean isExperimentalWhyAreYouNotInliningEnabled() {
@@ -31,15 +39,25 @@ public class ProguardConfigurationParserOptions {
 
   public static class Builder {
 
+    private boolean enableExperimentalConvertCheckNotNull;
     private boolean enableExperimentalWhyAreYouNotInlining;
     private boolean enableTestingOptions;
 
     public Builder readEnvironment() {
+      enableExperimentalConvertCheckNotNull =
+          parseSystemPropertyOrDefault(
+              "com.android.tools.r8.experimental.enableconvertchecknotnull", false);
       enableExperimentalWhyAreYouNotInlining =
           parseSystemPropertyOrDefault(
               "com.android.tools.r8.experimental.enablewhyareyounotinlining", false);
       enableTestingOptions =
           parseSystemPropertyOrDefault("com.android.tools.r8.allowTestProguardOptions", false);
+      return this;
+    }
+
+    public Builder setEnableExperimentalConvertCheckNotNull(
+        boolean enableExperimentalConvertCheckNotNull) {
+      this.enableExperimentalConvertCheckNotNull = enableExperimentalConvertCheckNotNull;
       return this;
     }
 
@@ -56,7 +74,9 @@ public class ProguardConfigurationParserOptions {
 
     public ProguardConfigurationParserOptions build() {
       return new ProguardConfigurationParserOptions(
-          enableExperimentalWhyAreYouNotInlining, enableTestingOptions);
+          enableExperimentalConvertCheckNotNull,
+          enableExperimentalWhyAreYouNotInlining,
+          enableTestingOptions);
     }
   }
 }

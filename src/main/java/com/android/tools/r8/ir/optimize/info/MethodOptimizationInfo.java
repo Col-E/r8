@@ -68,6 +68,8 @@ public abstract class MethodOptimizationInfo
 
   public abstract InstanceInitializerInfo getInstanceInitializerInfo(InvokeDirect invoke);
 
+  public abstract boolean isConvertCheckNotNull();
+
   public abstract boolean isInitializerEnablingJavaVmAssertions();
 
   public abstract AbstractValue getAbstractReturnValue();

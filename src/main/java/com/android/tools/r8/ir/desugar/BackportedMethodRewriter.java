@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
@@ -310,6 +311,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       DexString name;
       DexProto proto;
       DexMethod method;
+      DexClassAndMethod definition;
 
       // Objects
       type = factory.objectsType;
@@ -351,14 +353,17 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       addProvider(new InvokeRewriter(method, ObjectsMethodRewrites.rewriteRequireNonNull()));
 
       // T Objects.requireNonNull(T obj, String message)
-      name = factory.createString("requireNonNull");
-      proto = factory.createProto(factory.objectType, factory.objectType, factory.stringType);
-      method = factory.createMethod(type, proto, name);
-      addProvider(
-          new MethodGenerator(
-              method,
-              BackportedMethods::ObjectsMethods_requireNonNullMessage,
-              "requireNonNullMessage"));
+      method = factory.objectsMethods.requireNonNullWithMessage;
+      definition = appView.enableWholeProgramOptimizations() ? appView.definitionFor(method) : null;
+      // Only backport requireNonNull(Object, String) if it is not matched by -convertchecknotnull.
+      // Otherwise all calls will be rewritten to getClass().
+      if (definition == null || !definition.getOptimizationInfo().isConvertCheckNotNull()) {
+        addProvider(
+            new MethodGenerator(
+                method,
+                BackportedMethods::ObjectsMethods_requireNonNullMessage,
+                "requireNonNullMessage"));
+      }
 
       // String Objects.toString(Object o)
       name = factory.createString("toString");

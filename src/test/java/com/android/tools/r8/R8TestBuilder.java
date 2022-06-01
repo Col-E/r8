@@ -655,6 +655,11 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return self();
   }
 
+  public T enableExperimentalConvertCheckNotNull() {
+    builder.setEnableExperimentalConvertCheckNotNull();
+    return self();
+  }
+
   public T enableExperimentalWhyAreYouNotInlining() {
     builder.setEnableExperimentalWhyAreYouNotInlining();
     return self();

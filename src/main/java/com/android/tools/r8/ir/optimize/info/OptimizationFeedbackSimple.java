@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.info;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
@@ -150,6 +151,10 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   public void setClassInlinerMethodConstraint(
       ProgramMethod method, ClassInlinerMethodConstraint classInlinerConstraint) {
     // Ignored.
+  }
+
+  public void setConvertCheckNotNull(DexClassAndMethod method) {
+    method.getDefinition().getMutableOptimizationInfo().setConvertCheckNotNull();
   }
 
   @Override

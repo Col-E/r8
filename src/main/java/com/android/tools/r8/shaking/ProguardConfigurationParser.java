@@ -80,8 +80,7 @@ public class ProguardConfigurationParser {
           "keepkotlinmetadata");
 
   private static final List<String> IGNORED_CLASS_DESCRIPTOR_OPTIONS =
-      ImmutableList.of(
-          "isclassnamestring", "whyarenotsimple", "convertchecknotnull", "checkenumunboxed");
+      ImmutableList.of("isclassnamestring", "whyarenotsimple", "checkenumunboxed");
 
   private static final List<String> WARNED_SINGLE_ARG_OPTIONS = ImmutableList.of(
       // TODO(b/37137994): -outjars should be reported as errors, not just as warnings!
@@ -123,7 +122,8 @@ public class ProguardConfigurationParser {
         dexItemFactory,
         reporter,
         ProguardConfigurationParserOptions.builder()
-            .setEnableExperimentalWhyAreYouNotInlining(false)
+            .setEnableExperimentalConvertCheckNotNull(true)
+            .setEnableExperimentalWhyAreYouNotInlining(true)
             .setEnableTestingOptions(false)
             .build());
   }
@@ -484,8 +484,15 @@ public class ProguardConfigurationParser {
 
     private boolean parseExperimentalOption(TextPosition optionStart)
         throws ProguardRuleParserException {
+      if (acceptString(ConvertCheckNotNullRule.RULE_NAME)) {
+        ConvertCheckNotNullRule convertCheckNotNullRule = parseConvertCheckNotNullRule(optionStart);
+        if (options.isExperimentalConvertCheckNotNullEnabled()) {
+          configurationBuilder.addRule(convertCheckNotNullRule);
+        }
+        return true;
+      }
       if (options.isExperimentalWhyAreYouNotInliningEnabled()) {
-        if (acceptString("whyareyounotinlining")) {
+        if (acceptString(WhyAreYouNotInliningRule.RULE_NAME)) {
           configurationBuilder.addRule(parseWhyAreYouNotInliningRule(optionStart));
           return true;
         }
@@ -798,7 +805,7 @@ public class ProguardConfigurationParser {
           .setOrigin(origin)
           .setStart(start);
       parseRuleTypeAndModifiers(keepRuleBuilder);
-      parseClassSpec(keepRuleBuilder, false);
+      parseClassSpec(keepRuleBuilder);
       if (keepRuleBuilder.getMemberRules().isEmpty()) {
         // If there are no member rules, a default rule for the parameterless constructor
         // applies. So we add that here.
@@ -820,7 +827,7 @@ public class ProguardConfigurationParser {
       ProguardWhyAreYouKeepingRule.Builder keepRuleBuilder = ProguardWhyAreYouKeepingRule.builder()
           .setOrigin(origin)
           .setStart(start);
-      parseClassSpec(keepRuleBuilder, false);
+      parseClassSpec(keepRuleBuilder);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
       keepRuleBuilder.setEnd(end);
@@ -832,7 +839,7 @@ public class ProguardConfigurationParser {
       ProguardCheckDiscardRule.Builder keepRuleBuilder = ProguardCheckDiscardRule.builder()
           .setOrigin(origin)
           .setStart(start);
-      parseClassSpec(keepRuleBuilder, false);
+      parseClassSpec(keepRuleBuilder);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
       keepRuleBuilder.setEnd(end);
@@ -843,7 +850,7 @@ public class ProguardConfigurationParser {
         throws ProguardRuleParserException {
       ClassInlineRule.Builder keepRuleBuilder =
           ClassInlineRule.builder().setOrigin(origin).setStart(start).setType(type);
-      parseClassSpec(keepRuleBuilder, false);
+      parseClassSpec(keepRuleBuilder);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
       keepRuleBuilder.setEnd(end);
@@ -854,7 +861,7 @@ public class ProguardConfigurationParser {
         throws ProguardRuleParserException {
       NoFieldTypeStrengtheningRule.Builder keepRuleBuilder =
           NoFieldTypeStrengtheningRule.builder().setOrigin(origin).setStart(start);
-      parseClassSpec(keepRuleBuilder, false);
+      parseClassSpec(keepRuleBuilder);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
       keepRuleBuilder.setEnd(end);
@@ -865,7 +872,7 @@ public class ProguardConfigurationParser {
         throws ProguardRuleParserException {
       NoUnusedInterfaceRemovalRule.Builder keepRuleBuilder =
           NoUnusedInterfaceRemovalRule.builder().setOrigin(origin).setStart(start);
-      parseClassSpec(keepRuleBuilder, false);
+      parseClassSpec(keepRuleBuilder);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
       keepRuleBuilder.setEnd(end);
@@ -876,7 +883,7 @@ public class ProguardConfigurationParser {
         throws ProguardRuleParserException {
       NoVerticalClassMergingRule.Builder keepRuleBuilder =
           NoVerticalClassMergingRule.builder().setOrigin(origin).setStart(start);
-      parseClassSpec(keepRuleBuilder, false);
+      parseClassSpec(keepRuleBuilder);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
       keepRuleBuilder.setEnd(end);
@@ -887,7 +894,7 @@ public class ProguardConfigurationParser {
         throws ProguardRuleParserException {
       NoHorizontalClassMergingRule.Builder keepRuleBuilder =
           NoHorizontalClassMergingRule.builder().setOrigin(origin).setStart(start);
-      parseClassSpec(keepRuleBuilder, false);
+      parseClassSpec(keepRuleBuilder);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
       keepRuleBuilder.setEnd(end);
@@ -897,7 +904,7 @@ public class ProguardConfigurationParser {
     private <R extends NoOptimizationBaseRule<R>, B extends NoOptimizationBaseRule.Builder<R, B>>
         R parseNoOptimizationRule(Position start, B builder) throws ProguardRuleParserException {
       builder.setOrigin(origin).setStart(start);
-      parseClassSpec(builder, false);
+      parseClassSpec(builder);
       Position end = getPosition();
       builder.setSource(getSourceSnippet(contents, start, end));
       builder.setEnd(end);
@@ -909,7 +916,7 @@ public class ProguardConfigurationParser {
         throws ProguardRuleParserException {
       MemberValuePropagationRule .Builder keepRuleBuilder =
           MemberValuePropagationRule.builder().setOrigin(origin).setStart(start).setType(type);
-      parseClassSpec(keepRuleBuilder, false);
+      parseClassSpec(keepRuleBuilder);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
       keepRuleBuilder.setEnd(end);
@@ -922,7 +929,7 @@ public class ProguardConfigurationParser {
           .setOrigin(origin)
           .setStart(start)
           .setType(type);
-      parseClassSpec(keepRuleBuilder, false);
+      parseClassSpec(keepRuleBuilder);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
       keepRuleBuilder.setEnd(end);
@@ -935,7 +942,7 @@ public class ProguardConfigurationParser {
           ProguardIdentifierNameStringRule.builder()
               .setOrigin(origin)
               .setStart(start);
-      parseClassSpec(keepRuleBuilder, false);
+      parseClassSpec(keepRuleBuilder);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
       keepRuleBuilder.setEnd(end);
@@ -947,7 +954,7 @@ public class ProguardConfigurationParser {
       ProguardIfRule.Builder ifRuleBuilder = ProguardIfRule.builder()
           .setOrigin(origin)
           .setStart(optionStart);
-      parseClassSpec(ifRuleBuilder, false);
+      parseClassSpec(ifRuleBuilder);
 
       // Required a subsequent keep rule.
       skipWhitespace();
@@ -970,7 +977,7 @@ public class ProguardConfigurationParser {
         throws ProguardRuleParserException {
       KeepConstantArgumentRule.Builder keepRuleBuilder =
           KeepConstantArgumentRule.builder().setOrigin(origin).setStart(start);
-      parseClassSpec(keepRuleBuilder, false);
+      parseClassSpec(keepRuleBuilder);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
       keepRuleBuilder.setEnd(end);
@@ -981,7 +988,7 @@ public class ProguardConfigurationParser {
         throws ProguardRuleParserException {
       KeepUnusedArgumentRule.Builder keepRuleBuilder =
           KeepUnusedArgumentRule.builder().setOrigin(origin).setStart(start);
-      parseClassSpec(keepRuleBuilder, false);
+      parseClassSpec(keepRuleBuilder);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
       keepRuleBuilder.setEnd(end);
@@ -993,7 +1000,7 @@ public class ProguardConfigurationParser {
         throws ProguardRuleParserException {
       ReprocessClassInitializerRule.Builder builder =
           ReprocessClassInitializerRule.builder().setOrigin(origin).setStart(start).setType(type);
-      parseClassSpec(builder, false);
+      parseClassSpec(builder);
       Position end = getPosition();
       builder.setSource(getSourceSnippet(contents, start, end));
       builder.setEnd(end);
@@ -1004,7 +1011,7 @@ public class ProguardConfigurationParser {
         ReprocessMethodRule.Type type, Position start) throws ProguardRuleParserException {
       ReprocessMethodRule.Builder builder =
           ReprocessMethodRule.builder().setOrigin(origin).setStart(start).setType(type);
-      parseClassSpec(builder, false);
+      parseClassSpec(builder);
       Position end = getPosition();
       builder.setSource(getSourceSnippet(contents, start, end));
       builder.setEnd(end);
@@ -1015,7 +1022,7 @@ public class ProguardConfigurationParser {
         throws ProguardRuleParserException {
       WhyAreYouNotInliningRule.Builder keepRuleBuilder =
           WhyAreYouNotInliningRule.builder().setOrigin(origin).setStart(start);
-      parseClassSpec(keepRuleBuilder, false);
+      parseClassSpec(keepRuleBuilder);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
       keepRuleBuilder.setEnd(end);
@@ -1043,6 +1050,14 @@ public class ProguardConfigurationParser {
           }
         }
       }
+    }
+
+    private <
+            C extends ProguardClassSpecification,
+            B extends ProguardClassSpecification.Builder<C, B>>
+        void parseClassSpec(ProguardClassSpecification.Builder<C, B> builder)
+            throws ProguardRuleParserException {
+      parseClassSpec(builder, false);
     }
 
     private
@@ -1683,7 +1698,7 @@ public class ProguardConfigurationParser {
         throws ProguardRuleParserException {
       ProguardAssumeMayHaveSideEffectsRule.Builder builder =
           ProguardAssumeMayHaveSideEffectsRule.builder().setOrigin(origin).setStart(start);
-      parseClassSpec(builder, false);
+      parseClassSpec(builder);
       Position end = getPosition();
       builder.setSource(getSourceSnippet(contents, start, end));
       builder.setEnd(end);
@@ -1696,6 +1711,17 @@ public class ProguardConfigurationParser {
           .setOrigin(origin)
           .setStart(start);
       parseClassSpec(builder, true);
+      Position end = getPosition();
+      builder.setSource(getSourceSnippet(contents, start, end));
+      builder.setEnd(end);
+      return builder.build();
+    }
+
+    private ConvertCheckNotNullRule parseConvertCheckNotNullRule(Position start)
+        throws ProguardRuleParserException {
+      ConvertCheckNotNullRule.Builder builder =
+          ConvertCheckNotNullRule.builder().setOrigin(origin).setStart(start);
+      parseClassSpec(builder);
       Position end = getPosition();
       builder.setSource(getSourceSnippet(contents, start, end));
       builder.setEnd(end);

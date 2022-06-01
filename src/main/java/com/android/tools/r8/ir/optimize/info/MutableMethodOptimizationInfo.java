@@ -44,6 +44,7 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
       DefaultMethodOptimizationInfo.UNKNOWN_ABSTRACT_RETURN_VALUE;
   private ClassInlinerMethodConstraint classInlinerConstraint =
       ClassInlinerMethodConstraint.alwaysFalse();
+  private boolean convertCheckNotNull = false;
   private EnumUnboxerMethodClassification enumUnboxerMethodClassification =
       EnumUnboxerMethodClassification.unknown();
   private DynamicType dynamicType = DynamicType.unknown();
@@ -266,6 +267,10 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     this.classInlinerConstraint = ClassInlinerMethodConstraint.alwaysFalse();
   }
 
+  void setConvertCheckNotNull() {
+    this.convertCheckNotNull = true;
+  }
+
   @Override
   public EnumUnboxerMethodClassification getEnumUnboxerMethodClassification() {
     return enumUnboxerMethodClassification;
@@ -451,6 +456,11 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
 
   void unsetUnusedArguments() {
     unusedArguments = null;
+  }
+
+  @Override
+  public boolean isConvertCheckNotNull() {
+    return convertCheckNotNull;
   }
 
   @Override

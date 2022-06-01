@@ -51,6 +51,7 @@ import com.android.tools.r8.ir.desugar.lambda.LambdaDeserializationMethodRemover
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.AssumeInserter;
+import com.android.tools.r8.ir.optimize.CheckNotNullConverter;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization.ClassInitializerDefaultsResult;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
@@ -1182,6 +1183,7 @@ public class IRConverter {
     }
 
     assertionsRewriter.run(method, code, deadCodeRemover, timing);
+    CheckNotNullConverter.runIfNecessary(appView, code);
 
     if (serviceLoaderRewriter != null) {
       assert appView.appInfo().hasLiveness();
