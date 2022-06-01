@@ -32,7 +32,7 @@ public class InlinePreambleNoOriginalStackTrace implements StackTraceForTest {
     return Arrays.asList(
         // TODO(b/231622686): Should only include preamble
         "Exception in thread \"main\" java.lang.NullPointerException",
-        "\tat retrace.Main.void main(java.lang.String[])(Main.java:0)",
+        "\tat retrace.Main.void main(java.lang.String[])(Main.java)",
         "\t<OR> at retrace.Main.void method1(java.lang.String)(Main.java:0)",
         "\tat retrace.Main.void main(java.lang.String[])(Main.java:0)");
   }
