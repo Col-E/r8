@@ -5,9 +5,9 @@
 package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
 
 import static com.android.tools.r8.ToolHelper.JDK_TESTS_BUILD_DIR;
-import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11Paths.getPathsFiles;
-import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11Paths.getSafeVarArgsFile;
-import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11Paths.testNGSupportProgramFiles;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.getPathsFiles;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.getSafeVarArgsFile;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.testNGSupportProgramFiles;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11TestLibraryDesugaringSpecification.EXTENSION_PATH;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11TestLibraryDesugaringSpecification.JDK11_PATH_JAVA_BASE_EXT;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11TestLibraryDesugaringSpecification.JDK8_JAVA_BASE_EXT;

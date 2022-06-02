@@ -14,7 +14,7 @@ import java.util.Arrays;
 // Provides convenience to use Paths/SafeVarargs which are missing on old Android but
 // required by some Jdk tests, and for java.base extensions.
 
-public class Jdk11Paths {
+public class Jdk11SupportFiles {
 
   private static final Path ANDROID_PATHS_FILES_DIR =
       Paths.get("third_party/android_jar/lib-v26/xxx/");

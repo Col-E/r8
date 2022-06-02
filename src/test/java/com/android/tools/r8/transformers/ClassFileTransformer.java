@@ -332,6 +332,22 @@ public class ClassFileTransformer {
         });
   }
 
+  public ClassFileTransformer setSuper(Function<String, String> rewrite) {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public void visit(
+              int version,
+              int access,
+              String name,
+              String signature,
+              String superName,
+              String[] interfaces) {
+            super.visit(version, access, name, signature, rewrite.apply(superName), interfaces);
+          }
+        });
+  }
+
   public ClassFileTransformer setAccessFlags(Consumer<ClassAccessFlags> fn) {
     return addClassTransformer(
         new ClassTransformer() {
@@ -645,6 +661,31 @@ public class ClassFileTransformer {
             if (!predicate.test(name, outerName, innerName, access)) {
               super.visitInnerClass(name, outerName, innerName, access);
             }
+          }
+        });
+  }
+
+  public ClassFileTransformer rewriteEnlosingAndNestAttributes(Function<String, String> rewrite) {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public void visitInnerClass(String name, String outerName, String innerName, int access) {
+            super.visitInnerClass(rewrite.apply(name), rewrite.apply(outerName), innerName, access);
+          }
+
+          @Override
+          public void visitOuterClass(String owner, String name, String descriptor) {
+            super.visitOuterClass(rewrite.apply(owner), name, descriptor);
+          }
+
+          @Override
+          public void visitNestMember(String nestMember) {
+            super.visitNestMember(rewrite.apply(nestMember));
+          }
+
+          @Override
+          public void visitNestHost(String nestHost) {
+            super.visitNestHost(rewrite.apply(nestHost));
           }
         });
   }
@@ -963,6 +1004,38 @@ public class ClassFileTransformer {
                 name,
                 replaceAll(descriptor, oldDescriptor, newDescriptor),
                 isInterface);
+          }
+
+          @Override
+          public void visitInvokeDynamicInsn(
+              String name,
+              String descriptor,
+              Handle bootstrapMethodHandle,
+              Object... bootstrapMethodArguments) {
+            // This includes the minimal support so that simple lambda are correctly rewritten.
+            // This should be extended based on need if we want to rewrite more complex
+            // invoke-dynamic.
+            Object[] newBootArgs = new Object[bootstrapMethodArguments.length];
+            for (int i = 0; i < bootstrapMethodArguments.length; i++) {
+              Object arg = bootstrapMethodArguments[i];
+              if (arg instanceof Handle) {
+                Handle oldHandle = (Handle) arg;
+                String repl =
+                    replaceAll("L" + oldHandle.getOwner() + ";", oldDescriptor, newDescriptor);
+                String newOwner = repl.substring(1, repl.length() - 1);
+                Handle newHandle =
+                    new Handle(
+                        oldHandle.getTag(),
+                        newOwner,
+                        oldHandle.getName(),
+                        oldHandle.getDesc(),
+                        oldHandle.isInterface());
+                newBootArgs[i] = newHandle;
+              } else {
+                newBootArgs[i] = arg;
+              }
+            }
+            super.visitInvokeDynamicInsn(name, descriptor, bootstrapMethodHandle, newBootArgs);
           }
 
           @Override

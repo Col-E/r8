@@ -32,10 +32,10 @@ public class Jdk11TestLibraryDesugaringSpecification {
 
   private static final String EXTENSION_STRING = "build/libs/java_base_extension.jar";
 
-  private static Path[] JDK_11_JAVA_BASE_EXTENSION_COMPILED_FILES;
-  private static Path JDK_11_JAVA_BASE_EXTENSION_CLASSES_DIR;
   private static final Path JDK_11_JAVA_BASE_EXTENSION_FILES_DIR =
       Paths.get("third_party/openjdk/jdk-11-test/lib/testlibrary/bootlib/java.base");
+  private static final Path JDK_11_TESTLIBRARY_FILES_DIR =
+      Paths.get("third_party/openjdk/jdk-11-test/lib/testlibrary/jdk");
 
   public static Path EXTENSION_PATH;
 
@@ -43,14 +43,22 @@ public class Jdk11TestLibraryDesugaringSpecification {
   public static LibraryDesugaringSpecification JDK11_JAVA_BASE_EXT;
   public static LibraryDesugaringSpecification JDK11_PATH_JAVA_BASE_EXT;
 
-  private static Path[] getJavaBaseExtensionsFiles() throws Exception {
+  private static Path[] getExtensionsFiles() throws Exception {
     Path[] files =
         getAllFilesWithSuffixInDirectory(JDK_11_JAVA_BASE_EXTENSION_FILES_DIR, JAVA_EXTENSION);
     assert files.length > 0;
-    return files;
+    Path[] files2 = getAllFilesWithSuffixInDirectory(JDK_11_TESTLIBRARY_FILES_DIR, JAVA_EXTENSION);
+    assert files2.length > 0;
+    List<Path> paths = new ArrayList<>(Arrays.asList(files));
+    Collections.addAll(paths, files2);
+    return paths.toArray(new Path[0]);
   }
 
   public static void setUp() throws Exception {
+    if (ToolHelper.isWindows()) {
+      // The library configuration is not available on windows. Do not run anything.
+      return;
+    }
     EXTENSION_PATH = Paths.get(EXTENSION_STRING);
     ensureJavaBaseExtensionsCompiled();
     JDK8_JAVA_BASE_EXT = createSpecification("JDK8_JAVA_BASE_EXT", JDK8);
@@ -76,7 +84,7 @@ public class Jdk11TestLibraryDesugaringSpecification {
     TemporaryFolder folder =
         new TemporaryFolder(ToolHelper.isLinux() ? null : Paths.get("build", "tmp").toFile());
     folder.create();
-    JDK_11_JAVA_BASE_EXTENSION_CLASSES_DIR = folder.newFolder("jdk11JavaBaseExt").toPath();
+    Path output = folder.newFolder("jdk11Ext").toPath();
     List<String> options =
         Arrays.asList(
             "--add-reads",
@@ -87,30 +95,29 @@ public class Jdk11TestLibraryDesugaringSpecification {
         .addOptions(options)
         .addClasspathFiles(
             Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))
-        .addSourceFiles(getJavaBaseExtensionsFiles())
-        .setOutputPath(JDK_11_JAVA_BASE_EXTENSION_CLASSES_DIR)
+        .addSourceFiles(getExtensionsFiles())
+        .setOutputPath(output)
         .compile();
-    JDK_11_JAVA_BASE_EXTENSION_COMPILED_FILES =
-        getAllFilesWithSuffixInDirectory(JDK_11_JAVA_BASE_EXTENSION_CLASSES_DIR, CLASS_EXTENSION);
-    assert JDK_11_JAVA_BASE_EXTENSION_COMPILED_FILES.length > 0;
+    Path[] toCompile = getAllFilesWithSuffixInDirectory(output, CLASS_EXTENSION);
+    assert toCompile.length > 0;
 
     // Jar the contents.
     List<String> cmdline = new ArrayList<>();
     cmdline.add(TestRuntime.getCheckedInJdk11().getJavaExecutable().getParent() + "/jar");
     cmdline.add("cf");
     cmdline.add("tmp.jar");
-    for (Path compile : JDK_11_JAVA_BASE_EXTENSION_COMPILED_FILES) {
-      cmdline.add(JDK_11_JAVA_BASE_EXTENSION_CLASSES_DIR.relativize(compile).toString());
+    for (Path compile : toCompile) {
+      cmdline.add(output.relativize(compile).toString());
     }
     ProcessBuilder builder = new ProcessBuilder(cmdline);
-    builder.directory(JDK_11_JAVA_BASE_EXTENSION_CLASSES_DIR.toFile());
+    builder.directory(output.toFile());
     ProcessResult result = ToolHelper.runProcess(builder);
     assert result.exitCode == 0;
 
     // Move the result into the build/libs folder.
     List<String> cmdlineMv = new ArrayList<>();
     cmdlineMv.add("mv");
-    cmdlineMv.add(JDK_11_JAVA_BASE_EXTENSION_CLASSES_DIR.resolve("tmp.jar").toString());
+    cmdlineMv.add(output.resolve("tmp.jar").toString());
     cmdlineMv.add(EXTENSION_STRING);
     ProcessResult resultMv = ToolHelper.runProcess(new ProcessBuilder(cmdlineMv));
     assert resultMv.exitCode == 0;
