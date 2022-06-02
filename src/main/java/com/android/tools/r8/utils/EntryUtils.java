@@ -5,11 +5,12 @@
 package com.android.tools.r8.utils;
 
 import java.util.Map.Entry;
-import java.util.function.BiFunction;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class EntryUtils {
 
-  public static <K, V, R> R accept(Entry<K, V> entry, BiFunction<K, V, R> consumer) {
-    return consumer.apply(entry.getKey(), entry.getValue());
+  public static <K, V> Consumer<Entry<K, V>> accept(BiConsumer<K, V> consumer) {
+    return entry -> consumer.accept(entry.getKey(), entry.getValue());
   }
 }

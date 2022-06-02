@@ -120,7 +120,7 @@ public class FoundFieldSubject extends FieldSubject {
 
   @Override
   public AnnotationSubject annotation(String name) {
-    DexAnnotation annotation = codeInspector.findAnnotation(name, dexField.annotations());
+    DexAnnotation annotation = codeInspector.findAnnotation(dexField.annotations(), name);
     return annotation == null
         ? new AbsentAnnotationSubject()
         : new FoundAnnotationSubject(annotation, codeInspector);

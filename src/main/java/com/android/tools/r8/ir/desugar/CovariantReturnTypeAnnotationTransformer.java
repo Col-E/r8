@@ -260,7 +260,12 @@ public final class CovariantReturnTypeAnnotationTransformer {
     }
   }
 
-  private boolean isCovariantReturnTypeAnnotation(DexEncodedAnnotation annotation) {
+  public boolean isCovariantReturnTypeAnnotation(DexEncodedAnnotation annotation) {
+    return isCovariantReturnTypeAnnotation(annotation, factory);
+  }
+
+  public static boolean isCovariantReturnTypeAnnotation(
+      DexEncodedAnnotation annotation, DexItemFactory factory) {
     return isCovariantReturnTypeAnnotation(annotation.type, factory);
   }
 

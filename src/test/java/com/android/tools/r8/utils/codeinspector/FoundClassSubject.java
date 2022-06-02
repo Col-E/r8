@@ -371,7 +371,7 @@ public class FoundClassSubject extends ClassSubject {
     assert !name.endsWith("EnclosingClass")
         && !name.endsWith("EnclosingMethod")
         && !name.endsWith("InnerClass");
-    DexAnnotation annotation = codeInspector.findAnnotation(name, dexClass.annotations());
+    DexAnnotation annotation = codeInspector.findAnnotation(dexClass.annotations(), name);
     return annotation == null
         ? new AbsentAnnotationSubject()
         : new FoundAnnotationSubject(annotation, codeInspector);

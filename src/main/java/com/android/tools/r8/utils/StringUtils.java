@@ -355,6 +355,10 @@ public class StringUtils {
     return subject.replaceAll(Pattern.quote(target), Matcher.quoteReplacement(replacement));
   }
 
+  public static String quote(String string) {
+    return "\"" + string + "\"";
+  }
+
   public static String stacktraceAsString(Throwable throwable) {
     StringWriter sw = new StringWriter();
     throwable.printStackTrace(new PrintWriter(sw));

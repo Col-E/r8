@@ -303,6 +303,7 @@ def cloudDependencies = [
         ],
         "third_party": [
                 "android_cts_baseline",
+                "android_jar/libcore_latest",
                 "android_jar/lib-v14",
                 "android_jar/lib-v15",
                 "android_jar/lib-v19",

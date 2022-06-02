@@ -51,6 +51,7 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -59,6 +60,8 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class CodeInspector {
 
@@ -232,15 +235,26 @@ public class CodeInspector {
     }
   }
 
-  DexAnnotation findAnnotation(String name, DexAnnotationSet annotations) {
-    for (DexAnnotation annotation : annotations.annotations) {
-      DexType type = annotation.annotation.type;
-      String original = mapping == null ? type.toSourceString() : mapping.originalNameOf(type);
-      if (original.equals(name)) {
-        return annotation;
-      }
-    }
-    return null;
+  public DexAnnotation findAnnotation(DexAnnotationSet annotationSet, String name) {
+    return findAnnotation(
+        annotationSet,
+        annotation -> {
+          DexType type = annotation.annotation.type;
+          String original = mapping == null ? type.toSourceString() : mapping.originalNameOf(type);
+          return original.equals(name);
+        });
+  }
+
+  public DexAnnotation findAnnotation(
+      DexAnnotationSet annotationSet, Predicate<DexAnnotation> predicate) {
+    List<DexAnnotation> annotations = findAnnotations(annotationSet, predicate);
+    assert annotations.size() <= 1;
+    return annotations.isEmpty() ? null : annotations.get(0);
+  }
+
+  public List<DexAnnotation> findAnnotations(
+      DexAnnotationSet annotationSet, Predicate<DexAnnotation> predicate) {
+    return Arrays.stream(annotationSet.annotations).filter(predicate).collect(Collectors.toList());
   }
 
   public String getOriginalSignatureAttribute(
