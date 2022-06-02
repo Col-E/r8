@@ -29,14 +29,17 @@ import java.util.Map;
 
 public class DebugRepresentation {
 
+  public static final int NO_PC_ENCODING = -1;
+  public static final int ALWAYS_PC_ENCODING = Integer.MAX_VALUE;
+
   public interface DebugRepresentationPredicate {
 
-    boolean useDexPcEncoding(DexProgramClass holder, DexEncodedMethod method);
+    int getDexPcEncodingCutoff(DexProgramClass holder, DexEncodedMethod method);
   }
 
   public static DebugRepresentationPredicate none(InternalOptions options) {
     assert !options.canUseDexPc2PcAsDebugInformation();
-    return (holder, method) -> false;
+    return (holder, method) -> NO_PC_ENCODING;
   }
 
   public static DebugRepresentationPredicate fromFiles(
@@ -44,8 +47,8 @@ public class DebugRepresentation {
     if (!options.canUseDexPc2PcAsDebugInformation()) {
       return none(options);
     }
-    if (options.canUseNativeDexPcInsteadOfDebugInfo() || options.testing.forcePcBasedEncoding) {
-      return (holder, method) -> true;
+    if (options.canUseNativeDexPcInsteadOfDebugInfo()) {
+      return (holder, method) -> ALWAYS_PC_ENCODING;
     }
     // TODO(b/220999985): Avoid the need to maintain a class-to-file map.
     Map<DexProgramClass, VirtualFile> classMapping = new IdentityHashMap<>();
@@ -54,11 +57,11 @@ public class DebugRepresentation {
     }
     return (holder, method) -> {
       if (!isPcCandidate(method, options)) {
-        return false;
+        return NO_PC_ENCODING;
       }
       VirtualFile file = classMapping.get(holder);
       DebugRepresentation cutoffs = file.getDebugRepresentation();
-      return cutoffs.usesPcEncoding(method);
+      return cutoffs.getDexPcEncodingCutoff(method);
     };
   }
 
@@ -71,8 +74,7 @@ public class DebugRepresentation {
   public static void computeForFile(AppView<?> appView, VirtualFile file) {
     InternalOptions options = appView.options();
     if (!options.canUseDexPc2PcAsDebugInformation()
-        || options.canUseNativeDexPcInsteadOfDebugInfo()
-        || options.testing.forcePcBasedEncoding) {
+        || options.canUseNativeDexPcInsteadOfDebugInfo()) {
       return;
     }
     // First collect all of the per-pc costs
@@ -113,26 +115,28 @@ public class DebugRepresentation {
       }
     }
     // Second compute the cost of converting to a pc encoding.
-    paramCountToCosts.forEach((ignored, summary) -> summary.computeConversionCosts());
+    paramCountToCosts.forEach((ignored, summary) -> summary.computeConversionCosts(appView));
     // The result is stored on the virtual files for thread safety.
     // TODO(b/220999985): Consider just passing this to the line number optimizer once fixed.
     file.setDebugRepresentation(new DebugRepresentation(paramCountToCosts));
   }
 
-  private boolean usesPcEncoding(DexEncodedMethod method) {
+  private int getDexPcEncodingCutoff(DexEncodedMethod method) {
     DexCode code = method.getCode().asDexCode();
     int paramCount = method.getParameters().size();
     assert code.getDebugInfo() == null || code.getDebugInfo().getParameterCount() == paramCount;
     CostSummary conversionInfo = paramToInfo.get(paramCount);
-    if (conversionInfo.cutoff < 0) {
-      return false;
+    if (conversionInfo == null || conversionInfo.cutoff < 0) {
+      // We expect all methods calling this to have computed conversion info.
+      assert conversionInfo != null;
+      return NO_PC_ENCODING;
     }
     DexInstruction lastInstruction = getLastExecutableInstruction(code);
     if (lastInstruction == null) {
-      return false;
+      return NO_PC_ENCODING;
     }
     int maxPc = lastInstruction.getOffset();
-    return maxPc <= conversionInfo.cutoff;
+    return maxPc <= conversionInfo.cutoff ? conversionInfo.cutoff : NO_PC_ENCODING;
   }
 
   @Override
@@ -196,7 +200,8 @@ public class DebugRepresentation {
       maxPc = Math.max(maxPc, pc);
     }
 
-    private void computeConversionCosts() {
+    private void computeConversionCosts(AppView<?> appView) {
+      boolean forcePcBasedEncoding = appView.options().testing.forcePcBasedEncoding;
       assert !pcToCost.isEmpty();
       // Point at which it is estimated that conversion to PC-encoding is viable.
       int currentConvertedPc = -1;
@@ -219,7 +224,7 @@ public class DebugRepresentation {
         // If the estimated cost is larger we convert. The order here could be either way as
         // both the normal cost and converted cost are estimates. Canonicalization could reduce
         // the former and compaction could reduce the latter.
-        if (normalOutstandingCost > costToConvert) {
+        if (forcePcBasedEncoding || normalOutstandingCost > costToConvert) {
           normalConvertedCost += normalOutstandingCost;
           normalOutstandingCost = 0;
           currentConvertedPc = currentPc;
