@@ -47,19 +47,20 @@ public class ClassNameMapper implements ProguardMap {
 
     private final Map<String, ClassNamingForNameMapper.Builder> mapping = new HashMap<>();
     private LinkedHashSet<MapVersionMappingInformation> mapVersions = new LinkedHashSet<>();
+    private final Map<String, String> originalSourceFiles = new HashMap<>();
 
     @Override
     public ClassNamingForNameMapper.Builder classNamingBuilder(
         String renamedName, String originalName, Position position) {
       ClassNamingForNameMapper.Builder classNamingBuilder =
-          ClassNamingForNameMapper.builder(renamedName, originalName);
+          ClassNamingForNameMapper.builder(renamedName, originalName, originalSourceFiles::put);
       mapping.put(renamedName, classNamingBuilder);
       return classNamingBuilder;
     }
 
     @Override
     public ClassNameMapper build() {
-      return new ClassNameMapper(buildClassNameMappings(), mapVersions);
+      return new ClassNameMapper(buildClassNameMappings(), mapVersions, originalSourceFiles);
     }
 
     private ImmutableMap<String, ClassNamingForNameMapper> buildClassNameMappings() {
@@ -177,12 +178,15 @@ public class ClassNameMapper implements ProguardMap {
   private BiMapContainer<String, String> nameMapping;
   private final Map<Signature, Signature> signatureMap = new HashMap<>();
   private final Set<MapVersionMappingInformation> mapVersions;
+  private final Map<String, String> originalSourceFiles;
 
   private ClassNameMapper(
       ImmutableMap<String, ClassNamingForNameMapper> classNameMappings,
-      Set<MapVersionMappingInformation> mapVersions) {
+      Set<MapVersionMappingInformation> mapVersions,
+      Map<String, String> originalSourceFiles) {
     this.classNameMappings = classNameMappings;
     this.mapVersions = mapVersions;
+    this.originalSourceFiles = originalSourceFiles;
   }
 
   public Map<String, ClassNamingForNameMapper> getClassNameMappings() {
@@ -234,6 +238,10 @@ public class ClassNameMapper implements ProguardMap {
     return descriptorToJavaType(asString, this);
   }
 
+  public String getSourceFile(String typeName) {
+    return originalSourceFiles.get(typeName);
+  }
+
   @Override
   public boolean hasMapping(DexType type) {
     String decoded = descriptorToJavaType(type.descriptor.toString());
@@ -258,7 +266,7 @@ public class ClassNameMapper implements ProguardMap {
     ImmutableMap.Builder<String, ClassNamingForNameMapper> builder = ImmutableMap.builder();
     builder.orderEntriesByValue(Comparator.comparing(x -> x.originalName));
     classNameMappings.forEach(builder::put);
-    return new ClassNameMapper(builder.build(), mapVersions);
+    return new ClassNameMapper(builder.build(), mapVersions, originalSourceFiles);
   }
 
   public boolean verifyIsSorted() {

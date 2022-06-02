@@ -131,7 +131,7 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
                                   ? OptionalInt.of(element.getLineNumber())
                                   : OptionalInt.empty(),
                               element.getMethodName());
-                      if (!frameResult.isEmpty()) {
+                      if (frameResult.isEmpty()) {
                         return classResult.stream()
                             .map(
                                 classElement ->

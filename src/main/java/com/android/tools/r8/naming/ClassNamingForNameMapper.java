@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -43,10 +44,15 @@ public class ClassNamingForNameMapper implements ClassNaming {
     private final Map<String, List<MappedRange>> mappedRangesByName = Maps.newHashMap();
     private final Map<String, List<MemberNaming>> mappedFieldNamingsByName = Maps.newHashMap();
     private final List<MappingInformation> additionalMappingInfo = new ArrayList<>();
+    private final BiConsumer<String, String> originalSourceFileConsumer;
 
-    private Builder(String renamedName, String originalName) {
+    private Builder(
+        String renamedName,
+        String originalName,
+        BiConsumer<String, String> originalSourceFileConsumer) {
       this.originalName = originalName;
       this.renamedName = renamedName;
+      this.originalSourceFileConsumer = originalSourceFileConsumer;
     }
 
     @Override
@@ -108,6 +114,9 @@ public class ClassNamingForNameMapper implements ClassNaming {
         }
       }
       additionalMappingInfo.add(info);
+      if (info.isFileNameInformation()) {
+        originalSourceFileConsumer.accept(originalName, info.asFileNameInformation().getFileName());
+      }
     }
   }
 
@@ -205,8 +214,11 @@ public class ClassNamingForNameMapper implements ClassNaming {
     }
   }
 
-  static Builder builder(String renamedName, String originalName) {
-    return new Builder(renamedName, originalName);
+  static Builder builder(
+      String renamedName,
+      String originalName,
+      BiConsumer<String, String> originalSourceFileConsumer) {
+    return new Builder(renamedName, originalName, originalSourceFileConsumer);
   }
 
   public final String originalName;

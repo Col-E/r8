@@ -197,8 +197,8 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
 
     @Override
     public RetracedSourceFile getSourceFile() {
-      return RetraceUtils.getSourceFileOrLookup(
-          methodReference.getHolderClass(), classElement, retraceMethodResult.retracer);
+      return RetraceUtils.getSourceFile(
+          methodReference.getHolderClass(), retraceMethodResult.retracer);
     }
   }
 }

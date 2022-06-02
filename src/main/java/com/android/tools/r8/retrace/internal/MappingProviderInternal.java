@@ -12,5 +12,7 @@ public abstract class MappingProviderInternal {
 
   abstract ClassNamingForNameMapper getClassNaming(String typeName);
 
+  abstract String getSourceFileForClass(String typeName);
+
   abstract Set<MapVersionMappingInformation> getMapVersions();
 }

@@ -12,14 +12,10 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
-import com.android.tools.r8.retrace.RetraceClassElement;
-import com.android.tools.r8.retrace.RetraceClassResult;
 import com.android.tools.r8.retrace.RetracedClassReference;
 import com.android.tools.r8.retrace.RetracedMethodReference;
 import com.android.tools.r8.retrace.RetracedMethodReference.KnownRetracedMethodReference;
 import com.android.tools.r8.retrace.RetracedSourceFile;
-import com.android.tools.r8.retrace.Retracer;
-import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
@@ -75,16 +71,10 @@ public class RetraceUtils {
     return clazz.substring(lastIndexOfPeriod + 1, endIndex);
   }
 
-  // TODO(b/226885646): Retracing of a source file should not be dependent on retraced information.
-  public static RetracedSourceFile getSourceFileOrLookup(
-      RetracedClassReference holder, RetraceClassElement context, Retracer retracer) {
-    if (holder.equals(context.getRetracedClass())) {
-      return context.getSourceFile();
-    }
-    RetraceClassResult contextClassResult = retracer.retraceClass(holder.getClassReference());
-    Box<RetracedSourceFile> retraceSourceFile = new Box<>();
-    contextClassResult.forEach(element -> retraceSourceFile.set(element.getSourceFile()));
-    return retraceSourceFile.get();
+  public static RetracedSourceFile getSourceFile(
+      RetracedClassReference holder, RetracerImpl retracer) {
+    ClassReference holderReference = holder.getClassReference();
+    return new RetracedSourceFileImpl(holderReference, retracer.getSourceFile(holderReference));
   }
 
   public static String inferSourceFile(

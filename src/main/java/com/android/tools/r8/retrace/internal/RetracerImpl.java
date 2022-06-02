@@ -87,6 +87,10 @@ public class RetracerImpl implements Retracer {
     return classNameMapperProvider.getMapVersions();
   }
 
+  public String getSourceFile(ClassReference classReference) {
+    return classNameMapperProvider.getSourceFileForClass(classReference.getTypeName());
+  }
+
   public static Builder builder() {
     return new Builder();
   }

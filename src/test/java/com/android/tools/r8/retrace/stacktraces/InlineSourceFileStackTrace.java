@@ -29,15 +29,13 @@ public class InlineSourceFileStackTrace implements StackTraceForTest {
   @Override
   public List<String> retracedStackTrace() {
     return Arrays.asList(
-        // TODO(b/234361164): Should have correct source file.
-        "  at foo.Bar.method(Bar.java:22)", "  at foo.Baz.main(SourceFile2.kt:32)");
+        "  at foo.Bar.method(SourceFile1.kt:22)", "  at foo.Baz.main(SourceFile2.kt:32)");
   }
 
   @Override
   public List<String> retraceVerboseStackTrace() {
     return Arrays.asList(
-        // TODO(b/234361164): Should have correct source file.
-        "  at foo.Bar.void method()(Bar.java:22)",
+        "  at foo.Bar.void method()(SourceFile1.kt:22)",
         "  at foo.Baz.void main(java.lang.String[])(SourceFile2.kt:32)");
   }
 

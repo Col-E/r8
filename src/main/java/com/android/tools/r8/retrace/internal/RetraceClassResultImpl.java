@@ -201,16 +201,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
 
     @Override
     public RetracedSourceFile getSourceFile() {
-      String sourceFile = null;
-      if (mapper != null) {
-        for (MappingInformation info : mapper.getAdditionalMappingInfo()) {
-          if (info.isFileNameInformation()) {
-            sourceFile = info.asFileNameInformation().getFileName();
-            break;
-          }
-        }
-      }
-      return new RetracedSourceFileImpl(getRetracedClass().getClassReference(), sourceFile);
+      return RetraceUtils.getSourceFile(classReference, classResult.retracer);
     }
 
     @Override

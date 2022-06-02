@@ -43,4 +43,9 @@ public class ProguardMappingProviderImpl extends ProguardMappingProvider {
     }
     return classNameMapper.getClassNaming(typeName);
   }
+
+  @Override
+  String getSourceFileForClass(String typeName) {
+    return classNameMapper.getSourceFile(typeName);
+  }
 }

@@ -221,7 +221,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
 
   @Override
   public boolean isEmpty() {
-    return !mappedRanges.isEmpty();
+    return mappedRanges.isEmpty();
   }
 
   public static class ElementImpl implements RetraceFrameElement {
@@ -348,8 +348,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
 
     @Override
     public RetracedSourceFile getSourceFile(RetracedClassMemberReference frame) {
-      return RetraceUtils.getSourceFileOrLookup(
-          frame.getHolderClass(), classElement, retraceFrameResult.retracer);
+      return RetraceUtils.getSourceFile(frame.getHolderClass(), retraceFrameResult.retracer);
     }
 
     @Override
