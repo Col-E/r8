@@ -27,7 +27,6 @@ import com.android.tools.r8.desugar.desugaredlibrary.test.DesugaredLibraryTestCo
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.transformers.ClassFileTransformer;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -139,7 +138,6 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
           "WatchServiceDeleteInterference",
           "WatchServiceMayFlies",
           "WatchServiceLotsOfCancels",
-          "WatchServiceLotsOfCloses",
           "WatchServiceSensitivityModifier");
   private static final List<String> FAILING_MAIN_TESTS =
       ImmutableList.of(
@@ -160,7 +158,8 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
           "FilesCheckPermissions",
           "FilesMisc",
           "WatchServiceWithSecurityManager",
-          "WatchServiceUpdateInterference");
+          "WatchServiceUpdateInterference",
+          "WatchServiceLotsOfCloses");
   private static final List<String> SUCCESSFUL_TESTNG_TESTS =
       ImmutableList.of("FilesStreamTest", "FilesBytesAndLines");
   private static final List<String> FAILING_TESTNG_TESTS =
@@ -238,7 +237,6 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
     return data;
   }
 
-  @NotNull
   private static Path[] compile(String name, List<Path> sourceFiles, Path cp) throws IOException {
     List<String> options =
         Arrays.asList(
@@ -300,11 +298,9 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
 
   @Test
   public void testNioFileAndroid() throws Exception {
-    // TODO(b/234689448): Test other android VMs.
-    // These 2 android VMs have the right amount of libs to make the tests pass.
-    Assume.assumeTrue(
-        parameters.getApiLevel().equals(AndroidApiLevel.Q)
-            || parameters.getApiLevel().equals(AndroidApiLevel.T));
+    Assume.assumeFalse(
+        "The package java.nio was not present on older devices, all tests fail.",
+        parameters.getDexRuntimeVersion().isOlderThan(Version.V8_1_0));
     String verbosity = "2";
     D8TestCompileResult compileResult =
         testForD8(parameters.getBackend())
