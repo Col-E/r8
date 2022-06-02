@@ -45,6 +45,7 @@ import com.android.tools.r8.retrace.stacktraces.InlineNoLineWithBaseEntryNumberA
 import com.android.tools.r8.retrace.stacktraces.InlinePreambleNoOriginalStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlinePreambleWithOriginalStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineSourceFileContextStackTrace;
+import com.android.tools.r8.retrace.stacktraces.InlineSourceFileStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineWithLineNumbersStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InvalidStackTrace;
 import com.android.tools.r8.retrace.stacktraces.MapVersionWarningStackTrace;
@@ -269,6 +270,11 @@ public class RetraceTests extends TestBase {
   @Test
   public void testInlineSourceFileContext() throws Exception {
     runRetraceTest(new InlineSourceFileContextStackTrace());
+  }
+
+  @Test
+  public void testInlineSourceFileStackTrace() throws Exception {
+    runRetraceTest(new InlineSourceFileStackTrace());
   }
 
   @Test
