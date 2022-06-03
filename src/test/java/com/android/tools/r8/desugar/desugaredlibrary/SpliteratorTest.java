@@ -64,7 +64,7 @@ public class SpliteratorTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testSpliterator() throws Throwable {
-    Assume.assumeTrue(requiresEmulatedInterfaceCoreLibDesugaring(parameters));
+    Assume.assumeTrue(libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters));
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addInnerClasses(getClass())
         .compile()

@@ -119,7 +119,8 @@ public class Jdk11ConcurrentMapTests extends DesugaredLibraryTestBase {
         .addProgramFiles(CONCURRENT_COMPILED_TESTS_FILES)
         .addProgramFiles(testNGSupportProgramFiles())
         .applyIf(
-            libraryDesugaringSpecification != JDK11_PATH, b -> b.addProgramFiles(getPathsFiles()))
+            !libraryDesugaringSpecification.hasNioFileDesugaring(parameters),
+            b -> b.addProgramFiles(getPathsFiles()))
         .compile()
         .withArt6Plus64BitsLib()
         .run(parameters.getRuntime(), "TestNGMainRunner", verbosity, "ConcurrentModification")
@@ -168,7 +169,7 @@ public class Jdk11ConcurrentMapTests extends DesugaredLibraryTestBase {
             .addProgramFiles(concurrentHashTestToCompile())
             .addProgramFiles(testNGSupportProgramFiles())
             .applyIf(
-                libraryDesugaringSpecification != JDK11_PATH,
+                !libraryDesugaringSpecification.hasNioFileDesugaring(parameters),
                 b -> b.addProgramFiles(getPathsFiles()))
             .compile()
             .withArt6Plus64BitsLib();

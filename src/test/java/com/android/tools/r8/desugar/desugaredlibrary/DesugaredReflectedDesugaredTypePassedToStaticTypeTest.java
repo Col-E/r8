@@ -5,7 +5,6 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
-import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.hamcrest.core.StringContains.containsString;
 
@@ -55,7 +54,7 @@ public class DesugaredReflectedDesugaredTypePassedToStaticTypeTest
             .addInnerClasses(getClass())
             .addKeepMainRule(Main.class)
             .run(parameters.getRuntime(), Main.class);
-    if (!requiresTimeDesugaring(parameters, libraryDesugaringSpecification != JDK8)) {
+    if (!libraryDesugaringSpecification.hasTimeDesugaring(parameters)) {
       runResult.assertFailureWithErrorThatMatches(
           containsString("java.lang.ClassNotFoundException: j$.time.LocalDate"));
     } else {

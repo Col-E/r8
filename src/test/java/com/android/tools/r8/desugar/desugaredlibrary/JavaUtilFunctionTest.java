@@ -57,7 +57,7 @@ public class JavaUtilFunctionTest extends DesugaredLibraryTestBase {
   }
 
   private void checkRewrittenArguments(CodeInspector inspector) {
-    if (!requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
+    if (!libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters)) {
       return;
     }
     ClassSubject classSubject = inspector.clazz(TestClass.class);

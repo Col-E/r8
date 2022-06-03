@@ -5,7 +5,6 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
-import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -75,7 +74,7 @@ public class EmptyDesugaredLibrary extends DesugaredLibraryTestBase {
   }
 
   private boolean expectsEmptyDesugaredLibrary(AndroidApiLevel apiLevel) {
-    return !requiresAnyCoreLibDesugaring(apiLevel, libraryDesugaringSpecification != JDK8);
+    return !libraryDesugaringSpecification.hasAnyDesugaring(apiLevel);
   }
 
   @Test

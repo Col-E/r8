@@ -64,6 +64,7 @@ public class L8Benchmark extends BenchmarkBase {
             ImmutableSet.of(undesugarJdkLib),
             Paths.get("src/library_desugar/jdk11/desugar_jdk_libs.json"),
             ImmutableSet.of(androidJar.getRoot(environment).resolve("android.jar")),
+            LibraryDesugaringSpecification.JDK11_DESCRIPTOR,
             "");
     runner(environment.getConfig())
         .setWarmupIterations(1)

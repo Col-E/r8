@@ -56,6 +56,7 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
                 ToolHelper.getCoreLambdaStubs()),
             JDK8.getSpecification(),
             ImmutableSet.of(ToolHelper.getAndroidJar(AndroidApiLevel.O)),
+            LibraryDesugaringSpecification.JDK8_DESCRIPTOR,
             "");
     LibraryDesugaringSpecification jdk11CoreLambdaStubs =
         new LibraryDesugaringSpecification(
@@ -66,6 +67,7 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
                 ToolHelper.getCoreLambdaStubs()),
             JDK11.getSpecification(),
             ImmutableSet.of(ToolHelper.getAndroidJar(AndroidApiLevel.R)),
+            LibraryDesugaringSpecification.JDK11_DESCRIPTOR,
             "");
     return buildParameters(
         getTestParameters().withDexRuntimes().withAllApiLevels().build(),
