@@ -16,7 +16,6 @@ import archive
 import gradle
 import gmail_data
 import gmscore_data
-import golem
 import nest_data
 from sanitize_libraries import SanitizeLibraries, SanitizeLibrariesInPgconf
 import toolhelper
@@ -106,10 +105,6 @@ def ParseOptions(argv):
                     type='int',
                     default=0,
                     help='Set timeout instead of waiting for OOM.')
-  result.add_option('--golem',
-                    help='Running on golem, do not build or download',
-                    default=False,
-                    action='store_true')
   result.add_option('--ignore-java-version',
                     help='Do not check java version',
                     default=False,
@@ -138,8 +133,6 @@ def ParseOptions(argv):
                          'Same as --compiler-flags, keeping it for backward'
                          ' compatibility. ' +
                          'If passing several options use a quoted string.')
-  # TODO(tamaskenez) remove track-memory-to-file as soon as we updated golem
-  # to use --print-memoryuse instead
   result.add_option('--track-memory-to-file',
                     help='Track how much memory the jvm is using while ' +
                     ' compiling. Output to the specified file.')
@@ -447,7 +440,7 @@ def check_no_injars_and_no_libraryjars(pgconfs):
           raise Exception("Unexpected -libraryjars found in " + pgconf)
 
 def should_build(options):
-  return not options.no_build and not options.golem
+  return not options.no_build
 
 def build_desugared_library_dex(
     options,
@@ -519,9 +512,6 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
       extra_args.append('-Xmx%sM' % options.max_memory)
     else:
       extra_args.append('-Xmx8G')
-  if options.golem:
-    golem.link_third_party()
-    options.out = os.getcwd()
   if not options.ignore_java_version:
     utils.check_java_version()
 
@@ -743,9 +733,8 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
   if options.print_dexsegments:
     dex_files = glob(os.path.join(outdir, '*.dex'))
     utils.print_dexsegments(options.print_dexsegments, dex_files)
-    if not options.golem:
-      print('{}-Total(CodeSize): {}'.format(
-              options.print_dexsegments, compute_size_of_dex_files(dex_files)))
+    print('{}-Total(CodeSize): {}'.format(
+            options.print_dexsegments, compute_size_of_dex_files(dex_files)))
   return 0
 
 def compute_size_of_dex_files(dex_files):

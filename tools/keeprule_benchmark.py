@@ -125,10 +125,6 @@ BENCHMARKS = [
 def parse_arguments(argv):
   parser = argparse.ArgumentParser(
                     description = 'Run keep-rule benchmarks.')
-  parser.add_argument('--golem',
-                    help = 'Link in third party dependencies.',
-                    default = False,
-                    action = 'store_true')
   parser.add_argument('--ignore-java-version',
                     help='Do not check java version',
                     default=False,
@@ -239,8 +235,6 @@ def run_shrinker(options, temp):
 
 if __name__ == '__main__':
   options = parse_arguments(sys.argv[1:])
-  if options.golem:
-    golem.link_third_party()
   if not options.ignore_java_version:
     utils.check_java_version()
   with utils.TempDir() as temp:

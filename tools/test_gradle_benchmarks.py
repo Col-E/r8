@@ -6,7 +6,6 @@
 from __future__ import print_function
 import argparse
 import gradle
-import golem
 import os
 import subprocess
 import sys
@@ -20,9 +19,6 @@ def parse_arguments():
     description='Run D8 or DX on gradle apps located in'
                 ' third_party/benchmarks/.'
                 ' Report Golem-compatible RunTimeRaw values.')
-  parser.add_argument('--golem',
-                      help = 'Running on golem, link in third_party resources.',
-                      default = False, action = 'store_true')
   parser.add_argument('--skip_download',
                     help='Don\'t automatically pull down dependencies.',
                     default=False, action='store_true')
@@ -124,7 +120,7 @@ def TaskFilter(taskname):
 
   return any(namePattern in taskname for namePattern in acceptedGradleTasks)
 
-def PrintBuildTimeForGolem(benchmark, stdOut):
+def PrintBuildTime(benchmark, stdOut):
   for line in stdOut.splitlines():
     if 'BENCH' in line and benchmark.moduleName in line:
       commaSplit = line.split(',')
@@ -160,12 +156,6 @@ def PrintBuildTimeForGolem(benchmark, stdOut):
 
 def Main():
   args = parse_arguments()
-  if args.golem:
-    # Ensure that we don't have a running daemon
-    exitcode = subprocess.call(['pkill', 'java'])
-    assert exitcode == 0 or exitcode == 1
-    golem.link_third_party()
-
   if args.tool == 'd8':
     tool = Benchmark.Tools.D8
     desugarMode = Benchmark.DesugarMode.D8_DESUGARING
@@ -217,7 +207,7 @@ def Main():
               ['clean']),
 
   ]
-  if not args.skip_download and not args.golem:
+  if not args.skip_download:
     EnsurePresence(os.path.join('third_party', 'benchmarks', 'android-sdk'),
                    'android SDK')
     EnsurePresence(os.path.join('third_party', 'gradle-plugin'),
@@ -232,7 +222,7 @@ def Main():
       benchmark.EnsurePresence()
     benchmark.Clean()
     stdOut = benchmark.Build(tool, desugarMode)
-    PrintBuildTimeForGolem(benchmark, stdOut)
+    PrintBuildTime(benchmark, stdOut)
 
 
 if __name__ == '__main__':

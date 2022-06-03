@@ -5,7 +5,6 @@
 
 # Script for running kotlin based benchmarks
 
-import golem
 import optparse
 import os
 import subprocess
@@ -45,9 +44,6 @@ def parse_options():
                     help='The benchmark to run',
                     default='rgx',
                     choices=['rgx', 'deltablue', 'sta', 'empty'])
-  result.add_option('--golem',
-                    help='Don\'t build r8 and link in third_party deps',
-                    default=False, action='store_true')
   result.add_option('--use-device',
                     help='Run the benchmark on an attaced device',
                     default=False, action='store_true')
@@ -85,8 +81,6 @@ def run_art_device(dex):
 
 def Main():
   (options, args) = parse_options()
-  if options.golem:
-    golem.link_third_party()
   with utils.TempDir() as temp:
     dex_path = os.path.join(temp, "classes.jar")
     proguard_conf = os.path.join(temp, 'proguard.conf')
@@ -100,7 +94,7 @@ def Main():
         '--min-api', str(options.api),
         benchmark_jar
     ]
-    toolhelper.run('r8', r8_args, build=not options.golem)
+    toolhelper.run('r8', r8_args, True)
     if options.use_device:
       result = run_art_device(dex_path)
     else:

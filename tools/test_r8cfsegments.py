@@ -22,7 +22,6 @@
 
 from __future__ import print_function
 import argparse
-import golem
 import minify_tool
 import os
 import sys
@@ -37,10 +36,6 @@ def parse_arguments():
       choices = ['pg', 'r8'],
       required = True,
       help = 'Compiler tool to use.')
-  parser.add_argument('--golem',
-      help = 'Running on golem, link in third_party resources.',
-      default = False,
-      action = 'store_true')
   parser.add_argument('--name',
       required = True,
       help = 'Results will be printed using the specified benchmark name (e.g.'
@@ -59,8 +54,6 @@ def parse_arguments():
 
 def Main():
   args = parse_arguments()
-  if args.golem:
-    golem.link_third_party()
   utils.check_java_version()
   output_dir = args.output
   with utils.TempDir() as temp_dir:
