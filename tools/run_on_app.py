@@ -606,6 +606,9 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
       extra_args.append('-Dcom.android.tools.r8.allowTypeErrors=1')
     extra_args.append(
         '-Dcom.android.tools.r8.disallowClassInlinerGracefulExit=1')
+    if 'system-properties' in values:
+      for system_property in values['system-properties']:
+        extra_args.append(system_property)
 
   if options.debug_agent:
     if not options.compiler_build == 'full':
