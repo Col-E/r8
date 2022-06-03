@@ -743,7 +743,16 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void testConvertCheckNotNullWithReturn() {
     DexItemFactory dexItemFactory = new DexItemFactory();
-    ProguardConfigurationParser parser = new ProguardConfigurationParser(dexItemFactory, reporter);
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(
+            dexItemFactory,
+            reporter,
+            ProguardConfigurationParserOptions.builder()
+                .setEnableExperimentalCheckEnumUnboxed(false)
+                .setEnableExperimentalConvertCheckNotNull(true)
+                .setEnableExperimentalWhyAreYouNotInlining(false)
+                .setEnableTestingOptions(false)
+                .build());
     String rule = "-convertchecknotnull class C { ** m(**, ...); }";
     parser.parse(createConfigurationForTesting(ImmutableList.of(rule)));
     verifyParserEndsCleanly();
