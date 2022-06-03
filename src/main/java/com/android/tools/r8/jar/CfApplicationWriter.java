@@ -243,8 +243,15 @@ public class CfApplicationWriter {
         clazz.accessFlags.setSuper();
       }
     }
+    boolean allowInvalidCfAccessFlags = false;
+    if (clazz
+        .getType()
+        .getDescriptor()
+        .endsWith(appView.dexItemFactory().createString("/package-info;"))) {
+      allowInvalidCfAccessFlags = true;
+    }
     int access =
-        options.testing.allowInvalidCfAccessFlags
+        allowInvalidCfAccessFlags || options.testing.allowInvalidCfAccessFlags
             ? clazz.accessFlags.materialize()
             : clazz.accessFlags.getAsCfAccessFlags();
     if (clazz.isDeprecated()) {
