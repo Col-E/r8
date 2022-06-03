@@ -13,10 +13,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.Collection;
 import org.junit.BeforeClass;
@@ -75,12 +78,24 @@ public class LibraryMemberRebindingInterfaceTest extends TestBase {
   }
 
   private void test(Path compileTimeLibrary, Path runtimeLibrary) throws Exception {
+    Method m = LibraryI.class.getDeclaredMethod("m");
+    MethodReference methodReferenceForM = Reference.methodFromMethod(m);
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class)
         .addKeepClassAndMembersRules(Main.class)
         .addLibraryFiles(compileTimeLibrary)
         .addDefaultRuntimeLibrary(parameters)
-        .apply(setMockApiLevelForMethod(LibraryI.class.getDeclaredMethod("m"), AndroidApiLevel.B))
+        .apply(setMockApiLevelForMethod(m, AndroidApiLevel.B))
+        // The api database needs to have an api level for each target, so even though B do not
+        // define 'm', we still give it an API level.
+        .apply(
+            setMockApiLevelForMethod(
+                Reference.method(
+                    Reference.classFromClass(LibraryB.class),
+                    methodReferenceForM.getMethodName(),
+                    methodReferenceForM.getFormalTypes(),
+                    methodReferenceForM.getReturnType()),
+                AndroidApiLevel.B))
         .apply(setMockApiLevelForMethod(LibraryC.class.getDeclaredMethod("m"), AndroidApiLevel.B))
         .apply(setMockApiLevelForMethod(LibraryA.class.getDeclaredMethod("m"), AndroidApiLevel.N))
         .setMinApi(parameters.getApiLevel())

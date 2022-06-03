@@ -49,6 +49,17 @@ public abstract class ApiModelingTestHelper {
 
   public static <T extends TestCompilerBuilder<?, ?, ?, ?, ?>>
       ThrowableConsumer<T> setMockApiLevelForMethod(
+          MethodReference method, AndroidApiLevel apiLevel) {
+    return compilerBuilder -> {
+      compilerBuilder.addOptionsModification(
+          options -> {
+            options.apiModelingOptions().methodApiMapping.put(method, apiLevel);
+          });
+    };
+  }
+
+  public static <T extends TestCompilerBuilder<?, ?, ?, ?, ?>>
+      ThrowableConsumer<T> setMockApiLevelForMethod(
           Constructor<?> constructor, AndroidApiLevel apiLevel) {
     return compilerBuilder -> {
       compilerBuilder.addOptionsModification(
