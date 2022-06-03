@@ -15,6 +15,9 @@ FMT_CMD = path.join(
     'scripts',
     'google-java-format-diff.py')
 
+FMT_CMD_JDK17 = path.join('tools','google-java-format-diff.py')
+
+
 def CheckDoNotMerge(input_api, output_api):
   for l in input_api.change.FullDescriptionText().splitlines():
     if l.lower().startswith('do not merge'):
@@ -47,7 +50,17 @@ or fix formatting, commit and upload:
 or bypass the checks with:
 
   git cl upload --bypass-hooks
-  """ % (FMT_CMD, FMT_CMD)))
+
+If formatting fails with 'No enum constant javax.lang.model.element.Modifier.SEALED' try
+
+  git diff -U0 $(git cl upstream) | %s %s %s -p1 -i && git commit -a --amend --no-edit && git cl upload
+  """ % (
+    FMT_CMD,
+    FMT_CMD,
+    FMT_CMD_JDK17,
+    '--google-java-format-jar',
+    'third_party/google/google-java-format/1.14.0/google-java-format-1.14.0-all-deps.jar'
+)))
   return results
 
 def CheckDeterministicDebuggingChanged(input_api, output_api, branch):
