@@ -261,6 +261,8 @@ public class RootSetUtils {
         throw new Unreachable("-if rule will be evaluated separately, not here.");
       } else if (rule.isProguardCheckDiscardRule()) {
         evaluateCheckDiscardRule(clazz, rule.asProguardCheckDiscardRule());
+      } else if (rule instanceof CheckEnumUnboxedRule) {
+        evaluateCheckEnumUnboxedRule(clazz, (CheckEnumUnboxedRule) rule);
       } else if (rule instanceof ProguardWhyAreYouKeepingRule) {
         markClass(clazz, rule, ifRule);
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
@@ -1475,6 +1477,36 @@ public class RootSetUtils {
           .meetAssumeValue(member, assumeValue);
       reportAssumeValuesWarningForMissingReturnField(context, rule, assumeValue);
       context.markAsUsed();
+    }
+
+    private void evaluateCheckEnumUnboxedRule(DexClass clazz, CheckEnumUnboxedRule rule) {
+      if (clazz.isProgramClass()) {
+        if (clazz.isEnum()) {
+          dependentMinimumKeepInfo
+              .getOrCreateUnconditionalMinimumKeepInfo()
+              .getOrCreateMinimumKeepInfoFor(clazz.getType())
+              .asClassJoiner()
+              .setCheckEnumUnboxed();
+        } else {
+          StringDiagnostic warning =
+              new StringDiagnostic(
+                  "The rule `"
+                      + rule
+                      + "` matches the non-enum class "
+                      + clazz.getTypeName()
+                      + ".");
+          appView.reporter().warning(warning);
+        }
+      } else {
+        StringDiagnostic warning =
+            new StringDiagnostic(
+                "The rule `"
+                    + rule
+                    + "` matches the non-program class "
+                    + clazz.getTypeName()
+                    + ".");
+        appView.reporter().warning(warning);
+      }
     }
 
     private void evaluateKeepRule(

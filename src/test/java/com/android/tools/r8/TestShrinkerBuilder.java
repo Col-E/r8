@@ -436,6 +436,10 @@ public abstract class TestShrinkerBuilder<
     return addTestingAnnotation(AssumeNoSideEffects.class);
   }
 
+  public final T addCheckEnumUnboxedAnnotation() {
+    return addTestingAnnotation(CheckEnumUnboxed.class);
+  }
+
   public final T addConstantArgumentAnnotations() {
     return addTestingAnnotation(KeepConstantArguments.class);
   }

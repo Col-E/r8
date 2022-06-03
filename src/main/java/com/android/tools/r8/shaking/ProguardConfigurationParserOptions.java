@@ -8,14 +8,17 @@ import static com.android.tools.r8.utils.SystemPropertyUtils.parseSystemProperty
 
 public class ProguardConfigurationParserOptions {
 
+  private final boolean enableExperimentalCheckEnumUnboxed;
   private final boolean enableExperimentalConvertCheckNotNull;
   private final boolean enableExperimentalWhyAreYouNotInlining;
   private final boolean enableTestingOptions;
 
   ProguardConfigurationParserOptions(
+      boolean enableExperimentalCheckEnumUnboxed,
       boolean enableExperimentalConvertCheckNotNull,
       boolean enableExperimentalWhyAreYouNotInlining,
       boolean enableTestingOptions) {
+    this.enableExperimentalCheckEnumUnboxed = enableExperimentalCheckEnumUnboxed;
     this.enableExperimentalConvertCheckNotNull = enableExperimentalConvertCheckNotNull;
     this.enableExperimentalWhyAreYouNotInlining = enableExperimentalWhyAreYouNotInlining;
     this.enableTestingOptions = enableTestingOptions;
@@ -23,6 +26,10 @@ public class ProguardConfigurationParserOptions {
 
   public static Builder builder() {
     return new Builder();
+  }
+
+  public boolean isExperimentalCheckEnumUnboxedEnabled() {
+    return enableExperimentalCheckEnumUnboxed;
   }
 
   public boolean isExperimentalConvertCheckNotNullEnabled() {
@@ -39,11 +46,15 @@ public class ProguardConfigurationParserOptions {
 
   public static class Builder {
 
+    private boolean enableExperimentalCheckEnumUnboxed;
     private boolean enableExperimentalConvertCheckNotNull;
     private boolean enableExperimentalWhyAreYouNotInlining;
     private boolean enableTestingOptions;
 
     public Builder readEnvironment() {
+      enableExperimentalCheckEnumUnboxed =
+          parseSystemPropertyOrDefault(
+              "com.android.tools.r8.experimental.enablecheckenumunboxed", false);
       enableExperimentalConvertCheckNotNull =
           parseSystemPropertyOrDefault(
               "com.android.tools.r8.experimental.enableconvertchecknotnull", false);
@@ -52,6 +63,12 @@ public class ProguardConfigurationParserOptions {
               "com.android.tools.r8.experimental.enablewhyareyounotinlining", false);
       enableTestingOptions =
           parseSystemPropertyOrDefault("com.android.tools.r8.allowTestProguardOptions", false);
+      return this;
+    }
+
+    public Builder setEnableExperimentalCheckEnumUnboxed(
+        boolean enableExperimentalCheckEnumUnboxed) {
+      this.enableExperimentalCheckEnumUnboxed = enableExperimentalCheckEnumUnboxed;
       return this;
     }
 
@@ -74,6 +91,7 @@ public class ProguardConfigurationParserOptions {
 
     public ProguardConfigurationParserOptions build() {
       return new ProguardConfigurationParserOptions(
+          enableExperimentalCheckEnumUnboxed,
           enableExperimentalConvertCheckNotNull,
           enableExperimentalWhyAreYouNotInlining,
           enableTestingOptions);

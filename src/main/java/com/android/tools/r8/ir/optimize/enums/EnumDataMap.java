@@ -4,13 +4,18 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
+import com.android.tools.r8.errors.CheckEnumUnboxedDiagnostic;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldKnownData;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 public class EnumDataMap {
@@ -22,6 +27,23 @@ public class EnumDataMap {
 
   public EnumDataMap(ImmutableMap<DexType, EnumData> map) {
     this.map = map;
+  }
+
+  public void checkEnumsUnboxed(AppView<AppInfoWithLiveness> appView) {
+    List<DexProgramClass> failed = new ArrayList<>();
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      if (clazz.isEnum()) {
+        if (appView.getKeepInfo(clazz).isCheckEnumUnboxedEnabled(appView.options())
+            && !isUnboxedEnum(clazz)) {
+          failed.add(clazz);
+        }
+      }
+    }
+    if (!failed.isEmpty()) {
+      CheckEnumUnboxedDiagnostic diagnostic =
+          CheckEnumUnboxedDiagnostic.builder().addFailedEnums(failed).build();
+      throw appView.reporter().fatalError(diagnostic);
+    }
   }
 
   public boolean isUnboxedEnum(DexProgramClass clazz) {

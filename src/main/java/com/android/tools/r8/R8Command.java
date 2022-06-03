@@ -663,6 +663,10 @@ public final class R8Command extends BaseCompilerCommand {
 
     }
 
+    void setEnableExperimentalCheckEnumUnboxed() {
+      parserOptionsBuilder.setEnableExperimentalCheckEnumUnboxed(true);
+    }
+
     void setEnableExperimentalConvertCheckNotNull() {
       parserOptionsBuilder.setEnableExperimentalConvertCheckNotNull(true);
     }

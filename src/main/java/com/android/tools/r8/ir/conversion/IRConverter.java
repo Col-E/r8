@@ -741,6 +741,7 @@ public class IRConverter {
 
     outliner.rewriteWithLens();
     enumUnboxer.unboxEnums(appView, this, postMethodProcessorBuilder, executorService, feedback);
+    appView.unboxedEnums().checkEnumsUnboxed(appView);
 
     GraphLens graphLensForSecondaryOptimizationPass = appView.graphLens();
 

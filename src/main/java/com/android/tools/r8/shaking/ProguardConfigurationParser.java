@@ -80,7 +80,7 @@ public class ProguardConfigurationParser {
           "keepkotlinmetadata");
 
   private static final List<String> IGNORED_CLASS_DESCRIPTOR_OPTIONS =
-      ImmutableList.of("isclassnamestring", "whyarenotsimple", "checkenumunboxed");
+      ImmutableList.of("isclassnamestring", "whyarenotsimple");
 
   private static final List<String> WARNED_SINGLE_ARG_OPTIONS = ImmutableList.of(
       // TODO(b/37137994): -outjars should be reported as errors, not just as warnings!
@@ -122,8 +122,9 @@ public class ProguardConfigurationParser {
         dexItemFactory,
         reporter,
         ProguardConfigurationParserOptions.builder()
-            .setEnableExperimentalConvertCheckNotNull(true)
-            .setEnableExperimentalWhyAreYouNotInlining(true)
+            .setEnableExperimentalCheckEnumUnboxed(false)
+            .setEnableExperimentalConvertCheckNotNull(false)
+            .setEnableExperimentalWhyAreYouNotInlining(false)
             .setEnableTestingOptions(false)
             .build());
   }
@@ -484,6 +485,13 @@ public class ProguardConfigurationParser {
 
     private boolean parseExperimentalOption(TextPosition optionStart)
         throws ProguardRuleParserException {
+      if (acceptString(CheckEnumUnboxedRule.RULE_NAME)) {
+        CheckEnumUnboxedRule checkEnumUnboxedRule = parseCheckEnumUnboxedRule(optionStart);
+        if (options.isExperimentalCheckEnumUnboxedEnabled()) {
+          configurationBuilder.addRule(checkEnumUnboxedRule);
+        }
+        return true;
+      }
       if (acceptString(ConvertCheckNotNullRule.RULE_NAME)) {
         ConvertCheckNotNullRule convertCheckNotNullRule = parseConvertCheckNotNullRule(optionStart);
         if (options.isExperimentalConvertCheckNotNullEnabled()) {
@@ -1711,6 +1719,17 @@ public class ProguardConfigurationParser {
           .setOrigin(origin)
           .setStart(start);
       parseClassSpec(builder, true);
+      Position end = getPosition();
+      builder.setSource(getSourceSnippet(contents, start, end));
+      builder.setEnd(end);
+      return builder.build();
+    }
+
+    private CheckEnumUnboxedRule parseCheckEnumUnboxedRule(Position start)
+        throws ProguardRuleParserException {
+      CheckEnumUnboxedRule.Builder builder =
+          CheckEnumUnboxedRule.builder().setOrigin(origin).setStart(start);
+      parseClassSpec(builder);
       Position end = getPosition();
       builder.setSource(getSourceSnippet(contents, start, end));
       builder.setEnd(end);

@@ -32,13 +32,24 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
     return bottom().joiner();
   }
 
+  private final boolean checkEnumUnboxed;
+
   private KeepClassInfo(Builder builder) {
     super(builder);
+    this.checkEnumUnboxed = builder.isCheckEnumUnboxedEnabled();
   }
 
   @Override
   Builder builder() {
     return new Builder(this);
+  }
+
+  public boolean isCheckEnumUnboxedEnabled(GlobalKeepInfoConfiguration configuration) {
+    return internalIsCheckEnumUnboxedEnabled();
+  }
+
+  boolean internalIsCheckEnumUnboxedEnabled() {
+    return checkEnumUnboxed;
   }
 
   public Joiner joiner() {
@@ -87,12 +98,34 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
 
   public static class Builder extends KeepInfo.Builder<Builder, KeepClassInfo> {
 
+    private boolean checkEnumUnboxed;
+
     private Builder() {
       super();
     }
 
     private Builder(KeepClassInfo original) {
       super(original);
+      checkEnumUnboxed = original.internalIsCheckEnumUnboxedEnabled();
+    }
+
+    // Check enum unboxed.
+
+    public boolean isCheckEnumUnboxedEnabled() {
+      return checkEnumUnboxed;
+    }
+
+    public Builder setCheckEnumUnboxed(boolean checkEnumUnboxed) {
+      this.checkEnumUnboxed = checkEnumUnboxed;
+      return self();
+    }
+
+    public Builder setCheckEnumUnboxed() {
+      return setCheckEnumUnboxed(true);
+    }
+
+    public Builder unsetCheckEnumUnboxed() {
+      return setCheckEnumUnboxed(false);
     }
 
     @Override
@@ -116,8 +149,24 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
     }
 
     @Override
+    boolean internalIsEqualTo(KeepClassInfo other) {
+      return super.internalIsEqualTo(other)
+          && isCheckEnumUnboxedEnabled() == other.internalIsCheckEnumUnboxedEnabled();
+    }
+
+    @Override
     public KeepClassInfo doBuild() {
       return new KeepClassInfo(this);
+    }
+
+    @Override
+    public Builder makeTop() {
+      return super.makeTop().unsetCheckEnumUnboxed();
+    }
+
+    @Override
+    public Builder makeBottom() {
+      return super.makeBottom().unsetCheckEnumUnboxed();
     }
   }
 
@@ -125,6 +174,11 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
 
     public Joiner(KeepClassInfo info) {
       super(info.builder());
+    }
+
+    public Joiner setCheckEnumUnboxed() {
+      builder.setCheckEnumUnboxed();
+      return self();
     }
 
     @Override
@@ -135,7 +189,8 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
     @Override
     public Joiner merge(Joiner joiner) {
       // Should be extended to merge the fields of this class in case any are added.
-      return super.merge(joiner);
+      return super.merge(joiner)
+          .applyIf(joiner.builder.isCheckEnumUnboxedEnabled(), Joiner::setCheckEnumUnboxed);
     }
 
     @Override

@@ -15,6 +15,7 @@ import com.android.tools.r8.dexsplitter.SplitterTestBase.SplitRunner;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.CheckEnumUnboxedRule;
 import com.android.tools.r8.shaking.CollectingGraphConsumer;
 import com.android.tools.r8.shaking.KeepUnusedReturnValueRule;
 import com.android.tools.r8.shaking.NoFieldTypeStrengtheningRule;
@@ -498,6 +499,12 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return addOptionsModification(options -> options.testing.allowInliningOfSynthetics = false);
   }
 
+  public T enableCheckEnumUnboxedAnnotations() {
+    return addCheckEnumUnboxedAnnotation()
+        .addInternalMatchInterfaceRule(CheckEnumUnboxedRule.RULE_NAME, CheckEnumUnboxed.class)
+        .enableExperimentalCheckEnumUnboxed();
+  }
+
   public T enableKeepUnusedReturnValueAnnotations() {
     return addKeepUnusedReturnValueAnnotation()
         .addInternalMatchAnnotationOnMethodRule(
@@ -652,6 +659,11 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
           .addInternalKeepRules(
               "-keepunusedarguments class * { @com.android.tools.r8.KeepUnusedArguments *; }");
     }
+    return self();
+  }
+
+  public T enableExperimentalCheckEnumUnboxed() {
+    builder.setEnableExperimentalCheckEnumUnboxed();
     return self();
   }
 
