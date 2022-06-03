@@ -61,7 +61,10 @@ public class DebugRepresentation {
       }
       VirtualFile file = classMapping.get(holder);
       DebugRepresentation cutoffs = file.getDebugRepresentation();
-      return cutoffs.getDexPcEncodingCutoff(method);
+      int maxPc = cutoffs.getDexPcEncodingCutoff(method);
+      assert maxPc == NO_PC_ENCODING
+          || verifyLastExecutableInstructionWithinBound(method.getCode().asDexCode(), maxPc);
+      return maxPc;
     };
   }
 
@@ -276,7 +279,14 @@ public class DebugRepresentation {
     }
   }
 
-  private static DexInstruction getLastExecutableInstruction(DexCode code) {
+  public static boolean verifyLastExecutableInstructionWithinBound(DexCode code, int maxPc) {
+    DexInstruction lastExecutableInstruction = getLastExecutableInstruction(code);
+    int offset = lastExecutableInstruction.getOffset();
+    assert offset <= maxPc;
+    return true;
+  }
+
+  public static DexInstruction getLastExecutableInstruction(DexCode code) {
     DexInstruction lastInstruction = null;
     for (DexInstruction instruction : code.instructions) {
       if (!instruction.isPayload()) {

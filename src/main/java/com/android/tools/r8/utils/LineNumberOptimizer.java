@@ -6,6 +6,7 @@ package com.android.tools.r8.utils;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfPosition;
+import com.android.tools.r8.debuginfo.DebugRepresentation;
 import com.android.tools.r8.debuginfo.DebugRepresentation.DebugRepresentationPredicate;
 import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.errors.Unreachable;
@@ -386,7 +387,7 @@ public class LineNumberOptimizer {
       @Override
       public boolean equals(Object o) {
         UpdateInfo that = (UpdateInfo) o;
-        return paramCount == that.paramCount && maxEncodingPc != that.maxEncodingPc;
+        return paramCount == that.paramCount && maxEncodingPc == that.maxEncodingPc;
       }
 
       @Override
@@ -407,6 +408,7 @@ public class LineNumberOptimizer {
 
     @Override
     public void recordPcMappingFor(DexCode code, int parameterCount, int maxEncodingPc) {
+      assert DebugRepresentation.verifyLastExecutableInstructionWithinBound(code, maxEncodingPc);
       codesToUpdate.add(new UpdateInfo(code, parameterCount, maxEncodingPc));
     }
 
@@ -425,9 +427,12 @@ public class LineNumberOptimizer {
           new Object2ReferenceOpenHashMap<>();
       codesToUpdate.forEach(
           entry -> {
+            assert DebugRepresentation.verifyLastExecutableInstructionWithinBound(
+                entry.code, entry.maxEncodingPc);
             DexDebugInfo debugInfo =
                 debugInfos.computeIfAbsent(
                     entry, key -> buildPc2PcDebugInfo(key.maxEncodingPc, key.paramCount));
+            assert debugInfo.asPcBasedInfo().getMaxPc() == entry.maxEncodingPc;
             entry.code.setDebugInfo(debugInfo);
           });
       if (singleLineCodesToClear != null) {
@@ -1249,7 +1254,7 @@ public class LineNumberOptimizer {
       }
     }
 
-    int lastInstructionPc = ArrayUtils.last(dexCode.instructions).getOffset();
+    int lastInstructionPc = DebugRepresentation.getLastExecutableInstruction(dexCode).getOffset();
     if (lastPosition.getSecond() != null) {
       remapAndAddForPc(
           lastPosition.getFirst(),

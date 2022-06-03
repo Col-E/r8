@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.debuginfo.DebugRepresentation;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.DebugBytecodeWriter;
 import com.android.tools.r8.dex.IndexedItemCollection;
@@ -95,6 +96,10 @@ public abstract class DexDebugInfo extends CachedHashValueDexItem
     public PcBasedDebugInfo(int parameterCount, int maxPc) {
       this.parameterCount = parameterCount;
       this.maxPc = maxPc;
+    }
+
+    public int getMaxPc() {
+      return maxPc;
     }
 
     @Override
@@ -294,19 +299,18 @@ public abstract class DexDebugInfo extends CachedHashValueDexItem
     }
     assert code.getDebugInfo().isPcBasedInfo();
     PcBasedDebugInfo pcBasedDebugInfo = code.getDebugInfo().asPcBasedInfo();
+    assert DebugRepresentation.verifyLastExecutableInstructionWithinBound(
+        code, pcBasedDebugInfo.maxPc);
     // Generate a line event at each throwing instruction.
     List<DexDebugEvent> events = new ArrayList<>(code.instructions.length);
-    int pc = 0;
     int delta = 0;
     for (DexInstruction instruction : code.instructions) {
       if (instruction.canThrow()) {
         DexDebugEventBuilder.addDefaultEventWithAdvancePcIfNecessary(delta, delta, events, factory);
-        pc += delta;
         delta = 0;
       }
       delta += instruction.getSize();
     }
-    assert pc + delta - ArrayUtils.last(code.instructions).getSize() <= pcBasedDebugInfo.maxPc;
     return new EventBasedDebugInfo(
         PcBasedDebugInfo.START_LINE,
         new DexString[pcBasedDebugInfo.getParameterCount()],
