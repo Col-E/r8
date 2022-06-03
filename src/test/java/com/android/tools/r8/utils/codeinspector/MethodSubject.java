@@ -38,6 +38,8 @@ public abstract class MethodSubject extends MemberSubject {
 
   public abstract boolean isVirtual();
 
+  public abstract boolean isNative();
+
   public FoundMethodSubject asFoundMethodSubject() {
     return null;
   }

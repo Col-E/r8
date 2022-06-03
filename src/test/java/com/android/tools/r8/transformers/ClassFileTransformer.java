@@ -569,6 +569,11 @@ public class ClassFileTransformer {
 
   private ClassFileTransformer setAccessFlags(
       MethodReference methodReference, Consumer<MethodAccessFlags> setter) {
+    return setAccessFlags(MethodPredicate.onReference(methodReference), setter);
+  }
+
+  public ClassFileTransformer setAccessFlags(
+      MethodPredicate predicate, Consumer<MethodAccessFlags> setter) {
     return addClassTransformer(
         new ClassTransformer() {
 
@@ -580,8 +585,7 @@ public class ClassFileTransformer {
                     || name.equals(Constants.CLASS_INITIALIZER_NAME);
             MethodAccessFlags accessFlags =
                 MethodAccessFlags.fromCfAccessFlags(access, isConstructor);
-            if (name.equals(methodReference.getMethodName())
-                && descriptor.equals(methodReference.getMethodDescriptor())) {
+            if (predicate.test(access, name, descriptor, signature, exceptions)) {
               setter.accept(accessFlags);
             }
             return super.visitMethod(
@@ -600,6 +604,12 @@ public class ClassFileTransformer {
 
     static MethodPredicate onName(String name) {
       return (access, otherName, descriptor, signature, exceptions) -> name.equals(otherName);
+    }
+
+    static MethodPredicate onReference(MethodReference reference) {
+      return (access, otherName, descriptor, signature, exceptions) ->
+          reference.getMethodName().equals(otherName)
+              && reference.getMethodDescriptor().equals(descriptor);
     }
 
     static boolean testContext(MethodPredicate predicate, MethodContext context) {
@@ -711,6 +721,18 @@ public class ClassFileTransformer {
             return predicate.test(access, name, descriptor, signature, exceptions)
                 ? null
                 : super.visitMethod(access, name, descriptor, signature, exceptions);
+          }
+        });
+  }
+
+  public ClassFileTransformer removeMethodsCodeAndAnnotations(MethodPredicate predicate) {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public MethodVisitor visitMethod(
+              int access, String name, String descriptor, String signature, String[] exceptions) {
+            MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
+            return predicate.test(access, name, descriptor, signature, exceptions) ? null : mv;
           }
         });
   }

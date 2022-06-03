@@ -67,6 +67,11 @@ public class AbsentMethodSubject extends MethodSubject {
   }
 
   @Override
+  public boolean isNative() {
+    throw new Unreachable("Cannot determine if an absent method is native");
+  }
+
+  @Override
   public MethodAccessFlags getAccessFlags() {
     throw new Unreachable("Cannot get the access flags for an absent method");
   }

@@ -428,7 +428,31 @@ public class Matchers {
             description.appendText("package-private");
           }
         } else {
-          description.appendText(" was absent");
+          description.appendText("absent");
+        }
+      }
+    };
+  }
+
+  public static <T extends MethodSubject> Matcher<T> isNative() {
+    return new TypeSafeMatcher<T>() {
+      @Override
+      public boolean matchesSafely(final T subject) {
+        return subject.isPresent() && subject.isNative();
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText("native method");
+      }
+
+      @Override
+      public void describeMismatchSafely(final T subject, Description description) {
+        description.appendText("item ").appendValue(subject.getOriginalName()).appendText(" was ");
+        if (subject.isPresent()) {
+          description.appendText("not native");
+        } else {
+          description.appendText("absent");
         }
       }
     };
