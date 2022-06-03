@@ -110,51 +110,63 @@ public class LogMethodOptimizer extends StatelessLibraryMethodModelCollection {
       DexClassAndMethod singleTarget,
       Set<Value> affectedValues,
       Set<BasicBlock> blocksToRemove) {
+    // Replace Android logging statements like Log.w(...) and Log.IsLoggable(..., WARNING) at or
+    // below a certain logging level by false.
+    int logLevel = getLogLevel(invoke, singleTarget);
     int maxRemovedAndroidLogLevel =
         appView.options().getProguardConfiguration().getMaxRemovedAndroidLogLevel();
-    if (singleTarget.getReference() == isLoggableMethod) {
-      Value logLevelValue = invoke.arguments().get(1).getAliasedValue();
-      if (!logLevelValue.isPhi() && !logLevelValue.hasLocalInfo()) {
-        Instruction definition = logLevelValue.definition;
-        if (definition.isConstNumber()) {
-          int logLevel = definition.asConstNumber().getIntValue();
-          replaceInvokeWithConstNumber(
-              code, instructionIterator, invoke, maxRemovedAndroidLogLevel >= logLevel ? 0 : 1);
-        }
-      }
-    } else if (singleTarget.getReference() == vMethod) {
-      if (maxRemovedAndroidLogLevel >= VERBOSE) {
-        replaceInvokeWithConstNumber(code, instructionIterator, invoke, 0);
-      }
-    } else if (singleTarget.getReference() == dMethod) {
-      if (maxRemovedAndroidLogLevel >= DEBUG) {
-        replaceInvokeWithConstNumber(code, instructionIterator, invoke, 0);
-      }
-    } else if (singleTarget.getReference() == iMethod) {
-      if (maxRemovedAndroidLogLevel >= INFO) {
-        replaceInvokeWithConstNumber(code, instructionIterator, invoke, 0);
-      }
-    } else if (singleTarget.getReference() == wMethod) {
-      if (maxRemovedAndroidLogLevel >= WARN) {
-        replaceInvokeWithConstNumber(code, instructionIterator, invoke, 0);
-      }
-    } else if (singleTarget.getReference() == eMethod) {
-      if (maxRemovedAndroidLogLevel >= ERROR) {
-        replaceInvokeWithConstNumber(code, instructionIterator, invoke, 0);
-      }
-    } else if (singleTarget.getReference() == wtfMethod) {
-      if (maxRemovedAndroidLogLevel >= ASSERT) {
-        replaceInvokeWithConstNumber(code, instructionIterator, invoke, 0);
-      }
+    if (logLevel <= maxRemovedAndroidLogLevel) {
+      instructionIterator.replaceCurrentInstructionWithConstFalse(code);
     }
   }
 
-  private void replaceInvokeWithConstNumber(
-      IRCode code, InstructionListIterator instructionIterator, InvokeMethod invoke, int value) {
-    if (invoke.hasOutValue() && invoke.outValue().hasAnyUsers()) {
-      instructionIterator.replaceCurrentInstructionWithConstInt(code, value);
-    } else {
-      instructionIterator.removeOrReplaceByDebugLocalRead();
+  /**
+   * @return The log level of the given invoke if it is a call to an android.util.Log method and the
+   *     log level can be determined, otherwise returns -1.
+   */
+  private int getLogLevel(InvokeMethod invoke, DexClassAndMethod singleTarget) {
+    DexMethod singleTargetReference = singleTarget.getReference();
+    switch (singleTargetReference.getName().getFirstByteAsChar()) {
+      case 'd':
+        if (singleTargetReference == dMethod) {
+          return DEBUG;
+        }
+        break;
+      case 'e':
+        if (singleTargetReference == eMethod) {
+          return ERROR;
+        }
+        break;
+      case 'i':
+        if (singleTargetReference == iMethod) {
+          return INFO;
+        }
+        if (singleTargetReference == isLoggableMethod) {
+          Value logLevelValue = invoke.arguments().get(1).getAliasedValue();
+          if (!logLevelValue.isPhi() && !logLevelValue.hasLocalInfo()) {
+            Instruction definition = logLevelValue.getDefinition();
+            if (definition.isConstNumber()) {
+              return definition.asConstNumber().getIntValue();
+            }
+          }
+        }
+        break;
+      case 'v':
+        if (singleTargetReference == vMethod) {
+          return VERBOSE;
+        }
+        break;
+      case 'w':
+        if (singleTargetReference == wMethod) {
+          return WARN;
+        }
+        if (singleTargetReference == wtfMethod) {
+          return ASSERT;
+        }
+        break;
+      default:
+        break;
     }
+    return -1;
   }
 }

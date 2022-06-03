@@ -752,9 +752,7 @@ public class DexItemFactory {
 
   public BoxedPrimitiveMembers getBoxedMembersForPrimitiveOrVoidType(DexType type) {
     assert type.isPrimitiveType() || type.isVoidType();
-    char c = (char) type.getDescriptor().content[0];
-    assert c == type.toDescriptorString().charAt(0);
-    switch (c) {
+    switch (type.getDescriptor().getFirstByteAsChar()) {
       case 'B':
         return byteMembers;
       case 'C':

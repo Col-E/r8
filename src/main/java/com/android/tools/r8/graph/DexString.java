@@ -35,6 +35,10 @@ public class DexString extends IndexedDexItem implements NamingLensComparable<De
     this.content = encodeToMutf8(string);
   }
 
+  public char getFirstByteAsChar() {
+    return (char) content[0];
+  }
+
   @Override
   public DexString self() {
     return this;

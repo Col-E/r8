@@ -223,7 +223,7 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
   }
 
   public char toShorty() {
-    char c = (char) descriptor.content[0];
+    char c = descriptor.getFirstByteAsChar();
     return c == '[' ? 'L' : c;
   }
 
@@ -266,58 +266,58 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
   }
 
   public boolean isPrimitiveType() {
-    return DescriptorUtils.isPrimitiveType((char) descriptor.content[0]);
+    return DescriptorUtils.isPrimitiveType(descriptor.getFirstByteAsChar());
   }
 
   public boolean isVoidType() {
-    return (char) descriptor.content[0] == 'V';
+    return descriptor.getFirstByteAsChar() == 'V';
   }
 
   public boolean isBooleanType() {
-    return descriptor.content[0] == 'Z';
+    return descriptor.getFirstByteAsChar() == 'Z';
   }
 
   public boolean isByteType() {
-    return descriptor.content[0] == 'B';
+    return descriptor.getFirstByteAsChar() == 'B';
   }
 
   public boolean isCharType() {
-    return descriptor.content[0] == 'C';
+    return descriptor.getFirstByteAsChar() == 'C';
   }
 
   public boolean isShortType() {
-    return descriptor.content[0] == 'S';
+    return descriptor.getFirstByteAsChar() == 'S';
   }
 
   public boolean isIntType() {
-    return descriptor.content[0] == 'I';
+    return descriptor.getFirstByteAsChar() == 'I';
   }
 
   public boolean isFloatType() {
-    return descriptor.content[0] == 'F';
+    return descriptor.getFirstByteAsChar() == 'F';
   }
 
   public boolean isLongType() {
-    return descriptor.content[0] == 'J';
+    return descriptor.getFirstByteAsChar() == 'J';
   }
 
   public boolean isDoubleType() {
-    return descriptor.content[0] == 'D';
+    return descriptor.getFirstByteAsChar() == 'D';
   }
 
   public boolean isNullValueType() {
-    boolean isNullValueType = descriptor.content[0] == 'N';
+    boolean isNullValueType = descriptor.getFirstByteAsChar() == 'N';
     assert !isNullValueType || this == DexItemFactory.nullValueType;
     return isNullValueType;
   }
 
   public boolean isArrayType() {
-    char firstChar = (char) descriptor.content[0];
+    char firstChar = descriptor.getFirstByteAsChar();
     return firstChar == '[';
   }
 
   public boolean isClassType() {
-    char firstChar = (char) descriptor.content[0];
+    char firstChar = descriptor.getFirstByteAsChar();
     return firstChar == 'L';
   }
 
