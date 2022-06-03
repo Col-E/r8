@@ -55,8 +55,7 @@ public class LibraryMemberRebindingSuperTypeWithApiMethodTest extends TestBase {
         .run(parameters.getRuntime(), Main.class)
         .applyIf(
             parameters.getDexRuntimeVersion().isOlderThan(Version.V8_1_0),
-            // TODO(b/234613774): We should not introduce ICCE.
-            result -> result.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class),
+            result -> result.assertFailureWithErrorThatThrows(NoSuchMethodError.class),
             result -> result.assertFailureWithErrorThatThrows(DestroyFailedException.class));
   }
 

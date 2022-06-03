@@ -8,6 +8,7 @@ import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.LibraryMethod;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -78,6 +79,7 @@ public class AndroidApiLevelUtils {
 
   public static boolean isApiSafeForMemberRebinding(
       LibraryMethod method,
+      DexMethod original,
       AndroidApiLevelCompute androidApiLevelCompute,
       InternalOptions options) {
     ComputedApiLevel apiLevel =
@@ -87,6 +89,17 @@ public class AndroidApiLevelUtils {
       return false;
     }
     assert options.apiModelingOptions().enableApiCallerIdentification;
-    return apiLevel.asKnownApiLevel().getApiLevel().isLessThanOrEqualTo(options.getMinApiLevel());
+    ComputedApiLevel apiLevelOfOriginal =
+        androidApiLevelCompute.computeApiLevelForLibraryReference(
+            original, ComputedApiLevel.unknown());
+    if (apiLevelOfOriginal.isUnknownApiLevel()) {
+      return false;
+    }
+    return apiLevelOfOriginal
+        .asKnownApiLevel()
+        .max(apiLevel)
+        .asKnownApiLevel()
+        .getApiLevel()
+        .isLessThanOrEqualTo(options.getMinApiLevel());
   }
 }
