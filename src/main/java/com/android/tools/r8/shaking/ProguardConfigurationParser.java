@@ -464,10 +464,10 @@ public class ProguardConfigurationParser {
       } else if (acceptString("maximumremovedandroidloglevel")) {
         skipWhitespace();
         Integer maxRemovedAndroidLogLevel = acceptInteger();
-        if (maxRemovedAndroidLogLevel != null) {
-          configurationBuilder.setMaxRemovedAndroidLogLevel(maxRemovedAndroidLogLevel);
+        if (maxRemovedAndroidLogLevel != null && maxRemovedAndroidLogLevel >= 1) {
+          configurationBuilder.joinMaxRemovedAndroidLogLevel(maxRemovedAndroidLogLevel);
         } else {
-          throw parseError("Expected integer", getPosition());
+          throw parseError("Expected integer greater than or equal to 1", getPosition());
         }
       } else {
         String unknownOption = acceptString();

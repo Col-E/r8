@@ -70,7 +70,7 @@ public class ProguardConfiguration {
     private boolean configurationDebugging = false;
     private boolean dontUseMixedCaseClassnames = false;
     private boolean protoShrinking = false;
-    private int maxRemovedAndroidLogLevel = 1;
+    private int maxRemovedAndroidLogLevel = -1;
 
     private Builder(DexItemFactory dexItemFactory, Reporter reporter) {
       this.dexItemFactory = dexItemFactory;
@@ -294,12 +294,21 @@ public class ProguardConfiguration {
       protoShrinking = true;
     }
 
-    public int getMaxRemovedAndroidLogLevel() {
-      return maxRemovedAndroidLogLevel;
+    public int getMaxRemovedAndroidLogLevelOrDefault(int defaultValue) {
+      assert maxRemovedAndroidLogLevel == -1 || maxRemovedAndroidLogLevel >= 1;
+      return maxRemovedAndroidLogLevel >= 1 ? maxRemovedAndroidLogLevel : defaultValue;
     }
 
-    public void setMaxRemovedAndroidLogLevel(int maxRemovedAndroidLogLevel) {
-      this.maxRemovedAndroidLogLevel = maxRemovedAndroidLogLevel;
+    public void joinMaxRemovedAndroidLogLevel(int maxRemovedAndroidLogLevel) {
+      assert maxRemovedAndroidLogLevel >= 1;
+      if (this.maxRemovedAndroidLogLevel == -1) {
+        this.maxRemovedAndroidLogLevel = maxRemovedAndroidLogLevel;
+      } else {
+        // If there are multiple -maximumremovedandroidloglevel rules we only allow removing logging
+        // calls that are removable according to all rules.
+        this.maxRemovedAndroidLogLevel =
+            Math.min(this.maxRemovedAndroidLogLevel, maxRemovedAndroidLogLevel);
+      }
     }
 
     public ProguardConfiguration buildRaw() {
@@ -344,7 +353,7 @@ public class ProguardConfiguration {
               configurationDebugging,
               dontUseMixedCaseClassnames,
               protoShrinking,
-              maxRemovedAndroidLogLevel);
+              getMaxRemovedAndroidLogLevelOrDefault(1));
 
       reporter.failIfPendingErrors();
 
