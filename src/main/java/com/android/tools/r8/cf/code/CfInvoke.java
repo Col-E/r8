@@ -328,10 +328,14 @@ public class CfInvoke extends CfInstruction {
     // ...
     frame = frame.popInitialized(appView, method.getParameters().getBacking());
     if (opcode != Opcodes.INVOKESTATIC) {
-      frame =
-          opcode == Opcodes.INVOKESPECIAL && method.isInstanceInitializer(dexItemFactory)
-              ? frame.popAndInitialize(appView, method, config)
-              : frame.popInitialized(appView, method.getHolderType());
+      if (method.getHolderType().isArrayType()) {
+        frame = frame.popArray(appView);
+      } else {
+        frame =
+            opcode == Opcodes.INVOKESPECIAL && method.isInstanceInitializer(dexItemFactory)
+                ? frame.popAndInitialize(appView, method, config)
+                : frame.popInitialized(appView, method.getHolderType());
+      }
     }
     if (method.getReturnType().isVoidType()) {
       return frame;

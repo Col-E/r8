@@ -73,6 +73,11 @@ public class BottomCfFrameState extends CfFrameState {
   }
 
   @Override
+  public ErroneousCfFrameState popArray(AppView<?> appView) {
+    return pop();
+  }
+
+  @Override
   public ErroneousCfFrameState popInitialized(
       AppView<?> appView,
       DexType expectedType,

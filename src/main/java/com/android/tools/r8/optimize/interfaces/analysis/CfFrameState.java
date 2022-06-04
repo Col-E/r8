@@ -118,6 +118,8 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
   public abstract CfFrameState popAndInitialize(
       AppView<?> appView, DexMethod constructor, CfAnalysisConfig config);
 
+  public abstract CfFrameState popArray(AppView<?> appView);
+
   public final CfFrameState popInitialized(AppView<?> appView, DexType expectedType) {
     return popInitialized(appView, expectedType, FunctionUtils::getFirst);
   }

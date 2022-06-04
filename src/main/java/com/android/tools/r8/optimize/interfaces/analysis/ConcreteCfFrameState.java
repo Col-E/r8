@@ -192,6 +192,21 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   @Override
+  public CfFrameState popArray(AppView<?> appView) {
+    return pop(
+        (state, head) ->
+            isArrayTypeOrNull(head) ? state : errorUnexpectedStack(head, "an array type"));
+  }
+
+  private static boolean isArrayTypeOrNull(FrameType frameType) {
+    if (frameType.isInitializedReferenceType()
+        && frameType.asInitializedReferenceType().getInitializedType().isArrayType()) {
+      return true;
+    }
+    return frameType.isNullType();
+  }
+
+  @Override
   public CfFrameState popInitialized(
       AppView<?> appView,
       DexType expectedType,

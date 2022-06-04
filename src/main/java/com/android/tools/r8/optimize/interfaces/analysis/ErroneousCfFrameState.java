@@ -156,6 +156,11 @@ public class ErroneousCfFrameState extends CfFrameState {
   }
 
   @Override
+  public CfFrameState popArray(AppView<?> appView) {
+    return this;
+  }
+
+  @Override
   public CfFrameState popInitialized(
       AppView<?> appView,
       DexType expectedType,
