@@ -72,12 +72,7 @@ public class MemberRebindingInvokeSuperAbstractTest extends TestBase {
               assertThat(
                   getSystemService,
                   CodeMatchers.invokesMethodWithHolderAndName(
-                      typeName(
-                          parameters.isCfRuntime()
-                                  || parameters.getApiLevel().isLessThan(AndroidApiLevel.N)
-                              ? LibrarySubSub.class
-                              : LibrarySub.class),
-                      "getSystemService"));
+                      typeName(LibrarySubSub.class), "getSystemService"));
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("LibrarySub::getSystemService");
