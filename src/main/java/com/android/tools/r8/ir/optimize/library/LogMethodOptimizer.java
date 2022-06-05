@@ -115,7 +115,7 @@ public class LogMethodOptimizer extends StatelessLibraryMethodModelCollection {
     int logLevel = getLogLevel(invoke, singleTarget);
     int maxRemovedAndroidLogLevel =
         appView.options().getProguardConfiguration().getMaxRemovedAndroidLogLevel();
-    if (logLevel <= maxRemovedAndroidLogLevel) {
+    if (VERBOSE <= logLevel && logLevel <= maxRemovedAndroidLogLevel) {
       instructionIterator.replaceCurrentInstructionWithConstFalse(code);
     }
   }
@@ -146,7 +146,11 @@ public class LogMethodOptimizer extends StatelessLibraryMethodModelCollection {
           if (!logLevelValue.isPhi() && !logLevelValue.hasLocalInfo()) {
             Instruction definition = logLevelValue.getDefinition();
             if (definition.isConstNumber()) {
-              return definition.asConstNumber().getIntValue();
+              int logLevel = definition.asConstNumber().getIntValue();
+              if (VERBOSE <= logLevel && logLevel <= ASSERT) {
+                return logLevel;
+              }
+              assert false;
             }
           }
         }
