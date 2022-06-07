@@ -21,6 +21,7 @@ import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.cf.CfVersion;
+import com.android.tools.r8.debuginfo.DebugRepresentation;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Backend;
 import com.android.tools.r8.dex.Marker.Tool;
@@ -1778,6 +1779,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public Consumer<Deque<ProgramMethodSet>> waveModifier = waves -> {};
 
+    public Consumer<DebugRepresentation> debugRepresentationCallback = null;
+
     /**
      * If this flag is enabled, we will also compute the set of possible targets for invoke-
      * interface and invoke-virtual instructions that target a library method, and add the
@@ -1819,6 +1822,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean dontCreateMarkerInD8 = false;
     public boolean forceJumboStringProcessing = false;
     public boolean forcePcBasedEncoding = false;
+    public int pcBasedDebugEncodingOverheadThreshold =
+        System.getProperty("com.android.tools.r8.pc2pcOverheadThreshold") != null
+            ? Integer.parseInt(System.getProperty("com.android.tools.r8.pc2pcOverheadThreshold"))
+            : 200000;
     public Set<Inliner.Reason> validInliningReasons = null;
     public boolean noLocalsTableOnInput = false;
     public boolean forceNameReflectionOptimization = false;

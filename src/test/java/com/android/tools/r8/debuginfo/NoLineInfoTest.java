@@ -4,15 +4,20 @@
 package com.android.tools.r8.debuginfo;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -91,6 +96,25 @@ public class NoLineInfoTest extends TestBase {
             b -> b.getBuilder().setSourceFileProvider(environment -> CUSTOM_SOURCE_FILE))
         .run(parameters.getRuntime(), TestClass.class)
         .assertFailureWithErrorThatThrows(NullPointerException.class)
+        .inspectFailure(
+            i -> {
+              if (parameters.isDexRuntime()) {
+                Set<DexDebugInfo> debugInfos =
+                    i.allClasses().stream()
+                        .flatMap(c -> c.allMethods().stream())
+                        .map(m -> m.getMethod().getCode().asDexCode().getDebugInfo())
+                        .collect(Collectors.toSet());
+                if (isCompileWithPcAsLineNumberSupport() && !customSourceFile) {
+                  // If debug info is stripped all items are null pointers.
+                  assertEquals(Collections.singleton(null), debugInfos);
+                } else {
+                  // If debug info remains it is two canonical items and one null pointer.
+                  // The presence of 'null' debug info items is for methods with no actual lines at
+                  // all.
+                  assertEquals(3, debugInfos.size());
+                }
+              }
+            })
         .inspectOriginalStackTrace(
             stackTrace ->
                 assertThat(

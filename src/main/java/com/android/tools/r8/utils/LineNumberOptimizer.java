@@ -76,9 +76,8 @@ import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntSortedMap;
-import it.unimi.dsi.fastutil.objects.Object2ReferenceMap;
-import it.unimi.dsi.fastutil.objects.Object2ReferenceOpenHashMap;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -354,10 +353,10 @@ public class LineNumberOptimizer {
 
   private interface PcBasedDebugInfoRecorder {
     /** Callback to record a code object with a given max instruction PC and parameter count. */
-    void recordPcMappingFor(DexCode code, int parameterCount, int maxEncodingPc);
+    void recordPcMappingFor(ProgramMethod method, int maxEncodingPc);
 
     /** Callback to record a code object with only a single "line". */
-    void recordSingleLineFor(DexCode code, int parameterCount, int maxEncodingPc);
+    void recordSingleLineFor(ProgramMethod method, int maxEncodingPc);
 
     /**
      * Install the correct debug info objects.
@@ -406,32 +405,44 @@ public class LineNumberOptimizer {
       singleLineCodesToClear = allowDiscardingSourceFile ? new ArrayList<>() : null;
     }
 
+    private int getLastInstructionOffset(DexCode code) {
+      return DebugRepresentation.getLastExecutableInstruction(code).getOffset();
+    }
+
+    private boolean cantAddToClearSet(ProgramMethod method) {
+      assert method.getDefinition().getCode().isDexCode();
+      if (singleLineCodesToClear == null) {
+        return true;
+      }
+      singleLineCodesToClear.add(method.getDefinition().getCode().asDexCode());
+      return false;
+    }
+
     @Override
-    public void recordPcMappingFor(DexCode code, int parameterCount, int maxEncodingPc) {
+    public void recordPcMappingFor(ProgramMethod method, int maxEncodingPc) {
+      assert method.getDefinition().getCode().isDexCode();
+      int parameterCount = method.getParameters().size();
+      DexCode code = method.getDefinition().getCode().asDexCode();
       assert DebugRepresentation.verifyLastExecutableInstructionWithinBound(code, maxEncodingPc);
       codesToUpdate.add(new UpdateInfo(code, parameterCount, maxEncodingPc));
     }
 
     @Override
-    public void recordSingleLineFor(DexCode code, int parameterCount, int maxEncodingPc) {
-      if (singleLineCodesToClear != null) {
-        singleLineCodesToClear.add(code);
-        return;
+    public void recordSingleLineFor(ProgramMethod method, int maxEncodingPc) {
+      if (cantAddToClearSet(method)) {
+        recordPcMappingFor(method, maxEncodingPc);
       }
-      recordPcMappingFor(code, parameterCount, maxEncodingPc);
     }
 
     @Override
     public void updateDebugInfoInCodeObjects() {
-      Object2ReferenceMap<UpdateInfo, DexDebugInfo> debugInfos =
-          new Object2ReferenceOpenHashMap<>();
+      Map<UpdateInfo, DexDebugInfo> debugInfos = new HashMap<>();
       codesToUpdate.forEach(
           entry -> {
             assert DebugRepresentation.verifyLastExecutableInstructionWithinBound(
                 entry.code, entry.maxEncodingPc);
             DexDebugInfo debugInfo =
-                debugInfos.computeIfAbsent(
-                    entry, key -> buildPc2PcDebugInfo(key.maxEncodingPc, key.paramCount));
+                debugInfos.computeIfAbsent(entry, Pc2PcMappingSupport::buildPc2PcDebugInfo);
             assert debugInfo.asPcBasedInfo().getMaxPc() == entry.maxEncodingPc;
             entry.code.setDebugInfo(debugInfo);
           });
@@ -440,23 +451,26 @@ public class LineNumberOptimizer {
       }
     }
 
-    private static DexDebugInfo buildPc2PcDebugInfo(int lastInstructionPc, int parameterCount) {
-      return new DexDebugInfo.PcBasedDebugInfo(parameterCount, lastInstructionPc);
+    private static DexDebugInfo buildPc2PcDebugInfo(UpdateInfo info) {
+      return new DexDebugInfo.PcBasedDebugInfo(info.paramCount, info.maxEncodingPc);
     }
   }
 
   private static class NativePcSupport implements PcBasedDebugInfoRecorder {
 
-    @Override
-    public void recordPcMappingFor(DexCode code, int length, int maxEncodingPc) {
-      // Strip the info in full as the runtime will emit the PC directly.
-      code.setDebugInfo(null);
+    private void clearDebugInfo(ProgramMethod method) {
+      // Always strip the info in full as the runtime will emit the PC directly.
+      method.getDefinition().getCode().asDexCode().setDebugInfo(null);
     }
 
     @Override
-    public void recordSingleLineFor(DexCode code, int parameterCount, int maxEncodingPc) {
-      // Strip the info at once as it does not conflict with any PC mapping update.
-      code.setDebugInfo(null);
+    public void recordPcMappingFor(ProgramMethod method, int maxEncodingPc) {
+      clearDebugInfo(method);
+    }
+
+    @Override
+    public void recordSingleLineFor(ProgramMethod method, int maxEncodingPc) {
+      clearDebugInfo(method);
     }
 
     @Override
@@ -567,7 +581,7 @@ public class LineNumberOptimizer {
           List<MappedPosition> mappedPositions;
           Code code = definition.getCode();
           int pcEncodingCutoff =
-              methods.size() == 1 ? representation.getDexPcEncodingCutoff(clazz, definition) : -1;
+              methods.size() == 1 ? representation.getDexPcEncodingCutoff(method) : -1;
           boolean canUseDexPc = pcEncodingCutoff > 0;
           if (code != null) {
             if (code.isDexCode()
@@ -575,7 +589,7 @@ public class LineNumberOptimizer {
               if (canUseDexPc) {
                 mappedPositions =
                     optimizeDexCodePositionsForPc(
-                        definition, appView, kotlinRemapper, pcBasedDebugInfo, pcEncodingCutoff);
+                        method, pcEncodingCutoff, appView, kotlinRemapper, pcBasedDebugInfo);
               } else {
                 mappedPositions =
                     optimizeDexCodePositions(
@@ -749,8 +763,7 @@ public class LineNumberOptimizer {
           if (definition.getCode().isDexCode()
               && definition.getCode().asDexCode().getDebugInfo()
                   == DexDebugInfoForSingleLineMethod.getInstance()) {
-            pcBasedDebugInfo.recordSingleLineFor(
-                definition.getCode().asDexCode(), method.getParameters().size(), pcEncodingCutoff);
+            pcBasedDebugInfo.recordSingleLineFor(method, pcEncodingCutoff);
           }
         } // for each method of the group
       } // for each method group, grouped by name
@@ -1194,15 +1207,16 @@ public class LineNumberOptimizer {
   }
 
   private static List<MappedPosition> optimizeDexCodePositionsForPc(
-      DexEncodedMethod method,
+      ProgramMethod method,
+      int pcEncodingCutoff,
       AppView<?> appView,
       PositionRemapper positionRemapper,
-      PcBasedDebugInfoRecorder debugInfoProvider,
-      int pcEncodingCutoff) {
+      PcBasedDebugInfoRecorder debugInfoProvider) {
     List<MappedPosition> mappedPositions = new ArrayList<>();
     // Do the actual processing for each method.
-    DexCode dexCode = method.getCode().asDexCode();
-    EventBasedDebugInfo debugInfo = getEventBasedDebugInfo(method, dexCode, appView);
+    DexCode dexCode = method.getDefinition().getCode().asDexCode();
+    EventBasedDebugInfo debugInfo =
+        getEventBasedDebugInfo(method.getDefinition(), dexCode, appView);
     IntBox firstDefaultEventPc = new IntBox(-1);
     BooleanBox singleOriginalLine = new BooleanBox(true);
     Pair<Integer, Position> lastPosition = new Pair<>();
@@ -1269,10 +1283,9 @@ public class LineNumberOptimizer {
         && lastPosition.getSecond() != null
         && (mappedPositions.isEmpty() || !mappedPositions.get(0).isOutlineCaller())) {
       dexCode.setDebugInfo(DexDebugInfoForSingleLineMethod.getInstance());
-      debugInfoProvider.recordSingleLineFor(
-          dexCode, method.getParameters().size(), pcEncodingCutoff);
+      debugInfoProvider.recordSingleLineFor(method, pcEncodingCutoff);
     } else {
-      debugInfoProvider.recordPcMappingFor(dexCode, debugInfo.parameters.length, pcEncodingCutoff);
+      debugInfoProvider.recordPcMappingFor(method, pcEncodingCutoff);
     }
     return mappedPositions;
   }

@@ -8,20 +8,24 @@ import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugInfo;
-import com.android.tools.r8.graph.DexDebugInfo.PcBasedDebugInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.LebUtils;
 import com.android.tools.r8.utils.LineNumberOptimizer;
 import com.android.tools.r8.utils.StringUtils;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.ints.IntIterators;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -34,12 +38,12 @@ public class DebugRepresentation {
 
   public interface DebugRepresentationPredicate {
 
-    int getDexPcEncodingCutoff(DexProgramClass holder, DexEncodedMethod method);
+    int getDexPcEncodingCutoff(ProgramMethod method);
   }
 
   public static DebugRepresentationPredicate none(InternalOptions options) {
     assert !options.canUseDexPc2PcAsDebugInformation();
-    return (holder, method) -> NO_PC_ENCODING;
+    return method -> NO_PC_ENCODING;
   }
 
   public static DebugRepresentationPredicate fromFiles(
@@ -48,29 +52,33 @@ public class DebugRepresentation {
       return none(options);
     }
     if (options.canUseNativeDexPcInsteadOfDebugInfo()) {
-      return (holder, method) -> ALWAYS_PC_ENCODING;
+      return method -> ALWAYS_PC_ENCODING;
     }
     // TODO(b/220999985): Avoid the need to maintain a class-to-file map.
     Map<DexProgramClass, VirtualFile> classMapping = new IdentityHashMap<>();
     for (VirtualFile file : files) {
+      if (options.testing.debugRepresentationCallback != null) {
+        options.testing.debugRepresentationCallback.accept(file.getDebugRepresentation());
+      }
       file.classes().forEach(c -> classMapping.put(c, file));
     }
-    return (holder, method) -> {
-      if (!isPcCandidate(method, options)) {
+    return method -> {
+      if (!isPcCandidate(method.getDefinition(), options)) {
         return NO_PC_ENCODING;
       }
-      VirtualFile file = classMapping.get(holder);
+      VirtualFile file = classMapping.get(method.getHolder());
       DebugRepresentation cutoffs = file.getDebugRepresentation();
       int maxPc = cutoffs.getDexPcEncodingCutoff(method);
       assert maxPc == NO_PC_ENCODING
-          || verifyLastExecutableInstructionWithinBound(method.getCode().asDexCode(), maxPc);
+          || verifyLastExecutableInstructionWithinBound(
+              method.getDefinition().getCode().asDexCode(), maxPc);
       return maxPc;
     };
   }
 
-  private final Int2ReferenceMap<CostSummary> paramToInfo;
+  private final Int2ReferenceMap<ConversionInfo> paramToInfo;
 
-  private DebugRepresentation(Int2ReferenceMap<CostSummary> paramToInfo) {
+  private DebugRepresentation(Int2ReferenceMap<ConversionInfo> paramToInfo) {
     this.paramToInfo = paramToInfo;
   }
 
@@ -113,23 +121,31 @@ public class DebugRepresentation {
         int lastPc = lastInstruction.getOffset();
         int debugInfoCost = estimatedDebugInfoSize(debugInfo);
         paramCountToCosts
-            .computeIfAbsent(debugInfo.getParameterCount(), DebugRepresentation.CostSummary::new)
+            .computeIfAbsent(debugInfo.getParameterCount(), CostSummary::new)
             .addCost(lastPc, debugInfoCost);
       }
     }
     // Second compute the cost of converting to a pc encoding.
-    paramCountToCosts.forEach((ignored, summary) -> summary.computeConversionCosts(appView));
+    Int2ReferenceMap<ConversionInfo> conversions =
+        new Int2ReferenceOpenHashMap<>(paramCountToCosts.size());
+    paramCountToCosts.forEach(
+        (param, summary) -> conversions.put(param, summary.computeConversionCosts(appView)));
     // The result is stored on the virtual files for thread safety.
     // TODO(b/220999985): Consider just passing this to the line number optimizer once fixed.
-    file.setDebugRepresentation(new DebugRepresentation(paramCountToCosts));
+    file.setDebugRepresentation(new DebugRepresentation(conversions));
   }
 
-  private int getDexPcEncodingCutoff(DexEncodedMethod method) {
-    DexCode code = method.getCode().asDexCode();
+  private int getDexPcEncodingCutoff(ProgramMethod method) {
+    if (paramToInfo.isEmpty()) {
+      // This should only be the case if the method has overloads and thus *cannot* use pc encoding.
+      assert verifyMethodHasOverloads(method);
+      return NO_PC_ENCODING;
+    }
+    DexCode code = method.getDefinition().getCode().asDexCode();
     int paramCount = method.getParameters().size();
     assert code.getDebugInfo() == null || code.getDebugInfo().getParameterCount() == paramCount;
-    CostSummary conversionInfo = paramToInfo.get(paramCount);
-    if (conversionInfo == null || conversionInfo.cutoff < 0) {
+    ConversionInfo conversionInfo = paramToInfo.get(paramCount);
+    if (conversionInfo == null || !conversionInfo.hasConversions()) {
       // We expect all methods calling this to have computed conversion info.
       assert conversionInfo != null;
       return NO_PC_ENCODING;
@@ -139,14 +155,24 @@ public class DebugRepresentation {
       return NO_PC_ENCODING;
     }
     int maxPc = lastInstruction.getOffset();
-    return maxPc <= conversionInfo.cutoff ? conversionInfo.cutoff : NO_PC_ENCODING;
+    return conversionInfo.getConversionPointFor(maxPc);
+  }
+
+  private boolean verifyMethodHasOverloads(ProgramMethod method) {
+    assert 1
+        < IterableUtils.size(method.getHolder().methods(m -> m.getName().equals(method.getName())));
+    return true;
   }
 
   @Override
   public String toString() {
-    List<CostSummary> sorted = new ArrayList<>(paramToInfo.values());
+    return toString(false);
+  }
+
+  public String toString(boolean printCostSummary) {
+    List<ConversionInfo> sorted = new ArrayList<>(paramToInfo.values());
     sorted.sort(Comparator.comparing(i -> i.paramCount));
-    return StringUtils.join("\n", sorted, CostSummary::toString);
+    return StringUtils.join("\n", sorted, c -> c.toString(printCostSummary));
   }
 
   private static boolean isPcCandidate(DexEncodedMethod method, InternalOptions options) {
@@ -157,14 +183,32 @@ public class DebugRepresentation {
     return LineNumberOptimizer.mustHaveResidualDebugInfo(code, options);
   }
 
-  /** The cost of representing normal debug info for all methods with this max pc value. */
-  private static class PcNormalCost {
-
+  /** Cost information for debug info at a given PC. */
+  private static class PcCostInfo {
+    // PC point for which the information pertains to.
     final int pc;
-    int cost;
-    int methods;
 
-    public PcNormalCost(int pc) {
+    // Normal debug-info encoding cost.
+    int cost = 0;
+
+    // Number of methods this information pertains to.
+    int methods = 0;
+
+    @Override
+    public String toString() {
+      return "pc="
+          + pc
+          + ", cost="
+          + cost
+          + ", methods="
+          + methods
+          + ", saved="
+          + (cost - pc)
+          + ", overhead="
+          + getExpansionOverhead(pc, methods, cost);
+    }
+
+    public PcCostInfo(int pc) {
       assert pc >= 0;
       this.pc = pc;
     }
@@ -176,20 +220,76 @@ public class DebugRepresentation {
     }
   }
 
+  /** Conversion judgment up to a given PC bound (the lower bound is context dependent). */
+  private static class PcConversionInfo {
+    static final PcConversionInfo NO_CONVERSION = new PcConversionInfo(-1, false, 0, 0);
+
+    // PC bound for which the information pertains to.
+    final int pc;
+
+    // Judgment of whether the methods in this grouping should be converted to pc2pc encoding.
+    final boolean converted;
+
+    // Info for debugging.
+    private final int methods;
+    private final int normalCost;
+
+    public PcConversionInfo(int pc, boolean converted, int methods, int normalCost) {
+      this.pc = pc;
+      this.converted = converted;
+      this.methods = methods;
+      this.normalCost = normalCost;
+    }
+
+    @Override
+    public String toString() {
+      return "pc="
+          + pc
+          + ", converted="
+          + converted
+          + ", cost="
+          + normalCost
+          + ", methods="
+          + methods
+          + ", saved="
+          + (normalCost - pc)
+          + ", overhead="
+          + getExpansionOverhead(pc, methods, normalCost);
+    }
+  }
+
+  // A pc2pc stream is approximately one event more than the pc.
+  private static int pcEventCount(int pc) {
+    return pc + 1;
+  }
+
+  /**
+   * Figure for the overhead that the pc2pc encoding can result in.
+   *
+   * <p>This overhead is not in the encoding size but rather if the encoding is expanded at each
+   * method referencing the shared PC encoding.
+   */
+  private static int getExpansionOverhead(int currentPc, int methodCount, int normalCost) {
+    long expansion = ((long) pcEventCount(currentPc)) * methodCount;
+    long cost = expansion - normalCost;
+    return cost > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) cost;
+  }
+
+  private static boolean isWithinExpansionThreshold(
+      int threshold, int currentPc, int methodCount, int normalCost) {
+    // A negative threshold denotes unbounded.
+    if (threshold < 0) {
+      return true;
+    }
+    return getExpansionOverhead(currentPc, methodCount, normalCost) <= threshold;
+  }
+
   /** The summary of normal costs for all debug info with a particular parameter size. */
   private static class CostSummary {
-
     private final int paramCount;
 
     // Values for the normal encoding costs per-pc.
-    private final Int2ReferenceMap<PcNormalCost> pcToCost = new Int2ReferenceOpenHashMap<>();
-    private int minPc = Integer.MAX_VALUE;
-    private int maxPc = Integer.MIN_VALUE;
-
-    // Values for the conversion costs. These are computed only after all per-pc costs are known.
-    private int cutoff;
-    private int normalPreCutoffCost;
-    private int normalPostCutoffCost;
+    private Int2ReferenceMap<PcCostInfo> pcToCost = new Int2ReferenceOpenHashMap<>();
 
     private CostSummary(int paramCount) {
       assert paramCount >= 0;
@@ -198,82 +298,166 @@ public class DebugRepresentation {
 
     private void addCost(int pc, int cost) {
       assert pc >= 0;
-      pcToCost.computeIfAbsent(pc, PcNormalCost::new).add(cost);
-      minPc = Math.min(minPc, pc);
-      maxPc = Math.max(maxPc, pc);
+      pcToCost.computeIfAbsent(pc, PcCostInfo::new).add(cost);
     }
 
-    private void computeConversionCosts(AppView<?> appView) {
+    private static class ConversionState {
+      Int2ReferenceSortedMap<PcConversionInfo> groups = new Int2ReferenceAVLTreeMap<>();
+      PcConversionInfo converted = PcConversionInfo.NO_CONVERSION;
+      int flushedPc = 0;
+      int unconvertedPc = 0;
+      int normalCost = 0;
+      int methods = 0;
+
+      void reset() {
+        converted = PcConversionInfo.NO_CONVERSION;
+        unconvertedPc = 0;
+        normalCost = 0;
+        methods = 0;
+      }
+
+      void add(PcCostInfo costInfo) {
+        methods += costInfo.methods;
+        normalCost += costInfo.cost;
+      }
+
+      void flush() {
+        if (flushedPc < converted.pc) {
+          groups.put(converted.pc, converted);
+          flushedPc = converted.pc;
+        }
+        if (flushedPc < unconvertedPc) {
+          if (0 < flushedPc && !groups.get(flushedPc).converted) {
+            groups.remove(flushedPc);
+          }
+          PcConversionInfo unconverted =
+              new PcConversionInfo(unconvertedPc, false, methods, normalCost);
+          groups.put(unconvertedPc, unconverted);
+          flushedPc = unconvertedPc;
+        }
+        reset();
+      }
+
+      void update(int currentPc, boolean convertToPc) {
+        if (convertToPc) {
+          converted = new PcConversionInfo(currentPc, true, methods, normalCost);
+          unconvertedPc = 0;
+        } else {
+          unconvertedPc = currentPc;
+        }
+      }
+
+      public Int2ReferenceSortedMap<PcConversionInfo> getFinalConversions() {
+        // If there is only a single group check it is actually a converted range.
+        if (groups.size() > 1
+            || (groups.size() == 1 && groups.values().iterator().next().converted)) {
+          return groups;
+        }
+        return null;
+      }
+    }
+
+    private ConversionInfo computeConversionCosts(AppView<?> appView) {
+      int threshold = appView.options().testing.pcBasedDebugEncodingOverheadThreshold;
       boolean forcePcBasedEncoding = appView.options().testing.forcePcBasedEncoding;
       assert !pcToCost.isEmpty();
-      // Point at which it is estimated that conversion to PC-encoding is viable.
-      int currentConvertedPc = -1;
-      // The normal cost of the part that is viable for conversion (this is just for debugging).
-      int normalConvertedCost = 0;
-      // The normal cost of the part that is not yet part of the converted range.
-      int normalOutstandingCost = 0;
       // Iterate in ascending order as the point conversion cost is the sum of the preceding costs.
       int[] sortedPcs = new int[pcToCost.size()];
       IntIterators.unwrap(pcToCost.keySet().iterator(), sortedPcs);
       Arrays.sort(sortedPcs);
+      ConversionState state = new ConversionState();
       for (int currentPc : sortedPcs) {
-        PcNormalCost pcSummary = pcToCost.get(currentPc);
-        // The cost of the debug info unconverted is the sum of the unconverted up to this point.
-        normalOutstandingCost += pcSummary.cost;
-        // The cost of the conversion is the delta between the already converted and the current.
-        // This does not account for the header overhead on converting the first point. However,
-        // the few bytes overhead per param-count should not affect much.
-        int costToConvert = currentPc - currentConvertedPc;
-        // If the estimated cost is larger we convert. The order here could be either way as
-        // both the normal cost and converted cost are estimates. Canonicalization could reduce
-        // the former and compaction could reduce the latter.
-        if (forcePcBasedEncoding || normalOutstandingCost > costToConvert) {
-          normalConvertedCost += normalOutstandingCost;
-          normalOutstandingCost = 0;
-          currentConvertedPc = currentPc;
+        PcCostInfo current = pcToCost.get(currentPc);
+        assert currentPc == current.pc;
+        // Don't extend the conversion group as it could potentially become too large if expanded.
+        // Any pending conversion can be flushed now.
+        if (!isWithinExpansionThreshold(
+            threshold,
+            currentPc,
+            state.methods + current.methods,
+            state.normalCost + current.cost)) {
+          state.flush();
         }
+        state.add(current);
+        int costToConvert = pcEventCount(currentPc);
+        boolean canExpand =
+            isWithinExpansionThreshold(threshold, currentPc, state.methods, state.normalCost);
+        state.update(
+            currentPc, canExpand && (forcePcBasedEncoding || state.normalCost > costToConvert));
       }
-      cutoff = currentConvertedPc;
-      normalPreCutoffCost = normalConvertedCost;
-      normalPostCutoffCost = normalOutstandingCost;
-      assert cutoff >= -1;
-      assert normalPreCutoffCost >= 0;
-      assert normalPostCutoffCost >= 0;
-      assert preCutoffPcCost() >= 0;
-      assert postCutoffPcCost() >= 0;
-    }
-
-    private int preCutoffPcCost() {
-      return cutoff > 0 ? PcBasedDebugInfo.estimatedWriteSize(paramCount, cutoff) : 0;
-    }
-
-    private int postCutoffPcCost() {
-      return cutoff < maxPc ? PcBasedDebugInfo.estimatedWriteSize(paramCount, maxPc - cutoff) : 0;
+      state.flush();
+      return new ConversionInfo(
+          paramCount,
+          state.getFinalConversions(),
+          appView.options().testing.debugRepresentationCallback != null ? this : null);
     }
 
     @Override
     public String toString() {
       StringBuilder builder = new StringBuilder();
-      builder
-          .append("p:")
-          .append(paramCount)
-          .append(", c:")
-          .append(cutoff)
-          .append(", m:")
-          .append(maxPc);
-      if (cutoff > 0) {
-        builder
-            .append(", preCutNormal:")
-            .append(normalPreCutoffCost)
-            .append(", preCutPC:")
-            .append(preCutoffPcCost());
+      builder.append("params:").append(paramCount).append('\n');
+      Collection<Integer> keys = CollectionUtils.sort(pcToCost.keySet(), Integer::compareTo);
+      for (int key : keys) {
+        builder.append(pcToCost.get(key)).append('\n');
       }
-      if (cutoff < maxPc) {
-        builder
-            .append(", postCutNormal:")
-            .append(normalPostCutoffCost)
-            .append(", postCutPC:")
-            .append(postCutoffPcCost());
+      return builder.toString();
+    }
+  }
+
+  /** The computed conversion points all debug info with a particular parameter size. */
+  private static class ConversionInfo {
+    private final int paramCount;
+    private final Int2ReferenceSortedMap<PcConversionInfo> conversions;
+
+    // For debugging purposes.
+    private final CostSummary costSummary;
+
+    private ConversionInfo(
+        int paramCount,
+        Int2ReferenceSortedMap<PcConversionInfo> conversions,
+        CostSummary costSummary) {
+      assert paramCount >= 0;
+      this.paramCount = paramCount;
+      this.conversions = conversions;
+      this.costSummary = costSummary;
+    }
+
+    boolean hasConversions() {
+      return conversions != null;
+    }
+
+    int getConversionPointFor(int pc) {
+      Int2ReferenceSortedMap<PcConversionInfo> tailMap = conversions.tailMap(pc);
+      if (tailMap.isEmpty()) {
+        return -1;
+      }
+      int pcGroupBound = tailMap.firstIntKey();
+      PcConversionInfo entryUpToIncludingMax = conversions.get(pcGroupBound);
+      if (entryUpToIncludingMax.converted) {
+        assert pcGroupBound == entryUpToIncludingMax.pc;
+        return pcGroupBound;
+      }
+      return -1;
+    }
+
+    @Override
+    public String toString() {
+      return toString(false);
+    }
+
+    public String toString(boolean printCostSummaries) {
+      StringBuilder builder = new StringBuilder();
+      builder.append("params:").append(paramCount).append('\n');
+      if (conversions != null) {
+        for (PcConversionInfo group : conversions.values()) {
+          builder.append(group).append('\n');
+        }
+      } else {
+        builder.append(" no conversions").append('\n');
+      }
+      if (printCostSummaries && costSummary != null) {
+        builder.append("Cost summaries:\n");
+        builder.append(costSummary);
       }
       return builder.toString();
     }
