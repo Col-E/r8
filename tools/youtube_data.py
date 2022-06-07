@@ -100,7 +100,8 @@ VERSIONS = {
           utils.IGNORE_WARNINGS_RULES],
       'min-api' : ANDROID_M_API,
       'system-properties': [
-          '-Dcom.android.tools.r8.experimental.enablecheckenumunboxed=1',
+          # TODO(b/235169948): Reenable -checkenumunboxed.
+          # '-Dcom.android.tools.r8.experimental.enablecheckenumunboxed=1',
           '-Dcom.android.tools.r8.experimental.enableconvertchecknotnull=1'],
       'android_java8_libs': {
         'config': '%s/desugar_jdk_libs/full_desugar_jdk_libs.json' % V17_19_BASE,
