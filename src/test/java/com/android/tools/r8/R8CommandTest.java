@@ -25,6 +25,7 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.ApiModelTestingOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
@@ -899,6 +900,14 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
     numThreadsOptionInvalid("0");
     numThreadsOptionInvalid("-1");
     numThreadsOptionInvalid("two");
+  }
+
+  @Test
+  public void defaultApiModelingState() throws Exception {
+    ApiModelTestingOptions options = parse("").getInternalOptions().apiModelingOptions();
+    assertTrue(options.enableApiCallerIdentification);
+    assertTrue(options.enableOutliningOfMethods);
+    assertTrue(options.enableStubbingOfClasses);
   }
 
   @Override

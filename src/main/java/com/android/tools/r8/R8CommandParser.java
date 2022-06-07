@@ -165,6 +165,7 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
     Path outputPath = state.outputPath != null ? state.outputPath : Paths.get(".");
     OutputMode outputMode = state.outputMode != null ? state.outputMode : OutputMode.DexIndexed;
     builder.setOutput(outputPath, outputMode, state.includeDataResources);
+    builder.setEnableExperimentalMissingLibraryApiModeling(true);
     return builder;
   }
 
