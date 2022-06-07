@@ -18,7 +18,7 @@ import java.nio.channels.FileChannel.MapMode;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.Set;
+import java.util.function.Predicate;
 
 public abstract class ProguardMapReaderWithFiltering implements LineReader {
 
@@ -188,9 +188,9 @@ public abstract class ProguardMapReaderWithFiltering implements LineReader {
   private int startIndex = 0;
   private int endIndex = 0;
 
-  private final Set<String> filter;
+  private final Predicate<String> filter;
 
-  protected ProguardMapReaderWithFiltering(Set<String> filter) {
+  protected ProguardMapReaderWithFiltering(Predicate<String> filter) {
     this.filter = filter;
   }
 
@@ -220,7 +220,7 @@ public abstract class ProguardMapReaderWithFiltering implements LineReader {
         seenFirstClass = true;
         String classMapping = getBufferAsString(bytes);
         String obfuscatedClassName = getObfuscatedClassName(classMapping);
-        isInsideClassOfInterest = filter.contains(obfuscatedClassName);
+        isInsideClassOfInterest = filter.test(obfuscatedClassName);
         return classMapping;
       } else if (lineParserState == IS_COMMENT_SOURCE_FILE) {
         return getBufferAsString(bytes);
@@ -284,7 +284,7 @@ public abstract class ProguardMapReaderWithFiltering implements LineReader {
     private int temporaryBufferPosition = 0;
 
     public ProguardMapReaderWithFilteringMappedBuffer(
-        Path mappingFile, Set<String> classNamesOfInterest) throws IOException {
+        Path mappingFile, Predicate<String> classNamesOfInterest) throws IOException {
       super(classNamesOfInterest);
       fileChannel = FileChannel.open(mappingFile, StandardOpenOption.READ);
       channelSize = fileChannel.size();
@@ -364,7 +364,7 @@ public abstract class ProguardMapReaderWithFiltering implements LineReader {
     private int endReadIndex = 0;
 
     public ProguardMapReaderWithFilteringInputBuffer(
-        InputStream inputStream, Set<String> classNamesOfInterest) {
+        InputStream inputStream, Predicate<String> classNamesOfInterest) {
       super(classNamesOfInterest);
       this.inputStream = inputStream;
     }

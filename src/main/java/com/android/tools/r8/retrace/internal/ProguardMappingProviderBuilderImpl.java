@@ -15,6 +15,7 @@ import com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.Prog
 import com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.ProguardMapReaderWithFilteringMappedBuffer;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Predicate;
 
 public class ProguardMappingProviderBuilderImpl extends ProguardMappingProvider.Builder {
 
@@ -64,7 +65,7 @@ public class ProguardMappingProviderBuilderImpl extends ProguardMappingProvider.
   @Override
   public ProguardMappingProvider build() {
     try {
-      Set<String> buildForClass = allowLookupAllClasses ? null : allowedLookup;
+      Predicate<String> buildForClass = allowLookupAllClasses ? null : allowedLookup::contains;
       LineReader reader =
           proguardMapProducer.isFileBacked()
               ? new ProguardMapReaderWithFilteringMappedBuffer(
