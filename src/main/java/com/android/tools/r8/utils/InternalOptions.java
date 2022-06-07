@@ -260,6 +260,16 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     horizontalClassMergerOptions.setRestrictToSynthetics();
   }
 
+  public void configureAndroidPlatformBuild(boolean isAndroidPlatformBuild) {
+    if (!isAndroidPlatformBuild) {
+      return;
+    }
+    // Configure options according to platform build assumptions.
+    // See go/r8platformflag and b/232073181.
+    minApiLevel = ANDROID_PLATFORM;
+    apiModelingOptions().disableMissingApiModeling();
+  }
+
   public boolean printTimes = System.getProperty("com.android.tools.r8.printtimes") != null;
   // To print memory one also have to enable printtimes.
   public boolean printMemory = System.getProperty("com.android.tools.r8.printmemory") != null;

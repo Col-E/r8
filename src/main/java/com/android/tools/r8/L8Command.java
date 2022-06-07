@@ -116,7 +116,8 @@ public final class L8Command extends BaseCompilerCommand {
         threadCount,
         dumpInputFlags,
         mapIdProvider,
-        null);
+        null,
+        false);
     this.d8Command = d8Command;
     this.r8Command = r8Command;
     this.desugaredLibrarySpecification = desugaredLibrarySpecification;
@@ -299,6 +300,11 @@ public final class L8Command extends BaseCompilerCommand {
     @Override
     public L8Command.Builder setProguardMapConsumer(StringConsumer proguardMapConsumer) {
       return super.setProguardMapConsumer(proguardMapConsumer);
+    }
+
+    @Override
+    public Builder setAndroidPlatformBuild(boolean isAndroidPlatformBuild) {
+      throw getReporter().fatalError("L8 does not support configuring Android platform builds.");
     }
 
     @Override

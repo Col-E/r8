@@ -54,6 +54,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
   private final DumpInputFlags dumpInputFlags;
   private final MapIdProvider mapIdProvider;
   private final SourceFileProvider sourceFileProvider;
+  private final boolean isAndroidPlatformBuild;
 
   BaseCompilerCommand(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
@@ -72,6 +73,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     dumpInputFlags = DumpInputFlags.noDump();
     mapIdProvider = null;
     sourceFileProvider = null;
+    isAndroidPlatformBuild = false;
   }
 
   BaseCompilerCommand(
@@ -90,7 +92,8 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       int threadCount,
       DumpInputFlags dumpInputFlags,
       MapIdProvider mapIdProvider,
-      SourceFileProvider sourceFileProvider) {
+      SourceFileProvider sourceFileProvider,
+      boolean isAndroidPlatformBuild) {
     super(app);
     assert minApiLevel > 0;
     assert mode != null;
@@ -109,6 +112,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     this.dumpInputFlags = dumpInputFlags;
     this.mapIdProvider = mapIdProvider;
     this.sourceFileProvider = sourceFileProvider;
+    this.isAndroidPlatformBuild = isAndroidPlatformBuild;
   }
 
   /**
@@ -197,6 +201,10 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     return threadCount;
   }
 
+  public boolean getAndroidPlatformBuild() {
+    return isAndroidPlatformBuild;
+  }
+
   DumpInputFlags getDumpInputFlags() {
     return dumpInputFlags;
   }
@@ -237,6 +245,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private DumpInputFlags dumpInputFlags = DumpInputFlags.noDump();
     private MapIdProvider mapIdProvider = null;
     private SourceFileProvider sourceFileProvider = null;
+    private boolean isAndroidPlatformBuild = false;
 
     abstract CompilationMode defaultCompilationMode();
 
@@ -633,6 +642,23 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       assertionsConfiguration.add(
           assertionsConfigurationGenerator.apply(AssertionsConfiguration.builder(getReporter())));
       return self();
+    }
+
+    /**
+     * Configure the present build as a "Android platform build".
+     *
+     * <p>A platform build, is a build where the runtime "bootclasspath" is known at compile time.
+     * In other words, the specified <i>min-api</i> is also known to be the <i>max-api</i>. In this
+     * mode the compiler will disable various features that provide support for newer runtimes as
+     * well as disable workarounds for older runtimes.
+     */
+    public B setAndroidPlatformBuild(boolean isAndroidPlatformBuild) {
+      this.isAndroidPlatformBuild = isAndroidPlatformBuild;
+      return self();
+    }
+
+    public boolean getAndroidPlatformBuild() {
+      return isAndroidPlatformBuild;
     }
 
     B dumpInputToFile(Path file) {

@@ -425,6 +425,7 @@ public final class D8Command extends BaseCompilerCommand {
           getMapIdProvider(),
           proguardMapConsumer,
           enableMissingLibraryApiModeling,
+          getAndroidPlatformBuild(),
           factory);
     }
   }
@@ -516,6 +517,7 @@ public final class D8Command extends BaseCompilerCommand {
       MapIdProvider mapIdProvider,
       StringConsumer proguardMapConsumer,
       boolean enableMissingLibraryApiModeling,
+      boolean isAndroidPlatformBuild,
       DexItemFactory factory) {
     super(
         inputApp,
@@ -533,7 +535,8 @@ public final class D8Command extends BaseCompilerCommand {
         threadCount,
         dumpInputFlags,
         mapIdProvider,
-        null);
+        null,
+        isAndroidPlatformBuild);
     this.intermediate = intermediate;
     this.globalSyntheticsConsumer = globalSyntheticsConsumer;
     this.desugarGraphConsumer = desugarGraphConsumer;
@@ -653,6 +656,8 @@ public final class D8Command extends BaseCompilerCommand {
       assert internal.isGeneratingClassFiles();
       horizontalClassMergerOptions.disable();
     }
+
+    internal.configureAndroidPlatformBuild(getAndroidPlatformBuild());
 
     internal.setDumpInputFlags(getDumpInputFlags(), skipDump);
     internal.dumpOptions = dumpOptions();

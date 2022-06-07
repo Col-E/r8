@@ -8,6 +8,7 @@ import static com.android.tools.r8.ToolHelper.R8_JAR;
 import static com.android.tools.r8.ToolHelper.isTestingR8Lib;
 
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.compilerapi.androidplatformbuild.AndroidPlatformBuildApiTest;
 import com.android.tools.r8.compilerapi.assertionconfiguration.AssertionConfigurationTest;
 import com.android.tools.r8.compilerapi.desugardependencies.DesugarDependenciesTest;
 import com.android.tools.r8.compilerapi.globalsynthetics.GlobalSyntheticsTest;
@@ -45,7 +46,8 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
       ImmutableList.of(
           GlobalSyntheticsTest.ApiTest.class,
           CommandLineParserTest.ApiTest.class,
-          EnableMissingLibraryApiModelingTest.ApiTest.class);
+          EnableMissingLibraryApiModelingTest.ApiTest.class,
+          AndroidPlatformBuildApiTest.ApiTest.class);
 
   private final TemporaryFolder temp;
 

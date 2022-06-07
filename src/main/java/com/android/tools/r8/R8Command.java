@@ -634,7 +634,8 @@ public final class R8Command extends BaseCompilerCommand {
               getDumpInputFlags(),
               getMapIdProvider(),
               getSourceFileProvider(),
-              enableMissingLibraryApiModeling);
+              enableMissingLibraryApiModeling,
+              getAndroidPlatformBuild());
 
       if (inputDependencyGraphConsumer != null) {
         inputDependencyGraphConsumer.finished();
@@ -821,7 +822,8 @@ public final class R8Command extends BaseCompilerCommand {
       DumpInputFlags dumpInputFlags,
       MapIdProvider mapIdProvider,
       SourceFileProvider sourceFileProvider,
-      boolean enableMissingLibraryApiModeling) {
+      boolean enableMissingLibraryApiModeling,
+      boolean isAndroidPlatformBuild) {
     super(
         inputApp,
         mode,
@@ -838,7 +840,8 @@ public final class R8Command extends BaseCompilerCommand {
         threadCount,
         dumpInputFlags,
         mapIdProvider,
-        sourceFileProvider);
+        sourceFileProvider,
+        isAndroidPlatformBuild);
     assert proguardConfiguration != null;
     assert mainDexKeepRules != null;
     this.mainDexKeepRules = mainDexKeepRules;
@@ -1037,6 +1040,8 @@ public final class R8Command extends BaseCompilerCommand {
     internal.sourceFileProvider =
         SourceFileRewriter.computeSourceFileProvider(
             getSourceFileProvider(), proguardConfiguration, internal);
+
+    internal.configureAndroidPlatformBuild(getAndroidPlatformBuild());
 
     if (!DETERMINISTIC_DEBUGGING) {
       assert internal.threadCount == ThreadUtils.NOT_SPECIFIED;
