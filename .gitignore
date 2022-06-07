@@ -94,8 +94,6 @@ third_party/gradle-plugin.tar.gz
 third_party/gradle/gradle
 third_party/gradle/gradle.tar.gz
 third_party/internal/*
-third_party/internal-apps/youtube_15_33
-third_party/internal-apps/youtube_15_33.tar.gz
 third_party/iosched_2019
 third_party/iosched_2019.tar.gz
 third_party/jacoco/0.8.2/*
@@ -250,8 +248,6 @@ third_party/sample_libraries.tar.gz
 third_party/tachiyomi
 third_party/tachiyomi.tar.gz
 third_party/youtube/*
-third_party/youtube-developer/20200415
-third_party/youtube-developer/20200415.tar.gz
 tmp/
 tools/*.pyc
 tools/__pycache__

@@ -5,14 +5,10 @@
 import os
 import utils
 
-ANDROID_H_MR2_API = '13'
 ANDROID_L_API = '21'
 ANDROID_M_API = '23'
 
 BASE = os.path.join(utils.THIRD_PARTY, 'youtube')
-
-V15_33_BASE = os.path.join(BASE, 'youtube.android_15.33')
-V15_33_PREFIX = os.path.join(V15_33_BASE, 'YouTubeRelease')
 
 V16_20_BASE = os.path.join(BASE, 'youtube.android_16.20')
 V16_20_PREFIX = os.path.join(V16_20_BASE, 'YouTubeRelease')
@@ -23,37 +19,6 @@ V17_19_PREFIX = os.path.join(V17_19_BASE, 'YouTubeRelease')
 LATEST_VERSION = '17.19'
 
 VERSIONS = {
-  '15.33': {
-    'dex' : {
-      'inputs': [os.path.join(V15_33_BASE, 'YouTubeRelease_unsigned.apk')],
-      'pgmap': '%s_proguard.map' % V15_33_PREFIX,
-      'libraries' : [utils.get_android_jar(25)],
-      'min-api' : ANDROID_L_API,
-    },
-    'deploy' : {
-      # When -injars and -libraryjars are used for specifying inputs library
-      # sanitization is on by default. For this version of YouTube -injars and
-      # -libraryjars are not used, but library sanitization is still required.
-      'sanitize_libraries': True,
-      'inputs': ['%s_deploy.jar' % V15_33_PREFIX],
-      'libraries' : [os.path.join(V15_33_BASE, 'legacy_YouTubeRelease_combined_library_jars.jar')],
-      'pgconf': [
-          '%s_proguard.config' % V15_33_PREFIX,
-          '%s_proguard_missing_classes.config' % V15_33_PREFIX,
-          '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY,
-          utils.IGNORE_WARNINGS_RULES],
-      'maindexrules' : [
-          os.path.join(V15_33_BASE, 'mainDexClasses.rules'),
-          os.path.join(V15_33_BASE, 'main-dex-classes-release-optimized.pgcfg'),
-          os.path.join(V15_33_BASE, 'main_dex_YouTubeRelease_proguard.cfg')],
-      'min-api' : ANDROID_H_MR2_API,
-    },
-    'proguarded' : {
-      'inputs': ['%s_proguard.jar' % V15_33_PREFIX],
-      'pgmap': '%s_proguard.map' % V15_33_PREFIX,
-      'min-api' : ANDROID_L_API,
-    }
-  },
   '16.20': {
     'deploy' : {
       'sanitize_libraries': False,

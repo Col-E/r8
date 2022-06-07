@@ -440,16 +440,6 @@ APPS = [
     'revision': '779cf9e187b8ee2c6b620b2abb4524719b3f10f8',
     'folder': 'android/compose-samples/rally',
   }),
-  App({
-    'id': 'youtube_15_33',
-    'name': 'youtube_15_33',
-    'dump_app': 'dump.zip',
-    'apk_app': 'YouTubeRelease_unsigned.apk',
-    'folder': 'youtube_15_33',
-    'internal': True,
-    # TODO(b/181629268): Fix recompilation
-    'skip_recompilation': True,
-  })
 ]
 
 
