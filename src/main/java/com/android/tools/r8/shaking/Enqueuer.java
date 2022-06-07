@@ -16,6 +16,8 @@ import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 import static java.util.Collections.emptySet;
 
 import com.android.tools.r8.Diagnostic;
+import com.android.tools.r8.androidapi.ComputedApiLevel;
+import com.android.tools.r8.androidapi.CovariantReturnTypeMethods;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
@@ -72,6 +74,7 @@ import com.android.tools.r8.graph.LookupLambdaTarget;
 import com.android.tools.r8.graph.LookupMethodTarget;
 import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.LookupTarget;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodAccessInfoCollection;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.FailedResolutionResult;
@@ -3546,9 +3549,8 @@ public class Enqueuer {
     includeMinimumKeepInfo(rootSet);
 
     if (mode.isInitialTreeShaking()) {
-      // This is simulating the effect of the "root set" applied rules.
-      // This is done only in the initial pass, in subsequent passes the "rules" are reapplied
-      // by iterating the instances.
+      // Amend library methods with covariant return types.
+      modelLibraryMethodsWithCovariantReturnTypes();
     } else if (appView.getKeepInfo() != null) {
       EnqueuerEvent preconditionEvent = UnconditionalKeepInfoEvent.get();
       appView
@@ -3588,6 +3590,29 @@ public class Enqueuer {
             this::recordDependentMinimumKeepInfo,
             this::recordDependentMinimumKeepInfo,
             this::recordDependentMinimumKeepInfo);
+  }
+
+  private void modelLibraryMethodsWithCovariantReturnTypes() {
+    CovariantReturnTypeMethods.registerMethodsWithCovariantReturnType(
+        appView.dexItemFactory(),
+        method -> {
+          DexLibraryClass libraryClass =
+              DexLibraryClass.asLibraryClassOrNull(
+                  appView.appInfo().definitionForWithoutExistenceAssert(method.getHolderType()));
+          if (libraryClass == null) {
+            return;
+          }
+          DexEncodedMethod covariantMethod = libraryClass.lookupMethod(method);
+          if (covariantMethod != null) {
+            return;
+          }
+          libraryClass.addVirtualMethod(
+              DexEncodedMethod.builder()
+                  .setMethod(method)
+                  .setAccessFlags(MethodAccessFlags.builder().setPublic().build())
+                  .setApiLevelForDefinition(ComputedApiLevel.notSet())
+                  .build());
+        });
   }
 
   private void applyMinimumKeepInfo(DexProgramClass clazz) {
