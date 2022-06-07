@@ -135,6 +135,9 @@ public abstract class BaseCompilerCommand extends BaseCommand {
         .setOptimizeMultidexForLinearAlloc(isOptimizeMultidexForLinearAlloc())
         .setThreadCount(getThreadCount())
         .setDesugarState(getDesugarState());
+    if (getAndroidPlatformBuild()) {
+      builder.setAndroidPlatformBuild(true);
+    }
   }
 
   /**

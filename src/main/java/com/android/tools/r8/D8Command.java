@@ -672,6 +672,7 @@ public final class D8Command extends BaseCompilerCommand {
         .setIntermediate(intermediate)
         .setDesugaredLibraryConfiguration(desugaredLibrarySpecification)
         .setMainDexKeepRules(mainDexKeepRules)
+        .setEnableMissingLibraryApiModeling(enableMissingLibraryApiModeling)
         .build();
   }
 }

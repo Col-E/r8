@@ -1091,6 +1091,7 @@ public final class R8Command extends BaseCompilerCommand {
         .setProguardConfiguration(proguardConfiguration)
         .setMainDexKeepRules(mainDexKeepRules)
         .setDesugaredLibraryConfiguration(desugaredLibrarySpecification)
+        .setEnableMissingLibraryApiModeling(enableMissingLibraryApiModeling)
         .build();
   }
 }

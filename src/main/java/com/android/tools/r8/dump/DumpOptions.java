@@ -40,6 +40,9 @@ public class DumpOptions {
   private static final String MINIFICATION_KEY = "minification";
   private static final String FORCE_PROGUARD_COMPATIBILITY_KEY = "force-proguard-compatibility";
   private static final String SYSTEM_PROPERTY_PREFIX = "system-property-";
+  private static final String ENABLE_MISSING_LIBRARY_API_MODELING =
+      "enable-missing-library-api-modeling";
+  private static final String ANDROID_PLATFORM_BUILD = "android-platform-build";
 
   private final Tool tool;
   private final CompilationMode compilationMode;
@@ -58,6 +61,8 @@ public class DumpOptions {
   private final FeatureSplitConfiguration featureSplitConfiguration;
   private final ProguardConfiguration proguardConfiguration;
   private final List<ProguardConfigurationRule> mainDexKeepRules;
+  private final boolean enableMissingLibraryApiModeling;
+  private final boolean isAndroidPlatformBuild;
 
   private final Map<String, String> systemProperties;
 
@@ -80,6 +85,8 @@ public class DumpOptions {
       FeatureSplitConfiguration featureSplitConfiguration,
       ProguardConfiguration proguardConfiguration,
       List<ProguardConfigurationRule> mainDexKeepRules,
+      boolean enableMissingLibraryApiModeling,
+      boolean isAndroidPlatformBuild,
       Map<String, String> systemProperties,
       boolean dumpInputToFile) {
     this.tool = tool;
@@ -97,6 +104,8 @@ public class DumpOptions {
     this.featureSplitConfiguration = featureSplitConfiguration;
     this.proguardConfiguration = proguardConfiguration;
     this.mainDexKeepRules = mainDexKeepRules;
+    this.enableMissingLibraryApiModeling = enableMissingLibraryApiModeling;
+    this.isAndroidPlatformBuild = isAndroidPlatformBuild;
     this.systemProperties = systemProperties;
     this.dumpInputToFile = dumpInputToFile;
   }
@@ -115,6 +124,10 @@ public class DumpOptions {
       addDumpEntry(builder, THREAD_COUNT_KEY, threadCount);
     }
     addDumpEntry(builder, DESUGAR_STATE_KEY, desugarState);
+    addDumpEntry(builder, ENABLE_MISSING_LIBRARY_API_MODELING, enableMissingLibraryApiModeling);
+    if (isAndroidPlatformBuild) {
+      addDumpEntry(builder, ANDROID_PLATFORM_BUILD, isAndroidPlatformBuild);
+    }
     addOptionalDumpEntry(builder, INTERMEDIATE_KEY, intermediate);
     addOptionalDumpEntry(builder, INCLUDE_DATA_RESOURCES_KEY, includeDataResources);
     addOptionalDumpEntry(builder, TREE_SHAKING_KEY, treeShaking);
@@ -273,6 +286,9 @@ public class DumpOptions {
     private ProguardConfiguration proguardConfiguration;
     private List<ProguardConfigurationRule> mainDexKeepRules;
 
+    private boolean enableMissingLibraryApiModeling = false;
+    private boolean isAndroidPlatformBuild = false;
+
     private Map<String, String> systemProperties = new HashMap<>();
 
     // Reporting only.
@@ -362,6 +378,16 @@ public class DumpOptions {
       return this;
     }
 
+    public Builder setEnableMissingLibraryApiModeling(boolean value) {
+      enableMissingLibraryApiModeling = value;
+      return this;
+    }
+
+    public Builder setAndroidPlatformBuild(boolean value) {
+      isAndroidPlatformBuild = value;
+      return this;
+    }
+
     public Builder setSystemProperty(String key, String value) {
       this.systemProperties.put(key, value);
       return this;
@@ -398,6 +424,8 @@ public class DumpOptions {
           featureSplitConfiguration,
           proguardConfiguration,
           mainDexKeepRules,
+          enableMissingLibraryApiModeling,
+          isAndroidPlatformBuild,
           systemProperties,
           dumpInputToFile);
     }

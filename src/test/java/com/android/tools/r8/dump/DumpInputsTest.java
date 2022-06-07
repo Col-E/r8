@@ -105,6 +105,7 @@ public class DumpInputsTest extends TestBase {
     Path unzipped = temp.newFolder().toPath();
     ZipUtils.unzip(dumpFile.toString(), unzipped.toFile());
     assertTrue(Files.exists(unzipped.resolve("r8-version")));
+    assertTrue(Files.exists(unzipped.resolve("build.properties")));
     assertTrue(Files.exists(unzipped.resolve("program.jar")));
     assertTrue(Files.exists(unzipped.resolve("library.jar")));
     if (hasClasspath) {
