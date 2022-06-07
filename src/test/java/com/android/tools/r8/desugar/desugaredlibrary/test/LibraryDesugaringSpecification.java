@@ -21,11 +21,11 @@ import java.util.Set;
 
 public class LibraryDesugaringSpecification {
 
-  public static Descriptor JDK8_DESCRIPTOR = new Descriptor(24, 26, -1, 26);
-  public static Descriptor JDK11_DESCRIPTOR = new Descriptor(24, 30, -1, 30);
-  public static Descriptor EMPTY_DESCRIPTOR_24 = new Descriptor(-1, -1, -1, 24);
-  public static Descriptor JDK11_PATH_DESCRIPTOR = new Descriptor(24, 30, 26, 32);
-  public static Descriptor JDK11_LEGACY_DESCRIPTOR = new Descriptor(24, 10000, -1, 10000);
+  public static Descriptor JDK8_DESCRIPTOR = new Descriptor(24, 26, -1, 26, 24);
+  public static Descriptor JDK11_DESCRIPTOR = new Descriptor(24, 30, -1, 30, -1);
+  public static Descriptor EMPTY_DESCRIPTOR_24 = new Descriptor(-1, -1, -1, 24, -1);
+  public static Descriptor JDK11_PATH_DESCRIPTOR = new Descriptor(24, 30, 26, 32, -1);
+  public static Descriptor JDK11_LEGACY_DESCRIPTOR = new Descriptor(24, 10000, -1, 10000, 24);
 
   private static class Descriptor {
     // Above this level emulated interface are not *entirely* desugared.
@@ -36,16 +36,20 @@ public class LibraryDesugaringSpecification {
     private final int nioFileDesugaring;
     // Above this level no desugaring is required.
     private final int anyDesugaring;
+    // Above this level java.function is used, below j$.function is used.
+    private final int jDollarFunction;
 
     private Descriptor(
         int emulatedInterfaceDesugaring,
         int timeDesugaring,
         int nioFileDesugaring,
-        int anyDesugaring) {
+        int anyDesugaring,
+        int jDollarFunction) {
       this.emulatedInterfaceDesugaring = emulatedInterfaceDesugaring;
       this.timeDesugaring = timeDesugaring;
       this.nioFileDesugaring = nioFileDesugaring;
       this.anyDesugaring = anyDesugaring;
+      this.jDollarFunction = jDollarFunction;
     }
 
     public int getEmulatedInterfaceDesugaring() {
@@ -62,6 +66,10 @@ public class LibraryDesugaringSpecification {
 
     public int getAnyDesugaring() {
       return anyDesugaring;
+    }
+
+    public int getJDollarFunction() {
+      return jDollarFunction;
     }
   }
 
@@ -252,5 +260,13 @@ public class LibraryDesugaringSpecification {
 
   public boolean hasAnyDesugaring(AndroidApiLevel apiLevel) {
     return apiLevel.getLevel() < descriptor.getAnyDesugaring();
+  }
+
+  public boolean hasJDollarFunction(TestParameters parameters) {
+    return parameters.getApiLevel().getLevel() < descriptor.getJDollarFunction();
+  }
+
+  public String functionPrefix(TestParameters parameters) {
+    return hasJDollarFunction(parameters) ? "j$" : "java";
   }
 }

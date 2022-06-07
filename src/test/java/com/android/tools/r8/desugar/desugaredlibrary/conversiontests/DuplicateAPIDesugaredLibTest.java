@@ -80,10 +80,10 @@ public class DuplicateAPIDesugaredLibTest extends DesugaredLibraryTestBase {
 
   private void assertDupMethod(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz("j$.util.concurrent.ConcurrentHashMap");
+    boolean duplicate =
+        supportCallbacks && libraryDesugaringSpecification.hasJDollarFunction(parameters);
     int numForEachMethods =
-        libraryDesugaringSpecification == JDK8
-            ? supportCallbacks ? 2 : 1
-            : supportCallbacks ? 4 : 3;
+        libraryDesugaringSpecification == JDK8 ? duplicate ? 2 : 1 : duplicate ? 4 : 3;
     assertEquals(
         numForEachMethods,
         clazz.virtualMethods().stream().filter(m -> m.getOriginalName().equals("forEach")).count());

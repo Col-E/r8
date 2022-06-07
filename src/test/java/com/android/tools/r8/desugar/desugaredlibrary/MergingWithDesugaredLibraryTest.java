@@ -134,7 +134,7 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
             markerTool(Tool.D8),
             markerIsDesugared(),
             markerHasDesugaredLibraryIdentifier(
-                !libraryDesugaringSpecification.hasAnyDesugaring(parameters)));
+                libraryDesugaringSpecification.hasAnyDesugaring(parameters)));
     assertMarkersMatch(
         ExtractMarker.extractMarkerFromDexFile(app), ImmutableList.of(libraryMatcher, d8Matcher));
   }
@@ -220,7 +220,7 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
   }
 
   private boolean someLibraryDesugaringRequired() {
-    return !libraryDesugaringSpecification.hasAnyDesugaring(parameters);
+    return libraryDesugaringSpecification.hasAnyDesugaring(parameters);
   }
 
   @Test

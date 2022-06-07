@@ -71,7 +71,10 @@ public class WrapperEqualityTest extends DesugaredLibraryTestBase {
         .addKeepMainRule(Executor.class)
         .compile()
         .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutput(DESUGARED_LIBRARY_EXPECTED_RESULT);
+        .assertSuccessWithOutput(
+            libraryDesugaringSpecification.hasJDollarFunction(parameters)
+                ? DESUGARED_LIBRARY_EXPECTED_RESULT
+                : EXPECTED_RESULT);
   }
 
   @Test

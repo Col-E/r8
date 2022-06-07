@@ -54,6 +54,11 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
 
   private void assertDuplicatedAPI(CodeInspector i) {
     List<FoundMethodSubject> virtualMethods = i.clazz(Impl.class).virtualMethods();
+    if (!libraryDesugaringSpecification.hasJDollarFunction(parameters)) {
+      // No need to duplicate the API with maintain prefix.
+      assertEquals(1, virtualMethods.size());
+      return;
+    }
     assertEquals(2, virtualMethods.size());
     assertTrue(anyVirtualMethodFirstParameterMatches(virtualMethods, "j$.util.function.Consumer"));
     assertTrue(

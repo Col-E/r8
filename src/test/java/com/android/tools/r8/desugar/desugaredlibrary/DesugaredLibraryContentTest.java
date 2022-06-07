@@ -116,7 +116,9 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
       return;
     }
     assertThat(inspector.clazz("j$.util.Optional"), isPresent());
-    assertThat(inspector.clazz("j$.util.function.Function"), isPresent());
+    if (libraryDesugaringSpecification.hasJDollarFunction(parameters)) {
+      assertThat(inspector.clazz("j$.util.function.Function"), isPresent());
+    }
     if (parameters.getApiLevel().isLessThan(AndroidApiLevel.K)) {
       inspector.forAllClasses(clazz -> clazz.forAllMethods(this::assertNoSupressedInvocations));
     }
