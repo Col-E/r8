@@ -118,8 +118,10 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
     getApp().writeToDirectory(out, OutputMode.DexIndexed);
     consumers[0].accept(new CodeInspector(out.resolve("classes.dex"), getProguardMap()));
     for (int i = 1; i < consumers.length; i++) {
-      consumers[i].accept(
-          new CodeInspector(out.resolve("classes" + (i + 1) + ".dex"), getProguardMap()));
+      Path dex = out.resolve("classes" + (i + 1) + ".dex");
+      CodeInspector inspector =
+          dex.toFile().exists() ? new CodeInspector(dex, getProguardMap()) : CodeInspector.empty();
+      consumers[i].accept(inspector);
     }
     return self();
   }

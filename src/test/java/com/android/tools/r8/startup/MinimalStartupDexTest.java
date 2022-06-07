@@ -48,7 +48,7 @@ public class MinimalStartupDexTest extends TestBase {
             options ->
                 options
                     .getStartupOptions()
-                    .setEnableMinimalStartupDex()
+                    .setEnableMinimalStartupDex(true)
                     .setEnableStartupCompletenessCheckForTesting()
                     .setStartupConfiguration(
                         new StartupConfiguration(

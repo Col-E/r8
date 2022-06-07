@@ -30,12 +30,17 @@ public class StartupOptions {
     return startupInstrumentationTag;
   }
 
+  public StartupOptions setStartupInstrumentationTag(String startupInstrumentationTag) {
+    this.startupInstrumentationTag = startupInstrumentationTag;
+    return this;
+  }
+
   public boolean isMinimalStartupDexEnabled() {
     return enableMinimalStartupDex;
   }
 
-  public StartupOptions setEnableMinimalStartupDex() {
-    enableMinimalStartupDex = true;
+  public StartupOptions setEnableMinimalStartupDex(boolean enableMinimalStartupDex) {
+    this.enableMinimalStartupDex = enableMinimalStartupDex;
     return this;
   }
 
@@ -65,7 +70,8 @@ public class StartupOptions {
     return startupConfiguration;
   }
 
-  public void setStartupConfiguration(StartupConfiguration startupConfiguration) {
+  public StartupOptions setStartupConfiguration(StartupConfiguration startupConfiguration) {
     this.startupConfiguration = startupConfiguration;
+    return this;
   }
 }

@@ -132,6 +132,10 @@ public class CodeInspector {
             .read(app.getProguardMapOutputData()));
   }
 
+  public static CodeInspector empty() throws IOException {
+    return new CodeInspector(ImmutableList.of(), null, null);
+  }
+
   private static InternalOptions runOptionsConsumer(Consumer<InternalOptions> optionsConsumer) {
     InternalOptions internalOptions = new InternalOptions();
     if (optionsConsumer != null) {

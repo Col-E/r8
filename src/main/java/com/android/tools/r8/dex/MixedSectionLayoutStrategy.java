@@ -29,11 +29,22 @@ public abstract class MixedSectionLayoutStrategy {
                 .getStartupOrder()
                 .toStartupOrderForWriting(appView)
             : StartupOrder.empty();
-    if (startupOrderForWriting.isEmpty()) {
-      return new DefaultMixedSectionLayoutStrategy(appView, mixedSectionOffsets);
-    }
-    return new StartupMixedSectionLayoutStrategy(
-        appView, mixedSectionOffsets, startupOrderForWriting, virtualFile);
+    MixedSectionLayoutStrategy mixedSectionLayoutStrategy =
+        startupOrderForWriting.isEmpty()
+            ? new DefaultMixedSectionLayoutStrategy(appView, mixedSectionOffsets)
+            : new StartupMixedSectionLayoutStrategy(
+                appView, mixedSectionOffsets, startupOrderForWriting, virtualFile);
+    return wrapForTesting(appView, mixedSectionLayoutStrategy, virtualFile);
+  }
+
+  private static MixedSectionLayoutStrategy wrapForTesting(
+      AppView<?> appView,
+      MixedSectionLayoutStrategy mixedSectionLayoutStrategy,
+      VirtualFile virtualFile) {
+    return appView
+        .testing()
+        .mixedSectionLayoutStrategyInspector
+        .apply(mixedSectionLayoutStrategy, virtualFile);
   }
 
   public abstract Collection<DexAnnotation> getAnnotationLayout();

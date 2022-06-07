@@ -13,11 +13,13 @@ import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class StartupConfiguration {
 
@@ -27,6 +29,10 @@ public class StartupConfiguration {
   public StartupConfiguration(List<DexType> startupClasses, List<DexMethod> startupMethods) {
     this.startupClasses = startupClasses;
     this.startupMethods = startupMethods;
+  }
+
+  public static Builder builder() {
+    return new Builder();
   }
 
   /**
@@ -67,6 +73,11 @@ public class StartupConfiguration {
       return null;
     }
 
+    return createStartupConfigurationFromLines(dexItemFactory, reporter, startupDescriptors);
+  }
+
+  public static StartupConfiguration createStartupConfigurationFromLines(
+      DexItemFactory dexItemFactory, Reporter reporter, List<String> startupDescriptors) {
     List<DexType> startupClasses = new ArrayList<>();
     List<DexMethod> startupMethods = new ArrayList<>();
     for (String startupDescriptor : startupDescriptors) {
@@ -149,5 +160,25 @@ public class StartupConfiguration {
 
   public List<DexType> getStartupClasses() {
     return startupClasses;
+  }
+
+  public static class Builder {
+
+    private final ImmutableList.Builder<DexType> startupClassesBuilder = ImmutableList.builder();
+    private final ImmutableList.Builder<DexMethod> startupMethodsBuilder = ImmutableList.builder();
+
+    public Builder addStartupClass(DexType startupClass) {
+      this.startupClassesBuilder.add(startupClass);
+      return this;
+    }
+
+    public Builder apply(Consumer<Builder> consumer) {
+      consumer.accept(this);
+      return this;
+    }
+
+    public StartupConfiguration build() {
+      return new StartupConfiguration(startupClassesBuilder.build(), startupMethodsBuilder.build());
+    }
   }
 }

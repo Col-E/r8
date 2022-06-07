@@ -25,6 +25,8 @@ import com.android.tools.r8.debuginfo.DebugRepresentation;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Backend;
 import com.android.tools.r8.dex.Marker.Tool;
+import com.android.tools.r8.dex.MixedSectionLayoutStrategy;
+import com.android.tools.r8.dex.VirtualFile;
 import com.android.tools.r8.dump.DumpOptions;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.IncompleteNestNestDesugarDiagnosic;
@@ -105,6 +107,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -862,6 +865,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public StartupOptions getStartupOptions() {
     return startupOptions;
+  }
+
+  public TestingOptions getTestingOptions() {
+    return testing;
   }
 
   private static Set<String> getExtensiveLoggingFilter() {
@@ -1766,6 +1773,15 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         InternalOptions.assertionsEnabled() && !InternalOptions.DETERMINISTIC_DEBUGGING
             ? NondeterministicIROrdering.getInstance()
             : IdentityIROrdering.getInstance();
+
+    public BiFunction<MixedSectionLayoutStrategy, VirtualFile, MixedSectionLayoutStrategy>
+        mixedSectionLayoutStrategyInspector = (strategy, virtualFile) -> strategy;
+
+    public void setMixedSectionLayoutStrategyInspector(
+        BiFunction<MixedSectionLayoutStrategy, VirtualFile, MixedSectionLayoutStrategy>
+            mixedSectionLayoutStrategyInspector) {
+      this.mixedSectionLayoutStrategyInspector = mixedSectionLayoutStrategyInspector;
+    }
 
     public BiConsumer<AppInfoWithLiveness, Enqueuer.Mode> enqueuerInspector = null;
 

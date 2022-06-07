@@ -184,7 +184,12 @@ public class StringUtils {
     return join(LINE_SEPARATOR, collection, BraceType.NONE);
   }
 
+
   public static List<String> splitLines(String content) {
+    return splitLines(content, false);
+  }
+
+  public static List<String> splitLines(String content, boolean includeTrailingEmptyLine) {
     int length = content.length();
     List<String> lines = new ArrayList<>();
     int start = 0;
@@ -201,7 +206,7 @@ public class StringUtils {
     }
     if (start < length) {
       String line = content.substring(start);
-      if (!line.isEmpty()) {
+      if (includeTrailingEmptyLine || !line.isEmpty()) {
         lines.add(line);
       }
     }

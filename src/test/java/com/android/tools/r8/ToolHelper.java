@@ -2117,7 +2117,7 @@ public class ToolHelper {
   public static class ProcessResult {
 
     public final int exitCode;
-    public final String stdout;
+    public String stdout;
     public final String stderr;
     public final String command;
 
@@ -2130,6 +2130,10 @@ public class ToolHelper {
 
     ProcessResult(int exitCode, String stdout, String stderr) {
       this(exitCode, stdout, stderr, null);
+    }
+
+    public void setStdout(String stdout) {
+      this.stdout = stdout;
     }
 
     @Override
