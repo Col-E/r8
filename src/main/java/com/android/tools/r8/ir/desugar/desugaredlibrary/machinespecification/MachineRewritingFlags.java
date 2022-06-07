@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -13,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -334,10 +336,28 @@ public class MachineRewritingFlags {
       return rewriteType.get(type);
     }
 
+    private void validate(Set<DexType> maintainTypeBuilt) {
+      ArrayList<DexType> warnings = new ArrayList<>();
+      for (DexType toRewrite : rewriteType.keySet()) {
+        if (maintainTypeBuilt.contains(toRewrite)) {
+          warnings.add(toRewrite);
+        }
+      }
+      if (!warnings.isEmpty()) {
+        throw new CompilationError(
+            "The compilation cannot proceed because the desugared library specification contains"
+                + " ambiguous flags that the compiler cannot interpret: The following types are"
+                + " both rewritten and maintained "
+                + warnings);
+      }
+    }
+
     public MachineRewritingFlags build() {
+      Set<DexType> maintainTypeBuilt = maintainType.build();
+      validate(maintainTypeBuilt);
       return new MachineRewritingFlags(
           rewriteType,
-          maintainType.build(),
+          maintainTypeBuilt,
           rewriteDerivedTypeOnly,
           staticFieldRetarget.build(),
           covariantRetarget.build(),
