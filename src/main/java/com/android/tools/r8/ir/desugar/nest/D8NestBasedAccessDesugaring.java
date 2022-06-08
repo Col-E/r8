@@ -37,6 +37,9 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
   }
 
   public void reportDesugarDependencies() {
+    if (appView.options().desugarGraphConsumer == null) {
+      return;
+    }
     forEachNest(
         nest -> {
           if (nest.hasMissingMembers()) {

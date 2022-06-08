@@ -4,6 +4,7 @@
 package com.android.tools.r8.desugar.nestaccesscontrol;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
@@ -11,17 +12,19 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.desugar.nestaccesscontrol.NestAttributesInDex.Host.Member1;
-import com.android.tools.r8.desugar.nestaccesscontrol.NestAttributesInDex.Host.Member2;
+import com.android.tools.r8.desugar.nestaccesscontrol.NestAttributesInDexTest.Host.Member1;
+import com.android.tools.r8.desugar.nestaccesscontrol.NestAttributesInDexTest.Host.Member2;
 import com.android.tools.r8.transformers.ClassFileTransformer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.TypeSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -33,7 +36,7 @@ import org.junit.runners.Parameterized.Parameters;
 import org.objectweb.asm.Opcodes;
 
 @RunWith(Parameterized.class)
-public class NestAttributesInDex extends TestBase {
+public class NestAttributesInDexTest extends TestBase {
 
   @Parameter() public TestParameters parameters;
 
@@ -62,15 +65,18 @@ public class NestAttributesInDex extends TestBase {
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
-  private void inspect(CodeInspector inspector) {
+  private void inspect(CodeInspector inspector, boolean emitNestAnnotationsInDex) {
     ClassSubject host = inspector.clazz(Host.class);
     ClassSubject member1 = inspector.clazz(Member1.class);
     ClassSubject member2 = inspector.clazz(Member2.class);
     assertEquals(
-        ImmutableList.of(member1.asTypeSubject(), member2.asTypeSubject()),
+        emitNestAnnotationsInDex
+            ? ImmutableList.of(member1.asTypeSubject(), member2.asTypeSubject())
+            : Collections.emptyList(),
         host.getFinalNestMembersAttribute());
-    assertEquals(host.asTypeSubject(), member1.getFinalNestHostAttribute());
-    assertEquals(host.asTypeSubject(), member2.getFinalNestHostAttribute());
+    TypeSubject expectedNestHostAttribute = emitNestAnnotationsInDex ? host.asTypeSubject() : null;
+    assertEquals(expectedNestHostAttribute, member1.getFinalNestHostAttribute());
+    assertEquals(expectedNestHostAttribute, member2.getFinalNestHostAttribute());
     ClassSubject otherHost = inspector.clazz(OtherHost.class);
     assertNull(otherHost.getFinalNestHostAttribute());
     assertEquals(0, otherHost.getFinalNestMembersAttribute().size());
@@ -83,14 +89,26 @@ public class NestAttributesInDex extends TestBase {
         .addProgramClassFileData(getTransformedClasses())
         .addProgramClasses(OtherHost.class)
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(
-            options -> {
-              options.emitNestAnnotationsInDex = true;
-            })
+        .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
         .compile()
-        .inspect(this::inspect)
+        .inspect(inspector -> inspect(inspector, true))
         .run(parameters.getRuntime(), TestClass.class)
         // No Art versions have support for nest attributes yet.
+        .assertFailureWithErrorThatThrows(NoSuchMethodError.class);
+  }
+
+  @Test
+  public void testD8NoDesugar() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    testForD8(parameters.getBackend())
+        .addProgramClassFileData(getTransformedClasses())
+        .addProgramClasses(OtherHost.class)
+        .disableDesugaring()
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(options -> assertFalse(options.emitNestAnnotationsInDex))
+        .compile()
+        .inspect(inspector -> inspect(inspector, false))
+        .run(parameters.getRuntime(), TestClass.class)
         .assertFailureWithErrorThatThrows(NoSuchMethodError.class);
   }
 

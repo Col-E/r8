@@ -727,16 +727,18 @@ public class ApplicationWriter {
               options.itemFactory));
     }
 
-    if (clazz.isNestHost()) {
-      annotations.add(
-          DexAnnotation.createNestMembersAnnotation(
-              clazz.getNestMembersClassAttributes(), options.itemFactory));
-    }
+    if (options.emitNestAnnotationsInDex) {
+      if (clazz.isNestHost()) {
+        annotations.add(
+            DexAnnotation.createNestMembersAnnotation(
+                clazz.getNestMembersClassAttributes(), options.itemFactory));
+      }
 
-    if (clazz.isNestMember()) {
-      annotations.add(
-          DexAnnotation.createNestHostAnnotation(
-              clazz.getNestHostClassAttribute(), options.itemFactory));
+      if (clazz.isNestMember()) {
+        annotations.add(
+            DexAnnotation.createNestHostAnnotation(
+                clazz.getNestHostClassAttribute(), options.itemFactory));
+      }
     }
 
     if (clazz.hasPermittedSubclassAttributes() && options.canUseSealedClasses()) {
