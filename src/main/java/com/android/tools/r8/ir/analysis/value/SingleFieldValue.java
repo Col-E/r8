@@ -30,7 +30,6 @@ import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ObjectAllocationInfoCollectionUtils;
-import com.android.tools.r8.synthesis.SyntheticItems;
 
 public abstract class SingleFieldValue extends SingleValue {
 
@@ -129,9 +128,8 @@ public abstract class SingleFieldValue extends SingleValue {
       return false;
     }
     ClassToFeatureSplitMap classToFeatureSplitMap = appView.appInfo().getClassToFeatureSplitMap();
-    SyntheticItems syntheticItems = appView.getSyntheticItems();
     if (holder.isProgramClass()
-        && classToFeatureSplitMap.isInFeature(holder.asProgramClass(), syntheticItems)) {
+        && classToFeatureSplitMap.isInFeature(holder.asProgramClass(), appView)) {
       return false;
     }
     return true;

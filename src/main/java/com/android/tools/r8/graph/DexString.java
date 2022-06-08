@@ -492,6 +492,20 @@ public class DexString extends IndexedDexItem implements NamingLensComparable<De
     return true;
   }
 
+  public DexString prepend(String prefix, DexItemFactory dexItemFactory) {
+    return prepend(dexItemFactory.createString(prefix), dexItemFactory);
+  }
+
+  public DexString prepend(DexString prefix, DexItemFactory dexItemFactory) {
+    int newSize = prefix.size + this.size;
+    // Each string ends with a 0 terminating byte, hence the +/- 1.
+    byte[] newContent = new byte[prefix.content.length + this.content.length - 1];
+    System.arraycopy(prefix.content, 0, newContent, 0, prefix.content.length - 1);
+    System.arraycopy(
+        this.content, 0, newContent, prefix.content.length - 1, this.content.length - 1);
+    return dexItemFactory.createString(newSize, newContent);
+  }
+
   public DexString withNewPrefix(
       DexString prefix, DexString rewrittenPrefix, DexItemFactory factory) {
     // Copy bytes over to avoid decoding/encoding cost.

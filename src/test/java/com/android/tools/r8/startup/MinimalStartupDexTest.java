@@ -12,13 +12,13 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.experimental.startup.StartupClass;
 import com.android.tools.r8.experimental.startup.StartupConfiguration;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.Lists;
-import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -51,18 +51,24 @@ public class MinimalStartupDexTest extends TestBase {
                     .setEnableMinimalStartupDex(true)
                     .setEnableStartupCompletenessCheckForTesting()
                     .setStartupConfiguration(
-                        new StartupConfiguration(
-                            Lists.newArrayList(
-                                toDexType(Main.class, options.dexItemFactory()),
-                                toDexType(StartupClass.class, options.dexItemFactory())),
-                            Collections.emptyList())))
+                        StartupConfiguration.builder()
+                            .addStartupClass(
+                                StartupClass.<DexType>builder()
+                                    .setReference(toDexType(Main.class, options.dexItemFactory()))
+                                    .build())
+                            .addStartupClass(
+                                StartupClass.<DexType>builder()
+                                    .setReference(
+                                        toDexType(AStartupClass.class, options.dexItemFactory()))
+                                    .build())
+                            .build()))
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspectMultiDex(
             primaryDexInspector -> {
               // StartupClass should be in the primary dex.
-              ClassSubject startupClassSubject = primaryDexInspector.clazz(StartupClass.class);
+              ClassSubject startupClassSubject = primaryDexInspector.clazz(AStartupClass.class);
               assertThat(startupClassSubject, isPresent());
 
               MethodSubject startupMethodSubject = startupClassSubject.uniqueMethodWithName("foo");
@@ -99,7 +105,7 @@ public class MinimalStartupDexTest extends TestBase {
   static class Main {
 
     public static void main(String[] args) {
-      StartupClass.foo();
+      AStartupClass.foo();
     }
 
     // @Keep
@@ -108,7 +114,7 @@ public class MinimalStartupDexTest extends TestBase {
     }
   }
 
-  static class StartupClass {
+  static class AStartupClass {
 
     @NeverInline
     static void foo() {

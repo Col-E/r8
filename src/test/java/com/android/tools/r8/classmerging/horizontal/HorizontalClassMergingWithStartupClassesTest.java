@@ -7,12 +7,13 @@ package com.android.tools.r8.classmerging.horizontal;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.experimental.startup.StartupClass;
 import com.android.tools.r8.experimental.startup.StartupConfiguration;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexType;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -47,11 +48,17 @@ public class HorizontalClassMergingWithStartupClassesTest extends TestBase {
               options
                   .getStartupOptions()
                   .setStartupConfiguration(
-                      new StartupConfiguration(
-                          startupClasses.stream()
-                              .map(clazz -> toDexType(clazz, dexItemFactory))
-                              .collect(Collectors.toList()),
-                          Collections.emptyList()));
+                      StartupConfiguration.builder()
+                          .apply(
+                              builder ->
+                                  startupClasses.forEach(
+                                      startupClass ->
+                                          builder.addStartupClass(
+                                              StartupClass.<DexType>builder()
+                                                  .setReference(
+                                                      toDexType(startupClass, dexItemFactory))
+                                                  .build())))
+                          .build());
             })
         .addHorizontallyMergedClassesInspector(
             inspector ->

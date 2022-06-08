@@ -25,7 +25,6 @@ import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.synthesis.SyntheticItems;
 
 public class SingleConstClassValue extends SingleConstValue {
 
@@ -110,9 +109,8 @@ public class SingleConstClassValue extends SingleConstValue {
         return false;
       }
       ClassToFeatureSplitMap classToFeatureSplitMap = appView.appInfo().getClassToFeatureSplitMap();
-      SyntheticItems syntheticItems = appView.getSyntheticItems();
       if (clazz.isProgramClass()
-          && classToFeatureSplitMap.isInFeature(clazz.asProgramClass(), syntheticItems)) {
+          && classToFeatureSplitMap.isInFeature(clazz.asProgramClass(), appView)) {
         return false;
       }
       return true;

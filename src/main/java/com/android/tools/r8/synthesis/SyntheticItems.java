@@ -9,8 +9,10 @@ import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.contexts.CompilationContext.UniqueContext;
 import com.android.tools.r8.errors.MissingGlobalSyntheticsConsumerDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.experimental.startup.StartupOrder;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassResolutionResult;
 import com.android.tools.r8.graph.ClasspathMethod;
@@ -526,13 +528,18 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   private SynthesizingContext getSynthesizingContext(
       ProgramDefinition context, AppView<?> appView) {
+    if (appView.hasClassHierarchy()) {
+      AppInfoWithClassHierarchy appInfo = appView.appInfoWithClassHierarchy();
+      return getSynthesizingContext(
+          context, appInfo.getClassToFeatureSplitMap(), appInfo.getStartupOrder());
+    }
     return getSynthesizingContext(
-        context, appView.appInfoForDesugaring().getClassToFeatureSplitMap());
+        context, ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(), StartupOrder.empty());
   }
 
   /** Used to find the synthesizing context for a new synthetic that is about to be created. */
   private SynthesizingContext getSynthesizingContext(
-      ProgramDefinition context, ClassToFeatureSplitMap featureSplits) {
+      ProgramDefinition context, ClassToFeatureSplitMap featureSplits, StartupOrder startupOrder) {
     DexType contextType = context.getContextType();
     SyntheticDefinition<?, ?, ?> existingDefinition = pending.definitions.get(contextType);
     if (existingDefinition != null) {
@@ -548,7 +555,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
           .getContext();
     }
     // This context is not nested in an existing synthetic context so create a new "leaf" context.
-    FeatureSplit featureSplit = featureSplits.getFeatureSplit(context, this);
+    FeatureSplit featureSplit = featureSplits.getFeatureSplit(context, startupOrder, this);
     return SynthesizingContext.fromNonSyntheticInputContext(context, featureSplit);
   }
 

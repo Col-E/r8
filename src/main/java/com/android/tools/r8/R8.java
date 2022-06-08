@@ -441,7 +441,7 @@ public class R8 {
       assert appView.appInfo().hasLiveness();
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
 
-      new StartupInstrumentation(appView).instrumentClasses(executorService);
+      new StartupInstrumentation(appView).instrumentAllClasses(executorService);
 
       assert verifyNoJarApplicationReaders(appView.appInfo().classes());
       assert appView.checkForTesting(() -> allReferencesAssignedApiLevel(appViewWithLiveness));

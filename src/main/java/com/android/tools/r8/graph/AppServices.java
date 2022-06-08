@@ -110,8 +110,7 @@ public class AppServices {
     assert featureImplementations.size() <= 2;
     // Check if service is defined feature
     DexProgramClass serviceClass = appView.definitionForProgramType(serviceType);
-    if (serviceClass != null
-        && classToFeatureSplitMap.isInFeature(serviceClass, appView.getSyntheticItems())) {
+    if (serviceClass != null && classToFeatureSplitMap.isInFeature(serviceClass, appView)) {
       return true;
     }
     for (Entry<FeatureSplit, List<DexType>> entry : featureImplementations.entrySet()) {
@@ -121,8 +120,7 @@ public class AppServices {
       for (DexType implementationType : implementationTypes) {
         DexProgramClass implementationClass = appView.definitionForProgramType(implementationType);
         if (implementationClass != null
-            && classToFeatureSplitMap.isInFeature(
-                implementationClass, appView.getSyntheticItems())) {
+            && classToFeatureSplitMap.isInFeature(implementationClass, appView)) {
           return true;
         }
       }

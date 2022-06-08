@@ -158,7 +158,8 @@ public abstract class ClassConverter {
       // Finalize the desugaring of the processed classes. This may require processing (and
       // reprocessing) of some methods.
       List<ProgramMethod> needsProcessing =
-          instructionDesugaringEventConsumer.finalizeDesugaring(appView, resultBuilder);
+          instructionDesugaringEventConsumer.finalizeDesugaring(
+              appView, executorService, resultBuilder);
       if (!needsProcessing.isEmpty()) {
         // Create a new processor context to ensure unique method processing contexts.
         methodProcessor.newWave();

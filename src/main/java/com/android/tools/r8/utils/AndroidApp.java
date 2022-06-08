@@ -35,6 +35,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.startup.StartupConfiguration;
+import com.android.tools.r8.experimental.startup.StartupOrder;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -629,7 +630,8 @@ public class AndroidApp {
                           DexType type = dexItemFactory.createType(classDescriptor);
                           SyntheticItems syntheticItems = null;
                           FeatureSplit featureSplit =
-                              classToFeatureSplitMap.getFeatureSplit(type, syntheticItems);
+                              classToFeatureSplitMap.getFeatureSplit(
+                                  type, StartupOrder.empty(), syntheticItems);
                           if (featureSplit != null && !featureSplit.isBase()) {
                             return featureSplitArchiveOutputStreams.get(featureSplit);
                           }

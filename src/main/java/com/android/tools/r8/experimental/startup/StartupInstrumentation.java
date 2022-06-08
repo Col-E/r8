@@ -19,11 +19,15 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -41,12 +45,18 @@ public class StartupInstrumentation {
     this.options = appView.options().getStartupOptions();
   }
 
-  public void instrumentClasses(ExecutorService executorService) throws ExecutionException {
+  public void instrumentAllClasses(ExecutorService executorService) throws ExecutionException {
+    instrumentClasses(appView.appInfo().classes(), executorService);
+  }
+
+  public boolean instrumentClasses(
+      Collection<DexProgramClass> classes, ExecutorService executorService)
+      throws ExecutionException {
     if (!appView.options().getStartupOptions().isStartupInstrumentationEnabled()) {
-      return;
+      return false;
     }
-    ThreadUtils.processItems(
-        appView.appInfo().classes(), this::internalInstrumentClass, executorService);
+    ThreadUtils.processItems(classes, this::internalInstrumentClass, executorService);
+    return true;
   }
 
   public void instrumentClass(DexProgramClass clazz) {
@@ -90,20 +100,31 @@ public class StartupInstrumentation {
       return;
     }
 
+    SyntheticItems syntheticItems = appView.getSyntheticItems();
+    DexString message;
+    if (syntheticItems.isSyntheticClass(classInitializer.getHolder())) {
+      Collection<DexType> synthesizingContexts =
+          syntheticItems.getSynthesizingContextTypes(classInitializer.getHolderType());
+      assert synthesizingContexts.size() == 1;
+      message = synthesizingContexts.iterator().next().getDescriptor().prepend("S", dexItemFactory);
+    } else {
+      message = classInitializer.getHolderType().getDescriptor();
+    }
+
     CfCode cfCode = code.asCfCode();
     List<CfInstruction> instructions;
     if (options.hasStartupInstrumentationTag()) {
       instructions = new ArrayList<>(4 + cfCode.getInstructions().size());
       instructions.add(
           new CfConstString(dexItemFactory.createString(options.getStartupInstrumentationTag())));
-      instructions.add(new CfConstString(classInitializer.getHolderType().getDescriptor()));
+      instructions.add(new CfConstString(message));
       instructions.add(
           new CfInvoke(Opcodes.INVOKESTATIC, dexItemFactory.androidUtilLogMembers.i, false));
       instructions.add(new CfStackInstruction(Opcode.Pop));
     } else {
       instructions = new ArrayList<>(3 + cfCode.getInstructions().size());
       instructions.add(new CfStaticFieldRead(dexItemFactory.javaLangSystemMembers.out));
-      instructions.add(new CfConstString(classInitializer.getHolderType().getDescriptor()));
+      instructions.add(new CfConstString(message));
       instructions.add(
           new CfInvoke(
               Opcodes.INVOKEVIRTUAL,

@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.synthesis.SyntheticItems;
 
 public class AccessUtils {
 
@@ -43,13 +42,11 @@ public class AccessUtils {
     // If the new class is a program class, we need to check if it is in a feature.
     if (newBaseClass.isProgramClass()) {
       ClassToFeatureSplitMap classToFeatureSplitMap = appView.appInfo().getClassToFeatureSplitMap();
-      SyntheticItems syntheticItems = appView.getSyntheticItems();
       if (classToFeatureSplitMap != null) {
         FeatureSplit newFeatureSplit =
-            classToFeatureSplitMap.getFeatureSplit(newBaseClass.asProgramClass(), syntheticItems);
+            classToFeatureSplitMap.getFeatureSplit(newBaseClass.asProgramClass(), appView);
         if (!newFeatureSplit.isBase()
-            && newFeatureSplit
-                != classToFeatureSplitMap.getFeatureSplit(oldBaseType, syntheticItems)) {
+            && newFeatureSplit != classToFeatureSplitMap.getFeatureSplit(oldBaseType, appView)) {
           return false;
         }
       }

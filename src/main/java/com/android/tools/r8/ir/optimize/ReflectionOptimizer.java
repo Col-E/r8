@@ -264,9 +264,7 @@ public class ReflectionOptimizer {
 
     // Make sure the (base) type is visible.
     ClassToFeatureSplitMap classToFeatureSplitMap = appView.appInfo().getClassToFeatureSplitMap();
-    if (AccessControl.isClassAccessible(
-            baseClass, context, classToFeatureSplitMap, appView.getSyntheticItems())
-        .isPossiblyFalse()) {
+    if (AccessControl.isClassAccessible(baseClass, context, appView).isPossiblyFalse()) {
       return;
     }
 
@@ -274,7 +272,7 @@ public class ReflectionOptimizer {
     // or in the base.
     assert !baseClass.isProgramClass()
         || classToFeatureSplitMap.isInBaseOrSameFeatureAs(
-            baseClass.asProgramClass(), context, appView.getSyntheticItems());
+            baseClass.asProgramClass(), context, appView);
 
     consumer.accept(type, baseClass);
   }

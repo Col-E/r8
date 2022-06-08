@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.experimental.startup.StartupOrder;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.OptionalBool;
@@ -20,13 +21,18 @@ public class AccessControl {
       ProgramDefinition context,
       AppView<? extends AppInfoWithClassHierarchy> appView) {
     return isClassAccessible(
-        clazz, context, appView.appInfo().getClassToFeatureSplitMap(), appView.getSyntheticItems());
+        clazz,
+        context,
+        appView.appInfo().getClassToFeatureSplitMap(),
+        appView.appInfo().getStartupOrder(),
+        appView.getSyntheticItems());
   }
 
   public static OptionalBool isClassAccessible(
       DexClass clazz,
       Definition context,
       ClassToFeatureSplitMap classToFeatureSplitMap,
+      StartupOrder startupOrder,
       SyntheticItems syntheticItems) {
     if (!clazz.isPublic() && !clazz.getType().isSamePackage(context.getContextType())) {
       return OptionalBool.FALSE;
@@ -34,7 +40,7 @@ public class AccessControl {
     if (clazz.isProgramClass()
         && context.isProgramDefinition()
         && !classToFeatureSplitMap.isInBaseOrSameFeatureAs(
-            clazz.asProgramClass(), context.asProgramDefinition(), syntheticItems)) {
+            clazz.asProgramClass(), context.asProgramDefinition(), startupOrder, syntheticItems)) {
       return OptionalBool.UNKNOWN;
     }
     return OptionalBool.TRUE;
@@ -72,6 +78,7 @@ public class AccessControl {
             initialResolutionHolder,
             context,
             appInfo.getClassToFeatureSplitMap(),
+            appInfo.getStartupOrder(),
             appInfo.getSyntheticItems());
     if (classAccessibility.isFalse()) {
       return OptionalBool.FALSE;

@@ -319,7 +319,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.getClassToFeatureSplitMap().withoutPrunedItems(prunedItems),
         previous.getMainDexInfo().withoutPrunedItems(prunedItems),
         previous.getMissingClasses(),
-        previous.getStartupOrder().withoutPrunedItems(prunedItems),
+        previous.getStartupOrder().withoutPrunedItems(prunedItems, previous.getSyntheticItems()),
         previous.deadProtoTypes,
         pruneClasses(previous.liveTypes, prunedItems, executorService, futures),
         pruneMethods(previous.targetedMethods, prunedItems, executorService, futures),

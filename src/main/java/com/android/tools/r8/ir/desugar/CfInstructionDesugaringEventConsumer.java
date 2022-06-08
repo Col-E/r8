@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import com.android.tools.r8.experimental.startup.StartupInstrumentation;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClasspathClass;
@@ -40,6 +41,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -87,6 +90,7 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     private final D8MethodProcessor methodProcessor;
 
+    private final Set<DexProgramClass> synthesizedClasses = Sets.newConcurrentHashSet();
     private final Map<DexReference, InvokeSpecialBridgeInfo> pendingInvokeSpecialBridges =
         new LinkedHashMap<>();
     private final List<LambdaClass> synthesizedLambdaClasses = new ArrayList<>();
@@ -96,9 +100,18 @@ public abstract class CfInstructionDesugaringEventConsumer
       this.methodProcessor = methodProcessor;
     }
 
+    private void acceptClass(DexProgramClass clazz) {
+      synthesizedClasses.add(clazz);
+    }
+
+    private void acceptMethod(ProgramMethod method) {
+      acceptClass(method.getHolder());
+    }
+
     @Override
     public void acceptCompanionMethod(ProgramMethod method, ProgramMethod companionMethod) {
       // Intentionally empty. Methods are moved when processing the interface definition.
+      acceptMethod(method);
     }
 
     @Override
@@ -113,21 +126,25 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptCollectionConversion(ProgramMethod arrayConversion) {
+      acceptMethod(arrayConversion);
       methodProcessor.scheduleMethodForProcessing(arrayConversion, this);
     }
 
     @Override
     public void acceptCovariantRetargetMethod(ProgramMethod method) {
+      acceptMethod(method);
       methodProcessor.scheduleMethodForProcessing(method, this);
     }
 
     @Override
     public void acceptBackportedMethod(ProgramMethod backportedMethod, ProgramMethod context) {
+      acceptMethod(backportedMethod);
       methodProcessor.scheduleMethodForProcessing(backportedMethod, this);
     }
 
     @Override
     public void acceptRecordMethod(ProgramMethod method) {
+      acceptMethod(method);
       methodProcessor.scheduleDesugaredMethodForProcessing(method);
     }
 
@@ -141,11 +158,13 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptRecordClass(DexProgramClass recordClass) {
+      acceptClass(recordClass);
       methodProcessor.scheduleDesugaredMethodsForProcessing(recordClass.programMethods());
     }
 
     @Override
     public void acceptLambdaClass(LambdaClass lambdaClass, ProgramMethod context) {
+      acceptClass(lambdaClass.getLambdaProgramClass());
       synchronized (synthesizedLambdaClasses) {
         synthesizedLambdaClasses.add(lambdaClass);
       }
@@ -154,6 +173,7 @@ public abstract class CfInstructionDesugaringEventConsumer
     @Override
     public void acceptConstantDynamicClass(
         ConstantDynamicClass constantDynamicClass, ProgramMethod context) {
+      acceptClass(constantDynamicClass.getConstantDynamicProgramClass());
       synchronized (synthesizedConstantDynamicClasses) {
         synthesizedConstantDynamicClasses.add(constantDynamicClass);
       }
@@ -176,17 +196,20 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptTwrCloseResourceMethod(ProgramMethod closeMethod, ProgramMethod context) {
+      acceptMethod(closeMethod);
       methodProcessor.scheduleMethodForProcessing(closeMethod, this);
     }
 
     @Override
     public void acceptThrowMethod(ProgramMethod method, ProgramMethod context) {
+      acceptMethod(method);
       methodProcessor.scheduleDesugaredMethodForProcessing(method);
     }
 
     @Override
     public void acceptInvokeStaticInterfaceOutliningMethod(
         ProgramMethod method, ProgramMethod context) {
+      acceptMethod(method);
       methodProcessor.scheduleDesugaredMethodForProcessing(method);
     }
 
@@ -202,20 +225,31 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptAPIConversion(ProgramMethod method) {
+      acceptMethod(method);
       methodProcessor.scheduleDesugaredMethodForProcessing(method);
     }
 
     @Override
     public void acceptCompanionClassClinit(ProgramMethod method) {
+      acceptMethod(method);
       methodProcessor.scheduleDesugaredMethodForProcessing(method);
     }
 
     public List<ProgramMethod> finalizeDesugaring(
-        AppView<?> appView, ClassConverterResult.Builder classConverterResultBuilder) {
+        AppView<?> appView,
+        ExecutorService executorService,
+        ClassConverterResult.Builder classConverterResultBuilder)
+        throws ExecutionException {
       List<ProgramMethod> needsProcessing = new ArrayList<>();
       finalizeInvokeSpecialDesugaring(appView, needsProcessing::add);
       finalizeLambdaDesugaring(classConverterResultBuilder, needsProcessing::add);
       finalizeConstantDynamicDesugaring(needsProcessing::add);
+      if (new StartupInstrumentation(appView)
+          .instrumentClasses(synthesizedClasses, executorService)) {
+        for (DexProgramClass synthesizedClass : synthesizedClasses) {
+          needsProcessing.add(synthesizedClass.getProgramClassInitializer());
+        }
+      }
       return needsProcessing;
     }
 

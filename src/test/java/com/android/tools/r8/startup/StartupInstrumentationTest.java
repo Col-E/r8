@@ -57,16 +57,13 @@ public class StartupInstrumentationTest extends TestBase {
   }
 
   private static List<String> getExpectedOutput() {
-    return ImmutableList.of(
-        "Lcom/android/tools/r8/startup/StartupInstrumentationTest$Main;",
-        "Lcom/android/tools/r8/startup/StartupInstrumentationTest$StartupClass;",
-        "foo");
+    return ImmutableList.of(descriptor(Main.class), descriptor(AStartupClass.class), "foo");
   }
 
   static class Main {
 
     public static void main(String[] args) {
-      StartupClass.foo();
+      AStartupClass.foo();
     }
 
     // @Keep
@@ -75,7 +72,7 @@ public class StartupInstrumentationTest extends TestBase {
     }
   }
 
-  static class StartupClass {
+  static class AStartupClass {
 
     @NeverInline
     static void foo() {

@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -16,12 +17,17 @@ public class EmptyStartupOrder extends StartupOrder {
   EmptyStartupOrder() {}
 
   @Override
-  public boolean contains(DexType type) {
+  public boolean contains(StartupClass<DexType> startupClass) {
     return false;
   }
 
   @Override
-  public Collection<DexType> getClasses() {
+  public boolean containsSyntheticClassesSynthesizedFrom(DexType synthesizingContextType) {
+    return false;
+  }
+
+  @Override
+  public Collection<StartupClass<DexType>> getClasses() {
     return Collections.emptyList();
   }
 
@@ -41,7 +47,8 @@ public class EmptyStartupOrder extends StartupOrder {
   }
 
   @Override
-  public EmptyStartupOrder withoutPrunedItems(PrunedItems prunedItems) {
+  public EmptyStartupOrder withoutPrunedItems(
+      PrunedItems prunedItems, SyntheticItems syntheticItems) {
     return this;
   }
 }

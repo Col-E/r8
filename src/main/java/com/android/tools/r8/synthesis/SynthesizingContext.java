@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromDescri
 import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromClassBinaryName;
 
 import com.android.tools.r8.FeatureSplit;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -69,11 +70,18 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
       DexProgramClass clazz, DexType synthesizingContextType, AppView<?> appView) {
     // A context that is itself synthetic must denote a synthesizing context from which to ensure
     // hygiene. This synthesizing context type is encoded on the synthetic for intermediate builds.
-    FeatureSplit featureSplit =
-        appView
-            .appInfoForDesugaring()
-            .getClassToFeatureSplitMap()
-            .getFeatureSplit(clazz, appView.getSyntheticItems());
+    FeatureSplit featureSplit;
+    if (appView.hasClassHierarchy()) {
+      AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierarchy =
+          appView.withClassHierarchy();
+      featureSplit =
+          appViewWithClassHierarchy
+              .appInfo()
+              .getClassToFeatureSplitMap()
+              .getFeatureSplit(clazz, appViewWithClassHierarchy);
+    } else {
+      featureSplit = FeatureSplit.BASE;
+    }
     return new SynthesizingContext(synthesizingContextType, clazz.type, clazz.origin, featureSplit);
   }
 

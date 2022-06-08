@@ -5,6 +5,7 @@
 package com.android.tools.r8.dex;
 
 import com.android.tools.r8.dex.FileWriter.MixedSectionOffsets;
+import com.android.tools.r8.experimental.startup.StartupClass;
 import com.android.tools.r8.experimental.startup.StartupOrder;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
@@ -30,7 +31,6 @@ import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.Set;
 
 public class StartupMixedSectionLayoutStrategy extends DefaultMixedSectionLayoutStrategy {
 
@@ -79,8 +79,9 @@ public class StartupMixedSectionLayoutStrategy extends DefaultMixedSectionLayout
             virtualFile.classes().size());
     LensCodeRewriterUtils rewriter = new LensCodeRewriterUtils(appView, true);
     StartupIndexedItemCollection indexedItemCollection = new StartupIndexedItemCollection();
-    for (DexType startupClass : startupOrderForWriting.getClasses()) {
-      DexProgramClass definition = virtualFileDefinitions.get(startupClass);
+    for (StartupClass<DexType> startupClass : startupOrderForWriting.getClasses()) {
+      assert !startupClass.isSynthetic();
+      DexProgramClass definition = virtualFileDefinitions.get(startupClass.getReference());
       if (definition != null) {
         definition.collectIndexedItems(appView, indexedItemCollection, rewriter);
       }
@@ -120,10 +121,7 @@ public class StartupMixedSectionLayoutStrategy extends DefaultMixedSectionLayout
 
   @Override
   public Collection<ProgramMethod> getCodeLayout() {
-    Set<DexProgramClass> nonStartupClasses =
-        new LinkedHashSet<>(mixedSectionOffsets.getClassesWithData());
-    nonStartupClasses.removeIf(clazz -> startupOrderForWriting.contains(clazz.getType()));
-    return amendStartupLayout(codeLayout, super.getCodeLayoutForClasses(nonStartupClasses));
+    return amendStartupLayout(codeLayout, super.getCodeLayout());
   }
 
   @Override

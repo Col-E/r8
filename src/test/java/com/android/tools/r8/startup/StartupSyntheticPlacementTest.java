@@ -6,12 +6,14 @@ package com.android.tools.r8.startup;
 
 import static com.android.tools.r8.startup.utils.StartupTestingMatchers.isEqualToClassDataLayout;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.experimental.startup.StartupClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
@@ -55,7 +57,7 @@ public class StartupSyntheticPlacementTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    List<ClassReference> startupList = new ArrayList<>();
+    List<StartupClass<ClassReference>> startupList = new ArrayList<>();
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
         .apply(StartupTestingUtils.enableStartupInstrumentation(parameters))
@@ -90,26 +92,54 @@ public class StartupSyntheticPlacementTest extends TestBase {
     return ImmutableList.of("A", "B", "C");
   }
 
-  private List<ClassReference> getExpectedStartupList() {
-    // TODO(b/235181186): We should include a "synthetic-of" B in the startup list.
-    return ImmutableList.of(
-        Reference.classFromClass(Main.class),
-        Reference.classFromClass(A.class),
-        Reference.classFromClass(B.class),
-        Reference.classFromClass(C.class));
+  private List<StartupClass<ClassReference>> getExpectedStartupList() {
+    ImmutableList.Builder<StartupClass<ClassReference>> builder = ImmutableList.builder();
+    builder.add(
+        StartupClass.<ClassReference>builder()
+            .setReference(Reference.classFromClass(Main.class))
+            .build());
+    builder.add(
+        StartupClass.<ClassReference>builder()
+            .setReference(Reference.classFromClass(A.class))
+            .build());
+    builder.add(
+        StartupClass.<ClassReference>builder()
+            .setReference(Reference.classFromClass(B.class))
+            .build());
+    if (useLambda) {
+      builder.add(
+          StartupClass.<ClassReference>builder()
+              .setReference(Reference.classFromClass(B.class))
+              .setSynthetic()
+              .build());
+    }
+    builder.add(
+        StartupClass.<ClassReference>builder()
+            .setReference(Reference.classFromClass(C.class))
+            .build());
+    return builder.build();
   }
 
   private List<ClassReference> getExpectedClassDataLayout(int virtualFile) {
-    // TODO(b/235181186): When the synthetic lambda is used, there should be two virtual files with
-    //  minimal startup dex. Without minimal startup dex, the synthetic lambda should be after all
-    //  startup classes in the layout.
-    assertEquals(0, virtualFile);
-    return ImmutableList.of(
-        Reference.classFromClass(Main.class),
-        Reference.classFromClass(A.class),
-        Reference.classFromClass(B.class),
-        getSyntheticLambdaClassReference(),
-        Reference.classFromClass(C.class));
+    // The synthetic lambda should only be placed alongside its synthetic context (B) if it is used.
+    // Otherwise, it should be last, or in the second dex file if compiling with minimal startup.
+    ImmutableList.Builder<ClassReference> layoutBuilder = ImmutableList.builder();
+    if (virtualFile == 0) {
+      layoutBuilder.add(
+          Reference.classFromClass(Main.class),
+          Reference.classFromClass(A.class),
+          Reference.classFromClass(B.class));
+      if (useLambda) {
+        layoutBuilder.add(getSyntheticLambdaClassReference());
+      }
+      layoutBuilder.add(Reference.classFromClass(C.class));
+    }
+    if (!useLambda) {
+      if (!enableMinimalStartupDex || virtualFile == 1) {
+        layoutBuilder.add(getSyntheticLambdaClassReference());
+      }
+    }
+    return layoutBuilder.build();
   }
 
   private MixedSectionLayoutInspector getMixedSectionLayoutInspector() {
@@ -126,15 +156,18 @@ public class StartupSyntheticPlacementTest extends TestBase {
     assertThat(inspector.clazz(A.class), isPresent());
     assertThat(inspector.clazz(B.class), isPresent());
     assertThat(inspector.clazz(C.class), isPresent());
-    // TODO(b/235181186): Synthetic lambda should be in classes2.dex when not used and minimal
-    //  startup dex is enabled.
-    assertThat(inspector.clazz(getSyntheticLambdaClassReference()), isPresent());
+    assertThat(
+        inspector.clazz(getSyntheticLambdaClassReference()),
+        notIf(isPresent(), enableMinimalStartupDex && !useLambda));
   }
 
   private void inspectSecondaryDex(CodeInspector inspector) {
-    // TODO(b/235181186): Synthetic lambda should be in classes2.dex when not used and minimal
-    //  startup dex is enabled.
-    assertTrue(inspector.allClasses().isEmpty());
+    if (enableMinimalStartupDex && !useLambda) {
+      assertEquals(1, inspector.allClasses().size());
+      assertThat(inspector.clazz(getSyntheticLambdaClassReference()), isPresent());
+    } else {
+      assertTrue(inspector.allClasses().isEmpty());
+    }
   }
 
   private static ClassReference getSyntheticLambdaClassReference() {

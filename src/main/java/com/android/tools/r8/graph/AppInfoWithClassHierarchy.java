@@ -140,7 +140,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
         getClassToFeatureSplitMap().withoutPrunedItems(prunedItems),
         getMainDexInfo().withoutPrunedItems(prunedItems),
         getMissingClasses(),
-        getStartupOrder().withoutPrunedItems(prunedItems));
+        getStartupOrder().withoutPrunedItems(prunedItems, getSyntheticItems()));
   }
 
   public ClassToFeatureSplitMap getClassToFeatureSplitMap() {

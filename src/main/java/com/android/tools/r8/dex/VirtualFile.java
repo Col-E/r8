@@ -10,7 +10,10 @@ import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.debuginfo.DebugRepresentation;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.errors.InternalCompilerError;
+import com.android.tools.r8.experimental.startup.StartupClass;
+import com.android.tools.r8.experimental.startup.StartupOrder;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -44,6 +47,7 @@ import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMaps;
@@ -407,15 +411,17 @@ public class VirtualFile {
         return ImmutableMap.of();
       }
 
+      AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierarchy =
+          appView.withClassHierarchy();
       ClassToFeatureSplitMap classToFeatureSplitMap =
-          appView.appInfo().withClassHierarchy().getClassToFeatureSplitMap();
+          appViewWithClassHierarchy.appInfo().getClassToFeatureSplitMap();
       if (classToFeatureSplitMap.isEmpty()) {
         return ImmutableMap.of();
       }
 
       // Pull out the classes that should go into feature splits.
       Map<FeatureSplit, Set<DexProgramClass>> featureSplitClasses =
-          classToFeatureSplitMap.getFeatureSplitClasses(classes, appView.getSyntheticItems());
+          classToFeatureSplitMap.getFeatureSplitClasses(classes, appViewWithClassHierarchy);
       if (featureSplitClasses.size() > 0) {
         for (Set<DexProgramClass> featureClasses : featureSplitClasses.values()) {
           classes.removeAll(featureClasses);
@@ -939,11 +945,19 @@ public class VirtualFile {
         if (!appView.hasClassHierarchy()) {
           return alwaysFalse();
         }
-        ClassToFeatureSplitMap classToFeatureSplitMap =
-            appView.appInfo().withClassHierarchy().getClassToFeatureSplitMap();
+        StartupOrder startupOrder = appView.appInfoWithClassHierarchy().getStartupOrder();
         SyntheticItems syntheticItems = appView.getSyntheticItems();
-        return clazz ->
-            classToFeatureSplitMap.getFeatureSplit(clazz, syntheticItems).isStartupBase();
+        return clazz -> {
+          if (syntheticItems.isSyntheticClass(clazz)) {
+            return Iterables.any(
+                syntheticItems.getSynthesizingContextTypes(clazz.getType()),
+                startupOrder::containsSyntheticClassesSynthesizedFrom);
+          } else {
+            StartupClass<DexType> startupClass =
+                StartupClass.<DexType>builder().setReference(clazz.getType()).build();
+            return startupOrder.contains(startupClass);
+          }
+        };
       }
 
       public List<DexProgramClass> getStartupClasses() {

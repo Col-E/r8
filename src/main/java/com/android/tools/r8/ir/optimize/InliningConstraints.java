@@ -386,9 +386,7 @@ public class InliningConstraints {
         .appInfo()
         .getClassToFeatureSplitMap()
         .isInBaseOrSameFeatureAs(
-            resolvedMember.getHolderType(),
-            context.asProgramMethod(),
-            appView.getSyntheticItems())) {
+            resolvedMember.getHolderType(), context.asProgramMethod(), appView)) {
       // We never inline into the base from a feature (calls should never happen) and we
       // never inline between features, so this check should be sufficient.
       return ConstraintWithTarget.NEVER;

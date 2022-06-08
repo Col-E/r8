@@ -13,7 +13,10 @@ import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
+import com.android.tools.r8.experimental.startup.StartupClass;
 import com.android.tools.r8.experimental.startup.StartupConfiguration;
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -30,7 +33,7 @@ public class StartupTestingUtils {
   private static String startupInstrumentationTag = "startup";
 
   public static ThrowableConsumer<D8TestBuilder> enableStartupInstrumentation(
-      TestParameters parameters) throws IOException {
+      TestParameters parameters) {
     return testBuilder -> enableStartupInstrumentation(testBuilder, parameters);
   }
 
@@ -57,18 +60,21 @@ public class StartupTestingUtils {
   }
 
   public static ThrowingConsumer<D8TestRunResult, RuntimeException> removeStartupClassesFromStdout(
-      Consumer<ClassReference> startupClassConsumer) {
+      Consumer<StartupClass<ClassReference>> startupClassConsumer) {
     return runResult -> removeStartupClassesFromStdout(runResult, startupClassConsumer);
   }
 
   public static void removeStartupClassesFromStdout(
-      D8TestRunResult runResult, Consumer<ClassReference> startupClassConsumer) {
+      D8TestRunResult runResult, Consumer<StartupClass<ClassReference>> startupClassConsumer) {
     StringBuilder stdoutBuilder = new StringBuilder();
     String startupDescriptorPrefix = "[" + startupInstrumentationTag + "] ";
     for (String line : StringUtils.splitLines(runResult.getStdOut(), true)) {
       if (line.startsWith(startupDescriptorPrefix)) {
-        String descriptor = line.substring(startupDescriptorPrefix.length());
-        startupClassConsumer.accept(Reference.classFromDescriptor(descriptor));
+        StartupClass.Builder<ClassReference> startupClassBuilder = StartupClass.builder();
+        String message = line.substring(startupDescriptorPrefix.length());
+        message = StartupConfiguration.parseSyntheticFlag(message, startupClassBuilder);
+        startupClassBuilder.setReference(Reference.classFromDescriptor(message));
+        startupClassConsumer.accept(startupClassBuilder.build());
       } else {
         stdoutBuilder.append(line).append(System.lineSeparator());
       }
@@ -77,20 +83,27 @@ public class StartupTestingUtils {
   }
 
   public static void setStartupConfiguration(
-      R8TestBuilder<?> testBuilder, List<ClassReference> startupClasses) {
+      R8TestBuilder<?> testBuilder, List<StartupClass<ClassReference>> startupClasses) {
     testBuilder.addOptionsModification(
-        options ->
-            options
-                .getStartupOptions()
-                .setStartupConfiguration(
-                    StartupConfiguration.builder()
-                        .apply(
-                            builder ->
-                                startupClasses.forEach(
-                                    startupClass ->
-                                        builder.addStartupClass(
-                                            options.dexItemFactory().createType(startupClass))))
-                        .build()));
+        options -> {
+          DexItemFactory dexItemFactory = options.dexItemFactory();
+          options
+              .getStartupOptions()
+              .setStartupConfiguration(
+                  StartupConfiguration.builder()
+                      .apply(
+                          builder ->
+                              startupClasses.forEach(
+                                  startupClass ->
+                                      builder.addStartupClass(
+                                          StartupClass.<DexType>builder()
+                                              .setFlags(startupClass.getFlags())
+                                              .setReference(
+                                                  dexItemFactory.createType(
+                                                      startupClass.getReference().getDescriptor()))
+                                              .build())))
+                      .build());
+        });
   }
 
   private static byte[] getTransformedAndroidUtilLog() throws IOException {
