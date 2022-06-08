@@ -73,12 +73,7 @@ public class Jdk11TestLibraryDesugaringSpecification {
     Set<Path> libFiles = new HashSet<>(template.getLibraryFiles());
     libFiles.add(EXTENSION_PATH);
     return new LibraryDesugaringSpecification(
-        name,
-        desugaredJDKLibFiles,
-        template.getSpecification(),
-        libFiles,
-        template.getDescriptor(),
-        getTestNGKeepRules());
+        name, desugaredJDKLibFiles, template.getSpecification(), libFiles, getTestNGKeepRules());
   }
 
   private static synchronized void ensureJavaBaseExtensionsCompiled() throws Exception {

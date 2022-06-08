@@ -5,6 +5,7 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.SPECIFICATIONS_WITH_CF2CF;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
@@ -97,7 +98,7 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
     Set<String> expectedCatchGuards;
     Set<String> expectedCheckCastType;
     String expectedInstanceOfTypes;
-    if (!libraryDesugaringSpecification.hasTimeDesugaring(parameters)) {
+    if (!requiresTimeDesugaring(parameters, libraryDesugaringSpecification != JDK8)) {
       expectedInvokeHolders =
           SetUtils.newHashSet("java.time.Clock", "java.time.LocalDate", "java.time.ZoneId");
       if (!isR8) {
@@ -150,7 +151,7 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
             .isGreaterThanOrEqualTo(TestBase.apiLevelWithDefaultInterfaceMethodsSupport())
         && isR8) {
       String holder =
-          libraryDesugaringSpecification.hasTimeDesugaring(parameters)
+          requiresTimeDesugaring(parameters, libraryDesugaringSpecification != JDK8)
               ? "j$.time.temporal.TemporalAccessor"
               : "java.time.temporal.TemporalAccessor";
       assertThat(

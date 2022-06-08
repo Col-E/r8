@@ -39,15 +39,13 @@ public class DesugaredLibraryInvalidTest extends DesugaredLibraryTestBase {
             "JDK8_INVALID_LIB",
             DESUGARED_JDK_8_LIB_JAR,
             "desugar_jdk_libs.json",
-            AndroidApiLevel.L,
-            LibraryDesugaringSpecification.JDK8_DESCRIPTOR);
+            AndroidApiLevel.L);
     LibraryDesugaringSpecification jdk11InvalidLib =
         new LibraryDesugaringSpecification(
             "JDK11_INVALID_LIB",
             ToolHelper.getUndesugaredJdk11LibJarForTesting(),
             "jdk11/desugar_jdk_libs.json",
-            AndroidApiLevel.L,
-            LibraryDesugaringSpecification.JDK11_DESCRIPTOR);
+            AndroidApiLevel.L);
     return buildParameters(
         getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
         ImmutableList.of(jdk8InvalidLib, jdk11InvalidLib),
@@ -65,7 +63,9 @@ public class DesugaredLibraryInvalidTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testInvalidLibrary() throws IOException {
-    Assume.assumeTrue(libraryDesugaringSpecification.hasAnyDesugaring(parameters));
+    Assume.assumeTrue(
+        requiresAnyCoreLibDesugaring(
+            parameters.getApiLevel(), !libraryDesugaringSpecification.toString().contains("JDK8")));
     DesugaredLibraryTestBuilder<?> testBuilder =
         testForDesugaredLibrary(
                 parameters, libraryDesugaringSpecification, compilationSpecification)

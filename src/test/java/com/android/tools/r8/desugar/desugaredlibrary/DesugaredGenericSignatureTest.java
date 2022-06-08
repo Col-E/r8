@@ -75,7 +75,7 @@ public class DesugaredGenericSignatureTest extends DesugaredLibraryTestBase {
   }
 
   private void checkRewrittenSignature(CodeInspector inspector) {
-    if (!libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters)) {
+    if (!requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
       return;
     }
     ClassSubject javaTimeBox = inspector.clazz(JavaTimeDateBox.class);

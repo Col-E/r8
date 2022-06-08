@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -75,7 +76,8 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
           .addProgramClasses(TestRunner.class)
           .compileWithExpectedDiagnostics(
               diagnostics -> {
-                if (libraryDesugaringSpecification.hasAnyDesugaring(parameters)) {
+                if (requiresAnyCoreLibDesugaring(
+                    parameters.getApiLevel(), libraryDesugaringSpecification != JDK8)) {
                   diagnostics.assertNoInfos();
                   diagnostics.assertAllWarningsMatch(
                       diagnosticMessage(
@@ -156,7 +158,8 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
           .setMinApi(parameters.getApiLevel())
           .compileWithExpectedDiagnostics(
               diagnostics -> {
-                if (libraryDesugaringSpecification.hasAnyDesugaring(parameters)) {
+                if (requiresAnyCoreLibDesugaring(
+                    parameters.getApiLevel(), libraryDesugaringSpecification != JDK8)) {
                   diagnostics.assertOnlyErrors();
                   diagnostics.assertErrorsMatch(
                       diagnosticType(DesugaredLibraryMismatchDiagnostic.class));
@@ -193,7 +196,8 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
           .setMinApi(parameters.getApiLevel())
           .compileWithExpectedDiagnostics(
               diagnostics -> {
-                if (libraryDesugaringSpecification.hasAnyDesugaring(parameters)) {
+                if (requiresAnyCoreLibDesugaring(
+                    parameters.getApiLevel(), libraryDesugaringSpecification != JDK8)) {
                   diagnostics.assertOnlyErrors();
                   diagnostics.assertErrorsMatch(
                       diagnosticType(DesugaredLibraryMismatchDiagnostic.class));

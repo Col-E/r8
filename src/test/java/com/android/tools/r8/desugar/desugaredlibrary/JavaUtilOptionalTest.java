@@ -58,7 +58,7 @@ public class JavaUtilOptionalTest extends DesugaredLibraryTestBase {
   }
 
   private void checkRewrittenInvokes(CodeInspector inspector) {
-    if (!libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters)) {
+    if (!requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
       return;
     }
     ClassSubject classSubject = inspector.clazz(TestClass.class);

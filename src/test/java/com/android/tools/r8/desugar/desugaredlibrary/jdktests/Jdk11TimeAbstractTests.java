@@ -219,7 +219,7 @@ public abstract class Jdk11TimeAbstractTests extends DesugaredLibraryTestBase {
             .addProgramFiles(JDK_11_TIME_TEST_COMPILED_FILES)
             .addProgramFiles(testNGSupportProgramFiles())
             .applyIf(
-                !libraryDesugaringSpecification.hasNioFileDesugaring(parameters),
+                libraryDesugaringSpecification != JDK11_PATH,
                 b -> b.addProgramFiles(getPathsFiles()))
             .compile()
             .withArt6Plus64BitsLib();

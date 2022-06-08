@@ -4,6 +4,7 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -60,7 +61,9 @@ public class DesugaredLibraryDeterminismTest extends DesugaredLibraryTestBase {
     Set<String> contextsRoundOne = ConcurrentHashMap.newKeySet();
     Set<String> contextsRoundTwo = ConcurrentHashMap.newKeySet();
     Path determinismLogDir = temp.newFolder().toPath();
-    Assume.assumeTrue(libraryDesugaringSpecification.hasAnyDesugaring(parameters));
+    Assume.assumeTrue(
+        requiresAnyCoreLibDesugaring(
+            parameters.getApiLevel(), libraryDesugaringSpecification != JDK8));
 
     Path libDexFile1 =
         testForL8(parameters.getApiLevel())

@@ -48,7 +48,7 @@ public class SimpleStreamTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testSimpleStream() throws Throwable {
-    Assume.assumeTrue(libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters));
+    Assume.assumeTrue(requiresEmulatedInterfaceCoreLibDesugaring(parameters));
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addInnerClasses(getClass())
         .addKeepMainRule(Executor.class)

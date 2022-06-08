@@ -54,7 +54,7 @@ public class DontKeepBootstrapClassesTest extends DesugaredLibraryTestBase {
         .compile()
         .inspectKeepRules(
             keepRule -> {
-              if (libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters)) {
+              if (requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
                 assertTrue(
                     keepRule.stream()
                         .anyMatch(kr -> kr.contains("-keep class j$.util.function.Consumer")));

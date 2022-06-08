@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.desugaredlibrary.kotlin;
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static com.android.tools.r8.KotlinTestBase.getCompileMemoizer;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
@@ -102,7 +103,7 @@ public class KotlinMetadataTest extends DesugaredLibraryTestBase {
         .compile()
         .inspect(
             i -> {
-              if (libraryDesugaringSpecification.hasTimeDesugaring(parameters)) {
+              if (requiresTimeDesugaring(parameters, libraryDesugaringSpecification != JDK8)) {
                 inspectRewrittenMetadata(i);
               }
             })

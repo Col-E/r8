@@ -11,6 +11,7 @@ import static com.android.tools.r8.MarkerMatcher.markerHasDesugaredLibraryIdenti
 import static com.android.tools.r8.MarkerMatcher.markerIsDesugared;
 import static com.android.tools.r8.MarkerMatcher.markerMinApi;
 import static com.android.tools.r8.MarkerMatcher.markerTool;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.not;
@@ -134,7 +135,8 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
             markerTool(Tool.D8),
             markerIsDesugared(),
             markerHasDesugaredLibraryIdentifier(
-                !libraryDesugaringSpecification.hasAnyDesugaring(parameters)));
+                requiresAnyCoreLibDesugaring(
+                    parameters.getApiLevel(), libraryDesugaringSpecification != JDK8)));
     assertMarkersMatch(
         ExtractMarker.extractMarkerFromDexFile(app), ImmutableList.of(libraryMatcher, d8Matcher));
   }
@@ -220,7 +222,8 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
   }
 
   private boolean someLibraryDesugaringRequired() {
-    return !libraryDesugaringSpecification.hasAnyDesugaring(parameters);
+    return requiresAnyCoreLibDesugaring(
+        parameters.getApiLevel(), libraryDesugaringSpecification != JDK8);
   }
 
   @Test

@@ -56,7 +56,7 @@ public class LibraryEmptySubclassInterfaceTest extends DesugaredLibraryTestBase 
   }
 
   private void assertExpectedKeepRules(List<String> keepRuleList) {
-    if (!libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters)) {
+    if (!requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
       return;
     }
     StringBuilder keepRules = new StringBuilder();
@@ -68,7 +68,7 @@ public class LibraryEmptySubclassInterfaceTest extends DesugaredLibraryTestBase 
   }
 
   private String getResult() {
-    return libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters)
+    return requiresEmulatedInterfaceCoreLibDesugaring(parameters)
         ? "class j$.util.concurrent.ConcurrentHashMap"
         : "class java.util.concurrent.ConcurrentHashMap";
   }

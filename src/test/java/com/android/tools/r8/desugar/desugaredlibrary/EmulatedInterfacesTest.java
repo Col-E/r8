@@ -59,7 +59,7 @@ public class EmulatedInterfacesTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testEmulatedInterface() throws Exception {
-    Assume.assumeTrue(libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters));
+    Assume.assumeTrue(requiresEmulatedInterfaceCoreLibDesugaring(parameters));
     CodeInspector inspector =
         testForL8(parameters.getApiLevel())
             .apply(

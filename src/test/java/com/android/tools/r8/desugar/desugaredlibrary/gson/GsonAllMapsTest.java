@@ -48,7 +48,7 @@ public class GsonAllMapsTest extends GsonDesugaredLibraryTestBase {
 
   @Test
   public void testGsonAllMaps() throws Exception {
-    Assume.assumeTrue(libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters));
+    Assume.assumeTrue(requiresEmulatedInterfaceCoreLibDesugaring(parameters));
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClassesAndInnerClasses(AllMapsTestClass.class)
         .addProgramFiles(GSON_2_8_1_JAR)

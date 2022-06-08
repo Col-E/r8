@@ -94,8 +94,7 @@ public class Jdk11AtomicTests extends DesugaredLibraryTestBase {
             ATOMIC_COMPILED_TESTS_FOLDER.resolve(ATOMIC_REFERENCE_TEST + CLASS_EXTENSION))
         .addProgramFiles(testNGSupportProgramFiles())
         .applyIf(
-            !libraryDesugaringSpecification.hasNioFileDesugaring(parameters),
-            b -> b.addProgramFiles(getPathsFiles()))
+            libraryDesugaringSpecification != JDK11_PATH, b -> b.addProgramFiles(getPathsFiles()))
         .compile()
         .withArt6Plus64BitsLib()
         .run(parameters.getRuntime(), "TestNGMainRunner", verbosity, ATOMIC_REFERENCE_TEST)
@@ -111,8 +110,7 @@ public class Jdk11AtomicTests extends DesugaredLibraryTestBase {
             getAllFilesWithSuffixInDirectory(ATOMIC_COMPILED_TESTS_FOLDER, CLASS_EXTENSION))
         .addProgramFiles(testNGSupportProgramFiles())
         .applyIf(
-            !libraryDesugaringSpecification.hasNioFileDesugaring(parameters),
-            b -> b.addProgramFiles(getPathsFiles()))
+            libraryDesugaringSpecification != JDK11_PATH, b -> b.addProgramFiles(getPathsFiles()))
         .compile()
         .withArt6Plus64BitsLib()
         .run(parameters.getRuntime(), "TestNGMainRunner", verbosity, ATOMIC_UPDATERS)

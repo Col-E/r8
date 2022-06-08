@@ -49,7 +49,7 @@ public class GsonEnumTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testEnum() throws Exception {
-    Assume.assumeTrue(libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters));
+    Assume.assumeTrue(requiresEmulatedInterfaceCoreLibDesugaring(parameters));
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addInnerClasses(GsonEnumTest.class)
         .addKeepMainRule(Executor.class)

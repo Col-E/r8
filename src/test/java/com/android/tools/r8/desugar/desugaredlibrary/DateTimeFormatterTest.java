@@ -5,6 +5,7 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 
 import com.android.tools.r8.SingleTestRunResult;
@@ -60,7 +61,7 @@ public class DateTimeFormatterTest extends DesugaredLibraryTestBase {
             .addKeepMainRule(TestClass.class)
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccess();
-    if (libraryDesugaringSpecification.hasTimeDesugaring(parameters)) {
+    if (requiresTimeDesugaring(parameters, libraryDesugaringSpecification != JDK8)) {
       run.assertSuccessWithOutput(expectedOutputDesugaredLib);
     } else {
       run.assertSuccessWithOutput(expectedOutput);
