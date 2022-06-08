@@ -1253,25 +1253,25 @@ public abstract class MethodResolutionResult
       }
       BooleanBox seenNoAccess = new BooleanBox(false);
       forEachFailureDependency(
-          type -> {
-            appInfo
-                .contextIndependentDefinitionForWithResolutionResult(type)
-                .forEachClassResolutionResult(
-                    clazz -> {
-                      AccessControl.isClassAccessible(
-                          clazz,
-                          context,
-                          appInfo.getClassToFeatureSplitMap(),
-                          appInfo.getSyntheticItems());
-                    });
-          },
+          type ->
+              appInfo
+                  .contextIndependentDefinitionForWithResolutionResult(type)
+                  .forEachClassResolutionResult(
+                      clazz ->
+                          seenNoAccess.or(
+                              AccessControl.isClassAccessible(
+                                      clazz,
+                                      context,
+                                      appInfo.getClassToFeatureSplitMap(),
+                                      appInfo.getSyntheticItems())
+                                  .isPossiblyFalse())),
           method -> {
             DexClass holder = appInfo.definitionFor(method.getHolderType());
             DexClassAndMethod classAndMethod = DexClassAndMethod.create(holder, method);
             seenNoAccess.or(
                 AccessControl.isMemberAccessible(
                         classAndMethod, initialResolutionHolder, context, appInfo)
-                    .isFalse());
+                    .isPossiblyFalse());
           });
       return seenNoAccess.get();
     }
