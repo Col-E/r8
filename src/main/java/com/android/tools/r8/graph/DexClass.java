@@ -287,10 +287,6 @@ public abstract class DexClass extends DexDefinition
     return Iterables.filter(virtualMethods(), predicate::test);
   }
 
-  public void addVirtualMethod(DexEncodedMethod method) {
-    methodCollection.addVirtualMethod(method);
-  }
-
   public void addVirtualMethods(Collection<DexEncodedMethod> methods) {
     methodCollection.addVirtualMethods(methods);
   }

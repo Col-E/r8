@@ -10,8 +10,8 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentHashMap.KeySetView;
 import org.junit.Test;
@@ -57,17 +57,18 @@ public class LibraryMethodOverrideCovariantTest extends TestBase {
         .addLibraryClasses(LibraryUser.class)
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
-        .applyIf(
-            parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.N),
-            builder -> builder.addDontWarn(KeySetView.class))
         .enableInliningAnnotations()
         .compile()
         .addRunClasspathFiles(buildOnDexRuntime(parameters, LibraryUser.class))
         .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatMatchesIf(
+            parameters.isCfRuntime(), containsString("Hello World"))
+        .assertFailureWithErrorThatThrowsIf(
+            !supportsKeySetView() && parameters.isDexRuntime(), NoSuchMethodError.class)
+        // TODO(b/234579501): We fail to keep the library method override.
         .applyIf(
-            supportsKeySetView(),
-            result -> result.assertFailureWithErrorThatMatches(containsString("Hello World")),
-            result -> result.assertFailureWithErrorThatThrows(NoSuchMethodError.class));
+            parameters.isDexRuntime() && supportsKeySetView(),
+            TestRunResult::assertSuccessWithEmptyOutput);
   }
 
   private byte[] getMainWithoutSyntheticBridgeForKeySet() throws Exception {
