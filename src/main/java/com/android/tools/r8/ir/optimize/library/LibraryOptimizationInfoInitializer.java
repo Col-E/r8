@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize.library;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexItemFactory.EnumMembers;
@@ -14,7 +13,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
-import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
 import com.android.tools.r8.ir.optimize.info.LibraryOptimizationInfoInitializerFeedback;
 import com.android.tools.r8.ir.optimize.info.field.EmptyInstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
@@ -84,16 +82,6 @@ public class LibraryOptimizationInfoInitializer {
               NonTrivialInstanceInitializerInfo.builder(fieldInitializationInfos)
                   .setParent(dexItemFactory.objectMembers.constructor)
                   .build()));
-    }
-  }
-
-  private void modelStaticFinalLibraryFields(Set<DexEncodedField> finalLibraryFields) {
-    for (DexEncodedField field : finalLibraryFields) {
-      if (field.isStatic()) {
-        feedback.recordLibraryFieldHasAbstractValue(
-            field,
-            abstractValueFactory.createSingleFieldValue(field.getReference(), ObjectState.empty()));
-      }
     }
   }
 

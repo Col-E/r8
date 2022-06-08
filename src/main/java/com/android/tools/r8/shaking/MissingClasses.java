@@ -7,6 +7,7 @@ package com.android.tools.r8.shaking;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryAPIConverter.DESCRIPTOR_VIVIFIED_PREFIX;
 import static com.android.tools.r8.utils.collections.IdentityHashSetFromMap.newProgramDerivedContextSet;
 
+import com.android.tools.r8.androidapi.CovariantReturnTypeMethods;
 import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
 import com.android.tools.r8.diagnostic.internal.DefinitionContextUtils;
 import com.android.tools.r8.diagnostic.internal.MissingClassInfoImpl;
@@ -292,6 +293,9 @@ public class MissingClasses {
                 addWithRewrittenType(
                     allowedMissingClasses, conversions.getTo().getHolderType(), appView);
               });
+      CovariantReturnTypeMethods.registerMethodsWithCovariantReturnType(
+          dexItemFactory,
+          method -> method.getReferencedTypes().forEach(allowedMissingClasses::add));
       return allowedMissingClasses.build();
     }
 

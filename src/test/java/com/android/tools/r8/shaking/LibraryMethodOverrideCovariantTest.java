@@ -10,7 +10,6 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentHashMap.KeySetView;
@@ -61,14 +60,10 @@ public class LibraryMethodOverrideCovariantTest extends TestBase {
         .compile()
         .addRunClasspathFiles(buildOnDexRuntime(parameters, LibraryUser.class))
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatMatchesIf(
-            parameters.isCfRuntime(), containsString("Hello World"))
-        .assertFailureWithErrorThatThrowsIf(
-            !supportsKeySetView() && parameters.isDexRuntime(), NoSuchMethodError.class)
-        // TODO(b/234579501): We fail to keep the library method override.
         .applyIf(
-            parameters.isDexRuntime() && supportsKeySetView(),
-            TestRunResult::assertSuccessWithEmptyOutput);
+            supportsKeySetView(),
+            result -> result.assertFailureWithErrorThatMatches(containsString("Hello World")),
+            result -> result.assertFailureWithErrorThatThrows(NoSuchMethodError.class));
   }
 
   private byte[] getMainWithoutSyntheticBridgeForKeySet() throws Exception {
