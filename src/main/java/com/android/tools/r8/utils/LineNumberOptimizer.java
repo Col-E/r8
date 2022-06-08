@@ -365,6 +365,8 @@ public class LineNumberOptimizer {
      * items to be installed.
      */
     void updateDebugInfoInCodeObjects();
+
+    int getPcEncoding(int pc);
   }
 
   private static class Pc2PcMappingSupport implements PcBasedDebugInfoRecorder {
@@ -405,8 +407,10 @@ public class LineNumberOptimizer {
       singleLineCodesToClear = allowDiscardingSourceFile ? new ArrayList<>() : null;
     }
 
-    private int getLastInstructionOffset(DexCode code) {
-      return DebugRepresentation.getLastExecutableInstruction(code).getOffset();
+    @Override
+    public int getPcEncoding(int pc) {
+      assert pc >= 0;
+      return pc + 1;
     }
 
     private boolean cantAddToClearSet(ProgramMethod method) {
@@ -457,6 +461,12 @@ public class LineNumberOptimizer {
   }
 
   private static class NativePcSupport implements PcBasedDebugInfoRecorder {
+
+    @Override
+    public int getPcEncoding(int pc) {
+      assert pc >= 0;
+      return pc;
+    }
 
     private void clearDebugInfo(ProgramMethod method) {
       // Always strip the info in full as the runtime will emit the PC directly.
@@ -1238,6 +1248,7 @@ public class LineNumberOptimizer {
                 singleOriginalLine.set(false);
               }
               remapAndAddForPc(
+                  debugInfoProvider,
                   lastPosition.getFirst(),
                   getCurrentPc(),
                   lastPosition.getSecond(),
@@ -1271,6 +1282,7 @@ public class LineNumberOptimizer {
     int lastInstructionPc = DebugRepresentation.getLastExecutableInstruction(dexCode).getOffset();
     if (lastPosition.getSecond() != null) {
       remapAndAddForPc(
+          debugInfoProvider,
           lastPosition.getFirst(),
           lastInstructionPc + 1,
           lastPosition.getSecond(),
@@ -1350,6 +1362,7 @@ public class LineNumberOptimizer {
   }
 
   private static void remapAndAddForPc(
+      PcBasedDebugInfoRecorder debugInfoProvider,
       int startPc,
       int endPc,
       Position position,
@@ -1364,7 +1377,7 @@ public class LineNumberOptimizer {
               oldPosition.getMethod(),
               oldPosition.getLine(),
               oldPosition.getCallerPosition(),
-              currentPc,
+              debugInfoProvider.getPcEncoding(currentPc),
               // Outline info is placed exactly on the positions that relate to it so we should
               // only emit it for the first entry.
               firstEntry && oldPosition.isOutline(),

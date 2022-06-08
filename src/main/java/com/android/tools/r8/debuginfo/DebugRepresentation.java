@@ -471,8 +471,12 @@ public class DebugRepresentation {
   }
 
   public static DexInstruction getLastExecutableInstruction(DexCode code) {
+    return getLastExecutableInstruction(code.instructions);
+  }
+
+  public static DexInstruction getLastExecutableInstruction(DexInstruction[] instructions) {
     DexInstruction lastInstruction = null;
-    for (DexInstruction instruction : code.instructions) {
+    for (DexInstruction instruction : instructions) {
       if (!instruction.isPayload()) {
         lastInstruction = instruction;
       }

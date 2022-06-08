@@ -159,11 +159,16 @@ public class NoLineInfoTest extends TestBase {
     return line(DEFAULT_SOURCE_FILE, method, line);
   }
 
+  private int getPcEncoding(int pc) {
+    return isCompileWithPcAsLineNumberSupport() && !customSourceFile ? pc : (pc + 1);
+  }
+
   // A residual line that is either null debug info or pc2pc mapping.
   private StackTraceLine residualPcOrNoLine(String method, int pc) {
     // If compiling with custom source file the debug info must be non-null and have a pc mapping.
+    // Add one as pc2pc encoding shifts lines by one.
     if (customSourceFile) {
-      return line(CUSTOM_SOURCE_FILE, method, pc);
+      return line(CUSTOM_SOURCE_FILE, method, getPcEncoding(pc));
     }
     // If debug info is null, then on native pc support VMs it will print "unknown" and pc.
     if (isRuntimeWithPcAsLineNumberSupport()) {
@@ -211,11 +216,13 @@ public class NoLineInfoTest extends TestBase {
 
     // TODO(b/232212653): Normal line-opt will cause a single-line mapping. Retrace should not
     //  optimize that to mean it represents a single possible line. (<noline> should not match 1:x).
-    StackTraceLine barLine = parameters.isCfRuntime() ? inputLine("bar", 100) : inputLine("bar", 0);
+    StackTraceLine barLine =
+        parameters.isCfRuntime() ? inputLine("bar", 100) : inputLine("bar", getPcEncoding(0));
 
     // TODO(b/232212653): The retracing in CF where the line table is preserved is incorrect.
     //  same issue as for bar.
-    StackTraceLine bazLine = parameters.isCfRuntime() ? inputLine("baz", 100) : inputLine("baz", 0);
+    StackTraceLine bazLine =
+        parameters.isCfRuntime() ? inputLine("baz", 100) : inputLine("baz", getPcEncoding(0));
 
     return StackTrace.builder()
         .add(fooLine)
@@ -236,13 +243,12 @@ public class NoLineInfoTest extends TestBase {
           .add(residualLine("main", 101)) // TODO(b/232212653) Why is this 101?
           .build();
     }
-
     return StackTrace.builder()
         // Foo has only <noline> on input and so it is allowed to compile it to a null debug-info.
         .add(residualPcOrNoLine("foo", 1))
-        .add(residualLine("bar", 0))
-        .add(residualLine("baz", 0))
-        .add(residualLine("main", 6))
+        .add(residualLine("bar", getPcEncoding(0)))
+        .add(residualLine("baz", getPcEncoding(0)))
+        .add(residualLine("main", getPcEncoding(6)))
         .build();
   }
 

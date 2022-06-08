@@ -85,7 +85,7 @@ public abstract class DexDebugInfo extends CachedHashValueDexItem
   }
 
   public static class PcBasedDebugInfo extends DexDebugInfo implements DexDebugInfoForWriting {
-    private static final int START_LINE = 0;
+    public static final int START_LINE = 1;
     private final int parameterCount;
     private final int maxPc;
 
@@ -302,9 +302,15 @@ public abstract class DexDebugInfo extends CachedHashValueDexItem
     assert DebugRepresentation.verifyLastExecutableInstructionWithinBound(
         code, pcBasedDebugInfo.maxPc);
     // Generate a line event at each throwing instruction.
-    List<DexDebugEvent> events = new ArrayList<>(code.instructions.length);
+    DexInstruction[] instructions = code.instructions;
+    return forceConvertToEventBasedDebugInfo(pcBasedDebugInfo, instructions, factory);
+  }
+
+  public static EventBasedDebugInfo forceConvertToEventBasedDebugInfo(
+      PcBasedDebugInfo pcBasedDebugInfo, DexInstruction[] instructions, DexItemFactory factory) {
+    List<DexDebugEvent> events = new ArrayList<>(instructions.length);
     int delta = 0;
-    for (DexInstruction instruction : code.instructions) {
+    for (DexInstruction instruction : instructions) {
       if (instruction.canThrow()) {
         DexDebugEventBuilder.addDefaultEventWithAdvancePcIfNecessary(delta, delta, events, factory);
         delta = 0;

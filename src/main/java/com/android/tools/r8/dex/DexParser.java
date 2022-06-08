@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.EncodedValueUtils.parseSigned;
 import static com.android.tools.r8.utils.EncodedValueUtils.parseUnsigned;
 
 import com.android.tools.r8.ProgramResource.Kind;
+import com.android.tools.r8.debuginfo.DebugRepresentation;
 import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.dex.code.DexInstructionFactory;
 import com.android.tools.r8.errors.CompilationError;
@@ -132,6 +133,13 @@ public class DexParser<T extends DexClass> {
 
   // Mapping from offset to dex item;
   private Int2ReferenceMap<Object> offsetMap = new Int2ReferenceOpenHashMap<>();
+
+  // Mapping from offset to cached debug info that is not pc2pc based.
+  // This is a secondary map that is used for each debug info item that structurally looks like
+  // a pc2pc encoding but which is referenced from methods that don't fit within the encoding.
+  // This can happen because the two overlap in representation.
+  private Int2ReferenceMap<EventBasedDebugInfo> nonPcBasedDebugInfo =
+      new Int2ReferenceOpenHashMap<>();
 
   // Factory to canonicalize certain dexitems.
   private final DexItemFactory dexItemFactory;
@@ -520,13 +528,36 @@ public class DexParser<T extends DexClass> {
         annotationSetAt(classAnnotationsOff), fields, methods, parameters);
   }
 
-  private DexDebugInfo debugInfoAt(int offset) {
-    return (DexDebugInfo) cacheAt(offset, this::parseDebugInfo);
+  private DexDebugInfo debugInfoAt(int offset, DexInstruction[] instructions) {
+    DexDebugInfo debugInfo = (DexDebugInfo) cacheAt(offset, this::parseDebugInfoAllowPc2PcEncoding);
+    // If the debug information matches a pc2pc encoding check that the instructions are within
+    // the max-pc bound of this method. If not, the info is not an actual pc encoding. Re-read the
+    // info as a normal event based encoding (and cache it to preserve sharing).
+    if (debugInfo != null && debugInfo.isPcBasedInfo()) {
+      PcBasedDebugInfo pcBasedInfo = debugInfo.asPcBasedInfo();
+      int maxPc = pcBasedInfo.getMaxPc();
+      DexInstruction last = DebugRepresentation.getLastExecutableInstruction(instructions);
+      if (last.getOffset() > maxPc) {
+        return nonPcBasedDebugInfo.computeIfAbsent(
+            offset, this::parseDebugInfoDisallowPc2PcEncoding);
+      }
+    }
+    return debugInfo;
   }
 
-  private DexDebugInfo parseDebugInfo() {
+  private DexDebugInfo parseDebugInfoAllowPc2PcEncoding() {
+    return parseDebugInfo(true);
+  }
+
+  private EventBasedDebugInfo parseDebugInfoDisallowPc2PcEncoding(int offset) {
+    dexReader.position(offset);
+    EventBasedDebugInfo debugInfo = parseDebugInfo(false).asEventBasedInfo();
+    return debugInfo;
+  }
+
+  private DexDebugInfo parseDebugInfo(boolean allowPc2PcEncoding) {
     int start = dexReader.getUleb128();
-    boolean isPcBasedDebugInfo = start == 0;
+    boolean isPcBasedDebugInfo = allowPc2PcEncoding && start == PcBasedDebugInfo.START_LINE;
     int parametersSize = dexReader.getUleb128();
     DexString[] parameters = new DexString[parametersSize];
     for (int i = 0; i < parametersSize; i++) {
@@ -1004,13 +1035,15 @@ public class DexParser<T extends DexClass> {
         }
       }
     }
-    // Store and restore offset information around reading debug info.
-    int saved = dexReader.position();
-    DexDebugInfo debugInfo = debugInfoAt(debugInfoOff);
-    dexReader.position(saved);
     DexInstructionFactory factory = new DexInstructionFactory();
     DexInstruction[] instructions =
         factory.readSequenceFrom(ShortBuffer.wrap(code), 0, code.length, indexedItems);
+
+    // Store and restore offset information around reading debug info.
+    int saved = dexReader.position();
+    DexDebugInfo debugInfo = debugInfoAt(debugInfoOff, instructions);
+    dexReader.position(saved);
+
     return new DexCode(registerSize, insSize, outsSize, instructions, tries, handlers, debugInfo);
   }
 
