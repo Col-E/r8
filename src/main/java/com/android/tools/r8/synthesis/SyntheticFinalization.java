@@ -642,11 +642,13 @@ public class SyntheticFinalization {
       boolean mustBeRepresentative = isPinned(appView, synthetic);
       EquivalenceGroup<T> equivalenceGroup = null;
       for (EquivalenceGroup<T> group : groups) {
+        boolean includeContext =
+            intermediate || appView.options().getStartupOptions().isStartupInstrumentationEnabled();
         if (synthetic.isEquivalentTo(
             group.hasRepresentative()
                 ? group.getRepresentative()
                 : group.getFirstNonRepresentativeMember(),
-            intermediate,
+            includeContext,
             appView.graphLens(),
             classToFeatureSplitMap)) {
           if (mustBeRepresentative && group.hasRepresentative()) {
