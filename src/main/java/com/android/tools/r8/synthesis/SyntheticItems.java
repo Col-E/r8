@@ -209,14 +209,6 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return globalSyntheticsStrategy;
   }
 
-  // Empty collection for use only in tests and utilities.
-  public static SyntheticItems empty() {
-    return new SyntheticItems(
-        State.FINALIZED,
-        CommittedSyntheticsCollection.empty(null),
-        GlobalSyntheticsStrategy.forNonSynthesizing());
-  }
-
   // Only for use from initial AppInfo/AppInfoWithClassHierarchy create functions. */
   public static CommittedItems createInitialSyntheticItems(
       DexApplication application, GlobalSyntheticsStrategy globalSyntheticsStrategy) {

@@ -161,9 +161,11 @@ public class ClassToFeatureSplitMap {
     if (feature != null) {
       return feature;
     }
-    feature = syntheticItems.getContextualFeatureSplit(type, this);
-    if (feature != null) {
-      return feature;
+    if (syntheticItems != null) {
+      feature = syntheticItems.getContextualFeatureSplit(type, this);
+      if (feature != null) {
+        return feature;
+      }
     }
     return FeatureSplit.BASE;
   }
