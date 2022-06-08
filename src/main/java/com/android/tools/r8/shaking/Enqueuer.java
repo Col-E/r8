@@ -674,6 +674,17 @@ public class Enqueuer {
     return definitionFor(type, context, this::recordNonProgramClass, this::reportMissingClass);
   }
 
+  public DexLibraryClass definitionForLibraryClassOrIgnore(DexType type) {
+    assert type.isClassType();
+    ClassResolutionResult classResolutionResult =
+        appInfo().contextIndependentDefinitionForWithResolutionResult(type);
+    return classResolutionResult.hasClassResolutionResult()
+            && !classResolutionResult.isMultipleClassResolutionResult()
+        ? DexLibraryClass.asLibraryClassOrNull(
+            classResolutionResult.toSingleClassWithProgramOverLibrary())
+        : null;
+  }
+
   public boolean hasAlternativeLibraryDefinition(DexProgramClass programClass) {
     ClassResolutionResult classResolutionResult =
         internalDefinitionFor(
@@ -3602,9 +3613,19 @@ public class Enqueuer {
           if (libraryClass == null) {
             return;
           }
+          // Check if the covariant method exists on the class.
           DexEncodedMethod covariantMethod = libraryClass.lookupMethod(method);
           if (covariantMethod != null) {
             return;
+          }
+          // Check if all type references exists otherwise bail out since the bridge could not exist
+          // in the android jar anyway.
+          for (DexType referencedType : method.getReferencedTypes()) {
+            DexType baseReferencedType = referencedType.toBaseType(appView.dexItemFactory());
+            if (baseReferencedType.isClassType()
+                && definitionForLibraryClassOrIgnore(referencedType) == null) {
+              return;
+            }
           }
           libraryClass.addVirtualMethod(
               DexEncodedMethod.builder()
