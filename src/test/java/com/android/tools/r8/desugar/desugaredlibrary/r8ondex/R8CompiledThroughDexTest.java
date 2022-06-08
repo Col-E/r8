@@ -217,6 +217,8 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
     // Manually construct the R8 command as the test builder will change defaults compared
     // to the CLI invocation (eg, compressed and pg-map output).
     Builder builder = R8Command.builder().setOutput(outputThroughCf, OutputMode.DexIndexed);
+    // Set API model until default changes.
+    builder.setEnableExperimentalMissingLibraryApiModeling(true);
     getSharedBuilder().accept(builder);
     ToolHelper.runR8WithOptionsModificationOnly(
         builder.build(),
