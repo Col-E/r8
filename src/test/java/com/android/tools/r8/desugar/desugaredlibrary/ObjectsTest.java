@@ -193,10 +193,6 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
         parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N);
     boolean invokeJDollarUtilObjectsWithSupplier =
         libraryDesugarJavaUtilObjects && parameters.getApiLevel().isLessThan(AndroidApiLevel.N);
-    String supplier =
-        libraryDesugaringSpecification.hasJDollarFunction(parameters)
-            ? "j$.util.function.Supplier"
-            : "java.util.function.Supplier";
 
     assertThat(
         testClass.uniqueMethodWithName("objectsCompare"),
@@ -253,12 +249,14 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
         testClass.uniqueMethodWithName("objectsRequireNonNullWithSupplier"),
         onlyIf(
             invokeJavaUtilObjectsWithSupplier,
-            invokesObjectsRequireNonNullWithSupplier("java.util.Objects", supplier)));
+            invokesObjectsRequireNonNullWithSupplier(
+                "java.util.Objects", "java.util.function.Supplier")));
     assertThat(
         testClass.uniqueMethodWithName("objectsRequireNonNullWithSupplier"),
         onlyIf(
             invokeJDollarUtilObjectsWithSupplier,
-            invokesObjectsRequireNonNullWithSupplier("j$.util.Objects", supplier)));
+            invokesObjectsRequireNonNullWithSupplier(
+                "j$.util.Objects", "j$.util.function.Supplier")));
 
     assertThat(
         testClass.uniqueMethodWithName("objectsToString"),

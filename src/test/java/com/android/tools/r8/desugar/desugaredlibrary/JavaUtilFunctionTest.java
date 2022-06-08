@@ -62,12 +62,8 @@ public class JavaUtilFunctionTest extends DesugaredLibraryTestBase {
     }
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(classSubject, isPresent());
-    String function =
-        libraryDesugaringSpecification.hasJDollarFunction(parameters)
-            ? "j$.util.function.Function"
-            : "java.util.function.Function";
     assertEquals(
-        function,
+        "j$.util.function.Function",
         classSubject
             .uniqueMethodWithName("applyFunction")
             .getMethod()

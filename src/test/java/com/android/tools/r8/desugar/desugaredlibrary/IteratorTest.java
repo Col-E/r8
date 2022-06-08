@@ -33,6 +33,7 @@ public class IteratorTest extends DesugaredLibraryTestBase {
   private final TestParameters parameters;
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
   private final CompilationSpecification compilationSpecification;
+  private final boolean canUseDefaultAndStaticInterfaceMethods;
 
   @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
@@ -49,6 +50,10 @@ public class IteratorTest extends DesugaredLibraryTestBase {
     this.parameters = parameters;
     this.libraryDesugaringSpecification = libraryDesugaringSpecification;
     this.compilationSpecification = compilationSpecification;
+    this.canUseDefaultAndStaticInterfaceMethods =
+        parameters
+            .getApiLevel()
+            .isGreaterThanOrEqualTo(apiLevelWithDefaultInterfaceMethodsSupport());
   }
 
   @Test
@@ -65,12 +70,12 @@ public class IteratorTest extends DesugaredLibraryTestBase {
   private void assertInterface(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz(MyIterator.class);
     assertEquals(
-        libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters) ? 1 : 0,
+        canUseDefaultAndStaticInterfaceMethods ? 0 : 1,
         clazz.getDexProgramClass().getInterfaces().stream()
             .filter(name -> name.toString().equals("j$.util.Iterator"))
             .count());
     assertEquals(
-        libraryDesugaringSpecification.hasJDollarFunction(parameters) ? 2 : 1,
+        canUseDefaultAndStaticInterfaceMethods ? 1 : 2,
         clazz.getDexProgramClass().allMethodsSorted().stream()
             .filter(m -> m.getReference().getName().toString().equals("forEachRemaining"))
             .count());

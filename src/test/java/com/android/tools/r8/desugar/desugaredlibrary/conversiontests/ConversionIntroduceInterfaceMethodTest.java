@@ -86,10 +86,7 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
         .inspect(this::assertWrapperMethodsPresent)
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(
-            (supportAllCallbacksFromLibrary
-                    || !libraryDesugaringSpecification.hasJDollarFunction(parameters))
-                ? EXPECTED_RESULT
-                : FAILING_EXPECTED_RESULT);
+            supportAllCallbacksFromLibrary ? EXPECTED_RESULT : FAILING_EXPECTED_RESULT);
   }
 
   private void assertDoubleForEach(CodeInspector inspector) {
@@ -106,10 +103,7 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
             .collect(toSingle());
     assertEquals(
         "Missing duplicated forEach",
-        supportAllCallbacksFromLibrary
-                && libraryDesugaringSpecification.hasJDollarFunction(parameters)
-            ? 2
-            : 1,
+        supportAllCallbacksFromLibrary ? 2 : 1,
         IterableUtils.size(
             myCollection
                 .getDexProgramClass()

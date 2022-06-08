@@ -116,17 +116,14 @@ public class NeverMergeCoreLibDesugarClasses extends DesugaredLibraryTestBase {
     Assume.assumeTrue(parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel());
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addInnerClasses(getClass())
-        .run(
-            parameters.getRuntime(),
-            TestClass.class,
-            libraryDesugaringSpecification.functionPrefix(parameters))
+        .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello, world!");
   }
 
   static class TestClass {
 
     public static void main(String[] args) throws Exception {
-      Class.forName(args[0] + ".util.function.Function");
+      Class.forName("j$.util.function.Function");
       System.out.println("Hello, world!");
     }
   }

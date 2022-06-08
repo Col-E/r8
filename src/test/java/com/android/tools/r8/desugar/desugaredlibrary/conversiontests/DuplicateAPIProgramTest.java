@@ -67,7 +67,7 @@ public class DuplicateAPIProgramTest extends DesugaredLibraryTestBase {
 
   private void assertDupMethod(CodeInspector i) {
     assertEquals(
-        libraryDesugaringSpecification.hasJDollarFunction(parameters) ? 2 : 1,
+        2,
         i.clazz(MyMap.class).virtualMethods().stream()
             .filter(m -> m.getOriginalName().equals("forEach"))
             .count());

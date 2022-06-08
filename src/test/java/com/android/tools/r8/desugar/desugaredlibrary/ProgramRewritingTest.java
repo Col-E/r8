@@ -177,15 +177,13 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
   }
 
   private void assertGeneratedKeepRulesAreCorrect(String keepRules) {
-
-    String prefix = libraryDesugaringSpecification.functionPrefix(parameters);
     String expectedResult =
         StringUtils.lines(
             "-keep class j$.util.Collection$-EL {",
             "    j$.util.stream.Stream stream(java.util.Collection);",
             "}",
             "-keep class j$.util.Comparator$-CC {",
-            "    java.util.Comparator comparingInt(" + prefix + ".util.function.ToIntFunction);",
+            "    java.util.Comparator comparingInt(j$.util.function.ToIntFunction);",
             "}",
             "-keep class j$.util.DesugarArrays {",
             "    j$.util.Spliterator spliterator(java.lang.Object[]);",
@@ -200,7 +198,7 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
             "    j$.util.Spliterator spliterator(java.util.Set);",
             "}",
             "-keep class j$.util.Spliterator",
-            "-keep class " + prefix + ".util.function.ToIntFunction { *; }",
+            "-keep class j$.util.function.ToIntFunction { *; }",
             "-keep class j$.util.stream.IntStream$-CC {",
             "    j$.util.stream.IntStream range(int, int);",
             "}",
