@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.startup.utils;
 
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.TypeReference;
@@ -44,7 +45,11 @@ public class StartupTestingMatchers {
       @Override
       public void describeMismatchSafely(
           Collection<DexProgramClass> actualLayout, Description description) {
-        description.appendText("class data layout was not");
+        description
+            .appendText("class data layout was not: ")
+            .appendText("[")
+            .appendText(StringUtils.join(", ", actualLayout, DexClass::getTypeName))
+            .appendText("]");
       }
     };
   }
