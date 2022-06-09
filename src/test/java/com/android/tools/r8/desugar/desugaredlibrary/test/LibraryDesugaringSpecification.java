@@ -9,6 +9,7 @@ import static com.android.tools.r8.ToolHelper.DESUGARED_LIB_RELEASES_DIR;
 import static com.android.tools.r8.ToolHelper.getUndesugaredJdk11LibJarForTesting;
 
 import com.android.tools.r8.L8TestBuilder;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
@@ -20,28 +21,87 @@ import java.util.Set;
 
 public class LibraryDesugaringSpecification {
 
+  public static Descriptor JDK8_DESCRIPTOR = new Descriptor(24, 26, -1, 26, 24);
+  public static Descriptor JDK11_DESCRIPTOR = new Descriptor(24, 30, -1, 30, -1);
+  public static Descriptor EMPTY_DESCRIPTOR_24 = new Descriptor(-1, -1, -1, 24, -1);
+  public static Descriptor JDK11_PATH_DESCRIPTOR = new Descriptor(24, 30, 26, 32, -1);
+  public static Descriptor JDK11_LEGACY_DESCRIPTOR = new Descriptor(24, 10000, -1, 10000, 24);
+
+  private static class Descriptor {
+    // Above this level emulated interface are not *entirely* desugared.
+    private final int emulatedInterfaceDesugaring;
+    // Above this level java.time is not *entirely* desugared.
+    private final int timeDesugaring;
+    // Above this level java.nio.file is not *entirely* desugared.
+    private final int nioFileDesugaring;
+    // Above this level no desugaring is required.
+    private final int anyDesugaring;
+    // Above this level java.function is used, below j$.function is used.
+    private final int jDollarFunction;
+
+    private Descriptor(
+        int emulatedInterfaceDesugaring,
+        int timeDesugaring,
+        int nioFileDesugaring,
+        int anyDesugaring,
+        int jDollarFunction) {
+      this.emulatedInterfaceDesugaring = emulatedInterfaceDesugaring;
+      this.timeDesugaring = timeDesugaring;
+      this.nioFileDesugaring = nioFileDesugaring;
+      this.anyDesugaring = anyDesugaring;
+      this.jDollarFunction = jDollarFunction;
+    }
+
+    public int getEmulatedInterfaceDesugaring() {
+      return emulatedInterfaceDesugaring;
+    }
+
+    public int getTimeDesugaring() {
+      return timeDesugaring;
+    }
+
+    public int getNioFileDesugaring() {
+      return nioFileDesugaring;
+    }
+
+    public int getAnyDesugaring() {
+      return anyDesugaring;
+    }
+
+    public int getJDollarFunction() {
+      return jDollarFunction;
+    }
+  }
+
   // Main head specifications.
   public static LibraryDesugaringSpecification JDK8 =
       new LibraryDesugaringSpecification(
-          "JDK8", DESUGARED_JDK_8_LIB_JAR, "desugar_jdk_libs.json", AndroidApiLevel.P);
+          "JDK8",
+          DESUGARED_JDK_8_LIB_JAR,
+          "desugar_jdk_libs.json",
+          AndroidApiLevel.P,
+          JDK8_DESCRIPTOR);
   public static LibraryDesugaringSpecification JDK11 =
       new LibraryDesugaringSpecification(
           "JDK11",
           getUndesugaredJdk11LibJarForTesting(),
           "jdk11/desugar_jdk_libs.json",
-          AndroidApiLevel.R);
+          AndroidApiLevel.R,
+          JDK11_DESCRIPTOR);
   public static LibraryDesugaringSpecification JDK11_MINIMAL =
       new LibraryDesugaringSpecification(
           "JDK11_MINIMAL",
           getUndesugaredJdk11LibJarForTesting(),
           "jdk11/desugar_jdk_libs_minimal.json",
-          AndroidApiLevel.R);
+          AndroidApiLevel.R,
+          EMPTY_DESCRIPTOR_24);
   public static LibraryDesugaringSpecification JDK11_PATH =
       new LibraryDesugaringSpecification(
           "JDK11_PATH",
           getUndesugaredJdk11LibJarForTesting(),
           "jdk11/desugar_jdk_libs_path.json",
-          AndroidApiLevel.R);
+          AndroidApiLevel.R,
+          JDK11_PATH_DESCRIPTOR);
 
   // Legacy specifications.
   public static LibraryDesugaringSpecification JDK11_PATH_ALTERNATIVE_3 =
@@ -49,20 +109,23 @@ public class LibraryDesugaringSpecification {
           "JDK11_PATH_ALTERNATIVE_3",
           getUndesugaredJdk11LibJarForTesting(),
           "jdk11/desugar_jdk_libs_path_alternative_3.json",
-          AndroidApiLevel.R);
+          AndroidApiLevel.R,
+          JDK11_PATH_DESCRIPTOR);
   public static LibraryDesugaringSpecification JDK11_CHM_ONLY =
       new LibraryDesugaringSpecification(
           "JDK11_CHM_ONLY",
           getUndesugaredJdk11LibJarForTesting(),
           "jdk11/chm_only_desugar_jdk_libs.json",
-          AndroidApiLevel.R);
+          AndroidApiLevel.R,
+          EMPTY_DESCRIPTOR_24);
   public static LibraryDesugaringSpecification JDK11_LEGACY =
       new LibraryDesugaringSpecification(
           "JDK11_LEGACY",
           // The legacy specification is not using the undesugared JAR.
           DESUGARED_JDK_11_LIB_JAR,
           "jdk11/desugar_jdk_libs_legacy.json",
-          AndroidApiLevel.R);
+          AndroidApiLevel.R,
+          JDK11_LEGACY_DESCRIPTOR);
   public static final LibraryDesugaringSpecification RELEASED_1_0_9 =
       new LibraryDesugaringSpecification("1.0.9", AndroidApiLevel.P);
   public static final LibraryDesugaringSpecification RELEASED_1_0_10 =
@@ -78,15 +141,21 @@ public class LibraryDesugaringSpecification {
   private final Set<Path> desugarJdkLibs;
   private final Path specification;
   private final Set<Path> libraryFiles;
+  private final Descriptor descriptor;
   private final String extraKeepRules;
 
   public LibraryDesugaringSpecification(
-      String name, Path desugarJdkLibs, String specificationPath, AndroidApiLevel androidJarLevel) {
+      String name,
+      Path desugarJdkLibs,
+      String specificationPath,
+      AndroidApiLevel androidJarLevel,
+      Descriptor descriptor) {
     this(
         name,
         ImmutableSet.of(desugarJdkLibs, ToolHelper.DESUGAR_LIB_CONVERSIONS),
         Paths.get("src/library_desugar/" + specificationPath),
         ImmutableSet.of(ToolHelper.getAndroidJar(androidJarLevel)),
+        descriptor,
         "");
   }
 
@@ -96,11 +165,13 @@ public class LibraryDesugaringSpecification {
       Set<Path> desugarJdkLibs,
       Path specification,
       Set<Path> libraryFiles,
+      Descriptor descriptor,
       String extraKeepRules) {
     this.name = name;
     this.desugarJdkLibs = desugarJdkLibs;
     this.specification = specification;
     this.libraryFiles = libraryFiles;
+    this.descriptor = descriptor;
     this.extraKeepRules = extraKeepRules;
   }
 
@@ -112,6 +183,7 @@ public class LibraryDesugaringSpecification {
             Paths.get(DESUGARED_LIB_RELEASES_DIR, version, "desugar_jdk_libs_configuration.jar")),
         Paths.get(DESUGARED_LIB_RELEASES_DIR, version, "desugar.json"),
         ImmutableSet.of(ToolHelper.getAndroidJar(androidJarLevel)),
+        JDK8_DESCRIPTOR,
         "");
   }
 
@@ -130,6 +202,10 @@ public class LibraryDesugaringSpecification {
 
   public Set<Path> getLibraryFiles() {
     return libraryFiles;
+  }
+
+  public Descriptor getDescriptor() {
+    return descriptor;
   }
 
   public String getExtraKeepRules() {
@@ -164,5 +240,33 @@ public class LibraryDesugaringSpecification {
 
   public static List<LibraryDesugaringSpecification> getJdk8Jdk11() {
     return ImmutableList.of(JDK8, JDK11);
+  }
+
+  public boolean hasEmulatedInterfaceDesugaring(TestParameters parameters) {
+    return parameters.getApiLevel().getLevel() < descriptor.getEmulatedInterfaceDesugaring();
+  }
+
+  public boolean hasTimeDesugaring(TestParameters parameters) {
+    return parameters.getApiLevel().getLevel() < descriptor.getTimeDesugaring();
+  }
+
+  public boolean hasNioFileDesugaring(TestParameters parameters) {
+    return parameters.getApiLevel().getLevel() < descriptor.getNioFileDesugaring();
+  }
+
+  public boolean hasAnyDesugaring(TestParameters parameters) {
+    return hasAnyDesugaring(parameters.getApiLevel());
+  }
+
+  public boolean hasAnyDesugaring(AndroidApiLevel apiLevel) {
+    return apiLevel.getLevel() < descriptor.getAnyDesugaring();
+  }
+
+  public boolean hasJDollarFunction(TestParameters parameters) {
+    return parameters.getApiLevel().getLevel() < descriptor.getJDollarFunction();
+  }
+
+  public String functionPrefix(TestParameters parameters) {
+    return hasJDollarFunction(parameters) ? "j$" : "java";
   }
 }

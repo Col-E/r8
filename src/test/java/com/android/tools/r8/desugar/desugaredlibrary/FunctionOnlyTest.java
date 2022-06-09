@@ -32,7 +32,7 @@ import org.junit.runners.Parameterized.Parameters;
 public class FunctionOnlyTest extends DesugaredLibraryTestBase {
 
   private static final String EXPECTED_RESULT =
-      StringUtils.lines(" true true true", "2", "false", "3", "true", "5", "42.0");
+      StringUtils.lines(" true true true", "2", "false", "3", "true", "5", "42.0", "last");
 
   private final TestParameters parameters;
   private final CompilationSpecification compilationSpecification;
@@ -56,7 +56,7 @@ public class FunctionOnlyTest extends DesugaredLibraryTestBase {
   }
 
   @Test
-  public void testFunction() throws Exception {
+  public void testFunction() throws Throwable {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addInnerClasses(getClass())
         .addKeepMainRule(Executor.class)
@@ -84,6 +84,7 @@ public class FunctionOnlyTest extends DesugaredLibraryTestBase {
       System.out.println(doublePredicate.test(2.0));
       System.out.println(FunctionClass.extractInt(() -> 5));
       System.out.println(FunctionClass.getDoubleSupplier().get());
+      System.out.println(Function.identity().apply("last"));
     }
 
     static class Object1 {}

@@ -125,6 +125,12 @@ public class HumanToMachinePrefixConverter {
       return;
     }
     builder.maintainType(type);
+    // We cannot rely on the synthetic classes being on the same package anyway since the runtime
+    // may use a class from the Android framework which is considered in a different package even
+    // if the package name is identical.
+    // This is required since the Android framework also generates external synthetics for lambdas
+    // that are publicly visible.
+    builder.rewriteDerivedTypeOnly(type, convertJavaNameToDesugaredLibrary(type));
     usedPrefix.add(prefix);
   }
 

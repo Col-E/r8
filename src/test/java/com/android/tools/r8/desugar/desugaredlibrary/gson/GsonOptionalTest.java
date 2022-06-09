@@ -45,7 +45,7 @@ public class GsonOptionalTest extends GsonDesugaredLibraryTestBase {
 
   @Test
   public void testGson() throws Exception {
-    Assume.assumeTrue(requiresEmulatedInterfaceCoreLibDesugaring(parameters));
+    Assume.assumeTrue(libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters));
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClassesAndInnerClasses(OptionalTestClass.class)
         .addProgramFiles(GSON_2_8_1_JAR)

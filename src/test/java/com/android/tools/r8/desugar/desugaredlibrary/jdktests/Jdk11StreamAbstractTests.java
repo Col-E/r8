@@ -307,7 +307,7 @@ public abstract class Jdk11StreamAbstractTests extends DesugaredLibraryTestBase 
             parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramFiles(filesToCompile)
         .applyIf(
-            libraryDesugaringSpecification != JDK11_PATH_JAVA_BASE_EXT,
+            !libraryDesugaringSpecification.hasNioFileDesugaring(parameters),
             b -> b.addProgramFiles(getPathsFiles()))
         .addProgramFiles(getSafeVarArgsFile())
         .addProgramFiles(testNGSupportProgramFiles())

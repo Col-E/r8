@@ -60,6 +60,48 @@
         "java.nio.channels.CompletionHandler": "j$.nio.channels.CompletionHandler",
         "java.nio.file.": "j$.nio.file."
       },
+      "dont_rewrite_prefix": [
+        "java.nio.file.AccessDeniedException",
+        "java.nio.file.AtomicMoveNotSupportedException",
+        "java.nio.file.ClosedDirectoryStreamException",
+        "java.nio.file.ClosedFileSystemException",
+        "java.nio.file.ClosedWatchServiceException",
+        "java.nio.file.DirectoryIteratorException",
+        "java.nio.file.DirectoryNotEmptyException",
+        "java.nio.file.FileAlreadyExistsException",
+        "java.nio.file.FileSystemAlreadyExistsException",
+        "java.nio.file.FileSystemException",
+        "java.nio.file.FileSystemLoopException",
+        "java.nio.file.FileSystemNotFoundException",
+        "java.nio.file.InvalidPathException",
+        "java.nio.file.NoSuchFileException",
+        "java.nio.file.NotDirectoryException",
+        "java.nio.file.NotLinkException",
+        "java.nio.file.ProviderMismatchException",
+        "java.nio.file.ProviderNotFoundException",
+        "java.nio.file.ReadOnlyFileSystemException"
+      ],
+      "maintain_prefix": [
+        "java.nio.file.AccessDeniedException",
+        "java.nio.file.AtomicMoveNotSupportedException",
+        "java.nio.file.ClosedDirectoryStreamException",
+        "java.nio.file.ClosedFileSystemException",
+        "java.nio.file.ClosedWatchServiceException",
+        "java.nio.file.DirectoryIteratorException",
+        "java.nio.file.DirectoryNotEmptyException",
+        "java.nio.file.FileAlreadyExistsException",
+        "java.nio.file.FileSystemAlreadyExistsException",
+        "java.nio.file.FileSystemException",
+        "java.nio.file.FileSystemLoopException",
+        "java.nio.file.FileSystemNotFoundException",
+        "java.nio.file.InvalidPathException",
+        "java.nio.file.NoSuchFileException",
+        "java.nio.file.NotDirectoryException",
+        "java.nio.file.NotLinkException",
+        "java.nio.file.ProviderMismatchException",
+        "java.nio.file.ProviderNotFoundException",
+        "java.nio.file.ReadOnlyFileSystemException"
+      ],
       "retarget_method_with_emulated_dispatch": {
         "java.nio.file.Path java.io.File#toPath()": "java.io.DesugarFile"
       },
@@ -131,13 +173,13 @@
         "java.util.concurrent.ConcurrentHashMap": "j$.util.concurrent.ConcurrentHashMap",
         "java.util.concurrent.ThreadLocalRandom": "j$.util.concurrent.ThreadLocalRandom",
         "java.util.concurrent.atomic.DesugarAtomic": "j$.util.concurrent.atomic.DesugarAtomic",
-        "java.util.function.": "j$.util.function.",
         "java.util.stream.": "j$.util.stream."
       },
       "dont_rewrite_prefix": [
         "java.nio.channels.FileChannel$MapMode"
       ],
       "maintain_prefix": [
+        "java.util.function.",
         "java.io.UncheckedIOException"
       ],
       "emulate_interface": {
@@ -411,6 +453,7 @@
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap { private void readObject(java.io.ObjectInputStream); private void writeObject(java.io.ObjectOutputStream); private void readObjectNoData(); private static final java.io.ObjectStreamField[] serialPersistentFields; private static final long serialVersionUID;}",
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap$CounterCell { long value; }",
     "-keepclassmembers enum * { public static **[] values(); public static ** valueOf(java.lang.String); public static final !synthetic <fields>; }",
+    "-keeppackagenames java.**",
     "-keeppackagenames j$.**",
     "-keepclassmembers class j$.util.IntSummaryStatistics { long count; long sum; int min; int max; }",
     "-keepclassmembers class j$.util.LongSummaryStatistics { long count; long sum; long min; long max; }",

@@ -52,7 +52,7 @@ public class NoDesugaredLibraryDexFileTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testNoDesugaredLibraryDexFile() throws Throwable {
-    Assume.assumeTrue(requiresEmulatedInterfaceCoreLibDesugaring(parameters));
+    Assume.assumeTrue(libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters));
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addInnerClasses(getClass())
         .addKeepClassAndMembersRules(Executor.class)

@@ -45,20 +45,6 @@ public class DesugaredLibraryTestBase extends TestBase {
     throw new Error("Unsupported conversion parameters");
   }
 
-  protected boolean requiresEmulatedInterfaceCoreLibDesugaring(TestParameters parameters) {
-    return parameters.getApiLevel().isLessThan(apiLevelWithDefaultInterfaceMethodsSupport());
-  }
-
-  protected boolean requiresTimeDesugaring(TestParameters parameters, boolean isJDK11) {
-    return parameters.getApiLevel().getLevel()
-        < (isJDK11 ? AndroidApiLevel.S.getLevel() : AndroidApiLevel.O.getLevel());
-  }
-
-  protected boolean requiresAnyCoreLibDesugaring(AndroidApiLevel apiLevel, boolean isJDK11) {
-    return apiLevel.getLevel()
-        <= (isJDK11 ? AndroidApiLevel.R.getLevel() : AndroidApiLevel.N_MR1.getLevel());
-  }
-
   protected DesugaredLibraryTestBuilder<?> testForDesugaredLibrary(
       TestParameters parameters,
       LibraryDesugaringSpecification libraryDesugaringSpecification,

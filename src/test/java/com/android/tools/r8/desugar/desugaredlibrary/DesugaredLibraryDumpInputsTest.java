@@ -4,7 +4,6 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
-import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -54,9 +53,7 @@ public class DesugaredLibraryDumpInputsTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testDumpToDirectory() throws Exception {
-    Assume.assumeTrue(
-        requiresAnyCoreLibDesugaring(
-            parameters.getApiLevel(), libraryDesugaringSpecification != JDK8));
+    Assume.assumeTrue(libraryDesugaringSpecification.hasAnyDesugaring(parameters));
     Path dumpDir = temp.newFolder().toPath();
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClasses(TestClass.class)

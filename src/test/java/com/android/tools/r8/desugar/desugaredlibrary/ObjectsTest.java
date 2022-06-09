@@ -72,13 +72,18 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
   public static List<Object[]> data() {
     LibraryDesugaringSpecification jdk8MaxCompileSdk =
         new LibraryDesugaringSpecification(
-            "JDK8_MAX", DESUGARED_JDK_8_LIB_JAR, "desugar_jdk_libs.json", AndroidApiLevel.LATEST);
+            "JDK8_MAX",
+            DESUGARED_JDK_8_LIB_JAR,
+            "desugar_jdk_libs.json",
+            AndroidApiLevel.LATEST,
+            LibraryDesugaringSpecification.JDK8_DESCRIPTOR);
     LibraryDesugaringSpecification jdk11MaxCompileSdk =
         new LibraryDesugaringSpecification(
             "JDK11_MAX",
             ToolHelper.getUndesugaredJdk11LibJarForTesting(),
             "jdk11/desugar_jdk_libs.json",
-            AndroidApiLevel.LATEST);
+            AndroidApiLevel.LATEST,
+            LibraryDesugaringSpecification.JDK11_DESCRIPTOR);
     return buildParameters(
         getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
         ImmutableList.of(JDK8, JDK11, jdk8MaxCompileSdk, jdk11MaxCompileSdk),
@@ -188,6 +193,10 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
         parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N);
     boolean invokeJDollarUtilObjectsWithSupplier =
         libraryDesugarJavaUtilObjects && parameters.getApiLevel().isLessThan(AndroidApiLevel.N);
+    String supplier =
+        libraryDesugaringSpecification.hasJDollarFunction(parameters)
+            ? "j$.util.function.Supplier"
+            : "java.util.function.Supplier";
 
     assertThat(
         testClass.uniqueMethodWithName("objectsCompare"),
@@ -244,14 +253,12 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
         testClass.uniqueMethodWithName("objectsRequireNonNullWithSupplier"),
         onlyIf(
             invokeJavaUtilObjectsWithSupplier,
-            invokesObjectsRequireNonNullWithSupplier(
-                "java.util.Objects", "java.util.function.Supplier")));
+            invokesObjectsRequireNonNullWithSupplier("java.util.Objects", supplier)));
     assertThat(
         testClass.uniqueMethodWithName("objectsRequireNonNullWithSupplier"),
         onlyIf(
             invokeJDollarUtilObjectsWithSupplier,
-            invokesObjectsRequireNonNullWithSupplier(
-                "j$.util.Objects", "j$.util.function.Supplier")));
+            invokesObjectsRequireNonNullWithSupplier("j$.util.Objects", supplier)));
 
     assertThat(
         testClass.uniqueMethodWithName("objectsToString"),

@@ -57,13 +57,17 @@ public class JavaUtilFunctionTest extends DesugaredLibraryTestBase {
   }
 
   private void checkRewrittenArguments(CodeInspector inspector) {
-    if (!requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
+    if (!libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters)) {
       return;
     }
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(classSubject, isPresent());
+    String function =
+        libraryDesugaringSpecification.hasJDollarFunction(parameters)
+            ? "j$.util.function.Function"
+            : "java.util.function.Function";
     assertEquals(
-        "j$.util.function.Function",
+        function,
         classSubject
             .uniqueMethodWithName("applyFunction")
             .getMethod()

@@ -68,7 +68,7 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
   }
 
   private void assertResultCorrect(String stdOut) {
-    if (requiresEmulatedInterfaceCoreLibDesugaring(parameters)
+    if (libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters)
         && !compilationSpecification.isL8Shrink()) {
       // When shrinking the class names are not printed correctly anymore due to minification.
       // Expected output is emulated interfaces expected output.
@@ -81,8 +81,7 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
       return;
     }
     MethodSubject direct = inspector.clazz(Executor.class).uniqueMethodWithName("directTypes");
-    System.out.println(direct);
-    if (requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
+    if (libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters)) {
       assertTrue(
           direct
               .streamInstructions()
@@ -97,7 +96,7 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
     }
     MethodSubject inherited =
         inspector.clazz(Executor.class).uniqueMethodWithName("inheritedTypes");
-    if (!requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
+    if (!libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters)) {
       assertTrue(
           inherited.streamInstructions().noneMatch(instr -> instr.toString().contains("$-EL")));
       return;

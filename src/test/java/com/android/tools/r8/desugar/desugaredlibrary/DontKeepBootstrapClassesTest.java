@@ -54,10 +54,13 @@ public class DontKeepBootstrapClassesTest extends DesugaredLibraryTestBase {
         .compile()
         .inspectKeepRules(
             keepRule -> {
-              if (requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
+              if (libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters)) {
+                String prefix = libraryDesugaringSpecification.functionPrefix(parameters);
                 assertTrue(
                     keepRule.stream()
-                        .anyMatch(kr -> kr.contains("-keep class j$.util.function.Consumer")));
+                        .anyMatch(
+                            kr ->
+                                kr.contains("-keep class " + prefix + ".util.function.Consumer")));
                 // TODO(b/158635415): Don't generate keep rules targeting items outside desugared
                 // library.
                 assertTrue(keepRule.stream().anyMatch(kr -> kr.contains("-keep class java.util")));

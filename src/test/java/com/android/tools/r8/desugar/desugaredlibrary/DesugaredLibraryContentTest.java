@@ -61,9 +61,7 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testDesugaredLibraryContent() throws Exception {
-    Assume.assumeTrue(
-        requiresAnyCoreLibDesugaring(
-            parameters.getApiLevel(), libraryDesugaringSpecification != JDK8));
+    Assume.assumeTrue(libraryDesugaringSpecification.hasAnyDesugaring(parameters));
     testForL8(parameters.getApiLevel())
         .apply(libraryDesugaringSpecification::configureL8TestBuilder)
         .compile()
@@ -72,9 +70,7 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testDesugaredLibraryContentWithCoreLambdaStubsAsProgram() throws Exception {
-    Assume.assumeTrue(
-        requiresAnyCoreLibDesugaring(
-            parameters.getApiLevel(), libraryDesugaringSpecification != JDK8));
+    Assume.assumeTrue(libraryDesugaringSpecification.hasAnyDesugaring(parameters));
     ArrayList<Path> coreLambdaStubs = new ArrayList<>();
     coreLambdaStubs.add(ToolHelper.getCoreLambdaStubs());
     testForL8(parameters.getApiLevel())
@@ -86,9 +82,7 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testDesugaredLibraryContentWithCoreLambdaStubsAsLibrary() throws Exception {
-    Assume.assumeTrue(
-        requiresAnyCoreLibDesugaring(
-            parameters.getApiLevel(), libraryDesugaringSpecification != JDK8));
+    Assume.assumeTrue(libraryDesugaringSpecification.hasAnyDesugaring(parameters));
     testForL8(parameters.getApiLevel())
         .apply(libraryDesugaringSpecification::configureL8TestBuilder)
         .addLibraryFiles(ToolHelper.getCoreLambdaStubs())
@@ -122,7 +116,9 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
       return;
     }
     assertThat(inspector.clazz("j$.util.Optional"), isPresent());
-    assertThat(inspector.clazz("j$.util.function.Function"), isPresent());
+    if (libraryDesugaringSpecification.hasJDollarFunction(parameters)) {
+      assertThat(inspector.clazz("j$.util.function.Function"), isPresent());
+    }
     if (parameters.getApiLevel().isLessThan(AndroidApiLevel.K)) {
       inspector.forAllClasses(clazz -> clazz.forAllMethods(this::assertNoSupressedInvocations));
     }

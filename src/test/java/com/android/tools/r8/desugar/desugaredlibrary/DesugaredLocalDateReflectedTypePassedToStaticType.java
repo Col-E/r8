@@ -5,7 +5,6 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
-import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.hamcrest.core.StringContains.containsString;
 
@@ -56,7 +55,7 @@ public class DesugaredLocalDateReflectedTypePassedToStaticType extends Desugared
             .addKeepMainRule(Main.class)
             .run(parameters.getRuntime(), Main.class);
     if (compilationSpecification.isL8Shrink()
-        && requiresTimeDesugaring(parameters, libraryDesugaringSpecification != JDK8)) {
+        && libraryDesugaringSpecification.hasTimeDesugaring(parameters)) {
       run.assertFailureWithErrorThatMatches(containsString("java.lang.NoSuchMethodException"));
     } else {
       run.assertSuccessWithOutput(EXPECTED);

@@ -55,8 +55,8 @@ public class ProgramInterfaceWithLibraryMethod extends DesugaredLibraryTestBase 
         .addKeepMainRule(Executor.class)
         .run(parameters.getRuntime(), Executor.class)
         .applyIf(
-            parameters.isDexRuntime()
-                && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N),
+            !libraryDesugaringSpecification.hasJDollarFunction(parameters)
+                || parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N),
             r -> r.assertSuccessWithOutput(EXPECTED_RESULT),
             r -> {
               if (compilationSpecification.isProgramShrink()) {

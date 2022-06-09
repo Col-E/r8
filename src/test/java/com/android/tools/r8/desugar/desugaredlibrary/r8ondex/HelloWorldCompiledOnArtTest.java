@@ -139,7 +139,7 @@ public class HelloWorldCompiledOnArtTest extends DesugaredLibraryTestBase {
         .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
         .applyIf(
             parameters.getApiLevel().getLevel() < AndroidApiLevel.O.getLevel()
-                && libraryDesugaringSpecification != JDK11_PATH,
+                && !libraryDesugaringSpecification.hasNioFileDesugaring(parameters),
             b -> b.addProgramFiles(pathBackport))
         .addOptionsModification(
             options -> {

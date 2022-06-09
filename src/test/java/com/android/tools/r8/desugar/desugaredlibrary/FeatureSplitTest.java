@@ -87,10 +87,13 @@ public class FeatureSplitTest extends DesugaredLibraryTestBase {
       return;
     }
     // Ensure count, toArray and forEach are kept.
+    String prefix = libraryDesugaringSpecification.functionPrefix(parameters);
     assertTrue(
         keepRules.contains(
             "-keep class j$.lang.Iterable$-EL {\n"
-                + "    void forEach(java.lang.Iterable, j$.util.function.Consumer);"));
+                + "    void forEach(java.lang.Iterable, "
+                + prefix
+                + ".util.function.Consumer);"));
     assertTrue(
         keepRules.contains(
             "-keep class j$.util.stream.Stream {\n"

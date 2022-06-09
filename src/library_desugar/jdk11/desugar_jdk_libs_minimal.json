@@ -17,6 +17,7 @@
   "library_flags": [],
   "shrinker_config": [
     "-keeppackagenames java.**",
+    "-keeppackagenames j$.**",
     "-keepattributes Signature",
     "-keepattributes EnclosingMethod",
     "-keepattributes InnerClasses"
