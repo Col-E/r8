@@ -17,12 +17,7 @@ public class EmptyStartupOrder extends StartupOrder {
   EmptyStartupOrder() {}
 
   @Override
-  public boolean contains(StartupClass<DexType> startupClass) {
-    return false;
-  }
-
-  @Override
-  public boolean containsSyntheticClassesSynthesizedFrom(DexType synthesizingContextType) {
+  public boolean contains(DexType type, SyntheticItems syntheticItems) {
     return false;
   }
 

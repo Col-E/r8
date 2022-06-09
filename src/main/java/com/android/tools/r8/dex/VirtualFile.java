@@ -10,7 +10,6 @@ import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.debuginfo.DebugRepresentation;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.errors.InternalCompilerError;
-import com.android.tools.r8.experimental.startup.StartupClass;
 import com.android.tools.r8.experimental.startup.StartupOrder;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -47,7 +46,6 @@ import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMaps;
@@ -947,17 +945,7 @@ public class VirtualFile {
         }
         StartupOrder startupOrder = appView.appInfoWithClassHierarchy().getStartupOrder();
         SyntheticItems syntheticItems = appView.getSyntheticItems();
-        return clazz -> {
-          if (syntheticItems.isSyntheticClass(clazz)) {
-            return Iterables.any(
-                syntheticItems.getSynthesizingContextTypes(clazz.getType()),
-                startupOrder::containsSyntheticClassesSynthesizedFrom);
-          } else {
-            StartupClass<DexType> startupClass =
-                StartupClass.<DexType>builder().setReference(clazz.getType()).build();
-            return startupOrder.contains(startupClass);
-          }
-        };
+        return clazz -> startupOrder.contains(clazz.getType(), syntheticItems);
       }
 
       public List<DexProgramClass> getStartupClasses() {

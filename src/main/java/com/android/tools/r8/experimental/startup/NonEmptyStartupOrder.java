@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.LazyBox;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,23 +27,42 @@ public class NonEmptyStartupOrder extends StartupOrder {
 
   private final LinkedHashSet<StartupClass<DexType>> startupClasses;
 
+  // Redundant sets to allow efficient querying without boxing.
+  private final Set<DexType> nonSyntheticStartupClasses = Sets.newIdentityHashSet();
+  private final Set<DexType> syntheticStartupClasses = Sets.newIdentityHashSet();
+
   NonEmptyStartupOrder(LinkedHashSet<StartupClass<DexType>> startupClasses) {
     assert !startupClasses.isEmpty();
     this.startupClasses = startupClasses;
+    for (StartupClass<DexType> startupClass : startupClasses) {
+      if (startupClass.isSynthetic()) {
+        syntheticStartupClasses.add(startupClass.getReference());
+      } else {
+        nonSyntheticStartupClasses.add(startupClass.getReference());
+      }
+    }
   }
 
   @Override
-  public boolean contains(StartupClass<DexType> startupClass) {
-    return startupClasses.contains(startupClass);
+  public boolean contains(DexType type, SyntheticItems syntheticItems) {
+    return syntheticItems.isSyntheticClass(type)
+        ? containsSyntheticClass(type, syntheticItems)
+        : containsNonSyntheticClass(type);
   }
 
-  @Override
-  public boolean containsSyntheticClassesSynthesizedFrom(DexType synthesizingContextType) {
-    return contains(
-        StartupClass.<DexType>builder()
-            .setReference(synthesizingContextType)
-            .setSynthetic()
-            .build());
+  private boolean containsNonSyntheticClass(DexType type) {
+    return nonSyntheticStartupClasses.contains(type);
+  }
+
+  private boolean containsSyntheticClass(DexType type, SyntheticItems syntheticItems) {
+    assert syntheticItems.isSyntheticClass(type);
+    return Iterables.any(
+        syntheticItems.getSynthesizingContextTypes(type),
+        this::containsSyntheticClassesSynthesizedFrom);
+  }
+
+  private boolean containsSyntheticClassesSynthesizedFrom(DexType synthesizingContextType) {
+    return syntheticStartupClasses.contains(synthesizingContextType);
   }
 
   @Override

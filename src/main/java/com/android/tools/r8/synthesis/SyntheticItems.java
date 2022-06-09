@@ -433,18 +433,16 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return committed.containsSyntheticInput(clazz.getType());
   }
 
-  public FeatureSplit getContextualFeatureSplit(
-      DexType type, ClassToFeatureSplitMap classToFeatureSplitMap) {
+  public FeatureSplit getContextualFeatureSplitOrDefault(DexType type, FeatureSplit defaultValue) {
+    assert isSyntheticClass(type);
     if (isSyntheticOfKind(type, kinds -> kinds.ENUM_UNBOXING_SHARED_UTILITY_CLASS)) {
-      // Use the startup base if there is one, such that we don't merge non-startup classes with the
-      // shared utility class in case it is used during startup. The use of base startup allows for
-      // merging startup classes with the shared utility class, however, which could be bad for
-      // startup if the shared utility class is not used during startup.
-      return classToFeatureSplitMap.getBaseStartup();
+      return FeatureSplit.BASE;
     }
     List<SynthesizingContext> contexts = getSynthesizingContexts(type);
     if (contexts.isEmpty()) {
-      return null;
+      assert false
+          : "Expected synthetic to have at least one synthesizing context: " + type.getTypeName();
+      return defaultValue;
     }
     assert verifyAllHaveSameFeature(contexts, SynthesizingContext::getFeatureSplit);
     return contexts.get(0).getFeatureSplit();

@@ -33,9 +33,7 @@ public abstract class StartupOrder {
     return new EmptyStartupOrder();
   }
 
-  public abstract boolean contains(StartupClass<DexType> startupClass);
-
-  public abstract boolean containsSyntheticClassesSynthesizedFrom(DexType synthesizingContextType);
+  public abstract boolean contains(DexType type, SyntheticItems syntheticItems);
 
   public abstract Collection<StartupClass<DexType>> getClasses();
 

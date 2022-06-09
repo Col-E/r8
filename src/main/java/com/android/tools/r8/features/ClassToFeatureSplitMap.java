@@ -8,8 +8,6 @@ import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
-import com.android.tools.r8.experimental.startup.StartupClass;
-import com.android.tools.r8.experimental.startup.StartupConfiguration;
 import com.android.tools.r8.experimental.startup.StartupOrder;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -31,21 +29,18 @@ import java.util.Set;
 
 public class ClassToFeatureSplitMap {
 
-  private final FeatureSplit baseStartup;
   private final Map<DexType, FeatureSplit> classToFeatureSplitMap;
   private final Map<FeatureSplit, String> representativeStringsForFeatureSplit;
 
   private ClassToFeatureSplitMap(
-      FeatureSplit baseStartup,
       Map<DexType, FeatureSplit> classToFeatureSplitMap,
       Map<FeatureSplit, String> representativeStringsForFeatureSplit) {
-    this.baseStartup = baseStartup;
     this.classToFeatureSplitMap = classToFeatureSplitMap;
     this.representativeStringsForFeatureSplit = representativeStringsForFeatureSplit;
   }
 
   public static ClassToFeatureSplitMap createEmptyClassToFeatureSplitMap() {
-    return new ClassToFeatureSplitMap(FeatureSplit.BASE, new IdentityHashMap<>(), null);
+    return new ClassToFeatureSplitMap(new IdentityHashMap<>(), null);
   }
 
   public static ClassToFeatureSplitMap createInitialClassToFeatureSplitMap(
@@ -53,73 +48,42 @@ public class ClassToFeatureSplitMap {
     return createInitialClassToFeatureSplitMap(
         options.dexItemFactory(),
         options.featureSplitConfiguration,
-        options.getStartupOptions().getStartupConfiguration(),
         options.reporter);
   }
 
   public static ClassToFeatureSplitMap createInitialClassToFeatureSplitMap(
       DexItemFactory dexItemFactory,
       FeatureSplitConfiguration featureSplitConfiguration,
-      StartupConfiguration startupConfiguration,
       Reporter reporter) {
-    if (featureSplitConfiguration == null && startupConfiguration == null) {
+    if (featureSplitConfiguration == null) {
       return createEmptyClassToFeatureSplitMap();
     }
 
     Map<DexType, FeatureSplit> classToFeatureSplitMap = new IdentityHashMap<>();
     Map<FeatureSplit, String> representativeStringsForFeatureSplit = new IdentityHashMap<>();
-    if (featureSplitConfiguration != null) {
-      for (FeatureSplit featureSplit : featureSplitConfiguration.getFeatureSplits()) {
-        String representativeType = null;
-        for (ProgramResourceProvider programResourceProvider :
-            featureSplit.getProgramResourceProviders()) {
-          try {
-            for (ProgramResource programResource : programResourceProvider.getProgramResources()) {
-              for (String classDescriptor : programResource.getClassDescriptors()) {
-                DexType type = dexItemFactory.createType(classDescriptor);
-                classToFeatureSplitMap.put(type, featureSplit);
-                if (representativeType == null
-                    || classDescriptor.compareTo(representativeType) > 0) {
-                  representativeType = classDescriptor;
-                }
+    for (FeatureSplit featureSplit : featureSplitConfiguration.getFeatureSplits()) {
+      String representativeType = null;
+      for (ProgramResourceProvider programResourceProvider :
+          featureSplit.getProgramResourceProviders()) {
+        try {
+          for (ProgramResource programResource : programResourceProvider.getProgramResources()) {
+            for (String classDescriptor : programResource.getClassDescriptors()) {
+              DexType type = dexItemFactory.createType(classDescriptor);
+              classToFeatureSplitMap.put(type, featureSplit);
+              if (representativeType == null || classDescriptor.compareTo(representativeType) > 0) {
+                representativeType = classDescriptor;
               }
             }
-          } catch (ResourceException e) {
-            throw reporter.fatalError(e.getMessage());
           }
-        }
-        if (representativeType != null) {
-          representativeStringsForFeatureSplit.put(featureSplit, representativeType);
-        }
-      }
-    }
-
-    FeatureSplit baseStartup;
-    if (startupConfiguration != null && startupConfiguration.hasStartupClasses()) {
-      StartupClass<DexType> representativeStartupClass = null;
-      for (StartupClass<DexType> startupClass : startupConfiguration.getStartupClasses()) {
-        if (startupClass.isSynthetic()
-            || classToFeatureSplitMap.containsKey(startupClass.getReference())) {
-          continue;
-        }
-        classToFeatureSplitMap.put(startupClass.getReference(), FeatureSplit.BASE_STARTUP);
-        if (representativeStartupClass == null
-            || startupClass
-                    .getReference()
-                    .getDescriptor()
-                    .compareTo(representativeStartupClass.getReference().getDescriptor())
-                > 0) {
-          representativeStartupClass = startupClass;
+        } catch (ResourceException e) {
+          throw reporter.fatalError(e.getMessage());
         }
       }
-      baseStartup = FeatureSplit.BASE_STARTUP;
-      representativeStringsForFeatureSplit.put(
-          baseStartup, representativeStartupClass.getReference().toDescriptorString());
-    } else {
-      baseStartup = FeatureSplit.BASE;
+      if (representativeType != null) {
+        representativeStringsForFeatureSplit.put(featureSplit, representativeType);
+      }
     }
-    return new ClassToFeatureSplitMap(
-        baseStartup, classToFeatureSplitMap, representativeStringsForFeatureSplit);
+    return new ClassToFeatureSplitMap(classToFeatureSplitMap, representativeStringsForFeatureSplit);
   }
 
   public int compareFeatureSplits(FeatureSplit featureSplitA, FeatureSplit featureSplitB) {
@@ -138,14 +102,6 @@ public class ClassToFeatureSplitMap {
     return representativeStringsForFeatureSplit
         .get(featureSplitA)
         .compareTo(representativeStringsForFeatureSplit.get(featureSplitB));
-  }
-
-  /**
-   * Returns the base startup if there are any startup classes given on input. Otherwise returns
-   * base.
-   */
-  public FeatureSplit getBaseStartup() {
-    return baseStartup;
   }
 
   public Map<FeatureSplit, Set<DexProgramClass>> getFeatureSplitClasses(
@@ -184,23 +140,32 @@ public class ClassToFeatureSplitMap {
 
   public FeatureSplit getFeatureSplit(
       DexType type, StartupOrder startupOrder, SyntheticItems syntheticItems) {
-    FeatureSplit feature = classToFeatureSplitMap.get(type);
-    if (feature != null) {
-      assert !syntheticItems.isSyntheticClass(type);
-      return feature;
+    if (syntheticItems == null) {
+      // Called from AndroidApp.dumpProgramResources().
+      assert startupOrder.isEmpty();
+      return classToFeatureSplitMap.getOrDefault(type, FeatureSplit.BASE);
     }
-    if (syntheticItems != null) {
-      feature = syntheticItems.getContextualFeatureSplit(type, this);
-      if (feature != null && !feature.isBase()) {
-        return feature;
+    FeatureSplit feature;
+    boolean isSynthetic = syntheticItems.isSyntheticClass(type);
+    if (isSynthetic) {
+      assert !classToFeatureSplitMap.containsKey(type);
+      if (syntheticItems.isSyntheticOfKind(type, k -> k.ENUM_UNBOXING_SHARED_UTILITY_CLASS)) {
+        // Use the startup base if there is one, such that we don't merge non-startup classes with
+        // the shared utility class in case it is used during startup. The use of base startup
+        // allows for merging startup classes with the shared utility class, however, which could be
+        // bad for startup if the shared utility class is not used during startup.
+        return startupOrder.isEmpty() ? FeatureSplit.BASE : FeatureSplit.BASE_STARTUP;
       }
-      for (DexType context : syntheticItems.getSynthesizingContextTypes(type)) {
-        if (startupOrder.containsSyntheticClassesSynthesizedFrom(context)) {
-          return FeatureSplit.BASE_STARTUP;
-        }
-      }
+      feature = syntheticItems.getContextualFeatureSplitOrDefault(type, FeatureSplit.BASE);
+    } else {
+      feature = classToFeatureSplitMap.getOrDefault(type, FeatureSplit.BASE);
     }
-    return FeatureSplit.BASE;
+    if (feature.isBase()) {
+      return startupOrder.contains(type, syntheticItems)
+          ? FeatureSplit.BASE_STARTUP
+          : FeatureSplit.BASE;
+    }
+    return feature;
   }
 
   // Note, this predicate may be misleading as the map does not include synthetics.
@@ -299,7 +264,7 @@ public class ClassToFeatureSplitMap {
           assert existing == null || existing == featureSplit;
         });
     return new ClassToFeatureSplitMap(
-        baseStartup, rewrittenClassToFeatureSplitMap, representativeStringsForFeatureSplit);
+        rewrittenClassToFeatureSplitMap, representativeStringsForFeatureSplit);
   }
 
   public ClassToFeatureSplitMap withoutPrunedItems(PrunedItems prunedItems) {
@@ -311,7 +276,7 @@ public class ClassToFeatureSplitMap {
           }
         });
     return new ClassToFeatureSplitMap(
-        baseStartup, rewrittenClassToFeatureSplitMap, representativeStringsForFeatureSplit);
+        rewrittenClassToFeatureSplitMap, representativeStringsForFeatureSplit);
   }
 
   // Static helpers to avoid verbose predicates.
