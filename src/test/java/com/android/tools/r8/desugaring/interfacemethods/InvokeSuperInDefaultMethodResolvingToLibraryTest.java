@@ -5,11 +5,14 @@
 package com.android.tools.r8.desugaring.interfacemethods;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -34,28 +37,14 @@ public class InvokeSuperInDefaultMethodResolvingToLibraryTest extends TestBase {
   private static final String EXPECTED_OUTPUT = StringUtils.lines("8");
 
   private void inspect(CodeInspector inspector) {
-    if (parameters
-        .getApiLevel()
-        .isLessThan(TestBase.apiLevelWithDefaultInterfaceMethodsSupport())) {
-      assertTrue(
-          inspector
-              .clazz(B.class)
-              .uniqueMethodWithName("compose")
-              .streamInstructions()
-              .filter(InstructionSubject::isInvoke)
-              .map(invoke -> invoke.getMethod().getHolderType().toString())
-              // TODO(b/234711664): This should not happen.
-              .anyMatch(name -> name.equals("java.util.function.Function$-CC")));
-    } else {
-      assertTrue(
-          inspector
-              .clazz(B.class)
-              .uniqueMethodWithName("compose")
-              .streamInstructions()
-              .filter(InstructionSubject::isInvoke)
-              .map(invoke -> invoke.getMethod().getHolderType().toString())
-              .noneMatch(name -> name.endsWith("$-CC")));
-    }
+    assertTrue(
+        inspector
+            .clazz(B.class)
+            .uniqueMethodWithName("compose")
+            .streamInstructions()
+            .filter(InstructionSubject::isInvoke)
+            .map(invoke -> invoke.getMethod().getHolderType().toString())
+            .noneMatch(name -> name.endsWith("$-CC")));
   }
 
   @Test
@@ -65,7 +54,87 @@ public class InvokeSuperInDefaultMethodResolvingToLibraryTest extends TestBase {
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspect(this::inspect);
+        .inspect(this::inspect)
+        .run(parameters.getRuntime(), TestClass.class)
+        .applyIf(
+            parameters.isDexRuntime()
+                && parameters
+                    .getRuntime()
+                    .asDex()
+                    .maxSupportedApiLevel()
+                    .isLessThan(AndroidApiLevel.N),
+            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
+            r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT));
+  }
+
+  @Test
+  public void testDesugaringWithApiLevelCheck() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    testForD8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
+        .addAndroidBuildVersion(parameters.getRuntime().asDex().maxSupportedApiLevel())
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(this::inspect)
+        .run(parameters.getRuntime(), TestClassWithApiLevelCheck.class)
+        .applyIf(
+            parameters.isDexRuntime()
+                && parameters
+                    .getRuntime()
+                    .asDex()
+                    .maxSupportedApiLevel()
+                    .isLessThan(AndroidApiLevel.N),
+            r -> r.assertSuccessWithOutputLines("No call"),
+            r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT));
+  }
+
+  @Test
+  public void testR8() throws Exception {
+    try {
+      testForR8(parameters.getBackend())
+          .addInnerClasses(getClass())
+          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
+          .setMinApi(parameters.getApiLevel())
+          .addKeepMainRule(TestClass.class)
+          .compile()
+          // .inspect(this::inspect)
+          .run(parameters.getRuntime(), TestClass.class)
+          .applyIf(
+              parameters.isDexRuntime()
+                  && parameters
+                      .getRuntime()
+                      .asDex()
+                      .maxSupportedApiLevel()
+                      .isLessThan(AndroidApiLevel.N),
+              r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
+              r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT));
+    } catch (CompilationFailedException e) {
+      // TODO(b/235184674): Fix this.
+      assertTrue(parameters.isCfRuntime());
+    }
+  }
+
+  // TODO(b/235184674): Fix this.
+  @Test(expected = CompilationFailedException.class)
+  public void testR8WithApiLevelCheck() throws Exception {
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(TestClassWithApiLevelCheck.class)
+        .compile()
+        .inspect(this::inspect)
+        .run(parameters.getRuntime(), TestClassWithApiLevelCheck.class)
+        .applyIf(
+            parameters.isDexRuntime()
+                && parameters
+                    .getRuntime()
+                    .asDex()
+                    .maxSupportedApiLevel()
+                    .isLessThan(AndroidApiLevel.N),
+            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
+            r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT));
   }
 
   static class TestClass {
@@ -76,6 +145,21 @@ public class InvokeSuperInDefaultMethodResolvingToLibraryTest extends TestBase {
 
     public static void main(String[] args) {
       m(new C());
+    }
+  }
+
+  static class TestClassWithApiLevelCheck {
+
+    private static void m(C c) {
+      System.out.println(c.compose(c).apply(2));
+    }
+
+    public static void main(String[] args) {
+      if (AndroidBuildVersion.VERSION >= 24) {
+        m(new C());
+      } else {
+        System.out.println("No call");
+      }
     }
   }
 
