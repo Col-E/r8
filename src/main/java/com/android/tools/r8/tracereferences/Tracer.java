@@ -48,6 +48,7 @@ import com.android.tools.r8.tracereferences.internal.TracedClassImpl;
 import com.android.tools.r8.tracereferences.internal.TracedFieldImpl;
 import com.android.tools.r8.tracereferences.internal.TracedMethodImpl;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
@@ -300,9 +301,20 @@ public class Tracer {
         MethodLookupResult lookupResult = graphLens().lookupInvokeDirect(method, getContext());
         assert lookupResult.getType().isDirect();
         DexMethod rewrittenMethod = lookupResult.getReference();
-        DexClass holder = appView.definitionFor(rewrittenMethod.getHolderType());
-        handleRewrittenMethodReference(
-            rewrittenMethod, rewrittenMethod.lookupMemberOnClass(holder));
+        BooleanBox seenMethod = new BooleanBox();
+        appView
+            .contextIndependentDefinitionForWithResolutionResult(rewrittenMethod.getHolderType())
+            .forEachClassResolutionResult(
+                holder -> {
+                  DexClassAndMethod target = rewrittenMethod.lookupMemberOnClass(holder);
+                  if (target != null) {
+                    handleRewrittenMethodReference(rewrittenMethod, target);
+                    seenMethod.set();
+                  }
+                });
+        if (seenMethod.isFalse()) {
+          handleRewrittenMethodReference(rewrittenMethod, (DexClassAndMethod) null);
+        }
       }
 
       @Override
