@@ -19,7 +19,6 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.List;
 import org.junit.Test;
@@ -35,40 +34,56 @@ public class SdkIntMemberValuePropagationTest extends TestBase {
     R8
   }
 
+  public enum Rule {
+    EMPTY(""),
+    ASSUME_NO_SIDE_EFFECTS_24(
+        StringUtils.lines(
+            "-assumenosideeffects class android.os.Build$VERSION {",
+            "  public static int SDK_INT return 24;",
+            "}")),
+    ASSUME_NO_SIDE_EFFECTS_24_29(
+        StringUtils.lines(
+            "-assumenosideeffects class android.os.Build$VERSION {",
+            "  public static int SDK_INT return 24..25;",
+            "}")),
+    ASSUME_VALUES_24(
+        StringUtils.lines(
+            "-assumevalues class android.os.Build$VERSION {",
+            "  public static int SDK_INT return 24;",
+            "}")),
+    ASSUME_VALUES_24_29(
+        StringUtils.lines(
+            "-assumevalues class android.os.Build$VERSION {",
+            "  public static int SDK_INT return 24..29;",
+            "}"));
+
+    private final String rule;
+
+    Rule(String rule) {
+      this.rule = rule;
+    }
+
+    String getRule() {
+      return rule;
+    }
+  }
+
   @Parameter(0)
   public TestParameters parameters;
 
   @Parameter(1)
-  public String rule;
+  public Rule rule;
 
   @Parameterized.Parameters(name = "{0}, rule: {1}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(),
-        ImmutableList.of(
-            "",
-            StringUtils.lines(
-                "-assumenosideeffects class android.os.Build$VERSION {",
-                "  public static int SDK_INT return 24;",
-                "}"),
-            StringUtils.lines(
-                "-assumenosideeffects class android.os.Build$VERSION {",
-                "  public static int SDK_INT return 24..25;",
-                "}"),
-            StringUtils.lines(
-                "-assumevalues class android.os.Build$VERSION {",
-                "  public static int SDK_INT return 24;",
-                "}"),
-            StringUtils.lines(
-                "-assumevalues class android.os.Build$VERSION {",
-                "  public static int SDK_INT return 24..29;",
-                "}")));
+        getTestParameters().withAllRuntimesAndApiLevels().build(), Rule.values());
   }
 
   @Test
   public void testD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
-    assumeTrue(rule.equals(""));
+    assumeTrue(rule.getRule().equals(""));
     testForD8()
         .addProgramClassFileData(getTransformedMainClass())
         .addLibraryClassFileData(getTransformedBuildVERSIONClass())
@@ -86,7 +101,7 @@ public class SdkIntMemberValuePropagationTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getTransformedMainClass())
         .addKeepMainRule(Main.class)
-        .addKeepRules(rule)
+        .addKeepRules(rule.getRule())
         .addLibraryClassFileData(getTransformedBuildVERSIONClass())
         .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
         .setMinApi(parameters.getApiLevel())
@@ -101,7 +116,7 @@ public class SdkIntMemberValuePropagationTest extends TestBase {
     if (compiler == Compiler.D8) {
       return parameters.getApiLevel().isLessThan(AndroidApiLevel.N) ? "<N" : ">=N";
     } else {
-      if (rule.equals("")) {
+      if (rule.getRule().equals("")) {
         if (parameters.isDexRuntime()) {
           return getExpectedOutput(Compiler.D8);
         }
@@ -137,7 +152,7 @@ public class SdkIntMemberValuePropagationTest extends TestBase {
         mainSubject
             .streamInstructions()
             .anyMatch(x -> x.isStaticGet() && x.getField().getName().toString().equals("SDK_INT"));
-    if (compiler == Compiler.D8 || rule.equals("")) {
+    if (compiler == Compiler.D8 || rule.getRule().equals("")) {
       assertEquals(
           parameters.isCfRuntime() || parameters.getApiLevel().isLessThan(AndroidApiLevel.N),
           hasIf);
@@ -146,7 +161,7 @@ public class SdkIntMemberValuePropagationTest extends TestBase {
           readsMinSdkField);
     } else {
       assertFalse(hasIf);
-      assertEquals(rule.startsWith("-assumevalues"), readsMinSdkField);
+      assertEquals(rule.getRule().startsWith("-assumevalues"), readsMinSdkField);
     }
   }
 
