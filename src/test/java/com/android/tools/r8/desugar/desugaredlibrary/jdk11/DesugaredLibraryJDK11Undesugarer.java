@@ -85,7 +85,7 @@ public class DesugaredLibraryJDK11Undesugarer extends DesugaredLibraryTestBase {
       @Override
       public void visitMethodInsn(
           int opcode, String owner, String name, String descriptor, boolean isInterface) {
-        if (opcode == Opcodes.INVOKESTATIC && name.equals("wrap_convert")) {
+        if (opcode == Opcodes.INVOKESTATIC) {
           if (ownerMap.containsKey(owner)) {
             String nonDesugaredType = ownerMap.get(owner);
             int firstTypeEnd = descriptor.indexOf(";");
