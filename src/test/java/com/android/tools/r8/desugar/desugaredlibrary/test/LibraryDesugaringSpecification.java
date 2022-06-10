@@ -152,7 +152,7 @@ public class LibraryDesugaringSpecification {
       Descriptor descriptor) {
     this(
         name,
-        ImmutableSet.of(desugarJdkLibs, ToolHelper.DESUGAR_LIB_CONVERSIONS),
+        ImmutableSet.of(desugarJdkLibs, ToolHelper.getConvertedDesugaredLibConversions()),
         Paths.get("src/library_desugar/" + specificationPath),
         ImmutableSet.of(ToolHelper.getAndroidJar(androidJarLevel)),
         descriptor,

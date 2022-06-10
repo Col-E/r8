@@ -4,7 +4,6 @@
 
 package java.adapter;
 
-import android.os.Build.VERSION;
 import desugar.sun.nio.fs.DesugarDefaultFileTypeDetector;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -18,18 +17,19 @@ public final class HybridFileTypeDetector {
   private HybridFileTypeDetector() {}
 
   public static FileTypeDetector create() {
-    if (VERSION.SDK_INT >= 26) {
+    try {
+      // On API 26 and above, java.nio.file.Files is present.
+      Class.forName("java.nio.file.Files");
       return new PlatformFileTypeDetector();
-    } else {
+    } catch (ClassNotFoundException ignored) {
       return DesugarDefaultFileTypeDetector.create();
     }
   }
 
-  static class PlatformFileTypeDetector extends java.nio.file.spi.FileTypeDetector {
+  static class PlatformFileTypeDetector extends FileTypeDetector {
     @Override
     public String probeContentType(Path path) throws IOException {
-      // Relies at runtime on java.nio.file.Files.
-      return j$.nio.file.Files.probeContentType(path);
+      return j$.nio.file.Files.probeContentType(j$.nio.file.Path.wrap_convert(path));
     }
   }
 }

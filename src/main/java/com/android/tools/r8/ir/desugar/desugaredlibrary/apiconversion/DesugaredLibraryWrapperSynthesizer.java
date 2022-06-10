@@ -118,13 +118,15 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
         || appView.getSyntheticItems().isSyntheticOfKind(type, kinds -> kinds.VIVIFIED_WRAPPER);
   }
 
-  public boolean shouldConvert(DexType type, DexMethod method) {
-    return shouldConvert(type, method, null);
-  }
-
-  public boolean shouldConvert(DexType type, DexMethod method, ProgramMethod context) {
+  public boolean shouldConvert(
+      DexType type, DexType apiConversionCollection, DexMethod method, ProgramMethod context) {
     if (type.isArrayType()) {
-      return shouldConvert(type.toBaseType(appView.dexItemFactory()), method, context);
+      assert apiConversionCollection == null;
+      return shouldConvert(
+          type.toBaseType(appView.dexItemFactory()), apiConversionCollection, method, context);
+    }
+    if (apiConversionCollection != null) {
+      return true;
     }
     if (!appView.typeRewriter.hasRewrittenType(type, appView)) {
       return false;

@@ -2,12 +2,11 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package j$.nio.file;
+package j$.nio.file.spi;
 
-import java.io.IOException;
-
-public class Files {
-  public static String probeContentType(j$.nio.file.Path path) throws IOException {
+public class FileSystemProvider {
+  public static java.nio.file.spi.FileSystemProvider wrap_convert(FileSystemProvider provider) {
+    // Rewritten in ASM to the wrapper method.
     return null;
   }
 }

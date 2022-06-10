@@ -4,10 +4,12 @@
 
 package j$.nio.file;
 
-import java.io.IOException;
+public class LinkOption extends OpenOption {
+  public static java.nio.file.LinkOption wrap_convert(j$.nio.file.LinkOption option) {
+    return null;
+  }
 
-public class Files {
-  public static String probeContentType(j$.nio.file.Path path) throws IOException {
+  public static j$.nio.file.LinkOption wrap_convert(java.nio.file.LinkOption option) {
     return null;
   }
 }

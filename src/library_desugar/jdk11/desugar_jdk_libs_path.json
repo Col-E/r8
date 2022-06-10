@@ -106,9 +106,9 @@
         "java.nio.file.Path java.io.File#toPath()": "java.io.DesugarFile"
       },
       "api_conversion_collection": {
-        "java.nio.channels.AsynchronousFileChannel java.nio.file.spi.FileSystemProvider#newAsynchronousFileChannel(java.nio.file.Path, java.util.Set, java.util.concurrent.ExecutorService, java.nio.file.attribute.FileAttribute[])" : [1, "OpenOption"],
-        "java.nio.channels.SeekableByteChannel java.nio.file.spi.FileSystemProvider#newByteChannel(java.nio.file.Path, java.util.Set, java.nio.file.attribute.FileAttribute[])" : [1, "OpenOption"],
-        "java.nio.channels.FileChannel java.nio.file.spi.FileSystemProvider#newFileChannel(java.nio.file.Path, java.util.Set, java.nio.file.attribute.FileAttribute[])" : [1, "OpenOption"],
+        "java.nio.channels.AsynchronousFileChannel java.nio.file.spi.FileSystemProvider#newAsynchronousFileChannel(java.nio.file.Path, java.util.Set, java.util.concurrent.ExecutorService, java.nio.file.attribute.FileAttribute[])" : [1, "java.nio.file.OpenOption"],
+        "java.nio.channels.SeekableByteChannel java.nio.file.spi.FileSystemProvider#newByteChannel(java.nio.file.Path, java.util.Set, java.nio.file.attribute.FileAttribute[])" : [1, "java.nio.file.OpenOption"],
+        "java.nio.channels.FileChannel java.nio.file.spi.FileSystemProvider#newFileChannel(java.nio.file.Path, java.util.Set, java.nio.file.attribute.FileAttribute[])" : [1, "java.nio.file.OpenOption"],
         "java.util.List java.nio.file.WatchKey#pollEvents()": [-1, "java.nio.file.WatchEvent"]
       },
       "wrapper_conversion": [
@@ -117,6 +117,7 @@
         "java.nio.file.Path",
         "java.nio.file.FileSystem",
         "java.nio.file.WatchService",
+        "java.nio.file.WatchEvent",
         "java.nio.file.WatchEvent$Kind",
         "java.nio.file.WatchKey",
         "java.nio.file.Watchable",
@@ -124,7 +125,9 @@
         "java.nio.file.WatchEvent$Modifier",
         "java.nio.file.attribute.UserPrincipalLookupService",
         "java.nio.file.spi.FileSystemProvider",
+        "java.nio.file.spi.FileTypeDetector",
         "java.nio.file.AccessMode",
+        "java.nio.file.StandardOpenOption",
         "java.nio.file.LinkOption",
         "java.nio.file.CopyOption",
         "java.nio.file.attribute.GroupPrincipal",
@@ -135,7 +138,6 @@
         "java.nio.file.attribute.FileStoreAttributeView",
         "java.nio.file.DirectoryStream$Filter",
         "java.nio.file.DirectoryStream",
-        "java.nio.file.OpenOption",
         "java.nio.file.attribute.BasicFileAttributes"
       ],
       "wrapper_conversion_excluding": {
@@ -146,6 +148,7 @@
         ]
       },
       "custom_conversion": {
+        "java.nio.file.OpenOption": "java.nio.file.OpenOptionConversions",
         "java.nio.file.attribute.FileTime": "java.nio.file.attribute.FileAttributeConversions"
       }
     },
@@ -401,8 +404,26 @@
         "java.nio.file.attribute.FileTime": {
           "j$.nio.file.attribute.FileTime": "java.nio.file.attribute.FileTime"
         },
+        "java.nio.file.OpenOption": {
+          "j$.nio.file.OpenOption": "java.nio.file.OpenOption"
+        },
+        "java.nio.file.StandardOpenOption": {
+          "j$.nio.file.StandardOpenOption": "java.nio.file.StandardOpenOption"
+        },
+        "java.nio.file.LinkOption": {
+          "j$.nio.file.LinkOption": "java.nio.file.LinkOption"
+        },
         "java.nio.file.Files": {
           "j$.nio.file.Files": "java.nio.file.Files"
+        },
+        "java.nio.file.FileSystem": {
+          "j$.nio.file.FileSystem": "java.nio.file.FileSystem"
+        },
+        "java.nio.file.spi.FileSystemProvider": {
+          "j$.nio.file.spi.FileSystemProvider": "java.nio.file.spi.FileSystemProvider"
+        },
+        "java.nio.file.Path": {
+          "j$.nio.file.Path": "java.nio.file.Path"
         }
       },
       "retarget_method": {

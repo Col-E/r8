@@ -44,6 +44,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
   private final CompilationSpecification compilationSpecification;
   private final TestCompilerBuilder<?, ?, ?, ? extends SingleTestRunResult<?>, ?> builder;
+  private String l8ExtraKeepRules = "";
   private Consumer<InternalOptions> l8OptionModifier = ConsumerUtils.emptyConsumer();
   private boolean l8FinalPrefixVerification = true;
 
@@ -202,6 +203,13 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
 
   public DesugaredLibraryTestBuilder<T> addKeepRules(String keepRules) {
     withR8TestBuilder(b -> b.addKeepRules(keepRules));
+    return this;
+  }
+
+  public DesugaredLibraryTestBuilder<T> addL8KeepRules(String keepRules) {
+    if (compilationSpecification.isL8Shrink()) {
+      l8ExtraKeepRules += keepRules + "\n";
+    }
     return this;
   }
 
@@ -369,6 +377,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   private void configure(L8TestBuilder l8Builder) {
     l8Builder
         .applyIf(!l8FinalPrefixVerification, L8TestBuilder::ignoreFinalPrefixVerification)
+        .applyIf(compilationSpecification.isL8Shrink(), b -> b.addKeepRules(l8ExtraKeepRules))
         .addOptionsModifier(l8OptionModifier);
   }
 

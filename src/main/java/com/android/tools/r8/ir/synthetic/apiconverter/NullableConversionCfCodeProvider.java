@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.ir.synthetic.apiconverter;
 
+import static com.android.tools.r8.cf.code.CfStackInstruction.Opcode.Dup;
+import static com.android.tools.r8.cf.code.CfStackInstruction.Opcode.Pop;
+
 import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.cf.code.CfArithmeticBinop.Opcode;
 import com.android.tools.r8.cf.code.CfArrayLength;
@@ -278,6 +281,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
       if (collectionType == factory.setType) {
         DexType hashSetType = factory.createType("Ljava/util/HashSet;");
         instructions.add(new CfNew(hashSetType));
+        instructions.add(new CfStackInstruction(Dup));
         instructions.add(
             new CfInvoke(
                 Opcodes.INVOKESPECIAL,
@@ -290,6 +294,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
         assert collectionType == factory.listType;
         DexType arrayListType = factory.createType("Ljava/util/ArrayList;");
         instructions.add(new CfNew(arrayListType));
+        instructions.add(new CfStackInstruction(Dup));
         instructions.add(
             new CfInvoke(
                 Opcodes.INVOKESPECIAL,
@@ -333,9 +338,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
           new CfInvoke(
               Opcodes.INVOKEINTERFACE,
               factory.createMethod(
-                  factory.iteratorType,
-                  factory.createProto(conversion.getArgumentType(0, true)),
-                  "next"),
+                  factory.iteratorType, factory.createProto(factory.objectType), "next"),
               true));
       instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, conversion, false));
       instructions.add(
@@ -346,6 +349,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
                   factory.createProto(factory.booleanType, factory.objectType),
                   "add"),
               true));
+      instructions.add(new CfStackInstruction(Pop));
       instructions.add(new CfGoto(loopLabel));
 
       // return t1;

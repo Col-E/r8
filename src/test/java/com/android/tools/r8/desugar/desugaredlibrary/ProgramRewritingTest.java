@@ -52,7 +52,7 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
             "JDK8_CL",
             ImmutableSet.of(
                 DESUGARED_JDK_8_LIB_JAR,
-                ToolHelper.DESUGAR_LIB_CONVERSIONS,
+                ToolHelper.getConvertedDesugaredLibConversions(),
                 ToolHelper.getCoreLambdaStubs()),
             JDK8.getSpecification(),
             ImmutableSet.of(ToolHelper.getAndroidJar(AndroidApiLevel.O)),
@@ -63,7 +63,7 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
             "JDK11_CL",
             ImmutableSet.of(
                 ToolHelper.getUndesugaredJdk11LibJarForTesting(),
-                ToolHelper.DESUGAR_LIB_CONVERSIONS,
+                ToolHelper.getConvertedDesugaredLibConversions(),
                 ToolHelper.getCoreLambdaStubs()),
             JDK11.getSpecification(),
             ImmutableSet.of(ToolHelper.getAndroidJar(AndroidApiLevel.R)),
