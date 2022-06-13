@@ -5,9 +5,10 @@
 package j$.nio.file;
 
 import java.io.IOException;
+import java.nio.file.Path;
 
 public class Files {
-  public static String probeContentType(j$.nio.file.Path path) throws IOException {
+  public static String probeContentType(Path path) throws IOException {
     return null;
   }
 }

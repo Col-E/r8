@@ -470,9 +470,8 @@ public class DesugaredLibraryConversionCfProvider {
       BiFunction<DexType, DexType, DexMethod> methodSupplier,
       ProgramMethod context) {
     DexType returnType = invokedMethod.proto.returnType;
-    DexType apiConversionCollection = getReturnApiConversionCollection(invokedMethod);
-    if (wrapperSynthesizer.shouldConvert(
-        returnType, apiConversionCollection, invokedMethod, context)) {
+    if (wrapperSynthesizer.shouldConvert(returnType, invokedMethod, context)) {
+      DexType apiConversionCollection = getReturnApiConversionCollection(invokedMethod);
       return methodSupplier.apply(returnType, apiConversionCollection);
     }
     return null;
@@ -518,8 +517,7 @@ public class DesugaredLibraryConversionCfProvider {
     for (int i = 0; i < parameters.length; i++) {
       DexType apiConversionCollection = getApiConversionCollection(invokedMethod, i);
       DexType argType = parameters[i];
-      if (wrapperSynthesizor.shouldConvert(
-          argType, apiConversionCollection, invokedMethod, context)) {
+      if (wrapperSynthesizor.shouldConvert(argType, invokedMethod, context)) {
         parameterConversions[i] = methodSupplier.apply(argType, apiConversionCollection);
       }
     }

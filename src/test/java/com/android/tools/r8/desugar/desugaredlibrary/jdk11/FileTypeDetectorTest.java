@@ -74,7 +74,7 @@ public class FileTypeDetectorTest extends DesugaredLibraryTestBase {
   }
 
   @Test
-  public void test() throws Throwable {
+  public void test() throws Exception {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addInnerClasses(getClass())
         .addProgramClasses(GoogleIcon.class)

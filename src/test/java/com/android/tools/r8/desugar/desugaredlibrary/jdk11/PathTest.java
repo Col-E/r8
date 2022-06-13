@@ -7,11 +7,9 @@ import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpec
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
@@ -30,14 +28,7 @@ public class PathTest extends DesugaredLibraryTestBase {
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
   private final CompilationSpecification compilationSpecification;
 
-  private static final String EXPECTED_RESULT_DESUGARED_LIB =
-      StringUtils.lines(
-          "x.txt", "dir", "dir/x.txt", "/", "class j$.desugar.sun.nio.fs.DesugarLinuxFileSystem");
-  private static final String EXPECTED_RESULT_HIGH_API_DESUGARED_LIB =
-      StringUtils.lines(
-          "x.txt", "dir", "dir/x.txt", "/", "class j$.nio.file.FileSystem$VivifiedWrapper");
-  private static final String EXPECTED_RESULT_HIGH_API_LEVEL =
-      StringUtils.lines("x.txt", "dir", "dir/x.txt", "/", "class sun.nio.fs.LinuxFileSystem");
+  private static final String EXPECTED_RESULT = StringUtils.lines("x.txt", "dir", "dir/x.txt", "/");
 
   @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
@@ -56,27 +47,13 @@ public class PathTest extends DesugaredLibraryTestBase {
     this.compilationSpecification = compilationSpecification;
   }
 
-  private String getExpectedResult() {
-    if (parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V8_1_0)) {
-      if (parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.O)) {
-        return EXPECTED_RESULT_HIGH_API_LEVEL;
-      } else {
-        return EXPECTED_RESULT_HIGH_API_DESUGARED_LIB;
-      }
-    }
-    return EXPECTED_RESULT_DESUGARED_LIB;
-  }
-
   @Test
-  public void test() throws Throwable {
+  public void test() throws Exception {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
-        .addL8KeepRules("-keepnames class j$.desugar.sun.nio.fs.**")
-        .addL8KeepRules("-keepnames class j$.nio.file.FileSystem**")
         .addInnerClasses(PathTest.class)
         .addKeepMainRule(TestClass.class)
-        .compile()
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(getExpectedResult());
+        .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
   public static class TestClass {
@@ -90,7 +67,6 @@ public class PathTest extends DesugaredLibraryTestBase {
       Path resolve = path2.resolve(path1);
       System.out.println(resolve);
       System.out.println(resolve.getFileSystem().getSeparator());
-      System.out.println(resolve.getFileSystem().getClass());
     }
   }
 }
