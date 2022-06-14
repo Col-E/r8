@@ -19,6 +19,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.junit.Test;
@@ -103,7 +104,7 @@ public class TraceMethodResolutionWithMissingLibraryAndProgramClassTest extends 
             Reference.methodFromMethod(B.class.getMethod("baz")),
             Reference.methodFromMethod(B.class.getMethod("qux")));
     assertEquals(foundSet, consumer.seenMethods);
-    assertEquals(foundSet, consumer.seenMissingMethods);
+    assertEquals(Collections.emptySet(), consumer.seenMissingMethods);
   }
 
   // A is added to both library and program, but the program one is missing the methods {foo,bar}

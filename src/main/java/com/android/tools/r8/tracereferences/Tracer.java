@@ -373,6 +373,7 @@ public class Tracer {
           DexMethod method,
           MethodResolutionResult resolutionResult,
           Function<SingleResolutionResult<?>, DexClassAndMethod> getResult) {
+        BooleanBox seenSingleResult = new BooleanBox();
         resolutionResult.forEachMethodResolutionResult(
             result -> {
               if (result.isFailedResolution()) {
@@ -382,13 +383,20 @@ public class Tracer {
                         type -> addType(type, referencedFrom),
                         methodCausingFailure ->
                             handleRewrittenMethodReference(method, methodCausingFailure));
-                if (!result.asFailedResolution().hasTypesOrMethodsCausingError()) {
-                  handleRewrittenMethodReference(method, (DexEncodedMethod) null);
-                }
                 return;
               }
+              seenSingleResult.set();
               handleRewrittenMethodReference(method, getResult.apply(result.asSingleResolution()));
             });
+        if (seenSingleResult.isFalse()) {
+          resolutionResult.forEachMethodResolutionResult(
+              failingResult -> {
+                assert failingResult.isFailedResolution();
+                if (!failingResult.asFailedResolution().hasMethodsCausingError()) {
+                  handleRewrittenMethodReference(method, (DexEncodedMethod) null);
+                }
+              });
+        }
       }
 
       private void handleRewrittenMethodReference(
