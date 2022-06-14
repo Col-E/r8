@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph.analysis;
 
+import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.LookupTarget;
@@ -34,6 +35,9 @@ public abstract class EnqueuerAnalysis {
       ProgramDefinition context,
       Enqueuer enqueuer,
       EnqueuerWorklist worklist) {}
+
+  /** Called when a non program class is visited and marked live */
+  public void processNewLiveNonProgramType(ClasspathOrLibraryClass clazz) {}
 
   /** Called when a method's code has been processed by the registry. */
   public void processTracedCode(

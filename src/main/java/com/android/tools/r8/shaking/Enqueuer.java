@@ -786,6 +786,7 @@ public class Enqueuer {
         // rules.
         handleLibraryTypeInheritingFromProgramType(clazz.asLibraryClass());
       }
+      analyses.forEach(analysis -> analysis.processNewLiveNonProgramType(clazz));
       clazz.forEachClassField(
           field ->
               addNonProgramClassToWorklist(

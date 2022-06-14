@@ -48,7 +48,9 @@ public class ApiModelBridgeToLibraryMethodTest extends TestBase {
                     diagnostics -> {
                       // TODO(b/235184674): Should not throw with an error.
                       diagnostics.assertErrorMessageThatMatches(
-                          containsString("Cannot compute relationship for not set"));
+                          containsString(
+                              "Unexpected virtual method without library method override"
+                                  + " information"));
                     }));
   }
 

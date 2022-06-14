@@ -7,6 +7,7 @@ package com.android.tools.r8.graph.analysis;
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.DexClassAndMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.LookupTarget;
@@ -67,6 +68,11 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
   @Override
   public void notifyMarkFieldAsReachable(ProgramField field, EnqueuerWorklist worklist) {
     computeAndSetApiLevelForDefinition(field);
+  }
+
+  @Override
+  public void processNewLiveNonProgramType(ClasspathOrLibraryClass clazz) {
+    clazz.forEachClassMethod(this::computeAndSetApiLevelForDefinition);
   }
 
   @Override
