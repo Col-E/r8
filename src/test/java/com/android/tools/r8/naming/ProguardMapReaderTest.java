@@ -56,17 +56,20 @@ public class ProguardMapReaderTest extends TestBase {
 
   @Test
   public void roundTripTest() throws IOException {
-    ClassNameMapper firstMapper = ClassNameMapper.mapperFromFile(Paths.get(ROOT, EXAMPLE_MAP));
-    ClassNameMapper secondMapper = ClassNameMapper.mapperFromString(firstMapper.toString());
+    ClassNameMapper firstMapper =
+        ClassNameMapper.mapperFromFile(Paths.get(ROOT, EXAMPLE_MAP)).sorted();
+    ClassNameMapper secondMapper =
+        ClassNameMapper.mapperFromString(firstMapper.toString()).sorted();
     Assert.assertEquals(firstMapper, secondMapper);
   }
 
   @Test
   public void roundTripTestWithLeadingBOM() throws IOException {
-    ClassNameMapper firstMapper = ClassNameMapper.mapperFromFile(Paths.get(ROOT, EXAMPLE_MAP));
+    ClassNameMapper firstMapper =
+        ClassNameMapper.mapperFromFile(Paths.get(ROOT, EXAMPLE_MAP)).sorted();
     assertTrue(firstMapper.toString().charAt(0) != StringUtils.BOM);
     ClassNameMapper secondMapper =
-        ClassNameMapper.mapperFromString(StringUtils.BOM + firstMapper.toString());
+        ClassNameMapper.mapperFromString(StringUtils.BOM + firstMapper.toString()).sorted();
     assertTrue(secondMapper.toString().charAt(0) != StringUtils.BOM);
     Assert.assertEquals(firstMapper, secondMapper);
     byte[] bytes = Files.readAllBytes(Paths.get(ROOT, EXAMPLE_MAP));
@@ -76,7 +79,7 @@ public class ProguardMapReaderTest extends TestBase {
     assertEquals(0xef, Byte.toUnsignedLong(bytes[0]));
     assertEquals(0xbb, Byte.toUnsignedLong(bytes[1]));
     assertEquals(0xbf, Byte.toUnsignedLong(bytes[2]));
-    ClassNameMapper thirdMapper = ClassNameMapper.mapperFromFile(mapFileWithBOM);
+    ClassNameMapper thirdMapper = ClassNameMapper.mapperFromFile(mapFileWithBOM).sorted();
     assertTrue(thirdMapper.toString().charAt(0) != StringUtils.BOM);
     Assert.assertEquals(firstMapper, thirdMapper);
   }
@@ -93,7 +96,8 @@ public class ProguardMapReaderTest extends TestBase {
             "" + StringUtils.BOM,
             StringUtils.BOM + " " + StringUtils.BOM);
     for (String whitespace : ws) {
-      ClassNameMapper firstMapper = ClassNameMapper.mapperFromFile(Paths.get(ROOT, EXAMPLE_MAP));
+      ClassNameMapper firstMapper =
+          ClassNameMapper.mapperFromFile(Paths.get(ROOT, EXAMPLE_MAP)).sorted();
       assertTrue(firstMapper.toString().charAt(0) != StringUtils.BOM);
       StringBuilder buildWithWhitespace = new StringBuilder();
       char prevChar = '\0';
@@ -114,13 +118,13 @@ public class ProguardMapReaderTest extends TestBase {
         prevChar = c;
       }
       ClassNameMapper secondMapper =
-          ClassNameMapper.mapperFromString(buildWithWhitespace.toString());
+          ClassNameMapper.mapperFromString(buildWithWhitespace.toString()).sorted();
       assertFalse(firstMapper.toString().contains("" + StringUtils.BOM));
       Assert.assertEquals(firstMapper, secondMapper);
       byte[] bytes = Files.readAllBytes(Paths.get(ROOT, EXAMPLE_MAP));
       assertNotEquals(0xef, Byte.toUnsignedLong(bytes[0]));
       Path mapFileWithBOM = writeTextToTempFile(StringUtils.BOM + firstMapper.toString());
-      ClassNameMapper thirdMapper = ClassNameMapper.mapperFromFile(mapFileWithBOM);
+      ClassNameMapper thirdMapper = ClassNameMapper.mapperFromFile(mapFileWithBOM).sorted();
       assertTrue(thirdMapper.toString().charAt(0) != StringUtils.BOM);
       Assert.assertEquals(firstMapper, thirdMapper);
     }

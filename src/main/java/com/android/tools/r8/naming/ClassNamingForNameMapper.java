@@ -265,6 +265,40 @@ public class ClassNamingForNameMapper implements ClassNaming {
     return mappedRangesByRenamedName.get(renamedName);
   }
 
+  public boolean isEmpty() {
+    return methodMembers.isEmpty() && fieldMembers.isEmpty();
+  }
+
+  public ClassNamingForNameMapper combine(ClassNamingForNameMapper otherMapping) {
+    if (!originalName.equals(otherMapping.originalName)) {
+      throw new RuntimeException(
+          "Cannot combine mapping for "
+              + renamedName
+              + " because it maps back to both "
+              + originalName
+              + " and "
+              + otherMapping.originalName
+              + ".");
+    }
+    if (!renamedName.equals(otherMapping.renamedName)) {
+      throw new RuntimeException(
+          "Cannot combine mapping for "
+              + originalName
+              + " because it maps forward to both "
+              + originalName
+              + " and "
+              + otherMapping.originalName
+              + ".");
+    }
+    if (this.isEmpty()) {
+      return otherMapping;
+    } else if (otherMapping.isEmpty()) {
+      return this;
+    } else {
+      throw new RuntimeException("R8 Retrace do not support merging of partial class mappings.");
+    }
+  }
+
   @Override
   public MemberNaming lookup(Signature renamedSignature) {
     if (renamedSignature.kind() == SignatureKind.METHOD) {

@@ -65,7 +65,6 @@ public class ClassNameMapper implements ProguardMap {
 
     private ImmutableMap<String, ClassNamingForNameMapper> buildClassNameMappings() {
       ImmutableMap.Builder<String, ClassNamingForNameMapper> builder = ImmutableMap.builder();
-      builder.orderEntriesByValue(Comparator.comparing(x -> x.originalName));
       mapping.forEach(
           (renamedName, valueBuilder) -> builder.put(renamedName, valueBuilder.build()));
       return builder.build();
@@ -240,6 +239,34 @@ public class ClassNameMapper implements ProguardMap {
 
   public String getSourceFile(String typeName) {
     return originalSourceFiles.get(typeName);
+  }
+
+  public ClassNameMapper combine(ClassNameMapper other) {
+    ImmutableMap.Builder<String, ClassNamingForNameMapper> builder = ImmutableMap.builder();
+    Map<String, ClassNamingForNameMapper> otherClassMappings = other.getClassNameMappings();
+    for (Entry<String, ClassNamingForNameMapper> mappingEntry : classNameMappings.entrySet()) {
+      ClassNamingForNameMapper otherMapping = otherClassMappings.get(mappingEntry.getKey());
+      if (otherMapping == null) {
+        builder.put(mappingEntry);
+      } else {
+        builder.put(mappingEntry.getKey(), mappingEntry.getValue().combine(otherMapping));
+      }
+    }
+    otherClassMappings.forEach(
+        (otherMappingClass, otherMapping) -> {
+          // Collisions are handled above so only take non-existing mappings.
+          if (!classNameMappings.containsKey(otherMappingClass)) {
+            builder.put(otherMappingClass, otherMapping);
+          }
+        });
+    otherClassMappings.forEach(builder::put);
+    Set<MapVersionMappingInformation> newMapVersions = new LinkedHashSet<>(getMapVersions());
+    newMapVersions.addAll(other.getMapVersions());
+    Map<String, String> newSourcesFiles = new HashMap<>(originalSourceFiles);
+    // This will overwrite existing source files but the chance of that happening should be very
+    // slim.
+    newSourcesFiles.putAll(other.originalSourceFiles);
+    return new ClassNameMapper(builder.build(), newMapVersions, newSourcesFiles);
   }
 
   @Override
