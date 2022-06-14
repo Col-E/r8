@@ -3,9 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.R8CommandTest.getOutputPath;
 import static com.android.tools.r8.ToolHelper.EXAMPLES_BUILD_DIR;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -696,6 +698,36 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
             ToolHelper.getAndroidJar(AndroidApiLevel.R).toString());
     InternalOptions options = getOptionsWithLoadedDesugaredLibraryConfiguration(d8Command, false);
     assertFalse(options.machineDesugaredLibrarySpecification.getRewriteType().isEmpty());
+  }
+
+  @Test
+  public void desugaredLibraryWithOutputConf() throws CompilationFailedException, IOException {
+    Path pgout = temp.getRoot().toPath().resolve("pgout.conf");
+    D8Command d8Command =
+        parse(
+            "--desugared-lib",
+            "src/library_desugar/desugar_jdk_libs.json",
+            "--lib",
+            ToolHelper.getAndroidJar(AndroidApiLevel.R).toString(),
+            "--desugared-lib-pg-conf-output",
+            pgout.toString());
+    InternalOptions options = getOptionsWithLoadedDesugaredLibraryConfiguration(d8Command, false);
+    assertFalse(options.machineDesugaredLibrarySpecification.getRewriteType().isEmpty());
+  }
+
+  @Test
+  public void desugaredLibraryWithOutputConfMissingArg() {
+    TestDiagnosticMessagesImpl diagnostics = new TestDiagnosticMessagesImpl();
+    try {
+      parse(
+          diagnostics,
+          "--desugared-lib",
+          "src/library_desugar/desugar_jdk_libs.json",
+          "--desugared-lib-pg-conf-output");
+      fail("Expected parse error");
+    } catch (CompilationFailedException e) {
+      diagnostics.assertErrorsMatch(diagnosticMessage(containsString("Missing parameter")));
+    }
   }
 
   @Test

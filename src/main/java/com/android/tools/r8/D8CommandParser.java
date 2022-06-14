@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.ParseFlagInfoImpl.flag1;
+
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
@@ -34,6 +36,7 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
           "--main-dex-list",
           "--main-dex-list-output",
           "--desugared-lib",
+          "--desugared-lib-pg-conf-output",
           THREAD_COUNT_FLAG);
 
   public static List<ParseFlagInfo> getFlags() {
@@ -64,6 +67,11 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
                 "Synthetic classes are with their originating class."))
         .add(ParseFlagInfoImpl.flag0("--no-desugaring", "Force disable desugaring."))
         .add(ParseFlagInfoImpl.getDesugaredLib())
+        .add(
+            flag1(
+                "--desugared-lib-pg-conf-output",
+                "<file>",
+                "Output the Proguard configuration for L8 to <file>."))
         .add(ParseFlagInfoImpl.getMainDexRules())
         .add(ParseFlagInfoImpl.getMainDexList())
         .add(ParseFlagInfoImpl.getMainDexListOutput())
@@ -291,6 +299,9 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
         builder.setDisableDesugaring(true);
       } else if (arg.equals("--desugared-lib")) {
         builder.addDesugaredLibraryConfiguration(StringResource.fromFile(Paths.get(nextArg)));
+      } else if (arg.equals("--desugared-lib-pg-conf-output")) {
+        StringConsumer consumer = new StringConsumer.FileConsumer(Paths.get(nextArg));
+        builder.setDesugaredLibraryKeepRuleConsumer(consumer);
       } else if (arg.startsWith("--")) {
         if (tryParseAssertionArgument(builder, arg, origin)) {
           continue;
