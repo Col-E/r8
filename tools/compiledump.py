@@ -129,6 +129,16 @@ def make_parser():
     help='Run the compilation in a loop',
     default=False,
     action='store_true')
+  parser.add_argument(
+    '--enable-missing-library-api-modeling',
+    help='Run with api modeling',
+    default=False,
+    action='store_true')
+  parser.add_argument(
+    '--android-platform-build',
+    help='Run as a platform build',
+    default=False,
+    action='store_true')
   return parser
 
 def error(msg):
@@ -271,6 +281,20 @@ def determine_class_file(args, build_properties):
     return True
   return None
 
+def determine_android_platform_build(args, build_properties):
+  if args.android_platform_build:
+    return args.android_platform_build
+  if 'android-platform-build=true' in build_properties:
+    return True
+  return None
+
+def determine_enable_missing_library_api_modeling(args, build_properties):
+  if args.enable_missing_library_api_modeling:
+    return args.enable_missing_library_api_modeling
+  if 'enable-missing-library-api-modeling=true' in build_properties:
+    return True
+  return None
+
 def determine_properties(build_properties):
   args = []
   for key, value in build_properties.items():
@@ -367,6 +391,8 @@ def run1(out, args, otherargs, jdkhome=None):
     out = determine_output(args, temp)
     min_api = determine_min_api(args, build_properties)
     classfile = determine_class_file(args, build_properties)
+    android_platform_build = determine_android_platform_build(args, build_properties)
+    enable_missing_library_api_modeling = determine_enable_missing_library_api_modeling(args, build_properties)
     jar = args.r8_jar if args.r8_jar else download_distribution(version, args.nolib, temp)
     if ':' not in jar and not os.path.exists(jar):
       error("Distribution does not exist: " + jar)
@@ -429,6 +455,10 @@ def run1(out, args, otherargs, jdkhome=None):
       cmd.extend(['--min-api', min_api])
     if classfile:
       cmd.extend(['--classfile'])
+    if android_platform_build:
+      cmd.extend(['--android-platform-build'])
+    if enable_missing_library_api_modeling:
+      cmd.extend(['--enable-missing-library-api-modeling'])
     if args.threads:
       cmd.extend(['--threads', args.threads])
     cmd.extend(otherargs)

@@ -12,6 +12,7 @@ import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.R8Command.Builder;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
 /**
  * Wrapper to make it easy to call R8 in compat mode when compiling a dump file.
@@ -36,7 +38,13 @@ import java.util.concurrent.Executors;
 public class CompileDumpCompatR8 {
 
   private static final List<String> VALID_OPTIONS =
-      Arrays.asList("--classfile", "--compat", "--debug", "--release");
+      Arrays.asList(
+          "--classfile",
+          "--compat",
+          "--debug",
+          "--release",
+          "--enable-missing-library-api-modeling",
+          "--android-platform-build");
 
   private static final List<String> VALID_OPTIONS_WITH_SINGLE_OPERAND =
       Arrays.asList(
@@ -78,6 +86,8 @@ public class CompileDumpCompatR8 {
     List<Path> mainDexRulesFiles = new ArrayList<>();
     int minApi = 1;
     int threads = -1;
+    boolean enableMissingLibraryApiModeling = false;
+    boolean androidPlatformBuild = false;
     for (int i = 0; i < args.length; i++) {
       String option = args[i];
       if (VALID_OPTIONS.contains(option)) {
@@ -102,6 +112,12 @@ public class CompileDumpCompatR8 {
               compilationMode = CompilationMode.RELEASE;
               break;
             }
+          case "--enable-missing-library-api-modeling":
+            enableMissingLibraryApiModeling = true;
+            break;
+          case "--android-platform-build":
+            androidPlatformBuild = true;
+            break;
           default:
             throw new IllegalArgumentException("Unimplemented option: " + option);
         }
@@ -187,6 +203,11 @@ public class CompileDumpCompatR8 {
             .addMainDexRulesFiles(mainDexRulesFiles)
             .setOutput(outputPath, outputMode)
             .setMode(compilationMode);
+    getReflectiveBuilderMethod(
+            commandBuilder, "setEnableExperimentalMissingLibraryApiModeling", boolean.class)
+        .accept(new Object[] {enableMissingLibraryApiModeling});
+    getReflectiveBuilderMethod(commandBuilder, "setAndroidPlatformBuild", boolean.class)
+        .accept(new Object[] {androidPlatformBuild});
     if (desugaredLibJson != null) {
       commandBuilder.addDesugaredLibraryConfiguration(readAllBytesJava7(desugaredLibJson));
     }
@@ -214,6 +235,24 @@ public class CompileDumpCompatR8 {
       }
     } else {
       R8.run(command);
+    }
+  }
+
+  private static Consumer<Object[]> getReflectiveBuilderMethod(
+      Builder builder, String setter, Class<?>... parameters) {
+    try {
+      Method declaredMethod = CompatProguardCommandBuilder.class.getMethod(setter, parameters);
+      return args -> {
+        try {
+          declaredMethod.invoke(builder, args);
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      };
+    } catch (NoSuchMethodException e) {
+      e.printStackTrace();
+      // The option is not available so we just return an empty consumer
+      return args -> {};
     }
   }
 
