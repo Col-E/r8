@@ -4,16 +4,13 @@
 
 package com.android.tools.r8.apimodel;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThrows;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.StringUtils;
 import java.util.function.Function;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,29 +26,24 @@ public class ApiModelBridgeToLibraryMethodTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    // TODO(b/235184674): Run on all runtimes.
-    return getTestParameters().withCfRuntimes().withAllApiLevelsAlsoForCf().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
+  private static final String EXPECTED_OUTPUT = StringUtils.lines("8");
+
   @Test()
-  public void testR8WithApiLevelCheck() {
-    assertThrows(
-        CompilationFailedException.class,
-        () ->
-            testForR8(parameters.getBackend())
-                .addInnerClasses(getClass())
-                .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
-                .setMinApi(parameters.getApiLevel())
-                .addKeepMainRule(TestClassWithApiLevelCheck.class)
-                .addAndroidBuildVersion()
-                .compileWithExpectedDiagnostics(
-                    diagnostics -> {
-                      // TODO(b/235184674): Should not throw with an error.
-                      diagnostics.assertErrorMessageThatMatches(
-                          containsString(
-                              "Unexpected virtual method without library method override"
-                                  + " information"));
-                    }));
+  public void testR8WithApiLevelCheck() throws Exception {
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(TestClassWithApiLevelCheck.class)
+        .addAndroidBuildVersion()
+        .run(parameters.getRuntime(), TestClassWithApiLevelCheck.class)
+        .applyIf(
+            parameters.isCfRuntime() || parameters.getApiLevel().isLessThan(AndroidApiLevel.N),
+            r -> r.assertSuccessWithOutputLines("No call"),
+            r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT));
   }
 
   static class TestClassWithApiLevelCheck {
@@ -80,7 +72,7 @@ public class ApiModelBridgeToLibraryMethodTest extends TestBase {
 
     @Override
     public Integer apply(Integer integer) {
-      return null;
+      return integer * 2;
     }
   }
 }

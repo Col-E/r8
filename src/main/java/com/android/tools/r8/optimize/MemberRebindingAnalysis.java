@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BiForEachable;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.TriConsumer;
@@ -378,6 +379,8 @@ public class MemberRebindingAnalysis {
                                       targetDefinition.getReference(),
                                       appView.computedMinApiLevel()));
                         }
+                        builder.setIsLibraryMethodOverrideIf(
+                            target.isLibraryMethod(), OptionalBool.TRUE);
                       });
               bridgeHolder.addMethod(bridgeMethodDefinition);
             }

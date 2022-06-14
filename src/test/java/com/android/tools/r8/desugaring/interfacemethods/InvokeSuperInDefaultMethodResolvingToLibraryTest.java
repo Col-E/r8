@@ -7,14 +7,12 @@ package com.android.tools.r8.desugaring.interfacemethods;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import java.util.function.Function;
@@ -34,7 +32,7 @@ public class InvokeSuperInDefaultMethodResolvingToLibraryTest extends TestBase {
     return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
-  private static final String EXPECTED_OUTPUT = StringUtils.lines("8");
+  private static final String EXPECTED_OUTPUT = "8";
 
   private void inspect(CodeInspector inspector) {
     assertTrue(
@@ -45,6 +43,10 @@ public class InvokeSuperInDefaultMethodResolvingToLibraryTest extends TestBase {
             .filter(InstructionSubject::isInvoke)
             .map(invoke -> invoke.getMethod().getHolderType().toString())
             .noneMatch(name -> name.endsWith("$-CC")));
+  }
+
+  private String getExpectedOutputForApiCheck() {
+    return parameters.getApiLevel().isLessThan(AndroidApiLevel.N) ? "No call" : EXPECTED_OUTPUT;
   }
 
   @Test
@@ -64,7 +66,7 @@ public class InvokeSuperInDefaultMethodResolvingToLibraryTest extends TestBase {
                     .maxSupportedApiLevel()
                     .isLessThan(AndroidApiLevel.N),
             r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
-            r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT));
+            r -> r.assertSuccessWithOutputLines(EXPECTED_OUTPUT));
   }
 
   @Test
@@ -73,59 +75,22 @@ public class InvokeSuperInDefaultMethodResolvingToLibraryTest extends TestBase {
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
-        .addAndroidBuildVersion(parameters.getRuntime().asDex().maxSupportedApiLevel())
+        .addAndroidBuildVersion(parameters.getApiLevel())
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClassWithApiLevelCheck.class)
-        .applyIf(
-            parameters.isDexRuntime()
-                && parameters
-                    .getRuntime()
-                    .asDex()
-                    .maxSupportedApiLevel()
-                    .isLessThan(AndroidApiLevel.N),
-            r -> r.assertSuccessWithOutputLines("No call"),
-            r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT));
+        .assertSuccessWithOutputLines(getExpectedOutputForApiCheck());
   }
 
   @Test
   public void testR8() throws Exception {
-    try {
-      testForR8(parameters.getBackend())
-          .addInnerClasses(getClass())
-          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
-          .setMinApi(parameters.getApiLevel())
-          .addKeepMainRule(TestClass.class)
-          .compile()
-          // .inspect(this::inspect)
-          .run(parameters.getRuntime(), TestClass.class)
-          .applyIf(
-              parameters.isDexRuntime()
-                  && parameters
-                      .getRuntime()
-                      .asDex()
-                      .maxSupportedApiLevel()
-                      .isLessThan(AndroidApiLevel.N),
-              r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
-              r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT));
-    } catch (CompilationFailedException e) {
-      // TODO(b/235184674): Fix this.
-      assertTrue(parameters.isCfRuntime());
-    }
-  }
-
-  // TODO(b/235184674): Fix this.
-  @Test(expected = CompilationFailedException.class)
-  public void testR8WithApiLevelCheck() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
         .setMinApi(parameters.getApiLevel())
-        .addKeepMainRule(TestClassWithApiLevelCheck.class)
-        .compile()
-        .inspect(this::inspect)
-        .run(parameters.getRuntime(), TestClassWithApiLevelCheck.class)
+        .addKeepMainRule(TestClass.class)
+        .run(parameters.getRuntime(), TestClass.class)
         .applyIf(
             parameters.isDexRuntime()
                 && parameters
@@ -134,7 +99,19 @@ public class InvokeSuperInDefaultMethodResolvingToLibraryTest extends TestBase {
                     .maxSupportedApiLevel()
                     .isLessThan(AndroidApiLevel.N),
             r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
-            r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT));
+            r -> r.assertSuccessWithOutputLines(EXPECTED_OUTPUT));
+  }
+
+  @Test
+  public void testR8WithApiLevelCheck() throws Exception {
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(TestClassWithApiLevelCheck.class)
+        .addAndroidBuildVersion(parameters.getApiLevel())
+        .run(parameters.getRuntime(), TestClassWithApiLevelCheck.class)
+        .assertSuccessWithOutputLines(getExpectedOutputForApiCheck());
   }
 
   static class TestClass {
