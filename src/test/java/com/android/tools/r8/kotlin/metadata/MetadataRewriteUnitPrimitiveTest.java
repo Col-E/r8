@@ -101,7 +101,6 @@ public class MetadataRewriteUnitPrimitiveTest extends KotlinMetadataTestBase {
                 kotlinc.getKotlinStdlibJar())
             .addKeepClassAndMembersRules(PKG_LIB + ".*")
             .addKeepAttributes(
-                ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS,
                 ProguardKeepAttributes.SIGNATURE,
                 ProguardKeepAttributes.INNER_CLASSES,
                 ProguardKeepAttributes.ENCLOSING_METHOD)

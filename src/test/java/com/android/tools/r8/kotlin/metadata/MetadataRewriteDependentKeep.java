@@ -11,7 +11,6 @@ import static org.junit.Assert.assertNull;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -47,7 +46,6 @@ public class MetadataRewriteDependentKeep extends KotlinMetadataTestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepKotlinMetadata()
         .addKeepRules(StringUtils.joinLines("-if class *.Metadata", "-keep class <1>.io.** { *; }"))
-        .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .allowDiagnosticWarningMessages()
         .compile()
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))

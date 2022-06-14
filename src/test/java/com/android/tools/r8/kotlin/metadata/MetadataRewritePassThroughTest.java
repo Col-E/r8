@@ -50,7 +50,6 @@ public class MetadataRewritePassThroughTest extends KotlinMetadataTestBase {
         .addKeepAllClassesRule()
         .addKeepKotlinMetadata()
         .addKeepAttributes(
-            ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS,
             ProguardKeepAttributes.INNER_CLASSES,
             ProguardKeepAttributes.ENCLOSING_METHOD)
         .allowDiagnosticWarningMessages()

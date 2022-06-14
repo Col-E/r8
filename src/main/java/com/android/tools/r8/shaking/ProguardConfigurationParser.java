@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.shaking.ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS;
 import static com.android.tools.r8.utils.DescriptorUtils.javaTypeToDescriptor;
 
 import com.android.tools.r8.InputDependencyGraphConsumer;
@@ -77,7 +78,7 @@ public class ProguardConfigurationParser {
           "allowruntypeandignoreoptimizationpasses",
           "dontshrinkduringoptimization",
           "convert_proto_enum_to_string",
-          "keepkotlinmetadata");
+          "adaptkotlinmetadata");
 
   private static final List<String> IGNORED_CLASS_DESCRIPTOR_OPTIONS =
       ImmutableList.of("isclassnamestring", "whyarenotsimple");
@@ -286,12 +287,23 @@ public class ProguardConfigurationParser {
           || parseTestingOption(optionStart)
           || parseUnsupportedOptionAndErr(optionStart)) {
         // Intentionally left empty.
-      } else if (acceptString("adaptkotlinmetadata")) {
-        reporter.info(
-            new StringDiagnostic(
-                "Ignoring -adaptkotlinmetadata because R8 always process kotlin.Metadata",
-                origin,
-                getPosition(optionStart)));
+      } else if (acceptString("keepkotlinmetadata")) {
+        configurationBuilder.addRule(
+            ProguardKeepRule.builder()
+                .setType(ProguardKeepRuleType.KEEP)
+                .setClassType(ProguardClassType.CLASS)
+                .setOrigin(origin)
+                .setStart(optionStart)
+                .setClassNames(
+                    ProguardClassNameList.builder()
+                        .addClassName(
+                            false, ProguardTypeMatcher.create(dexItemFactory.kotlinMetadataType))
+                        .build())
+                .setMemberRules(Collections.singletonList(ProguardMemberRule.defaultKeepAllRule()))
+                .setSource("-keepkotlinmetadata")
+                .build());
+        configurationBuilder.addKeepAttributePatterns(
+            Collections.singletonList(RUNTIME_VISIBLE_ANNOTATIONS));
       } else if (acceptString("renamesourcefileattribute")) {
         skipWhitespace();
         if (isOptionalArgumentGiven()) {

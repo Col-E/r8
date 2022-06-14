@@ -176,7 +176,7 @@ public abstract class TestShrinkerBuilder<
   }
 
   public T addKeepKotlinMetadata() {
-    return addKeepRules("-keep class kotlin.Metadata { *; }");
+    return addKeepRules("-keepkotlinmetadata");
   }
 
   public T addKeepAllClassesRule() {

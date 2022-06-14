@@ -92,6 +92,8 @@ public class ProguardConfigurationParserTest extends TestBase {
       VALID_PROGUARD_DIR + "assume-values-with-return-value.flags";
   private static final String ADAPT_KOTLIN_METADATA =
       VALID_PROGUARD_DIR + "adapt-kotlin-metadata.flags";
+  private static final String KEEP_KOTLIN_METADATA =
+      VALID_PROGUARD_DIR + "keep-kotlin-metadata.flags";
   private static final String INCLUDING =
       VALID_PROGUARD_DIR + "including.flags";
   private static final String INVALID_INCLUDING_1 =
@@ -897,7 +899,22 @@ public class ProguardConfigurationParserTest extends TestBase {
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     Path path = Paths.get(ADAPT_KOTLIN_METADATA);
     parser.parse(path);
-    checkDiagnostics(handler.infos, path, 1, 1, "Ignoring", "-adaptkotlinmetadata");
+    verifyParserEndsCleanly();
+  }
+
+  @Test
+  public void parseKeepKotlinMetadata() {
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    Path path = Paths.get(KEEP_KOTLIN_METADATA);
+    parser.parse(path);
+    verifyParserEndsCleanly();
+    ProguardConfiguration config = parser.getConfig();
+    assertEquals(
+        "-keepattributes RuntimeVisibleAnnotations", config.getKeepAttributes().toString());
+    assertEquals(
+        StringUtils.joinLines("-keep class kotlin.Metadata {", "  *;", "}"),
+        config.getRules().get(0).toString());
   }
 
   @Test

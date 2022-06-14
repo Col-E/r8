@@ -11,7 +11,6 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.graph.DexAnnotationElement;
-import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.AnnotationSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -49,7 +48,6 @@ public class MetadataRewriteDoNotEmitValuesIfEmpty extends KotlinMetadataTestBas
         .setMinApi(parameters.getApiLevel())
         .addKeepAllClassesRuleWithAllowObfuscation()
         .addKeepKotlinMetadata()
-        .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .allowDiagnosticWarningMessages()
         .compile()
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
