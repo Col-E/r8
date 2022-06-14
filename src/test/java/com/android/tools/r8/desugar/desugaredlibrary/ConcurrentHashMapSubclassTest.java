@@ -25,7 +25,8 @@ import org.junit.runners.Parameterized.Parameters;
 public class ConcurrentHashMapSubclassTest extends DesugaredLibraryTestBase {
 
   private static final String EXPECTED_RESULT =
-      StringUtils.lines("1.0", "2.0", "10.0", "1.0", "2.0", "10.0", "1.0", "2.0", "10.0");
+      StringUtils.lines(
+          "1.0", "2.0", "10.0", "1.0", "2.0", "10.0", "1.0", "2.0", "10.0", "1.0", "2.0", "10.0");
 
   private final TestParameters parameters;
   private final CompilationSpecification compilationSpecification;
@@ -64,9 +65,26 @@ public class ConcurrentHashMapSubclassTest extends DesugaredLibraryTestBase {
   @SuppressWarnings("unchecked")
   static class Executor {
     public static void main(String[] args) {
+      constructorTest();
       directType();
       classType();
       itfType();
+    }
+
+    private static void constructorTest() {
+      Map map =
+          new ConcurrentHashMap<>(
+              5, // initial capacity
+              0.75f, // load factor (default)
+              1 // concurrency level - only one thread will modify, others read only
+              );
+      map.put(1, 1.0);
+      map.putIfAbsent(2, 2.0);
+      map.putIfAbsent(2, 3.0);
+      map.putAll(example());
+      System.out.println(map.get(1));
+      System.out.println(map.get(2));
+      System.out.println(map.get(10));
     }
 
     static void itfType() {
