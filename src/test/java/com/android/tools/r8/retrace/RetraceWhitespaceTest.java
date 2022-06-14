@@ -64,7 +64,10 @@ public class RetraceWhitespaceTest extends TestBase {
         () ->
             Retrace.run(
                 RetraceCommand.builder()
-                    .setProguardMapProducer(ProguardMapProducer.fromPath(mappingFile))
+                    .setMappingSupplier(
+                        ProguardMappingSupplier.builder()
+                            .setProguardMapProducer(ProguardMapProducer.fromPath(mappingFile))
+                            .build())
                     .setStackTrace(STACKTRACE)
                     .setRetracedStackTraceConsumer(lines -> {})
                     .build()));

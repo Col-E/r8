@@ -10,8 +10,6 @@ import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.Version;
-import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapChecker;
-import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapChecker.VerifyMappingFileHashResult;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetraceCommand.Builder;
@@ -31,9 +29,7 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Charsets;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.io.CharStreams;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
@@ -110,7 +106,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
         continue;
       }
       if (!hasSetProguardMap) {
-        builder.setProguardMapProducer(getMappingSupplier(context.head(), diagnosticsHandler));
+        builder.setMappingSupplier(getMappingSupplier(context.head(), diagnosticsHandler));
         context.next();
         hasSetProguardMap = true;
       } else if (!hasSetStackTrace) {
@@ -135,7 +131,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
     return builder;
   }
 
-  private static ProguardMapProducer getMappingSupplier(
+  private static MappingSupplier getMappingSupplier(
       String mappingPath, DiagnosticsHandler diagnosticsHandler) {
     Path path = Paths.get(mappingPath);
     if (!Files.exists(path)) {
@@ -143,7 +139,12 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
           new StringDiagnostic(String.format("Could not find mapping file '%s'.", mappingPath)));
       throw new RetraceAbortException();
     }
-    return ProguardMapProducer.fromPath(Paths.get(mappingPath));
+    boolean allowExperimentalMapVersion =
+        System.getProperty("com.android.tools.r8.experimentalmapping") != null;
+    return ProguardMappingSupplier.builder()
+        .setProguardMapProducer(ProguardMapProducer.fromPath(Paths.get(mappingPath)))
+        .setAllowExperimental(allowExperimentalMapVersion)
+        .build();
   }
 
   private static List<String> getStackTraceFromFile(
@@ -292,37 +293,12 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
    * @param command The command that describes the desired behavior of this retrace invocation.
    */
   public static void run(RetraceCommand command) {
-    boolean allowExperimentalMapVersion =
-        System.getProperty("com.android.tools.r8.experimentalmapping") != null;
-    runForTesting(command, allowExperimentalMapVersion);
-  }
-
-  static void runForTesting(RetraceCommand command, boolean allowExperimentalMapping) {
     try {
       Timing timing = Timing.create("R8 retrace", command.printMemory());
       RetraceOptions options = command.getOptions();
+      MappingSupplier mappingSupplier = options.getMappingSupplier();
       if (command.getOptions().isVerifyMappingFileHash()) {
-        try (InputStream reader = options.getProguardMapProducer().get()) {
-          VerifyMappingFileHashResult checkResult =
-              ProguardMapChecker.validateProguardMapHash(
-                  CharStreams.toString(new InputStreamReader(reader, Charsets.UTF_8)));
-          if (checkResult.isError()) {
-            command
-                .getOptions()
-                .getDiagnosticsHandler()
-                .error(new StringDiagnostic(checkResult.getMessage()));
-            throw new RuntimeException(checkResult.getMessage());
-          }
-          if (!checkResult.isOk()) {
-            command
-                .getOptions()
-                .getDiagnosticsHandler()
-                .warning(new StringDiagnostic(checkResult.getMessage()));
-          }
-        } catch (IOException e) {
-          command.getOptions().getDiagnosticsHandler().error(new ExceptionDiagnostic(e));
-          throw new RuntimeException(e);
-        }
+        mappingSupplier.verifyMappingFileHash(options.getDiagnosticsHandler());
         return;
       }
       DiagnosticsHandler diagnosticsHandler = options.getDiagnosticsHandler();
@@ -342,30 +318,24 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
           });
       timing.end();
       timing.begin("Read proguard map");
-      ProguardMappingProvider.Builder mappingBuilder =
-          ProguardMappingProvider.builder()
-              .setProguardMapProducer(options.getProguardMapProducer())
-              .setDiagnosticsHandler(diagnosticsHandler)
-              .setAllowExperimental(allowExperimentalMapping);
       parsedStackTrace.forEach(
           proxy -> {
             if (proxy.hasClassName()) {
-              mappingBuilder.registerUse(proxy.getClassReference());
+              mappingSupplier.registerUse(proxy.getClassReference());
             }
             if (proxy.hasMethodArguments()) {
               Arrays.stream(proxy.getMethodArguments().split(","))
-                  .forEach(typeName -> registerUseFromTypeReference(mappingBuilder, typeName));
+                  .forEach(typeName -> registerUseFromTypeReference(mappingSupplier, typeName));
             }
             if (proxy.hasFieldOrReturnType() && !proxy.getFieldOrReturnType().equals("void")) {
-              registerUseFromTypeReference(mappingBuilder, proxy.getFieldOrReturnType());
+              registerUseFromTypeReference(mappingSupplier, proxy.getFieldOrReturnType());
             }
           });
-      MappingProvider mappingProvider = mappingBuilder.build();
       timing.end();
       timing.begin("Retracing");
       RetracerImpl retracer =
           RetracerImpl.builder()
-              .setMappingProvider(mappingProvider)
+              .setMappingSupplier(mappingSupplier)
               .setDiagnosticsHandler(diagnosticsHandler)
               .build();
       retracer
@@ -398,13 +368,13 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
   }
 
   private static void registerUseFromTypeReference(
-      ProguardMappingProvider.Builder builder, String typeName) {
+      MappingSupplier mappingSupplier, String typeName) {
     TypeReference typeReference = Reference.typeFromTypeName(typeName);
     if (typeReference.isArray()) {
       typeReference = typeReference.asArray().getBaseType();
     }
     if (typeReference.isClass()) {
-      builder.registerUse(typeReference.asClass());
+      mappingSupplier.registerUse(typeReference.asClass());
     }
   }
 

@@ -152,7 +152,11 @@ public class RetraceTests extends TestBase {
     NullStackTrace nullStackTrace = new NullStackTrace();
     RetraceCommand retraceCommand =
         RetraceCommand.builder(diagnosticsHandler)
-            .setProguardMapProducer(ProguardMapProducer.fromString(nullStackTrace.mapping()))
+            .setMappingSupplier(
+                ProguardMappingSupplier.builder()
+                    .setProguardMapProducer(
+                        ProguardMapProducer.fromString(nullStackTrace.mapping()))
+                    .build())
             .setStackTrace(nullStackTrace.obfuscatedStackTrace())
             .setRetracedStackTraceConsumer(retraced -> fail())
             .build();
@@ -493,13 +497,18 @@ public class RetraceTests extends TestBase {
       TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
       RetraceCommand retraceCommand =
           RetraceCommand.builder(diagnosticsHandler)
-              .setProguardMapProducer(ProguardMapProducer.fromString(stackTraceForTest.mapping()))
+              .setMappingSupplier(
+                  ProguardMappingSupplier.builder()
+                      .setProguardMapProducer(
+                          ProguardMapProducer.fromString(stackTraceForTest.mapping()))
+                      .setAllowExperimental(allowExperimentalMapping)
+                      .build())
               .setStackTrace(stackTraceForTest.obfuscatedStackTrace())
               .setRetracedStackTraceConsumer(
                   retraced -> assertEquals(expectedStackTrace, StringUtils.joinLines(retraced)))
               .setVerbose(verbose)
               .build();
-      Retrace.runForTesting(retraceCommand, allowExperimentalMapping);
+      Retrace.run(retraceCommand);
       return diagnosticsHandler;
     }
   }

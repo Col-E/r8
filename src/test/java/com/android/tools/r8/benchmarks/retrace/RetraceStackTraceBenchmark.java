@@ -10,6 +10,7 @@ import com.android.tools.r8.benchmarks.BenchmarkDependency;
 import com.android.tools.r8.benchmarks.BenchmarkMethod;
 import com.android.tools.r8.benchmarks.BenchmarkTarget;
 import com.android.tools.r8.retrace.ProguardMapProducer;
+import com.android.tools.r8.retrace.ProguardMappingSupplier;
 import com.android.tools.r8.retrace.Retrace;
 import com.android.tools.r8.retrace.RetraceCommand;
 import com.google.common.collect.ImmutableList;
@@ -69,8 +70,12 @@ public class RetraceStackTraceBenchmark extends BenchmarkBase {
                   long start = System.nanoTime();
                   Retrace.run(
                       RetraceCommand.builder()
-                          .setProguardMapProducer(
-                              ProguardMapProducer.fromPath(dependencyRoot.resolve("r8lib.jar.map")))
+                          .setMappingSupplier(
+                              ProguardMappingSupplier.builder()
+                                  .setProguardMapProducer(
+                                      ProguardMapProducer.fromPath(
+                                          dependencyRoot.resolve("r8lib.jar.map")))
+                                  .build())
                           .setStackTrace(stackTrace)
                           .setRetracedStackTraceConsumer(retraced::addAll)
                           .build());

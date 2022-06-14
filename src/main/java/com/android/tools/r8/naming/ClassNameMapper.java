@@ -242,6 +242,12 @@ public class ClassNameMapper implements ProguardMap {
   }
 
   public ClassNameMapper combine(ClassNameMapper other) {
+    if (other == null || other.isEmpty()) {
+      return this;
+    }
+    if (this.isEmpty()) {
+      return other;
+    }
     ImmutableMap.Builder<String, ClassNamingForNameMapper> builder = ImmutableMap.builder();
     Map<String, ClassNamingForNameMapper> otherClassMappings = other.getClassNameMappings();
     for (Entry<String, ClassNamingForNameMapper> mappingEntry : classNameMappings.entrySet()) {

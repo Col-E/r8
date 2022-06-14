@@ -189,9 +189,12 @@ public abstract class ProguardMapReaderWithFiltering implements LineReader {
   private int endIndex = 0;
 
   private final Predicate<String> filter;
+  private final boolean readPreambleAndSourceFiles;
 
-  protected ProguardMapReaderWithFiltering(Predicate<String> filter) {
+  protected ProguardMapReaderWithFiltering(
+      Predicate<String> filter, boolean readPreambleAndSourceFiles) {
     this.filter = filter;
+    this.readPreambleAndSourceFiles = readPreambleAndSourceFiles;
   }
 
   public abstract byte[] read() throws IOException;
@@ -221,10 +224,12 @@ public abstract class ProguardMapReaderWithFiltering implements LineReader {
         String classMapping = getBufferAsString(bytes);
         String obfuscatedClassName = getObfuscatedClassName(classMapping);
         isInsideClassOfInterest = filter.test(obfuscatedClassName);
-        return classMapping;
-      } else if (lineParserState == IS_COMMENT_SOURCE_FILE) {
+        if (isInsideClassOfInterest || readPreambleAndSourceFiles) {
+          return classMapping;
+        }
+      } else if (lineParserState == IS_COMMENT_SOURCE_FILE && readPreambleAndSourceFiles) {
         return getBufferAsString(bytes);
-      } else if (isInsideClassOfInterest || !seenFirstClass) {
+      } else if (isInsideClassOfInterest || (!seenFirstClass && readPreambleAndSourceFiles)) {
         return getBufferAsString(bytes);
       }
     }
@@ -284,8 +289,11 @@ public abstract class ProguardMapReaderWithFiltering implements LineReader {
     private int temporaryBufferPosition = 0;
 
     public ProguardMapReaderWithFilteringMappedBuffer(
-        Path mappingFile, Predicate<String> classNamesOfInterest) throws IOException {
-      super(classNamesOfInterest);
+        Path mappingFile,
+        Predicate<String> classNamesOfInterest,
+        boolean readPreambleAndSourceFiles)
+        throws IOException {
+      super(classNamesOfInterest, readPreambleAndSourceFiles);
       fileChannel = FileChannel.open(mappingFile, StandardOpenOption.READ);
       channelSize = fileChannel.size();
       readFromChannel();
@@ -364,8 +372,10 @@ public abstract class ProguardMapReaderWithFiltering implements LineReader {
     private int endReadIndex = 0;
 
     public ProguardMapReaderWithFilteringInputBuffer(
-        InputStream inputStream, Predicate<String> classNamesOfInterest) {
-      super(classNamesOfInterest);
+        InputStream inputStream,
+        Predicate<String> classNamesOfInterest,
+        boolean readPreambleAndSourceFiles) {
+      super(classNamesOfInterest, readPreambleAndSourceFiles);
       this.inputStream = inputStream;
     }
 

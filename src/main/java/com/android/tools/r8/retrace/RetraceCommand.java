@@ -69,7 +69,7 @@ public class RetraceCommand {
 
     private boolean isVerbose;
     private final DiagnosticsHandler diagnosticsHandler;
-    private ProguardMapProducer proguardMapProducer;
+    private MappingSupplier mappingSupplier;
     private String regularExpression = StackTraceRegularExpressionParser.DEFAULT_REGULAR_EXPRESSION;
     private List<String> stackTrace;
     private Consumer<List<String>> retracedStackTraceConsumer;
@@ -85,13 +85,9 @@ public class RetraceCommand {
       return this;
     }
 
-    /**
-     * Set a producer for the proguard mapping contents.
-     *
-     * @param producer Producer for
-     */
-    public Builder setProguardMapProducer(ProguardMapProducer producer) {
-      this.proguardMapProducer = producer;
+    /** Set a mapping supplier for providing mapping contents. */
+    public Builder setMappingSupplier(MappingSupplier mappingSupplier) {
+      this.mappingSupplier = mappingSupplier;
       return this;
     }
 
@@ -138,7 +134,7 @@ public class RetraceCommand {
       if (this.diagnosticsHandler == null) {
         throw new RuntimeException("DiagnosticsHandler not specified");
       }
-      if (this.proguardMapProducer == null) {
+      if (this.mappingSupplier == null) {
         throw new RuntimeException("ProguardMapSupplier not specified");
       }
       if (this.stackTrace == null && !verifyMappingFileHash) {
@@ -150,7 +146,7 @@ public class RetraceCommand {
       RetraceOptions retraceOptions =
           RetraceOptions.builder(diagnosticsHandler)
               .setRegularExpression(regularExpression)
-              .setProguardMapProducer(proguardMapProducer)
+              .setMappingSupplier(mappingSupplier)
               .setVerbose(isVerbose)
               .setVerifyMappingFileHash(verifyMappingFileHash)
               .build();

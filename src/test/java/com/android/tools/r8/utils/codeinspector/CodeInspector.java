@@ -36,7 +36,7 @@ import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.Retracer;
-import com.android.tools.r8.retrace.internal.ProguardMappingProviderImpl;
+import com.android.tools.r8.retrace.internal.ProguardMappingSupplierImpl;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.BiMapContainer;
@@ -185,7 +185,7 @@ public class CodeInspector {
     if (lazyRetracer == null) {
       lazyRetracer =
           Retracer.builder()
-              .setMappingProvider(new ProguardMappingProviderImpl(mapping))
+              .setMappingSupplier(new ProguardMappingSupplierImpl(mapping))
               .setDiagnosticsHandler(new TestDiagnosticMessagesImpl())
               .build();
     }
@@ -549,8 +549,8 @@ public class CodeInspector {
 
   public Retracer retrace() {
     return Retracer.builder()
-        .setMappingProvider(
-            new ProguardMappingProviderImpl(
+        .setMappingSupplier(
+            new ProguardMappingSupplierImpl(
                 mapping == null ? ClassNameMapper.builder().build() : mapping))
         .setDiagnosticsHandler(new TestDiagnosticMessagesImpl())
         .build();

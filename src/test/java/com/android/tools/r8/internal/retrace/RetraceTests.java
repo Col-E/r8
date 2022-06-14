@@ -14,6 +14,7 @@ import com.android.tools.r8.internal.retrace.stacktraces.CronetStackTrace;
 import com.android.tools.r8.internal.retrace.stacktraces.FinskyStackTrace;
 import com.android.tools.r8.internal.retrace.stacktraces.VelvetStackTrace;
 import com.android.tools.r8.retrace.ProguardMapProducer;
+import com.android.tools.r8.retrace.ProguardMappingSupplier;
 import com.android.tools.r8.retrace.Retrace;
 import com.android.tools.r8.retrace.RetraceCommand;
 import com.android.tools.r8.retrace.stacktraces.StackTraceForTest;
@@ -199,7 +200,11 @@ public class RetraceTests extends TestBase {
     TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
     RetraceCommand retraceCommand =
         RetraceCommand.builder(diagnosticsHandler)
-            .setProguardMapProducer(ProguardMapProducer.fromString(stackTraceForTest.mapping()))
+            .setMappingSupplier(
+                ProguardMappingSupplier.builder()
+                    .setProguardMapProducer(
+                        ProguardMapProducer.fromString(stackTraceForTest.mapping()))
+                    .build())
             .setStackTrace(stackTraceForTest.obfuscatedStackTrace())
             .setRegularExpression(regularExpression)
             .setRetracedStackTraceConsumer(

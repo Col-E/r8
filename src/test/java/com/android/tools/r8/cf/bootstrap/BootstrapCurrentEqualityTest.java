@@ -21,6 +21,7 @@ import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.retrace.ProguardMapProducer;
+import com.android.tools.r8.retrace.ProguardMappingSupplier;
 import com.android.tools.r8.retrace.Retrace;
 import com.android.tools.r8.retrace.RetraceCommand;
 import com.android.tools.r8.utils.FileUtils;
@@ -138,7 +139,10 @@ public class BootstrapCurrentEqualityTest extends TestBase {
     RetraceCommand retraceCommand =
         RetraceCommand.builder()
             .setStackTrace(StringUtils.splitLines(processResult.stderr))
-            .setProguardMapProducer(ProguardMapProducer.fromPath(r8R8Release.getSecond()))
+            .setMappingSupplier(
+                ProguardMappingSupplier.builder()
+                    .setProguardMapProducer(ProguardMapProducer.fromPath(r8R8Release.getSecond()))
+                    .build())
             .setRetracedStackTraceConsumer(
                 retraced -> {
                   int expectedIndex = -1;

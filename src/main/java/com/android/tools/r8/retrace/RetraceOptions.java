@@ -20,22 +20,22 @@ public class RetraceOptions {
   private final boolean verifyMappingFileHash;
   private final String regularExpression;
   private final DiagnosticsHandler diagnosticsHandler;
-  private final ProguardMapProducer proguardMapProducer;
+  private final MappingSupplier mappingSupplier;
 
   private RetraceOptions(
       String regularExpression,
       DiagnosticsHandler diagnosticsHandler,
-      ProguardMapProducer proguardMapProducer,
+      MappingSupplier mappingSupplier,
       boolean isVerbose,
       boolean verifyMappingFileHash) {
     this.regularExpression = regularExpression;
     this.diagnosticsHandler = diagnosticsHandler;
-    this.proguardMapProducer = proguardMapProducer;
+    this.mappingSupplier = mappingSupplier;
     this.isVerbose = isVerbose;
     this.verifyMappingFileHash = verifyMappingFileHash;
 
     assert diagnosticsHandler != null;
-    assert proguardMapProducer != null;
+    assert mappingSupplier != null;
   }
 
   public boolean isVerbose() {
@@ -54,8 +54,8 @@ public class RetraceOptions {
     return diagnosticsHandler;
   }
 
-  public ProguardMapProducer getProguardMapProducer() {
-    return proguardMapProducer;
+  public MappingSupplier getMappingSupplier() {
+    return mappingSupplier;
   }
 
   /** Utility method for obtaining a builder with a default diagnostics handler. */
@@ -78,7 +78,7 @@ public class RetraceOptions {
     private boolean isVerbose;
     private boolean verifyMappingFileHash;
     private final DiagnosticsHandler diagnosticsHandler;
-    private ProguardMapProducer proguardMapProducer;
+    private MappingSupplier mappingSupplier;
     private String regularExpression = defaultRegularExpression();
 
     Builder(DiagnosticsHandler diagnosticsHandler) {
@@ -97,13 +97,9 @@ public class RetraceOptions {
       return this;
     }
 
-    /**
-     * Set a producer for the proguard mapping contents.
-     *
-     * @param producer Producer for
-     */
-    public Builder setProguardMapProducer(ProguardMapProducer producer) {
-      this.proguardMapProducer = producer;
+    /** Set a mapping supplier for providing mapping contents. */
+    public Builder setMappingSupplier(MappingSupplier producer) {
+      this.mappingSupplier = producer;
       return this;
     }
 
@@ -123,18 +119,14 @@ public class RetraceOptions {
       if (this.diagnosticsHandler == null) {
         throw new RuntimeException("DiagnosticsHandler not specified");
       }
-      if (this.proguardMapProducer == null) {
+      if (this.mappingSupplier == null) {
         throw new RuntimeException("ProguardMapSupplier not specified");
       }
       if (this.regularExpression == null) {
         throw new RuntimeException("Regular expression not specified");
       }
       return new RetraceOptions(
-          regularExpression,
-          diagnosticsHandler,
-          proguardMapProducer,
-          isVerbose,
-          verifyMappingFileHash);
+          regularExpression, diagnosticsHandler, mappingSupplier, isVerbose, verifyMappingFileHash);
     }
   }
 }

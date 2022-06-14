@@ -37,13 +37,16 @@ public class DuplicateMappingsTest extends TestBase {
     TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
     Retrace.run(
         RetraceCommand.builder(diagnosticsHandler)
-            .setProguardMapProducer(
-                ProguardMapProducer.fromString(
-                    StringUtils.lines(
-                        "com.android.tools.r8.retrace.SourceFileTest$ClassWithCustomFileName ->"
-                            + " com.android.tools.r8.retrace.a:",
-                        "# {'id':'sourceFile','fileName':'foobarbaz.java'}",
-                        "# {'id':'sourceFile','fileName':'foobarbaz2.java'}")))
+            .setMappingSupplier(
+                ProguardMappingSupplier.builder()
+                    .setProguardMapProducer(
+                        ProguardMapProducer.fromString(
+                            StringUtils.lines(
+                                "com.android.tools.r8.retrace.SourceFileTest"
+                                    + "$ClassWithCustomFileName -> com.android.tools.r8.retrace.a:",
+                                "# {'id':'sourceFile','fileName':'foobarbaz.java'}",
+                                "# {'id':'sourceFile','fileName':'foobarbaz2.java'}")))
+                    .build())
             .setStackTrace(ImmutableList.of(" at com.android.tools.r8.retrace.a.foo(Unknown)"))
             .setRetracedStackTraceConsumer(
                 strings -> {

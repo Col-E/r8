@@ -1140,7 +1140,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
     TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
     RetraceCommand retraceCommand =
         RetraceCommand.builder(diagnosticsHandler)
-            .setProguardMapProducer(ProguardMapProducer.fromString(stackTraceForTest.mapping()))
+            .setMappingSupplier(
+                ProguardMappingSupplier.builder()
+                    .setProguardMapProducer(
+                        ProguardMapProducer.fromString(stackTraceForTest.mapping()))
+                    .build())
             .setStackTrace(stackTraceForTest.obfuscatedStackTrace())
             .setRetracedStackTraceConsumer(
                 retraced -> {

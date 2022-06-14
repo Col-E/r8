@@ -10,8 +10,10 @@ import com.android.tools.r8.ProguardVersion;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.retrace.ProguardMapProducer;
-import com.android.tools.r8.retrace.RetraceOptions;
-import com.android.tools.r8.retrace.StringRetrace;
+import com.android.tools.r8.retrace.ProguardMappingSupplier;
+import com.android.tools.r8.retrace.Retrace;
+import com.android.tools.r8.retrace.RetraceCommand;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.util.Arrays;
@@ -98,13 +100,18 @@ public class CatchAllRangeWithNoLineNumberTest extends TestBase {
 
   @Test
   public void testCatchAllRangeR8() {
-    List<String> retrace =
-        StringRetrace.create(
-                RetraceOptions.builder()
+    Box<String> retracedString = new Box<>();
+    Retrace.run(
+        RetraceCommand.builder()
+            .setRetracedStackTraceConsumer(
+                retraced -> retracedString.set(StringUtils.lines(retraced)))
+            .setMappingSupplier(
+                ProguardMappingSupplier.builder()
                     .setProguardMapProducer(ProguardMapProducer.fromString(mapping))
                     .build())
-            .retrace(Arrays.asList(stackTrace));
-    assertEquals(retracedR8, StringUtils.lines(retrace));
+            .setStackTrace(Arrays.asList(stackTrace))
+            .build());
+    assertEquals(retracedR8, retracedString.get());
   }
 
   private String getExpected() {

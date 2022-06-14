@@ -5,7 +5,14 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.retrace.internal.MappingProviderInternal;
 
 @Keep
-public abstract class MappingProvider extends MappingProviderInternal {}
+public abstract class MappingSupplierBuilder<
+    P extends MappingSupplier, T extends MappingSupplierBuilder<P, T>> {
+
+  public abstract T self();
+
+  public abstract T setAllowExperimental(boolean allowExperimental);
+
+  public abstract P build();
+}

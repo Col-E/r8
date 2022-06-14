@@ -55,11 +55,14 @@ public class OverloadsWithoutLineNumberTest extends TestBase {
             .collect(Collectors.toList());
     RetraceCommand.Builder builder =
         RetraceCommand.builder()
-            .setProguardMapProducer(ProguardMapProducer.fromString(run.proguardMap()))
+            .setMappingSupplier(
+                ProguardMappingSupplier.builder()
+                    .setProguardMapProducer(ProguardMapProducer.fromString(run.proguardMap()))
+                    .build())
             .setStackTrace(originalStackTrace)
             .setRetracedStackTraceConsumer(box::set)
             .setVerbose(true);
-    RetraceHelper.runForTesting(builder.build(), false);
+    Retrace.run(builder.build());
     // TODO(b/221015863): This should ideally be:
     // at " + typeName(ClassWithOverload.class) + ".test(int)(OverloadsWithoutLineNumberTest.java)
     if (parameters.canUseNativeDexPC()) {

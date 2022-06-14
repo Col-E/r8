@@ -10,7 +10,7 @@ import com.android.tools.r8.Keep;
 @Keep
 public interface RetracerBuilder {
 
-  RetracerBuilder setMappingProvider(MappingProvider mappingProvider);
+  RetracerBuilder setMappingSupplier(MappingSupplier mappingSupplier);
 
   RetracerBuilder setDiagnosticsHandler(DiagnosticsHandler diagnosticsHandler);
 

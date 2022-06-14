@@ -10,7 +10,7 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
-import com.android.tools.r8.retrace.MappingProvider;
+import com.android.tools.r8.retrace.MappingSupplier;
 import com.android.tools.r8.retrace.RetraceFrameResult;
 import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.Retracer;
@@ -21,14 +21,14 @@ import java.util.Set;
 /** A default implementation for the retrace api using the ClassNameMapper defined in R8. */
 public class RetracerImpl implements Retracer {
 
-  private final MappingProviderInternal classNameMapperProvider;
+  private final MappingSupplierInternal classNameMapperSupplier;
   private final DiagnosticsHandler diagnosticsHandler;
 
   private RetracerImpl(
-      MappingProviderInternal classNameMapperProvider, DiagnosticsHandler diagnosticsHandler) {
-    this.classNameMapperProvider = classNameMapperProvider;
+      MappingSupplierInternal classNameMapperSupplier, DiagnosticsHandler diagnosticsHandler) {
+    this.classNameMapperSupplier = classNameMapperSupplier;
     this.diagnosticsHandler = diagnosticsHandler;
-    assert classNameMapperProvider != null;
+    assert classNameMapperSupplier != null;
   }
 
   public DiagnosticsHandler getDiagnosticsHandler() {
@@ -70,7 +70,9 @@ public class RetracerImpl implements Retracer {
   @Override
   public RetraceClassResultImpl retraceClass(ClassReference classReference) {
     return RetraceClassResultImpl.create(
-        classReference, classNameMapperProvider.getClassNaming(classReference.getTypeName()), this);
+        classReference,
+        classNameMapperSupplier.getClassNaming(diagnosticsHandler, classReference.getTypeName()),
+        this);
   }
 
   @Override
@@ -84,11 +86,12 @@ public class RetracerImpl implements Retracer {
   }
 
   public Set<MapVersionMappingInformation> getMapVersions() {
-    return classNameMapperProvider.getMapVersions();
+    return classNameMapperSupplier.getMapVersions(diagnosticsHandler);
   }
 
   public String getSourceFile(ClassReference classReference) {
-    return classNameMapperProvider.getSourceFileForClass(classReference.getTypeName());
+    return classNameMapperSupplier.getSourceFileForClass(
+        diagnosticsHandler, classReference.getTypeName());
   }
 
   public static Builder builder() {
@@ -97,14 +100,14 @@ public class RetracerImpl implements Retracer {
 
   public static class Builder implements RetracerBuilder {
 
-    private MappingProvider mappingProvider;
+    private MappingSupplier mappingSupplier;
     private DiagnosticsHandler diagnosticsHandler = new DiagnosticsHandler() {};
 
     private Builder() {}
 
     @Override
-    public Builder setMappingProvider(MappingProvider mappingProvider) {
-      this.mappingProvider = mappingProvider;
+    public Builder setMappingSupplier(MappingSupplier mappingSupplier) {
+      this.mappingSupplier = mappingSupplier;
       return this;
     }
 
@@ -116,7 +119,7 @@ public class RetracerImpl implements Retracer {
 
     @Override
     public RetracerImpl build() {
-      return new RetracerImpl(mappingProvider, diagnosticsHandler);
+      return new RetracerImpl(mappingSupplier, diagnosticsHandler);
     }
   }
 }

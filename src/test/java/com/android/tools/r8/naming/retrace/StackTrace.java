@@ -12,8 +12,9 @@ import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.retrace.ProguardMapProducer;
+import com.android.tools.r8.retrace.ProguardMappingSupplier;
+import com.android.tools.r8.retrace.Retrace;
 import com.android.tools.r8.retrace.RetraceCommand;
-import com.android.tools.r8.retrace.RetraceHelper;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.Equivalence;
@@ -378,13 +379,16 @@ public class StackTrace {
     List<String> stackTrace =
         stackTraceLines.stream().map(line -> line.originalLine).collect(Collectors.toList());
     stackTrace.add(0, exceptionLine);
-    RetraceHelper.runForTesting(
+    Retrace.run(
         RetraceCommand.builder()
-            .setProguardMapProducer(ProguardMapProducer.fromString(map))
+            .setMappingSupplier(
+                ProguardMappingSupplier.builder()
+                    .setProguardMapProducer(ProguardMapProducer.fromString(map))
+                    .setAllowExperimental(allowExperimentalMapping)
+                    .build())
             .setStackTrace(stackTrace)
             .setRetracedStackTraceConsumer(box::set)
-            .build(),
-        allowExperimentalMapping);
+            .build());
     // Keep the original stderr in the retraced stacktrace.
     return new StackTrace(
         box.get().get(0), internalConvert(box.get().stream().skip(1)), originalStderr);
