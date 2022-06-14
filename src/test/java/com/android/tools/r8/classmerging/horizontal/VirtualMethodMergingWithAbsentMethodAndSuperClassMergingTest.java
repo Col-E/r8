@@ -20,10 +20,10 @@ import org.junit.runners.Parameterized.Parameters;
 public class VirtualMethodMergingWithAbsentMethodAndSuperClassMergingTest extends TestBase {
 
   @Parameter(0)
-  public Class<?> upperMergeTarget;
+  public ClassWrapper upperMergeTarget;
 
   @Parameter(1)
-  public Class<?> lowerMergeTarget;
+  public ClassWrapper lowerMergeTarget;
 
   @Parameter(2)
   public TestParameters parameters;
@@ -31,9 +31,36 @@ public class VirtualMethodMergingWithAbsentMethodAndSuperClassMergingTest extend
   @Parameters(name = "{2}, upper merge target: {0}, lower merge target: {1}")
   public static List<Object[]> data() {
     return buildParameters(
-        ImmutableList.of(A.class, B.class),
-        ImmutableList.of(C.class, D.class),
+        ImmutableList.of(ClassWrapper.create(A.class), ClassWrapper.create(B.class)),
+        ImmutableList.of(ClassWrapper.create(C.class), ClassWrapper.create(D.class)),
         getTestParameters().withAllRuntimesAndApiLevels().build());
+  }
+
+  // Use a ClassWrapper to wrap the classes such that the string representation of the test do not
+  // exceed to many characters.
+  public static class ClassWrapper {
+    public final Class<?> clazz;
+
+    private ClassWrapper(Class<?> clazz) {
+      this.clazz = clazz;
+    }
+
+    public static ClassWrapper create(Class<?> clazz) {
+      return new ClassWrapper(clazz);
+    }
+
+    public String getTypeName() {
+      return clazz.getTypeName();
+    }
+
+    public boolean is(Class<?> clazz) {
+      return this.clazz == clazz;
+    }
+
+    @Override
+    public String toString() {
+      return clazz.getSimpleName();
+    }
   }
 
   @Test
@@ -69,11 +96,11 @@ public class VirtualMethodMergingWithAbsentMethodAndSuperClassMergingTest extend
             inspector ->
                 inspector
                     .applyIf(
-                        upperMergeTarget == A.class,
+                        upperMergeTarget.is(A.class),
                         i -> i.assertMergedInto(B.class, A.class),
                         i -> i.assertMergedInto(A.class, B.class))
                     .applyIf(
-                        lowerMergeTarget == C.class,
+                        lowerMergeTarget.is(C.class),
                         i -> i.assertMergedInto(D.class, C.class),
                         i -> i.assertMergedInto(C.class, D.class))
                     .assertNoOtherClassesMerged())
