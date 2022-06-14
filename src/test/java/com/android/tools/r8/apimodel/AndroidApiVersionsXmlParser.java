@@ -247,6 +247,10 @@ public class AndroidApiVersionsXmlParser {
       interfaces.forEach(consumer);
     }
 
+    public void amendCovariantMethod(MethodReference methodReference, AndroidApiLevel apiLevel) {
+      register(methodReference, apiLevel);
+    }
+
     public boolean isInterface() {
       return isInterface;
     }

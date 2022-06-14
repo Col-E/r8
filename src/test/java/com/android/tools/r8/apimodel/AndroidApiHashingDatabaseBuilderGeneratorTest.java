@@ -6,6 +6,7 @@ package com.android.tools.r8.apimodel;
 
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
@@ -110,7 +111,7 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
   @Test
   public void testDatabaseGenerationUpToDate() throws Exception {
     GenerateDatabaseResourceFilesResult result = generateResourcesFiles();
-    TestBase.filesAreEqual(result.apiLevels, API_DATABASE);
+    assertTrue(TestBase.filesAreEqual(result.apiLevels, API_DATABASE));
   }
 
   @Test

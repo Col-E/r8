@@ -5,12 +5,13 @@
 package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.addTracedApiReferenceLevelCallBack;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.lang.reflect.Method;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentHashMap.KeySetView;
@@ -45,8 +46,11 @@ public class ApiModelCovariantReturnTypeTest extends TestBase {
             addTracedApiReferenceLevelCallBack(
                 (method, apiLevel) -> {
                   if (Reference.methodFromMethod(main).equals(method)) {
-                    // TODO(b/232891189): Should be api level 28.
-                    assertNull(apiLevel);
+                    assertEquals(
+                        parameters.isCfRuntime()
+                            ? AndroidApiLevel.P
+                            : parameters.getApiLevel().max(AndroidApiLevel.P),
+                        apiLevel);
                   }
                 }))
         .compile();

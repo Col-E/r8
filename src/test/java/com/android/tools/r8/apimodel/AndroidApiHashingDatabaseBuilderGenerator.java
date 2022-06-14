@@ -15,6 +15,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.androidapi.AndroidApiDataAccess;
+import com.android.tools.r8.androidapi.GenerateCovariantReturnTypeMethodsTest.CovariantMethodsInJarResult;
 import com.android.tools.r8.apimodel.AndroidApiVersionsXmlParser.ParsedApiClass;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -81,12 +82,26 @@ public class AndroidApiHashingDatabaseBuilderGenerator extends TestBase {
         computeAppViewWithClassHierarchy(AndroidApp.builder().addLibraryFile(androidJar).build());
     DexItemFactory factory = appView.dexItemFactory();
 
+    CovariantMethodsInJarResult covariantMethodsInJar = CovariantMethodsInJarResult.create();
+
     for (ParsedApiClass apiClass : apiClasses) {
       Map<DexMethod, AndroidApiLevel> methodsForApiClass = new HashMap<>();
       apiClass.visitMethodReferences(
           (apiLevel, methods) -> {
             methods.forEach(
                 method -> methodsForApiClass.put(factory.createMethod(method), apiLevel));
+          });
+      covariantMethodsInJar.visitCovariantMethodsForHolder(
+          apiClass.getClassReference(),
+          methodReferenceWithApiLevel -> {
+            DexMethod method =
+                factory.createMethod(methodReferenceWithApiLevel.getMethodReference());
+            if (!methodsForApiClass.containsKey(method)) {
+              apiClass.amendCovariantMethod(
+                  methodReferenceWithApiLevel.getMethodReference(),
+                  methodReferenceWithApiLevel.getApiLevel());
+              methodsForApiClass.put(method, methodReferenceWithApiLevel.getApiLevel());
+            }
           });
       Map<DexField, AndroidApiLevel> fieldsForApiClass = new HashMap<>();
       apiClass.visitFieldReferences(

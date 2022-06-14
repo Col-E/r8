@@ -21,13 +21,16 @@ import com.android.tools.r8.apimodel.JavaSourceCodePrinter.MethodParameter;
 import com.android.tools.r8.apimodel.JavaSourceCodePrinter.ParameterizedType;
 import com.android.tools.r8.cfmethodgeneration.MethodGenerationBase;
 import com.android.tools.r8.graph.DexAnnotation;
+import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexValue.DexValueType;
+import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.ClassReferenceUtils;
 import com.android.tools.r8.utils.EntryUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.MethodReferenceUtils;
@@ -40,10 +43,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -81,7 +86,9 @@ public class GenerateCovariantReturnTypeMethodsTest extends TestBase {
   public void testCanFindAnnotatedMethodsInJar() throws Exception {
     CovariantMethodsInJarResult covariantMethodsInJar = CovariantMethodsInJarResult.create();
     // These assertions are here to ensure we produce a sane result.
-    assertEquals(51, covariantMethodsInJar.methodReferenceMap.size());
+    assertEquals(9, covariantMethodsInJar.methodReferenceMap.keySet().size());
+    assertEquals(
+        51, covariantMethodsInJar.methodReferenceMap.values().stream().mapToLong(List::size).sum());
   }
 
   @Test
@@ -91,11 +98,9 @@ public class GenerateCovariantReturnTypeMethodsTest extends TestBase {
 
   public static String generateCode() throws Exception {
     CovariantMethodsInJarResult covariantMethodsInJar = CovariantMethodsInJarResult.create();
-    Map<MethodReference, List<MethodReference>> methodReferenceMap =
-        covariantMethodsInJar.methodReferenceMap;
-    List<Entry<MethodReference, List<MethodReference>>> entries =
-        new ArrayList<>(methodReferenceMap.entrySet());
-    entries.sort(Entry.comparingByKey(MethodReferenceUtils.getMethodReferenceComparator()));
+    List<Entry<ClassReference, List<MethodReferenceWithApiLevel>>> entries =
+        new ArrayList<>(covariantMethodsInJar.methodReferenceMap.entrySet());
+    entries.sort(Entry.comparingByKey(ClassReferenceUtils.getClassReferenceComparator()));
     JavaSourceCodePrinter printer =
         JavaSourceCodePrinter.builder()
             .setHeader(
@@ -119,10 +124,16 @@ public class GenerateCovariantReturnTypeMethodsTest extends TestBase {
                 methodPrinter ->
                     entries.forEach(
                         EntryUtils.accept(
-                            (ignored, covariations) ->
-                                covariations.forEach(
-                                    covariant ->
-                                        registerCovariantMethod(methodPrinter, covariant)))))
+                            (ignored, covariations) -> {
+                              covariations.sort(
+                                  Comparator.comparing(
+                                      MethodReferenceWithApiLevel::getMethodReference,
+                                      MethodReferenceUtils.getMethodReferenceComparator()));
+                              covariations.forEach(
+                                  covariant ->
+                                      registerCovariantMethod(
+                                          methodPrinter, covariant.methodReference));
+                            })))
             .toString();
     Path tempFile = Files.createTempFile("output-", ".java");
     Files.write(tempFile, javaSourceCode.getBytes(StandardCharsets.UTF_8));
@@ -175,15 +186,15 @@ public class GenerateCovariantReturnTypeMethodsTest extends TestBase {
   }
 
   public static class CovariantMethodsInJarResult {
-    private final Map<MethodReference, List<MethodReference>> methodReferenceMap;
+    private final Map<ClassReference, List<MethodReferenceWithApiLevel>> methodReferenceMap;
 
     private CovariantMethodsInJarResult(
-        Map<MethodReference, List<MethodReference>> methodReferenceMap) {
+        Map<ClassReference, List<MethodReferenceWithApiLevel>> methodReferenceMap) {
       this.methodReferenceMap = methodReferenceMap;
     }
 
     public static CovariantMethodsInJarResult create() throws Exception {
-      Map<MethodReference, List<MethodReference>> methodReferenceMap = new HashMap<>();
+      Map<ClassReference, List<MethodReferenceWithApiLevel>> methodReferenceMap = new HashMap<>();
       CodeInspector inspector = new CodeInspector(PATH_TO_CORE_JAR);
       DexItemFactory factory = inspector.getFactory();
       for (FoundClassSubject clazz : inspector.allClasses()) {
@@ -196,6 +207,7 @@ public class GenerateCovariantReturnTypeMethodsTest extends TestBase {
                           isCovariantReturnTypeAnnotation(annotation.annotation, factory));
               if (!covariantAnnotations.isEmpty()) {
                 MethodReference methodReference = method.asMethodReference();
+                ClassReference holder = clazz.getOriginalReference();
                 for (DexAnnotation covariantAnnotation : covariantAnnotations) {
                   if (covariantAnnotation.annotation.type
                       == factory.annotationCovariantReturnType) {
@@ -214,17 +226,55 @@ public class GenerateCovariantReturnTypeMethodsTest extends TestBase {
     private static void createCovariantMethodReference(
         MethodReference methodReference,
         DexAnnotation covariantAnnotation,
-        Map<MethodReference, List<MethodReference>> methodReferenceMap) {
+        Map<ClassReference, List<MethodReferenceWithApiLevel>> methodReferenceMap) {
       DexValueType newReturnType =
           covariantAnnotation.annotation.getElement(0).getValue().asDexValueType();
+      DexAnnotationElement element = covariantAnnotation.annotation.getElement(1);
+      assert element.name.toString().equals("presentAfter");
+      AndroidApiLevel apiLevel =
+          AndroidApiLevel.getAndroidApiLevel(element.getValue().asDexValueInt().value);
       methodReferenceMap
-          .computeIfAbsent(methodReference, ignoreKey(ArrayList::new))
+          .computeIfAbsent(methodReference.getHolderClass(), ignoreKey(ArrayList::new))
           .add(
-              Reference.method(
-                  methodReference.getHolderClass(),
-                  methodReference.getMethodName(),
-                  methodReference.getFormalTypes(),
-                  newReturnType.value.asClassReference()));
+              new MethodReferenceWithApiLevel(
+                  Reference.method(
+                      methodReference.getHolderClass(),
+                      methodReference.getMethodName(),
+                      methodReference.getFormalTypes(),
+                      newReturnType.value.asClassReference()),
+                  apiLevel));
+    }
+
+    public void visitCovariantMethodsForHolder(
+        ClassReference reference, Consumer<MethodReferenceWithApiLevel> consumer) {
+      List<MethodReferenceWithApiLevel> methodReferences = methodReferenceMap.get(reference);
+      if (methodReferences != null) {
+        methodReferences.stream()
+            .sorted(
+                Comparator.comparing(
+                    MethodReferenceWithApiLevel::getMethodReference,
+                    MethodReferenceUtils.getMethodReferenceComparator()))
+            .forEach(consumer);
+      }
+    }
+  }
+
+  public static class MethodReferenceWithApiLevel {
+
+    private final MethodReference methodReference;
+    private final AndroidApiLevel apiLevel;
+
+    private MethodReferenceWithApiLevel(MethodReference methodReference, AndroidApiLevel apiLevel) {
+      this.methodReference = methodReference;
+      this.apiLevel = apiLevel;
+    }
+
+    public MethodReference getMethodReference() {
+      return methodReference;
+    }
+
+    public AndroidApiLevel getApiLevel() {
+      return apiLevel;
     }
   }
 }
