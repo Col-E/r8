@@ -74,7 +74,7 @@ public class InputWithAbstractMethodOnNonAbstractClassTest extends TestBase {
   private void inspect(CodeInspector inspector) {
     MethodSubject methodOfInterest = inspector.clazz(Greeter.class).uniqueMethodWithName("dead");
     assertThat(methodOfInterest, isPresent());
-    if (parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.L)) {
+    if (parameters.isCfRuntime() || parameters.getApiLevel().isLessThan(AndroidApiLevel.L)) {
       assertThat(methodOfInterest, not(isAbstract()));
     } else {
       assertThat(methodOfInterest, isAbstract());

@@ -1013,6 +1013,8 @@ public final class R8Command extends BaseCompilerCommand {
     //  have a kept subclass, in which case 'm' would leak into the public API.
     if (internal.isGeneratingClassFiles()) {
       horizontalClassMergerOptions.disable();
+      // R8 CF output does not support desugaring so disable it.
+      internal.desugarState = DesugarState.OFF;
     }
 
     // EXPERIMENTAL flags.

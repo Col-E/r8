@@ -316,8 +316,7 @@ public class DexParser<T extends DexClass> {
   }
 
   private void checkName(DexString name) {
-    if (!options.itemFactory.getSkipNameValidationForTesting()
-        && !name.isValidSimpleName(options.getMinApiLevel())) {
+    if (!options.canUseSpacesInSimpleName() && !name.isValidSimpleName(options.getMinApiLevel())) {
       throw new CompilationError(
           "Space characters in SimpleName '"
               + name.toASCIIString()

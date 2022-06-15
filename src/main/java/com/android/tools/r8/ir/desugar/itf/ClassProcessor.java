@@ -577,7 +577,7 @@ final class ClassProcessor {
       Set<DexType> emulatesInterfaces,
       Map<DexType, GenericSignature.ClassTypeSignature> extraInterfaceSignatures) {
     // TODO(b/182329331): Only handle type arguments for Cf to Cf desugar.
-    if (appView.options().cfToCfDesugar && clazz.validInterfaceSignatures()) {
+    if (appView.options().isCfDesugaring() && clazz.validInterfaceSignatures()) {
       clazz.forEachImmediateSupertypeWithSignature(
           (type, signature) -> {
             if (emulatesInterfaces.contains(type)) {
@@ -612,7 +612,7 @@ final class ClassProcessor {
       return;
     }
     // TODO(b/182329331): Only handle type arguments for Cf to Cf desugar.
-    if (appView.options().cfToCfDesugar && clazz.validInterfaceSignatures()) {
+    if (appView.options().isCfDesugaring() && clazz.validInterfaceSignatures()) {
       assert typeArguments != null;
       clazz.forEachImmediateSupertypeWithAppliedTypeArguments(
           typeArguments,

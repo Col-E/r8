@@ -380,7 +380,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
     // In cf to cf desugar we do pass through of code and don't move around methods.
     // TODO(b/169115389): Remove when we have a way to determine if we need parameter names per
     // method.
-    if (appView.options().cfToCfDesugar) {
+    if (appView.options().isCfDesugaring()) {
       return false;
     }
 

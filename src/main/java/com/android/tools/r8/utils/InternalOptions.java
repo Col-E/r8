@@ -4,6 +4,7 @@
 package com.android.tools.r8.utils;
 
 import static com.android.tools.r8.utils.AndroidApiLevel.ANDROID_PLATFORM;
+import static com.android.tools.r8.utils.AndroidApiLevel.B;
 import static com.android.tools.r8.utils.SystemPropertyUtils.parseSystemPropertyForDevelopmentOrDefault;
 
 import com.android.tools.r8.ClassFileConsumer;
@@ -336,7 +337,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean enableTreeShakingOfLibraryMethodOverrides = false;
   public boolean encodeChecksums = false;
   public BiPredicate<String, Long> dexClassChecksumFilter = (name, checksum) -> true;
-  public boolean cfToCfDesugar = false;
   public boolean forceAnnotateSynthetics = false;
   public boolean readDebugSetFileEvent = false;
   public boolean disableL8AnnotationRemoval =
@@ -518,12 +518,12 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean shouldBackportMethods() {
-    return !hasConsumer() || isGeneratingDex() || cfToCfDesugar;
+    return !hasConsumer() || isGeneratingDex() || isCfDesugaring();
   }
 
   public boolean shouldKeepStackMapTable() {
-    assert cfToCfDesugar || isRelocatorCompilation() || getProguardConfiguration() != null;
-    return cfToCfDesugar
+    assert isCfDesugaring() || isRelocatorCompilation() || getProguardConfiguration() != null;
+    return isCfDesugaring()
         || isRelocatorCompilation()
         || getProguardConfiguration().getKeepAttributes().stackMapTable;
   }
@@ -549,7 +549,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean isDesugaring() {
-    return !isGeneratingClassFiles() || cfToCfDesugar;
+    return desugarState.isOn();
+  }
+
+  public boolean isCfDesugaring() {
+    return isGeneratingClassFiles() && desugarState.isOn();
   }
 
   public DexIndexedConsumer getDexIndexedConsumer() {
@@ -646,6 +650,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   private final boolean enableMinification;
 
   public AndroidApiLevel getMinApiLevel() {
+    // If compiling to CF with no desugaring then we should not inspect the min-api.
+    // For now we assert the API level for non-desugared CF is B, but it would be better to never
+    // access the min-api in those cases.
+    assert desugarState.isOn() || isGeneratingDex() || minApiLevel.equals(AndroidApiLevel.B);
     return minApiLevel;
   }
 
@@ -1973,6 +1981,36 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   /**
+   * Predicate to guard on the support of a language feature.
+   *
+   * <p>Note that if not desugaring or compiling to DEX, then the output is a mapping of the input
+   * and thus all parts should be representable (assuming the compiler has support for them).
+   */
+  private boolean hasFeaturePresentFrom(AndroidApiLevel level) {
+    if (desugarState.isOn() || isGeneratingDex()) {
+      return level != null && hasMinApi(level);
+    }
+    // If not desugaring and not compiling to DEX, then the API level is effectively ignored and
+    // we assume that everything in the input is supported in the output.
+    assert minApiLevel.equals(B);
+    return true;
+  }
+
+  /**
+   * Predicate to guard against the possible presence of a VM bug.
+   *
+   * <p>Note that if the compilation is not desugaring to a min-api or targeting DEX at a min-api,
+   * then the bug is assumed to be present as the CF output could be futher compiled to any target.
+   */
+  private boolean canHaveBugPresentUntil(AndroidApiLevel level) {
+    if (desugarState.isOn() || isGeneratingDex()) {
+      return level == null || !hasMinApi(level);
+    }
+    assert minApiLevel.equals(B);
+    return true;
+  }
+
+  /**
    * Allow access modification of synthetic lambda implementation methods in D8 to avoid generating
    * an excessive amount of accessibility bridges. In R8, the lambda implementation methods are
    * inlined into the synthesized accessibility bridges, thus we don't allow access modification.
@@ -2008,47 +2046,52 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean canUseInvokePolymorphicOnVarHandle() {
-    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.P);
+    return hasFeaturePresentFrom(AndroidApiLevel.P);
   }
 
   public boolean canUseInvokePolymorphic() {
-    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.O);
+    return hasFeaturePresentFrom(AndroidApiLevel.O);
   }
 
   public boolean canUseConstantMethodHandle() {
-    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.P);
+    return hasFeaturePresentFrom(AndroidApiLevel.P);
   }
 
   public boolean canUseConstantMethodType() {
-    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.P);
+    return hasFeaturePresentFrom(AndroidApiLevel.P);
   }
 
   public boolean canUseInvokeCustom() {
-    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.O);
+    return hasFeaturePresentFrom(AndroidApiLevel.O);
   }
 
   public boolean canUseDefaultAndStaticInterfaceMethods() {
-    return !isDesugaring() || hasMinApi(AndroidApiLevel.N);
+    return hasFeaturePresentFrom(AndroidApiLevel.N);
   }
 
   public boolean canUseNestBasedAccess() {
-    return !isDesugaring() || emitNestAnnotationsInDex;
+    return hasFeaturePresentFrom(null) || emitNestAnnotationsInDex;
   }
 
   public boolean canUseRecords() {
-    return !isDesugaring();
+    return hasFeaturePresentFrom(null);
   }
 
   public boolean canUseSealedClasses() {
-    return !isDesugaring() || emitPermittedSubclassesAnnotationsInDex;
+    return hasFeaturePresentFrom(null) || emitPermittedSubclassesAnnotationsInDex;
   }
 
   public boolean canLeaveStaticInterfaceMethodInvokes() {
-    return !isDesugaring() || hasMinApi(AndroidApiLevel.L);
+    return hasFeaturePresentFrom(AndroidApiLevel.L);
   }
 
   public boolean canUseTwrCloseResourceMethod() {
-    return !isDesugaring() || hasMinApi(AndroidApiLevel.K);
+    return hasFeaturePresentFrom(AndroidApiLevel.K);
+  }
+
+  public boolean canUseSpacesInSimpleName() {
+    return itemFactory.getSkipNameValidationForTesting()
+        || hasFeaturePresentFrom(AndroidApiLevel.R);
   }
 
   public boolean enableBackportedMethodRewriting() {
@@ -2070,7 +2113,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean canUsePrivateInterfaceMethods() {
-    return !isDesugaring() || hasMinApi(AndroidApiLevel.N);
+    return hasFeaturePresentFrom(AndroidApiLevel.N);
   }
 
   // Debug entries may be dropped only if the source file content allows being omitted from
@@ -2095,7 +2138,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     if (!hasConsumer()) {
       return false;
     }
-    return desugarState == DesugarState.ON
+    return desugarState.isOn()
         && interfaceMethodDesugaring == OffOrAuto.Auto
         && !canUseDefaultAndStaticInterfaceMethods();
   }
@@ -2114,23 +2157,24 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean canUseJavaUtilObjects() {
-    return !isDesugaring() || hasMinApi(AndroidApiLevel.K);
+    return hasFeaturePresentFrom(AndroidApiLevel.K);
   }
 
   public boolean canUseJavaUtilObjectsIsNull() {
-    return isGeneratingDex() && hasMinApi(AndroidApiLevel.N);
+    return hasFeaturePresentFrom(AndroidApiLevel.N);
   }
 
   public boolean canUseSuppressedExceptions() {
     // TODO(b/214239152): Suppressed exceptions are @hide from at least 4.0.1 / Android I / API 14.
-    return !isDesugaring() || hasMinApi(AndroidApiLevel.K);
+    return hasFeaturePresentFrom(AndroidApiLevel.K);
   }
 
   public boolean canUseAssertionErrorTwoArgumentConstructor() {
-    return !isDesugaring() || hasMinApi(AndroidApiLevel.K);
+    return hasFeaturePresentFrom(AndroidApiLevel.K);
   }
 
   public CfVersion classFileVersionAfterDesugaring(CfVersion version) {
+    assert isGeneratingClassFiles();
     if (!isDesugaring()) {
       return version;
     }
@@ -2146,7 +2190,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // https://android.googlesource.com/platform/libcore/+/refs/heads/ics-mr1/luni/src/main/java/java/lang/AssertionError.java#56
   public boolean canInitCauseAfterAssertionErrorObjectConstructor() {
-    return !isDesugaring() || hasMinApi(AndroidApiLevel.J);
+    return hasFeaturePresentFrom(AndroidApiLevel.J);
   }
 
   // Dalvik x86-atom backend had a bug that made it crash on filled-new-array instructions for
@@ -2159,7 +2203,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // https://android.googlesource.com/platform/dalvik/+/ics-mr0/vm/mterp/out/InterpAsm-x86-atom.S#25106
   public boolean canUseFilledNewArrayOfObjects() {
     assert isGeneratingDex();
-    return hasMinApi(AndroidApiLevel.K);
+    return hasFeaturePresentFrom(AndroidApiLevel.K);
   }
 
   // Art had a bug (b/68761724) for Android N and O in the arm32 interpreter
@@ -2167,7 +2211,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // and the first register of the result could lead to the wrong exception
   // being thrown on out of bounds.
   public boolean canUseSameArrayAndResultRegisterInArrayGetWide() {
-    return isGeneratingClassFiles() || getMinApiLevel().isGreaterThan(AndroidApiLevel.O_MR1);
+    return hasFeaturePresentFrom(AndroidApiLevel.P);
   }
 
   // Some Lollipop versions of Art found in the wild perform invalid bounds
@@ -2184,7 +2228,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // See b/69364976 and b/77996377.
   public boolean canHaveBoundsCheckEliminationBug() {
-    return isGeneratingDex() && getMinApiLevel().isLessThan(AndroidApiLevel.M);
+    return canHaveBugPresentUntil(AndroidApiLevel.M);
   }
 
   // MediaTek JIT compilers for KitKat phones did not implement the not
@@ -2193,14 +2237,14 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // we can only use not instructions if we are targeting Art-based
   // phones.
   public boolean canUseNotInstruction() {
-    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.L);
+    return hasFeaturePresentFrom(AndroidApiLevel.L);
   }
 
   // Art before M has a verifier bug where the type of the contents of the receiver register is
   // assumed to not change. If the receiver register is reused for something else the verifier
   // will fail and the code will not run.
   public boolean canHaveThisTypeVerifierBug() {
-    return isGeneratingDex() && getMinApiLevel().isLessThan(AndroidApiLevel.M);
+    return canHaveBugPresentUntil(AndroidApiLevel.M);
   }
 
   // Art crashes if we do dead reference elimination of the receiver in release mode and Art
@@ -2209,13 +2253,13 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // See b/116683601 and b/116837585.
   public boolean canHaveThisJitCodeDebuggingBug() {
-    return getMinApiLevel().isLessThan(AndroidApiLevel.Q);
+    return canHaveBugPresentUntil(AndroidApiLevel.Q);
   }
 
   // The dalvik jit had a bug where the long operations add, sub, or, xor and and would write
   // the first part of the result long before reading the second part of the input longs.
   public boolean canHaveOverlappingLongRegisterBug() {
-    return isGeneratingDex() && getMinApiLevel().isLessThan(AndroidApiLevel.L);
+    return canHaveBugPresentUntil(AndroidApiLevel.L);
   }
 
   // Some dalvik versions found in the wild perform invalid JIT compilation of cmp-long
@@ -2248,7 +2292,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // See b/75408029.
   public boolean canHaveCmpLongBug() {
-    return isGeneratingDex() && getMinApiLevel().isLessThan(AndroidApiLevel.L);
+    return canHaveBugPresentUntil(AndroidApiLevel.L);
   }
 
   // Some Lollipop VMs crash if there is a const instruction between a cmp and an if instruction.
@@ -2276,7 +2320,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // See b/115552239.
   public boolean canHaveCmpIfFloatBug() {
-    return getMinApiLevel().isLessThan(AndroidApiLevel.M);
+    return canHaveBugPresentUntil(AndroidApiLevel.M);
   }
 
   // Some Lollipop VMs incorrectly optimize code with mul2addr instructions. In particular,
@@ -2298,7 +2342,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // This issue has only been observed on a Verizon Ellipsis 8 tablet. See b/76115465.
   public boolean canHaveMul2AddrBug() {
-    return isGeneratingDex() && getMinApiLevel().isLessThan(AndroidApiLevel.M);
+    return canHaveBugPresentUntil(AndroidApiLevel.M);
   }
 
   // Some Marshmallow VMs create an incorrect doubly-linked list of instructions. When the VM
@@ -2307,7 +2351,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // See b/77842465.
   public boolean canHaveDex2OatLinkedListBug() {
-    return isGeneratingDex() && getMinApiLevel().isLessThan(AndroidApiLevel.N);
+    return canHaveBugPresentUntil(AndroidApiLevel.N);
   }
 
   // dex2oat on Marshmallow VMs does aggressive inlining which can eat up all the memory on
@@ -2315,7 +2359,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // See b/111960171
   public boolean canHaveDex2OatInliningIssue() {
-    return isGeneratingDex() && getMinApiLevel().isLessThan(AndroidApiLevel.N);
+    return canHaveBugPresentUntil(AndroidApiLevel.N);
   }
 
   // Art 7.0.0 and later Art JIT may perform an invalid optimization if a string new-instance does
@@ -2323,7 +2367,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // See b/78493232 and b/80118070.
   public boolean canHaveArtStringNewInitBug() {
-    return isGeneratingDex() && getMinApiLevel().isLessThan(AndroidApiLevel.Q);
+    return canHaveBugPresentUntil(AndroidApiLevel.Q);
   }
 
   // Dalvik tracing JIT may perform invalid optimizations when int/float values are converted to
@@ -2331,7 +2375,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // See b/77496850.
   public boolean canHaveNumberConversionRegisterAllocationBug() {
-    return isGeneratingDex() && getMinApiLevel().isLessThan(AndroidApiLevel.L);
+    return canHaveBugPresentUntil(AndroidApiLevel.L);
   }
 
   // Some Lollipop mediatek VMs have a peculiar bug where the inliner crashes if there is a
@@ -2344,7 +2388,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // See b/68378480.
   public boolean canHaveForwardingInitInliningBug() {
-    return isGeneratingDex() && getMinApiLevel().isLessThan(AndroidApiLevel.M);
+    return canHaveBugPresentUntil(AndroidApiLevel.M);
   }
 
   // Some Lollipop x86_64 VMs have a bug causing a segfault if an exception handler directly targets
@@ -2356,7 +2400,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // See b/111337896.
   public boolean canHaveExceptionTargetingLoopHeaderBug() {
-    return isGeneratingDex() && !debug && getMinApiLevel().isLessThan(AndroidApiLevel.M);
+    assert isGeneratingDex();
+    return !debug && canHaveBugPresentUntil(AndroidApiLevel.M);
   }
 
   // The Dalvik tracing JIT can trace past the end of the instruction stream and end up
@@ -2371,7 +2416,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // We also could not insert any dead code (e.g. a return) because that would make mediatek
   // dominator calculations on 7.0.0 crash. See b/128926846.
   public boolean canHaveTracingPastInstructionsStreamBug() {
-    return getMinApiLevel().isLessThan(AndroidApiLevel.L);
+    return canHaveBugPresentUntil(AndroidApiLevel.L);
   }
 
   // The art verifier incorrectly propagates type information for the following pattern:
@@ -2398,7 +2443,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // Fixed in Android Q, see b/120985556.
   public boolean canHaveArtInstanceOfVerifierBug() {
-    return isGeneratingDex() && getMinApiLevel().isLessThan(AndroidApiLevel.Q);
+    return canHaveBugPresentUntil(AndroidApiLevel.Q);
   }
 
   // Some Art Lollipop version do not deal correctly with long-to-int conversions.
@@ -2421,7 +2466,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean canHaveLongToIntBug() {
     // We have only seen this happening on Lollipop arm64 backends. We have tested on
     // Marshmallow and Nougat arm64 devices and they do not have the bug.
-    return getMinApiLevel().isLessThan(AndroidApiLevel.M);
+    return canHaveBugPresentUntil(AndroidApiLevel.M);
   }
 
   // The Art VM for Android N through P has a bug in the JIT that means that if the same
@@ -2434,7 +2479,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // See b/120164595.
   public boolean canHaveExceptionTypeBug() {
-    return getMinApiLevel().isLessThan(AndroidApiLevel.Q);
+    return canHaveBugPresentUntil(AndroidApiLevel.Q);
   }
 
   // Art 4.0.4 fails with a verification error when a null-literal is being passed directly to an
@@ -2442,7 +2487,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // elimination of check-cast instructions where the value being cast is the constant null.
   // See b/123269162.
   public boolean canHaveArtCheckCastVerifierBug() {
-    return getMinApiLevel().isLessThan(AndroidApiLevel.J);
+    return canHaveBugPresentUntil(AndroidApiLevel.J);
   }
 
   // The verifier will merge A[] and B[] to Object[], even when both A and B implement an interface
@@ -2466,7 +2511,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // See b/131349148
   public boolean canHaveDalvikCatchHandlerVerificationBug() {
-    return isGeneratingClassFiles() || getMinApiLevel().isLessThan(AndroidApiLevel.L);
+    return canHaveBugPresentUntil(AndroidApiLevel.L);
   }
 
   // Having an invoke instruction that targets an abstract method on a non-abstract class will fail
@@ -2474,7 +2519,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // See b/132953944.
   public boolean canHaveDalvikAbstractMethodOnNonAbstractClassVerificationBug() {
-    return isGeneratingDex() && getMinApiLevel().isLessThan(AndroidApiLevel.L);
+    return canHaveBugPresentUntil(AndroidApiLevel.L);
   }
 
   // On dalvik we see issues when using an int value in places where a boolean, byte, char, or short
@@ -2488,14 +2533,14 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // See also b/134304597 and b/124152497.
   public boolean canHaveDalvikIntUsedAsNonIntPrimitiveTypeBug() {
-    return isGeneratingClassFiles() || getMinApiLevel().isLessThan(AndroidApiLevel.L);
+    return canHaveBugPresentUntil(AndroidApiLevel.L);
   }
 
   // The standard library prior to API 19 did not contain a ZipFile that implemented Closable.
   //
   // See b/177532008.
   public boolean canHaveZipFileWithMissingCloseableBug() {
-    return isGeneratingClassFiles() || getMinApiLevel().isLessThan(AndroidApiLevel.K);
+    return canHaveBugPresentUntil(AndroidApiLevel.K);
   }
 
   // Some versions of Dalvik had a bug where a switch with a MAX_INT key would still go to
@@ -2503,7 +2548,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // See b/177790310.
   public boolean canHaveSwitchMaxIntBug() {
-    return isGeneratingDex() && getMinApiLevel().isLessThan(AndroidApiLevel.K);
+    return canHaveBugPresentUntil(AndroidApiLevel.K);
   }
 
   // On Dalvik the methods Integer.parseInt and Long.parseLong does not support strings with a '+'
@@ -2511,7 +2556,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // See b/182137865.
   public boolean canParseNumbersWithPlusPrefix() {
-    return getMinApiLevel().isGreaterThan(AndroidApiLevel.K);
+    return hasFeaturePresentFrom(AndroidApiLevel.L);
   }
 
   // Lollipop and Marshmallow devices do not correctly handle invoke-super when the static holder
@@ -2519,7 +2564,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // See b/215573892.
   public boolean canHaveSuperInvokeBug() {
-    return getMinApiLevel().isLessThan(AndroidApiLevel.N);
+    return canHaveBugPresentUntil(AndroidApiLevel.N);
   }
 
   // Some Dalvik and Art MVs does not support interface invokes to Object
@@ -2535,12 +2580,12 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // See b/218298666.
   public boolean canHaveInvokeInterfaceToObjectMethodBug() {
-    return isGeneratingDex() && getMinApiLevel().isLessThan(AndroidApiLevel.P);
+    return canHaveBugPresentUntil(AndroidApiLevel.P);
   }
 
   // Until we fully drop support for API levels < 16, we have to emit an empty annotation set to
   // work around a DALVIK bug. See b/36951668.
   public boolean canHaveDalvikEmptyAnnotationSetBug() {
-    return minApiLevel.isLessThan(AndroidApiLevel.J_MR1);
+    return canHaveBugPresentUntil(AndroidApiLevel.J_MR1);
   }
 }

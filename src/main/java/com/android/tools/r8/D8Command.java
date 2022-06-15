@@ -374,6 +374,11 @@ public final class D8Command extends BaseCompilerCommand {
       if (hasDesugaredLibraryConfiguration() && getDisableDesugaring()) {
         reporter.error("Using desugared library configuration requires desugaring to be enabled");
       }
+      if (getProgramConsumer() instanceof ClassFileConsumer
+          && getDisableDesugaring()
+          && isMinApiLevelSet()) {
+        reporter.error("Compiling to CF with --min-api and --no-desugaring is not supported");
+      }
       super.validate();
     }
 
@@ -397,12 +402,18 @@ public final class D8Command extends BaseCompilerCommand {
             new InternalGlobalSyntheticsProgramProvider(globalSyntheticsResourceProviders));
       }
 
+      // If compiling to CF with --no-desugaring then the target API is B for consistency with R8.
+      int minApiLevel =
+          getProgramConsumer() instanceof ClassFileConsumer && getDisableDesugaring()
+              ? AndroidApiLevel.B.getLevel()
+              : getMinApiLevel();
+
       return new D8Command(
           getAppBuilder().build(),
           getMode(),
           getProgramConsumer(),
           getMainDexListConsumer(),
-          getMinApiLevel(),
+          minApiLevel,
           getReporter(),
           getDesugaringState(),
           intermediate,
@@ -576,8 +587,7 @@ public final class D8Command extends BaseCompilerCommand {
     internal.debug = getMode() == CompilationMode.DEBUG;
     internal.programConsumer = getProgramConsumer();
     if (internal.isGeneratingClassFiles()) {
-      internal.cfToCfDesugar = true;
-      // Turn off switch optimizations when desugaring to class file format.
+      // Turn off switch optimizations when generating class files.
       assert internal.enableSwitchRewriting;
       internal.enableSwitchRewriting = false;
       assert internal.enableStringSwitchConversion;

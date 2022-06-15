@@ -223,7 +223,7 @@ public final class InterfaceProcessor {
     assert !appView.enableWholeProgramOptimizations();
     DexProgramClass iface = method.getHolder();
     if (method.getAccessFlags().isBridge()) {
-      if (appView.options().cfToCfDesugar) {
+      if (appView.options().isCfDesugaring()) {
         // TODO(b/187176895): Find the compilation causing this to not be removed.
         return false;
       }

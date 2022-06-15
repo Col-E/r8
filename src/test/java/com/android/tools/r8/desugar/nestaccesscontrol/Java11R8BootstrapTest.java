@@ -74,7 +74,6 @@ public class Java11R8BootstrapTest extends TestBase {
                 builder.addOptionsModification(
                     options -> {
                       options.desugarState = DesugarState.ON;
-                      options.cfToCfDesugar = true;
                     }))
         .compile()
         .inspect(inspector -> assertNests(inspector, desugar))

@@ -562,7 +562,7 @@ public class JarClassFileReader<T extends DexClass> {
     }
 
     private void checkName(String name) {
-      if (!application.getFactory().getSkipNameValidationForTesting()
+      if (!application.options.canUseSpacesInSimpleName()
           && !DexString.isValidSimpleName(application.options.getMinApiLevel(), name)) {
         throw new CompilationError("Space characters in SimpleName '"
           + name + "' are not allowed prior to DEX version 040");

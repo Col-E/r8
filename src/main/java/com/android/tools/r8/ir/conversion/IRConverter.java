@@ -502,7 +502,7 @@ public class IRConverter {
 
     // The class file version is downgraded after compilation. Some of the desugaring might need
     // the initial class file version to determine how far a method can be downgraded.
-    if (clazz.hasClassFileVersion()) {
+    if (options.isGeneratingClassFiles() && clazz.hasClassFileVersion()) {
       clazz.downgradeInitialClassFileVersion(
           appView.options().classFileVersionAfterDesugaring(clazz.getInitialClassFileVersion()));
     }
@@ -514,7 +514,7 @@ public class IRConverter {
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
     DexEncodedMethod definition = method.getDefinition();
-    if (definition.hasClassFileVersion()) {
+    if (options.isGeneratingClassFiles() && definition.hasClassFileVersion()) {
       definition.downgradeClassFileVersion(
           appView.options().classFileVersionAfterDesugaring(definition.getClassFileVersion()));
     }
@@ -552,7 +552,7 @@ public class IRConverter {
     if (options.testing.forceIRForCfToCfDesugar) {
       return true;
     }
-    return !options.cfToCfDesugar;
+    return !options.isCfDesugaring();
   }
 
   private void checkPrefixMerging(ProgramMethod method) {

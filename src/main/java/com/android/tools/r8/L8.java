@@ -90,13 +90,12 @@ public class L8 {
       ExecutorService executorService)
       throws CompilationFailedException {
     try {
-      assert !options.cfToCfDesugar;
       ExceptionUtils.withD8CompilationHandler(
           options.reporter,
           () -> {
             // Desugar to class file format and turn off switch optimizations, as the final
             // compilation with D8 or R8 will do that.
-            options.cfToCfDesugar = true;
+            assert options.isCfDesugaring();
             assert !options.forceAnnotateSynthetics;
             options.forceAnnotateSynthetics = true;
             assert options.enableSwitchRewriting;
@@ -106,12 +105,10 @@ public class L8 {
 
             desugar(app, options, executorService);
 
-            options.cfToCfDesugar = false;
             options.forceAnnotateSynthetics = false;
             options.enableSwitchRewriting = true;
             options.enableStringSwitchConversion = true;
           });
-      assert !options.cfToCfDesugar;
       if (shrink) {
         R8.run(r8Command, executorService);
       } else if (d8Command != null) {
@@ -125,7 +122,7 @@ public class L8 {
   private static void desugar(
       AndroidApp inputApp, InternalOptions options, ExecutorService executor) throws IOException {
     Timing timing = Timing.create("L8 desugaring", options);
-    assert options.cfToCfDesugar;
+    assert options.isCfDesugaring();
     try {
       // Since L8 Cf representation is temporary, just disable long running back-end optimizations
       // on it.
