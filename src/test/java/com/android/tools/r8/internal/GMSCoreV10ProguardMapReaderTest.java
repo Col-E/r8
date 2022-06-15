@@ -17,8 +17,9 @@ public class GMSCoreV10ProguardMapReaderTest extends GMSCoreCompilationTestBase 
   @Test
   public void roundTripTestGmsCoreV10() throws IOException {
     Path map = Paths.get(APP_DIR).resolve(PG_MAP);
-    ClassNameMapper firstMapper = ClassNameMapper.mapperFromFile(map);
-    ClassNameMapper secondMapper = ClassNameMapper.mapperFromString(firstMapper.toString());
+    ClassNameMapper firstMapper = ClassNameMapper.mapperFromFile(map).sorted();
+    ClassNameMapper secondMapper =
+        ClassNameMapper.mapperFromString(firstMapper.toString()).sorted();
     Assert.assertEquals(firstMapper, secondMapper);
   }
 }
