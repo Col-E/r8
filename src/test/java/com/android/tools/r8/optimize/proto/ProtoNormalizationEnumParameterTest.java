@@ -4,10 +4,6 @@
 
 package com.android.tools.r8.optimize.proto;
 
-import static org.junit.Assert.assertThrows;
-
-import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.DiagnosticsMatcher;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -35,21 +31,15 @@ public class ProtoNormalizationEnumParameterTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    assertThrows(
-        CompilationFailedException.class,
-        () ->
-            testForR8Compat(parameters.getBackend())
-                .addInnerClasses(getClass())
-                .setMinApi(parameters.getApiLevel())
-                .addKeepClassAndMembersRules(Main.class)
-                .addKeepClassRules(CustomAnnotation.class)
-                .addKeepRuntimeVisibleParameterAnnotations()
-                .enableInliningAnnotations()
-                // TODO(b/b/235733922): Should not throw an NPE.
-                .compileWithExpectedDiagnostics(
-                    diagnostics ->
-                        diagnostics.assertErrorThatMatches(
-                            DiagnosticsMatcher.diagnosticException(NullPointerException.class))));
+    testForR8Compat(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepClassAndMembersRules(Main.class)
+        .addKeepClassRules(CustomAnnotation.class)
+        .addKeepRuntimeVisibleParameterAnnotations()
+        .enableInliningAnnotations()
+        .run(parameters.getRuntime(), Main.class, "foo", "bar")
+        .assertSuccessWithOutputLines("2foobar", "TEST_1");
   }
 
   @Retention(RetentionPolicy.RUNTIME)
