@@ -23,7 +23,7 @@ import java.util.List;
  */
 interface StringBuilderOracle {
 
-  boolean isStringBuilderInstruction(Instruction instruction);
+  boolean isModeledStringBuilderInstruction(Instruction instruction);
 
   boolean hasStringBuilderType(Value value);
 
@@ -50,7 +50,7 @@ interface StringBuilderOracle {
     }
 
     @Override
-    public boolean isStringBuilderInstruction(Instruction instruction) {
+    public boolean isModeledStringBuilderInstruction(Instruction instruction) {
       if (instruction.isNewInstance()) {
         return isStringBuilderType(instruction.asNewInstance().getType());
       } else if (instruction.isInvokeMethod()) {
@@ -157,7 +157,7 @@ interface StringBuilderOracle {
 
     @Override
     public boolean canObserveStringBuilderCall(Instruction instruction) {
-      assert isStringBuilderInstruction(instruction);
+      assert isModeledStringBuilderInstruction(instruction);
       if (!instruction.isInvokeMethod()) {
         assert false : "Expecting a call to string builder";
         return true;

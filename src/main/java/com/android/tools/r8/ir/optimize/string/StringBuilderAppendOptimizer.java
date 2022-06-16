@@ -1,0 +1,426 @@
+// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
+package com.android.tools.r8.ir.optimize.string;
+
+import static com.android.tools.r8.ir.optimize.string.StringBuilderHelper.canMutate;
+import static com.android.tools.r8.ir.optimize.string.StringBuilderNode.createAppendNode;
+import static com.android.tools.r8.ir.optimize.string.StringBuilderNode.createEscapeNode;
+import static com.android.tools.r8.ir.optimize.string.StringBuilderNode.createImplicitToStringNode;
+import static com.android.tools.r8.ir.optimize.string.StringBuilderNode.createInitNode;
+import static com.android.tools.r8.ir.optimize.string.StringBuilderNode.createInspectionNode;
+import static com.android.tools.r8.ir.optimize.string.StringBuilderNode.createMutateNode;
+import static com.android.tools.r8.ir.optimize.string.StringBuilderNode.createNewInstanceNode;
+import static com.android.tools.r8.ir.optimize.string.StringBuilderNode.createOtherStringBuilderNode;
+import static com.android.tools.r8.ir.optimize.string.StringBuilderNode.createToStringNode;
+
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.ir.analysis.framework.intraprocedural.DataflowAnalysisResult.SuccessfulDataflowAnalysisResult;
+import com.android.tools.r8.ir.analysis.framework.intraprocedural.IntraproceduralDataflowAnalysis;
+import com.android.tools.r8.ir.analysis.framework.intraprocedural.TransferFunctionResult;
+import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
+import com.android.tools.r8.ir.code.Phi;
+import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.string.StringBuilderNode.AppendNode;
+import com.android.tools.r8.ir.optimize.string.StringBuilderNode.EscapeNode;
+import com.android.tools.r8.ir.optimize.string.StringBuilderNode.ImplicitToStringNode;
+import com.android.tools.r8.ir.optimize.string.StringBuilderNode.InitNode;
+import com.android.tools.r8.ir.optimize.string.StringBuilderNode.InitOrAppend;
+import com.android.tools.r8.ir.optimize.string.StringBuilderNode.LoopNode;
+import com.android.tools.r8.ir.optimize.string.StringBuilderOracle.DefaultStringBuilderOracle;
+import com.android.tools.r8.utils.DepthFirstSearchWorkListBase.StatefulDepthFirstSearchWorkList;
+import com.android.tools.r8.utils.TraversalContinuation;
+import com.android.tools.r8.utils.WorkList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+/**
+ * {@link StringBuilderAppendOptimizer} will try to optimize string builders by joining appends with
+ * constant arguments and materializing toStrings into constant strings to be able to remove entire
+ * StringBuilders (or StringBuffers).
+ *
+ * <p>The algorithm works by producing graphs for all string builders of a method. The graphs follow
+ * the control flow of the method, thus, if a string builder is assigned a value in two blocks from
+ * a certain point, and there is no linear path between the two assignments, they will show up in a
+ * graph as two successor nodes to a common predecessor. StringBuilder graphs are not tracked
+ * through phis, instead a phi and subsequent uses of that phi will also occur as a graph.
+ *
+ * <p>When all graphs are constructed the graphs are optimized by running a munching algorithm on
+ * them.
+ *
+ * <p>Finally, based on all optimizations, the IR is updated to reflect the optimizations.
+ */
+public class StringBuilderAppendOptimizer {
+
+  private final AppView<?> appView;
+  private final StringBuilderOracle oracle;
+  private final IRCode code;
+
+  private StringBuilderAppendOptimizer(AppView<?> appView, IRCode code) {
+    this.appView = appView;
+    this.code = code;
+    oracle = new DefaultStringBuilderOracle(appView.dexItemFactory());
+  }
+
+  public static void run(AppView<?> appView, IRCode code) {
+    new StringBuilderAppendOptimizer(appView, code).run();
+  }
+
+  private void run() {
+    Map<Value, StringBuilderNode> stringBuilderGraphs = computeStringBuilderGraphs();
+    // TODO(b/219455761): Update with actions on the graphs.
+    assert stringBuilderGraphs != null;
+  }
+
+  private static class StringBuilderGraphState {
+
+    private final Map<Value, StringBuilderNode> roots;
+    private final Map<Value, StringBuilderNode> tails;
+    private boolean isPartOfLoop;
+
+    private StringBuilderGraphState(
+        Map<Value, StringBuilderNode> roots, Map<Value, StringBuilderNode> tails) {
+      this.roots = roots;
+      this.tails = tails;
+    }
+  }
+
+  /***
+   * This will compute a collection of graphs from StringBuilders and return a map from value to
+   * the root of the string builder graph.
+   *
+   * The graphs are constructed by doing a DFS traversel and computing all string builder actions
+   * inside a block. The flow here is known to be linear. When backtracking, the linear collection
+   * of nodes (represented by root and tail) are then combined in a way that ensure the control flow
+   * of the method is maintained in the graph.
+   *
+   * To ensure that we correctly compute when a string builder escapes and when it can be mutated
+   * we first compute a {@link StringBuilderEscapeState} by using a flow analysis, enabling us to
+   * answer, for a given instruction, is a string builder value escaping and all escaped values
+   * at the instruction.
+   */
+  private Map<Value, StringBuilderNode> computeStringBuilderGraphs() {
+    StringBuilderEscapeTransferFunction transferFunction =
+        new StringBuilderEscapeTransferFunction(oracle);
+    IntraproceduralDataflowAnalysis<StringBuilderEscapeState> analysis =
+        new IntraproceduralDataflowAnalysis<>(
+            StringBuilderEscapeState.bottom(), code, transferFunction);
+    SuccessfulDataflowAnalysisResult<?, StringBuilderEscapeState> stringBuilderEscapeResult =
+        analysis.run(code.entryBlock()).asSuccessfulAnalysisResult();
+
+    if (stringBuilderEscapeResult == null) {
+      return Collections.emptyMap();
+    }
+
+    TraversalContinuation<Void, StringBuilderGraphState> graphResult =
+        new StatefulDepthFirstSearchWorkList<BasicBlock, StringBuilderGraphState, Void>() {
+
+          @Override
+          @SuppressWarnings("ReturnValueIgnored")
+          protected TraversalContinuation<Void, StringBuilderGraphState> process(
+              DFSNodeWithState<BasicBlock, StringBuilderGraphState> node,
+              Function<BasicBlock, DFSNodeWithState<BasicBlock, StringBuilderGraphState>>
+                  childNodeConsumer) {
+            Map<Value, StringBuilderNode> currentRoots = new IdentityHashMap<>();
+            Map<Value, StringBuilderNode> currentTails = new IdentityHashMap<>();
+            BasicBlock block = node.getNode();
+            StringBuilderEscapeState previousState = analysis.computeBlockEntryState(block);
+            TransferFunctionResult<StringBuilderEscapeState> result =
+                transferFunction.applyBlock(block, previousState);
+            if (result.isFailedTransferResult()) {
+              assert false : "Computing the state should never fail";
+              return TraversalContinuation.doBreak();
+            }
+            previousState = result.asAbstractState();
+            for (Phi phi : block.getPhis()) {
+              if (previousState.isLiveStringBuilder(phi)) {
+                visitAllAliasing(
+                    phi,
+                    previousState,
+                    value -> {},
+                    alias -> {
+                      EscapeNode escapeNode = new EscapeNode();
+                      currentRoots.put(alias, escapeNode);
+                      currentTails.put(alias, escapeNode);
+                    });
+              }
+            }
+            for (Instruction instruction : block.getInstructions()) {
+              result = transferFunction.apply(instruction, previousState);
+              if (result.isFailedTransferResult()) {
+                assert false : "Computing the state should never fail";
+                return TraversalContinuation.doBreak();
+              }
+              previousState = result.asAbstractState();
+              createNodesForInstruction(
+                  instruction,
+                  previousState,
+                  (value, sbNode) -> {
+                    StringBuilderNode currentTail = currentTails.get(value);
+                    if (currentTail == null) {
+                      currentRoots.put(value, sbNode);
+                      currentTails.put(value, sbNode);
+                    } else if (shouldAddNodeToGraph(currentTail, sbNode)) {
+                      currentTail.addSuccessor(sbNode);
+                      currentTails.put(value, sbNode);
+                    }
+                  });
+            }
+            assert currentRoots.keySet().equals(currentTails.keySet());
+            assert previousState.getLiveStringBuilders().containsAll(currentRoots.keySet())
+                : "Seen root that is not a live string builder";
+            node.setState(new StringBuilderGraphState(currentRoots, currentTails));
+            for (BasicBlock successor : block.getSuccessors()) {
+              childNodeConsumer.apply(successor);
+            }
+            return TraversalContinuation.doContinue();
+          }
+
+          private boolean shouldAddNodeToGraph(
+              StringBuilderNode insertedNode, StringBuilderNode newNode) {
+            // No need for multiple mutating nodes or inspecting nodes.
+            if (insertedNode.isMutateNode()) {
+              return !newNode.isMutateNode() && !newNode.isInspectingNode();
+            } else if (insertedNode.isInspectingNode()) {
+              return !newNode.isInspectingNode();
+            }
+            return true;
+          }
+
+          private void createNodesForInstruction(
+              Instruction instruction,
+              StringBuilderEscapeState escapeState,
+              BiConsumer<Value, StringBuilderNode> nodeConsumer) {
+            // Do not build nodes for assume values.
+            if (instruction.isAssume()) {
+              return;
+            }
+            if (oracle.isModeledStringBuilderInstruction(instruction)) {
+              createNodesForStringBuilderInstruction(instruction, escapeState, nodeConsumer);
+            } else {
+              for (Value newEscapedValue : escapeState.getNewlyEscaped()) {
+                visitStringBuilderValues(
+                    newEscapedValue,
+                    escapeState,
+                    nonAlias -> nodeConsumer.accept(nonAlias, createEscapeNode()),
+                    alias -> nodeConsumer.accept(alias, createEscapeNode()));
+              }
+              if (canMutate(instruction)) {
+                for (Value escapedStringBuilder : escapeState.getEscaping()) {
+                  visitStringBuilderValues(
+                      escapedStringBuilder,
+                      escapeState,
+                      nonAlias -> nodeConsumer.accept(nonAlias, createMutateNode()),
+                      alias -> nodeConsumer.accept(alias, createMutateNode()));
+                }
+              }
+            }
+          }
+
+          private void createNodesForStringBuilderInstruction(
+              Instruction instruction,
+              StringBuilderEscapeState escapeState,
+              BiConsumer<Value, StringBuilderNode> nodeConsumer) {
+            if (instruction.isNewInstance()) {
+              Value newInstanceValue = instruction.outValue();
+              assert newInstanceValue != null;
+              nodeConsumer.accept(
+                  newInstanceValue, createNewInstanceNode(instruction.asNewInstance()));
+            } else {
+              InvokeMethodWithReceiver invoke = instruction.asInvokeMethodWithReceiver();
+              Value receiver = invoke.getReceiver();
+              if (oracle.isInit(instruction)) {
+                InitNode initNode = createInitNode(instruction.asInvokeDirect());
+                initNode.setConstantArgument(oracle.getConstantArgument(instruction));
+                if (invoke.arguments().size() == 2) {
+                  Value arg = invoke.getOperand(1);
+                  if (oracle.hasStringBuilderType(arg)) {
+                    insertImplicitToStringNode(
+                        arg, instruction, initNode, escapeState, nodeConsumer);
+                  }
+                }
+                visitStringBuilderValues(
+                    receiver,
+                    escapeState,
+                    actual -> nodeConsumer.accept(actual, initNode),
+                    escaped -> nodeConsumer.accept(escaped, createInspectionNode(instruction)));
+              } else if (oracle.isAppend(instruction)) {
+                AppendNode appendNode = createAppendNode(instruction.asInvokeVirtual());
+                appendNode.setConstantArgument(oracle.getConstantArgument(instruction));
+                Value arg = invoke.getOperand(1).getAliasedValue();
+                if (oracle.hasStringBuilderType(arg)) {
+                  insertImplicitToStringNode(
+                      arg, instruction, appendNode, escapeState, nodeConsumer);
+                }
+                visitStringBuilderValues(
+                    receiver,
+                    escapeState,
+                    actual -> nodeConsumer.accept(actual, appendNode),
+                    escaped -> nodeConsumer.accept(escaped, createMutateNode()));
+              } else if (oracle.isToString(instruction)) {
+                visitStringBuilderValues(
+                    receiver,
+                    escapeState,
+                    actual ->
+                        nodeConsumer.accept(
+                            actual, createToStringNode(instruction.asInvokeVirtual())),
+                    escaped -> nodeConsumer.accept(escaped, createInspectionNode(instruction)));
+              } else if (oracle.isInspecting(instruction)) {
+                visitStringBuilderValues(
+                    receiver,
+                    escapeState,
+                    actual -> nodeConsumer.accept(actual, createInspectionNode(instruction)),
+                    escaped -> nodeConsumer.accept(escaped, createInspectionNode(instruction)));
+              } else {
+                visitStringBuilderValues(
+                    receiver,
+                    escapeState,
+                    actual ->
+                        nodeConsumer.accept(actual, createOtherStringBuilderNode(instruction)),
+                    escaped ->
+                        nodeConsumer.accept(escaped, createOtherStringBuilderNode(instruction)));
+              }
+            }
+          }
+
+          // For tracking propagating constant string builder values through append or init we
+          // build a link between the two graphs.
+          private void insertImplicitToStringNode(
+              Value value,
+              Instruction instruction,
+              InitOrAppend node,
+              StringBuilderEscapeState escapeState,
+              BiConsumer<Value, StringBuilderNode> nodeConsumer) {
+            assert escapeState.isLiveStringBuilder(value);
+            ImplicitToStringNode implicitToStringNode = createImplicitToStringNode(node);
+            visitStringBuilderValues(
+                value,
+                escapeState,
+                actual -> nodeConsumer.accept(actual, implicitToStringNode),
+                escaped -> nodeConsumer.accept(escaped, createInspectionNode(instruction)));
+            node.setImplicitToStringNode(implicitToStringNode);
+          }
+
+          private void visitStringBuilderValues(
+              Value value,
+              StringBuilderEscapeState state,
+              Consumer<Value> actualConsumer,
+              Consumer<Value> aliasAndEscapedConsumer) {
+            assert state.isLiveStringBuilder(value);
+            boolean seenEscaped =
+                visitAllAliasing(value, state, actualConsumer, aliasAndEscapedConsumer);
+            seenEscaped |= visitAllAliases(value, state, aliasAndEscapedConsumer);
+            if (seenEscaped) {
+              for (Value escapingValue : state.getEscaping()) {
+                aliasAndEscapedConsumer.accept(escapingValue);
+              }
+            }
+          }
+
+          private boolean visitAllAliasing(
+              Value value,
+              StringBuilderEscapeState state,
+              Consumer<Value> nonAliasConsumer,
+              Consumer<Value> aliasAndEscapedConsumer) {
+            WorkList<Value> valueWorkList = WorkList.newIdentityWorkList(value);
+            boolean seenUnknownAlias = false;
+            boolean seenEscaped = false;
+            while (valueWorkList.hasNext()) {
+              Value next = valueWorkList.next();
+              seenEscaped |= state.isEscaped(next);
+              Set<Value> aliasing =
+                  state.getAliasesToDefinitions().getOrDefault(next, Collections.emptySet());
+              valueWorkList.addIfNotSeen(aliasing);
+              // Check if we have a direct alias such as Assume, CheckCast or StringBuilder.append.
+              if (aliasing.size() != 1 || next.isPhi()) {
+                if (!seenUnknownAlias) {
+                  nonAliasConsumer.accept(next);
+                  seenUnknownAlias = true;
+                } else {
+                  aliasAndEscapedConsumer.accept(next);
+                }
+              }
+            }
+            return seenEscaped;
+          }
+
+          private boolean visitAllAliases(
+              Value value, StringBuilderEscapeState state, Consumer<Value> aliasConsumer) {
+            Map<Value, Set<Value>> escapedDefinitionsToKnown = state.getDefinitionsToAliases();
+            WorkList<Value> valueWorkList =
+                WorkList.newIdentityWorkList(
+                    escapedDefinitionsToKnown.getOrDefault(value, Collections.emptySet()));
+            boolean seenEscaped = false;
+            while (valueWorkList.hasNext()) {
+              Value next = valueWorkList.next();
+              seenEscaped |= state.isEscaped(next);
+              if (next.isPhi()) {
+                aliasConsumer.accept(next);
+              }
+              valueWorkList.addIfNotSeen(
+                  escapedDefinitionsToKnown.getOrDefault(next, Collections.emptySet()));
+            }
+            return seenEscaped;
+          }
+
+          @Override
+          protected TraversalContinuation<Void, StringBuilderGraphState> joiner(
+              DFSNodeWithState<BasicBlock, StringBuilderGraphState> node,
+              List<DFSNodeWithState<BasicBlock, StringBuilderGraphState>> childStates) {
+            StringBuilderGraphState state = node.getState();
+            for (DFSNodeWithState<BasicBlock, StringBuilderGraphState> childState : childStates) {
+              StringBuilderGraphState childGraphState = childState.getState();
+              childGraphState.roots.forEach(
+                  (value, sbNode) -> {
+                    StringBuilderNode currentRoot = state.roots.get(value);
+                    StringBuilderNode currentTail = state.tails.get(value);
+                    if (currentRoot == null) {
+                      assert currentTail == null;
+                      if (childStates.size() == 1) {
+                        state.roots.put(value, sbNode);
+                        state.tails.put(value, sbNode);
+                        return;
+                      }
+                      // We are adding a value coming only from a child state and not defined here.
+                      // To ensure proper ordering we add a sentinel node. If it turns out there is
+                      // only a single reference, we rely on munching to remove it.
+                      currentRoot = StringBuilderNode.createSplitReferenceNode();
+                      currentTail = currentRoot;
+                      state.roots.put(value, currentRoot);
+                      state.tails.put(value, currentTail);
+                    }
+                    assert currentTail != null;
+                    // Link next node from successor
+                    currentTail.addSuccessor(sbNode);
+                    sbNode.addPredecessor(currentTail);
+                  });
+              if (childState.seenAndNotProcessed()) {
+                childGraphState.isPartOfLoop = true;
+              }
+            }
+            if (state.isPartOfLoop) {
+              for (Value value : state.roots.keySet()) {
+                LoopNode loopNode = StringBuilderNode.createLoopNode();
+                loopNode.addSuccessor(state.roots.get(value));
+                state.roots.put(value, loopNode);
+              }
+            }
+            return TraversalContinuation.doContinue(state);
+          }
+        }.run(code.entryBlock());
+
+    return graphResult.shouldBreak()
+        ? Collections.emptyMap()
+        : graphResult.asContinue().getValue().roots;
+  }
+}

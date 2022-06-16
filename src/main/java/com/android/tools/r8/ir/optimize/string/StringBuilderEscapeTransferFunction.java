@@ -53,7 +53,7 @@ public class StringBuilderEscapeTransferFunction
   public TransferFunctionResult<StringBuilderEscapeState> apply(
       Instruction instruction, StringBuilderEscapeState state) {
     StringBuilderEscapeState.Builder builder = state.builder();
-    boolean isStringBuilderInstruction = oracle.isStringBuilderInstruction(instruction);
+    boolean isStringBuilderInstruction = oracle.isModeledStringBuilderInstruction(instruction);
     if (!isStringBuilderInstruction && isEscapingInstructionForInValues(instruction)) {
       for (Value inValue : instruction.inValues()) {
         if (isLiveStringBuilder(builder, inValue)) {

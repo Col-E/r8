@@ -30,6 +30,12 @@ public class StringBuilderHelper {
         || instruction.isCheckCast();
   }
 
+  static boolean canMutate(Instruction instruction) {
+    return instruction.isInvoke()
+        || instruction.isFieldInstruction()
+        || instruction.isNewInstance();
+  }
+
   static boolean isInstructionThatIntroducesDefiniteAlias(
       Instruction instruction, StringBuilderOracle oracle) {
     return instruction.isAssume() || instruction.isCheckCast() || oracle.isAppend(instruction);
