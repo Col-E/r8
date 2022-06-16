@@ -33,7 +33,6 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.Cus
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.synthetic.apiconverter.NullableConversionCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.apiconverter.NullableConversionCfCodeProvider.ArrayConversionCfCodeProvider;
-import com.android.tools.r8.ir.synthetic.apiconverter.NullableConversionCfCodeProvider.CollectionConversionCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.apiconverter.WrapperConstructorCfCodeProvider;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
@@ -118,13 +117,15 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
         || appView.getSyntheticItems().isSyntheticOfKind(type, kinds -> kinds.VIVIFIED_WRAPPER);
   }
 
-  public boolean shouldConvert(DexType type, DexMethod method) {
-    return shouldConvert(type, method, null);
-  }
-
-  public boolean shouldConvert(DexType type, DexMethod method, ProgramMethod context) {
+  public boolean shouldConvert(
+      DexType type, DexMethod apiGenericTypesConversion, DexMethod method, ProgramMethod context) {
     if (type.isArrayType()) {
-      return shouldConvert(type.toBaseType(appView.dexItemFactory()), method, context);
+      assert apiGenericTypesConversion == null;
+      return shouldConvert(
+          type.toBaseType(appView.dexItemFactory()), apiGenericTypesConversion, method, context);
+    }
+    if (apiGenericTypesConversion != null) {
+      return true;
     }
     if (!appView.typeRewriter.hasRewrittenType(type, appView)) {
       return false;
@@ -139,13 +140,12 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   public DexMethod ensureConversionMethod(
       DexType type,
       boolean destIsVivified,
-      DexType apiConversionCollection,
+      DexMethod apiGenericTypesConversion,
       DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer,
       Supplier<UniqueContext> contextSupplier) {
-    if (apiConversionCollection != null) {
+    if (apiGenericTypesConversion != null) {
       assert !type.isArrayType();
-      return ensureCollectionConversionMethod(
-          type, destIsVivified, apiConversionCollection, eventConsumer, contextSupplier);
+      return apiGenericTypesConversion;
     }
     DexType srcType = destIsVivified ? type : vivifiedTypeFor(type);
     DexType destType = destIsVivified ? vivifiedTypeFor(type) : type;
@@ -169,68 +169,6 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     assert srcType == conversion.getArgumentType(0, true);
     assert destType == conversion.getReturnType();
     return conversion;
-  }
-
-  private DexMethod ensureCollectionConversionMethod(
-      DexType type,
-      boolean destIsVivified,
-      DexType apiConversionCollection,
-      DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer,
-      Supplier<UniqueContext> contextSupplier) {
-    assert type == factory.setType || type == factory.listType;
-    DexMethod conversion =
-        ensureConversionMethod(
-            apiConversionCollection,
-            destIsVivified,
-            null, // We do not support nested collections.
-            eventConsumer,
-            contextSupplier);
-    return ensureCollectionConversionMethod(type, eventConsumer, contextSupplier, conversion);
-  }
-
-  private DexMethod ensureCollectionConversionMethodFromExistingBaseConversion(
-      DexType type,
-      boolean destIsVivified,
-      DexType apiConversionCollection,
-      DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer eventConsumer,
-      Supplier<UniqueContext> contextSupplier) {
-    assert type == factory.setType || type == factory.listType;
-    DexMethod conversion =
-        getExistingProgramConversionMethod(
-            apiConversionCollection,
-            destIsVivified,
-            null, // We do not support nested collections.
-            eventConsumer,
-            contextSupplier);
-    return ensureCollectionConversionMethod(type, eventConsumer, contextSupplier, conversion);
-  }
-
-  private DexMethod ensureCollectionConversionMethod(
-      DexType collectionType,
-      DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer,
-      Supplier<UniqueContext> contextSupplier,
-      DexMethod conversion) {
-    ProgramMethod collectionConversion =
-        appView
-            .getSyntheticItems()
-            .createMethod(
-                kinds -> kinds.COLLECTION_CONVERSION,
-                contextSupplier.get(),
-                appView,
-                builder ->
-                    builder
-                        .setProto(factory.createProto(collectionType, collectionType))
-                        .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
-                        .setCode(
-                            codeSynthesizor ->
-                                new CollectionConversionCfCodeProvider(
-                                        appView,
-                                        codeSynthesizor.getHolderType(),
-                                        collectionType,
-                                        conversion)
-                                    .generateCfCode()));
-    eventConsumer.acceptCollectionConversion(collectionConversion);
-    return collectionConversion.getReference();
   }
 
   private DexMethod ensureArrayConversionMethod(
@@ -300,13 +238,12 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   public DexMethod getExistingProgramConversionMethod(
       DexType type,
       boolean destIsVivified,
-      DexType apiConversionCollection,
+      DexMethod apiGenericTypesConversion,
       DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer eventConsumer,
       Supplier<UniqueContext> contextSupplier) {
-    if (apiConversionCollection != null) {
+    if (apiGenericTypesConversion != null) {
       assert !type.isArrayType();
-      return ensureCollectionConversionMethodFromExistingBaseConversion(
-          type, destIsVivified, apiConversionCollection, eventConsumer, contextSupplier);
+      return apiGenericTypesConversion;
     }
     DexType srcType = destIsVivified ? type : vivifiedTypeFor(type);
     DexType destType = destIsVivified ? vivifiedTypeFor(type) : type;
@@ -699,7 +636,6 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
         .getWrappers()
         .forEach(
             (type, methods) -> {
-              assert !librarySpecification.getCustomConversions().containsKey(type);
               DexClass validClassToWrap = getValidClassToWrap(type);
               // In broken set-ups we can end up having a json files containing wrappers of non
               // desugared classes. Such wrappers are not required since the class won't be

@@ -15,13 +15,11 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class HumanRewritingFlags {
 
@@ -34,7 +32,7 @@ public class HumanRewritingFlags {
   private final Map<DexMethod, DexType> covariantRetarget;
   private final Map<DexMethod, DexType> retargetMethod;
   private final Map<DexMethod, DexType> retargetMethodEmulatedDispatch;
-  private final Map<DexMethod, DexType[]> apiConversionCollection;
+  private final Map<DexMethod, DexMethod[]> apiGenericTypesConversion;
   private final Map<DexType, DexType> legacyBackport;
   private final Map<DexType, DexType> customConversions;
   private final Set<DexMethod> dontRewriteInvocation;
@@ -53,7 +51,7 @@ public class HumanRewritingFlags {
       Map<DexMethod, DexType> covariantRetarget,
       Map<DexMethod, DexType> retargetMethod,
       Map<DexMethod, DexType> retargetMethodEmulatedDispatch,
-      Map<DexMethod, DexType[]> apiConversionCollection,
+      Map<DexMethod, DexMethod[]> apiGenericTypesConversion,
       Map<DexType, DexType> legacyBackport,
       Map<DexType, DexType> customConversion,
       Set<DexMethod> dontRewriteInvocation,
@@ -70,7 +68,7 @@ public class HumanRewritingFlags {
     this.covariantRetarget = covariantRetarget;
     this.retargetMethod = retargetMethod;
     this.retargetMethodEmulatedDispatch = retargetMethodEmulatedDispatch;
-    this.apiConversionCollection = apiConversionCollection;
+    this.apiGenericTypesConversion = apiGenericTypesConversion;
     this.legacyBackport = legacyBackport;
     this.customConversions = customConversion;
     this.dontRewriteInvocation = dontRewriteInvocation;
@@ -118,7 +116,7 @@ public class HumanRewritingFlags {
         covariantRetarget,
         retargetMethod,
         retargetMethodEmulatedDispatch,
-        apiConversionCollection,
+        apiGenericTypesConversion,
         legacyBackport,
         customConversions,
         dontRewriteInvocation,
@@ -164,8 +162,8 @@ public class HumanRewritingFlags {
     return retargetMethodEmulatedDispatch;
   }
 
-  public Map<DexMethod, DexType[]> getApiConversionCollection() {
-    return apiConversionCollection;
+  public Map<DexMethod, DexMethod[]> getApiGenericConversion() {
+    return apiGenericTypesConversion;
   }
 
   public Map<DexType, DexType> getLegacyBackport() {
@@ -221,7 +219,7 @@ public class HumanRewritingFlags {
     private final Map<DexMethod, DexType> covariantRetarget;
     private final Map<DexMethod, DexType> retargetMethod;
     private final Map<DexMethod, DexType> retargetMethodEmulatedDispatch;
-    private final Map<DexMethod, DexType[]> apiConversionCollection;
+    private final Map<DexMethod, DexMethod[]> apiGenericTypesConversion;
     private final Map<DexType, DexType> legacyBackport;
     private final Map<DexType, DexType> customConversions;
     private final Set<DexMethod> dontRewriteInvocation;
@@ -265,7 +263,7 @@ public class HumanRewritingFlags {
         Map<DexMethod, DexType> covariantRetarget,
         Map<DexMethod, DexType> retargetMethod,
         Map<DexMethod, DexType> retargetMethodEmulatedDispatch,
-        Map<DexMethod, DexType[]> apiConversionCollection,
+        Map<DexMethod, DexMethod[]> apiConversionCollection,
         Map<DexType, DexType> backportCoreLibraryMember,
         Map<DexType, DexType> customConversions,
         Set<DexMethod> dontRewriteInvocation,
@@ -284,7 +282,7 @@ public class HumanRewritingFlags {
       this.covariantRetarget = new IdentityHashMap<>(covariantRetarget);
       this.retargetMethod = new IdentityHashMap<>(retargetMethod);
       this.retargetMethodEmulatedDispatch = new IdentityHashMap<>(retargetMethodEmulatedDispatch);
-      this.apiConversionCollection = new IdentityHashMap<>(apiConversionCollection);
+      this.apiGenericTypesConversion = new IdentityHashMap<>(apiConversionCollection);
       this.legacyBackport = new IdentityHashMap<>(backportCoreLibraryMember);
       this.customConversions = new IdentityHashMap<>(customConversions);
       this.dontRewriteInvocation = Sets.newIdentityHashSet();
@@ -406,12 +404,13 @@ public class HumanRewritingFlags {
       return this;
     }
 
-    public void addApiConversionCollection(DexMethod method, int index, DexType type) {
-      DexType[] types =
-          apiConversionCollection.computeIfAbsent(method, k -> new DexType[method.getArity() + 1]);
+    public void addApiGenericTypesConversion(DexMethod method, int index, DexMethod conversion) {
+      DexMethod[] types =
+          apiGenericTypesConversion.computeIfAbsent(
+              method, k -> new DexMethod[method.getArity() + 1]);
       int actualIndex = index == -1 ? method.getArity() : index;
       assert types[actualIndex] == null;
-      types[actualIndex] = type;
+      types[actualIndex] = conversion;
     }
 
     public Builder putLegacyBackport(DexType backportType, DexType rewrittenBackportType) {
@@ -444,7 +443,6 @@ public class HumanRewritingFlags {
     }
 
     public HumanRewritingFlags build() {
-      validate();
       return new HumanRewritingFlags(
           ImmutableMap.copyOf(rewritePrefix),
           ImmutableSet.copyOf(dontRewritePrefix),
@@ -455,7 +453,7 @@ public class HumanRewritingFlags {
           ImmutableMap.copyOf(covariantRetarget),
           ImmutableMap.copyOf(retargetMethod),
           ImmutableMap.copyOf(retargetMethodEmulatedDispatch),
-          ImmutableMap.copyOf(apiConversionCollection),
+          ImmutableMap.copyOf(apiGenericTypesConversion),
           ImmutableMap.copyOf(legacyBackport),
           ImmutableMap.copyOf(customConversions),
           ImmutableSet.copyOf(dontRewriteInvocation),
@@ -463,20 +461,6 @@ public class HumanRewritingFlags {
           ImmutableMap.copyOf(wrapperConversions),
           ImmutableMap.copyOf(amendLibraryMethod),
           ImmutableMap.copyOf(amendLibraryField));
-    }
-
-    private void validate() {
-      SetView<DexType> dups =
-          Sets.intersection(customConversions.keySet(), wrapperConversions.keySet());
-      if (!dups.isEmpty()) {
-        throw reporter.fatalError(
-            new StringDiagnostic(
-                "Invalid desugared library configuration. "
-                    + "Duplicate types in custom conversions and wrapper conversions: "
-                    + String.join(
-                        ", ", dups.stream().map(DexType::toString).collect(Collectors.toSet())),
-                origin));
-      }
     }
   }
 }

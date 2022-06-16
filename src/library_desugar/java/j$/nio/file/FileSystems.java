@@ -4,10 +4,8 @@
 
 package j$.nio.file;
 
-import java.io.IOException;
-
-public class Files {
-  public static String probeContentType(j$.nio.file.Path path) throws IOException {
+public class FileSystems {
+  public static FileSystem getDefault() {
     return null;
   }
 }

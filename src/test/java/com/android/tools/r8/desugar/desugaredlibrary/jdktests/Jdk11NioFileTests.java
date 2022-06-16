@@ -136,7 +136,6 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
           "WatchServiceBasic",
           "WatchServiceFileTreeModifier",
           "WatchServiceDeleteInterference",
-          "WatchServiceMayFlies",
           "WatchServiceLotsOfCancels",
           "WatchServiceSensitivityModifier");
   private static final List<String> FAILING_MAIN_TESTS =
@@ -157,6 +156,7 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
           "FilesTemporaryFiles",
           "FilesCheckPermissions",
           "FilesMisc",
+          "WatchServiceMayFlies", // Works but longest to run by far.
           "WatchServiceWithSecurityManager",
           "WatchServiceUpdateInterference",
           "WatchServiceLotsOfCloses");
@@ -272,10 +272,12 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
             .compile()
             .withArt6Plus64BitsLib();
     int success = 0;
+    int failures = 0;
     for (String mainTestClass : SUCCESSFUL_MAIN_TESTS) {
       SingleTestRunResult<?> run = compileResult.run(parameters.getRuntime(), mainTestClass);
       if (run.getExitCode() != 0) {
         System.out.println("Main Fail " + mainTestClass);
+        failures++;
       } else {
         success++;
       }
@@ -286,6 +288,7 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
               parameters.getRuntime(), "TestNGMainRunner", verbosity, testNGTestClass);
       if (!result.getStdOut().contains(StringUtils.lines(testNGTestClass + ": SUCCESS"))) {
         System.out.println("TestNG Fail " + testNGTestClass);
+        failures++;
       } else {
         success++;
       }
@@ -293,7 +296,9 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
     // TODO(b/234689867): Understand and fix these issues.
     // Most issues seem to come from the missing secure.properties file. This file is not accessed
     // in all tests on all API levels, hence a different number of failures on each level.
-    assertTrue(success >= 15);
+    System.out.println("Successes :" + success + "; failures " + failures);
+    assertTrue(success >= 11);
+    assertTrue(failures <= 20);
   }
 
   @Test

@@ -28,7 +28,14 @@ public class PathTest extends DesugaredLibraryTestBase {
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
   private final CompilationSpecification compilationSpecification;
 
-  private static final String EXPECTED_RESULT = StringUtils.lines("x.txt", "dir", "dir/x.txt", "/");
+  private static final String EXPECTED_RESULT_DESUGARING =
+      StringUtils.lines(
+          "x.txt", "dir", "dir/x.txt", "/", "class j$.desugar.sun.nio.fs.DesugarLinuxFileSystem");
+  private static final String EXPECTED_RESULT_DESUGARING_PLATFORM_FILE_SYSTEM =
+      StringUtils.lines(
+          "x.txt", "dir", "dir/x.txt", "/", "class j$.nio.file.FileSystem$VivifiedWrapper");
+  private static final String EXPECTED_RESULT_NO_DESUGARING =
+      StringUtils.lines("x.txt", "dir", "dir/x.txt", "/", "class sun.nio.fs.LinuxFileSystem");
 
   @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
@@ -47,13 +54,25 @@ public class PathTest extends DesugaredLibraryTestBase {
     this.compilationSpecification = compilationSpecification;
   }
 
+  private String getExpectedResult() {
+    if (!libraryDesugaringSpecification.hasNioFileDesugaring(parameters)) {
+      return EXPECTED_RESULT_NO_DESUGARING;
+    }
+    return libraryDesugaringSpecification.usesPlatformFileSystem(parameters)
+        ? EXPECTED_RESULT_DESUGARING_PLATFORM_FILE_SYSTEM
+        : EXPECTED_RESULT_DESUGARING;
+  }
+
   @Test
-  public void test() throws Exception {
+  public void test() throws Throwable {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+        .addL8KeepRules("-keepnames class j$.desugar.sun.nio.fs.**")
+        .addL8KeepRules("-keepnames class j$.nio.file.FileSystem**")
         .addInnerClasses(PathTest.class)
         .addKeepMainRule(TestClass.class)
+        .compile()
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+        .assertSuccessWithOutput(getExpectedResult());
   }
 
   public static class TestClass {
@@ -67,6 +86,7 @@ public class PathTest extends DesugaredLibraryTestBase {
       Path resolve = path2.resolve(path1);
       System.out.println(resolve);
       System.out.println(resolve.getFileSystem().getSeparator());
+      System.out.println(resolve.getFileSystem().getClass());
     }
   }
 }

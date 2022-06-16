@@ -4,10 +4,9 @@
 
 package j$.nio.file;
 
-import java.io.IOException;
+public class Path {
 
-public class Files {
-  public static String probeContentType(j$.nio.file.Path path) throws IOException {
+  public static j$.nio.file.Path wrap_convert(java.nio.file.Path path) {
     return null;
   }
 }

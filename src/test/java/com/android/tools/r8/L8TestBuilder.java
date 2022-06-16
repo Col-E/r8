@@ -89,6 +89,11 @@ public class L8TestBuilder {
     return this;
   }
 
+  public L8TestBuilder addKeepRules(String keepRule) throws IOException {
+    this.keepRules.add(keepRule);
+    return this;
+  }
+
   public L8TestBuilder addKeepRuleFile(Path keepRuleFile) throws IOException {
     this.keepRules.add(FileUtils.readTextFile(keepRuleFile, StandardCharsets.UTF_8));
     return this;

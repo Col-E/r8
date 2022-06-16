@@ -11,6 +11,7 @@ import static com.android.tools.r8.ToolHelper.getUndesugaredJdk11LibJarForTestin
 import com.android.tools.r8.L8TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -152,7 +153,7 @@ public class LibraryDesugaringSpecification {
       Descriptor descriptor) {
     this(
         name,
-        ImmutableSet.of(desugarJdkLibs, ToolHelper.DESUGAR_LIB_CONVERSIONS),
+        ImmutableSet.of(desugarJdkLibs, ToolHelper.getConvertedDesugaredLibConversions()),
         Paths.get("src/library_desugar/" + specificationPath),
         ImmutableSet.of(ToolHelper.getAndroidJar(androidJarLevel)),
         descriptor,
@@ -252,6 +253,14 @@ public class LibraryDesugaringSpecification {
 
   public boolean hasNioFileDesugaring(TestParameters parameters) {
     return parameters.getApiLevel().getLevel() < descriptor.getNioFileDesugaring();
+  }
+
+  public boolean hasNioChannelDesugaring(TestParameters parameters) {
+    return hasNioFileDesugaring(parameters) && parameters.getApiLevel().getLevel() < 24;
+  }
+
+  public boolean usesPlatformFileSystem(TestParameters parameters) {
+    return parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V8_1_0);
   }
 
   public boolean hasAnyDesugaring(TestParameters parameters) {

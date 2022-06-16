@@ -6,13 +6,19 @@ package com.android.tools.r8.desugar.desugaredlibrary.gson;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -64,9 +70,21 @@ public class ConcurrentHashMapFileSerializationTest extends DesugaredLibraryTest
         .addKeepMainRule(Executor.class)
         .noMinification()
         .compile()
+        .inspectL8(this::assertVersionUID)
         .withArt6Plus64BitsLib()
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(EXPECTED_RESULT);
+  }
+
+  private void assertVersionUID(CodeInspector inspector) {
+    ClassSubject mapClass = inspector.clazz("j$.util.concurrent.ConcurrentHashMap");
+    if (parameters.getApiLevel().isLessThan(AndroidApiLevel.N)) {
+      assertTrue(mapClass.isPresent());
+      FieldSubject serialVersionUID = mapClass.uniqueFieldWithName("serialVersionUID");
+      assertTrue(serialVersionUID.isPresent());
+    } else {
+      assertFalse(mapClass.isPresent());
+    }
   }
 
   @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")

@@ -12,7 +12,6 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -39,7 +38,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class FilesTest extends DesugaredLibraryTestBase {
 
-  private static final String EXPECTED_RESULT =
+  private static final String EXPECTED_RESULT_DESUGARING_FILE_SYSTEM =
       StringUtils.lines(
           "bytes written: 11",
           "String written: Hello World",
@@ -50,7 +49,7 @@ public class FilesTest extends DesugaredLibraryTestBase {
           "null",
           "true",
           "unsupported");
-  private static final String EXPECTED_RESULT_24_26 =
+  private static final String EXPECTED_RESULT_DESUGARING_FILE_SYSTEM_PLATFORM_CHANNEL =
       StringUtils.lines(
           "bytes written: 11",
           "String written: Hello World",
@@ -61,7 +60,7 @@ public class FilesTest extends DesugaredLibraryTestBase {
           "null",
           "true",
           "unsupported");
-  private static final String EXPECTED_RESULT_26 =
+  private static final String EXPECTED_RESULT_PLATFORM_FILE_SYSTEM =
       StringUtils.lines(
           "bytes written: 11",
           "String written: Hello World",
@@ -100,16 +99,16 @@ public class FilesTest extends DesugaredLibraryTestBase {
   }
 
   private String getExpectedResult() {
-    if (parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.O)) {
-      return EXPECTED_RESULT_26;
+    if (libraryDesugaringSpecification.usesPlatformFileSystem(parameters)) {
+      return EXPECTED_RESULT_PLATFORM_FILE_SYSTEM;
     }
-    return parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N)
-        ? EXPECTED_RESULT_24_26
-        : EXPECTED_RESULT;
+    return libraryDesugaringSpecification.hasNioChannelDesugaring(parameters)
+        ? EXPECTED_RESULT_DESUGARING_FILE_SYSTEM
+        : EXPECTED_RESULT_DESUGARING_FILE_SYSTEM_PLATFORM_CHANNEL;
   }
 
   @Test
-  public void test() throws Exception {
+  public void test() throws Throwable {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
@@ -146,7 +145,7 @@ public class FilesTest extends DesugaredLibraryTestBase {
 
       try {
         PosixFileAttributes posixAttributes = Files.readAttributes(path, PosixFileAttributes.class);
-        if (attributes != null) {
+        if (posixAttributes != null) {
           System.out.println(
               posixAttributes.permissions().contains(PosixFilePermission.OWNER_READ));
         } else {

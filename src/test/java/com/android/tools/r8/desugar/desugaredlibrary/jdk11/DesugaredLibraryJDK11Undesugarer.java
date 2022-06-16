@@ -6,6 +6,7 @@ package com.android.tools.r8.desugar.desugaredlibrary.jdk11;
 
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.transformers.ClassFileTransformer;
 import com.android.tools.r8.transformers.MethodTransformer;
 import com.android.tools.r8.utils.StreamUtils;
 import com.android.tools.r8.utils.ZipUtils;
@@ -74,7 +75,7 @@ public class DesugaredLibraryJDK11Undesugarer extends DesugaredLibraryTestBase {
   }
 
   private byte[] transformInvoke(String descriptor, byte[] bytes) {
-    return transformer(bytes, Reference.classFromDescriptor(descriptor))
+    return ClassFileTransformer.create(bytes, Reference.classFromDescriptor(descriptor))
         .addMethodTransformer(getMethodTransformer())
         .transform();
   }

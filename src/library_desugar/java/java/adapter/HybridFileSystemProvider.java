@@ -4,13 +4,12 @@
 
 package java.adapter;
 
-import android.os.Build.VERSION;
 import android.os.StrictMode;
 import android.os.StrictMode.ThreadPolicy;
 import desugar.sun.nio.fs.DesugarDefaultFileSystemProvider;
+import j$.nio.file.FileSystems;
 import java.net.URI;
 import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
 import java.nio.file.spi.FileSystemProvider;
 
 /**
@@ -23,20 +22,26 @@ public final class HybridFileSystemProvider {
       INSTANCE.getFileSystem(URI.create("file:///"));
 
   private static FileSystemProvider getFileSystemProvider() {
-    if (VERSION.SDK_INT >= 26) {
-      return FileSystems.getDefault().provider();
-    } else {
-      try {
-        // In headless, android.os is absent so the following line will throw.
-        // We cannot set the ThreadPolicy in headless and it is irrelevant.
-        // If we are not in headless, the class will be found and we can set the thread policy.
-        Class.forName("android.os.Build");
-        setThreadPolicy();
-      } catch (ClassNotFoundException ignored) {
-        // Headless mode.
-      }
-      return DesugarDefaultFileSystemProvider.instance();
+    try {
+      // On API 26 and above, FileSystems is present.
+      Class.forName("java.nio.file.FileSystems");
+      j$.nio.file.FileSystem fileSystem = FileSystems.getDefault();
+      j$.nio.file.spi.FileSystemProvider provider = fileSystem.provider();
+      return j$.nio.file.spi.FileSystemProvider.wrap_convert(provider);
+    } catch (ClassNotFoundException ignored) {
+      // We reach this path is API < 26.
     }
+    // The DesugarDefaultFileSystemProvider requires the ThreadPolicy to be set to work correctly.
+    // We cannot set the ThreadPolicy in headless and it should not matter.
+    // In headless, android.os is absent so the following line will throw.
+    // In headfull, android.os is present and we set the thread policy.
+    try {
+      Class.forName("android.os.Build");
+      setThreadPolicy();
+    } catch (ClassNotFoundException ignored) {
+      // Headless mode.
+    }
+    return DesugarDefaultFileSystemProvider.instance();
   }
 
   private static void setThreadPolicy() {

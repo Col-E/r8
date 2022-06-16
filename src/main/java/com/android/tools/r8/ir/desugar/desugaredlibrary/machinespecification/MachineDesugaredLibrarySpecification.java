@@ -120,8 +120,8 @@ public class MachineDesugaredLibrarySpecification {
     return rewritingFlags.getEmulatedVirtualRetargetThroughEmulatedInterface();
   }
 
-  public Map<DexMethod, DexType[]> getApiConversionCollection() {
-    return rewritingFlags.getApiConversionCollection();
+  public Map<DexMethod, DexMethod[]> getApiGenericConversion() {
+    return rewritingFlags.getApiGenericConversion();
   }
 
   public void forEachRetargetMethod(Consumer<DexMethod> consumer) {

@@ -44,6 +44,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
   private final CompilationSpecification compilationSpecification;
   private final TestCompilerBuilder<?, ?, ?, ? extends SingleTestRunResult<?>, ?> builder;
+  private String l8ExtraKeepRules = "";
   private Consumer<InternalOptions> l8OptionModifier = ConsumerUtils.emptyConsumer();
   private boolean l8FinalPrefixVerification = true;
 
@@ -205,6 +206,13 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
+  public DesugaredLibraryTestBuilder<T> addL8KeepRules(String keepRules) {
+    if (compilationSpecification.isL8Shrink()) {
+      l8ExtraKeepRules += keepRules + "\n";
+    }
+    return this;
+  }
+
   public DesugaredLibraryTestBuilder<T> addKeepClassAndMembersRules(Class<?>... clazz) {
     withR8TestBuilder(b -> b.addKeepClassAndMembersRules(clazz));
     return this;
@@ -348,7 +356,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     L8TestCompileResult nonShrunk =
         test.testForL8(parameters.getApiLevel(), Backend.CF)
             .apply(libraryDesugaringSpecification::configureL8TestBuilder)
-            .apply(this::configure)
+            .apply(b -> configure(b, Backend.CF))
             .compile();
     String keepRules =
         collectKeepRulesWithTraceReferences(compile.writeToZip(), nonShrunk.writeToZip());
@@ -362,13 +370,16 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
             b ->
                 libraryDesugaringSpecification.configureL8TestBuilder(
                     b, compilationSpecification.isL8Shrink(), keepRule))
-        .apply(this::configure)
+        .apply(b -> configure(b, parameters.getBackend()))
         .compile();
   }
 
-  private void configure(L8TestBuilder l8Builder) {
+  private void configure(L8TestBuilder l8Builder, Backend backend) {
     l8Builder
         .applyIf(!l8FinalPrefixVerification, L8TestBuilder::ignoreFinalPrefixVerification)
+        .applyIf(
+            compilationSpecification.isL8Shrink() && !backend.isCf() && !l8ExtraKeepRules.isEmpty(),
+            b -> b.addKeepRules(l8ExtraKeepRules))
         .addOptionsModifier(l8OptionModifier);
   }
 

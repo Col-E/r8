@@ -48,7 +48,7 @@ public class HumanDesugaredLibrarySpecificationParser {
 
   static final String API_LEVEL_BELOW_OR_EQUAL_KEY = "api_level_below_or_equal";
   static final String API_LEVEL_GREATER_OR_EQUAL_KEY = "api_level_greater_or_equal";
-  static final String API_CONVERSION_COLLECTION = "api_conversion_collection";
+  static final String API_GENERIC_TYPES_CONVERSION = "api_generic_types_conversion";
   static final String WRAPPER_CONVERSION_KEY = "wrapper_conversion";
   static final String WRAPPER_CONVERSION_EXCLUDING_KEY = "wrapper_conversion_excluding";
   static final String CUSTOM_CONVERSION_KEY = "custom_conversion";
@@ -264,15 +264,15 @@ public class HumanDesugaredLibrarySpecificationParser {
         builder.putDontRewritePrefix(dontRewritePrefix.getAsString());
       }
     }
-    if (jsonFlagSet.has(API_CONVERSION_COLLECTION)) {
+    if (jsonFlagSet.has(API_GENERIC_TYPES_CONVERSION)) {
       for (Map.Entry<String, JsonElement> methodAndDescription :
-          jsonFlagSet.get(API_CONVERSION_COLLECTION).getAsJsonObject().entrySet()) {
+          jsonFlagSet.get(API_GENERIC_TYPES_CONVERSION).getAsJsonObject().entrySet()) {
         JsonArray array = methodAndDescription.getValue().getAsJsonArray();
         for (int i = 0; i < array.size(); i += 2) {
-          builder.addApiConversionCollection(
+          builder.addApiGenericTypesConversion(
               parseMethod(methodAndDescription.getKey()),
               array.get(i).getAsInt(),
-              stringDescriptorToDexType(array.get(i + 1).getAsString()));
+              parseMethod(array.get(i + 1).getAsString()));
         }
       }
     }

@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion;
 
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryAPIConverter.methodWithVivifiedTypeInSignature;
+import static com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryAPIConverter.vivifiedTypeFor;
 
 import com.android.tools.r8.cf.code.CfArrayLoad;
 import com.android.tools.r8.cf.code.CfArrayStore;
@@ -156,9 +157,12 @@ public class DesugaredLibraryConversionCfProvider {
         computeReturnConversion(method, false, eventConsumer, context, contextSupplier);
     DexMethod[] parameterConversions =
         computeParameterConversions(method, true, eventConsumer, context, contextSupplier);
+    DexType newHolder =
+        appView.typeRewriter.hasRewrittenType(method.getHolderType(), appView)
+            ? vivifiedTypeFor(method.getHolderType(), appView)
+            : method.getHolderType();
     DexMethod forwardMethod =
-        convertedMethod(
-            method, true, returnConversion, parameterConversions, wrapperField.getType());
+        convertedMethod(method, true, returnConversion, parameterConversions, newHolder);
     CfCode cfCode =
         new APIConversionCfCodeProvider(
                 appView,
@@ -467,12 +471,13 @@ public class DesugaredLibraryConversionCfProvider {
 
   private DexMethod internalComputeReturnConversion(
       DexMethod invokedMethod,
-      BiFunction<DexType, DexType, DexMethod> methodSupplier,
+      BiFunction<DexType, DexMethod, DexMethod> methodSupplier,
       ProgramMethod context) {
     DexType returnType = invokedMethod.proto.returnType;
-    if (wrapperSynthesizer.shouldConvert(returnType, invokedMethod, context)) {
-      DexType apiConversionCollection = getReturnApiConversionCollection(invokedMethod);
-      return methodSupplier.apply(returnType, apiConversionCollection);
+    DexMethod apiGenericTypesConversion = getReturnApiGenericConversion(invokedMethod);
+    if (wrapperSynthesizer.shouldConvert(
+        returnType, apiGenericTypesConversion, invokedMethod, context)) {
+      return methodSupplier.apply(returnType, apiGenericTypesConversion);
     }
     return null;
   }
@@ -486,9 +491,9 @@ public class DesugaredLibraryConversionCfProvider {
     return internalComputeParameterConversions(
         invokedMethod,
         wrapperSynthesizer,
-        (argType, apiConversionCollection) ->
+        (argType, apiGenericTypesConversion) ->
             wrapperSynthesizer.ensureConversionMethod(
-                argType, destIsVivified, apiConversionCollection, eventConsumer, contextSupplier),
+                argType, destIsVivified, apiGenericTypesConversion, eventConsumer, contextSupplier),
         context);
   }
 
@@ -501,41 +506,42 @@ public class DesugaredLibraryConversionCfProvider {
     return internalComputeParameterConversions(
         invokedMethod,
         wrapperSynthesizer,
-        (argType, apiConversionCollection) ->
+        (argType, apiGenericTypesConversion) ->
             wrapperSynthesizer.getExistingProgramConversionMethod(
-                argType, destIsVivified, apiConversionCollection, eventConsumer, contextSupplier),
+                argType, destIsVivified, apiGenericTypesConversion, eventConsumer, contextSupplier),
         context);
   }
 
   private DexMethod[] internalComputeParameterConversions(
       DexMethod invokedMethod,
       DesugaredLibraryWrapperSynthesizer wrapperSynthesizor,
-      BiFunction<DexType, DexType, DexMethod> methodSupplier,
+      BiFunction<DexType, DexMethod, DexMethod> methodSupplier,
       ProgramMethod context) {
     DexMethod[] parameterConversions = new DexMethod[invokedMethod.getArity()];
     DexType[] parameters = invokedMethod.proto.parameters.values;
     for (int i = 0; i < parameters.length; i++) {
-      DexType apiConversionCollection = getApiConversionCollection(invokedMethod, i);
+      DexMethod apiGenericTypesConversion = getApiGenericConversion(invokedMethod, i);
       DexType argType = parameters[i];
-      if (wrapperSynthesizor.shouldConvert(argType, invokedMethod, context)) {
-        parameterConversions[i] = methodSupplier.apply(argType, apiConversionCollection);
+      if (wrapperSynthesizor.shouldConvert(
+          argType, apiGenericTypesConversion, invokedMethod, context)) {
+        parameterConversions[i] = methodSupplier.apply(argType, apiGenericTypesConversion);
       }
     }
     return parameterConversions;
   }
 
-  public DexType getReturnApiConversionCollection(DexMethod method) {
-    return getApiConversionCollection(method, method.getArity());
+  public DexMethod getReturnApiGenericConversion(DexMethod method) {
+    return getApiGenericConversion(method, method.getArity());
   }
 
-  public DexType getApiConversionCollection(DexMethod method, int parameterIndex) {
-    DexType[] dexTypes =
+  public DexMethod getApiGenericConversion(DexMethod method, int parameterIndex) {
+    DexMethod[] conversions =
         appView
             .options()
             .machineDesugaredLibrarySpecification
-            .getApiConversionCollection()
+            .getApiGenericConversion()
             .get(method);
-    return dexTypes == null ? null : dexTypes[parameterIndex];
+    return conversions == null ? null : conversions[parameterIndex];
   }
 
   private DexMethod convertedMethod(

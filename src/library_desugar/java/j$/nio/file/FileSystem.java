@@ -4,10 +4,10 @@
 
 package j$.nio.file;
 
-import java.io.IOException;
+import j$.nio.file.spi.FileSystemProvider;
 
-public class Files {
-  public static String probeContentType(j$.nio.file.Path path) throws IOException {
+public class FileSystem {
+  public FileSystemProvider provider() {
     return null;
   }
 }

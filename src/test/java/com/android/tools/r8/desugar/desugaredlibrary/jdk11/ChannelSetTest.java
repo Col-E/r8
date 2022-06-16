@@ -45,7 +45,15 @@ public class ChannelSetTest extends DesugaredLibraryTestBase {
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
   private final CompilationSpecification compilationSpecification;
 
-  private static final String EXPECTED_RESULT =
+  private static final String EXPECTED_RESULT_DESUGARING =
+      StringUtils.lines(
+          "bytes written: 11",
+          "String written: Hello World",
+          "bytes read: 11",
+          "String read: Hello World",
+          "bytes read: 11",
+          "unsupported");
+  private static final String EXPECTED_RESULT_DESUGARING_PLATFORM_FILE_SYSTEM =
       StringUtils.lines(
           "bytes written: 11",
           "String written: Hello World",
@@ -53,8 +61,9 @@ public class ChannelSetTest extends DesugaredLibraryTestBase {
           "String read: Hello World",
           "bytes read: 11",
           "String read: Hello World",
-          "unsupported");
-  private static final String EXPECTED_RESULT_26 =
+          "bytes read: 11",
+          "String read: Hello World");
+  private static final String EXPECTED_RESULT_NO_DESUGARING =
       StringUtils.lines(
           "bytes written: 11",
           "String written: Hello World",
@@ -97,7 +106,7 @@ public class ChannelSetTest extends DesugaredLibraryTestBase {
   }
 
   @Test
-  public void test() throws Exception {
+  public void test() throws Throwable {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClasses(TestClass.class)
         .setCustomLibrarySpecification(
@@ -113,9 +122,12 @@ public class ChannelSetTest extends DesugaredLibraryTestBase {
   }
 
   private String getExpectedResult() {
-    return parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.O)
-        ? EXPECTED_RESULT_26
-        : EXPECTED_RESULT;
+    if (!libraryDesugaringSpecification.hasNioFileDesugaring(parameters)) {
+      return EXPECTED_RESULT_NO_DESUGARING;
+    }
+    return libraryDesugaringSpecification.usesPlatformFileSystem(parameters)
+        ? EXPECTED_RESULT_DESUGARING_PLATFORM_FILE_SYSTEM
+        : EXPECTED_RESULT_DESUGARING;
   }
 
   public static class CustomLib {

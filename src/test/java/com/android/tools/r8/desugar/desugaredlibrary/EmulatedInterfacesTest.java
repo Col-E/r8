@@ -15,6 +15,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.dex.code.DexInstruction;
@@ -59,6 +60,7 @@ public class EmulatedInterfacesTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testEmulatedInterface() throws Exception {
+    new CodeInspector(ToolHelper.getConvertedDesugaredLibConversions());
     Assume.assumeTrue(libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters));
     CodeInspector inspector =
         testForL8(parameters.getApiLevel())

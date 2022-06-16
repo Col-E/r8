@@ -4,10 +4,13 @@
 
 package j$.nio.file;
 
-import java.io.IOException;
+public class WatchEvent<T> {
 
-public class Files {
-  public static String probeContentType(j$.nio.file.Path path) throws IOException {
+  public static java.nio.file.WatchEvent<?> wrap_convert(j$.nio.file.WatchEvent<?> option) {
+    return null;
+  }
+
+  public static j$.nio.file.WatchEvent<?> wrap_convert(java.nio.file.WatchEvent<?> option) {
     return null;
   }
 }
