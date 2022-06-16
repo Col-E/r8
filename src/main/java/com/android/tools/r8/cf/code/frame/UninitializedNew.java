@@ -5,6 +5,8 @@
 package com.android.tools.r8.cf.code.frame;
 
 import com.android.tools.r8.cf.code.CfLabel;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.naming.NamingLens;
@@ -51,7 +53,8 @@ public class UninitializedNew extends UninitializedFrameType {
   }
 
   @Override
-  public SingleFrameType join(SingleFrameType frameType) {
+  public SingleFrameType join(
+      AppView<? extends AppInfoWithClassHierarchy> appView, SingleFrameType frameType) {
     return equals(frameType) ? this : FrameType.oneWord();
   }
 

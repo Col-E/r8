@@ -10,11 +10,13 @@ import static com.android.tools.r8.optimize.interfaces.analysis.ErroneousCfFrame
 import com.android.tools.r8.cf.code.CfAssignability;
 import com.android.tools.r8.cf.code.CfAssignability.AssignabilityResult;
 import com.android.tools.r8.cf.code.CfFrame;
+import com.android.tools.r8.cf.code.CfFrame.Builder;
 import com.android.tools.r8.cf.code.frame.FrameType;
 import com.android.tools.r8.cf.code.frame.PreciseFrameType;
 import com.android.tools.r8.cf.code.frame.SingleFrameType;
 import com.android.tools.r8.cf.code.frame.UninitializedFrameType;
 import com.android.tools.r8.cf.code.frame.WideFrameType;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -309,10 +311,12 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   public CfFrameState join(
-      ConcreteCfFrameState state, UnaryOperator<FrameType> joinWithMissingLocal) {
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      ConcreteCfFrameState state,
+      UnaryOperator<FrameType> joinWithMissingLocal) {
     CfFrame.Builder builder = CfFrame.builder();
-    joinLocals(state.locals, builder, joinWithMissingLocal);
-    ErroneousCfFrameState error = joinStack(state.stack, builder);
+    joinLocals(appView, state.locals, builder, joinWithMissingLocal);
+    ErroneousCfFrameState error = joinStack(appView, state.stack, builder);
     if (error != null) {
       return error;
     }
@@ -321,8 +325,9 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   private void joinLocals(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       Int2ObjectSortedMap<FrameType> locals,
-      CfFrame.Builder builder,
+      Builder builder,
       UnaryOperator<FrameType> joinWithMissingLocal) {
     ObjectBidirectionalIterator<Entry<FrameType>> iterator =
         this.locals.int2ObjectEntrySet().iterator();
@@ -357,7 +362,7 @@ public class ConcreteCfFrameState extends CfFrameState {
             builder);
       } else {
         joinLocalsWithSameIndex(
-            localIndex, frameType, otherFrameType, iterator, otherIterator, builder);
+            localIndex, frameType, otherFrameType, iterator, otherIterator, appView, builder);
       }
     }
     joinLocalsOnlyPresentInOne(iterator, builder, joinWithMissingLocal);
@@ -399,11 +404,12 @@ public class ConcreteCfFrameState extends CfFrameState {
       FrameType otherFrameType,
       ObjectBidirectionalIterator<Entry<FrameType>> iterator,
       ObjectBidirectionalIterator<Entry<FrameType>> otherIterator,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       CfFrame.Builder builder) {
     if (frameType.isSingle()) {
       if (otherFrameType.isSingle()) {
         joinSingleLocalsWithSameIndex(
-            localIndex, frameType.asSingle(), otherFrameType.asSingle(), builder);
+            localIndex, frameType.asSingle(), otherFrameType.asSingle(), appView, builder);
       } else {
         setWideLocalToTop(localIndex, builder);
         handleOverlappingLocals(localIndex + 1, iterator, otherIterator, builder);
@@ -423,8 +429,9 @@ public class ConcreteCfFrameState extends CfFrameState {
       int localIndex,
       SingleFrameType frameType,
       SingleFrameType otherFrameType,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       CfFrame.Builder builder) {
-    builder.store(localIndex, frameType.join(otherFrameType));
+    builder.store(localIndex, frameType.join(appView, otherFrameType));
   }
 
   private void joinWideLocalsWithSameIndex(
@@ -543,7 +550,10 @@ public class ConcreteCfFrameState extends CfFrameState {
     setSingleLocalToTop(localIndex + 1, builder);
   }
 
-  private ErroneousCfFrameState joinStack(Deque<PreciseFrameType> stack, CfFrame.Builder builder) {
+  private ErroneousCfFrameState joinStack(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      Deque<PreciseFrameType> stack,
+      CfFrame.Builder builder) {
     Iterator<PreciseFrameType> iterator = this.stack.iterator();
     Iterator<PreciseFrameType> otherIterator = stack.iterator();
     int stackIndex = 0;
@@ -561,7 +571,7 @@ public class ConcreteCfFrameState extends CfFrameState {
       }
       PreciseFrameType preciseJoin;
       if (frameType.isSingle()) {
-        SingleFrameType join = frameType.asSingle().join(otherFrameType.asSingle());
+        SingleFrameType join = frameType.asSingle().join(appView, otherFrameType.asSingle());
         if (join.isOneWord()) {
           return joinStackImpreciseJoinError(stackIndex, frameType, otherFrameType);
         }

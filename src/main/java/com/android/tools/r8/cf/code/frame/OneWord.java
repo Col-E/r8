@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.cf.code.frame;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.Opcodes;
@@ -25,7 +27,8 @@ public class OneWord extends SingletonFrameType implements SingleFrameType {
   }
 
   @Override
-  public SingleFrameType join(SingleFrameType frameType) {
+  public SingleFrameType join(
+      AppView<? extends AppInfoWithClassHierarchy> appView, SingleFrameType frameType) {
     return this;
   }
 

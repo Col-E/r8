@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.string;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.AbstractState;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.AbstractTransferFunction;
@@ -40,10 +41,16 @@ class StringBuilderAppendFlowAnalysis {
    * loop.
    */
   static boolean hasAppendInstructionInLoop(
-      IRCode code, Value builder, StringBuilderOptimizationConfiguration configuration) {
+      AppView<?> appView,
+      IRCode code,
+      Value builder,
+      StringBuilderOptimizationConfiguration configuration) {
     IntraproceduralDataflowAnalysis<AbstractStateImpl> analysis =
         new IntraproceduralDataflowAnalysis<>(
-            AbstractStateImpl.bottom(), code, new TransferFunction(builder, configuration));
+            appView,
+            AbstractStateImpl.bottom(),
+            code,
+            new TransferFunction(builder, configuration));
     DataflowAnalysisResult result = analysis.run(builder.definition.getBlock());
     return result.isFailedAnalysisResult();
   }
@@ -86,7 +93,7 @@ class StringBuilderAppendFlowAnalysis {
     }
 
     @Override
-    public AbstractStateImpl join(AbstractStateImpl state) {
+    public AbstractStateImpl join(AppView<?> appView, AbstractStateImpl state) {
       if (liveAppendInstructions.isEmpty()) {
         return state;
       }

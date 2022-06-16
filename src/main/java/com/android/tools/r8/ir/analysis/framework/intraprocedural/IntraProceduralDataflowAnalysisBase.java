@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.analysis.framework.intraprocedural;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.DataflowAnalysisResult.FailedDataflowAnalysisResult;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.DataflowAnalysisResult.SuccessfulDataflowAnalysisResult;
 import com.android.tools.r8.utils.Timing;
@@ -27,6 +28,8 @@ import java.util.Map;
 public class IntraProceduralDataflowAnalysisBase<
     Block, Instruction extends AbstractInstruction, StateType extends AbstractState<StateType>> {
 
+  final AppView<?> appView;
+
   final StateType bottom;
 
   final ControlFlowGraph<Block, Instruction> cfg;
@@ -48,10 +51,12 @@ public class IntraProceduralDataflowAnalysisBase<
   final IntraProceduralDataflowAnalysisOptions options;
 
   public IntraProceduralDataflowAnalysisBase(
+      AppView<?> appView,
       StateType bottom,
       ControlFlowGraph<Block, Instruction> cfg,
       AbstractTransferFunction<Block, Instruction, StateType> transfer,
       IntraProceduralDataflowAnalysisOptions options) {
+    this.appView = appView;
     this.bottom = bottom;
     this.cfg = cfg;
     this.transfer = transfer;
@@ -137,7 +142,7 @@ public class IntraProceduralDataflowAnalysisBase<
     if (block == cfg.getEntryBlock()) {
       return transfer
           .computeInitialState(block, bottom)
-          .join(computeBlockEntryStateForNormalBlock(block));
+          .join(appView, computeBlockEntryStateForNormalBlock(block));
     }
     if (cfg.hasExceptionalPredecessors(block)) {
       return exceptionalBlockEntryStates.getOrDefault(block, bottom).clone();
@@ -162,7 +167,7 @@ public class IntraProceduralDataflowAnalysisBase<
                       block,
                       predecessor,
                       blockExitStates.getOrDefault(predecessor, bottom).clone());
-              return TraversalContinuation.doContinue(entryState.join(edgeState));
+              return TraversalContinuation.doContinue(entryState.join(appView, edgeState));
             },
             bottom);
     return traversalContinuation.asContinue().getValue().clone();
@@ -171,7 +176,7 @@ public class IntraProceduralDataflowAnalysisBase<
   boolean setBlockExitState(Block block, StateType state) {
     assert !isBlockWithIntermediateSuccessorBlock(block);
     StateType previous = blockExitStates.put(block, state);
-    assert previous == null || state.isGreaterThanOrEquals(previous);
+    assert previous == null || state.isGreaterThanOrEquals(appView, previous);
     return !state.equals(previous);
   }
 
@@ -202,7 +207,7 @@ public class IntraProceduralDataflowAnalysisBase<
   private void updateBlockEntryStateForBlock(
       Block block, StateType edgeState, Map<Block, StateType> states) {
     StateType previous = states.getOrDefault(block, bottom);
-    states.put(block, previous.join(edgeState));
+    states.put(block, previous.join(appView, edgeState));
   }
 
   public boolean isIntermediateBlock(Block block) {

@@ -12,6 +12,7 @@ import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.frame.FrameType;
 import com.android.tools.r8.cf.code.frame.PreciseFrameType;
 import com.android.tools.r8.cf.code.frame.UninitializedFrameType;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -72,11 +73,13 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
   }
 
   @Override
-  public boolean isGreaterThanOrEquals(CfFrameState state) {
+  public boolean isGreaterThanOrEquals(AppView<?> appView, CfFrameState state) {
     if (this == state) {
       return true;
     }
-    CfFrameState leastUpperBound = join(state, UnaryOperator.identity());
+    assert appView.hasClassHierarchy();
+    CfFrameState leastUpperBound =
+        join(appView.withClassHierarchy(), state, UnaryOperator.identity());
     return equals(leastUpperBound);
   }
 
@@ -313,13 +316,18 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
   }
 
   @Override
-  public final CfFrameState join(CfFrameState state) {
+  public final CfFrameState join(AppView<?> appView, CfFrameState state) {
+    assert appView.hasClassHierarchy();
     return join(
-        state, frameType -> frameType.isSingle() ? FrameType.oneWord() : FrameType.twoWord());
+        appView.withClassHierarchy(),
+        state,
+        frameType -> frameType.isSingle() ? FrameType.oneWord() : FrameType.twoWord());
   }
 
   public final CfFrameState join(
-      CfFrameState state, UnaryOperator<FrameType> joinWithMissingLocal) {
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      CfFrameState state,
+      UnaryOperator<FrameType> joinWithMissingLocal) {
     if (state.isBottom() || isError()) {
       return this;
     }
@@ -328,7 +336,7 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
     }
     assert isConcrete();
     assert state.isConcrete();
-    return asConcrete().join(state.asConcrete(), joinWithMissingLocal);
+    return asConcrete().join(appView, state.asConcrete(), joinWithMissingLocal);
   }
 
   @Override

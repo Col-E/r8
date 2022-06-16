@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.cf.code.frame;
 
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexTypeUtils;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.Opcodes;
@@ -44,7 +46,8 @@ public class InitializedReferenceFrameType extends BaseFrameType
   }
 
   @Override
-  public SingleFrameType join(SingleFrameType frameType) {
+  public SingleFrameType join(
+      AppView<? extends AppInfoWithClassHierarchy> appView, SingleFrameType frameType) {
     if (equals(frameType)) {
       return this;
     }
@@ -62,8 +65,10 @@ public class InitializedReferenceFrameType extends BaseFrameType
     }
     assert type.isArrayType() || type.isClassType();
     assert otherType.isArrayType() || otherType.isClassType();
-    // TODO(b/214496607): Implement join of different reference types using class hierarchy.
-    throw new Unimplemented();
+    DexType joinType =
+        DexTypeUtils.toDexType(
+            appView, type.toTypeElement(appView).join(otherType.toTypeElement(appView), appView));
+    return FrameType.initializedReference(joinType);
   }
 
   @Override

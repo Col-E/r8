@@ -26,7 +26,7 @@ public class ClassInlinerMethodConstraintAnalysis {
     // Analyze code.
     IntraproceduralDataflowAnalysis<ParameterUsages> analysis =
         new IntraproceduralDataflowAnalysis<>(
-            ParameterUsages.bottom(), code, new TransferFunction(appView, method, code));
+            appView, ParameterUsages.bottom(), code, new TransferFunction(appView, method, code));
     SuccessfulDataflowAnalysisResult<?, ParameterUsages> result =
         timing.time(
             "Data flow analysis",
@@ -34,7 +34,7 @@ public class ClassInlinerMethodConstraintAnalysis {
     if (result == null) {
       return ClassInlinerMethodConstraint.alwaysFalse();
     }
-    ParameterUsages usages = timing.time("Externalize", () -> result.join().externalize());
+    ParameterUsages usages = timing.time("Externalize", () -> result.join(appView).externalize());
     if (usages.isBottom()) {
       return ClassInlinerMethodConstraint.alwaysTrue();
     }

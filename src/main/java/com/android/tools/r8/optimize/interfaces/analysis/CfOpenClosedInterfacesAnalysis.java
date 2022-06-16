@@ -48,7 +48,7 @@ public class CfOpenClosedInterfacesAnalysis {
     CfControlFlowGraph cfg = CfControlFlowGraph.create(cfCode, appView.options());
     CfIntraproceduralDataflowAnalysis<CfFrameState> analysis =
         new CfIntraproceduralDataflowAnalysis<>(
-            CfFrameState.bottom(), cfg, new TransferFunction(method));
+            appView, CfFrameState.bottom(), cfg, new TransferFunction(method));
     DataflowAnalysisResult result = analysis.run(cfg.getEntryBlock());
     // TODO(b/214496607): Determine open interfaces.
   }

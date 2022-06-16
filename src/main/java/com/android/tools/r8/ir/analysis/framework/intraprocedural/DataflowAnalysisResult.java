@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.analysis.framework.intraprocedural;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.code.BasicBlock;
 import java.util.Map;
 
@@ -43,10 +44,10 @@ public abstract class DataflowAnalysisResult {
       this.blockExitStates = blockExitStates;
     }
 
-    public StateType join() {
+    public StateType join(AppView<?> appView) {
       StateType result = null;
       for (StateType blockExitState : blockExitStates.values()) {
-        result = result != null ? result.join(blockExitState) : blockExitState;
+        result = result != null ? result.join(appView, blockExitState) : blockExitState;
       }
       return result;
     }

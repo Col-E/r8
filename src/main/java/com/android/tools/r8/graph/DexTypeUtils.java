@@ -18,7 +18,7 @@ public class DexTypeUtils {
     return toDexType(appView, join);
   }
 
-  private static DexType toDexType(
+  public static DexType toDexType(
       AppView<? extends AppInfoWithClassHierarchy> appView, TypeElement type) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     if (type.isPrimitiveType()) {

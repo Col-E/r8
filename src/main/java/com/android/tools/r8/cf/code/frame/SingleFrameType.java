@@ -4,8 +4,11 @@
 
 package com.android.tools.r8.cf.code.frame;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.AppView;
 
 public interface SingleFrameType extends FrameType {
 
-  SingleFrameType join(SingleFrameType frameType);
+  SingleFrameType join(
+      AppView<? extends AppInfoWithClassHierarchy> appView, SingleFrameType frameType);
 }

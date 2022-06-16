@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.analysis.framework.intraprocedural;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.code.BasicBlock;
 
 /** The abstract state of the dataflow analysis, which is computed for each {@link BasicBlock}. */
@@ -16,10 +17,10 @@ public abstract class AbstractState<StateType extends AbstractState<StateType>>
     return asAbstractState();
   }
 
-  public abstract StateType join(StateType state);
+  public abstract StateType join(AppView<?> appView, StateType state);
 
-  public boolean isGreaterThanOrEquals(StateType state) {
-    StateType leastUpperBound = join(state);
+  public boolean isGreaterThanOrEquals(AppView<?> appView, StateType state) {
+    StateType leastUpperBound = join(appView, state);
     return equals(leastUpperBound);
   }
 

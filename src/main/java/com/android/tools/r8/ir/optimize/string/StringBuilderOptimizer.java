@@ -722,7 +722,7 @@ public class StringBuilderOptimizer {
         return null;
       }
       if (StringBuilderAppendFlowAnalysis.hasAppendInstructionInLoop(
-          code, builder, optimizationConfiguration)) {
+          appView, code, builder, optimizationConfiguration)) {
         return null;
       }
       return StringUtils.join("", contents);

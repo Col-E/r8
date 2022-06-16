@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.string;
 
 import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.AbstractState;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.MapUtils;
@@ -98,7 +99,7 @@ public class StringBuilderEscapeState extends AbstractState<StringBuilderEscapeS
   }
 
   @Override
-  public StringBuilderEscapeState join(StringBuilderEscapeState other) {
+  public StringBuilderEscapeState join(AppView<?> appView, StringBuilderEscapeState other) {
     if (this.isBottom()) {
       return other;
     } else if (other.isBottom()) {

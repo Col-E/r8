@@ -52,6 +52,11 @@ public interface FrameType {
     if (type.isPrimitiveType()) {
       return primitive(type);
     }
+    return initializedReference(type);
+  }
+
+  static InitializedReferenceFrameType initializedReference(DexType type) {
+    assert type.isReferenceType();
     return new InitializedReferenceFrameType(type);
   }
 

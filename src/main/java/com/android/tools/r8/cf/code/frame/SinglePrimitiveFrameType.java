@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.cf.code.frame;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.AppView;
+
 public abstract class SinglePrimitiveFrameType extends SingletonFrameType
     implements PrimitiveFrameType, SingleFrameType {
 
@@ -47,7 +50,8 @@ public abstract class SinglePrimitiveFrameType extends SingletonFrameType
   }
 
   @Override
-  public final SingleFrameType join(SingleFrameType frameType) {
+  public final SingleFrameType join(
+      AppView<? extends AppInfoWithClassHierarchy> appView, SingleFrameType frameType) {
     if (this == frameType) {
       return this;
     }
