@@ -13,6 +13,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -43,6 +44,8 @@ public class VerticalClassMergingInFeatureSplitTest extends SplitterTestBase {
             .addFeatureSplit(
                 Feature2Main.class, Feature2Class.class, Feature2ClassWithSameFeatureSubclass.class)
             .addKeepFeatureMainRules(Feature1Main.class, Feature2Main.class)
+            // Link against android.jar that contains ReflectiveOperationException.
+            .addLibraryFiles(parameters.getDefaultAndroidJarAbove(AndroidApiLevel.K))
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
             .setMinApi(parameters.getApiLevel())

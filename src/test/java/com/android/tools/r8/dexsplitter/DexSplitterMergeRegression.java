@@ -4,10 +4,7 @@
 
 package com.android.tools.r8.dexsplitter;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -15,17 +12,14 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.R8FullTestBuilder;
-import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.ThrowingConsumer;
-import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
-import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -52,7 +46,11 @@ public class DexSplitterMergeRegression extends SplitterTestBase {
     assumeTrue(parameters.isDexRuntime());
     ThrowableConsumer<R8FullTestBuilder> configurator =
         r8FullTestBuilder ->
-            r8FullTestBuilder.enableNoVerticalClassMergingAnnotations().noMinification();
+            r8FullTestBuilder
+                // Link against android.jar that contains ReflectiveOperationException.
+                .addLibraryFiles(parameters.getDefaultAndroidJarAbove(AndroidApiLevel.K))
+                .enableNoVerticalClassMergingAnnotations()
+                .noMinification();
     ProcessResult processResult =
         testR8Splitter(
             parameters,

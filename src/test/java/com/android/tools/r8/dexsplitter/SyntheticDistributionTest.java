@@ -18,6 +18,7 @@ import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.apimodel.ApiModelingTestHelper;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.google.common.collect.ImmutableSet;
@@ -93,6 +94,8 @@ public class SyntheticDistributionTest extends SplitterTestBase {
 
   private void configure(R8FullTestBuilder testBuilder) throws NoSuchMethodException {
     testBuilder
+        // Link against android.jar that contains ReflectiveOperationException.
+        .addLibraryFiles(parameters.getDefaultAndroidJarAbove(AndroidApiLevel.K))
         .addKeepMethodRules(
             Reference.methodFromMethod(
                 BaseSuperClass.class.getDeclaredMethod(

@@ -15,6 +15,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.apimodel.ApiModelingTestHelper;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.RunInterface;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.SplitRunner;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -42,6 +43,8 @@ public class RepackageWithFeatureSplitTest extends RepackageTestBase {
   public void test() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(BaseClass.class)
+        // Link against android.jar that contains ReflectiveOperationException.
+        .addLibraryFiles(parameters.getDefaultAndroidJarAbove(AndroidApiLevel.K))
         .addFeatureSplit(FeatureMain.class, FeatureClass.class)
         .addFeatureSplitRuntime()
         .addKeepFeatureMainRule(FeatureMain.class)

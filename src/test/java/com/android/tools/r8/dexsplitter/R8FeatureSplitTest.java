@@ -19,6 +19,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dex.Marker;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -38,7 +39,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class R8FeatureSplitTest extends SplitterTestBase {
 
-  private static String EXPECTED = "Hello world";
+  private static final String EXPECTED = "Hello world";
 
   @Parameters(name = "{0}")
   public static TestParametersCollection params() {
@@ -62,7 +63,7 @@ public class R8FeatureSplitTest extends SplitterTestBase {
   public void simpleApiTest() throws CompilationFailedException, IOException, ExecutionException {
     testForR8(parameters.getBackend())
         .addProgramClasses(HelloWorld.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .addFeatureSplit(R8FeatureSplitTest::emptySplitProvider)
         .addKeepMainRule(HelloWorld.class)
         .compile()
@@ -129,6 +130,8 @@ public class R8FeatureSplitTest extends SplitterTestBase {
 
     testForR8(parameters.getBackend())
         .addProgramClasses(BaseClass.class, RunInterface.class, SplitRunner.class)
+        // Link against android.jar that contains ReflectiveOperationException.
+        .addLibraryFiles(parameters.getDefaultAndroidJarAbove(AndroidApiLevel.K))
         .setMinApi(parameters.getApiLevel())
         .addFeatureSplit(
             builder ->
@@ -253,6 +256,8 @@ public class R8FeatureSplitTest extends SplitterTestBase {
       R8TestCompileResult compileResult =
           testForR8(parameters.getBackend())
               .addProgramClasses(BaseClass.class, RunInterface.class, SplitRunner.class)
+              // Link against android.jar that contains ReflectiveOperationException.
+              .addLibraryFiles(parameters.getDefaultAndroidJarAbove(AndroidApiLevel.K))
               .setMinApi(parameters.getApiLevel())
               .addFeatureSplit(FeatureClass.class)
               .addFeatureSplit(FeatureClass2.class)

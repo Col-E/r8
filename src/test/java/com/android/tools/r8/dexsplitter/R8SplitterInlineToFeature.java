@@ -17,6 +17,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.google.common.collect.ImmutableSet;
@@ -50,7 +51,11 @@ public class R8SplitterInlineToFeature extends SplitterTestBase {
     assumeTrue(parameters.isDexRuntime());
     ThrowableConsumer<R8FullTestBuilder> configurator =
         r8FullTestBuilder ->
-            r8FullTestBuilder.enableNoVerticalClassMergingAnnotations().noMinification();
+            r8FullTestBuilder
+                // Link against android.jar that contains ReflectiveOperationException.
+                .addLibraryFiles(parameters.getDefaultAndroidJarAbove(AndroidApiLevel.K))
+                .enableNoVerticalClassMergingAnnotations()
+                .noMinification();
     ThrowableConsumer<R8TestCompileResult> ensureInlined =
         r8TestCompileResult -> {
           // Ensure that isEarly from BaseUtilClass is inlined into the feature

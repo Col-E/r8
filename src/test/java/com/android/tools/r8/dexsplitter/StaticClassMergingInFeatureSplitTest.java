@@ -13,6 +13,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,6 +38,8 @@ public class StaticClassMergingInFeatureSplitTest extends SplitterTestBase {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(BaseClassA.class, BaseClassB.class)
+            // Link against android.jar that contains ReflectiveOperationException.
+            .addLibraryFiles(parameters.getDefaultAndroidJarAbove(AndroidApiLevel.K))
             .addFeatureSplitRuntime()
             .addFeatureSplit(Feature1Main.class, Feature1ClassA.class, Feature1ClassB.class)
             .addFeatureSplit(Feature2Main.class, Feature2ClassA.class, Feature2ClassB.class)

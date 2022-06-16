@@ -12,11 +12,13 @@ import com.android.tools.r8.cf.code.frame.UninitializedFrameType;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCompareHelper;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.IRBuilder;
@@ -36,6 +38,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMaps;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.ListIterator;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -246,6 +249,24 @@ public class CfFrame extends CfInstruction implements Cloneable {
       }
     }
     return localsTypes;
+  }
+
+  @Override
+  void internalRegisterUse(
+      UseRegistry<?> registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
+    locals.values().forEach(frameType -> internalRegisterUse(registry, frameType));
+    stack.forEach(frameType -> internalRegisterUse(registry, frameType));
+  }
+
+  private void internalRegisterUse(UseRegistry<?> registry, FrameType frameType) {
+    if (frameType.isInitializedReferenceType()) {
+      if (frameType.isNullType()) {
+        return;
+      }
+      registry.registerTypeReference(frameType.asInitializedReferenceType().getInitializedType());
+    } else if (frameType.isUninitializedNew()) {
+      registry.registerTypeReference(frameType.asUninitializedNew().getUninitializedNewType());
+    }
   }
 
   @Override

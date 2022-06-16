@@ -7,6 +7,7 @@ package com.android.tools.r8.dexsplitter;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -29,6 +30,8 @@ public class DevirtualizationAcrossFeatureSplitTest extends SplitterTestBase {
   public void test() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(BaseClass.class, BaseInterface.class)
+        // Link against android.jar that contains ReflectiveOperationException.
+        .addLibraryFiles(parameters.getDefaultAndroidJarAbove(AndroidApiLevel.K))
         .addFeatureSplitRuntime()
         .addFeatureSplit(FeatureMain.class, BaseInterfaceImpl.class)
         .addKeepFeatureMainRules(FeatureMain.class)

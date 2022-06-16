@@ -16,6 +16,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dexsplitter.SplitterTestBase;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -88,13 +89,17 @@ public class Regress181837660 extends SplitterTestBase {
     assertEquals(processResult.stdout, "42\n");
   }
 
-  private void configure(R8FullTestBuilder testBuilder) throws NoSuchMethodException {
-    testBuilder.enableInliningAnnotations().noMinification().setMinApi(parameters.getApiLevel());
+  private void configure(R8FullTestBuilder testBuilder) {
+    configureNoInlineAnnotations(testBuilder);
+    testBuilder.enableInliningAnnotations();
   }
 
-  private void configureNoInlineAnnotations(R8FullTestBuilder testBuilder)
-      throws NoSuchMethodException {
-    testBuilder.noMinification().setMinApi(parameters.getApiLevel());
+  private void configureNoInlineAnnotations(R8FullTestBuilder testBuilder) {
+    testBuilder
+        // Link against android.jar that contains ReflectiveOperationException.
+        .addLibraryFiles(parameters.getDefaultAndroidJarAbove(AndroidApiLevel.K))
+        .noMinification()
+        .setMinApi(parameters.getApiLevel());
   }
 
   public static class BaseClass {

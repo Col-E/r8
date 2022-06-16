@@ -12,9 +12,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.dexsplitter.VerticalClassMergingInFeatureSplitTest.BaseClass;
-import com.android.tools.r8.dexsplitter.VerticalClassMergingInFeatureSplitTest.Feature1Class;
-import com.android.tools.r8.dexsplitter.VerticalClassMergingInFeatureSplitTest.Feature2Class;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,6 +37,8 @@ public class VerticalClassMergingAcrossFeatureSplitTest extends SplitterTestBase
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(BaseClass.class)
+            // Link against android.jar that contains ReflectiveOperationException.
+            .addLibraryFiles(parameters.getDefaultAndroidJarAbove(AndroidApiLevel.K))
             .addFeatureSplitRuntime()
             .addFeatureSplit(Feature1Class.class)
             .addFeatureSplit(Feature2Main.class, Feature2Class.class)

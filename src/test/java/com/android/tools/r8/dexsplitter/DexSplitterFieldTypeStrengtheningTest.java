@@ -5,22 +5,16 @@
 package com.android.tools.r8.dexsplitter;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestShrinkerBuilder;
-import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.google.common.collect.ImmutableSet;
@@ -67,7 +61,10 @@ public class DexSplitterFieldTypeStrengtheningTest extends SplitterTestBase {
                           Object.class.getTypeName(),
                           fieldSubject.getField().getType().getTypeName());
                     }),
-            ThrowableConsumer.empty());
+            // Link against android.jar that contains ReflectiveOperationException.
+            testBuilder ->
+                testBuilder.addLibraryFiles(
+                    parameters.getDefaultAndroidJarAbove(AndroidApiLevel.K)));
     assertEquals(processResult.exitCode, 0);
     assertEquals(processResult.stdout, EXPECTED);
   }

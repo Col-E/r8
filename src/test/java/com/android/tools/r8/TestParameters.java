@@ -102,10 +102,18 @@ public class TestParameters {
     return apiLevel;
   }
 
+  public Path getDefaultAndroidJar() {
+    assert isDexRuntime();
+    return ToolHelper.getFirstSupportedAndroidJar(getApiLevel());
+  }
+
+  public Path getDefaultAndroidJarAbove(AndroidApiLevel minimumCompileApiLevel) {
+    assert isDexRuntime();
+    return ToolHelper.getFirstSupportedAndroidJar(getApiLevel().max(minimumCompileApiLevel));
+  }
+
   public Path getDefaultRuntimeLibrary() {
-    return isCfRuntime()
-        ? ToolHelper.getJava8RuntimeJar()
-        : ToolHelper.getFirstSupportedAndroidJar(getApiLevel());
+    return isCfRuntime() ? ToolHelper.getJava8RuntimeJar() : getDefaultAndroidJar();
   }
 
   // Access to underlying runtime/wrapper.
