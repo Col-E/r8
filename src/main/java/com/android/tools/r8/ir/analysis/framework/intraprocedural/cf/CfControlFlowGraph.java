@@ -10,12 +10,14 @@ import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.ControlFlowGraph;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.cf.CfBlock.MutableCfBlock;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.TraversalUtils;
+import com.android.tools.r8.utils.TriFunction;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayDeque;
@@ -23,10 +25,9 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.BiFunction;
 
 /**
@@ -64,7 +65,7 @@ public class CfControlFlowGraph implements ControlFlowGraph<CfBlock, CfInstructi
 
   @Override
   public CfBlock getEntryBlock() {
-    return getBlock(code.getInstructions().get(0));
+    return getBlock(code.getInstruction(0));
   }
 
   @Override
@@ -97,9 +98,12 @@ public class CfControlFlowGraph implements ControlFlowGraph<CfBlock, CfInstructi
   @Override
   public <BT, CT> TraversalContinuation<BT, CT> traverseExceptionalSuccessors(
       CfBlock block,
-      BiFunction<? super CfBlock, ? super CT, TraversalContinuation<BT, CT>> fn,
+      TriFunction<? super CfBlock, DexType, ? super CT, TraversalContinuation<BT, CT>> fn,
       CT initialValue) {
-    return TraversalUtils.traverseIterable(block.getExceptionalSuccessors(), fn, initialValue);
+    return TraversalUtils.traverseMap(
+        block.getExceptionalSuccessors(),
+        (guard, exceptionalSuccessor, value) -> fn.apply(exceptionalSuccessor, guard, value),
+        initialValue);
   }
 
   @Override
@@ -112,7 +116,7 @@ public class CfControlFlowGraph implements ControlFlowGraph<CfBlock, CfInstructi
     for (int instructionIndex = block.getFirstInstructionIndex();
         instructionIndex <= block.getLastInstructionIndex();
         instructionIndex++) {
-      CfInstruction instruction = code.getInstructions().get(instructionIndex);
+      CfInstruction instruction = code.getInstruction(instructionIndex);
       traversalContinuation = fn.apply(instruction, traversalContinuation.asContinue().getValue());
       if (traversalContinuation.shouldBreak()) {
         break;
@@ -255,11 +259,11 @@ public class CfControlFlowGraph implements ControlFlowGraph<CfBlock, CfInstructi
       }
 
       // Visit each instruction belonging to the current block.
-      Set<CfLabel> exceptionalSuccessors = new LinkedHashSet<>();
+      Map<DexType, CfLabel> exceptionalSuccessors = new LinkedHashMap<>();
       Iterator<CfTryCatch> activeCatchHandlerIterator = activeCatchHandlers.descendingIterator();
       while (activeCatchHandlerIterator.hasNext()) {
         CfTryCatch activeCatchHandler = activeCatchHandlerIterator.next();
-        activeCatchHandler.forEachTarget(exceptionalSuccessors::add);
+        activeCatchHandler.forEach(exceptionalSuccessors::putIfAbsent);
       }
 
       do {
@@ -269,7 +273,7 @@ public class CfControlFlowGraph implements ControlFlowGraph<CfBlock, CfInstructi
         if (isBlockExit(instructionIndex)) {
           break;
         }
-        instruction = code.getInstructions().get(++instructionIndex);
+        instruction = code.getInstruction(++instructionIndex);
       } while (true);
 
       // Record the index of the last instruction of the block.
@@ -282,9 +286,9 @@ public class CfControlFlowGraph implements ControlFlowGraph<CfBlock, CfInstructi
 
       // Add the current block as an exceptional predecessor of the exceptional successor blocks.
       exceptionalSuccessors.forEach(
-          exceptionalSuccessor -> {
+          (guard, exceptionalSuccessor) -> {
             MutableCfBlock exceptionalSuccessorBlock = getBlock(exceptionalSuccessor);
-            block.addExceptionalSuccessor(exceptionalSuccessorBlock);
+            block.addExceptionalSuccessor(exceptionalSuccessorBlock, guard);
             exceptionalSuccessorBlock.addExceptionalPredecessor(block);
           });
 
@@ -307,7 +311,7 @@ public class CfControlFlowGraph implements ControlFlowGraph<CfBlock, CfInstructi
       if (instructionIndex == lastInstructionIndex) {
         return true;
       }
-      CfInstruction nextInstruction = code.getInstructions().get(instructionIndex + 1);
+      CfInstruction nextInstruction = code.getInstruction(instructionIndex + 1);
       return isBlockEntry(nextInstruction);
     }
 

@@ -6,6 +6,8 @@ package com.android.tools.r8.utils;
 
 import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
 
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -58,6 +60,25 @@ public class TraversalUtils {
     for (S element : iterable) {
       traversalContinuation =
           fn.apply(element, traversalContinuation.asContinue().getValueOrDefault(null));
+      if (traversalContinuation.isBreak()) {
+        break;
+      }
+    }
+    return traversalContinuation;
+  }
+
+  public static <S, T, BT, CT> TraversalContinuation<BT, CT> traverseMap(
+      Map<S, T> map,
+      TriFunction<? super S, ? super T, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue) {
+    TraversalContinuation<BT, CT> traversalContinuation =
+        TraversalContinuation.doContinue(initialValue);
+    for (Entry<S, T> entry : map.entrySet()) {
+      traversalContinuation =
+          fn.apply(
+              entry.getKey(),
+              entry.getValue(),
+              traversalContinuation.asContinue().getValueOrDefault(null));
       if (traversalContinuation.isBreak()) {
         break;
       }

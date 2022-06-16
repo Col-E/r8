@@ -64,6 +64,10 @@ public class CatchHandlers<T> implements Iterable<CatchHandler<T>> {
     return guards;
   }
 
+  public DexType getGuard(int index) {
+    return guards.get(index);
+  }
+
   public List<T> getAllTargets() {
     return targets;
   }

@@ -190,10 +190,10 @@ public class IntraProceduralDataflowAnalysisBase<
       Block block, Instruction instruction, StateType state) {
     cfg.forEachExceptionalSuccessor(
         block,
-        exceptionalSuccessor -> {
+        (exceptionalSuccessor, guard) -> {
           StateType edgeState =
               transfer.computeExceptionalBlockEntryState(
-                  exceptionalSuccessor, block, instruction, state);
+                  exceptionalSuccessor, guard, block, instruction, state);
           updateBlockEntryStateForBlock(
               exceptionalSuccessor, edgeState, exceptionalBlockEntryStates);
         });

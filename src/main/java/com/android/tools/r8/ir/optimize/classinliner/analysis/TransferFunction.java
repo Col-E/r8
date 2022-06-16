@@ -152,6 +152,7 @@ class TransferFunction
   @Override
   public ParameterUsages computeExceptionalBlockEntryState(
       BasicBlock block,
+      DexType guard,
       BasicBlock throwBlock,
       Instruction throwInstruction,
       ParameterUsages throwState) {

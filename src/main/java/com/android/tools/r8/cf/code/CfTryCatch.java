@@ -12,7 +12,9 @@ import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class CfTryCatch {
@@ -27,6 +29,15 @@ public class CfTryCatch {
     this.guards = guards;
     this.targets = targets;
     assert verifyAllNonNull(guards);
+  }
+
+  public void forEach(BiConsumer<DexType, CfLabel> consumer) {
+    Iterator<DexType> guardIterator = guards.iterator();
+    Iterator<CfLabel> targetIterator = targets.iterator();
+    while (guardIterator.hasNext()) {
+      consumer.accept(guardIterator.next(), targetIterator.next());
+    }
+    assert !targetIterator.hasNext();
   }
 
   public void forEachTarget(Consumer<CfLabel> consumer) {

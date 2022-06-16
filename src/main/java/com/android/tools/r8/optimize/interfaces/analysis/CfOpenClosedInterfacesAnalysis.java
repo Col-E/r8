@@ -102,6 +102,7 @@ public class CfOpenClosedInterfacesAnalysis {
     @Override
     public CfFrameState computeExceptionalBlockEntryState(
         CfBlock block,
+        DexType guard,
         CfBlock throwBlock,
         CfInstruction throwInstruction,
         CfFrameState throwState) {

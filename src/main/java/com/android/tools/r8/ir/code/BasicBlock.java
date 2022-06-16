@@ -26,6 +26,7 @@ import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.android.tools.r8.utils.TraversalContinuation;
+import com.android.tools.r8.utils.TriFunction;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
@@ -243,14 +244,17 @@ public class BasicBlock {
   }
 
   public <BT, CT> TraversalContinuation<BT, CT> traverseExceptionalSuccessors(
-      BiFunction<? super BasicBlock, ? super CT, TraversalContinuation<BT, CT>> fn,
+      TriFunction<? super BasicBlock, DexType, ? super CT, TraversalContinuation<BT, CT>> fn,
       CT initialValue) {
     int numberOfExceptionalSuccessors = numberOfExceptionalSuccessors();
     TraversalContinuation<BT, CT> traversalContinuation =
         TraversalContinuation.doContinue(initialValue);
     for (int i = 0; i < numberOfExceptionalSuccessors; i++) {
       traversalContinuation =
-          fn.apply(successors.get(i), traversalContinuation.asContinue().getValueOrDefault(null));
+          fn.apply(
+              successors.get(i),
+              catchHandlers.getGuard(i),
+              traversalContinuation.asContinue().getValueOrDefault(null));
       if (traversalContinuation.isBreak()) {
         break;
       }

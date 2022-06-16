@@ -35,6 +35,7 @@ import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.TraversalContinuation;
+import com.android.tools.r8.utils.TriFunction;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -1402,7 +1403,7 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
   @Override
   public <BT, CT> TraversalContinuation<BT, CT> traverseExceptionalSuccessors(
       BasicBlock block,
-      BiFunction<? super BasicBlock, ? super CT, TraversalContinuation<BT, CT>> fn,
+      TriFunction<? super BasicBlock, DexType, ? super CT, TraversalContinuation<BT, CT>> fn,
       CT initialValue) {
     return block.traverseExceptionalSuccessors(fn, initialValue);
   }

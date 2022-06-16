@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.analysis.framework.intraprocedural;
 
+import com.android.tools.r8.graph.DexType;
+
 /**
  * A transfer function that defines the abstract semantics of the instructions in the program
  * according to some abstract state {@link StateType}.
@@ -48,7 +50,11 @@ public interface AbstractTransferFunction<
    * true.
    */
   default StateType computeExceptionalBlockEntryState(
-      Block block, Block throwBlock, Instruction throwInstruction, StateType throwState) {
+      Block block,
+      DexType guard,
+      Block throwBlock,
+      Instruction throwInstruction,
+      StateType throwState) {
     return throwState;
   }
 }

@@ -6,10 +6,12 @@ package com.android.tools.r8.ir.analysis.framework.intraprocedural.cf;
 
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -31,7 +33,7 @@ public class CfBlock {
   final List<CfBlock> exceptionalPredecessors = new ArrayList<>();
 
   // The exceptional successors of the block (i.e., the catch handlers of the block).
-  final List<CfBlock> exceptionalSuccessors = new ArrayList<>();
+  final LinkedHashMap<DexType, CfBlock> exceptionalSuccessors = new LinkedHashMap<>();
 
   public CfInstruction getFallthroughInstruction(CfCode code) {
     int fallthroughInstructionIndex = getLastInstructionIndex() + 1;
@@ -56,15 +58,11 @@ public class CfBlock {
     return predecessors;
   }
 
-  // TODO(b/214496607): This currently only encodes the graph, but we likely need to include the
-  //  guard types here.
   public List<CfBlock> getExceptionalPredecessors() {
     return exceptionalPredecessors;
   }
 
-  // TODO(b/214496607): This currently only encodes the graph, but we likely need to include the
-  //  guard types here.
-  public List<CfBlock> getExceptionalSuccessors() {
+  public LinkedHashMap<DexType, CfBlock> getExceptionalSuccessors() {
     return exceptionalSuccessors;
   }
 
@@ -79,8 +77,9 @@ public class CfBlock {
       exceptionalPredecessors.add(block);
     }
 
-    void addExceptionalSuccessor(CfBlock block) {
-      exceptionalSuccessors.add(block);
+    void addExceptionalSuccessor(CfBlock block, DexType guard) {
+      assert !exceptionalSuccessors.containsKey(guard);
+      exceptionalSuccessors.put(guard, block);
     }
 
     void setFirstInstructionIndex(int firstInstructionIndex) {
