@@ -213,8 +213,8 @@ public class CfArithmeticBinop extends CfInstruction {
     // ..., value1, value2 →
     // ..., result
     return state
-        .popInitialized(appView, type)
-        .popInitialized(appView, type)
+        .popInitialized(appView, config, type)
+        .popInitialized(appView, config, type)
         .push(appView, config, type);
   }
 }

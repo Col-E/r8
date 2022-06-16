@@ -71,10 +71,10 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState check(AppView<?> appView, CfFrame frame) {
+  public CfFrameState check(CfAnalysisConfig config, CfFrame frame) {
     CfFrame currentFrame = CfFrame.builder().setLocals(locals).setStack(stack).build();
     AssignabilityResult assignabilityResult =
-        CfAssignability.isFrameAssignable(currentFrame, frame, appView);
+        config.getAssignability().isFrameAssignable(currentFrame, frame);
     if (assignabilityResult.isFailed()) {
       return error(assignabilityResult.asFailed().getMessage());
     }
@@ -84,9 +84,9 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState checkLocals(AppView<?> appView, CfFrame frame) {
+  public CfFrameState checkLocals(CfAnalysisConfig config, CfFrame frame) {
     AssignabilityResult assignabilityResult =
-        CfAssignability.isLocalsAssignable(locals, frame.getLocals(), appView);
+        config.getAssignability().isLocalsAssignable(locals, frame.getLocals());
     if (assignabilityResult.isFailed()) {
       return error(assignabilityResult.asFailed().getMessage());
     }
@@ -94,9 +94,9 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState checkStack(AppView<?> appView, CfFrame frame) {
+  public CfFrameState checkStack(CfAnalysisConfig config, CfFrame frame) {
     AssignabilityResult assignabilityResult =
-        CfAssignability.isStackAssignable(stack, frame.getStack(), appView);
+        config.getAssignability().isStackAssignable(stack, frame.getStack());
     if (assignabilityResult.isFailed()) {
       return error(assignabilityResult.asFailed().getMessage());
     }
@@ -212,13 +212,15 @@ public class ConcreteCfFrameState extends CfFrameState {
   @Override
   public CfFrameState popInitialized(
       AppView<?> appView,
+      CfAnalysisConfig config,
       DexType expectedType,
       BiFunction<CfFrameState, PreciseFrameType, CfFrameState> fn) {
+    CfAssignability assignability = config.getAssignability();
     return pop(
         (state, frameType) -> {
           if (frameType.isInitialized()) {
             DexType initializedType = frameType.getInitializedType(appView.dexItemFactory());
-            if (CfAssignability.isAssignable(initializedType, expectedType, appView)) {
+            if (assignability.isAssignable(initializedType, expectedType)) {
               return fn.apply(state, frameType);
             }
           }
@@ -227,10 +229,11 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState popInitialized(AppView<?> appView, DexType... expectedTypes) {
+  public CfFrameState popInitialized(
+      AppView<?> appView, CfAnalysisConfig config, DexType... expectedTypes) {
     CfFrameState state = this;
     for (int i = expectedTypes.length - 1; i >= 0; i--) {
-      state = state.popInitialized(appView, expectedTypes[i]);
+      state = state.popInitialized(appView, config, expectedTypes[i]);
     }
     return state;
   }
@@ -273,6 +276,7 @@ public class ConcreteCfFrameState extends CfFrameState {
   @Override
   public CfFrameState readLocal(
       AppView<?> appView,
+      CfAnalysisConfig config,
       int localIndex,
       ValueType expectedType,
       BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
@@ -281,8 +285,9 @@ public class ConcreteCfFrameState extends CfFrameState {
       return error("Unexpected read of missing local at index " + localIndex);
     }
     if (frameType.isInitialized()) {
-      if (CfAssignability.isAssignable(
-          frameType.getInitializedType(appView.dexItemFactory()), expectedType, appView)) {
+      CfAssignability assignability = config.getAssignability();
+      DexType actualType = frameType.getInitializedType(appView.dexItemFactory());
+      if (assignability.isAssignable(actualType, expectedType)) {
         return fn.apply(this, frameType);
       }
     } else if (frameType.isUninitialized() && expectedType.isObject()) {

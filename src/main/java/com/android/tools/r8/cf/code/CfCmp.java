@@ -138,8 +138,8 @@ public class CfCmp extends CfInstruction {
     // ..., value1, value2 →
     // ..., result
     return frame
-        .popInitialized(appView, type)
-        .popInitialized(appView, type)
+        .popInitialized(appView, config, type)
+        .popInitialized(appView, config, type)
         .push(config, dexItemFactory.intType);
   }
 }

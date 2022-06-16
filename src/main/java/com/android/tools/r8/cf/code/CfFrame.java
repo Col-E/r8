@@ -280,7 +280,7 @@ public class CfFrame extends CfInstruction implements Cloneable {
       AppView<?> appView,
       CfAnalysisConfig config,
       DexItemFactory dexItemFactory) {
-    return frame.check(appView, this);
+    return frame.check(config, this);
   }
 
   public static PreciseFrameType getInitializedFrameType(

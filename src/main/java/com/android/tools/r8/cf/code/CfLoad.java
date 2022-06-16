@@ -137,6 +137,7 @@ public class CfLoad extends CfInstruction {
     // ..., objectref
     return frame.readLocal(
         appView,
+        config,
         getLocalIndex(),
         type,
         (state, frameType) ->

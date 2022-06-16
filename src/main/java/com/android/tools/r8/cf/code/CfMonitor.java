@@ -101,6 +101,6 @@ public class CfMonitor extends CfInstruction {
       DexItemFactory dexItemFactory) {
     // ..., objectref →
     // ...
-    return frame.popInitialized(appView, dexItemFactory.objectType);
+    return frame.popInitialized(appView, config, dexItemFactory.objectType);
   }
 }

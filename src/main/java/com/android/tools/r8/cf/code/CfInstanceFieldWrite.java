@@ -74,9 +74,8 @@ public class CfInstanceFieldWrite extends CfFieldInstruction {
     // ..., objectref, value →
     // ...
     return frame
-        .popInitialized(appView, getField().getType())
+        .popInitialized(appView, config, getField().getType())
         .popObject(
-            appView,
             getField().getHolderType(),
             config,
             (state, head) -> head.isUninitializedNew() ? error(head) : state);

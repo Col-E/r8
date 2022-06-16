@@ -108,6 +108,6 @@ public class CfIf extends CfConditionalJumpInstruction {
       DexItemFactory dexItemFactory) {
     // ..., value →
     // ...
-    return frame.popInitialized(appView, type);
+    return frame.popInitialized(appView, config, type);
   }
 }

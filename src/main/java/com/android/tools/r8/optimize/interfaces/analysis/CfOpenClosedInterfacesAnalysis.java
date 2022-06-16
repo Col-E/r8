@@ -4,7 +4,9 @@
 
 package com.android.tools.r8.optimize.interfaces.analysis;
 
+import com.android.tools.r8.cf.code.CfAssignability;
 import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfSubtypingAssignability;
 import com.android.tools.r8.cf.code.frame.FrameType;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -25,9 +27,11 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 public class CfOpenClosedInterfacesAnalysis {
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final CfAssignability assignability;
 
   public CfOpenClosedInterfacesAnalysis(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
+    this.assignability = new CfSubtypingAssignability(appView);
   }
 
   public void run() {
@@ -67,6 +71,11 @@ public class CfOpenClosedInterfacesAnalysis {
       this.code = code;
       this.config =
           new CfAnalysisConfig() {
+
+            @Override
+            public CfAssignability getAssignability() {
+              return assignability;
+            }
 
             @Override
             public DexMethod getCurrentContext() {

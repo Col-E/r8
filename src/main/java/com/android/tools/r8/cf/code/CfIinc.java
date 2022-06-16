@@ -103,6 +103,7 @@ public class CfIinc extends CfInstruction {
       AppView<?> appView,
       CfAnalysisConfig config,
       DexItemFactory dexItemFactory) {
-    return frame.readLocal(appView, getLocalIndex(), ValueType.INT, FunctionUtils::getFirst);
+    return frame.readLocal(
+        appView, config, getLocalIndex(), ValueType.INT, FunctionUtils::getFirst);
   }
 }

@@ -172,6 +172,6 @@ public class CfNewArray extends CfInstruction implements CfTypeInstruction {
       DexItemFactory dexItemFactory) {
     // ..., count →
     // ..., arrayref
-    return frame.popInitialized(appView, dexItemFactory.intType).push(config, type);
+    return frame.popInitialized(appView, config, dexItemFactory.intType).push(config, type);
   }
 }

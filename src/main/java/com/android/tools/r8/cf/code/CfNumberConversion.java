@@ -197,6 +197,6 @@ public class CfNumberConversion extends CfInstruction {
       DexItemFactory dexItemFactory) {
     // ..., value →
     // ..., result
-    return frame.popInitialized(appView, from).push(appView, config, to);
+    return frame.popInitialized(appView, config, from).push(appView, config, to);
   }
 }

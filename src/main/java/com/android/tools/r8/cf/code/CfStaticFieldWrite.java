@@ -73,6 +73,6 @@ public class CfStaticFieldWrite extends CfFieldInstruction {
       DexItemFactory dexItemFactory) {
     // ..., value →
     // ...
-    return frame.popInitialized(appView, getField().getType());
+    return frame.popInitialized(appView, config, getField().getType());
   }
 }

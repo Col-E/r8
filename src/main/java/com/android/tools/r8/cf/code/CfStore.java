@@ -138,6 +138,7 @@ public class CfStore extends CfInstruction {
       assert type.isPrimitive();
       return frame.popInitialized(
           appView,
+          config,
           type,
           (state, head) ->
               state.storeLocal(getLocalIndex(), type.toPrimitiveType(), appView, config));

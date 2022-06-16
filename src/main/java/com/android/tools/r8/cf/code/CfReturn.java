@@ -124,6 +124,8 @@ public class CfReturn extends CfJumpInstruction {
       CfAnalysisConfig config,
       DexItemFactory dexItemFactory) {
     assert !config.getCurrentContext().getReturnType().isVoidType();
-    return frame.popInitialized(appView, config.getCurrentContext().getReturnType()).clear();
+    return frame
+        .popInitialized(appView, config, config.getCurrentContext().getReturnType())
+        .clear();
   }
 }

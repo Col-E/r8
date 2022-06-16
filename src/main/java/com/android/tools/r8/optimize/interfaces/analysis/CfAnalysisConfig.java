@@ -4,10 +4,13 @@
 
 package com.android.tools.r8.optimize.interfaces.analysis;
 
+import com.android.tools.r8.cf.code.CfAssignability;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 
 public interface CfAnalysisConfig {
+
+  CfAssignability getAssignability();
 
   DexMethod getCurrentContext();
 

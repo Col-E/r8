@@ -196,8 +196,8 @@ public class CfLogicalBinop extends CfInstruction {
         value2Type = NumericType.INT;
     }
     return frame
-        .popInitialized(appView, value2Type)
-        .popInitialized(appView, value1Type)
+        .popInitialized(appView, config, value2Type)
+        .popInitialized(appView, config, value1Type)
         .push(appView, config, value1Type);
   }
 }

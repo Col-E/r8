@@ -100,8 +100,8 @@ public class CfArrayStore extends CfArrayLoadOrStore {
     // ..., arrayref, index, value →
     // ...
     return frame
-        .popInitialized(appView, getType())
-        .popInitialized(appView, dexItemFactory.intType)
-        .popInitialized(appView, getExpectedArrayType(dexItemFactory));
+        .popInitialized(appView, config, getType())
+        .popInitialized(appView, config, dexItemFactory.intType)
+        .popInitialized(appView, config, getExpectedArrayType(dexItemFactory));
   }
 }

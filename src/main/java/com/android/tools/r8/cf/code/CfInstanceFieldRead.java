@@ -75,7 +75,7 @@ public class CfInstanceFieldRead extends CfFieldInstruction implements CfOrDexIn
     // ..., objectref →
     // ..., value
     return frame
-        .popInitialized(appView, getField().getHolderType())
+        .popInitialized(appView, config, getField().getHolderType())
         .push(config, getField().getType());
   }
 }

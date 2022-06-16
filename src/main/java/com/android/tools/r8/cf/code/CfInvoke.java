@@ -326,7 +326,7 @@ public class CfInvoke extends CfInstruction {
     // OR, for static method calls:
     // ..., [arg1, [arg2 ...]] →
     // ...
-    frame = frame.popInitialized(appView, method.getParameters().getBacking());
+    frame = frame.popInitialized(appView, config, method.getParameters().getBacking());
     if (opcode != Opcodes.INVOKESTATIC) {
       if (method.getHolderType().isArrayType()) {
         frame = frame.popArray(appView);
@@ -334,7 +334,7 @@ public class CfInvoke extends CfInstruction {
         frame =
             opcode == Opcodes.INVOKESPECIAL && method.isInstanceInitializer(dexItemFactory)
                 ? frame.popAndInitialize(appView, method, config)
-                : frame.popInitialized(appView, method.getHolderType());
+                : frame.popInitialized(appView, config, method.getHolderType());
       }
     }
     if (method.getReturnType().isVoidType()) {

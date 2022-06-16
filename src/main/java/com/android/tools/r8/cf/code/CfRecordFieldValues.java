@@ -116,7 +116,7 @@ public class CfRecordFieldValues extends CfInstruction {
       CfAnalysisConfig config,
       DexItemFactory dexItemFactory) {
     for (DexField ignored : fields) {
-      frame = frame.popInitialized(appView, dexItemFactory.objectType);
+      frame = frame.popInitialized(appView, config, dexItemFactory.objectType);
     }
     return frame.push(config, dexItemFactory.objectArrayType);
   }

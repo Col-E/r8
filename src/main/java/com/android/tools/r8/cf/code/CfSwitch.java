@@ -178,6 +178,6 @@ public class CfSwitch extends CfJumpInstruction {
       DexItemFactory dexItemFactory) {
     // ..., index/key →
     // ...
-    return frame.popInitialized(appView, dexItemFactory.intType);
+    return frame.popInitialized(appView, config, dexItemFactory.intType);
   }
 }

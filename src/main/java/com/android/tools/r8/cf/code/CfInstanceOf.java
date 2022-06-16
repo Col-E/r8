@@ -134,7 +134,7 @@ public class CfInstanceOf extends CfInstruction implements CfTypeInstruction {
     // ..., objectref →
     // ..., result
     return frame
-        .popInitialized(appView, dexItemFactory.objectType)
+        .popInitialized(appView, config, dexItemFactory.objectType)
         .push(config, dexItemFactory.intType);
   }
 }

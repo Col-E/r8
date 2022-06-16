@@ -137,7 +137,7 @@ public class CfMultiANewArray extends CfInstruction implements CfTypeInstruction
     // ..., count1, [count2, ...] →
     // ..., arrayref
     for (int i = 0; i < dimensions; i++) {
-      frame = frame.popInitialized(appView, dexItemFactory.intType);
+      frame = frame.popInitialized(appView, config, dexItemFactory.intType);
     }
     return frame.push(config, type);
   }

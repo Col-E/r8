@@ -115,17 +115,17 @@ public class ErroneousCfFrameState extends CfFrameState {
   }
 
   @Override
-  public CfFrameState check(AppView<?> appView, CfFrame frame) {
+  public CfFrameState check(CfAnalysisConfig config, CfFrame frame) {
     return this;
   }
 
   @Override
-  public CfFrameState checkLocals(AppView<?> appView, CfFrame frame) {
+  public CfFrameState checkLocals(CfAnalysisConfig config, CfFrame frame) {
     return this;
   }
 
   @Override
-  public CfFrameState checkStack(AppView<?> appView, CfFrame frame) {
+  public CfFrameState checkStack(CfAnalysisConfig config, CfFrame frame) {
     return this;
   }
 
@@ -164,13 +164,15 @@ public class ErroneousCfFrameState extends CfFrameState {
   @Override
   public CfFrameState popInitialized(
       AppView<?> appView,
+      CfAnalysisConfig config,
       DexType expectedType,
       BiFunction<CfFrameState, PreciseFrameType, CfFrameState> fn) {
     return this;
   }
 
   @Override
-  public CfFrameState popInitialized(AppView<?> appView, DexType... expectedTypes) {
+  public CfFrameState popInitialized(
+      AppView<?> appView, CfAnalysisConfig config, DexType... expectedTypes) {
     return this;
   }
 
@@ -192,6 +194,7 @@ public class ErroneousCfFrameState extends CfFrameState {
   @Override
   public CfFrameState readLocal(
       AppView<?> appView,
+      CfAnalysisConfig config,
       int localIndex,
       ValueType expectedType,
       BiFunction<CfFrameState, FrameType, CfFrameState> fn) {

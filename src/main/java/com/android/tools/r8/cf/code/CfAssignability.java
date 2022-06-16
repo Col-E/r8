@@ -20,19 +20,25 @@ import java.util.Iterator;
 
 public class CfAssignability {
 
-  public static boolean isFrameTypeAssignable(
-      FrameType source, FrameType target, AppView<?> appView) {
+  final AppView<?> appView;
+  final DexItemFactory dexItemFactory;
+
+  public CfAssignability(AppView<?> appView) {
+    this.appView = appView;
+    this.dexItemFactory = appView.dexItemFactory();
+  }
+
+  public boolean isFrameTypeAssignable(FrameType source, FrameType target) {
     if (source.isSingle() != target.isSingle()) {
       return false;
     }
     return source.isSingle()
-        ? isFrameTypeAssignable(source.asSingle(), target.asSingle(), appView)
+        ? isFrameTypeAssignable(source.asSingle(), target.asSingle())
         : isFrameTypeAssignable(source.asWide(), target.asWide());
   }
 
   // Based on https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.10.1.2.
-  public static boolean isFrameTypeAssignable(
-      SingleFrameType source, SingleFrameType target, AppView<?> appView) {
+  public boolean isFrameTypeAssignable(SingleFrameType source, SingleFrameType target) {
     if (source.equals(target) || target.isOneWord()) {
       return true;
     }
@@ -48,7 +54,6 @@ public class CfAssignability {
           || uninitializedNewTypeSource == uninitializedNewTypeTarget;
     }
     // TODO(b/168190267): Clean-up the lattice.
-    DexItemFactory factory = appView.dexItemFactory();
     if (target.isPrimitive()) {
       return source.isPrimitive()
           && source.asSinglePrimitive().hasIntVerificationType()
@@ -62,25 +67,23 @@ public class CfAssignability {
         // Both are instantiated types and we resort to primitive type/java type hierarchy checking.
         return isAssignable(
             source.asInitializedReferenceType().getInitializedType(),
-            target.asInitializedReferenceType().getInitializedType(),
-            appView);
+            target.asInitializedReferenceType().getInitializedType());
       }
-      return target.asInitializedReferenceType().getInitializedType() == factory.objectType;
+      return target.asInitializedReferenceType().getInitializedType() == dexItemFactory.objectType;
     }
     return false;
   }
 
-  public static boolean isFrameTypeAssignable(WideFrameType source, WideFrameType target) {
+  public boolean isFrameTypeAssignable(WideFrameType source, WideFrameType target) {
     assert !source.isTwoWord();
     return source.lessThanOrEqualTo(target);
   }
 
   // Rules found at https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.10.1.2
-  public static boolean isAssignable(DexType source, DexType target, AppView<?> appView) {
+  public boolean isAssignable(DexType source, DexType target) {
     assert !target.isNullValueType();
-    DexItemFactory factory = appView.dexItemFactory();
-    source = byteCharShortOrBooleanToInt(source, factory);
-    target = byteCharShortOrBooleanToInt(target, factory);
+    source = byteCharShortOrBooleanToInt(source, dexItemFactory);
+    target = byteCharShortOrBooleanToInt(target, dexItemFactory);
     if (source == target) {
       return true;
     }
@@ -90,7 +93,7 @@ public class CfAssignability {
     // Both are now references - everything is assignable to object.
     assert source.isReferenceType();
     assert target.isReferenceType();
-    if (target == factory.objectType) {
+    if (target == dexItemFactory.objectType) {
       return true;
     }
     // isAssignable(null, class(_, _)).
@@ -101,21 +104,24 @@ public class CfAssignability {
     if (target.isArrayType()) {
       return source.isArrayType()
           && isAssignable(
-              source.toArrayElementType(factory), target.toArrayElementType(factory), appView);
+              source.toArrayElementType(dexItemFactory), target.toArrayElementType(dexItemFactory));
     }
     assert target.isClassType();
     if (source.isArrayType()) {
       // Array types are assignable to the class types Object, Cloneable and Serializable.
       // Object is handled above, so we only need to check the other two.
-      return target == factory.cloneableType || target == factory.serializableType;
+      return target == dexItemFactory.cloneableType || target == dexItemFactory.serializableType;
     }
     assert source.isClassType();
-    // TODO(b/166570659): Do a sub-type check that allows for missing classes in hierarchy.
+    return internalIsClassTypeAssignableToClassType(source, target);
+  }
+
+  boolean internalIsClassTypeAssignableToClassType(DexType source, DexType target) {
     return true;
   }
 
-  public static boolean isAssignable(DexType source, ValueType target, AppView<?> appView) {
-    return isAssignable(source, target.toDexType(appView.dexItemFactory()), appView);
+  public boolean isAssignable(DexType source, ValueType target) {
+    return isAssignable(source, target.toDexType(dexItemFactory));
   }
 
   private static DexType byteCharShortOrBooleanToInt(DexType type, DexItemFactory factory) {
@@ -131,19 +137,13 @@ public class CfAssignability {
         || type.isShortType();
   }
 
-  public static AssignabilityResult isFrameAssignable(
-      CfFrame source, CfFrame target, AppView<?> appView) {
-    AssignabilityResult result =
-        isLocalsAssignable(source.getLocals(), target.getLocals(), appView);
-    return result.isSuccessful()
-        ? isStackAssignable(source.getStack(), target.getStack(), appView)
-        : result;
+  public AssignabilityResult isFrameAssignable(CfFrame source, CfFrame target) {
+    AssignabilityResult result = isLocalsAssignable(source.getLocals(), target.getLocals());
+    return result.isSuccessful() ? isStackAssignable(source.getStack(), target.getStack()) : result;
   }
 
-  public static AssignabilityResult isLocalsAssignable(
-      Int2ObjectSortedMap<FrameType> sourceLocals,
-      Int2ObjectSortedMap<FrameType> targetLocals,
-      AppView<?> appView) {
+  public AssignabilityResult isLocalsAssignable(
+      Int2ObjectSortedMap<FrameType> sourceLocals, Int2ObjectSortedMap<FrameType> targetLocals) {
     // TODO(b/229826687): The tail of locals could have top(s) at destination but still be valid.
     int localsLastKey = sourceLocals.isEmpty() ? -1 : sourceLocals.lastIntKey();
     int otherLocalsLastKey = targetLocals.isEmpty() ? -1 : targetLocals.lastIntKey();
@@ -162,7 +162,7 @@ public class CfAssignability {
       if (sourceType.isWide() && destinationType.isOneWord()) {
         destinationType = FrameType.twoWord();
       }
-      if (!isFrameTypeAssignable(sourceType, destinationType, appView)) {
+      if (!isFrameTypeAssignable(sourceType, destinationType)) {
         return new FailedAssignabilityResult(
             "Could not assign '"
                 + MapUtils.toString(sourceLocals)
@@ -180,10 +180,8 @@ public class CfAssignability {
     return new SuccessfulAssignabilityResult();
   }
 
-  public static AssignabilityResult isStackAssignable(
-      Deque<PreciseFrameType> sourceStack,
-      Deque<PreciseFrameType> targetStack,
-      AppView<?> appView) {
+  public AssignabilityResult isStackAssignable(
+      Deque<PreciseFrameType> sourceStack, Deque<PreciseFrameType> targetStack) {
     if (sourceStack.size() != targetStack.size()) {
       return new FailedAssignabilityResult(
           "Source stack "
@@ -196,7 +194,7 @@ public class CfAssignability {
     int stackIndex = 0;
     for (PreciseFrameType sourceType : sourceStack) {
       PreciseFrameType destinationType = otherIterator.next();
-      if (!isFrameTypeAssignable(sourceType, destinationType, appView)) {
+      if (!isFrameTypeAssignable(sourceType, destinationType)) {
         return new FailedAssignabilityResult(
             "Could not assign '"
                 + Arrays.toString(sourceStack.toArray())

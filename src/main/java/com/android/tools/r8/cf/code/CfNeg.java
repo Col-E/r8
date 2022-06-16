@@ -126,6 +126,6 @@ public class CfNeg extends CfInstruction {
       DexItemFactory dexItemFactory) {
     // ..., value →
     // ..., result
-    return frame.popInitialized(appView, type).push(appView, config, type);
+    return frame.popInitialized(appView, config, type).push(appView, config, type);
   }
 }

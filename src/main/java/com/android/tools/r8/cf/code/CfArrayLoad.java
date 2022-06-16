@@ -109,9 +109,10 @@ public class CfArrayLoad extends CfArrayLoadOrStore {
     // ..., arrayref, index →
     // ..., value
     return frame
-        .popInitialized(appView, dexItemFactory.intType)
+        .popInitialized(appView, config, dexItemFactory.intType)
         .popInitialized(
             appView,
+            config,
             getExpectedArrayType(dexItemFactory),
             (state, head) ->
                 head.isNullType()

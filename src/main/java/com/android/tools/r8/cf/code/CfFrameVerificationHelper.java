@@ -31,6 +31,7 @@ import java.util.Set;
 public class CfFrameVerificationHelper implements CfAnalysisConfig {
 
   private final AppView<?> appView;
+  private final CfAssignability assignability;
   private final CfCode code;
   private final GraphLens codeLens;
   private final DexItemFactory factory;
@@ -51,6 +52,7 @@ public class CfFrameVerificationHelper implements CfAnalysisConfig {
       Map<CfLabel, CfFrame> stateMap,
       List<CfTryCatch> tryCatchRanges) {
     this.appView = appView;
+    this.assignability = new CfAssignability(appView);
     this.code = code;
     this.codeLens = codeLens;
     this.method = method;
@@ -65,6 +67,11 @@ public class CfFrameVerificationHelper implements CfAnalysisConfig {
       tryCatchRangeLabels.add(tryCatchRange.start);
       tryCatchRangeLabels.add(tryCatchRange.end);
     }
+  }
+
+  @Override
+  public CfAssignability getAssignability() {
+    return assignability;
   }
 
   @Override
@@ -132,7 +139,7 @@ public class CfFrameVerificationHelper implements CfAnalysisConfig {
       }
       // From the spec: the handler's exception class is assignable to the class Throwable.
       for (DexType guard : tryCatchRange.guards) {
-        if (!CfAssignability.isAssignable(guard, factory.throwableType, appView)) {
+        if (!assignability.isAssignable(guard, factory.throwableType)) {
           return CfCodeStackMapValidatingException.invalidTryCatchRange(
               method,
               tryCatchRange,
@@ -141,7 +148,7 @@ public class CfFrameVerificationHelper implements CfAnalysisConfig {
         }
         Deque<PreciseFrameType> sourceStack = ImmutableDeque.of(FrameType.initialized(guard));
         AssignabilityResult assignabilityResult =
-            CfAssignability.isStackAssignable(sourceStack, destinationFrame.getStack(), appView);
+            assignability.isStackAssignable(sourceStack, destinationFrame.getStack());
         if (assignabilityResult.isFailed()) {
           return CfCodeStackMapValidatingException.invalidTryCatchRange(
               method, tryCatchRange, assignabilityResult.asFailed().getMessage(), appView);
@@ -158,7 +165,7 @@ public class CfFrameVerificationHelper implements CfAnalysisConfig {
         if (destinationFrame == null) {
           return CfFrameState.error("No frame for target catch range target");
         }
-        state = state.checkLocals(appView, destinationFrame);
+        state = state.checkLocals(this, destinationFrame);
       }
     }
     return state;
@@ -167,7 +174,7 @@ public class CfFrameVerificationHelper implements CfAnalysisConfig {
   public CfFrameState checkTarget(CfFrameState state, CfLabel label) {
     CfFrame destinationFrame = getDestinationFrame(label);
     return destinationFrame != null
-        ? state.checkLocals(appView, destinationFrame).checkStack(appView, destinationFrame)
+        ? state.checkLocals(this, destinationFrame).checkStack(this, destinationFrame)
         : CfFrameState.error("No destination frame");
   }
 

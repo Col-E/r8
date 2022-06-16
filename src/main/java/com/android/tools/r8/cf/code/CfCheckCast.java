@@ -139,6 +139,6 @@ public class CfCheckCast extends CfInstruction implements CfTypeInstruction {
       DexItemFactory dexItemFactory) {
     // ..., objectref →
     // ..., objectref
-    return frame.popInitialized(appView, dexItemFactory.objectType).push(config, type);
+    return frame.popInitialized(appView, config, dexItemFactory.objectType).push(config, type);
   }
 }

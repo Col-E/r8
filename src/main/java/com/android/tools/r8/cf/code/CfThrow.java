@@ -106,6 +106,6 @@ public class CfThrow extends CfJumpInstruction {
       DexItemFactory dexItemFactory) {
     // ..., objectref →
     // objectref
-    return frame.popInitialized(appView, dexItemFactory.throwableType).clear();
+    return frame.popInitialized(appView, config, dexItemFactory.throwableType).clear();
   }
 }
