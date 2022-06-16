@@ -9,6 +9,7 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMaps;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
@@ -99,5 +100,20 @@ public class MapUtils {
           }
         });
     return result;
+  }
+
+  public static <K, V> boolean equals(Map<K, V> one, Map<K, V> other) {
+    if (one == other) {
+      return true;
+    }
+    if (one.size() != other.size()) {
+      return false;
+    }
+    for (Entry<K, V> firstEntry : one.entrySet()) {
+      if (!firstEntry.getValue().equals(other.get(firstEntry.getKey()))) {
+        return false;
+      }
+    }
+    return true;
   }
 }

@@ -2045,6 +2045,7 @@ public class DexItemFactory {
     public final DexMethod appendObject;
     public final DexMethod appendString;
     public final DexMethod appendStringBuffer;
+    public final DexMethod capacity;
     public final DexMethod charSequenceConstructor;
     public final DexMethod defaultConstructor;
     public final DexMethod intConstructor;
@@ -2056,7 +2057,6 @@ public class DexItemFactory {
 
     private StringBuildingMethods(DexType receiver) {
       DexString append = createString("append");
-
       appendBoolean = createMethod(receiver, createProto(receiver, booleanType), append);
       appendChar = createMethod(receiver, createProto(receiver, charType), append);
       appendCharArray = createMethod(receiver, createProto(receiver, charArrayType), append);
@@ -2072,6 +2072,7 @@ public class DexItemFactory {
       appendObject = createMethod(receiver, createProto(receiver, objectType), append);
       appendString = createMethod(receiver, createProto(receiver, stringType), append);
       appendStringBuffer = createMethod(receiver, createProto(receiver, stringBufferType), append);
+      capacity = createMethod(receiver, createProto(intType), createString("capacity"));
       charSequenceConstructor =
           createMethod(receiver, createProto(voidType, charSequenceType), constructorMethodName);
       defaultConstructor = createMethod(receiver, createProto(voidType), constructorMethodName);
@@ -2112,6 +2113,14 @@ public class DexItemFactory {
 
     public boolean isAppendObjectMethod(DexMethod method) {
       return method == appendObject;
+    }
+
+    public boolean isAppendCharSequenceMethod(DexMethod method) {
+      return method == appendCharSequence;
+    }
+
+    public boolean isAppendObjectOrCharSequenceMethod(DexMethod method) {
+      return isAppendObjectMethod(method) || isAppendCharSequenceMethod(method);
     }
 
     public boolean isAppendPrimitiveMethod(DexMethod method) {

@@ -42,13 +42,17 @@ public class IntraProceduralDataflowAnalysisBase<
   // of the predecessors, but doing so can be expensive when a block has many predecessors.
   final Map<Block, StateType> blockEntryStatesCache = new IdentityHashMap<>();
 
+  final IntraProceduralDataflowAnalysisOptions options;
+
   public IntraProceduralDataflowAnalysisBase(
       StateType bottom,
       ControlFlowGraph<Block, Instruction> cfg,
-      AbstractTransferFunction<Block, Instruction, StateType> transfer) {
+      AbstractTransferFunction<Block, Instruction, StateType> transfer,
+      IntraProceduralDataflowAnalysisOptions options) {
     this.bottom = bottom;
     this.cfg = cfg;
     this.transfer = transfer;
+    this.options = options;
   }
 
   public DataflowAnalysisResult run(Block root) {
@@ -68,6 +72,12 @@ public class IntraProceduralDataflowAnalysisBase<
       // exit states.
       StateType state =
           timing.time("Compute block entry state", () -> computeBlockEntryState(initialBlock));
+
+      TransferFunctionResult<StateType> blockResult = transfer.applyBlock(initialBlock, state);
+      if (blockResult.isFailedTransferResult()) {
+        return new FailedDataflowAnalysisResult();
+      }
+      state = blockResult.asAbstractState();
 
       timing.begin("Compute transfers");
       do {
@@ -90,6 +100,9 @@ public class IntraProceduralDataflowAnalysisBase<
         }
         state = traversalContinuation.asContinue().getValue();
         if (cfg.hasUniqueSuccessorWithUniquePredecessor(block)) {
+          if (!options.isCollapsingOfTrivialEdgesEnabled()) {
+            setBlockExitState(block, state);
+          }
           block = cfg.getUniqueSuccessor(block);
         } else {
           end = block;
@@ -132,7 +145,8 @@ public class IntraProceduralDataflowAnalysisBase<
   }
 
   boolean setBlockExitState(Block block, StateType state) {
-    assert !cfg.hasUniqueSuccessorWithUniquePredecessor(block);
+    assert !cfg.hasUniqueSuccessorWithUniquePredecessor(block)
+        || !options.isCollapsingOfTrivialEdgesEnabled();
     StateType previous = blockExitStates.put(block, state);
     assert previous == null || state.isGreaterThanOrEquals(previous);
     return !state.equals(previous);

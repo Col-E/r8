@@ -13,6 +13,10 @@ public interface AbstractTransferFunction<
 
   TransferFunctionResult<StateType> apply(Instruction instruction, StateType state);
 
+  default TransferFunctionResult<StateType> applyBlock(Block block, StateType state) {
+    return state;
+  }
+
   default StateType computeInitialState(Block entryBlock, StateType bottom) {
     return bottom;
   }

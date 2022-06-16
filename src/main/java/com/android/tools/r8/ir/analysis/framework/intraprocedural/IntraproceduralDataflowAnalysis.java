@@ -15,7 +15,7 @@ public class IntraproceduralDataflowAnalysis<StateType extends AbstractState<Sta
       StateType bottom,
       IRCode code,
       AbstractTransferFunction<BasicBlock, Instruction, StateType> transfer) {
-    super(bottom, code, transfer);
+    super(bottom, code, transfer, IntraProceduralDataflowAnalysisOptions.getCollapseInstance());
   }
 
   @Override
