@@ -395,6 +395,7 @@ public class CfFrame extends CfInstruction implements Cloneable {
     }
 
     private Builder internalStore(int localIndex, FrameType frameType) {
+      assert !frameType.isTwoWord();
       ensureMutableLocals();
       locals.put(localIndex, frameType);
       if (frameType.isWide()) {

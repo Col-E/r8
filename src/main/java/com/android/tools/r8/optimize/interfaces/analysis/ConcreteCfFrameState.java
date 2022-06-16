@@ -46,6 +46,7 @@ public class ConcreteCfFrameState extends CfFrameState {
 
   public ConcreteCfFrameState(
       Int2ObjectAVLTreeMap<FrameType> locals, ArrayDeque<PreciseFrameType> stack, int stackHeight) {
+    assert locals.values().stream().noneMatch(FrameType::isTwoWord);
     this.locals = locals;
     this.stack = stack;
     this.stackHeight = stackHeight;
@@ -431,7 +432,13 @@ public class ConcreteCfFrameState extends CfFrameState {
       WideFrameType frameType,
       WideFrameType otherFrameType,
       CfFrame.Builder builder) {
-    builder.store(localIndex, frameType.join(otherFrameType));
+    WideFrameType join = frameType.join(otherFrameType);
+    if (join.isPrecise()) {
+      builder.store(localIndex, join);
+    } else {
+      assert join.isTwoWord();
+      setWideLocalToTop(localIndex, builder);
+    }
   }
 
   // TODO(b/231521474): By splitting each wide type into single left/right types, the join of each
