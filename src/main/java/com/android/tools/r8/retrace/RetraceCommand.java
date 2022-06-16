@@ -111,7 +111,7 @@ public class RetraceCommand {
      *     first line.
      */
     public Builder setStackTrace(List<String> stackTrace) {
-      Box<List<String>> box = new Box<>();
+      Box<List<String>> box = new Box<>(stackTrace);
       return setStackTrace(() -> box.getAndSet(null));
     }
 
