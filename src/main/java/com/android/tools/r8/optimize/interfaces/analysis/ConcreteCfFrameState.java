@@ -43,7 +43,7 @@ public class ConcreteCfFrameState extends CfFrameState {
   private final ArrayDeque<PreciseFrameType> stack;
   private int stackHeight;
 
-  ConcreteCfFrameState() {
+  public ConcreteCfFrameState() {
     this(new Int2ObjectAVLTreeMap<>(), new ArrayDeque<>(), 0);
   }
 
@@ -143,8 +143,7 @@ public class ConcreteCfFrameState extends CfFrameState {
   @Override
   public CfFrameState pop(BiFunction<CfFrameState, PreciseFrameType, CfFrameState> fn) {
     if (stack.isEmpty()) {
-      // Return the same error as when popping from the bottom state.
-      return bottom().pop();
+      return error("Unexpected pop from empty stack");
     }
     PreciseFrameType frameType = stack.removeLast();
     stackHeight -= frameType.getWidth();

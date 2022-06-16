@@ -1050,7 +1050,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
       DexMethod previousMethodSignature,
       boolean previousMethodSignatureIsInstance) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
-    CfFrameState state = ConcreteCfFrameState.bottom();
+    CfFrameState state = new ConcreteCfFrameState();
     int localIndex = 0;
     if (previousMethodSignatureIsInstance) {
       state =
