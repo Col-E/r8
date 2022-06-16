@@ -25,6 +25,7 @@ public class ErroneousCfFrameState extends CfFrameState {
   private final String message;
 
   ErroneousCfFrameState(String message) {
+    assert message != null;
     this.message = message;
   }
 
@@ -199,11 +200,18 @@ public class ErroneousCfFrameState extends CfFrameState {
 
   @Override
   public boolean equals(Object other) {
-    return this == other;
+    if (this == other) {
+      return true;
+    }
+    if (other == null || getClass() != other.getClass()) {
+      return false;
+    }
+    ErroneousCfFrameState error = (ErroneousCfFrameState) other;
+    return message.equals(error.message);
   }
 
   @Override
   public int hashCode() {
-    return System.identityHashCode(this);
+    return message.hashCode();
   }
 }
