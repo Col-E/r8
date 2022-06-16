@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize.canonicalization;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
@@ -61,8 +60,7 @@ public class ConstClassCanonicalizationMonitorTest extends TestBase {
                       .filter(InstructionSubject::isMonitorEnter)
                       .findFirst();
               assertTrue(insertedMonitor.isPresent());
-              // TODO(b/235319568): Should not be line number 0.
-              assertEquals(0, testSubject.getLineNumberForInstruction(insertedMonitor.get()));
+              assertTrue(testSubject.getLineNumberForInstruction(insertedMonitor.get()) > 0);
             });
   }
 

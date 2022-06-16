@@ -218,43 +218,47 @@ public class ConstantCanonicalizer {
       Instruction canonicalizedConstant = entry.getKey();
       assert canonicalizedConstant.instructionTypeCanBeCanonicalized();
       Instruction newConst;
-      switch (canonicalizedConstant.opcode()) {
-        case CONST_CLASS:
-          if (Log.ENABLED) {
-            numberOfConstClassCanonicalization++;
-          }
-          newConst = ConstClass.copyOf(code, canonicalizedConstant.asConstClass());
-          break;
-        case CONST_NUMBER:
-          if (Log.ENABLED) {
-            numberOfConstNumberCanonicalization++;
-          }
-          newConst = ConstNumber.copyOf(code, canonicalizedConstant.asConstNumber());
-          break;
-        case CONST_STRING:
-          if (Log.ENABLED) {
-            numberOfConstStringCanonicalization++;
-          }
-          newConst = ConstString.copyOf(code, canonicalizedConstant.asConstString());
-          break;
-        case DEX_ITEM_BASED_CONST_STRING:
-          if (Log.ENABLED) {
-            numberOfDexItemBasedConstStringCanonicalization++;
-          }
-          newConst =
-              DexItemBasedConstString.copyOf(
-                  code, canonicalizedConstant.asDexItemBasedConstString());
-          break;
-        case STATIC_GET:
-          if (Log.ENABLED) {
-            numberOfEffectivelyFinalFieldCanonicalization++;
-          }
-          newConst = StaticGet.copyOf(code, canonicalizedConstant.asStaticGet());
-          break;
-        default:
-          throw new Unreachable();
+      if (canonicalizedConstant.getBlock().isEntry()) {
+        newConst = canonicalizedConstant;
+      } else {
+        switch (canonicalizedConstant.opcode()) {
+          case CONST_CLASS:
+            if (Log.ENABLED) {
+              numberOfConstClassCanonicalization++;
+            }
+            newConst = ConstClass.copyOf(code, canonicalizedConstant.asConstClass());
+            break;
+          case CONST_NUMBER:
+            if (Log.ENABLED) {
+              numberOfConstNumberCanonicalization++;
+            }
+            newConst = ConstNumber.copyOf(code, canonicalizedConstant.asConstNumber());
+            break;
+          case CONST_STRING:
+            if (Log.ENABLED) {
+              numberOfConstStringCanonicalization++;
+            }
+            newConst = ConstString.copyOf(code, canonicalizedConstant.asConstString());
+            break;
+          case DEX_ITEM_BASED_CONST_STRING:
+            if (Log.ENABLED) {
+              numberOfDexItemBasedConstStringCanonicalization++;
+            }
+            newConst =
+                DexItemBasedConstString.copyOf(
+                    code, canonicalizedConstant.asDexItemBasedConstString());
+            break;
+          case STATIC_GET:
+            if (Log.ENABLED) {
+              numberOfEffectivelyFinalFieldCanonicalization++;
+            }
+            newConst = StaticGet.copyOf(code, canonicalizedConstant.asStaticGet());
+            break;
+          default:
+            throw new Unreachable();
+        }
+        insertCanonicalizedConstant(code, newConst);
       }
-      insertCanonicalizedConstant(code, newConst);
       for (Value outValue : entry.getValue()) {
         outValue.replaceUsers(newConst.outValue());
       }

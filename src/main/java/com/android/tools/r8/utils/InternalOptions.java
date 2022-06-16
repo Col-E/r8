@@ -945,7 +945,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // If non null it must be and passed to the consumer.
   public StringConsumer mainDexListConsumer = null;
 
-  // If null, no proguad map needs to be computed.
+  // If null, no proguard map needs to be computed.
   // If non null it must be and passed to the consumer.
   public StringConsumer proguardMapConsumer = null;
 
