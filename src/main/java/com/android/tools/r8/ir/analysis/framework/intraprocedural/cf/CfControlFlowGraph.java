@@ -22,6 +22,7 @@ import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
@@ -61,6 +62,11 @@ public class CfControlFlowGraph implements ControlFlowGraph<CfBlock, CfInstructi
   private CfBlock getBlock(CfInstruction blockEntry) {
     assert blocks.containsKey(blockEntry);
     return blocks.get(blockEntry);
+  }
+
+  @Override
+  public Collection<? extends CfBlock> getBlocks() {
+    return blocks.values();
   }
 
   @Override
@@ -270,6 +276,9 @@ public class CfControlFlowGraph implements ControlFlowGraph<CfBlock, CfInstructi
         assert !instruction.isLabel()
             || verifyCatchHandlersUnchanged(
                 instruction.asLabel(), activeCatchHandlers, inactiveUntilCatchHandlers);
+        if (instruction.instructionTypeCanThrow() && !block.hasThrowingInstruction()) {
+          block.setFirstThrowingInstructionIndex(instructionIndex);
+        }
         if (isBlockExit(instructionIndex)) {
           break;
         }

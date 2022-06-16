@@ -291,6 +291,8 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
     return push(config, valueType.toDexType(appView.dexItemFactory()));
   }
 
+  public abstract CfFrameState pushException(CfAnalysisConfig config, DexType guard);
+
   public abstract CfFrameState readLocal(
       AppView<?> appView,
       int localIndex,

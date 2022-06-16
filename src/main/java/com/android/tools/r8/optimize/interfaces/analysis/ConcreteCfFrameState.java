@@ -262,6 +262,15 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   @Override
+  public CfFrameState pushException(CfAnalysisConfig config, DexType guard) {
+    Int2ObjectAVLTreeMap<FrameType> newLocals = new Int2ObjectAVLTreeMap<>(locals);
+    ArrayDeque<PreciseFrameType> newStack = new ArrayDeque<>();
+    int newStackHeight = 0;
+    return new ConcreteCfFrameState(newLocals, newStack, newStackHeight)
+        .push(config, FrameType.initialized(guard));
+  }
+
+  @Override
   public CfFrameState readLocal(
       AppView<?> appView,
       int localIndex,

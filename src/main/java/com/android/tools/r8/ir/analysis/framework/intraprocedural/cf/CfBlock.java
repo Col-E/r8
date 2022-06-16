@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -21,6 +22,9 @@ public class CfBlock {
 
   // The CfCode instruction index of the block's first instruction.
   int firstInstructionIndex = -1;
+
+  // The CfCode instruction index of the block's first throwing instruction.
+  int firstThrowingInstructionIndex = -1;
 
   // The CfCode instruction index of the block's last instruction.
   int lastInstructionIndex = -1;
@@ -46,6 +50,14 @@ public class CfBlock {
     return firstInstructionIndex;
   }
 
+  public boolean hasThrowingInstruction() {
+    return firstThrowingInstructionIndex >= 0;
+  }
+
+  public int getFirstThrowingInstructionIndex() {
+    return firstThrowingInstructionIndex;
+  }
+
   public CfInstruction getLastInstruction(CfCode code) {
     return code.getInstructions().get(lastInstructionIndex);
   }
@@ -64,6 +76,22 @@ public class CfBlock {
 
   public LinkedHashMap<DexType, CfBlock> getExceptionalSuccessors() {
     return exceptionalSuccessors;
+  }
+
+  @Override
+  public String toString() {
+    List<String> predecessorStrings = new ArrayList<>();
+    predecessors.forEach(p -> predecessorStrings.add(p.getRangeString()));
+    exceptionalPredecessors.forEach(p -> predecessorStrings.add("*" + p.getRangeString()));
+    return "CfBlock(range="
+        + getRangeString()
+        + ", predecessors="
+        + StringUtils.join(", ", predecessorStrings)
+        + ")";
+  }
+
+  private String getRangeString() {
+    return firstInstructionIndex + "->" + lastInstructionIndex;
   }
 
   // A mutable interface for block construction.
@@ -86,6 +114,10 @@ public class CfBlock {
       this.firstInstructionIndex = firstInstructionIndex;
     }
 
+    void setFirstThrowingInstructionIndex(int firstThrowingInstructionIndex) {
+      this.firstThrowingInstructionIndex = firstThrowingInstructionIndex;
+    }
+
     void setLastInstructionIndex(int lastInstructionIndex) {
       this.lastInstructionIndex = lastInstructionIndex;
     }
@@ -93,6 +125,10 @@ public class CfBlock {
     boolean validate(CfControlFlowGraph cfg, InternalOptions options) {
       assert 0 <= firstInstructionIndex;
       assert firstInstructionIndex <= lastInstructionIndex;
+      assert firstThrowingInstructionIndex < 0
+          || firstInstructionIndex <= firstThrowingInstructionIndex;
+      assert firstThrowingInstructionIndex < 0
+          || firstThrowingInstructionIndex <= lastInstructionIndex;
       assert SetUtils.newIdentityHashSet(predecessors).size() == predecessors.size();
       assert this == cfg.getEntryBlock()
           || !predecessors.isEmpty()

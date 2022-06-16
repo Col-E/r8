@@ -185,6 +185,11 @@ public class ErroneousCfFrameState extends CfFrameState {
   }
 
   @Override
+  public CfFrameState pushException(CfAnalysisConfig config, DexType guard) {
+    return this;
+  }
+
+  @Override
   public CfFrameState readLocal(
       AppView<?> appView,
       int localIndex,

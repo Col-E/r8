@@ -5,7 +5,7 @@
 package com.android.tools.r8.optimize.interfaces.analysis;
 
 import com.android.tools.r8.cf.code.CfInstruction;
-import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.cf.code.frame.FrameType;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
@@ -56,12 +56,15 @@ public class CfOpenClosedInterfacesAnalysis {
   private class TransferFunction
       implements AbstractTransferFunction<CfBlock, CfInstruction, CfFrameState> {
 
+    private final CfCode code;
     private final CfAnalysisConfig config;
+    private final ProgramMethod context;
 
     TransferFunction(ProgramMethod context) {
       CfCode code = context.getDefinition().getCode().asCfCode();
       int maxLocals = code.getMaxLocals();
       int maxStack = code.getMaxStack();
+      this.code = code;
       this.config =
           new CfAnalysisConfig() {
 
@@ -85,6 +88,7 @@ public class CfOpenClosedInterfacesAnalysis {
               return type == context.getHolder().getSuperType();
             }
           };
+      this.context = context;
     }
 
     @Override
@@ -94,9 +98,41 @@ public class CfOpenClosedInterfacesAnalysis {
     }
 
     @Override
+    public CfFrameState computeInitialState(CfBlock entryBlock, CfFrameState bottom) {
+      CfFrameState initialState = new ConcreteCfFrameState();
+      int localIndex = 0;
+      if (context.getDefinition().isInstance()) {
+        if (context.getDefinition().isInstanceInitializer()) {
+          initialState = initialState.storeLocal(localIndex, FrameType.uninitializedThis(), config);
+        } else {
+          initialState =
+              initialState.storeLocal(
+                  localIndex, FrameType.initialized(context.getHolderType()), config);
+        }
+        localIndex++;
+      }
+      for (DexType parameter : context.getParameters()) {
+        initialState =
+            initialState.storeLocal(localIndex, FrameType.initialized(parameter), config);
+        localIndex += parameter.getRequiredRegisters();
+      }
+      return initialState;
+    }
+
+    @Override
     public CfFrameState computeBlockEntryState(
         CfBlock block, CfBlock predecessor, CfFrameState predecessorExitState) {
       return predecessorExitState;
+    }
+
+    @Override
+    public boolean shouldTransferExceptionalControlFlowFromInstruction(
+        CfBlock throwBlock, CfInstruction throwInstruction) {
+      // All locals defined after the first throwing instruction cannot be accessed in the catch
+      // handler. Therefore, we only propagate the state from the first throwing instruction to the
+      // catch handler.
+      assert throwBlock.hasThrowingInstruction();
+      return throwInstruction == code.getInstruction(throwBlock.getFirstThrowingInstructionIndex());
     }
 
     @Override
@@ -106,8 +142,7 @@ public class CfOpenClosedInterfacesAnalysis {
         CfBlock throwBlock,
         CfInstruction throwInstruction,
         CfFrameState throwState) {
-      // TODO(b/214496607): Handle exceptional control flow.
-      throw new Unimplemented();
+      return throwState.pushException(config, guard);
     }
   }
 }

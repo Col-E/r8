@@ -8,12 +8,15 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.TraversalUtils;
 import com.android.tools.r8.utils.TriFunction;
+import java.util.Collection;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 public interface ControlFlowGraph<Block, Instruction> {
+
+  Collection<? extends Block> getBlocks();
 
   Block getEntryBlock();
 

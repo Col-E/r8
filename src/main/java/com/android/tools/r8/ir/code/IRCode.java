@@ -1364,6 +1364,7 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
     }
   }
 
+  @Override
   public LinkedList<BasicBlock> getBlocks() {
     return blocks;
   }
