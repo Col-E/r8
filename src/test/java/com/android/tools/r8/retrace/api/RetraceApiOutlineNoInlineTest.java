@@ -64,8 +64,7 @@ public class RetraceApiOutlineNoInlineTest extends RetraceApiTestBase {
       ProguardMappingSupplier mappingProvider =
           ProguardMappingSupplier.builder()
               .setProguardMapProducer(ProguardMapProducer.fromString(mapping))
-              .build()
-              .allowLookupAllClasses();
+              .build();
       Retracer retracer = Retracer.builder().setMappingSupplier(mappingProvider).build();
       List<RetraceFrameElement> outlineRetraced =
           retracer

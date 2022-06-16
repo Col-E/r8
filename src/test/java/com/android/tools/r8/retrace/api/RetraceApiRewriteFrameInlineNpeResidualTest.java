@@ -82,8 +82,7 @@ public class RetraceApiRewriteFrameInlineNpeResidualTest extends RetraceApiTestB
       ProguardMappingSupplier mappingProvider =
           ProguardMappingSupplier.builder()
               .setProguardMapProducer(ProguardMapProducer.fromString(mapping))
-              .build()
-              .allowLookupAllClasses();
+              .build();
       Retracer retracer = Retracer.builder().setMappingSupplier(mappingProvider).build();
       List<RetraceThrownExceptionElement> npeRetraced =
           retracer.retraceThrownException(renamedException).stream().collect(Collectors.toList());

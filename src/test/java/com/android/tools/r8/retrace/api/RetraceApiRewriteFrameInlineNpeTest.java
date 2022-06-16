@@ -62,8 +62,7 @@ public class RetraceApiRewriteFrameInlineNpeTest extends RetraceApiTestBase {
       ProguardMappingSupplier mappingProvider =
           ProguardMappingSupplier.builder()
               .setProguardMapProducer(ProguardMapProducer.fromString(mapping))
-              .build()
-              .allowLookupAllClasses();
+              .build();
       Retracer retracer =
           Retracer.builder()
               .setMappingSupplier(mappingProvider)

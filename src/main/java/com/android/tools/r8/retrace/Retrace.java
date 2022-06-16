@@ -13,6 +13,7 @@ import com.android.tools.r8.Version;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetraceCommand.Builder;
+import com.android.tools.r8.retrace.internal.ResultWithContextImpl;
 import com.android.tools.r8.retrace.internal.RetraceAbortException;
 import com.android.tools.r8.retrace.internal.RetracerImpl;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy;
@@ -177,9 +178,11 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
    * Retraces a complete stack frame and returns a list of retraced stack traces.
    *
    * @param stackTrace the stack trace to be retrace
+   * @param context The context to retrace the stack trace in
    * @return list of potentially ambiguous stack traces.
    */
-  public List<List<List<T>>> retraceStackTrace(List<T> stackTrace) {
+  public ResultWithContext<List<List<List<T>>>> retraceStackTrace(
+      List<T> stackTrace, RetraceStackTraceContext context) {
     ListUtils.forEachWithIndex(
         stackTrace,
         (line, lineNumber) -> {
@@ -190,69 +193,75 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
           }
         });
     List<ST> parsed = ListUtils.map(stackTrace, stackTraceLineParser::parse);
-    return retraceStackTraceParsed(parsed);
+    return retraceStackTraceParsed(parsed, context);
   }
 
   /**
    * Retraces a complete stack frame and returns a list of retraced stack traces.
    *
    * @param stackTrace the stack trace to be retrace
+   * @param context The context to retrace the stack trace in
    * @return list of potentially ambiguous stack traces.
    */
-  public List<List<List<T>>> retraceStackTraceParsed(List<ST> stackTrace) {
+  public ResultWithContext<List<List<List<T>>>> retraceStackTraceParsed(
+      List<ST> stackTrace, RetraceStackTraceContext context) {
     RetraceStackTraceElementProxyEquivalence<T, ST> equivalence =
         new RetraceStackTraceElementProxyEquivalence<>(isVerbose);
     List<List<List<T>>> finalResult = new ArrayList<>();
-    ListUtils.fold(
-        stackTrace,
-        RetraceStackTraceContext.empty(),
-        (context, stackTraceLine) -> {
-          List<Pair<RetraceStackTraceElementProxy<T, ST>, List<T>>> resultsForLine =
-              new ArrayList<>();
-          Box<List<T>> currentList = new Box<>();
-          Set<Wrapper<RetraceStackTraceElementProxy<T, ST>>> seen = new HashSet<>();
-          List<RetraceStackTraceContext> contexts = new ArrayList<>();
-          RetraceStackTraceElementProxyResult<T, ST> retraceResult =
-              proxyRetracer.retrace(stackTraceLine, context);
-          retraceResult.stream()
-              .forEach(
-                  retracedElement -> {
-                    if (retracedElement.isTopFrame() || !retracedElement.hasRetracedClass()) {
-                      if (seen.add(equivalence.wrap(retracedElement))) {
-                        currentList.set(new ArrayList<>());
-                        resultsForLine.add(Pair.create(retracedElement, currentList.get()));
-                        contexts.add(retracedElement.getContext());
-                      } else {
-                        currentList.clear();
-                      }
-                    }
-                    if (currentList.isSet()) {
-                      currentList
-                          .get()
-                          .add(stackTraceLine.toRetracedItem(retracedElement, isVerbose));
-                    }
-                  });
-          resultsForLine.sort(Comparator.comparing(Pair::getFirst));
-          finalResult.add(ListUtils.map(resultsForLine, Pair::getSecond));
-          if (contexts.isEmpty()) {
-            return retraceResult.getResultContext();
-          }
-          return contexts.size() == 1 ? contexts.get(0) : RetraceStackTraceContext.empty();
-        });
-    return finalResult;
+    RetraceStackTraceContext finalContext =
+        ListUtils.fold(
+            stackTrace,
+            context,
+            (newContext, stackTraceLine) -> {
+              List<Pair<RetraceStackTraceElementProxy<T, ST>, List<T>>> resultsForLine =
+                  new ArrayList<>();
+              Box<List<T>> currentList = new Box<>();
+              Set<Wrapper<RetraceStackTraceElementProxy<T, ST>>> seen = new HashSet<>();
+              List<RetraceStackTraceContext> contexts = new ArrayList<>();
+              RetraceStackTraceElementProxyResult<T, ST> retraceResult =
+                  proxyRetracer.retrace(stackTraceLine, newContext);
+              retraceResult.stream()
+                  .forEach(
+                      retracedElement -> {
+                        if (retracedElement.isTopFrame() || !retracedElement.hasRetracedClass()) {
+                          if (seen.add(equivalence.wrap(retracedElement))) {
+                            currentList.set(new ArrayList<>());
+                            resultsForLine.add(Pair.create(retracedElement, currentList.get()));
+                            contexts.add(retracedElement.getContext());
+                          } else {
+                            currentList.clear();
+                          }
+                        }
+                        if (currentList.isSet()) {
+                          currentList
+                              .get()
+                              .add(stackTraceLine.toRetracedItem(retracedElement, isVerbose));
+                        }
+                      });
+              resultsForLine.sort(Comparator.comparing(Pair::getFirst));
+              finalResult.add(ListUtils.map(resultsForLine, Pair::getSecond));
+              if (contexts.isEmpty()) {
+                return retraceResult.getResultContext();
+              }
+              return contexts.size() == 1 ? contexts.get(0) : RetraceStackTraceContext.empty();
+            });
+    return ResultWithContextImpl.create(finalResult, finalContext);
   }
 
   /**
    * Retraces a stack trace frame with support for splitting up ambiguous results.
    *
    * @param stackTraceFrame The frame to retrace that can give rise to ambiguous results
+   * @param context The context to retrace the stack trace in
    * @return A collection of retraced frame where each entry in the outer list is ambiguous
    */
-  public List<List<T>> retraceFrame(T stackTraceFrame) {
+  public ResultWithContext<List<List<T>>> retraceFrame(
+      T stackTraceFrame, RetraceStackTraceContext context) {
     Map<RetraceStackTraceElementProxy<T, ST>, List<T>> ambiguousBlocks = new HashMap<>();
     List<RetraceStackTraceElementProxy<T, ST>> ambiguousKeys = new ArrayList<>();
     ST parsedLine = stackTraceLineParser.parse(stackTraceFrame);
-    proxyRetracer.retrace(parsedLine, RetraceStackTraceContext.empty()).stream()
+    Box<RetraceStackTraceContext> contextBox = new Box<>(context);
+    proxyRetracer.retrace(parsedLine, context).stream()
         .forEach(
             retracedElement -> {
               if (retracedElement.isTopFrame() || !retracedElement.hasRetracedClass()) {
@@ -262,11 +271,12 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
               ambiguousBlocks
                   .get(ListUtils.last(ambiguousKeys))
                   .add(parsedLine.toRetracedItem(retracedElement, isVerbose));
+              contextBox.set(retracedElement.getContext());
             });
     Collections.sort(ambiguousKeys);
     List<List<T>> retracedList = new ArrayList<>();
     ambiguousKeys.forEach(key -> retracedList.add(ambiguousBlocks.get(key)));
-    return retracedList;
+    return ResultWithContextImpl.create(retracedList, contextBox.get());
   }
 
   /**
@@ -274,17 +284,22 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
    * to distinguish them. For retracing with ambiguous results separated, use {@link #retraceFrame}
    *
    * @param stackTraceLine the stack trace line to retrace
+   * @param context The context to retrace the stack trace in
    * @return the retraced stack trace line
    */
-  public List<T> retraceLine(T stackTraceLine) {
+  public ResultWithContext<List<T>> retraceLine(
+      T stackTraceLine, RetraceStackTraceContext context) {
     ST parsedLine = stackTraceLineParser.parse(stackTraceLine);
-    return proxyRetracer.retrace(parsedLine, RetraceStackTraceContext.empty()).stream()
-        .map(
-            retraceFrame -> {
-              retraceFrame.getOriginalItem().toRetracedItem(retraceFrame, isVerbose);
-              return parsedLine.toRetracedItem(retraceFrame, isVerbose);
-            })
-        .collect(Collectors.toList());
+    Box<RetraceStackTraceContext> contextBox = new Box<>(context);
+    List<T> result =
+        proxyRetracer.retrace(parsedLine, context).stream()
+            .map(
+                retraceFrame -> {
+                  contextBox.set(retraceFrame.getContext());
+                  return parsedLine.toRetracedItem(retraceFrame, isVerbose);
+                })
+            .collect(Collectors.toList());
+    return ResultWithContextImpl.create(result, contextBox.get());
   }
 
   /**
@@ -296,43 +311,15 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
     try {
       Timing timing = Timing.create("R8 retrace", command.printMemory());
       RetraceOptions options = command.getOptions();
-      MappingSupplier mappingSupplier = options.getMappingSupplier();
+      MappingSupplier<?> mappingSupplier = options.getMappingSupplier();
       if (command.getOptions().isVerifyMappingFileHash()) {
         mappingSupplier.verifyMappingFileHash(options.getDiagnosticsHandler());
         return;
       }
       DiagnosticsHandler diagnosticsHandler = options.getDiagnosticsHandler();
-      timing.begin("Parsing");
       StackTraceRegularExpressionParser stackTraceLineParser =
           new StackTraceRegularExpressionParser(options.getRegularExpression());
-      List<StackTraceElementStringProxy> parsedStackTrace = new ArrayList<>();
-      ListUtils.forEachWithIndex(
-          command.getStackTrace(),
-          (line, lineNumber) -> {
-            if (line == null) {
-              diagnosticsHandler.error(
-                  RetraceInvalidStackTraceLineDiagnostics.createNull(lineNumber));
-              throw new RetraceAbortException();
-            }
-            parsedStackTrace.add(stackTraceLineParser.parse(line));
-          });
-      timing.end();
       timing.begin("Read proguard map");
-      parsedStackTrace.forEach(
-          proxy -> {
-            if (proxy.hasClassName()) {
-              mappingSupplier.registerUse(proxy.getClassReference());
-            }
-            if (proxy.hasMethodArguments()) {
-              Arrays.stream(proxy.getMethodArguments().split(","))
-                  .forEach(typeName -> registerUseFromTypeReference(mappingSupplier, typeName));
-            }
-            if (proxy.hasFieldOrReturnType() && !proxy.getFieldOrReturnType().equals("void")) {
-              registerUseFromTypeReference(mappingSupplier, proxy.getFieldOrReturnType());
-            }
-          });
-      timing.end();
-      timing.begin("Retracing");
       RetracerImpl retracer =
           RetracerImpl.builder()
               .setMappingSupplier(mappingSupplier)
@@ -347,17 +334,55 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
                       RetraceUnknownMapVersionDiagnostic.create(mapVersionInfo.getValue()));
                 }
               });
-      StringRetrace stringRetrace =
+      StringRetrace stringRetracer =
           new StringRetrace(
               stackTraceLineParser,
               StackTraceElementProxyRetracer.createDefault(retracer),
               diagnosticsHandler,
               options.isVerbose());
-      List<String> retraced = stringRetrace.retraceParsed(parsedStackTrace);
       timing.end();
-      timing.begin("Report result");
-      command.getRetracedStackTraceConsumer().accept(retraced);
-      timing.end();
+      StackTraceSupplier stackTraceSupplier = command.getStacktraceSupplier();
+      int lineNumber = 0;
+      RetraceStackTraceContext context = RetraceStackTraceContext.empty();
+      List<String> currentStackTrace;
+      while ((currentStackTrace = stackTraceSupplier.get()) != null) {
+        timing.begin("Parsing");
+        List<StackTraceElementStringProxy> parsedStackTrace = new ArrayList<>();
+        for (String line : currentStackTrace) {
+          if (line == null) {
+            diagnosticsHandler.error(
+                RetraceInvalidStackTraceLineDiagnostics.createNull(lineNumber));
+            throw new RetraceAbortException();
+          }
+          parsedStackTrace.add(stackTraceLineParser.parse(line));
+          lineNumber += 1;
+        }
+        timing.end();
+        parsedStackTrace.forEach(
+            proxy -> {
+              if (proxy.hasClassName()) {
+                mappingSupplier.registerClassUse(proxy.getClassReference());
+              }
+              if (proxy.hasMethodArguments()) {
+                Arrays.stream(proxy.getMethodArguments().split(","))
+                    .forEach(typeName -> registerUseFromTypeReference(mappingSupplier, typeName));
+              }
+              if (proxy.hasFieldOrReturnType() && !proxy.getFieldOrReturnType().equals("void")) {
+                registerUseFromTypeReference(mappingSupplier, proxy.getFieldOrReturnType());
+              }
+            });
+        timing.begin("Retracing");
+        ResultWithContext<List<String>> listResultWithContext =
+            stringRetracer.retraceParsed(parsedStackTrace, context);
+        timing.end();
+        timing.begin("Report result");
+        context = listResultWithContext.getContext();
+        List<String> result = listResultWithContext.getResult();
+        if (!result.isEmpty() || currentStackTrace.isEmpty()) {
+          command.getRetracedStackTraceConsumer().accept(result);
+        }
+        timing.end();
+      }
       if (command.printTimes()) {
         timing.report();
       }
@@ -368,13 +393,13 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
   }
 
   private static void registerUseFromTypeReference(
-      MappingSupplier mappingSupplier, String typeName) {
+      MappingSupplier<?> mappingSupplier, String typeName) {
     TypeReference typeReference = Reference.typeFromTypeName(typeName);
     if (typeReference.isArray()) {
       typeReference = typeReference.asArray().getBaseType();
     }
     if (typeReference.isClass()) {
-      mappingSupplier.registerUse(typeReference.asClass());
+      mappingSupplier.registerClassUse(typeReference.asClass());
     }
   }
 

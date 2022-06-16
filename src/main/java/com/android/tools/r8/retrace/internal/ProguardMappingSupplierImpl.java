@@ -8,11 +8,11 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.LineReader;
+import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapChecker;
 import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapChecker.VerifyMappingFileHashResult;
 import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.retrace.IllegalClassNameLookupException;
 import com.android.tools.r8.retrace.InvalidMappingFileException;
 import com.android.tools.r8.retrace.ProguardMapProducer;
 import com.android.tools.r8.retrace.ProguardMappingSupplier;
@@ -37,23 +37,26 @@ public class ProguardMappingSupplierImpl extends ProguardMappingSupplier {
 
   private final ProguardMapProducer proguardMapProducer;
   private final boolean allowExperimental;
-  private boolean allowLookupAllClasses;
 
   private ClassNameMapper classNameMapper;
   private final Set<String> pendingClassMappings = new HashSet<>();
-  private final Set<String> buildClassMappings = new HashSet<>();
+  private final Set<String> builtClassMappings;
 
   public ProguardMappingSupplierImpl(ClassNameMapper classNameMapper) {
     this.classNameMapper = classNameMapper;
     this.proguardMapProducer = null;
     this.allowExperimental = true;
-    this.allowLookupAllClasses = true;
+    builtClassMappings = null;
   }
 
   ProguardMappingSupplierImpl(ProguardMapProducer proguardMapProducer, boolean allowExperimental) {
     this.proguardMapProducer = proguardMapProducer;
     this.allowExperimental = allowExperimental;
-    this.allowLookupAllClasses = allowLookupAllClasses;
+    builtClassMappings = proguardMapProducer.isFileBacked() ? new HashSet<>() : null;
+  }
+
+  private boolean hasClassMappingFor(String typeName) {
+    return builtClassMappings == null || builtClassMappings.contains(typeName);
   }
 
   @Override
@@ -63,11 +66,10 @@ public class ProguardMappingSupplierImpl extends ProguardMappingSupplier {
 
   @Override
   ClassNamingForNameMapper getClassNaming(DiagnosticsHandler diagnosticsHandler, String typeName) {
-    ClassNameMapper classNameMapper = getClassNameMapper(diagnosticsHandler);
-    if (!allowLookupAllClasses && !buildClassMappings.contains(typeName)) {
-      throw new IllegalClassNameLookupException(typeName);
+    if (!hasClassMappingFor(typeName)) {
+      pendingClassMappings.add(typeName);
     }
-    return classNameMapper.getClassNaming(typeName);
+    return getClassNameMapper(diagnosticsHandler).getClassNaming(typeName);
   }
 
   @Override
@@ -84,7 +86,7 @@ public class ProguardMappingSupplierImpl extends ProguardMappingSupplier {
     }
     try {
       Predicate<String> buildForClass =
-          allowLookupAllClasses ? null : pendingClassMappings::contains;
+          builtClassMappings == null ? null : pendingClassMappings::contains;
       boolean readPreambleAndSourceFile = classNameMapper == null;
       LineReader reader =
           proguardMapProducer.isFileBacked()
@@ -92,11 +94,13 @@ public class ProguardMappingSupplierImpl extends ProguardMappingSupplier {
                   proguardMapProducer.getPath(), buildForClass, readPreambleAndSourceFile)
               : new ProguardMapReaderWithFilteringInputBuffer(
                   proguardMapProducer.get(), buildForClass, readPreambleAndSourceFile);
-      classNameMapper =
+      ClassNameMapper classNameMapper =
           ClassNameMapper.mapperFromLineReaderWithFiltering(
-                  reader, diagnosticsHandler, true, allowExperimental)
-              .combine(classNameMapper);
-      buildClassMappings.addAll(pendingClassMappings);
+              reader, getMapVersion(), diagnosticsHandler, true, allowExperimental);
+      this.classNameMapper = classNameMapper.combine(this.classNameMapper);
+      if (builtClassMappings != null) {
+        builtClassMappings.addAll(pendingClassMappings);
+      }
       pendingClassMappings.clear();
     } catch (Exception e) {
       throw new InvalidMappingFileException(e);
@@ -104,15 +108,20 @@ public class ProguardMappingSupplierImpl extends ProguardMappingSupplier {
     return classNameMapper;
   }
 
-  @Override
-  public ProguardMappingSupplier registerUse(ClassReference classReference) {
-    pendingClassMappings.add(classReference.getTypeName());
-    return this;
+  private MapVersion getMapVersion() {
+    if (classNameMapper == null) {
+      return MapVersion.MAP_VERSION_NONE;
+    } else {
+      MapVersionMappingInformation mapVersion = classNameMapper.getFirstMappingInformation();
+      return mapVersion == null ? MapVersion.MAP_VERSION_UNKNOWN : mapVersion.getMapVersion();
+    }
   }
 
   @Override
-  public ProguardMappingSupplier allowLookupAllClasses() {
-    this.allowLookupAllClasses = true;
+  public ProguardMappingSupplier registerClassUse(ClassReference classReference) {
+    if (!hasClassMappingFor(classReference.getTypeName())) {
+      pendingClassMappings.add(classReference.getTypeName());
+    }
     return this;
   }
 

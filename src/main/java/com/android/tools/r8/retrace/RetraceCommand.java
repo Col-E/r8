@@ -7,26 +7,27 @@ package com.android.tools.r8.retrace;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.retrace.internal.StackTraceRegularExpressionParser;
+import com.android.tools.r8.utils.Box;
 import java.util.List;
 import java.util.function.Consumer;
 
 @Keep
 public class RetraceCommand {
 
-  private final List<String> stackTrace;
+  private final StackTraceSupplier stacktraceSupplier;
   private final Consumer<List<String>> retracedStackTraceConsumer;
   // Not inheriting to allow for static builder methods.
   private final RetraceOptions options;
 
   private RetraceCommand(
-      List<String> stackTrace,
+      StackTraceSupplier stackTraceSupplier,
       Consumer<List<String>> retracedStackTraceConsumer,
       RetraceOptions options) {
-    this.stackTrace = stackTrace;
+    this.stacktraceSupplier = stackTraceSupplier;
     this.retracedStackTraceConsumer = retracedStackTraceConsumer;
     this.options = options;
 
-    assert this.stackTrace != null || options.isVerifyMappingFileHash();
+    assert this.stacktraceSupplier != null || options.isVerifyMappingFileHash();
     assert this.retracedStackTraceConsumer != null;
   }
 
@@ -38,8 +39,8 @@ public class RetraceCommand {
     return System.getProperty("com.android.tools.r8.printmemory") != null;
   }
 
-  public List<String> getStackTrace() {
-    return stackTrace;
+  public StackTraceSupplier getStacktraceSupplier() {
+    return stacktraceSupplier;
   }
 
   public Consumer<List<String>> getRetracedStackTraceConsumer() {
@@ -69,9 +70,9 @@ public class RetraceCommand {
 
     private boolean isVerbose;
     private final DiagnosticsHandler diagnosticsHandler;
-    private MappingSupplier mappingSupplier;
+    private MappingSupplier<?> mappingSupplier;
     private String regularExpression = StackTraceRegularExpressionParser.DEFAULT_REGULAR_EXPRESSION;
-    private List<String> stackTrace;
+    private StackTraceSupplier stackTrace;
     private Consumer<List<String>> retracedStackTraceConsumer;
     private boolean verifyMappingFileHash = false;
 
@@ -86,7 +87,7 @@ public class RetraceCommand {
     }
 
     /** Set a mapping supplier for providing mapping contents. */
-    public Builder setMappingSupplier(MappingSupplier mappingSupplier) {
+    public Builder setMappingSupplier(MappingSupplier<?> mappingSupplier) {
       this.mappingSupplier = mappingSupplier;
       return this;
     }
@@ -110,6 +111,17 @@ public class RetraceCommand {
      *     first line.
      */
     public Builder setStackTrace(List<String> stackTrace) {
+      Box<List<String>> box = new Box<>();
+      return setStackTrace(() -> box.getAndSet(null));
+    }
+
+    /**
+     * Set a supplier of the obfuscated stack trace that is to be retraced.
+     *
+     * @param stackTrace Supplier where the first query should provide the top-most entry(the
+     *     closest stack to the error). Use null to specify no more lines.
+     */
+    public Builder setStackTrace(StackTraceSupplier stackTrace) {
       this.stackTrace = stackTrace;
       return this;
     }

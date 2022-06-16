@@ -14,17 +14,11 @@ public abstract class MappingSupplier<T extends MappingSupplier<T>>
     extends MappingSupplierInternal {
 
   /***
-   * Register an allowed mapping lookup
+   * Register an allowed mapping lookup to allow for prefetching of resources.
    *
    * @param classReference The minified class reference allowed to be lookup up.
    */
-  public abstract T registerUse(ClassReference classReference);
-
-  /***
-   * Allow looking up all class references. This can cause a slow down because it may fetch
-   * information multiple times or read the entire mapping.
-   */
-  public abstract T allowLookupAllClasses();
+  public abstract T registerClassUse(ClassReference classReference);
 
   public abstract void verifyMappingFileHash(DiagnosticsHandler diagnosticsHandler);
 }

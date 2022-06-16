@@ -8,6 +8,7 @@ import static com.android.tools.r8.retrace.internal.RetraceUtils.firstNonWhiteSp
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.retrace.internal.ResultWithContextImpl;
 import com.android.tools.r8.retrace.internal.RetracerImpl;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy;
 import com.android.tools.r8.utils.ListUtils;
@@ -77,12 +78,15 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
    * appended automatically to the retraced string.
    *
    * @param stackTrace the incoming stack trace
+   * @param context The context to retrace the stack trace in
    * @return the retraced stack trace
    */
-  public List<String> retrace(List<String> stackTrace) {
+  public ResultWithContext<List<String>> retrace(
+      List<String> stackTrace, RetraceStackTraceContext context) {
+    ResultWithContext<List<List<List<String>>>> listResultWithContext =
+        retraceStackTrace(stackTrace, context);
     List<String> retracedStrings = new ArrayList<>();
-    List<List<List<String>>> lists = retraceStackTrace(stackTrace);
-    for (List<List<String>> newLines : lists) {
+    for (List<List<String>> newLines : listResultWithContext.getResult()) {
       ListUtils.forEachWithIndex(
           newLines,
           (inlineFrames, ambiguousIndex) -> {
@@ -106,7 +110,7 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
             }
           });
     }
-    return retracedStrings;
+    return ResultWithContextImpl.create(retracedStrings, listResultWithContext.getContext());
   }
 
   /**
@@ -114,12 +118,15 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
    * will be appended automatically to the retraced string.
    *
    * @param stackTrace the incoming parsed stack trace
+   * @param context The context to retrace the stack trace in
    * @return the retraced stack trace
    */
-  public List<String> retraceParsed(List<StackTraceElementStringProxy> stackTrace) {
+  public ResultWithContext<List<String>> retraceParsed(
+      List<StackTraceElementStringProxy> stackTrace, RetraceStackTraceContext context) {
+    ResultWithContext<List<List<List<String>>>> listResultWithContext =
+        retraceStackTraceParsed(stackTrace, context);
     List<String> retracedStrings = new ArrayList<>();
-    List<List<List<String>>> lists = retraceStackTraceParsed(stackTrace);
-    for (List<List<String>> newLines : lists) {
+    for (List<List<String>> newLines : listResultWithContext.getResult()) {
       ListUtils.forEachWithIndex(
           newLines,
           (inlineFrames, ambiguousIndex) -> {
@@ -143,19 +150,23 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
             }
           });
     }
-    return retracedStrings;
+    return ResultWithContextImpl.create(retracedStrings, listResultWithContext.getContext());
   }
 
   /**
    * Retraces a single stack trace line and returns the potential list of original frames
    *
    * @param stackTraceLine the stack trace line to retrace
+   * @param context The context to retrace the stack trace in
    * @return the retraced frames
    */
-  public List<String> retrace(String stackTraceLine) {
+  public ResultWithContext<List<String>> retrace(
+      String stackTraceLine, RetraceStackTraceContext context) {
+    ResultWithContext<List<List<String>>> listResultWithContext =
+        retraceFrame(stackTraceLine, context);
     List<String> result = new ArrayList<>();
-    joinAmbiguousLines(retraceFrame(stackTraceLine), result::add);
-    return result;
+    joinAmbiguousLines(listResultWithContext.getResult(), result::add);
+    return ResultWithContextImpl.create(result, listResultWithContext.getContext());
   }
 
   private void joinAmbiguousLines(

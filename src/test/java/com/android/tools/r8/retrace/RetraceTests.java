@@ -85,6 +85,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
 import org.junit.Test;
@@ -95,20 +96,26 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class RetraceTests extends TestBase {
 
-  @Parameters(name = "{0}, external: {1}, verbose: {2}")
+  @Parameters(name = "{0}, external: {1}, verbose: {2}, stream: {3}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withCfRuntimes().build(), BooleanUtils.values(), BooleanUtils.values());
+        getTestParameters().withCfRuntimes().build(),
+        BooleanUtils.values(),
+        BooleanUtils.values(),
+        BooleanUtils.values());
   }
 
   private final TestParameters testParameters;
   private final boolean external;
   private final boolean verbose;
+  private final boolean stream;
 
-  public RetraceTests(TestParameters parameters, boolean external, boolean verbose) {
+  public RetraceTests(
+      TestParameters parameters, boolean external, boolean verbose, boolean stream) {
     this.testParameters = parameters;
     this.external = external;
     this.verbose = verbose;
+    this.stream = stream;
   }
 
   @Test
@@ -162,7 +169,6 @@ public class RetraceTests extends TestBase {
             .build();
     try {
       Retrace.run(retraceCommand);
-      fail();
     } catch (RetraceAbortException e) {
       diagnosticsHandler.assertOnlyErrors();
       diagnosticsHandler.assertErrorsCount(1);
@@ -495,7 +501,8 @@ public class RetraceTests extends TestBase {
       return new TestDiagnosticMessagesImpl();
     } else {
       TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
-      RetraceCommand retraceCommand =
+      StringBuilder retracedStackTraceBuilder = new StringBuilder();
+      RetraceCommand.Builder builder =
           RetraceCommand.builder(diagnosticsHandler)
               .setMappingSupplier(
                   ProguardMappingSupplier.builder()
@@ -503,13 +510,29 @@ public class RetraceTests extends TestBase {
                           ProguardMapProducer.fromString(stackTraceForTest.mapping()))
                       .setAllowExperimental(allowExperimentalMapping)
                       .build())
-              .setStackTrace(stackTraceForTest.obfuscatedStackTrace())
               .setRetracedStackTraceConsumer(
-                  retraced -> assertEquals(expectedStackTrace, StringUtils.joinLines(retraced)))
-              .setVerbose(verbose)
-              .build();
+                  retraced -> {
+                    if (retracedStackTraceBuilder.length() > 0) {
+                      retracedStackTraceBuilder.append(StringUtils.LINE_SEPARATOR);
+                    }
+                    retracedStackTraceBuilder.append(StringUtils.joinLines(retraced));
+                  })
+              .setVerbose(verbose);
+      setStacktraceSupplierAndRetraceConsumer(builder, stackTraceForTest.obfuscatedStackTrace());
+      RetraceCommand retraceCommand = builder.build();
       Retrace.run(retraceCommand);
+      assertEquals(expectedStackTrace, retracedStackTraceBuilder.toString());
       return diagnosticsHandler;
+    }
+  }
+
+  private void setStacktraceSupplierAndRetraceConsumer(
+      RetraceCommand.Builder builder, List<String> stackTrace) {
+    if (stream) {
+      Iterator<String> iterator = stackTrace.iterator();
+      builder.setStackTrace(() -> iterator.hasNext() ? ImmutableList.of(iterator.next()) : null);
+    } else {
+      builder.setStackTrace(stackTrace);
     }
   }
 }

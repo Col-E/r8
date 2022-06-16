@@ -77,10 +77,25 @@ public class ProguardMapReader implements AutoCloseable {
       DiagnosticsHandler diagnosticsHandler,
       boolean allowEmptyMappedRanges,
       boolean allowExperimentalMapping) {
+    this(
+        reader,
+        diagnosticsHandler,
+        allowEmptyMappedRanges,
+        allowExperimentalMapping,
+        MapVersion.MAP_VERSION_NONE);
+  }
+
+  ProguardMapReader(
+      LineReader reader,
+      DiagnosticsHandler diagnosticsHandler,
+      boolean allowEmptyMappedRanges,
+      boolean allowExperimentalMapping,
+      MapVersion mapVersion) {
     this.reader = reader;
     this.diagnosticsHandler = diagnosticsHandler;
     this.allowEmptyMappedRanges = allowEmptyMappedRanges;
     this.allowExperimentalMapping = allowExperimentalMapping;
+    this.version = mapVersion;
     assert reader != null;
     assert diagnosticsHandler != null;
   }
@@ -89,7 +104,7 @@ public class ProguardMapReader implements AutoCloseable {
   private int lineNo = 0;
   private int lineOffset = 0;
   private String line;
-  private MapVersion version = MapVersion.MAP_VERSION_NONE;
+  private MapVersion version;
 
   private int peekCodePoint() {
     return lineOffset < line.length() ? line.codePointAt(lineOffset) : '\n';

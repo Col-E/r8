@@ -157,6 +157,7 @@ public class ClassNameMapper implements ProguardMap {
 
   public static ClassNameMapper mapperFromLineReaderWithFiltering(
       LineReader reader,
+      MapVersion mapVersion,
       DiagnosticsHandler diagnosticsHandler,
       boolean allowEmptyMappedRanges,
       boolean allowExperimentalMapping)
@@ -166,7 +167,8 @@ public class ClassNameMapper implements ProguardMap {
             reader,
             diagnosticsHandler != null ? diagnosticsHandler : new Reporter(),
             allowEmptyMappedRanges,
-            allowExperimentalMapping)) {
+            allowExperimentalMapping,
+            mapVersion)) {
       ClassNameMapper.Builder builder = ClassNameMapper.builder();
       proguardReader.parse(builder);
       return builder.build();
@@ -176,12 +178,12 @@ public class ClassNameMapper implements ProguardMap {
   private final ImmutableMap<String, ClassNamingForNameMapper> classNameMappings;
   private BiMapContainer<String, String> nameMapping;
   private final Map<Signature, Signature> signatureMap = new HashMap<>();
-  private final Set<MapVersionMappingInformation> mapVersions;
+  private final LinkedHashSet<MapVersionMappingInformation> mapVersions;
   private final Map<String, String> originalSourceFiles;
 
   private ClassNameMapper(
       ImmutableMap<String, ClassNamingForNameMapper> classNameMappings,
-      Set<MapVersionMappingInformation> mapVersions,
+      LinkedHashSet<MapVersionMappingInformation> mapVersions,
       Map<String, String> originalSourceFiles) {
     this.classNameMappings = classNameMappings;
     this.mapVersions = mapVersions;
@@ -265,8 +267,8 @@ public class ClassNameMapper implements ProguardMap {
             builder.put(otherMappingClass, otherMapping);
           }
         });
-    otherClassMappings.forEach(builder::put);
-    Set<MapVersionMappingInformation> newMapVersions = new LinkedHashSet<>(getMapVersions());
+    LinkedHashSet<MapVersionMappingInformation> newMapVersions =
+        new LinkedHashSet<>(getMapVersions());
     newMapVersions.addAll(other.getMapVersions());
     Map<String, String> newSourcesFiles = new HashMap<>(originalSourceFiles);
     // This will overwrite existing source files but the chance of that happening should be very
@@ -414,5 +416,9 @@ public class ClassNameMapper implements ProguardMap {
 
   public Set<MapVersionMappingInformation> getMapVersions() {
     return mapVersions;
+  }
+
+  public MapVersionMappingInformation getFirstMappingInformation() {
+    return mapVersions.isEmpty() ? null : mapVersions.iterator().next();
   }
 }

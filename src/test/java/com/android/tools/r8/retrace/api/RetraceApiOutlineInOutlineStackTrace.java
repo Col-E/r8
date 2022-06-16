@@ -73,8 +73,7 @@ public class RetraceApiOutlineInOutlineStackTrace extends RetraceApiTestBase {
       ProguardMappingSupplier mappingProvider =
           ProguardMappingSupplier.builder()
               .setProguardMapProducer(ProguardMapProducer.fromString(mapping))
-              .build()
-              .allowLookupAllClasses();
+              .build();
       Retracer retracer = Retracer.builder().setMappingSupplier(mappingProvider).build();
       // Retrace the first outline.
       RetraceStackTraceContext outlineContext =
