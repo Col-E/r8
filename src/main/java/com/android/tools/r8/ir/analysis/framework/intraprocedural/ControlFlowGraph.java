@@ -14,8 +14,30 @@ public interface ControlFlowGraph<Block, Instruction> {
 
   Block getEntryBlock();
 
+  default Block getUniquePredecessor(Block block) {
+    assert hasUniquePredecessor(block);
+    return TraversalUtils.getFirst(collector -> traversePredecessors(block, collector));
+  }
+
+  default Block getUniqueSuccessor(Block block) {
+    assert hasUniqueSuccessor(block);
+    return TraversalUtils.getFirst(collector -> traverseSuccessors(block, collector));
+  }
+
+  default boolean hasExceptionalPredecessors(Block block) {
+    return TraversalUtils.hasNext(counter -> traverseExceptionalPredecessors(block, counter));
+  }
+
+  default boolean hasExceptionalSuccessors(Block block) {
+    return TraversalUtils.hasNext(counter -> traverseExceptionalSuccessors(block, counter));
+  }
+
   default boolean hasUniquePredecessor(Block block) {
     return TraversalUtils.isSingleton(counter -> traversePredecessors(block, counter));
+  }
+
+  default boolean hasUniquePredecessorWithUniqueSuccessor(Block block) {
+    return hasUniquePredecessor(block) && hasUniqueSuccessor(getUniquePredecessor(block));
   }
 
   default boolean hasUniqueSuccessor(Block block) {
@@ -24,11 +46,6 @@ public interface ControlFlowGraph<Block, Instruction> {
 
   default boolean hasUniqueSuccessorWithUniquePredecessor(Block block) {
     return hasUniqueSuccessor(block) && hasUniquePredecessor(getUniqueSuccessor(block));
-  }
-
-  default Block getUniqueSuccessor(Block block) {
-    assert hasUniqueSuccessor(block);
-    return TraversalUtils.getFirst(collector -> traverseSuccessors(block, collector));
   }
 
   // Block traversal.

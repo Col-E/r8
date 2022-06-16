@@ -19,7 +19,7 @@ public class IntraproceduralDataflowAnalysis<StateType extends AbstractState<Sta
   }
 
   @Override
-  boolean shouldCacheBlockEntryStateFor(BasicBlock block) {
+  boolean shouldCacheBlockEntryStateForNormalBlock(BasicBlock block) {
     return block.getPredecessors().size() > 2;
   }
 }

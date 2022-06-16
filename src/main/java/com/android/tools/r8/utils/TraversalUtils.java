@@ -18,6 +18,16 @@ public class TraversalUtils {
     return traversal.apply(TraversalContinuation::doBreak).asBreak().getValue();
   }
 
+  public static <BT, CT> boolean hasNext(
+      Consumer<Function<CT, TraversalContinuation<BT, CT>>> traversal) {
+    return !isEmpty(traversal);
+  }
+
+  public static <BT, CT> boolean isEmpty(
+      Consumer<Function<CT, TraversalContinuation<BT, CT>>> traversal) {
+    return isSizeExactly(traversal, 0);
+  }
+
   public static <BT, CT> boolean isSingleton(
       Consumer<Function<CT, TraversalContinuation<BT, CT>>> traversal) {
     return isSizeExactly(traversal, 1);

@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.analysis.constant.LatticeElement;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.EmptyFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.UnknownFieldSet;
+import com.android.tools.r8.ir.analysis.framework.intraprocedural.AbstractInstruction;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
@@ -46,7 +47,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoSupplier {
+public abstract class Instruction
+    implements AbstractInstruction, InstructionOrPhi, TypeAndLocalInfoSupplier {
 
   protected Value outValue = null;
   protected final List<Value> inValues = new ArrayList<>();
@@ -604,9 +606,8 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     return false;
   }
 
-  /**
-   * Returns true if this instruction may throw an exception.
-   */
+  /** Returns true if this instruction may throw an exception. */
+  @Override
   public boolean instructionTypeCanThrow() {
     return false;
   }

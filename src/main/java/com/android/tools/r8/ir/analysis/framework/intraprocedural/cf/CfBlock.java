@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.analysis.framework.intraprocedural.cf;
 
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -90,10 +91,14 @@ public class CfBlock {
       this.lastInstructionIndex = lastInstructionIndex;
     }
 
-    boolean validate() {
+    boolean validate(CfControlFlowGraph cfg, InternalOptions options) {
       assert 0 <= firstInstructionIndex;
       assert firstInstructionIndex <= lastInstructionIndex;
       assert SetUtils.newIdentityHashSet(predecessors).size() == predecessors.size();
+      assert this == cfg.getEntryBlock()
+          || !predecessors.isEmpty()
+          || !exceptionalPredecessors.isEmpty()
+          || options.getCfCodeAnalysisOptions().isUnreachableCfBlocksAllowed();
       return true;
     }
   }

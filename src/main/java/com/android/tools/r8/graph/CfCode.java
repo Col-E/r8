@@ -281,6 +281,10 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
     return tryCatchRanges;
   }
 
+  public CfInstruction getInstruction(int index) {
+    return instructions.get(index);
+  }
+
   public List<CfInstruction> getInstructions() {
     return Collections.unmodifiableList(instructions);
   }

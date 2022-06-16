@@ -415,4 +415,9 @@ public abstract class DexInstruction implements CfOrDexInstruction, StructuralIt
   public boolean canThrow() {
     return false;
   }
+
+  @Override
+  public final boolean instructionTypeCanThrow() {
+    return canThrow();
+  }
 }

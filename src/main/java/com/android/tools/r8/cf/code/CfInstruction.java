@@ -343,6 +343,11 @@ public abstract class CfInstruction implements CfOrDexInstruction {
     return false;
   }
 
+  @Override
+  public final boolean instructionTypeCanThrow() {
+    return canThrow();
+  }
+
   public abstract void buildIR(IRBuilder builder, CfState state, CfSourceCode code);
 
   /** Return true if this instruction directly emits IR instructions. */

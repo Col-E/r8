@@ -808,6 +808,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   private final CallSiteOptimizationOptions callSiteOptimizationOptions =
       new CallSiteOptimizationOptions();
+  private final CfCodeAnalysisOptions cfCodeAnalysisOptions = new CfCodeAnalysisOptions();
   private final ClassInlinerOptions classInlinerOptions = new ClassInlinerOptions();
   private final InlinerOptions inlinerOptions = new InlinerOptions();
   private final HorizontalClassMergerOptions horizontalClassMergerOptions =
@@ -865,6 +866,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public DesugarSpecificOptions desugarSpecificOptions() {
     return desugarSpecificOptions;
+  }
+
+  public CfCodeAnalysisOptions getCfCodeAnalysisOptions() {
+    return cfCodeAnalysisOptions;
   }
 
   public OpenClosedInterfacesOptions getOpenClosedInterfacesOptions() {
@@ -1396,6 +1401,19 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public CallSiteOptimizationOptions setEnableMethodStaticizing(boolean enableMethodStaticizing) {
       this.enableMethodStaticizing = enableMethodStaticizing;
       return this;
+    }
+  }
+
+  public static class CfCodeAnalysisOptions {
+
+    public boolean allowUnreachableCfBlocks = true;
+
+    public boolean isUnreachableCfBlocksAllowed() {
+      return allowUnreachableCfBlocks;
+    }
+
+    public void setAllowUnreachableCfBlocks(boolean allowUnreachableCfBlocks) {
+      this.allowUnreachableCfBlocks = allowUnreachableCfBlocks;
     }
   }
 

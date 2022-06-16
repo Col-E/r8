@@ -5,8 +5,9 @@
 package com.android.tools.r8.dex.code;
 
 import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.ir.analysis.framework.intraprocedural.AbstractInstruction;
 
-public interface CfOrDexInstruction {
+public interface CfOrDexInstruction extends AbstractInstruction {
 
   CfInstruction asCfInstruction();
 

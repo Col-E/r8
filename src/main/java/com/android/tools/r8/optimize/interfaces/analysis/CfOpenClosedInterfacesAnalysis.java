@@ -5,6 +5,7 @@
 package com.android.tools.r8.optimize.interfaces.analysis;
 
 import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
@@ -44,7 +45,7 @@ public class CfOpenClosedInterfacesAnalysis {
     }
 
     CfCode cfCode = code.asCfCode();
-    CfControlFlowGraph cfg = CfControlFlowGraph.create(cfCode);
+    CfControlFlowGraph cfg = CfControlFlowGraph.create(cfCode, appView.options());
     CfIntraproceduralDataflowAnalysis<CfFrameState> analysis =
         new CfIntraproceduralDataflowAnalysis<>(
             CfFrameState.bottom(), cfg, new TransferFunction(method));
@@ -96,6 +97,16 @@ public class CfOpenClosedInterfacesAnalysis {
     public CfFrameState computeBlockEntryState(
         CfBlock block, CfBlock predecessor, CfFrameState predecessorExitState) {
       return predecessorExitState;
+    }
+
+    @Override
+    public CfFrameState computeExceptionalBlockEntryState(
+        CfBlock block,
+        CfBlock throwBlock,
+        CfInstruction throwInstruction,
+        CfFrameState throwState) {
+      // TODO(b/214496607): Handle exceptional control flow.
+      throw new Unimplemented();
     }
   }
 }
