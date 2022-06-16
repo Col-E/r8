@@ -114,7 +114,7 @@ public class StringBuilderAppendOptimizer {
         new StringBuilderEscapeTransferFunction(oracle);
     IntraproceduralDataflowAnalysis<StringBuilderEscapeState> analysis =
         new IntraproceduralDataflowAnalysis<>(
-            StringBuilderEscapeState.bottom(), code, transferFunction);
+            appView, StringBuilderEscapeState.bottom(), code, transferFunction);
     SuccessfulDataflowAnalysisResult<?, StringBuilderEscapeState> stringBuilderEscapeResult =
         analysis.run(code.entryBlock()).asSuccessfulAnalysisResult();
 
