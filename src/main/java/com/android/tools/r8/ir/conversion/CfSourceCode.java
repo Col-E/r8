@@ -637,8 +637,16 @@ public class CfSourceCode implements SourceCode {
   }
 
   private DexType convertUninitialized(FrameType type) {
-    if (type.isInitialized()) {
-      return type.getInitializedType(appView.dexItemFactory());
+    if (type.isInitializedReferenceType()) {
+      return type.asInitializedReferenceType().getInitializedType();
+    }
+    if (type.isPrimitive()) {
+      if (type.isSinglePrimitive()) {
+        return type.asSinglePrimitive().getInitializedType(appView.dexItemFactory());
+      } else {
+        assert type.isWidePrimitive();
+        return type.asWidePrimitive().getLowType().getInitializedType(appView.dexItemFactory());
+      }
     }
     if (type.isUninitializedNew()) {
       int labelOffset = getLabelOffset(type.getUninitializedLabel());

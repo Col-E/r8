@@ -16,7 +16,7 @@ public interface PreciseFrameType extends FrameType {
         DexType type = asInitializedReferenceType().getInitializedType();
         DexType newType = fn.apply(type);
         if (type != newType) {
-          return FrameType.initialized(newType);
+          return FrameType.initializedReference(newType);
         }
       }
       if (isUninitializedNew()) {

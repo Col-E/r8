@@ -31,6 +31,16 @@ public abstract class BaseFrameType implements FrameType {
   }
 
   @Override
+  public boolean isDoubleLow() {
+    return false;
+  }
+
+  @Override
+  public boolean isDoubleHigh() {
+    return false;
+  }
+
+  @Override
   public boolean isFloat() {
     return false;
   }
@@ -42,6 +52,16 @@ public abstract class BaseFrameType implements FrameType {
 
   @Override
   public boolean isLong() {
+    return false;
+  }
+
+  @Override
+  public boolean isLongLow() {
+    return false;
+  }
+
+  @Override
+  public boolean isLongHigh() {
     return false;
   }
 
@@ -99,13 +119,18 @@ public abstract class BaseFrameType implements FrameType {
   }
 
   @Override
+  public boolean isSinglePrimitive() {
+    return false;
+  }
+
+  @Override
   public SinglePrimitiveFrameType asSinglePrimitive() {
     return null;
   }
 
   @Override
   public boolean isInitializedReferenceType() {
-    return true;
+    return false;
   }
 
   @Override
@@ -121,6 +146,26 @@ public abstract class BaseFrameType implements FrameType {
   @Override
   public WideFrameType asWide() {
     return null;
+  }
+
+  @Override
+  public boolean isWidePrimitive() {
+    return false;
+  }
+
+  @Override
+  public WidePrimitiveFrameType asWidePrimitive() {
+    return null;
+  }
+
+  @Override
+  public boolean isWidePrimitiveLow() {
+    return false;
+  }
+
+  @Override
+  public boolean isWidePrimitiveHigh() {
+    return false;
   }
 
   @Override

@@ -7,6 +7,10 @@ package com.android.tools.r8.cf.code.frame;
 public abstract class WidePrimitiveFrameType extends SingletonFrameType
     implements PrimitiveFrameType, WideFrameType {
 
+  public abstract WidePrimitiveFrameType getLowType();
+
+  public abstract WidePrimitiveFrameType getHighType();
+
   @Override
   public boolean isInitialized() {
     return true;
@@ -43,6 +47,16 @@ public abstract class WidePrimitiveFrameType extends SingletonFrameType
   }
 
   @Override
+  public boolean isWidePrimitive() {
+    return true;
+  }
+
+  @Override
+  public WidePrimitiveFrameType asWidePrimitive() {
+    return this;
+  }
+
+  @Override
   public int getWidth() {
     return 2;
   }
@@ -53,7 +67,7 @@ public abstract class WidePrimitiveFrameType extends SingletonFrameType
   }
 
   @Override
-  public final String toString() {
+  public String toString() {
     return getTypeName();
   }
 }

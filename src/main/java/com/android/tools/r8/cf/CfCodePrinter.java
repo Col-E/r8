@@ -536,7 +536,14 @@ public class CfCodePrinter extends CfPrinter {
     } else if (frameType.isUninitializedNew()) {
       return frameTypeType() + ".uninitializedNew(new " + cfType("CfLabel") + "())";
     } else if (frameType.isPrimitive()) {
-      return frameTypeType() + "." + frameType.asPrimitive().getTypeName() + "Type()";
+      if (frameType.isWidePrimitiveHigh()) {
+        return frameTypeType()
+            + "."
+            + frameType.asWidePrimitive().getLowType().getTypeName()
+            + "HighType()";
+      } else {
+        return frameTypeType() + "." + frameType.asPrimitive().getTypeName() + "Type()";
+      }
     } else {
       assert frameType.isInitialized();
       if (frameType.isNullType()) {

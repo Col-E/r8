@@ -126,7 +126,7 @@ public class GenerateBackportMethods extends MethodGenerationBase {
     if (instruction.isFrame()) {
       return instruction
           .asFrame()
-          .map(
+          .mapReferenceTypes(
               type ->
                   (type.getTypeName().endsWith("$UnsafeStub"))
                       ? itemFactory.createType("Lsun/misc/Unsafe;")

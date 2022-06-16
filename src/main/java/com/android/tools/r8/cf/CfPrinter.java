@@ -456,14 +456,12 @@ public class CfPrinter {
   }
 
   private void print(FrameType type) {
-    if (type.isPrimitive()) {
-      builder.append(type.asPrimitive().getTypeName());
-    } else if (type.isInitialized()) {
+    if (type.isInitializedReferenceType()) {
       appendType(type.asInitializedReferenceType().getInitializedType());
     } else if (type.isUninitializedNew()) {
       builder.append("uninitialized ").append(getLabel(type.getUninitializedLabel()));
     } else {
-      builder.append(type.toString());
+      builder.append(type);
     }
   }
 

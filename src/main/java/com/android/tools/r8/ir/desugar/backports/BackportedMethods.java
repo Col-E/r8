@@ -2169,13 +2169,13 @@ public final class BackportedMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
-                    new FrameType[] {FrameType.doubleType(), FrameType.doubleType()})),
+                    new FrameType[] {FrameType.doubleType(), FrameType.doubleHighType()})),
             new CfConstNumber(0, ValueType.INT),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
-                    new FrameType[] {FrameType.doubleType(), FrameType.doubleType()}),
+                    new FrameType[] {FrameType.doubleType(), FrameType.doubleHighType()}),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
             label3),
@@ -2729,7 +2729,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.intType(),
                       FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     })),
             new CfLoad(ValueType.LONG, 2),
             new CfNumberConversion(NumericType.LONG, NumericType.INT),
@@ -2943,13 +2943,13 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5, 6, 7},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     })),
             new CfConstNumber(1, ValueType.LONG),
             new CfReturn(ValueType.LONG),
@@ -2959,9 +2959,9 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     })),
             new CfLoad(ValueType.LONG, 0),
             new CfConstNumber(0, ValueType.LONG),
@@ -2978,9 +2978,9 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     })),
             new CfLoad(ValueType.LONG, 0),
             new CfConstNumber(1, ValueType.INT),
@@ -3021,17 +3021,17 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.longType()))),
             new CfConstNumber(0, ValueType.INT),
@@ -3041,17 +3041,17 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.longType(), FrameType.intType()))),
             new CfNumberConversion(NumericType.INT, NumericType.LONG),
@@ -3426,7 +3426,7 @@ public final class BackportedMethods {
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     })),
             new CfLoad(ValueType.INT, 1),
             label8,
@@ -3440,7 +3440,7 @@ public final class BackportedMethods {
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfStore(ValueType.INT, 7),
@@ -3461,10 +3461,10 @@ public final class BackportedMethods {
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType(),
                       FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType()
                     })),
             new CfLoad(ValueType.INT, 10),
@@ -3528,10 +3528,10 @@ public final class BackportedMethods {
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType(),
                       FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -3575,10 +3575,10 @@ public final class BackportedMethods {
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType(),
                       FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -3621,10 +3621,10 @@ public final class BackportedMethods {
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType(),
                       FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -3650,10 +3650,10 @@ public final class BackportedMethods {
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType(),
                       FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     })),
             new CfLoad(ValueType.LONG, 8),
             new CfReturn(ValueType.LONG),
@@ -3752,13 +3752,13 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5, 6, 7},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     })),
             new CfLoad(ValueType.LONG, 0),
             new CfLoad(ValueType.LONG, 2),
@@ -3770,9 +3770,9 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     })),
             new CfLoad(ValueType.LONG, 0),
             new CfConstNumber(0, ValueType.LONG),
@@ -3789,9 +3789,9 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     })),
             new CfLoad(ValueType.LONG, 0),
             new CfConstNumber(1, ValueType.INT),
@@ -3832,17 +3832,17 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.longType()))),
             new CfConstNumber(0, ValueType.LONG),
@@ -3852,17 +3852,17 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.longType(), FrameType.longType()))),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.LONG),
@@ -3946,7 +3946,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.longType(), FrameType.longType(), FrameType.intType()
+                      FrameType.longType(), FrameType.longHighType(), FrameType.intType()
                     })),
             new CfLoad(ValueType.LONG, 0),
             new CfConstNumber(0, ValueType.LONG),
@@ -3971,7 +3971,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.longType(), FrameType.longType(), FrameType.intType()
+                      FrameType.longType(), FrameType.longHighType(), FrameType.intType()
                     })),
             new CfLoad(ValueType.INT, 2),
             new CfConstNumber(2, ValueType.INT),
@@ -3984,7 +3984,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.longType(), FrameType.longType(), FrameType.intType()
+                      FrameType.longType(), FrameType.longHighType(), FrameType.intType()
                     })),
             new CfConstNumber(10, ValueType.INT),
             new CfStore(ValueType.INT, 2),
@@ -3993,7 +3993,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.longType(), FrameType.longType(), FrameType.intType()
+                      FrameType.longType(), FrameType.longHighType(), FrameType.intType()
                     })),
             new CfConstNumber(64, ValueType.INT),
             new CfNewArray(options.itemFactory.charArrayType),
@@ -4031,7 +4031,7 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5, 6},
                     new FrameType[] {
                       FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType(),
                       FrameType.initialized(options.itemFactory.charArrayType),
                       FrameType.intType(),
@@ -4075,7 +4075,7 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
                       FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType(),
                       FrameType.initialized(options.itemFactory.charArrayType),
                       FrameType.intType()
@@ -4102,7 +4102,7 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
                       FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType(),
                       FrameType.initialized(options.itemFactory.charArrayType),
                       FrameType.intType()
@@ -4127,12 +4127,12 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5, 6},
                     new FrameType[] {
                       FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType(),
                       FrameType.initialized(options.itemFactory.charArrayType),
                       FrameType.intType(),
                       FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     })),
             new CfLoad(ValueType.LONG, 0),
             new CfLoad(ValueType.LONG, 5),
@@ -4168,14 +4168,14 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8},
                     new FrameType[] {
                       FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType(),
                       FrameType.initialized(options.itemFactory.charArrayType),
                       FrameType.intType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     })),
             new CfLoad(ValueType.LONG, 0),
             new CfConstNumber(0, ValueType.LONG),
@@ -4215,7 +4215,7 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
                       FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType(),
                       FrameType.initialized(options.itemFactory.charArrayType),
                       FrameType.intType()
@@ -4285,7 +4285,7 @@ public final class BackportedMethods {
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType()
                     })),
             new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
@@ -4338,11 +4338,11 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     })),
             new CfConstNumber(0, ValueType.INT),
             label3,
@@ -4351,11 +4351,11 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfLoad(ValueType.LONG, 0),
@@ -4372,11 +4372,11 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfConstNumber(0, ValueType.INT),
@@ -4386,11 +4386,11 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType(), FrameType.intType()))),
             new CfLogicalBinop(CfLogicalBinop.Opcode.Or, NumericType.INT),
@@ -4404,11 +4404,11 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     })),
             new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
@@ -4492,7 +4492,7 @@ public final class BackportedMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
-                    new FrameType[] {FrameType.longType(), FrameType.longType()})),
+                    new FrameType[] {FrameType.longType(), FrameType.longHighType()})),
             new CfLoad(ValueType.LONG, 0),
             new CfConstNumber(1, ValueType.LONG),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.LONG),
@@ -4631,13 +4631,13 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5, 6, 7},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     })),
             new CfConstNumber(1, ValueType.LONG),
             new CfLoad(ValueType.LONG, 0),
@@ -4662,15 +4662,15 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     })),
             new CfLoad(ValueType.LONG, 4),
             label7,
@@ -4679,15 +4679,15 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.longType()))),
             new CfReturn(ValueType.LONG),
@@ -4832,11 +4832,11 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     })),
             new CfConstNumber(1, ValueType.LONG),
             new CfLoad(ValueType.LONG, 0),
@@ -4859,13 +4859,13 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5, 6, 7},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     })),
             new CfLoad(ValueType.LONG, 4),
             new CfLoad(ValueType.LONG, 2),
@@ -4876,13 +4876,13 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5, 6, 7},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.longType()))),
             new CfReturn(ValueType.LONG),
@@ -4987,7 +4987,7 @@ public final class BackportedMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
-                    new FrameType[] {FrameType.longType(), FrameType.longType()})),
+                    new FrameType[] {FrameType.longType(), FrameType.longHighType()})),
             new CfLoad(ValueType.LONG, 0),
             new CfConstNumber(1, ValueType.LONG),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
@@ -5037,7 +5037,7 @@ public final class BackportedMethods {
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType()
                     })),
             new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
@@ -5142,9 +5142,9 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType()
                     })),
             new CfLoad(ValueType.INT, 4),
@@ -5162,9 +5162,9 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType()
                     })),
             new CfConstNumber(0, ValueType.INT),
@@ -5174,9 +5174,9 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
@@ -5192,9 +5192,9 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
@@ -5205,9 +5205,9 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType(), FrameType.intType()))),
@@ -5235,12 +5235,12 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5, 6},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType(),
                       FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     })),
             new CfLoad(ValueType.LONG, 5),
             new CfReturn(ValueType.LONG),
@@ -5250,9 +5250,9 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType()
                     })),
             new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
@@ -5488,7 +5488,7 @@ public final class BackportedMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
-                    new FrameType[] {FrameType.longType(), FrameType.longType()})),
+                    new FrameType[] {FrameType.longType(), FrameType.longHighType()})),
             new CfLoad(ValueType.LONG, 0),
             new CfNeg(NumericType.LONG),
             new CfReturn(ValueType.LONG),
@@ -5589,7 +5589,7 @@ public final class BackportedMethods {
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.intType()
                     })),
             new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
@@ -5642,11 +5642,11 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     })),
             new CfConstNumber(0, ValueType.INT),
             label3,
@@ -5655,11 +5655,11 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfLoad(ValueType.LONG, 0),
@@ -5676,11 +5676,11 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfConstNumber(0, ValueType.INT),
@@ -5690,11 +5690,11 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType(), FrameType.intType()))),
             new CfLogicalBinop(CfLogicalBinop.Opcode.Or, NumericType.INT),
@@ -5708,11 +5708,11 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType(),
-                      FrameType.longType()
+                      FrameType.longHighType()
                     })),
             new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
@@ -5766,7 +5766,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.longType(), FrameType.longType(), FrameType.intType()
+                      FrameType.longType(), FrameType.longHighType(), FrameType.intType()
                     })),
             new CfLoad(ValueType.INT, 2),
             new CfReturn(ValueType.INT),
@@ -9470,7 +9470,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.createType("Lsun/misc/Unsafe;")),
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     })),
@@ -9503,7 +9503,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.createType("Lsun/misc/Unsafe;")),
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.longType(),
-                      FrameType.longType(),
+                      FrameType.longHighType(),
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     })),

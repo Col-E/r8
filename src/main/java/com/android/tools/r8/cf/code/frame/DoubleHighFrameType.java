@@ -4,27 +4,17 @@
 
 package com.android.tools.r8.cf.code.frame;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.naming.NamingLens;
-import org.objectweb.asm.Opcodes;
 
-public class DoubleFrameType extends WidePrimitiveFrameType {
+public class DoubleHighFrameType extends DoubleFrameType {
 
-  static final DoubleFrameType SINGLETON = new DoubleFrameType();
+  static final DoubleHighFrameType SINGLETON = new DoubleHighFrameType();
 
-  DoubleFrameType() {}
-
-  @Override
-  public DoubleFrameType getLowType() {
-    return FrameType.doubleType();
-  }
-
-  @Override
-  public DoubleHighFrameType getHighType() {
-    return FrameType.doubleHighType();
-  }
+  private DoubleHighFrameType() {}
 
   @Override
   public boolean isDouble() {
@@ -33,36 +23,41 @@ public class DoubleFrameType extends WidePrimitiveFrameType {
 
   @Override
   public boolean isDoubleLow() {
-    return true;
+    return false;
   }
 
   @Override
   public boolean isDoubleHigh() {
-    return false;
-  }
-
-  @Override
-  public boolean isWidePrimitiveLow() {
     return true;
   }
 
   @Override
-  public boolean isWidePrimitiveHigh() {
+  public boolean isWidePrimitiveLow() {
     return false;
   }
 
   @Override
+  public boolean isWidePrimitiveHigh() {
+    return true;
+  }
+
+  @Override
   public DexType getInitializedType(DexItemFactory dexItemFactory) {
-    return dexItemFactory.doubleType;
+    throw new Unreachable();
   }
 
   @Override
   public String getTypeName() {
-    return "double";
+    throw new Unreachable();
   }
 
   @Override
   public Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
-    return Opcodes.DOUBLE;
+    throw new Unreachable();
+  }
+
+  @Override
+  public String toString() {
+    return "double-high";
   }
 }

@@ -11,6 +11,7 @@ import com.android.tools.r8.cf.code.CfAssignability;
 import com.android.tools.r8.cf.code.CfAssignability.AssignabilityResult;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.Builder;
+import com.android.tools.r8.cf.code.CfFrameUtils;
 import com.android.tools.r8.cf.code.frame.FrameType;
 import com.android.tools.r8.cf.code.frame.PreciseFrameType;
 import com.android.tools.r8.cf.code.frame.SingleFrameType;
@@ -48,7 +49,7 @@ public class ConcreteCfFrameState extends CfFrameState {
 
   public ConcreteCfFrameState(
       Int2ObjectAVLTreeMap<FrameType> locals, ArrayDeque<PreciseFrameType> stack, int stackHeight) {
-    assert locals.values().stream().noneMatch(FrameType::isTwoWord);
+    assert CfFrameUtils.verifyLocals(locals);
     this.locals = locals;
     this.stack = stack;
     this.stackHeight = stackHeight;
@@ -288,10 +289,7 @@ public class ConcreteCfFrameState extends CfFrameState {
     if (maxLocalIndex >= config.getMaxLocals()) {
       return storeLocalError(localIndex, frameType, config);
     }
-    locals.put(localIndex, frameType);
-    if (frameType.isWide()) {
-      locals.put(localIndex + 1, frameType);
-    }
+    CfFrameUtils.storeLocal(localIndex, frameType, locals);
     return this;
   }
 
@@ -510,11 +508,13 @@ public class ConcreteCfFrameState extends CfFrameState {
   private Entry<FrameType> nextLocal(ObjectBidirectionalIterator<Entry<FrameType>> iterator) {
     Entry<FrameType> entry = iterator.next();
     FrameType frameType = entry.getValue();
-    if (frameType.isWide()) {
-      assert frameType.isDouble() || frameType.isLong();
+    if (frameType.isWidePrimitive()) {
+      assert frameType.isDoubleLow() || frameType.isLongLow();
       Entry<FrameType> highEntry = iterator.next();
       assert highEntry.getIntKey() == entry.getIntKey() + 1;
-      assert highEntry.getValue() == frameType;
+      assert highEntry.getValue() == frameType.asWidePrimitive().getHighType();
+    } else {
+      assert !frameType.isWide();
     }
     return entry;
   }
@@ -522,11 +522,13 @@ public class ConcreteCfFrameState extends CfFrameState {
   private void previousLocal(ObjectBidirectionalIterator<Entry<FrameType>> iterator) {
     Entry<FrameType> entry = iterator.previous();
     FrameType frameType = entry.getValue();
-    if (frameType.isWide()) {
-      assert frameType.isDouble() || frameType.isLong();
+    if (frameType.isWidePrimitive()) {
+      assert frameType.isDoubleHigh() || frameType.isLongHigh();
       Entry<FrameType> lowEntry = iterator.previous();
       assert lowEntry.getIntKey() == entry.getIntKey() - 1;
-      assert lowEntry.getValue() == frameType;
+      assert lowEntry.getValue() == frameType.asWidePrimitive().getLowType();
+    } else {
+      assert !frameType.isWide();
     }
   }
 

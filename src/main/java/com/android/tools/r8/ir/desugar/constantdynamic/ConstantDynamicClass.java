@@ -422,7 +422,7 @@ public class ConstantDynamicClass {
             code.getInstructions(),
             instruction ->
                 instruction.isFrame()
-                    ? instruction.asFrame().map(this::mapLookupTypeToObject)
+                    ? instruction.asFrame().mapReferenceTypes(this::mapLookupTypeToObject)
                     : instruction);
     return code.getInstructions() != newInstructions
         ? new CfCode(

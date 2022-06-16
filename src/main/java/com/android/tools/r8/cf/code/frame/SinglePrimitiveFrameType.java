@@ -45,6 +45,11 @@ public abstract class SinglePrimitiveFrameType extends SingletonFrameType
   }
 
   @Override
+  public boolean isSinglePrimitive() {
+    return true;
+  }
+
+  @Override
   public final SinglePrimitiveFrameType asSinglePrimitive() {
     return this;
   }

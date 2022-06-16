@@ -14,11 +14,41 @@ public class LongFrameType extends WidePrimitiveFrameType {
 
   static final LongFrameType SINGLETON = new LongFrameType();
 
-  private LongFrameType() {}
+  LongFrameType() {}
+
+  @Override
+  public LongFrameType getLowType() {
+    return FrameType.longType();
+  }
+
+  @Override
+  public LongHighFrameType getHighType() {
+    return FrameType.longHighType();
+  }
 
   @Override
   public boolean isLong() {
     return true;
+  }
+
+  @Override
+  public boolean isLongLow() {
+    return true;
+  }
+
+  @Override
+  public boolean isLongHigh() {
+    return false;
+  }
+
+  @Override
+  public boolean isWidePrimitiveLow() {
+    return true;
+  }
+
+  @Override
+  public boolean isWidePrimitiveHigh() {
+    return false;
   }
 
   @Override
