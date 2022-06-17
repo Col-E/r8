@@ -118,11 +118,7 @@ public class CfReturn extends CfJumpInstruction {
   }
 
   @Override
-  public CfFrameState evaluate(
-      CfFrameState frame,
-      AppView<?> appView,
-      CfAnalysisConfig config,
-      DexItemFactory dexItemFactory) {
+  public CfFrameState evaluate(CfFrameState frame, AppView<?> appView, CfAnalysisConfig config) {
     assert !config.getCurrentContext().getReturnType().isVoidType();
     return frame
         .popInitialized(appView, config, config.getCurrentContext().getReturnType())

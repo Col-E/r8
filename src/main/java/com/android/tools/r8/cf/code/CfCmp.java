@@ -130,16 +130,12 @@ public class CfCmp extends CfInstruction {
   }
 
   @Override
-  public CfFrameState evaluate(
-      CfFrameState frame,
-      AppView<?> appView,
-      CfAnalysisConfig config,
-      DexItemFactory dexItemFactory) {
+  public CfFrameState evaluate(CfFrameState frame, AppView<?> appView, CfAnalysisConfig config) {
     // ..., value1, value2 →
     // ..., result
     return frame
         .popInitialized(appView, config, type)
         .popInitialized(appView, config, type)
-        .push(config, dexItemFactory.intType);
+        .push(config, appView.dexItemFactory().intType);
   }
 }

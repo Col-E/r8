@@ -982,7 +982,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
       if (instruction.isLabel()) {
         helper.seenLabel(instruction.asLabel());
       }
-      state = instruction.evaluate(state, appView, helper, appView.dexItemFactory());
+      state = instruction.evaluate(state, appView, helper);
       if (instruction.isJumpWithNormalTarget()) {
         CfInstruction fallthroughInstruction =
             (i + 1) < instructions.size() ? instructions.get(i + 1) : null;

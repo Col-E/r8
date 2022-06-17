@@ -171,13 +171,9 @@ public class CfSwitch extends CfJumpInstruction {
   }
 
   @Override
-  public CfFrameState evaluate(
-      CfFrameState frame,
-      AppView<?> appView,
-      CfAnalysisConfig config,
-      DexItemFactory dexItemFactory) {
+  public CfFrameState evaluate(CfFrameState frame, AppView<?> appView, CfAnalysisConfig config) {
     // ..., index/key →
     // ...
-    return frame.popInitialized(appView, config, dexItemFactory.intType);
+    return frame.popInitialized(appView, config, appView.dexItemFactory().intType);
   }
 }

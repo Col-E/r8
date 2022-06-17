@@ -165,13 +165,10 @@ public class CfNewArray extends CfInstruction implements CfTypeInstruction {
   }
 
   @Override
-  public CfFrameState evaluate(
-      CfFrameState frame,
-      AppView<?> appView,
-      CfAnalysisConfig config,
-      DexItemFactory dexItemFactory) {
+  public CfFrameState evaluate(CfFrameState frame, AppView<?> appView, CfAnalysisConfig config) {
     // ..., count →
     // ..., arrayref
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
     return frame.popInitialized(appView, config, dexItemFactory.intType).push(config, type);
   }
 }

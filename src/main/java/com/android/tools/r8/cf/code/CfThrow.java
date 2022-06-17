@@ -99,13 +99,9 @@ public class CfThrow extends CfJumpInstruction {
   }
 
   @Override
-  public CfFrameState evaluate(
-      CfFrameState frame,
-      AppView<?> appView,
-      CfAnalysisConfig config,
-      DexItemFactory dexItemFactory) {
+  public CfFrameState evaluate(CfFrameState frame, AppView<?> appView, CfAnalysisConfig config) {
     // ..., objectref →
     // objectref
-    return frame.popInitialized(appView, config, dexItemFactory.throwableType).clear();
+    return frame.popInitialized(appView, config, appView.dexItemFactory().throwableType).clear();
   }
 }

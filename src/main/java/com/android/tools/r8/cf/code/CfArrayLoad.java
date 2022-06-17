@@ -101,13 +101,10 @@ public class CfArrayLoad extends CfArrayLoadOrStore {
   }
 
   @Override
-  public CfFrameState evaluate(
-      CfFrameState frame,
-      AppView<?> appView,
-      CfAnalysisConfig config,
-      DexItemFactory dexItemFactory) {
+  public CfFrameState evaluate(CfFrameState frame, AppView<?> appView, CfAnalysisConfig config) {
     // ..., arrayref, index →
     // ..., value
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
     return frame
         .popInitialized(appView, config, dexItemFactory.intType)
         .popInitialized(

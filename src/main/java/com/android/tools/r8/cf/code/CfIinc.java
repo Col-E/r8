@@ -98,11 +98,7 @@ public class CfIinc extends CfInstruction {
   }
 
   @Override
-  public CfFrameState evaluate(
-      CfFrameState frame,
-      AppView<?> appView,
-      CfAnalysisConfig config,
-      DexItemFactory dexItemFactory) {
+  public CfFrameState evaluate(CfFrameState frame, AppView<?> appView, CfAnalysisConfig config) {
     return frame.readLocal(
         appView, config, getLocalIndex(), ValueType.INT, FunctionUtils::getFirst);
   }

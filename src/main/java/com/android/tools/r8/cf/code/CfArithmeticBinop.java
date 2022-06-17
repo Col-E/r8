@@ -205,11 +205,7 @@ public class CfArithmeticBinop extends CfInstruction {
   }
 
   @Override
-  public CfFrameState evaluate(
-      CfFrameState state,
-      AppView<?> appView,
-      CfAnalysisConfig config,
-      DexItemFactory dexItemFactory) {
+  public CfFrameState evaluate(CfFrameState state, AppView<?> appView, CfAnalysisConfig config) {
     // ..., value1, value2 →
     // ..., result
     return state

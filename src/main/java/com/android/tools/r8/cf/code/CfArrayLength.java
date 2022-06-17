@@ -81,13 +81,9 @@ public class CfArrayLength extends CfInstruction {
   }
 
   @Override
-  public CfFrameState evaluate(
-      CfFrameState frame,
-      AppView<?> appView,
-      CfAnalysisConfig config,
-      DexItemFactory dexItemFactory) {
+  public CfFrameState evaluate(CfFrameState frame, AppView<?> appView, CfAnalysisConfig config) {
     // ..., arrayref →
     // ..., length
-    return frame.popArray(appView).push(config, dexItemFactory.intType);
+    return frame.popArray(appView).push(config, appView.dexItemFactory().intType);
   }
 }

@@ -316,11 +316,7 @@ public class CfInvoke extends CfInstruction {
   }
 
   @Override
-  public CfFrameState evaluate(
-      CfFrameState frame,
-      AppView<?> appView,
-      CfAnalysisConfig config,
-      DexItemFactory dexItemFactory) {
+  public CfFrameState evaluate(CfFrameState frame, AppView<?> appView, CfAnalysisConfig config) {
     // ..., objectref, [arg1, [arg2 ...]] →
     // ... [ returnType ]
     // OR, for static method calls:
@@ -331,6 +327,7 @@ public class CfInvoke extends CfInstruction {
       if (method.getHolderType().isArrayType()) {
         frame = frame.popArray(appView);
       } else {
+        DexItemFactory dexItemFactory = appView.dexItemFactory();
         frame =
             opcode == Opcodes.INVOKESPECIAL && method.isInstanceInitializer(dexItemFactory)
                 ? frame.popAndInitialize(appView, method, config)

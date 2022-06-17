@@ -132,11 +132,7 @@ public class CfNew extends CfInstruction implements CfTypeInstruction {
   }
 
   @Override
-  public CfFrameState evaluate(
-      CfFrameState frame,
-      AppView<?> appView,
-      CfAnalysisConfig config,
-      DexItemFactory dexItemFactory) {
+  public CfFrameState evaluate(CfFrameState frame, AppView<?> appView, CfAnalysisConfig config) {
     // ... →
     // ..., objectref
     return frame.push(config, FrameType.uninitializedNew(getLabel(), type));

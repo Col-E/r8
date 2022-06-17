@@ -94,13 +94,9 @@ public class CfMonitor extends CfInstruction {
   }
 
   @Override
-  public CfFrameState evaluate(
-      CfFrameState frame,
-      AppView<?> appView,
-      CfAnalysisConfig config,
-      DexItemFactory dexItemFactory) {
+  public CfFrameState evaluate(CfFrameState frame, AppView<?> appView, CfAnalysisConfig config) {
     // ..., objectref →
     // ...
-    return frame.popInitialized(appView, config, dexItemFactory.objectType);
+    return frame.popInitialized(appView, config, appView.dexItemFactory().objectType);
   }
 }

@@ -139,13 +139,9 @@ public class CfConstClass extends CfInstruction implements CfTypeInstruction {
   }
 
   @Override
-  public CfFrameState evaluate(
-      CfFrameState frame,
-      AppView<?> appView,
-      CfAnalysisConfig config,
-      DexItemFactory dexItemFactory) {
+  public CfFrameState evaluate(CfFrameState frame, AppView<?> appView, CfAnalysisConfig config) {
     // ... →
     // ..., value
-    return frame.push(config, dexItemFactory.classType);
+    return frame.push(config, appView.dexItemFactory().classType);
   }
 }

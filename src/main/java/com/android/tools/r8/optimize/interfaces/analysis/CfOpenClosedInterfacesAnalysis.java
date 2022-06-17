@@ -167,7 +167,7 @@ public class CfOpenClosedInterfacesAnalysis {
     @Override
     public TransferFunctionResult<CfFrameState> apply(
         CfInstruction instruction, CfFrameState state) {
-      return instruction.evaluate(state, appView, config, appView.dexItemFactory());
+      return instruction.evaluate(state, appView, config);
     }
 
     @Override

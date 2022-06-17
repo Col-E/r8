@@ -123,13 +123,9 @@ public class CfDexItemBasedConstString extends CfInstruction {
   }
 
   @Override
-  public CfFrameState evaluate(
-      CfFrameState frame,
-      AppView<?> appView,
-      CfAnalysisConfig config,
-      DexItemFactory dexItemFactory) {
+  public CfFrameState evaluate(CfFrameState frame, AppView<?> appView, CfAnalysisConfig config) {
     // ... →
     // ..., value
-    return frame.push(config, dexItemFactory.stringType);
+    return frame.push(config, appView.dexItemFactory().stringType);
   }
 }

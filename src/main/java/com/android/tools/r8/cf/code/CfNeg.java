@@ -119,11 +119,7 @@ public class CfNeg extends CfInstruction {
   }
 
   @Override
-  public CfFrameState evaluate(
-      CfFrameState frame,
-      AppView<?> appView,
-      CfAnalysisConfig config,
-      DexItemFactory dexItemFactory) {
+  public CfFrameState evaluate(CfFrameState frame, AppView<?> appView, CfAnalysisConfig config) {
     // ..., value →
     // ..., result
     return frame.popInitialized(appView, config, type).push(appView, config, type);

@@ -359,8 +359,5 @@ public abstract class CfInstruction implements CfOrDexInstruction {
       InliningConstraints inliningConstraints, CfCode code, ProgramMethod context);
 
   public abstract CfFrameState evaluate(
-      CfFrameState frame,
-      AppView<?> appView,
-      CfAnalysisConfig config,
-      DexItemFactory dexItemFactory);
+      CfFrameState frame, AppView<?> appView, CfAnalysisConfig config);
 }

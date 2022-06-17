@@ -110,11 +110,8 @@ public class CfRecordFieldValues extends CfInstruction {
   }
 
   @Override
-  public CfFrameState evaluate(
-      CfFrameState frame,
-      AppView<?> appView,
-      CfAnalysisConfig config,
-      DexItemFactory dexItemFactory) {
+  public CfFrameState evaluate(CfFrameState frame, AppView<?> appView, CfAnalysisConfig config) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
     for (DexField ignored : fields) {
       frame = frame.popInitialized(appView, config, dexItemFactory.objectType);
     }
