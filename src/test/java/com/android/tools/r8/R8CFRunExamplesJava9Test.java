@@ -58,11 +58,6 @@ public class R8CFRunExamplesJava9Test extends RunExamplesJava9Test<R8Command.Bui
 
     @Override
     void run() throws Throwable {
-      boolean expectedToThrow = minSdkErrorExpectedCf(testName);
-      if (expectedToThrow) {
-        thrown.expect(ApiLevelException.class);
-      }
-
       String qualifiedMainClass = packageName + "." + mainClass;
       Path inputFile = getInputJar();
       Path out = temp.getRoot().toPath().resolve(testName + ZIP_EXTENSION);
@@ -82,10 +77,6 @@ public class R8CFRunExamplesJava9Test extends RunExamplesJava9Test<R8Command.Bui
       }
 
       execute(testName, qualifiedMainClass, new Path[] {inputFile}, new Path[] {out}, args);
-
-      if (expectedToThrow) {
-        System.out.println("Did not throw ApiLevelException as expected");
-      }
     }
 
     @Override
@@ -137,14 +128,5 @@ public class R8CFRunExamplesJava9Test extends RunExamplesJava9Test<R8Command.Bui
   private boolean expectedToFailCf(String testName) {
     System.out.println(testName + " " + expectedFailures.contains(testName));
     return expectedFailures.contains(testName);
-  }
-
-  private static List<String> minSdkErrorExpected =
-      ImmutableList.of(
-      );
-
-  private boolean minSdkErrorExpectedCf(String testName) {
-    System.out.println(testName);
-    return minSdkErrorExpected.contains(testName);
   }
 }

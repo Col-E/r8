@@ -4,20 +4,26 @@
 package com.android.tools.r8.diagnostics;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.startsWith;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.Diagnostic;
+import com.android.tools.r8.DiagnosticsMatcher;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.errors.UnsupportedFeatureDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-// TODO(b/154778581): Extend these tests with typed diagnostics and improved information.
 @RunWith(Parameterized.class)
-public class ApiLevelDiagnosticTest extends TestBase {
+public class UnsupportedFeaturesDiagnosticsTest extends TestBase {
 
   // Hard coded messages in AGP. See D8DexArchiveBuilder.
 
@@ -35,7 +41,30 @@ public class ApiLevelDiagnosticTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public ApiLevelDiagnosticTest(TestParameters parameters) {
+  private static class FeatureMatcher extends DiagnosticsMatcher {
+    private final String descriptor;
+
+    public FeatureMatcher(String descriptor) {
+      this.descriptor = descriptor;
+    }
+
+    @Override
+    protected boolean eval(Diagnostic diagnostic) {
+      return ((UnsupportedFeatureDiagnostic) diagnostic).getFeatureDescriptor().equals(descriptor);
+    }
+
+    @Override
+    protected void explain(Description description) {
+      description.appendText("feature ").appendText(descriptor);
+    }
+  }
+
+  public static Matcher<Diagnostic> matches(String descriptor) {
+    return allOf(
+        diagnosticType(UnsupportedFeatureDiagnostic.class), new FeatureMatcher(descriptor));
+  }
+
+  public UnsupportedFeaturesDiagnosticsTest(TestParameters parameters) {
     parameters.assertNoneRuntime();
   }
 
@@ -49,7 +78,10 @@ public class ApiLevelDiagnosticTest extends TestBase {
             diagnostics -> {
               diagnostics
                   .assertOnlyErrors()
-                  .assertErrorsMatch(diagnosticMessage(startsWith(AGP_INVOKE_CUSTOM)));
+                  .assertErrorsMatch(
+                      allOf(
+                          matches("invoke-custom"),
+                          diagnosticMessage(startsWith(AGP_INVOKE_CUSTOM))));
             });
   }
 
@@ -63,7 +95,10 @@ public class ApiLevelDiagnosticTest extends TestBase {
             diagnostics -> {
               diagnostics
                   .assertOnlyErrors()
-                  .assertErrorsMatch(diagnosticMessage(startsWith(AGP_DEFAULT_INTERFACE_METHOD)));
+                  .assertErrorsMatch(
+                      allOf(
+                          matches("default-interface-method"),
+                          diagnosticMessage(startsWith(AGP_DEFAULT_INTERFACE_METHOD))));
             });
   }
 
@@ -77,7 +112,10 @@ public class ApiLevelDiagnosticTest extends TestBase {
             diagnostics -> {
               diagnostics
                   .assertOnlyErrors()
-                  .assertErrorsMatch(diagnosticMessage(startsWith(AGP_STATIC_INTERFACE_METHOD)));
+                  .assertErrorsMatch(
+                      allOf(
+                          matches("static-interface-method"),
+                          diagnosticMessage(startsWith(AGP_STATIC_INTERFACE_METHOD))));
             });
   }
 

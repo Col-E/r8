@@ -3,28 +3,19 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.errors;
 
-import com.android.tools.r8.ApiLevelException;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
-import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.AndroidApiLevel;
 
-public class PrivateInterfaceMethodDiagnostic extends ApiLevelDiagnostic {
+public class PrivateInterfaceMethodDiagnostic extends UnsupportedFeatureDiagnostic {
 
-  private final MethodPosition position;
-
-  public PrivateInterfaceMethodDiagnostic(MethodPosition position) {
-    assert position != null;
-    this.position = position;
-  }
-
-  @Override
-  public Position getPosition() {
-    return position;
+  public PrivateInterfaceMethodDiagnostic(Origin origin, MethodPosition position) {
+    super("private-interface-method", AndroidApiLevel.N, origin, position);
   }
 
   @Override
   public String getDiagnosticMessage() {
-    return ApiLevelException.makeMessage(
-        AndroidApiLevel.N, "Private interface methods", position.toString());
+    return UnsupportedFeatureDiagnostic.makeMessage(
+        AndroidApiLevel.N, "Private interface methods", getPosition().toString());
   }
 }

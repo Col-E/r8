@@ -3,13 +3,18 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.errors;
 
-import com.android.tools.r8.ApiLevelException;
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.AndroidApiLevel;
 
-public class InvokeCustomDiagnostic extends ApiLevelDiagnostic {
+public class InvokeCustomDiagnostic extends UnsupportedFeatureDiagnostic {
+
+  public InvokeCustomDiagnostic(Origin origin, Position position) {
+    super("invoke-custom", AndroidApiLevel.O, origin, position);
+  }
 
   @Override
   public String getDiagnosticMessage() {
-    return ApiLevelException.makeMessage(AndroidApiLevel.O, "Invoke-customs", null);
+    return UnsupportedFeatureDiagnostic.makeMessage(AndroidApiLevel.O, "Invoke-customs", null);
   }
 }

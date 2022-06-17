@@ -47,7 +47,9 @@ import com.android.tools.r8.graph.ProgramClassVisitor;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
+import com.android.tools.r8.position.Position;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DexVersion;
@@ -265,10 +267,10 @@ public class FileWriter {
     for (DexProgramClass clazz : mapping.getClasses()) {
       if (clazz.isInterface()) {
         for (DexEncodedMethod method : clazz.directMethods()) {
-          checkInterfaceMethod(method);
+          checkInterfaceMethod(clazz, method);
         }
         for (DexEncodedMethod method : clazz.virtualMethods()) {
-          checkInterfaceMethod(method);
+          checkInterfaceMethod(clazz, method);
         }
       }
     }
@@ -280,7 +282,7 @@ public class FileWriter {
   //  -- starting with N interfaces may also have public or private
   //     static methods, as well as public non-abstract (default)
   //     and private instance methods.
-  private void checkInterfaceMethod(DexEncodedMethod method) {
+  private void checkInterfaceMethod(DexProgramClass holder, DexEncodedMethod method) {
     if (appView.dexItemFactory().isClassConstructor(method.getReference())) {
       return; // Class constructor is always OK.
     }
@@ -288,7 +290,7 @@ public class FileWriter {
       if (!options.canUseDefaultAndStaticInterfaceMethods()
           && !options.testing.allowStaticInterfaceMethodsForPreNApiLevel) {
         throw options.reporter.fatalError(
-            new StaticInterfaceMethodDiagnostic(new MethodPosition(method.getReference())));
+            new StaticInterfaceMethodDiagnostic(holder.getOrigin(), MethodPosition.create(method)));
       }
 
     } else {
@@ -299,7 +301,8 @@ public class FileWriter {
       if (!method.accessFlags.isAbstract() && !method.accessFlags.isPrivate() &&
           !options.canUseDefaultAndStaticInterfaceMethods()) {
         throw options.reporter.fatalError(
-            new DefaultInterfaceMethodDiagnostic(new MethodPosition(method.getReference())));
+            new DefaultInterfaceMethodDiagnostic(
+                holder.getOrigin(), MethodPosition.create(method)));
       }
     }
 
@@ -308,7 +311,7 @@ public class FileWriter {
         return;
       }
       throw options.reporter.fatalError(
-          new PrivateInterfaceMethodDiagnostic(new MethodPosition(method.getReference())));
+          new PrivateInterfaceMethodDiagnostic(holder.getOrigin(), MethodPosition.create(method)));
     }
 
     if (!method.accessFlags.isPublic()) {
@@ -1378,7 +1381,8 @@ public class FileWriter {
 
   private void checkThatInvokeCustomIsAllowed() {
     if (!options.canUseInvokeCustom()) {
-      throw options.reporter.fatalError(new InvokeCustomDiagnostic());
+      throw options.reporter.fatalError(
+          new InvokeCustomDiagnostic(Origin.unknown(), Position.UNKNOWN));
     }
   }
 }

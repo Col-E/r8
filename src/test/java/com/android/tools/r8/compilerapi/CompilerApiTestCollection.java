@@ -11,6 +11,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.compilerapi.androidplatformbuild.AndroidPlatformBuildApiTest;
 import com.android.tools.r8.compilerapi.assertionconfiguration.AssertionConfigurationTest;
 import com.android.tools.r8.compilerapi.desugardependencies.DesugarDependenciesTest;
+import com.android.tools.r8.compilerapi.diagnostics.UnsupportedFeaturesDiagnosticApiTest;
 import com.android.tools.r8.compilerapi.globalsynthetics.GlobalSyntheticsTest;
 import com.android.tools.r8.compilerapi.inputdependencies.InputDependenciesTest;
 import com.android.tools.r8.compilerapi.mapid.CustomMapIdTest;
@@ -47,7 +48,8 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
           GlobalSyntheticsTest.ApiTest.class,
           CommandLineParserTest.ApiTest.class,
           EnableMissingLibraryApiModelingTest.ApiTest.class,
-          AndroidPlatformBuildApiTest.ApiTest.class);
+          AndroidPlatformBuildApiTest.ApiTest.class,
+          UnsupportedFeaturesDiagnosticApiTest.ApiTest.class);
 
   private final TemporaryFolder temp;
 

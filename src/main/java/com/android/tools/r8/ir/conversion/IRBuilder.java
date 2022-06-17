@@ -15,11 +15,14 @@ import static com.android.tools.r8.ir.analysis.type.TypeElement.getNull;
 import static com.android.tools.r8.ir.analysis.type.TypeElement.getSingle;
 import static com.android.tools.r8.ir.analysis.type.TypeElement.getWide;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.ConstMethodHandleDiagnostic;
+import com.android.tools.r8.errors.ConstMethodTypeDiagnostic;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
+import com.android.tools.r8.errors.InvokePolymorphicMethodHandleDiagnostic;
+import com.android.tools.r8.errors.InvokePolymorphicVarHandleDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
@@ -121,7 +124,7 @@ import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
@@ -1224,10 +1227,9 @@ public class IRBuilder {
 
   public void addConstMethodHandle(int dest, DexMethodHandle methodHandle) {
     if (!appView.options().canUseConstantMethodHandle()) {
-      throw new ApiLevelException(
-          AndroidApiLevel.P,
-          "Const-method-handle",
-          null /* sourceString */);
+      throw appView
+          .reporter()
+          .fatalError(new ConstMethodHandleDiagnostic(origin, MethodPosition.create(method)));
     }
     TypeElement typeLattice =
         TypeElement.fromDexType(
@@ -1239,10 +1241,9 @@ public class IRBuilder {
 
   public void addConstMethodType(int dest, DexProto methodType) {
     if (!appView.options().canUseConstantMethodType()) {
-      throw new ApiLevelException(
-          AndroidApiLevel.P,
-          "Const-method-type",
-          null /* sourceString */);
+      throw appView
+          .reporter()
+          .fatalError(new ConstMethodTypeDiagnostic(origin, MethodPosition.create(method)));
     }
     TypeElement typeLattice =
         TypeElement.fromDexType(
@@ -1506,16 +1507,16 @@ public class IRBuilder {
     if (type == Type.POLYMORPHIC) {
       assert item instanceof DexMethod;
       if (!appView.options().canUseInvokePolymorphic()) {
-        throw new ApiLevelException(
-            AndroidApiLevel.O,
-            "MethodHandle.invoke and MethodHandle.invokeExact",
-            null /* sourceString */);
+        throw appView
+            .reporter()
+            .fatalError(
+                new InvokePolymorphicMethodHandleDiagnostic(origin, MethodPosition.create(method)));
       } else if (!appView.options().canUseInvokePolymorphicOnVarHandle()
           && ((DexMethod) item).holder == appView.dexItemFactory().varHandleType) {
-        throw new ApiLevelException(
-            AndroidApiLevel.P,
-            "Call to polymorphic signature of VarHandle",
-            null /* sourceString */);
+        throw appView
+            .reporter()
+            .fatalError(
+                new InvokePolymorphicVarHandleDiagnostic(origin, MethodPosition.create(method)));
       }
     }
     add(Invoke.create(type, item, callSiteProto, null, arguments, itf));

@@ -3,28 +3,19 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.errors;
 
-import com.android.tools.r8.ApiLevelException;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
-import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.AndroidApiLevel;
 
-public class StaticInterfaceMethodDiagnostic extends ApiLevelDiagnostic {
+public class StaticInterfaceMethodDiagnostic extends UnsupportedFeatureDiagnostic {
 
-  private final MethodPosition position;
-
-  public StaticInterfaceMethodDiagnostic(MethodPosition position) {
-    assert position != null;
-    this.position = position;
-  }
-
-  @Override
-  public Position getPosition() {
-    return position;
+  public StaticInterfaceMethodDiagnostic(Origin origin, MethodPosition position) {
+    super("static-interface-method", AndroidApiLevel.N, origin, position);
   }
 
   @Override
   public String getDiagnosticMessage() {
-    return ApiLevelException.makeMessage(
-        AndroidApiLevel.N, "Static interface methods", position.toString());
+    return UnsupportedFeatureDiagnostic.makeMessage(
+        AndroidApiLevel.N, "Static interface methods", getPosition().toString());
   }
 }
