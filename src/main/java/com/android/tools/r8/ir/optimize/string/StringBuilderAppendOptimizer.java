@@ -14,14 +14,17 @@ import static com.android.tools.r8.ir.optimize.string.StringBuilderNode.createMu
 import static com.android.tools.r8.ir.optimize.string.StringBuilderNode.createNewInstanceNode;
 import static com.android.tools.r8.ir.optimize.string.StringBuilderNode.createOtherStringBuilderNode;
 import static com.android.tools.r8.ir.optimize.string.StringBuilderNode.createToStringNode;
+import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.DataflowAnalysisResult.SuccessfulDataflowAnalysisResult;
+import com.android.tools.r8.ir.analysis.framework.intraprocedural.IntraProceduralDataflowAnalysisOptions;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.IntraproceduralDataflowAnalysis;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.TransferFunctionResult;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
@@ -31,12 +34,17 @@ import com.android.tools.r8.ir.optimize.string.StringBuilderNode.ImplicitToStrin
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.InitNode;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.InitOrAppend;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.LoopNode;
+import com.android.tools.r8.ir.optimize.string.StringBuilderNodeMuncher.MunchingState;
 import com.android.tools.r8.ir.optimize.string.StringBuilderOracle.DefaultStringBuilderOracle;
+import com.android.tools.r8.utils.DepthFirstSearchWorkListBase.DepthFirstSearchWorkList;
 import com.android.tools.r8.utils.DepthFirstSearchWorkListBase.StatefulDepthFirstSearchWorkList;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.WorkList;
+import com.google.common.collect.Sets;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -66,6 +74,8 @@ public class StringBuilderAppendOptimizer {
   private final StringBuilderOracle oracle;
   private final IRCode code;
 
+  private static final int NUMBER_OF_MUNCHING_PASSES = 3;
+
   private StringBuilderAppendOptimizer(AppView<?> appView, IRCode code) {
     this.appView = appView;
     this.code = code;
@@ -78,8 +88,18 @@ public class StringBuilderAppendOptimizer {
 
   private void run() {
     Map<Value, StringBuilderNode> stringBuilderGraphs = computeStringBuilderGraphs();
-    // TODO(b/219455761): Update with actions on the graphs.
-    assert stringBuilderGraphs != null;
+    Map<Instruction, StringBuilderAction> actions = optimizeOnGraphs(stringBuilderGraphs);
+    if (actions.isEmpty()) {
+      return;
+    }
+    InstructionListIterator it = code.instructionListIterator();
+    while (it.hasNext()) {
+      Instruction instruction = it.next();
+      StringBuilderAction stringBuilderAction = actions.get(instruction);
+      if (stringBuilderAction != null) {
+        stringBuilderAction.perform(appView, code, it, instruction, oracle);
+      }
+    }
   }
 
   private static class StringBuilderGraphState {
@@ -114,7 +134,11 @@ public class StringBuilderAppendOptimizer {
         new StringBuilderEscapeTransferFunction(oracle);
     IntraproceduralDataflowAnalysis<StringBuilderEscapeState> analysis =
         new IntraproceduralDataflowAnalysis<>(
-            appView, StringBuilderEscapeState.bottom(), code, transferFunction);
+            appView,
+            StringBuilderEscapeState.bottom(),
+            code,
+            transferFunction,
+            IntraProceduralDataflowAnalysisOptions.getNoCollapseInstance());
     SuccessfulDataflowAnalysisResult<?, StringBuilderEscapeState> stringBuilderEscapeResult =
         analysis.run(code.entryBlock()).asSuccessfulAnalysisResult();
 
@@ -422,5 +446,117 @@ public class StringBuilderAppendOptimizer {
     return graphResult.shouldBreak()
         ? Collections.emptyMap()
         : graphResult.asContinue().getValue().roots;
+  }
+
+  /**
+   * optimizeOnGraphs will compute some state that will make munching easier. When computing the
+   * state the search will also do a topological sort over string builder references such that
+   * string builders without a direct dependency on another string builder will be computed first.
+   *
+   * <p>In general, this would not really matter since we munch over all graphs, but we are limiting
+   * the munching and care about performance.
+   */
+  private Map<Instruction, StringBuilderAction> optimizeOnGraphs(
+      Map<Value, StringBuilderNode> stringBuilderGraphs) {
+    Map<Instruction, StringBuilderAction> actions = new IdentityHashMap<>();
+    // Build state to allow munching over the string builder graphs.
+    Set<StringBuilderNode> inspectingCapacity = Sets.newIdentityHashSet();
+    Set<StringBuilderNode> looping = Sets.newIdentityHashSet();
+    Map<StringBuilderNode, Set<StringBuilderNode>> materializing = new IdentityHashMap<>();
+    Set<StringBuilderNode> escaping = Sets.newIdentityHashSet();
+
+    Map<StringBuilderNode, StringBuilderNode> nodeToRoots = new IdentityHashMap<>();
+    Map<StringBuilderNode, Set<StringBuilderNode>> stringBuilderDependencies =
+        new IdentityHashMap<>();
+
+    stringBuilderGraphs.forEach(
+        (value, root) -> {
+          WorkList<StringBuilderNode> workList = WorkList.newIdentityWorkList(root);
+          Set<StringBuilderNode> materializingInstructions = Sets.newIdentityHashSet();
+          materializing.put(root, materializingInstructions);
+          while (workList.hasNext()) {
+            StringBuilderNode next = workList.next();
+            nodeToRoots.put(next, root);
+            if (next.isInitOrAppend()) {
+              ImplicitToStringNode dependency = next.asInitOrAppend().getImplicitToStringNode();
+              if (dependency != null) {
+                stringBuilderDependencies
+                    .computeIfAbsent(root, ignoreArgument(Sets::newIdentityHashSet))
+                    .add(dependency);
+              }
+            }
+            if (next.isLoopNode()) {
+              looping.add(root);
+            }
+            if (next.isEscapeNode()) {
+              inspectingCapacity.add(root);
+              escaping.add(root);
+            }
+            if (next.isToStringNode() || next.isImplicitToStringNode()) {
+              materializingInstructions.add(root);
+            }
+            if (next.isInspectingNode()) {
+              inspectingCapacity.add(root);
+            }
+            next.getSuccessors().forEach(workList::addFirstIfNotSeen);
+          }
+        });
+
+    MunchingState munchingState =
+        new MunchingState(actions, escaping, inspectingCapacity, looping, materializing, oracle);
+
+    boolean keepMunching = true;
+    for (int i = 0; i < NUMBER_OF_MUNCHING_PASSES && keepMunching; i++) {
+      keepMunching = false;
+      for (StringBuilderNode root :
+          computeProcessingOrder(stringBuilderGraphs, stringBuilderDependencies, nodeToRoots)) {
+        WorkList<StringBuilderNode> workList = WorkList.newIdentityWorkList(root);
+        while (workList.hasNext()) {
+          StringBuilderNode next = workList.next();
+          keepMunching |= StringBuilderNodeMuncher.optimize(root, next, munchingState);
+          next.getSuccessors().forEach(workList::addFirstIfNotSeen);
+        }
+      }
+    }
+    return actions;
+  }
+
+  private Collection<StringBuilderNode> computeProcessingOrder(
+      Map<Value, StringBuilderNode> stringBuilderGraphs,
+      Map<StringBuilderNode, Set<StringBuilderNode>> stringBuilderDependencies,
+      Map<StringBuilderNode, StringBuilderNode> nodeToRoots) {
+    // Make a topological sort to ensure we visit all nodes in the best order for optimizing nested
+    // string builders.
+    Set<StringBuilderNode> processingOrder = new LinkedHashSet<>();
+    new DepthFirstSearchWorkList<StringBuilderNode, Void, Void>() {
+
+      @Override
+      @SuppressWarnings("ReturnValueIgnored")
+      protected TraversalContinuation<Void, Void> process(
+          DFSNode<StringBuilderNode> node,
+          Function<StringBuilderNode, DFSNode<StringBuilderNode>> childNodeConsumer) {
+        StringBuilderNode root = node.getNode();
+        Set<StringBuilderNode> stringBuilderNodes = stringBuilderDependencies.get(root);
+        if (stringBuilderNodes != null) {
+          for (StringBuilderNode dependency : stringBuilderNodes) {
+            childNodeConsumer.apply(nodeToRoots.get(dependency));
+          }
+        }
+        return TraversalContinuation.doContinue();
+      }
+
+      @Override
+      protected List<Void> getFinalStateForRoots(Collection<StringBuilderNode> roots) {
+        return null;
+      }
+
+      @Override
+      public TraversalContinuation<Void, Void> joiner(DFSNode<StringBuilderNode> node) {
+        StringBuilderNode node1 = node.getNode();
+        processingOrder.add(node1);
+        return TraversalContinuation.doContinue();
+      }
+    }.run(stringBuilderGraphs.values());
+    return processingOrder;
   }
 }

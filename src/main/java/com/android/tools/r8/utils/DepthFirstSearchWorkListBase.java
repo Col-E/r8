@@ -115,7 +115,7 @@ public abstract class DepthFirstSearchWorkListBase<N, T extends DFSNodeImpl<N>, 
   /** The joining of state during backtracking of the algorithm. */
   abstract TraversalContinuation<TB, TC> internalOnJoin(T node);
 
-  abstract List<TC> getFinalStateForRoots(Collection<N> roots);
+  protected abstract List<TC> getFinalStateForRoots(Collection<N> roots);
 
   final T internalEnqueueNode(N value) {
     T dfsNode = nodeToNodeWithStateMap.computeIfAbsent(value, this::createDfsNode);
@@ -190,7 +190,17 @@ public abstract class DepthFirstSearchWorkListBase<N, T extends DFSNodeImpl<N>, 
 
     @Override
     protected TraversalContinuation<TB, TC> internalOnJoin(DFSNodeImpl<N> node) {
+      return joiner(node);
+    }
+
+    public TraversalContinuation<TB, TC> joiner(DFSNode<N> node) {
+      // Override to be notified during callback.
       return TraversalContinuation.doContinue();
+    }
+
+    @Override
+    protected List<TC> getFinalStateForRoots(Collection<N> roots) {
+      return null;
     }
   }
 
@@ -254,7 +264,7 @@ public abstract class DepthFirstSearchWorkListBase<N, T extends DFSNodeImpl<N>, 
     }
 
     @Override
-    List<S> getFinalStateForRoots(Collection<N> roots) {
+    public List<S> getFinalStateForRoots(Collection<N> roots) {
       return ListUtils.map(roots, root -> getNodeStateForNode(root).state);
     }
   }
