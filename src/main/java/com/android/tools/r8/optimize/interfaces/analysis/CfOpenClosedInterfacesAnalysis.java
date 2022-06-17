@@ -199,16 +199,6 @@ public class CfOpenClosedInterfacesAnalysis {
     }
 
     @Override
-    public boolean shouldTransferExceptionalControlFlowFromInstruction(
-        CfBlock throwBlock, CfInstruction throwInstruction) {
-      // All locals defined after the first throwing instruction cannot be accessed in the catch
-      // handler. Therefore, we only propagate the state from the first throwing instruction to the
-      // catch handler.
-      assert throwBlock.hasThrowingInstruction();
-      return throwInstruction == code.getInstruction(throwBlock.getFirstThrowingInstructionIndex());
-    }
-
-    @Override
     public CfFrameState computeExceptionalBlockEntryState(
         CfBlock block,
         DexType guard,
