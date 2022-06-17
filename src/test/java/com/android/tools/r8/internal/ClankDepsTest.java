@@ -3,14 +3,19 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.internal;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static com.android.tools.r8.utils.codeinspector.Matchers.proguardConfigurationRuleDoesNotMatch;
 import static com.android.tools.r8.utils.codeinspector.Matchers.typeVariableNotInScope;
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.UnverifiableCfCodeDiagnostic;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.Test;
@@ -48,10 +53,20 @@ public class ClankDepsTest extends TestBase {
         .allowUnusedProguardConfigurationRules()
         .allowUnnecessaryDontWarnWildcards()
         .setMinApi(AndroidApiLevel.N)
-        .allowDiagnosticInfoMessages()
+        .allowDiagnosticMessages()
         .compileWithExpectedDiagnostics(
             diagnostics ->
-                diagnostics.assertAllInfosMatch(
-                    anyOf(typeVariableNotInScope(), proguardConfigurationRuleDoesNotMatch())));
+                diagnostics
+                    .assertAllInfosMatch(
+                        anyOf(typeVariableNotInScope(), proguardConfigurationRuleDoesNotMatch()))
+                    .assertWarningsMatch(
+                        allOf(
+                            diagnosticType(UnverifiableCfCodeDiagnostic.class),
+                            diagnosticMessage(
+                                containsString(
+                                    "Unverifiable code in `"
+                                        + "void zzz.com.facebook.litho.ComponentHost"
+                                        + ".refreshAccessibilityDelegatesIfNeeded(boolean)`"))))
+                    .assertNoErrors());
   }
 }

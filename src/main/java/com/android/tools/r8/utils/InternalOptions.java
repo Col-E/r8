@@ -1406,14 +1406,26 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public static class CfCodeAnalysisOptions {
 
-    public boolean allowUnreachableCfBlocks = true;
+    private boolean allowUnreachableCfBlocks = true;
+    private boolean enableUnverifiableCodeReporting = false;
+
+    public boolean isUnverifiableCodeReportingEnabled() {
+      return enableUnverifiableCodeReporting;
+    }
 
     public boolean isUnreachableCfBlocksAllowed() {
       return allowUnreachableCfBlocks;
     }
 
-    public void setAllowUnreachableCfBlocks(boolean allowUnreachableCfBlocks) {
+    public CfCodeAnalysisOptions setAllowUnreachableCfBlocks(boolean allowUnreachableCfBlocks) {
       this.allowUnreachableCfBlocks = allowUnreachableCfBlocks;
+      return this;
+    }
+
+    public CfCodeAnalysisOptions setEnableUnverifiableCodeReporting(
+        boolean enableUnverifiableCodeReporting) {
+      this.enableUnverifiableCodeReporting = enableUnverifiableCodeReporting;
+      return this;
     }
   }
 

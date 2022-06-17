@@ -30,20 +30,20 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class FieldReadsJasminTest extends JasminTestBase {
   private static final String CLS = "Empty";
   private static final String MAIN = "Main";
-  private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
-  }
-
-  public FieldReadsJasminTest(TestParameters parameters) {
-    this.parameters = parameters;
   }
 
   @Test
@@ -284,20 +284,21 @@ public class FieldReadsJasminTest extends JasminTestBase {
         "  bipush 1",
         "  putstatic Main/sField I",
         "  return");
-    MethodSignature mainMethod = main.addMainMethod(
-        ".limit stack 3",
-        ".limit locals 2",
-        "  getstatic Main/sField I",
-        "  new Empty",
-        "  dup",
-        "  invokespecial Empty/<init>()V",
-        "  getstatic Main/sField I",
-        "  bipush 2",
-        "  if_icmpeq r",
-        "  aconst_null",
-        "  athrow",
-        "r:",
-        "  return");
+    MethodSignature mainMethod =
+        main.addMainMethod(
+            ".limit stack 4",
+            ".limit locals 2",
+            "  getstatic Main/sField I",
+            "  new Empty",
+            "  dup",
+            "  invokespecial Empty/<init>()V",
+            "  getstatic Main/sField I",
+            "  bipush 2",
+            "  if_icmpeq r",
+            "  aconst_null",
+            "  athrow",
+            "r:",
+            "  return");
 
     ensureFieldExistsAndReadOnlyOnce(builder, main, mainMethod, main, "sField");
   }

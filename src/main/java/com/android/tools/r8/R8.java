@@ -72,6 +72,7 @@ import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLensFactory;
 import com.android.tools.r8.optimize.VisibilityBridgeRemover;
 import com.android.tools.r8.optimize.bridgehoisting.BridgeHoisting;
+import com.android.tools.r8.optimize.interfaces.analysis.CfOpenClosedInterfacesAnalysis;
 import com.android.tools.r8.optimize.proto.ProtoNormalizer;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.repackaging.Repackaging;
@@ -440,6 +441,8 @@ public class R8 {
 
       assert appView.appInfo().hasLiveness();
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+
+      assert new CfOpenClosedInterfacesAnalysis(appViewWithLiveness).run(executorService);
 
       new StartupInstrumentation(appView).instrumentAllClasses(executorService);
 

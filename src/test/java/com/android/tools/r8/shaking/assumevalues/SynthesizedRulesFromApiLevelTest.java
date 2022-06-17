@@ -88,12 +88,15 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
 
     classBuilder = builder.addClass(compatLibraryClassName);
 
-    classBuilder.addStaticMethod("compatMethod", ImmutableList.of(), "V",
+    classBuilder.addStaticMethod(
+        "compatMethod",
+        ImmutableList.of(),
+        "V",
+        ".limit stack 2",
         "  getstatic java/lang/System/out Ljava/io/PrintStream;",
         "  ldc \" Compat\"",
         "  invokevirtual java/io/PrintStream/print(Ljava.lang.String;)V",
-        "  return"
-    );
+        "  return");
 
     classBuilder.addStaticMethod("method", ImmutableList.of(), "V",
         ".limit stack 2",

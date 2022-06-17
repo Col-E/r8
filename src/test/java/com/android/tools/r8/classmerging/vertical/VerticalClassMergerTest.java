@@ -858,7 +858,7 @@ public class VerticalClassMergerTest extends TestBase {
     ClassBuilder classBuilder = jasminBuilder.addClass(main);
     classBuilder.addMainMethod(
         ".limit locals 1",
-        ".limit stack 2",
+        ".limit stack 3",
         // Instantiate B so that it is not merged into C.
         "new classmerging/B",
         "dup",

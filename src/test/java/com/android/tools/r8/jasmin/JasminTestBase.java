@@ -5,7 +5,6 @@ package com.android.tools.r8.jasmin;
 
 import static org.junit.Assert.fail;
 
-import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
@@ -26,7 +25,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 public class JasminTestBase extends TestBase {
@@ -105,21 +103,6 @@ public class JasminTestBase extends TestBase {
       Consumer<InternalOptions> optionsConsumer)
       throws Exception {
     return ToolHelper.runR8(builder.build(), optionsConsumer);
-  }
-
-  protected AndroidApp compileWithR8InDebugMode(
-      JasminBuilder builder,
-      List<String> proguardConfigs,
-      Consumer<InternalOptions> optionsConsumer,
-      Backend backend)
-      throws Exception {
-    R8Command command =
-        ToolHelper.prepareR8CommandBuilder(builder.build(), emptyConsumer(backend))
-            .addLibraryFiles(runtimeJar(backend))
-            .addProguardConfiguration(proguardConfigs, Origin.unknown())
-            .setMode(CompilationMode.DEBUG)
-            .build();
-    return ToolHelper.runR8(command, optionsConsumer);
   }
 
   protected AndroidApp compileWithR8(
@@ -283,8 +266,7 @@ public class JasminTestBase extends TestBase {
   }
 
   protected MethodSubject getMethodSubject(
-      AndroidApp application, String clazz, MethodSignature signature)
-      throws ExecutionException, IOException {
+      AndroidApp application, String clazz, MethodSignature signature) throws IOException {
     return new CodeInspector(application).clazz(clazz).method(signature);
   }
 }

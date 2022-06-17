@@ -3,10 +3,17 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.internal;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assume.assumeTrue;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.UnverifiableCfCodeDiagnostic;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.Test;
@@ -36,24 +43,55 @@ public class Regression127524985 extends TestBase {
   }
 
   @Test
-  public void test() throws Throwable {
-    if (parameters.isCfRuntime()) {
-      testForJvm()
-          .addClasspath(JAR)
-          .run(parameters.getRuntime(), MAIN)
-          .assertSuccessWithOutput(EXPECTED);
-    }
-    (parameters.isDexRuntime()
-            ? testForD8()
-            : testForR8(parameters.getBackend())
-                .debug()
-                .noTreeShaking()
-                .noMinification()
-                .addKeepAllAttributes()
-                .addKeepRules("-dontwarn"))
+  public void testJvm() throws Throwable {
+    assumeTrue(parameters.isCfRuntime());
+    testForJvm()
+        .addClasspath(JAR)
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutput(EXPECTED);
+  }
+
+  @Test
+  public void testD8() throws Throwable {
+    assumeTrue(parameters.isDexRuntime());
+    testForD8()
         .addProgramFiles(JAR)
         .setMinApi(parameters.getApiLevel())
         .compile()
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutput(EXPECTED);
+  }
+
+  @Test
+  public void testR8Cf() throws Throwable {
+    assumeTrue(parameters.isCfRuntime());
+    testForR8(parameters.getBackend())
+        .debug()
+        .noTreeShaking()
+        .noMinification()
+        .addKeepAllAttributes()
+        .addKeepRules("-dontwarn")
+        .allowDiagnosticWarningMessages()
+        .addProgramFiles(JAR)
+        .setMinApi(parameters.getApiLevel())
+        .compileWithExpectedDiagnostics(
+            diagnostics ->
+                diagnostics.assertWarningsMatch(
+                    allOf(
+                        diagnosticType(UnverifiableCfCodeDiagnostic.class),
+                        diagnosticMessage(
+                            containsString(
+                                "Unverifiable code in `"
+                                    + "void com.google.protobuf.contrib.android."
+                                    + "ProtoParsers$InternalDontUse.<clinit>()`"))),
+                    allOf(
+                        diagnosticType(UnverifiableCfCodeDiagnostic.class),
+                        diagnosticMessage(
+                            containsString(
+                                "Unverifiable code in `"
+                                    + "void com.google.protobuf.contrib.android.ProtoParsers"
+                                    + ".put(android.os.Bundle, java.lang.String, "
+                                    + "com.google.protobuf.MessageLite)`")))))
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED);
   }

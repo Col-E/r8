@@ -44,7 +44,8 @@ public class JumpSubroutineTests extends JasminTestBase {
             .setDisableTreeShaking(true)
             .setDisableMinification(true)
             .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown())
-            .build());
+            .build(),
+        options -> options.getCfCodeAnalysisOptions().setAllowUnreachableCfBlocks(true));
     ProcessResult processResult = ToolHelper.runJava(outputJar, main);
     assertEquals(0, processResult.exitCode);
     return processResult.stdout;
@@ -822,7 +823,10 @@ public class JumpSubroutineTests extends JasminTestBase {
     //
     // https://github.com/apache/log4j/blob/v1_2-branch/src/main/java/org/apache/log4j/net/SocketAppender.java#L373
     //
-    clazz.addVirtualMethod("run", ImmutableList.of(), "V",
+    clazz.addVirtualMethod(
+        "run",
+        ImmutableList.of(),
+        "V",
         ".limit stack 4",
         ".limit locals 4",
         ".var 0 is this Lorg/apache/log4j/net/SocketAppender$Connector; from L0 to L26",
@@ -835,7 +839,8 @@ public class JumpSubroutineTests extends JasminTestBase {
         ".line 368",
         ".line 369",
         "  aload 0",
-        "  getfield org/apache/log4j/net/SocketAppender$Connector.this$0 Lorg/apache/log4j/net/SocketAppender;",
+        "  getfield org/apache/log4j/net/SocketAppender$Connector.this$0"
+            + " Lorg/apache/log4j/net/SocketAppender;",
         "  getfield org/apache/log4j/net/SocketAppender.reconnectionDelay I",
         "  i2l",
         "  invokestatic java/lang/Thread.sleep(J)V",
@@ -846,7 +851,8 @@ public class JumpSubroutineTests extends JasminTestBase {
         "  ldc \"Attempting connection to \"",
         "  invokenonvirtual java/lang/StringBuffer.<init>(Ljava/lang/String;)V",
         "  aload 0",
-        "  getfield org/apache/log4j/net/SocketAppender$Connector.this$0 Lorg/apache/log4j/net/SocketAppender;",
+        "  getfield org/apache/log4j/net/SocketAppender$Connector.this$0"
+            + " Lorg/apache/log4j/net/SocketAppender;",
         "  getfield org/apache/log4j/net/SocketAppender.address Ljava/net/InetAddress;",
         "  invokevirtual java/net/InetAddress.getHostName()Ljava/lang/String;",
         "  invokevirtual java/lang/StringBuffer.append(Ljava/lang/String;)Ljava/lang/StringBuffer;",
@@ -857,10 +863,12 @@ public class JumpSubroutineTests extends JasminTestBase {
         "  new java/net/Socket",
         "  dup",
         "  aload 0",
-        "  getfield org/apache/log4j/net/SocketAppender$Connector.this$0 Lorg/apache/log4j/net/SocketAppender;",
+        "  getfield org/apache/log4j/net/SocketAppender$Connector.this$0"
+            + " Lorg/apache/log4j/net/SocketAppender;",
         "  getfield org/apache/log4j/net/SocketAppender.address Ljava/net/InetAddress;",
         "  aload 0",
-        "  getfield org/apache/log4j/net/SocketAppender$Connector.this$0 Lorg/apache/log4j/net/SocketAppender;",
+        "  getfield org/apache/log4j/net/SocketAppender$Connector.this$0"
+            + " Lorg/apache/log4j/net/SocketAppender;",
         "  getfield org/apache/log4j/net/SocketAppender.port I",
         "  invokenonvirtual java/net/Socket.<init>(Ljava/net/InetAddress;I)V",
         "  astore 1",
@@ -873,7 +881,8 @@ public class JumpSubroutineTests extends JasminTestBase {
         "L6:",
         ".line 373",
         "  aload 0",
-        "  getfield org/apache/log4j/net/SocketAppender$Connector.this$0 Lorg/apache/log4j/net/SocketAppender;",
+        "  getfield org/apache/log4j/net/SocketAppender$Connector.this$0"
+            + " Lorg/apache/log4j/net/SocketAppender;",
         "  new java/io/ObjectOutputStream",
         "  dup",
         "  aload 1",
@@ -883,9 +892,11 @@ public class JumpSubroutineTests extends JasminTestBase {
         "L7:",
         ".line 374",
         "  aload 0",
-        "  getfield org/apache/log4j/net/SocketAppender$Connector.this$0 Lorg/apache/log4j/net/SocketAppender;",
+        "  getfield org/apache/log4j/net/SocketAppender$Connector.this$0"
+            + " Lorg/apache/log4j/net/SocketAppender;",
         "  aconst_null",
-        "  invokestatic org/apache/log4j/net/SocketAppender.access$1(Lorg/apache/log4j/net/SocketAppender;Lorg/apache/log4j/net/SocketAppender$Connector;)V",
+        "  invokestatic"
+            + " org/apache/log4j/net/SocketAppender.access$1(Lorg/apache/log4j/net/SocketAppender;Lorg/apache/log4j/net/SocketAppender$Connector;)V",
         "L8:",
         ".line 375",
         "  ldc \"Connection established. Exiting connector thread.\"",
@@ -924,7 +935,8 @@ public class JumpSubroutineTests extends JasminTestBase {
         "  ldc \"Remote host \"",
         "  invokenonvirtual java/lang/StringBuffer.<init>(Ljava/lang/String;)V",
         "  aload 0",
-        "  getfield org/apache/log4j/net/SocketAppender$Connector.this$0 Lorg/apache/log4j/net/SocketAppender;",
+        "  getfield org/apache/log4j/net/SocketAppender$Connector.this$0"
+            + " Lorg/apache/log4j/net/SocketAppender;",
         "  getfield org/apache/log4j/net/SocketAppender.address Ljava/net/InetAddress;",
         "  invokevirtual java/net/InetAddress.getHostName()Ljava/lang/String;",
         "  invokevirtual java/lang/StringBuffer.append(Ljava/lang/String;)Ljava/lang/StringBuffer;",
@@ -949,7 +961,8 @@ public class JumpSubroutineTests extends JasminTestBase {
         "  ldc \"Could not connect to \"",
         "  invokenonvirtual java/lang/StringBuffer.<init>(Ljava/lang/String;)V",
         "  aload 0",
-        "  getfield org/apache/log4j/net/SocketAppender$Connector.this$0 Lorg/apache/log4j/net/SocketAppender;",
+        "  getfield org/apache/log4j/net/SocketAppender$Connector.this$0"
+            + " Lorg/apache/log4j/net/SocketAppender;",
         "  getfield org/apache/log4j/net/SocketAppender.address Ljava/net/InetAddress;",
         "  invokevirtual java/net/InetAddress.getHostName()Ljava/lang/String;",
         "  invokevirtual java/lang/StringBuffer.append(Ljava/lang/String;)Ljava/lang/StringBuffer;",
@@ -978,8 +991,7 @@ public class JumpSubroutineTests extends JasminTestBase {
         ".catch all from L6 to L12 using L12",
         ".catch java/lang/InterruptedException from L2 to L13 using L13",
         ".catch java/net/ConnectException from L2 to L13 using L16",
-        ".catch java/io/IOException from L2 to L13 using L21"
-    );
+        ".catch java/io/IOException from L2 to L13 using L21");
 
     // Check that the code compiles without an infinite loop. It cannot run by itself.
     AndroidApp app = compileWithD8(builder);
@@ -1065,11 +1077,15 @@ public class JumpSubroutineTests extends JasminTestBase {
 
     // This is the code for the method
     //
-    // void org.eclipse.jdt.internal.core.JavaModelOperation.run(org.eclipse.core.runtime.IProgressMonitor)
+    // void org.eclipse.jdt.internal.core.JavaModelOperation.run(
+    //    org.eclipse.core.runtime.IProgressMonitor)
     //
     // from struts2/lib/core-3.1.1.jar
     //
-    clazz.addVirtualMethod("run", ImmutableList.of("Lorg/eclipse/core/runtime/IProgressMonitor;"), "V",
+    clazz.addVirtualMethod(
+        "run",
+        ImmutableList.of("Lorg/eclipse/core/runtime/IProgressMonitor;"),
+        "V",
         ".limit stack 3",
         ".limit locals 15",
         ".var 0 is this Lorg/eclipse/jdt/internal/core/JavaModelOperation; from L0 to L50",
@@ -1085,29 +1101,34 @@ public class JumpSubroutineTests extends JasminTestBase {
         ".var 12 is openable Lorg/eclipse/jdt/internal/core/Openable; from L33 to L37",
         "L0:",
         ".line 705",
-        "  invokestatic org/eclipse/jdt/internal/core/JavaModelManager.getJavaModelManager()Lorg/eclipse/jdt/internal/core/JavaModelManager;",
+        "  invokestatic"
+            + " org/eclipse/jdt/internal/core/JavaModelManager.getJavaModelManager()Lorg/eclipse/jdt/internal/core/JavaModelManager;",
         "  astore 2",
         "L1:",
         ".line 706",
         "  aload 2",
-        "  invokevirtual org/eclipse/jdt/internal/core/JavaModelManager.getDeltaProcessor()Lorg/eclipse/jdt/internal/core/DeltaProcessor;",
+        "  invokevirtual"
+            + " org/eclipse/jdt/internal/core/JavaModelManager.getDeltaProcessor()Lorg/eclipse/jdt/internal/core/DeltaProcessor;",
         "  astore 3",
         "L2:",
         ".line 707",
         "  aload 3",
-        "  getfield org/eclipse/jdt/internal/core/DeltaProcessor.javaModelDeltas Ljava/util/ArrayList;",
+        "  getfield org/eclipse/jdt/internal/core/DeltaProcessor.javaModelDeltas"
+            + " Ljava/util/ArrayList;",
         "  invokevirtual java/util/ArrayList.size()I",
         "  istore 4",
         "L3:",
         ".line 709",
         "  aload 0",
         "  aload 1",
-        "  putfield org/eclipse/jdt/internal/core/JavaModelOperation.progressMonitor Lorg/eclipse/core/runtime/IProgressMonitor;",
+        "  putfield org/eclipse/jdt/internal/core/JavaModelOperation.progressMonitor"
+            + " Lorg/eclipse/core/runtime/IProgressMonitor;",
         "L4:",
         ".line 710",
         "  aload 0",
         "  aload 0",
-        "  invokevirtual org/eclipse/jdt/internal/core/JavaModelOperation.pushOperation(Lorg/eclipse/jdt/internal/core/JavaModelOperation;)V",
+        "  invokevirtual"
+            + " org/eclipse/jdt/internal/core/JavaModelOperation.pushOperation(Lorg/eclipse/jdt/internal/core/JavaModelOperation;)V",
         "L5:",
         ".line 712",
         "  aload 0",
@@ -1115,8 +1136,10 @@ public class JumpSubroutineTests extends JasminTestBase {
         "  ifeq L6",
         "L7:",
         ".line 715",
-        "  invokestatic org/eclipse/jdt/internal/core/JavaModelManager.getJavaModelManager()Lorg/eclipse/jdt/internal/core/JavaModelManager;",
-        "  getfield org/eclipse/jdt/internal/core/JavaModelManager.deltaState Lorg/eclipse/jdt/internal/core/DeltaProcessingState;",
+        "  invokestatic"
+            + " org/eclipse/jdt/internal/core/JavaModelManager.getJavaModelManager()Lorg/eclipse/jdt/internal/core/JavaModelManager;",
+        "  getfield org/eclipse/jdt/internal/core/JavaModelManager.deltaState"
+            + " Lorg/eclipse/jdt/internal/core/DeltaProcessingState;",
         "  invokevirtual org/eclipse/jdt/internal/core/DeltaProcessingState.initializeRoots()V",
         "L6:",
         ".line 718",
@@ -1164,7 +1187,8 @@ public class JumpSubroutineTests extends JasminTestBase {
         "L20:",
         ".line 727",
         "  aload 2",
-        "  invokevirtual org/eclipse/jdt/internal/core/JavaModelManager.getDeltaProcessor()Lorg/eclipse/jdt/internal/core/DeltaProcessor;",
+        "  invokevirtual"
+            + " org/eclipse/jdt/internal/core/JavaModelManager.getDeltaProcessor()Lorg/eclipse/jdt/internal/core/DeltaProcessor;",
         "  astore 3",
         "L21:",
         ".line 730",
@@ -1172,7 +1196,8 @@ public class JumpSubroutineTests extends JasminTestBase {
         "  istore 9",
         "L22:",
         "  aload 3",
-        "  getfield org/eclipse/jdt/internal/core/DeltaProcessor.javaModelDeltas Ljava/util/ArrayList;",
+        "  getfield org/eclipse/jdt/internal/core/DeltaProcessor.javaModelDeltas"
+            + " Ljava/util/ArrayList;",
         "  invokevirtual java/util/ArrayList.size()I",
         "  istore 10",
         "L23:",
@@ -1181,11 +1206,13 @@ public class JumpSubroutineTests extends JasminTestBase {
         ".line 731",
         "  aload 3",
         "  aload 3",
-        "  getfield org/eclipse/jdt/internal/core/DeltaProcessor.javaModelDeltas Ljava/util/ArrayList;",
+        "  getfield org/eclipse/jdt/internal/core/DeltaProcessor.javaModelDeltas"
+            + " Ljava/util/ArrayList;",
         "  iload 9",
         "  invokevirtual java/util/ArrayList.get(I)Ljava/lang/Object;",
         "  checkcast org/eclipse/jdt/core/IJavaElementDelta",
-        "  invokevirtual org/eclipse/jdt/internal/core/DeltaProcessor.updateJavaModel(Lorg/eclipse/jdt/core/IJavaElementDelta;)V",
+        "  invokevirtual"
+            + " org/eclipse/jdt/internal/core/DeltaProcessor.updateJavaModel(Lorg/eclipse/jdt/core/IJavaElementDelta;)V",
         "L26:",
         ".line 730",
         "  iinc 9 1",
@@ -1199,7 +1226,8 @@ public class JumpSubroutineTests extends JasminTestBase {
         "  istore 9",
         "L28:",
         "  aload 0",
-        "  getfield org/eclipse/jdt/internal/core/JavaModelOperation.resultElements [Lorg/eclipse/jdt/core/IJavaElement;",
+        "  getfield org/eclipse/jdt/internal/core/JavaModelOperation.resultElements"
+            + " [Lorg/eclipse/jdt/core/IJavaElement;",
         "  arraylength",
         "  istore 10",
         "L29:",
@@ -1207,14 +1235,16 @@ public class JumpSubroutineTests extends JasminTestBase {
         "L31:",
         ".line 738",
         "  aload 0",
-        "  getfield org/eclipse/jdt/internal/core/JavaModelOperation.resultElements [Lorg/eclipse/jdt/core/IJavaElement;",
+        "  getfield org/eclipse/jdt/internal/core/JavaModelOperation.resultElements"
+            + " [Lorg/eclipse/jdt/core/IJavaElement;",
         "  iload 9",
         "  aaload",
         "  astore 11",
         "L32:",
         ".line 739",
         "  aload 11",
-        "  invokeinterface org/eclipse/jdt/core/IJavaElement.getOpenable()Lorg/eclipse/jdt/core/IOpenable; 0",
+        "  invokeinterface"
+            + " org/eclipse/jdt/core/IJavaElement.getOpenable()Lorg/eclipse/jdt/core/IOpenable; 0",
         "  checkcast org/eclipse/jdt/internal/core/Openable",
         "  astore 12",
         "L33:",
@@ -1229,7 +1259,8 @@ public class JumpSubroutineTests extends JasminTestBase {
         "L34:",
         ".line 741",
         "  aload 12",
-        "  invokevirtual org/eclipse/jdt/internal/core/Openable.getParent()Lorg/eclipse/jdt/core/IJavaElement;",
+        "  invokevirtual"
+            + " org/eclipse/jdt/internal/core/Openable.getParent()Lorg/eclipse/jdt/core/IJavaElement;",
         "  checkcast org/eclipse/jdt/internal/core/JavaElement",
         "  invokevirtual org/eclipse/jdt/internal/core/JavaElement.close()V",
         "L35:",
@@ -1243,7 +1274,9 @@ public class JumpSubroutineTests extends JasminTestBase {
         "L36:",
         ".line 746",
         "  aload 11",
-        "  invokeinterface org/eclipse/jdt/core/IJavaElement.getJavaProject()Lorg/eclipse/jdt/core/IJavaProject; 0",
+        "  invokeinterface"
+            + " org/eclipse/jdt/core/IJavaElement.getJavaProject()Lorg/eclipse/jdt/core/IJavaProject;"
+            + " 0",
         "  checkcast org/eclipse/jdt/internal/core/JavaProject",
         "  invokevirtual org/eclipse/jdt/internal/core/JavaProject.resetCaches()V",
         "L37:",
@@ -1261,12 +1294,14 @@ public class JumpSubroutineTests extends JasminTestBase {
         "L40:",
         ".line 756",
         "  aload 3",
-        "  getfield org/eclipse/jdt/internal/core/DeltaProcessor.javaModelDeltas Ljava/util/ArrayList;",
+        "  getfield org/eclipse/jdt/internal/core/DeltaProcessor.javaModelDeltas"
+            + " Ljava/util/ArrayList;",
         "  invokevirtual java/util/ArrayList.size()I",
         "  iload 4",
         "  if_icmpgt L41",
         "  aload 3",
-        "  getfield org/eclipse/jdt/internal/core/DeltaProcessor.reconcileDeltas Ljava/util/HashMap;",
+        "  getfield org/eclipse/jdt/internal/core/DeltaProcessor.reconcileDeltas"
+            + " Ljava/util/HashMap;",
         "  invokevirtual java/util/HashMap.isEmpty()Z",
         "  ifne L39",
         "L41:",
@@ -1279,7 +1314,8 @@ public class JumpSubroutineTests extends JasminTestBase {
         "  aload 3",
         "  aconst_null",
         "  iconst_0",
-        "  invokevirtual org/eclipse/jdt/internal/core/DeltaProcessor.fire(Lorg/eclipse/jdt/core/IJavaElementDelta;I)V",
+        "  invokevirtual"
+            + " org/eclipse/jdt/internal/core/DeltaProcessor.fire(Lorg/eclipse/jdt/core/IJavaElementDelta;I)V",
         "  goto L39",
         "L43:",
         ".line 761",
@@ -1295,7 +1331,8 @@ public class JumpSubroutineTests extends JasminTestBase {
         "L46:",
         ".line 762",
         "  aload 0",
-        "  invokevirtual org/eclipse/jdt/internal/core/JavaModelOperation.popOperation()Lorg/eclipse/jdt/internal/core/JavaModelOperation;",
+        "  invokevirtual"
+            + " org/eclipse/jdt/internal/core/JavaModelOperation.popOperation()Lorg/eclipse/jdt/internal/core/JavaModelOperation;",
         "  pop",
         "L47:",
         ".line 763",
@@ -1316,8 +1353,7 @@ public class JumpSubroutineTests extends JasminTestBase {
         ".catch all from L3 to L17 using L17",
         ".catch all from L16 to L49 using L17",
         ".catch all from L20 to L43 using L43",
-        ".catch all from L39 to L48 using L43"
-    );
+        ".catch all from L39 to L48 using L43");
 
     // Check that the code compiles without an infinite loop. It cannot run by itself.
     AndroidApp app = compileWithD8(builder);

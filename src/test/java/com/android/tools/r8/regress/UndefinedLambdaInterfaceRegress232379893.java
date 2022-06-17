@@ -3,10 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.regress;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.containsString;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.UnverifiableCfCodeDiagnostic;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -35,7 +41,21 @@ public class UndefinedLambdaInterfaceRegress232379893 extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addDontWarn(UndefinedInterface.class)
         .addDontShrink()
+        .allowDiagnosticWarningMessages(parameters.isDexRuntime())
         .setMinApi(parameters.getApiLevel())
+        .compileWithExpectedDiagnostics(
+            diagnostics -> {
+              if (parameters.isDexRuntime()) {
+                diagnostics.assertWarningsMatch(
+                    allOf(
+                        diagnosticType(UnverifiableCfCodeDiagnostic.class),
+                        diagnosticMessage(
+                            containsString(
+                                "Unverifiable code in `void "
+                                    + TestClass.class.getTypeName()
+                                    + ".main(java.lang.String[])`"))));
+              }
+            })
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }

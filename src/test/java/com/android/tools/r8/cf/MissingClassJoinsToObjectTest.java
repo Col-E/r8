@@ -3,6 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.containsString;
+
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.R8TestRunResult;
@@ -11,6 +16,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.UnverifiableCfCodeDiagnostic;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.Test;
@@ -53,9 +59,19 @@ public class MissingClassJoinsToObjectTest extends TestBase {
             .addProgramClasses(TestClass.class, A.class)
             .addKeepMainRule(TestClass.class)
             .addDontWarn(B.class)
+            .allowDiagnosticWarningMessages()
             .enableNoMethodStaticizingAnnotations()
             .setMinApi(parameters.getApiLevel())
-            .compile()
+            .compileWithExpectedDiagnostics(
+                diagnostics ->
+                    diagnostics.assertWarningsMatch(
+                        allOf(
+                            diagnosticType(UnverifiableCfCodeDiagnostic.class),
+                            diagnosticMessage(
+                                containsString(
+                                    "Unverifiable code in `void "
+                                        + TestClass.class.getTypeName()
+                                        + ".main(java.lang.String[])`")))))
             .addRunClasspathFiles(getRuntimeClasspath())
             .run(parameters.getRuntime(), TestClass.class);
     if (parameters.isCfRuntime()) {

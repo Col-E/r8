@@ -58,7 +58,10 @@ public abstract class TestCompilerBuilder<
         options.testing.reportUnusedProguardConfigurationRules = true;
         options.horizontalClassMergerOptions().enable();
         options.horizontalClassMergerOptions().setEnableInterfaceMerging();
-        options.getCfCodeAnalysisOptions().setAllowUnreachableCfBlocks(false);
+        options
+            .getCfCodeAnalysisOptions()
+            .setAllowUnreachableCfBlocks(false)
+            .setEnableUnverifiableCodeReporting(true);
         options.getOpenClosedInterfacesOptions().disallowOpenInterfaces();
       };
 

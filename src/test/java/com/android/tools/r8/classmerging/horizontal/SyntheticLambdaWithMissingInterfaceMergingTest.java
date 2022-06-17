@@ -4,11 +4,16 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.UnverifiableCfCodeDiagnostic;
 import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import java.util.List;
 import org.junit.Test;
@@ -41,8 +46,18 @@ public class SyntheticLambdaWithMissingInterfaceMergingTest extends TestBase {
         .addHorizontallyMergedClassesInspector(
             HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .applyIf(!enableOptimization, TestShrinkerBuilder::addDontOptimize)
+        .allowDiagnosticWarningMessages()
         .setMinApi(parameters.getApiLevel())
-        .compile()
+        .compileWithExpectedDiagnostics(
+            diagnostics ->
+                diagnostics.assertWarningsMatch(
+                    allOf(
+                        diagnosticType(UnverifiableCfCodeDiagnostic.class),
+                        diagnosticMessage(
+                            containsString(
+                                "Unverifiable code in `void "
+                                    + Main.class.getTypeName()
+                                    + ".dead()`")))))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("I");
   }

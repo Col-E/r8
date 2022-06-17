@@ -77,5 +77,9 @@ public abstract class ProgramMemberMap<K extends ProgramMember<?, ?>, V> {
         .removeIf(entry -> predicate.test(entry.getKey().get(), entry.getValue()));
   }
 
+  public int size() {
+    return backing.size();
+  }
+
   abstract Wrapper<K> wrap(K member);
 }

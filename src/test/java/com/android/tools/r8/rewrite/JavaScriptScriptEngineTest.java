@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.rewrite;
 
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -79,6 +80,9 @@ public class JavaScriptScriptEngineTest extends ScriptEngineTestBase {
                         containsString("Missing class "),
                         containsString(
                             "required for default or static interface methods desugaring"),
+                        allOf(
+                            containsString("Unverifiable code in `"),
+                            containsString("org.mozilla.javascript.tools.")),
                         equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))))
         .run(parameters.getRuntime(), TestClass.class)
         .applyIf(

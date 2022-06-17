@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.rewrite;
 
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -36,19 +37,18 @@ import javax.script.ScriptException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class ScriptEngineTest extends ScriptEngineTestBase {
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
-  }
-
-  public ScriptEngineTest(TestParameters parameters) {
-    this.parameters = parameters;
   }
 
   @Test
@@ -96,6 +96,9 @@ public class ScriptEngineTest extends ScriptEngineTestBase {
                         containsString("Missing class "),
                         containsString(
                             "it is required for default or static interface methods desugaring"),
+                        allOf(
+                            containsString("Unverifiable code in `"),
+                            containsString("org.mozilla.javascript.tools.")),
                         equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))))
         .writeToZip(path)
         .run(parameters.getRuntime(), TestClass.class)

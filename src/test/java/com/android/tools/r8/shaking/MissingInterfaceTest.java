@@ -3,12 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.UnverifiableCfCodeDiagnostic;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import org.junit.Test;
@@ -40,7 +44,18 @@ public class MissingInterfaceTest extends TestBase {
         .addKeepMainRule(TestClassForB112849320.class)
         .addOptionsModification(options -> options.inlinerOptions().enableInlining = false)
         .addKeepPackageNamesRule(GoingToBeMissed.class.getPackage())
-        .compile()
+        .allowDiagnosticWarningMessages()
+        .compileWithExpectedDiagnostics(
+            diagnostics ->
+                diagnostics.assertWarningsMatch(
+                    allOf(
+                        diagnosticType(UnverifiableCfCodeDiagnostic.class),
+                        diagnosticMessage(
+                            containsString(
+                                "Unverifiable code in `"
+                                    + "void "
+                                    + TestClassForB112849320.class.getTypeName()
+                                    + ".main(java.lang.String[])`")))))
         .addRunClasspathFiles(
             buildOnDexRuntime(
                 parameters,

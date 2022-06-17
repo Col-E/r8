@@ -205,6 +205,13 @@ public class GMSCoreV10Test extends GMSCoreCompilationTestBase {
             anyOf(
                 containsString("Ignoring option: -optimizations"),
                 containsString("Proguard configuration rule does not match anything")))
-        .assertAllWarningMessagesMatch(containsString("Ignoring option: -outjars"));
+        .assertAllWarningMessagesMatch(
+            anyOf(
+                containsString("Ignoring option: -outjars"),
+                containsString(
+                    "Unverifiable code in `"
+                        + "java.net.Socket com.google.android.gms.org.conscrypt."
+                        + "KitKatPlatformOpenSSLSocketAdapterFactory.wrap("
+                        + "com.google.android.gms.org.conscrypt.OpenSSLSocketImpl)`")));
   }
 }

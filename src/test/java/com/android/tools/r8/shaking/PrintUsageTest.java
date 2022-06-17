@@ -66,10 +66,11 @@ public class PrintUsageTest extends TestBase {
         .addKeepRuleFiles(ListUtils.map(keepRulesFiles, Paths::get))
         .addKeepRules("-printusage " + out.resolve(test + PRINT_USAGE_FILE_SUFFIX))
         .applyIf(
-            test.equals("shaking12")
-                && parameters.isDexRuntime()
-                && parameters.getApiLevel().isLessThan(AndroidApiLevel.K),
-            builder -> builder.addDontWarn(ReflectiveOperationException.class))
+            test.equals("shaking12") && parameters.isDexRuntime(),
+            testBuilder ->
+                // Link against android.jar that contains ReflectiveOperationException.
+                testBuilder.addLibraryFiles(
+                    parameters.getDefaultAndroidJarAbove(AndroidApiLevel.K)))
         // Disable inlining to make this test not depend on inlining decisions.
         .addOptionsModification(o -> o.inlinerOptions().enableInlining = false)
         .enableProguardTestOptions()

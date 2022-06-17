@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -21,6 +23,7 @@ import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.UnverifiableCfCodeDiagnostic;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -311,14 +314,22 @@ public class InvalidTypesTest extends JasminTestBase {
                 })
             .allowDiagnosticWarningMessages(allowDiagnosticWarningMessages)
             .setMinApi(parameters.getApiLevel())
-            .compile()
-            .applyIf(
-                allowDiagnosticWarningMessages,
-                result ->
-                    result.assertAllWarningMessagesMatch(
-                        equalTo(
-                            "The method `void UnverifiableClass.unverifiableMethod()` does not"
-                                + " type check and will be assumed to be unreachable.")))
+            .compileWithExpectedDiagnostics(
+                diagnostics -> {
+                  if (allowDiagnosticWarningMessages) {
+                    diagnostics.assertWarningsMatch(
+                        allOf(
+                            diagnosticType(UnverifiableCfCodeDiagnostic.class),
+                            diagnosticMessage(
+                                containsString(
+                                    "Unverifiable code in `void"
+                                        + " UnverifiableClass.unverifiableMethod()`"))),
+                        diagnosticMessage(
+                            equalTo(
+                                "The method `void UnverifiableClass.unverifiableMethod()` does not"
+                                    + " type check and will be assumed to be unreachable.")));
+                  }
+                })
             .run(parameters.getRuntime(), mainClass.name);
     checkTestRunResult(r8Result, Compiler.R8);
   }

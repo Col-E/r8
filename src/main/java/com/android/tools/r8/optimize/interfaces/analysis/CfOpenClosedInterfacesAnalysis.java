@@ -11,6 +11,7 @@ import com.android.tools.r8.cf.code.frame.FrameType;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
+import com.android.tools.r8.graph.DexClassAndMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -23,38 +24,101 @@ import com.android.tools.r8.ir.analysis.framework.intraprocedural.cf.CfBlock;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.cf.CfControlFlowGraph;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.cf.CfIntraproceduralDataflowAnalysis;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.UnverifiableCfCodeDiagnostic;
+import com.android.tools.r8.utils.collections.ProgramMethodMap;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 public class CfOpenClosedInterfacesAnalysis {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final CfAssignability assignability;
+  private final InternalOptions options;
+
+  private final ProgramMethodMap<UnverifiableCfCodeDiagnostic> unverifiableCodeDiagnostics =
+      ProgramMethodMap.createConcurrent();
 
   public CfOpenClosedInterfacesAnalysis(AppView<AppInfoWithLiveness> appView) {
+    InternalOptions options = appView.options();
     this.appView = appView;
     this.assignability = new CfSubtypingAssignability(appView);
+    this.options = options;
   }
 
-  public void run() {
-    // TODO(b/214496607): Parallelize the analysis.
-    for (DexProgramClass clazz : appView.appInfo().classes()) {
-      clazz.forEachProgramMethodMatching(DexEncodedMethod::hasCode, this::processMethod);
-    }
+  public boolean run(ExecutorService executorService) throws ExecutionException {
+    processClasses(executorService);
+    reportUnverifiableCodeDiagnostics();
+    return true;
+  }
+
+  private void processClasses(ExecutorService executorService) throws ExecutionException {
+    ThreadUtils.processItems(appView.appInfo().classes(), this::processClass, executorService);
+  }
+
+  private void processClass(DexProgramClass clazz) {
+    clazz.forEachProgramMethodMatching(DexEncodedMethod::hasCode, this::processMethod);
   }
 
   private void processMethod(ProgramMethod method) {
     Code code = method.getDefinition().getCode();
     if (!code.isCfCode()) {
-      assert code.isDefaultInstanceInitializerCode() || code.isThrowNullCode();
+      assert code.isDefaultInstanceInitializerCode() || code.isDexCode() || code.isThrowNullCode();
       return;
     }
 
     CfCode cfCode = code.asCfCode();
-    CfControlFlowGraph cfg = CfControlFlowGraph.create(cfCode, appView.options());
+    CfControlFlowGraph cfg = CfControlFlowGraph.create(cfCode, options);
+    TransferFunction transfer = new TransferFunction(method);
     CfIntraproceduralDataflowAnalysis<CfFrameState> analysis =
-        new CfIntraproceduralDataflowAnalysis<>(
-            appView, CfFrameState.bottom(), cfg, new TransferFunction(method));
+        new CfIntraproceduralDataflowAnalysis<>(appView, CfFrameState.bottom(), cfg, transfer);
     DataflowAnalysisResult result = analysis.run(cfg.getEntryBlock());
-    // TODO(b/214496607): Determine open interfaces.
+    assert result.isSuccessfulAnalysisResult();
+    for (CfBlock block : cfg.getBlocks()) {
+      if (analysis.isIntermediateBlock(block)) {
+        continue;
+      }
+      CfFrameState state = analysis.computeBlockEntryState(block);
+      do {
+        for (int instructionIndex = block.getFirstInstructionIndex();
+            instructionIndex <= block.getLastInstructionIndex();
+            instructionIndex++) {
+          // TODO(b/214496607): Determine open interfaces.
+          CfInstruction instruction = cfCode.getInstruction(instructionIndex);
+          state = transfer.apply(instruction, state).asAbstractState();
+          if (state.isError()) {
+            if (options.getCfCodeAnalysisOptions().isUnverifiableCodeReportingEnabled()) {
+              unverifiableCodeDiagnostics.put(
+                  method,
+                  new UnverifiableCfCodeDiagnostic(
+                      method.getMethodReference(),
+                      instructionIndex,
+                      state.asError().getMessage(),
+                      method.getOrigin()));
+            }
+            return;
+          }
+        }
+        if (analysis.isBlockWithIntermediateSuccessorBlock(block)) {
+          block = cfg.getUniqueSuccessor(block);
+        } else {
+          block = null;
+        }
+      } while (block != null);
+    }
+  }
+
+  private void reportUnverifiableCodeDiagnostics() {
+    Reporter reporter = appView.reporter();
+    List<ProgramMethod> methods = new ArrayList<>(unverifiableCodeDiagnostics.size());
+    unverifiableCodeDiagnostics.forEach((method, diagnostic) -> methods.add(method));
+    methods.sort(Comparator.comparing(DexClassAndMember::getReference));
+    methods.forEach(method -> reporter.warning(unverifiableCodeDiagnostics.get(method)));
   }
 
   private class TransferFunction

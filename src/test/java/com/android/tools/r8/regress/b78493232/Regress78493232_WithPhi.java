@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.regress.b78493232;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.AsmTestBase;
@@ -17,6 +19,7 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 // Variant of Regress78493232, but where the new-instance is forced to flow to a non-trivial phi
@@ -35,15 +38,12 @@ public class Regress78493232_WithPhi extends AsmTestBase {
   private static final List<byte[]> CLASS_BYTES =
       ImmutableList.of(Regress78493232Dump_WithPhi.dump());
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
-  }
-
-  public Regress78493232_WithPhi(TestParameters parameters) {
-    this.parameters = parameters;
   }
 
   @Test
@@ -86,11 +86,22 @@ public class Regress78493232_WithPhi extends AsmTestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(CLASSES)
             .addProgramClassFileData(CLASS_BYTES)
+            .allowDiagnosticWarningMessages()
             .treeShaking(treeShake)
             .noMinification()
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(options -> options.testing.readInputStackMaps = false)
             .addKeepMainRule(MAIN)
+            .compileWithExpectedDiagnostics(
+                diagnostics ->
+                    diagnostics.assertWarningsMatch(
+                        diagnosticMessage(
+                            equalTo(
+                                "Unverifiable code in `java.lang.String regress78493232.Test."
+                                    + "methodCausingIssue(byte, short, int)` at instruction 53: "
+                                    + "Cannot join stacks, expected frame types at stack index 1 "
+                                    + "to join to a precise (non-top) type, but types null and "
+                                    + "uninitialized java.lang.String do not."))))
             .run(parameters.getRuntime(), MAIN);
     checkResult(result);
   }

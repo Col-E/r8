@@ -33,7 +33,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class InlineCatchHandlerWithLibraryTypeTest extends TestBase {
 
-  private static final String TEMPLATE_CODE_EXCEPTION_BINARY_NAME = "java/lang/RuntimeException";
+  private static final String TEMPLATE_CODE_EXCEPTION_BINARY_NAME = "java/lang/Exception";
 
   // A subset of exception types introduced in API levels between 16 to 24.
   private static final Map<String, Integer> EXCEPTIONS =
@@ -156,7 +156,7 @@ public class InlineCatchHandlerWithLibraryTypeTest extends TestBase {
     public static void methodWithCatch() {
       try {
         maybeThrow();
-      } catch (RuntimeException e) {
+      } catch (Exception e) {
         // We must use the exception, otherwise there is no move-exception that triggers the
         // verification error.
         System.out.println(e.getClass().getName());

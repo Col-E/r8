@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertTrue;
 
@@ -15,6 +18,7 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.transformers.ClassTransformer;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.UnverifiableCfCodeDiagnostic;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -147,7 +151,18 @@ public class InvokeSuperTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(MainClassFailing.class)
         .addOptionsModification(o -> o.testing.allowTypeErrors = true)
+        .allowDiagnosticWarningMessages()
         .enableNoMethodStaticizingAnnotations()
+        .compileWithExpectedDiagnostics(
+            diagnostics ->
+                diagnostics.assertWarningsMatch(
+                    allOf(
+                        diagnosticType(UnverifiableCfCodeDiagnostic.class),
+                        diagnosticMessage(
+                            containsString(
+                                "Unverifiable code in `void "
+                                    + InvokerClass.class.getTypeName()
+                                    + ".invokeSubLevel2MethodOnSubClassOfInvokerClass()`")))))
         .run(parameters.getRuntime(), MainClassFailing.class)
         .apply(r -> checkNonVerifyingResult(r, true));
   }

@@ -4,12 +4,16 @@
 
 package com.android.tools.r8.desugar;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.UnverifiableCfCodeDiagnostic;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -36,8 +40,18 @@ public class LambdaMissingInterfaceTest extends TestBase {
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .addDontWarn(MissingInterface.class)
+        .allowDiagnosticWarningMessages()
         .enableInliningAnnotations()
-        .compile()
+        .compileWithExpectedDiagnostics(
+            diagnostics ->
+                diagnostics.assertWarningsMatch(
+                    allOf(
+                        diagnosticType(UnverifiableCfCodeDiagnostic.class),
+                        diagnosticMessage(
+                            containsString(
+                                "Unverifiable code in `void "
+                                    + ClassWithLambda.class.getTypeName()
+                                    + ".callWithLambda()`")))))
         .addRunClasspathClasses(MissingInterface.class)
         .run(parameters.getRuntime(), Main.class)
         // We allow for renaming if the class is missing

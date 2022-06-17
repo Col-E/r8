@@ -4,12 +4,17 @@
 
 package com.android.tools.r8.graph.invokespecial;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromJavaType;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.UnverifiableCfCodeDiagnostic;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.List;
@@ -49,9 +54,12 @@ public class InvokeSpecialToSubclassTest extends TestBase {
         .assertFailureWithErrorThatThrowsIf(!isExpectedToSucceedWithD8(), VerifyError.class);
   }
 
+  private boolean isExpectedToSucceedWithJvm() {
+    return holder == C.class;
+  }
+
   private boolean isExpectedToSucceedWithD8() {
-    if (holder == C.class) {
-      // Should always succeed.
+    if (isExpectedToSucceedWithJvm()) {
       return true;
     }
     // TODO(b/144410139): Consider making this a compilation failure instead.
@@ -72,7 +80,22 @@ public class InvokeSpecialToSubclassTest extends TestBase {
         .addProgramClasses(EmptySubC.class, C.class, D.class, Main.class)
         .addProgramClassFileData(getClassBWithTransformedInvoked(holder))
         .addKeepMainRule(Main.class)
+        .allowDiagnosticWarningMessages(!isExpectedToSucceedWithJvm())
         .setMinApi(parameters.getApiLevel())
+        .compileWithExpectedDiagnostics(
+            diagnostics -> {
+              if (!isExpectedToSucceedWithJvm()) {
+                diagnostics.assertWarningsMatch(
+                    allOf(
+                        diagnosticType(UnverifiableCfCodeDiagnostic.class),
+                        diagnosticMessage(
+                            containsString(
+                                "Unverifiable code in `"
+                                    + "void "
+                                    + B.class.getTypeName()
+                                    + ".callPrint()`"))));
+              }
+            })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("D");
   }

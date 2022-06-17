@@ -4,6 +4,10 @@
 
 package com.android.tools.r8.ir.optimize.inliner;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
@@ -12,6 +16,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.UnverifiableCfCodeDiagnostic;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.google.common.collect.Streams;
 import org.junit.Test;
@@ -65,8 +70,18 @@ public class Regress131349148 extends TestBase {
                 ExistingException.class)
             .addKeepMainRule(TestClassCallingMethodWithNonExisting.class)
             .addDontWarn(NonExistingException.class)
+            .allowDiagnosticWarningMessages()
             .setMinApi(parameters.getApiLevel())
-            .compile()
+            .compileWithExpectedDiagnostics(
+                diagnostics ->
+                    diagnostics.assertWarningsMatch(
+                        allOf(
+                            diagnosticType(UnverifiableCfCodeDiagnostic.class),
+                            diagnosticMessage(
+                                containsString(
+                                    "Unverifiable code in `void "
+                                        + ClassWithCatchNonExisting.class.getTypeName()
+                                        + ".methodWithCatch()`")))))
             .run(parameters.getRuntime(), TestClassCallingMethodWithNonExisting.class)
             .assertSuccess();
     ClassSubject classSubject =
