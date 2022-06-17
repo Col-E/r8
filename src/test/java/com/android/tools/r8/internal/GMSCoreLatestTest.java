@@ -132,6 +132,18 @@ public class GMSCoreLatestTest extends GMSCoreCompilationTestBase {
                         + "java.net.Socket com.google.android.gms.org.conscrypt."
                         + "KitKatPlatformOpenSSLSocketAdapterFactory.wrap("
                         + "com.google.android.gms.org.conscrypt.OpenSSLSocketImpl)`"),
+                containsString(
+                    "Unverifiable code in `"
+                        + "java.net.Socket com.google.android.gms.org.conscrypt."
+                        + "PreKitKatPlatformOpenSSLSocketAdapterFactory.wrap("
+                        + "com.google.android.gms.org.conscrypt.OpenSSLSocketImpl)`"),
+                containsString(
+                    "Unverifiable code in `"
+                        + "android.content.pm.PackageStats com.google.android.libraries.performance"
+                        + ".primes.metriccapture.PackageStatsCapture"
+                        + ".getPackageStatsUsingInternalAPI(android.content.Context, long, "
+                        + "com.google.android.libraries.performance.primes.metriccapture."
+                        + "PackageStatsCapture$PackageStatsInvocation[])`"),
                 allOf(
                     startsWith(
                         "Rule matches the static final field "
