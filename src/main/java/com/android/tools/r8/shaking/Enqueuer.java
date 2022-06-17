@@ -692,7 +692,7 @@ public class Enqueuer {
         internalDefinitionFor(
             programClass.type, programClass, this::recordNonProgramClass, this::reportMissingClass);
     assert classResolutionResult.hasClassResolutionResult();
-    DexClass alternativeClass = classResolutionResult.toAlternativeClassWithProgramOverLibrary();
+    DexClass alternativeClass = classResolutionResult.toAlternativeClass();
     assert alternativeClass == null || alternativeClass.isLibraryClass();
     return alternativeClass != null;
   }
@@ -2562,9 +2562,7 @@ public class Enqueuer {
       return;
     }
     DexClass alternativeResolutionResult =
-        appInfo()
-            .contextIndependentDefinitionForWithResolutionResult(type)
-            .toAlternativeClassWithProgramOverLibrary();
+        appInfo().contextIndependentDefinitionForWithResolutionResult(type).toAlternativeClass();
     if (alternativeResolutionResult != null && alternativeResolutionResult.isLibraryClass()) {
       // We are in a situation where a library class inherits from a library class, which has a
       // program class duplicated version for low API levels.

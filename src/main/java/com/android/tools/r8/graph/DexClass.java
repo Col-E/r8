@@ -156,7 +156,12 @@ public abstract class DexClass extends DexDefinition
   }
 
   @Override
-  public DexClass toAlternativeClassWithProgramOverLibrary() {
+  public DexClass toSingleClassWithLibraryOverProgram() {
+    return this;
+  }
+
+  @Override
+  public DexClass toAlternativeClass() {
     return null;
   }
 

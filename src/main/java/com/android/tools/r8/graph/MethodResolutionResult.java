@@ -344,6 +344,15 @@ public abstract class MethodResolutionResult
       return null;
     }
 
+    private static DexClass definitionForHelper(AppInfoWithClassHierarchy appInfo, DexType type) {
+      if (type == null) {
+        return null;
+      }
+      return appInfo
+          .contextIndependentDefinitionForWithResolutionResult(type)
+          .toSingleClassWithLibraryOverProgram();
+    }
+
     /**
      * Lookup the target of an invoke-super.
      *
@@ -447,7 +456,7 @@ public abstract class MethodResolutionResult
           && !symbolicReference.isInterface()
           && isSuperclass.test(symbolicReference, context)) {
         // If reference is a super type of the context then search starts at the immediate super.
-        initialType = context.superType == null ? null : appInfo.definitionFor(context.superType);
+        initialType = definitionForHelper(appInfo, context.superType);
       } else {
         // Otherwise it starts at the reference itself.
         initialType = symbolicReference;
@@ -465,7 +474,7 @@ public abstract class MethodResolutionResult
         if (target != null) {
           break;
         }
-        current = current.superType == null ? null : appInfo.definitionFor(current.superType);
+        current = definitionForHelper(appInfo, current.superType);
       }
       // 4. Otherwise, it is the single maximally specific method:
       if (target == null) {
@@ -698,7 +707,7 @@ public abstract class MethodResolutionResult
         Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
       if (lambdaInstance.getMainMethod().match(resolvedMethod)) {
         DexMethod methodReference = lambdaInstance.implHandle.asMethod();
-        DexClass holder = appInfo.definitionForHolder(methodReference);
+        DexClass holder = definitionForHelper(appInfo, methodReference.getHolderType());
         DexClassAndMethod method = methodReference.lookupMemberOnClass(holder);
         if (method == null) {
           // The targeted method might not exist, eg, Throwable.addSuppressed in an old library.
@@ -743,7 +752,7 @@ public abstract class MethodResolutionResult
           if (current.type == overrideTarget.getHolderType()) {
             return null;
           }
-          current = current.superType == null ? null : appInfo.definitionFor(current.superType);
+          current = definitionForHelper(appInfo, current.superType);
           continue;
         }
         DexClassAndMethod target = DexClassAndMethod.create(current, candidate);
@@ -817,11 +826,11 @@ public abstract class MethodResolutionResult
     }
 
     private static DexClassAndMethod findWideningOverride(
-        DexClassAndMethod resolvedMethod, DexClass clazz, AppInfoWithClassHierarchy appView) {
+        DexClassAndMethod resolvedMethod, DexClass clazz, AppInfoWithClassHierarchy appInfo) {
       // Otherwise, lookup to first override that is distinct from resolvedMethod.
       assert resolvedMethod.getDefinition().accessFlags.isPackagePrivate();
       while (clazz.superType != null) {
-        clazz = appView.definitionFor(clazz.superType);
+        clazz = definitionForHelper(appInfo, clazz.superType);
         if (clazz == null) {
           return resolvedMethod;
         }
