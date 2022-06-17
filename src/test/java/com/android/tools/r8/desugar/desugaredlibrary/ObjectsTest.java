@@ -76,14 +76,16 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
             DESUGARED_JDK_8_LIB_JAR,
             "desugar_jdk_libs.json",
             AndroidApiLevel.LATEST,
-            LibraryDesugaringSpecification.JDK8_DESCRIPTOR);
+            LibraryDesugaringSpecification.JDK8_DESCRIPTOR,
+            true);
     LibraryDesugaringSpecification jdk11MaxCompileSdk =
         new LibraryDesugaringSpecification(
             "JDK11_MAX",
             ToolHelper.getUndesugaredJdk11LibJarForTesting(),
             "jdk11/desugar_jdk_libs.json",
             AndroidApiLevel.LATEST,
-            LibraryDesugaringSpecification.JDK11_DESCRIPTOR);
+            LibraryDesugaringSpecification.JDK11_DESCRIPTOR,
+            false);
     return buildParameters(
         getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
         ImmutableList.of(JDK8, JDK11, jdk8MaxCompileSdk, jdk11MaxCompileSdk),

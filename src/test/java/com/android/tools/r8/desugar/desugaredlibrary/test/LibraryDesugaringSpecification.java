@@ -7,6 +7,8 @@ import static com.android.tools.r8.ToolHelper.DESUGARED_JDK_11_LIB_JAR;
 import static com.android.tools.r8.ToolHelper.DESUGARED_JDK_8_LIB_JAR;
 import static com.android.tools.r8.ToolHelper.DESUGARED_LIB_RELEASES_DIR;
 import static com.android.tools.r8.ToolHelper.getUndesugaredJdk11LibJarForTesting;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.CustomConversionVersion.LATEST;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.CustomConversionVersion.LEGACY;
 
 import com.android.tools.r8.L8TestBuilder;
 import com.android.tools.r8.TestParameters;
@@ -74,6 +76,11 @@ public class LibraryDesugaringSpecification {
     }
   }
 
+  public enum CustomConversionVersion {
+    LEGACY,
+    LATEST
+  }
+
   // Main head specifications.
   public static LibraryDesugaringSpecification JDK8 =
       new LibraryDesugaringSpecification(
@@ -81,28 +88,32 @@ public class LibraryDesugaringSpecification {
           DESUGARED_JDK_8_LIB_JAR,
           "desugar_jdk_libs.json",
           AndroidApiLevel.P,
-          JDK8_DESCRIPTOR);
+          JDK8_DESCRIPTOR,
+          LEGACY);
   public static LibraryDesugaringSpecification JDK11 =
       new LibraryDesugaringSpecification(
           "JDK11",
           getUndesugaredJdk11LibJarForTesting(),
           "jdk11/desugar_jdk_libs.json",
           AndroidApiLevel.R,
-          JDK11_DESCRIPTOR);
+          JDK11_DESCRIPTOR,
+          LATEST);
   public static LibraryDesugaringSpecification JDK11_MINIMAL =
       new LibraryDesugaringSpecification(
           "JDK11_MINIMAL",
           getUndesugaredJdk11LibJarForTesting(),
           "jdk11/desugar_jdk_libs_minimal.json",
           AndroidApiLevel.R,
-          EMPTY_DESCRIPTOR_24);
+          EMPTY_DESCRIPTOR_24,
+          LATEST);
   public static LibraryDesugaringSpecification JDK11_PATH =
       new LibraryDesugaringSpecification(
           "JDK11_PATH",
           getUndesugaredJdk11LibJarForTesting(),
           "jdk11/desugar_jdk_libs_path.json",
           AndroidApiLevel.R,
-          JDK11_PATH_DESCRIPTOR);
+          JDK11_PATH_DESCRIPTOR,
+          LATEST);
 
   // Legacy specifications.
   public static LibraryDesugaringSpecification JDK11_PATH_ALTERNATIVE_3 =
@@ -111,14 +122,16 @@ public class LibraryDesugaringSpecification {
           getUndesugaredJdk11LibJarForTesting(),
           "jdk11/desugar_jdk_libs_path_alternative_3.json",
           AndroidApiLevel.R,
-          JDK11_PATH_DESCRIPTOR);
+          JDK11_PATH_DESCRIPTOR,
+          LATEST);
   public static LibraryDesugaringSpecification JDK11_CHM_ONLY =
       new LibraryDesugaringSpecification(
           "JDK11_CHM_ONLY",
           getUndesugaredJdk11LibJarForTesting(),
           "jdk11/chm_only_desugar_jdk_libs.json",
           AndroidApiLevel.R,
-          EMPTY_DESCRIPTOR_24);
+          EMPTY_DESCRIPTOR_24,
+          LATEST);
   public static LibraryDesugaringSpecification JDK11_LEGACY =
       new LibraryDesugaringSpecification(
           "JDK11_LEGACY",
@@ -126,7 +139,8 @@ public class LibraryDesugaringSpecification {
           DESUGARED_JDK_11_LIB_JAR,
           "jdk11/desugar_jdk_libs_legacy.json",
           AndroidApiLevel.R,
-          JDK11_LEGACY_DESCRIPTOR);
+          JDK11_LEGACY_DESCRIPTOR,
+          LEGACY);
   public static final LibraryDesugaringSpecification RELEASED_1_0_9 =
       new LibraryDesugaringSpecification("1.0.9", AndroidApiLevel.P);
   public static final LibraryDesugaringSpecification RELEASED_1_0_10 =
@@ -150,10 +164,11 @@ public class LibraryDesugaringSpecification {
       Path desugarJdkLibs,
       String specificationPath,
       AndroidApiLevel androidJarLevel,
-      Descriptor descriptor) {
+      Descriptor descriptor,
+      CustomConversionVersion legacy) {
     this(
         name,
-        ImmutableSet.of(desugarJdkLibs, ToolHelper.getConvertedDesugaredLibConversions()),
+        ImmutableSet.of(desugarJdkLibs, ToolHelper.getConvertedDesugaredLibConversions(legacy)),
         Paths.get("src/library_desugar/" + specificationPath),
         ImmutableSet.of(ToolHelper.getAndroidJar(androidJarLevel)),
         descriptor,

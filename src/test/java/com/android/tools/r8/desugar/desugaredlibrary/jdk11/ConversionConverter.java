@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.jdk11;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.CustomConversionVersion.LEGACY;
+
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.CustomConversionVersion;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.transformers.ClassFileTransformer;
 import com.android.tools.r8.transformers.MethodTransformer;
@@ -57,6 +60,9 @@ public class ConversionConverter {
     JAVA_WRAP_CONVERT_OWNER.put(
         "j$/nio/file/attribute/PosixFilePermission",
         "java/nio/file/attribute/PosixFilePermission$EnumConversion");
+    JAVA_WRAP_CONVERT_OWNER.put(
+        "j$/util/stream/Collector$Characteristics",
+        "java/util/stream/Collector$Characteristics$EnumConversion");
 
     J$_WRAP_CONVERT_OWNER.put(
         "j$/nio/file/spi/FileSystemProvider", "java/nio/file/spi/FileSystemProvider$Wrapper");
@@ -85,17 +91,23 @@ public class ConversionConverter {
     J$_WRAP_CONVERT_OWNER.put(
         "j$/nio/file/attribute/PosixFilePermission",
         "java/nio/file/attribute/PosixFilePermission$EnumConversion");
+    J$_WRAP_CONVERT_OWNER.put(
+        "j$/util/stream/Collector$Characteristics",
+        "java/util/stream/Collector$Characteristics$EnumConversion");
   }
 
-  public static Path convertJar(Path jar) {
+  public static Path convertJar(Path jar, CustomConversionVersion legacy) {
     String fileName = jar.getFileName().toString();
     String newFileName =
-        fileName.substring(0, fileName.length() - ".jar".length()) + "_converted.jar";
+        fileName.substring(0, fileName.length() - ".jar".length())
+            + (legacy == LEGACY ? "_legacy" : "")
+            + "_converted.jar";
     Path convertedJar = jar.getParent().resolve(newFileName);
-    return internalConvert(jar, convertedJar);
+    return internalConvert(jar, convertedJar, legacy);
   }
 
-  private static synchronized Path internalConvert(Path jar, Path convertedJar) {
+  private static synchronized Path internalConvert(
+      Path jar, Path convertedJar, CustomConversionVersion legacy) {
     if (Files.exists(convertedJar)) {
       return convertedJar;
     }
@@ -105,18 +117,24 @@ public class ConversionConverter {
     try (ZipOutputStream out =
         new ZipOutputStream(
             new BufferedOutputStream(Files.newOutputStream(convertedJar, options)))) {
-      new ConversionConverter().convert(jar, out);
+      new ConversionConverter().convert(jar, out, legacy);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
     return convertedJar;
   }
 
-  private void convert(Path desugaredLibraryFiles, ZipOutputStream out) throws IOException {
+  private void convert(
+      Path desugaredLibraryFiles, ZipOutputStream out, CustomConversionVersion legacy)
+      throws IOException {
     ZipUtils.iter(
         desugaredLibraryFiles,
         ((entry, input) -> {
           if (!entry.getName().endsWith(".class")) {
+            return;
+          }
+          if (legacy == LEGACY
+              && (entry.getName().contains("nio.file") || entry.getName().contains("ApiFlips"))) {
             return;
           }
           final byte[] bytes = StreamUtils.streamToByteArrayClose(input);

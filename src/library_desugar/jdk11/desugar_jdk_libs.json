@@ -95,56 +95,24 @@
         "java.util.stream.Stream java.io.BufferedReader#lines()": "java.io.DesugarBufferedReader",
         "java.util.Spliterator java.util.LinkedHashSet#spliterator()": "java.util.DesugarLinkedHashSet"
       },
+      "api_generic_types_conversion": {
+        "java.util.Set java.util.stream.Collector#characteristics()" : [-1, "java.util.Set java.util.stream.StreamApiFlips#flipCharacteristicSet(java.util.Set)"]
+      },
       "wrapper_conversion": [
-        "java.util.function.IntUnaryOperator",
-        "java.util.function.BiFunction",
-        "java.util.function.IntConsumer",
-        "java.util.function.IntBinaryOperator",
-        "java.util.function.UnaryOperator",
-        "java.util.function.DoubleConsumer",
-        "java.util.function.IntPredicate",
-        "java.util.Spliterator$OfLong",
-        "java.util.stream.Collector",
-        "java.util.function.LongPredicate",
-        "java.util.function.ToLongFunction",
-        "java.util.function.LongToDoubleFunction",
-        "java.util.PrimitiveIterator$OfInt",
-        "java.util.function.LongToIntFunction",
-        "java.util.function.Predicate",
-        "java.util.Spliterator$OfPrimitive",
-        "java.util.function.DoubleToIntFunction",
-        "java.util.function.ObjDoubleConsumer",
-        "java.util.function.BinaryOperator",
-        "java.util.stream.DoubleStream",
-        "java.util.Spliterator$OfInt",
-        "java.util.stream.Stream",
-        "java.util.function.ObjLongConsumer",
-        "java.util.function.ToDoubleFunction",
-        "java.util.stream.IntStream",
-        "java.util.function.LongBinaryOperator",
-        "java.util.Spliterator$OfDouble",
-        "java.util.function.DoubleFunction",
-        "java.util.function.ObjIntConsumer",
-        "java.util.function.Function",
-        "java.util.function.Supplier",
-        "java.util.function.DoubleUnaryOperator",
-        "java.util.function.BiPredicate",
         "java.util.PrimitiveIterator$OfDouble",
-        "java.util.function.DoubleBinaryOperator",
+        "java.util.PrimitiveIterator$OfInt",
         "java.util.PrimitiveIterator$OfLong",
-        "java.util.function.BiConsumer",
-        "java.util.function.IntFunction",
-        "java.util.stream.LongStream",
-        "java.util.function.IntToDoubleFunction",
-        "java.util.function.LongFunction",
-        "java.util.function.ToIntFunction",
-        "java.util.function.LongConsumer",
-        "java.util.function.Consumer",
-        "java.util.function.IntToLongFunction",
-        "java.util.function.DoubleToLongFunction",
-        "java.util.function.LongUnaryOperator",
+        "java.util.Spliterator$OfDouble",
+        "java.util.Spliterator$OfInt",
+        "java.util.Spliterator$OfLong",
+        "java.util.Spliterator$OfPrimitive",
         "java.util.stream.BaseStream",
-        "java.util.function.DoublePredicate"
+        "java.util.stream.Collector",
+        "java.util.stream.Collector$Characteristics",
+        "java.util.stream.DoubleStream",
+        "java.util.stream.IntStream",
+        "java.util.stream.LongStream",
+        "java.util.stream.Stream"
       ],
       "wrapper_conversion_excluding": {
         "java.util.Spliterator": [
@@ -242,7 +210,8 @@
         "java.util.KeyValueHolder": "j$.util.KeyValueHolder",
         "java.util.SortedSet$1": "j$.util.SortedSet$1",
         "java.util.Tripwire": "j$.util.Tripwire",
-        "java.util.concurrent.Helpers": "j$.util.concurrent.Helpers"
+        "java.util.concurrent.Helpers": "j$.util.concurrent.Helpers",
+        "java.util.ConversionRuntimeException": "j$.util.ConversionRuntimeException"
       },
       "rewrite_derived_prefix": {
         "java.util.DoubleSummaryStatistics": {
@@ -253,6 +222,9 @@
         },
         "java.util.LongSummaryStatistics": {
           "j$.util.LongSummaryStatistics": "java.util.LongSummaryStatistics"
+        },
+        "java.util.stream.Collector": {
+          "j$.util.stream.Collector": "java.util.stream.Collector"
         },
         "java.util.Optional": {
           "j$.util.Optional": "java.util.Optional"

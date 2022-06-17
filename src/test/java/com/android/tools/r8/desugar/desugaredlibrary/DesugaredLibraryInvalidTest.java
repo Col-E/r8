@@ -40,14 +40,16 @@ public class DesugaredLibraryInvalidTest extends DesugaredLibraryTestBase {
             DESUGARED_JDK_8_LIB_JAR,
             "desugar_jdk_libs.json",
             AndroidApiLevel.L,
-            LibraryDesugaringSpecification.JDK8_DESCRIPTOR);
+            LibraryDesugaringSpecification.JDK8_DESCRIPTOR,
+            true);
     LibraryDesugaringSpecification jdk11InvalidLib =
         new LibraryDesugaringSpecification(
             "JDK11_INVALID_LIB",
             ToolHelper.getUndesugaredJdk11LibJarForTesting(),
             "jdk11/desugar_jdk_libs.json",
             AndroidApiLevel.L,
-            LibraryDesugaringSpecification.JDK11_DESCRIPTOR);
+            LibraryDesugaringSpecification.JDK11_DESCRIPTOR,
+            false);
     return buildParameters(
         getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
         ImmutableList.of(jdk8InvalidLib, jdk11InvalidLib),

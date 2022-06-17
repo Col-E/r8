@@ -6,6 +6,8 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.ToolHelper.DESUGARED_JDK_8_LIB_JAR;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.CustomConversionVersion.LATEST;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.CustomConversionVersion.LEGACY;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
@@ -52,7 +54,7 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
             "JDK8_CL",
             ImmutableSet.of(
                 DESUGARED_JDK_8_LIB_JAR,
-                ToolHelper.getConvertedDesugaredLibConversions(),
+                ToolHelper.getConvertedDesugaredLibConversions(LEGACY),
                 ToolHelper.getCoreLambdaStubs()),
             JDK8.getSpecification(),
             ImmutableSet.of(ToolHelper.getAndroidJar(AndroidApiLevel.O)),
@@ -63,7 +65,7 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
             "JDK11_CL",
             ImmutableSet.of(
                 ToolHelper.getUndesugaredJdk11LibJarForTesting(),
-                ToolHelper.getConvertedDesugaredLibConversions(),
+                ToolHelper.getConvertedDesugaredLibConversions(LATEST),
                 ToolHelper.getCoreLambdaStubs()),
             JDK11.getSpecification(),
             ImmutableSet.of(ToolHelper.getAndroidJar(AndroidApiLevel.R)),
