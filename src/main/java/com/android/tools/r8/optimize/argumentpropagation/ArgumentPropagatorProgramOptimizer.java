@@ -40,6 +40,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepFieldInfo;
 import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.utils.AccessUtils;
+import com.android.tools.r8.utils.AndroidApiLevelUtils;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.InternalOptions;
@@ -642,8 +643,9 @@ public class ArgumentPropagatorProgramOptimizer {
 
     private DexType getNewFieldType(ProgramField field) {
       DynamicType dynamicType = field.getOptimizationInfo().getDynamicType();
+      DexType staticType = field.getType();
       if (dynamicType.isUnknown()) {
-        return field.getType();
+        return staticType;
       }
 
       KeepFieldInfo keepInfo = appView.getKeepInfo(field);
@@ -652,17 +654,17 @@ public class ArgumentPropagatorProgramOptimizer {
       assert !keepInfo.isPinned(options);
 
       if (!keepInfo.isFieldTypeStrengtheningAllowed(options)) {
-        return field.getType();
+        return staticType;
       }
 
       if (dynamicType.isNullType()) {
         // Don't optimize always null fields; these will be optimized anyway.
-        return field.getType();
+        return staticType;
       }
 
       if (dynamicType.isNotNullType()) {
         // We don't have a more specific type.
-        return field.getType();
+        return staticType;
       }
 
       DynamicTypeWithUpperBound dynamicTypeWithUpperBound =
@@ -670,15 +672,15 @@ public class ArgumentPropagatorProgramOptimizer {
       TypeElement dynamicUpperBoundType = dynamicTypeWithUpperBound.getDynamicUpperBoundType();
       assert dynamicUpperBoundType.isReferenceType();
 
-      ClassTypeElement staticFieldType = field.getType().toTypeElement(appView).asClassType();
+      ClassTypeElement staticFieldType = staticType.toTypeElement(appView).asClassType();
       if (dynamicUpperBoundType.equalUpToNullability(staticFieldType)) {
         // We don't have more precise type information.
-        return field.getType();
+        return staticType;
       }
 
       if (!dynamicUpperBoundType.strictlyLessThan(staticFieldType, appView)) {
         assert options.testing.allowTypeErrors;
-        return field.getType();
+        return staticType;
       }
 
       DexType newStaticFieldType;
@@ -689,7 +691,7 @@ public class ArgumentPropagatorProgramOptimizer {
             newStaticFieldType =
                 dynamicUpperBoundClassType.getInterfaces().getSingleKnownInterface();
           } else {
-            return field.getType();
+            return staticType;
           }
         } else {
           newStaticFieldType = dynamicUpperBoundClassType.getClassType();
@@ -698,8 +700,17 @@ public class ArgumentPropagatorProgramOptimizer {
         newStaticFieldType = dynamicUpperBoundType.asArrayType().toDexType(dexItemFactory);
       }
 
-      if (!AccessUtils.isAccessibleInSameContextsAs(newStaticFieldType, field.getType(), appView)) {
-        return field.getType();
+      if (newStaticFieldType == staticType) {
+        return staticType;
+      }
+
+      if (!AccessUtils.isAccessibleInSameContextsAs(newStaticFieldType, staticType, appView)) {
+        return staticType;
+      }
+
+      if (!AndroidApiLevelUtils.isApiSafeForTypeStrengthening(
+          newStaticFieldType, staticType, appView)) {
+        return staticType;
       }
 
       return newStaticFieldType;
@@ -965,10 +976,13 @@ public class ArgumentPropagatorProgramOptimizer {
       if (!appView.appInfo().isSubtype(newReturnType, staticType)) {
         return null;
       }
-      return AccessUtils.isAccessibleInSameContextsAs(
-              newReturnType, method.getReturnType(), appView)
-          ? newReturnType
-          : null;
+      if (!AccessUtils.isAccessibleInSameContextsAs(newReturnType, staticType, appView)) {
+        return null;
+      }
+      if (!AndroidApiLevelUtils.isApiSafeForTypeStrengthening(newReturnType, staticType, appView)) {
+        return null;
+      }
+      return newReturnType;
     }
 
     private SingleValue getReturnValue(ProgramMethod method) {

@@ -4,12 +4,20 @@
 
 package com.android.tools.r8.utils;
 
+import static com.android.tools.r8.graph.DexLibraryClass.asLibraryClassOrNull;
+
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.androidapi.ComputedApiLevel;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.LibraryClass;
+import com.android.tools.r8.graph.LibraryDefinition;
 import com.android.tools.r8.graph.LibraryMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
@@ -95,11 +103,78 @@ public class AndroidApiLevelUtils {
     if (apiLevelOfOriginal.isUnknownApiLevel()) {
       return false;
     }
-    return apiLevelOfOriginal
-        .asKnownApiLevel()
-        .max(apiLevel)
-        .asKnownApiLevel()
-        .getApiLevel()
-        .isLessThanOrEqualTo(options.getMinApiLevel());
+    return apiLevelOfOriginal.max(apiLevel).isLessThanOrEqualTo(options.getMinApiLevel()).isTrue();
+  }
+
+  private static boolean isApiSafeForReference(LibraryDefinition definition, AppView<?> appView) {
+    return isApiSafeForReference(definition, appView.apiLevelCompute(), appView.options());
+  }
+
+  private static boolean isApiSafeForReference(
+      LibraryDefinition definition,
+      AndroidApiLevelCompute androidApiLevelCompute,
+      InternalOptions options) {
+    assert options.apiModelingOptions().enableApiCallerIdentification;
+    ComputedApiLevel apiLevel =
+        androidApiLevelCompute.computeApiLevelForLibraryReference(
+            definition.getReference(), ComputedApiLevel.unknown());
+    return apiLevel.isLessThanOrEqualTo(options.getMinApiLevel()).isTrue();
+  }
+
+  private static boolean isApiSafeForReference(
+      LibraryDefinition newDefinition, LibraryDefinition oldDefinition, AppView<?> appView) {
+    assert appView.options().apiModelingOptions().enableApiCallerIdentification;
+    assert !isApiSafeForReference(newDefinition, appView)
+        : "Clients should first check if the definition is present on all apis since the min api";
+    AndroidApiLevelCompute androidApiLevelCompute = appView.apiLevelCompute();
+    ComputedApiLevel apiLevel =
+        androidApiLevelCompute.computeApiLevelForLibraryReference(
+            newDefinition.getReference(), ComputedApiLevel.unknown());
+    if (apiLevel.isUnknownApiLevel()) {
+      return false;
+    }
+    ComputedApiLevel apiLevelOfOriginal =
+        androidApiLevelCompute.computeApiLevelForLibraryReference(
+            oldDefinition.getReference(), ComputedApiLevel.unknown());
+    return apiLevel.isLessThanOrEqualTo(apiLevelOfOriginal).isTrue();
+  }
+
+  public static boolean isApiSafeForTypeStrengthening(
+      DexType newType, DexType oldType, AppView<? extends AppInfoWithClassHierarchy> appView) {
+    // Type strengthening only applies to reference types.
+    assert newType.isReferenceType();
+    assert oldType.isReferenceType();
+    assert newType != oldType;
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    DexType newBaseType = newType.toBaseType(dexItemFactory);
+    if (newBaseType.isPrimitiveType()) {
+      // Array of primitives is available on all api levels.
+      return true;
+    }
+    assert newBaseType.isClassType();
+    DexClass newBaseClass = appView.definitionFor(newBaseType);
+    if (newBaseClass == null) {
+      // This could be a library class that is only available on newer api levels.
+      return false;
+    }
+    if (!newBaseClass.isLibraryClass()) {
+      // Program and classpath classes are not api level dependent.
+      return true;
+    }
+    if (!appView.options().apiModelingOptions().enableApiCallerIdentification) {
+      // Conservatively bail out if we don't have api modeling.
+      return false;
+    }
+    LibraryClass newBaseLibraryClass = newBaseClass.asLibraryClass();
+    if (isApiSafeForReference(newBaseLibraryClass, appView)) {
+      // Library class is present on all api levels since min api.
+      return true;
+    }
+    // Check if the new library class is present since the api level of the old type.
+    DexType oldBaseType = oldType.toBaseType(dexItemFactory);
+    assert oldBaseType.isClassType();
+    LibraryClass oldBaseLibraryClass = asLibraryClassOrNull(appView.definitionFor(oldBaseType));
+    return oldBaseLibraryClass != null
+        && isApiSafeForReference(newBaseLibraryClass, oldBaseLibraryClass, appView);
   }
 }

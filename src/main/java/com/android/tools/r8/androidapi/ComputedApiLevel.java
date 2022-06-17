@@ -5,6 +5,7 @@
 package com.android.tools.r8.androidapi;
 
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.structural.Equatable;
 import java.util.Objects;
 
@@ -70,11 +71,27 @@ public interface ComputedApiLevel extends Equatable<ComputedApiLevel> {
     return this.equals(other);
   }
 
+  OptionalBool isLessThanOrEqualTo(AndroidApiLevel other);
+
+  OptionalBool isLessThanOrEqualTo(ComputedApiLevel other);
+
   class NotSetApiLevel implements ComputedApiLevel {
 
     private static final NotSetApiLevel INSTANCE = new NotSetApiLevel();
 
     private NotSetApiLevel() {}
+
+    @Override
+    public OptionalBool isLessThanOrEqualTo(AndroidApiLevel other) {
+      assert false : "Cannot compute relationship for not set";
+      return OptionalBool.unknown();
+    }
+
+    @Override
+    public OptionalBool isLessThanOrEqualTo(ComputedApiLevel other) {
+      assert false : "Cannot compute relationship for not set";
+      return OptionalBool.unknown();
+    }
 
     @Override
     public boolean isNotSetApiLevel() {
@@ -97,6 +114,16 @@ public interface ComputedApiLevel extends Equatable<ComputedApiLevel> {
     private static final UnknownApiLevel INSTANCE = new UnknownApiLevel();
 
     private UnknownApiLevel() {}
+
+    @Override
+    public OptionalBool isLessThanOrEqualTo(AndroidApiLevel other) {
+      return OptionalBool.unknown();
+    }
+
+    @Override
+    public OptionalBool isLessThanOrEqualTo(ComputedApiLevel other) {
+      return OptionalBool.unknown();
+    }
 
     @Override
     public boolean isUnknownApiLevel() {
@@ -142,6 +169,20 @@ public interface ComputedApiLevel extends Equatable<ComputedApiLevel> {
     @Override
     public KnownApiLevel asKnownApiLevel() {
       return this;
+    }
+
+    @Override
+    public OptionalBool isLessThanOrEqualTo(AndroidApiLevel other) {
+      return OptionalBool.of(apiLevel.isLessThanOrEqualTo(other));
+    }
+
+    @Override
+    public OptionalBool isLessThanOrEqualTo(ComputedApiLevel other) {
+      if (other.isKnownApiLevel()) {
+        return isLessThanOrEqualTo(other.asKnownApiLevel().getApiLevel());
+      }
+      assert other.isUnknownApiLevel() : "Cannot compute relationship for not set";
+      return OptionalBool.unknown();
     }
 
     @Override
