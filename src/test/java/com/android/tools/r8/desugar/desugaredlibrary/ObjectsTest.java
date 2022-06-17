@@ -6,6 +6,8 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.ToolHelper.DESUGARED_JDK_8_LIB_JAR;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.SPECIFICATIONS_WITH_CF2CF;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.CustomConversionVersion.LATEST;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.CustomConversionVersion.LEGACY;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
@@ -77,7 +79,7 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
             "desugar_jdk_libs.json",
             AndroidApiLevel.LATEST,
             LibraryDesugaringSpecification.JDK8_DESCRIPTOR,
-            true);
+            LEGACY);
     LibraryDesugaringSpecification jdk11MaxCompileSdk =
         new LibraryDesugaringSpecification(
             "JDK11_MAX",
@@ -85,7 +87,7 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
             "jdk11/desugar_jdk_libs.json",
             AndroidApiLevel.LATEST,
             LibraryDesugaringSpecification.JDK11_DESCRIPTOR,
-            false);
+            LATEST);
     return buildParameters(
         getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
         ImmutableList.of(JDK8, JDK11, jdk8MaxCompileSdk, jdk11MaxCompileSdk),

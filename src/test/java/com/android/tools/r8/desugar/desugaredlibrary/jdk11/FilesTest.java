@@ -29,6 +29,7 @@ import java.nio.file.attribute.PosixFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,7 +49,8 @@ public class FilesTest extends DesugaredLibraryTestBase {
           "String read: Hello World",
           "null",
           "true",
-          "unsupported");
+          "unsupported",
+          "j$.nio.file.attribute");
   private static final String EXPECTED_RESULT_DESUGARING_FILE_SYSTEM_PLATFORM_CHANNEL =
       StringUtils.lines(
           "bytes written: 11",
@@ -59,7 +61,20 @@ public class FilesTest extends DesugaredLibraryTestBase {
           "unsupported",
           "null",
           "true",
-          "unsupported");
+          "unsupported",
+          "j$.nio.file.attribute");
+  private static final String EXPECTED_RESULT_PLATFORM_FILE_SYSTEM_DESUGARING =
+      StringUtils.lines(
+          "bytes written: 11",
+          "String written: Hello World",
+          "bytes read: 11",
+          "String read: Hello World",
+          "bytes read: 11",
+          "String read: Hello World",
+          "true",
+          "true",
+          "true",
+          "j$.nio.file.attribute");
   private static final String EXPECTED_RESULT_PLATFORM_FILE_SYSTEM =
       StringUtils.lines(
           "bytes written: 11",
@@ -70,7 +85,8 @@ public class FilesTest extends DesugaredLibraryTestBase {
           "String read: Hello World",
           "true",
           "true",
-          "true");
+          "true",
+          "java.nio.file.attribute");
 
   private final TestParameters parameters;
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
@@ -100,7 +116,9 @@ public class FilesTest extends DesugaredLibraryTestBase {
 
   private String getExpectedResult() {
     if (libraryDesugaringSpecification.usesPlatformFileSystem(parameters)) {
-      return EXPECTED_RESULT_PLATFORM_FILE_SYSTEM;
+      return libraryDesugaringSpecification.hasNioFileDesugaring(parameters)
+          ? EXPECTED_RESULT_PLATFORM_FILE_SYSTEM_DESUGARING
+          : EXPECTED_RESULT_PLATFORM_FILE_SYSTEM;
     }
     return libraryDesugaringSpecification.hasNioChannelDesugaring(parameters)
         ? EXPECTED_RESULT_DESUGARING_FILE_SYSTEM
@@ -125,6 +143,12 @@ public class FilesTest extends DesugaredLibraryTestBase {
       readWriteThroughFilesAPI(path);
       readThroughFileChannelAPI(path);
       attributeAccess(path);
+      fspMethodsWithGeneric(path);
+    }
+
+    private static void fspMethodsWithGeneric(Path path) throws IOException {
+      Map<String, Object> mapping = Files.readAttributes(path, "lastModifiedTime");
+      System.out.println(mapping.values().iterator().next().getClass().getPackage().getName());
     }
 
     private static void attributeAccess(Path path) throws IOException {

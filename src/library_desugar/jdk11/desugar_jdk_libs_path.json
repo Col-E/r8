@@ -113,7 +113,8 @@
         "java.nio.file.attribute.FileAttributeView java.nio.file.spi.FileSystemProvider#getFileAttributeView(java.nio.file.Path, java.lang.Class, java.nio.file.LinkOption[])": [1, "java.lang.Class java.nio.file.FileApiFlips#flipFileAttributeView(java.lang.Class)"],
         "java.nio.file.attribute.BasicFileAttributes java.nio.file.spi.FileSystemProvider#readAttributes(java.nio.file.Path, java.lang.Class, java.nio.file.LinkOption[])": [1, "java.lang.Class java.nio.file.FileApiFlips#flipFileAttributes(java.lang.Class)"],
         "java.util.Set java.nio.file.attribute.PosixFileAttributes#permissions()": [-1, "java.util.Set java.nio.file.FileApiFlips#flipPosixPermissionSet(java.util.Set)"],
-        "void java.nio.file.attribute.PosixFileAttributeView#setPermissions(java.util.Set)": [0, "java.util.Set java.nio.file.FileApiFlips#flipPosixPermissionSet(java.util.Set)"]
+        "void java.nio.file.attribute.PosixFileAttributeView#setPermissions(java.util.Set)": [0, "java.util.Set java.nio.file.FileApiFlips#flipPosixPermissionSet(java.util.Set)"],
+        "java.util.Map java.nio.file.spi.FileSystemProvider#readAttributes(java.nio.file.Path, java.lang.String, java.nio.file.LinkOption[])" : [-1, "java.util.Map java.nio.file.FileApiFlips#flipMapWithMaybeFileTimeValues(java.util.Map)"]
       },
       "wrapper_conversion": [
         "java.nio.channels.AsynchronousChannel",

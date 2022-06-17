@@ -6,9 +6,12 @@ package java.nio.file;
 
 import static java.util.ConversionRuntimeException.exception;
 
+import java.nio.file.attribute.FileAttributeConversions;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class FileApiFlips {
@@ -92,6 +95,40 @@ public class FileApiFlips {
       return convertedSet;
     }
     throw exceptionOpenOption(guineaPig.getClass());
+  }
+
+  public static RuntimeException exceptionFileTime(Object suffix) {
+    throw exception("java.nio.file.attribute.FileTime", suffix);
+  }
+
+  public static Map<String, Object> flipMapWithMaybeFileTimeValues(Map<String, Object> in) {
+    if (in == null || in.isEmpty()) {
+      return in;
+    }
+    HashMap<String, Object> newMap = new HashMap<>();
+    for (String key : in.keySet()) {
+      Object val = in.get(key);
+      if (val instanceof j$.nio.file.attribute.FileTime) {
+        j$.nio.file.attribute.FileTime fileTime;
+        try {
+          fileTime = (j$.nio.file.attribute.FileTime) val;
+        } catch (ClassCastException cce) {
+          throw exceptionFileTime(cce);
+        }
+        newMap.put(key, FileAttributeConversions.convert(fileTime));
+      } else if (val instanceof java.nio.file.attribute.FileTime) {
+        java.nio.file.attribute.FileTime fileTime;
+        try {
+          fileTime = (java.nio.file.attribute.FileTime) val;
+        } catch (ClassCastException cce) {
+          throw exceptionFileTime(cce);
+        }
+        newMap.put(key, FileAttributeConversions.convert(fileTime));
+      } else {
+        newMap.put(key, val);
+      }
+    }
+    return newMap;
   }
 
   public static RuntimeException exceptionPosixPermission(Object suffix) {

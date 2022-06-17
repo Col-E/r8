@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -100,7 +100,8 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
 
   @Parameters(name = "{0}, spec: {1}")
   public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withNoneRuntime().build(), getJdk8Jdk11());
+    // TODO(b/236356665): Support JDK11 desugared lib.
+    return buildParameters(getTestParameters().withNoneRuntime().build(), ImmutableList.of(JDK8));
   }
 
   public ExtractWrapperTypesTest(
