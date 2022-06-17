@@ -64,8 +64,18 @@ public class MyMapFileSerializationTest extends DesugaredLibraryTestBase {
         .noMinification()
         .compile()
         .withArt6Plus64BitsLib()
-        .run(parameters.getRuntime(), Executor.class)
+        .run(parameters.getRuntime(), Executor.class, uniqueName())
         .assertSuccessWithOutput(EXPECTED_RESULT);
+  }
+
+  private String uniqueName() {
+    return libraryDesugaringSpecification.toString()
+        + "_"
+        + compilationSpecification.toString()
+        + "_"
+        + parameters.getRuntime()
+        + "_"
+        + parameters.getApiLevel();
   }
 
   @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
@@ -76,7 +86,10 @@ public class MyMapFileSerializationTest extends DesugaredLibraryTestBase {
       MyMap<String, String> map = new MyMap<>();
       map.put("k1", "v1");
       map.put("k2", "v2");
-      File file = new File("testTemp");
+      // It seems the FileSystem is shared across multiple VM runs at least on some VMs.
+      // There is no easy way to create a temp file that works on all VM/configurations.
+      // We pass a unique string as parameter that we use for the file name.
+      File file = new File("test_" + args[0]);
 
       FileOutputStream fos = new FileOutputStream(file);
       ObjectOutputStream oos = new ObjectOutputStream(fos);
