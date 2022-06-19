@@ -14,12 +14,9 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.ControlFlowGraph;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.cf.CfBlock.MutableCfBlock;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.TraversalUtils;
 import com.android.tools.r8.utils.TriFunction;
-import it.unimi.dsi.fastutil.objects.Reference2IntMap;
-import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -204,16 +201,10 @@ public class CfControlFlowGraph implements ControlFlowGraph<CfBlock, CfInstructi
       Map<CfLabel, List<CfTryCatch>> inactiveUntilCatchHandlers = new IdentityHashMap<>();
 
       // Initialize all catch handlers to be inactive.
-      Reference2IntMap<CfLabel> labelIndices = computeLabelToInstructionIndexMapForTesting();
       for (CfTryCatch tryCatch : code.getTryCatchRanges()) {
-        List<CfTryCatch> inactiveCatchHandlersUntilStart =
-            inactiveUntilCatchHandlers.computeIfAbsent(
-                tryCatch.getStart(), ignoreKey(ArrayList::new));
-        // Catch handlers that come before others are expected to end first.
-        assert inactiveCatchHandlersUntilStart.isEmpty()
-            || labelIndices.getInt(tryCatch.getEnd())
-                >= labelIndices.getInt(ListUtils.last(inactiveCatchHandlersUntilStart).getEnd());
-        inactiveCatchHandlersUntilStart.add(tryCatch);
+        inactiveUntilCatchHandlers
+            .computeIfAbsent(tryCatch.getStart(), ignoreKey(ArrayList::new))
+            .add(tryCatch);
       }
 
       // Process each instruction.
@@ -234,21 +225,6 @@ public class CfControlFlowGraph implements ControlFlowGraph<CfBlock, CfInstructi
 
       assert activeCatchHandlers.isEmpty();
       assert inactiveUntilCatchHandlers.isEmpty();
-    }
-
-    private Reference2IntMap<CfLabel> computeLabelToInstructionIndexMapForTesting() {
-      if (!InternalOptions.assertionsEnabled()) {
-        return null;
-      }
-      Reference2IntMap<CfLabel> result = new Reference2IntOpenHashMap<>();
-      List<CfInstruction> instructions = code.getInstructions();
-      for (int instructionIndex = 0; instructionIndex < instructions.size(); instructionIndex++) {
-        CfInstruction instruction = instructions.get(instructionIndex);
-        if (instruction.isLabel()) {
-          result.put(instruction.asLabel(), instructionIndex);
-        }
-      }
-      return result;
     }
 
     private int processBlock(
@@ -329,10 +305,8 @@ public class CfControlFlowGraph implements ControlFlowGraph<CfBlock, CfInstructi
         Deque<CfTryCatch> activeCatchHandlers,
         Map<CfLabel, List<CfTryCatch>> inactiveUntilCatchHandlers) {
       // Remove active catch handlers that have expired at the current instruction.
-      while (!activeCatchHandlers.isEmpty()
-          && activeCatchHandlers.peekLast().getEnd() == instruction) {
-        activeCatchHandlers.removeLast();
-      }
+      activeCatchHandlers.removeIf(
+          activeCatchHandler -> activeCatchHandler.getEnd() == instruction);
 
       // Promote inactive catch handlers that is activated at the current instruction to active.
       List<CfTryCatch> newlyActiveCatchHandlers = inactiveUntilCatchHandlers.remove(instruction);
@@ -349,8 +323,8 @@ public class CfControlFlowGraph implements ControlFlowGraph<CfBlock, CfInstructi
         CfLabel instruction,
         Deque<CfTryCatch> activeCatchHandlers,
         Map<CfLabel, List<CfTryCatch>> inactiveUntilCatchHandlers) {
-      assert activeCatchHandlers.isEmpty()
-          || activeCatchHandlers.peekLast().getEnd() != instruction;
+      assert activeCatchHandlers.stream()
+          .allMatch(activeCatchHandler -> activeCatchHandler.getEnd() != instruction);
       assert !inactiveUntilCatchHandlers.containsKey(instruction);
       return true;
     }
