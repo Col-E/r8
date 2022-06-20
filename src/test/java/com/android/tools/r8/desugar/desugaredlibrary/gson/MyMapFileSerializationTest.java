@@ -68,7 +68,7 @@ public class MyMapFileSerializationTest extends DesugaredLibraryTestBase {
         .run(
             parameters.getRuntime(),
             Executor.class,
-            uniqueName(libraryDesugaringSpecification, compilationSpecification, parameters))
+            uniqueName(temp, libraryDesugaringSpecification, compilationSpecification, parameters))
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 

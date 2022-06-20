@@ -6,8 +6,10 @@ package com.android.tools.r8.desugar.desugaredlibrary.gson;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import org.junit.rules.TemporaryFolder;
 
 public abstract class GsonDesugaredLibraryTestUtils {
 
@@ -16,10 +18,13 @@ public abstract class GsonDesugaredLibraryTestUtils {
   static final Path GSON_2_8_1_JAR = Paths.get("third_party/iosched_2019/gson-2.8.1.jar");
 
   static String uniqueName(
+      TemporaryFolder temp,
       LibraryDesugaringSpecification libraryDesugaringSpecification,
       CompilationSpecification compilationSpecification,
-      TestParameters parameters) {
-    return "test_"
+      TestParameters parameters)
+      throws IOException {
+    return temp.newFolder("test_serialization").toString()
+        + "/test_"
         + libraryDesugaringSpecification.toString()
         + "_"
         + compilationSpecification.toString()
