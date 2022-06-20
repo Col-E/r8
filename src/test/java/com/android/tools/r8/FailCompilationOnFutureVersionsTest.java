@@ -79,14 +79,15 @@ public class FailCompilationOnFutureVersionsTest extends TestBase {
                 diagnotics.assertErrorsCount(1);
                 assertThat(
                     diagnotics.getErrors().get(0).getDiagnosticMessage(),
-                    containsString("Unsupported class file version: " + UNSUPPORTED_CF_VERSION));
+                    containsString(
+                        "Unsupported class file major version " + UNSUPPORTED_CF_VERSION));
                 assertTrue(
                     diagnotics.getErrors().stream()
                         .allMatch(
                             s ->
                                 s.getDiagnosticMessage()
                                     .toLowerCase()
-                                    .contains("unsupported class file version")));
+                                    .contains("unsupported class file major version")));
               });
     } catch (CompilationFailedException e) {
       return;
