@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 import org.junit.Test;
@@ -52,6 +53,7 @@ public class ChannelSetTest extends DesugaredLibraryTestBase {
           "bytes read: 11",
           "String read: Hello World",
           "bytes read: 11",
+          "String read: Hello World",
           "unsupported");
   private static final String EXPECTED_RESULT_DESUGARING_PLATFORM_FILE_SYSTEM =
       StringUtils.lines(
@@ -175,12 +177,20 @@ public class ChannelSetTest extends DesugaredLibraryTestBase {
           pathWrapper.getFileSystem().provider().newFileChannel(pathWrapper, openOptions)) {
         readFromChannel(channel, hello.length());
       }
+      ExecutorService executor;
+      try {
+        executor = ForkJoinPool.commonPool();
+      } catch (Throwable t) {
+        // ForkJoinPool is not entirely supported below Android 5.
+        System.out.println("unsupported");
+        return;
+      }
       try {
         try (AsynchronousFileChannel channel =
             pathWrapper
                 .getFileSystem()
                 .provider()
-                .newAsynchronousFileChannel(pathWrapper, openOptions, ForkJoinPool.commonPool())) {
+                .newAsynchronousFileChannel(pathWrapper, openOptions, executor)) {
           ByteBuffer byteBuffer = ByteBuffer.allocate(hello.length());
           Future<Integer> readFuture = channel.read(byteBuffer, 0);
           // We force the future to await here with get().
