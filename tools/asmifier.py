@@ -10,7 +10,7 @@ import subprocess
 import sys
 import utils
 
-ASM_VERSION = '9.2'
+ASM_VERSION = '9.3'
 ASM_JAR = 'asm-' + ASM_VERSION + '.jar'
 ASM_UTIL_JAR = 'asm-util-' + ASM_VERSION + '.jar'
 

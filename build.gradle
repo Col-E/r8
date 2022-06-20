@@ -31,7 +31,7 @@ apply plugin: 'idea'
 
 ext {
     androidSupportVersion = '25.4.0'
-    asmVersion = '9.2'  // When updating update tools/asmifier.py and Toolhelper as well.
+    asmVersion = '9.3'  // When updating update tools/asmifier.py and Toolhelper as well.
     espressoVersion = '3.0.0'
     fastutilVersion = '7.2.0'
     guavaVersion = '30.1.1-jre'

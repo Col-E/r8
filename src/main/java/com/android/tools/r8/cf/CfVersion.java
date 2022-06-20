@@ -40,6 +40,8 @@ public final class CfVersion implements StructuralItem<CfVersion> {
   public static final CfVersion V17_PREVIEW = new CfVersion(Opcodes.V17 | Opcodes.V_PREVIEW);
   public static final CfVersion V18 = new CfVersion(Opcodes.V18);
   public static final CfVersion V18_PREVIEW = new CfVersion(Opcodes.V18 | Opcodes.V_PREVIEW);
+  public static final CfVersion V19 = new CfVersion(Opcodes.V19);
+  public static final CfVersion V19_PREVIEW = new CfVersion(Opcodes.V19 | Opcodes.V_PREVIEW);
 
   private final int version;
 
@@ -61,7 +63,8 @@ public final class CfVersion implements StructuralItem<CfVersion> {
     CfVersion.V15,
     CfVersion.V16,
     CfVersion.V17,
-    CfVersion.V18
+    CfVersion.V18,
+    CfVersion.V19
   };
 
   // Private constructor in case we want to canonicalize versions.
@@ -91,6 +94,10 @@ public final class CfVersion implements StructuralItem<CfVersion> {
 
   private static void specify(StructuralSpecification<CfVersion, ?> spec) {
     spec.withInt(CfVersion::major).withInt(CfVersion::minor);
+  }
+
+  public static Iterable<CfVersion> all() {
+    return rangeInclusive(versions[0], versions[versions.length - 1]);
   }
 
   public static Iterable<CfVersion> rangeInclusive(CfVersion from, CfVersion to) {
