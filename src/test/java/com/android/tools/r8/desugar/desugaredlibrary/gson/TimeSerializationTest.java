@@ -1,4 +1,4 @@
-// Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -19,21 +19,30 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class MyMapFileSerializationTest extends DesugaredLibraryTestBase {
+public class TimeSerializationTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
   private final CompilationSpecification compilationSpecification;
 
-  private static final String EXPECTED_RESULT = StringUtils.lines("2", "2", "v1", "v1", "v2", "v2");
+  private static final String EXPECTED_RESULT =
+      StringUtils.lines(
+          "Z",
+          "GMT",
+          "2008-06-01T20:30:42.000000111Z[GMT]",
+          "Z",
+          "GMT",
+          "2008-06-01T20:30:42.000000111Z[GMT]");
 
   @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
@@ -48,7 +57,7 @@ public class MyMapFileSerializationTest extends DesugaredLibraryTestBase {
         DEFAULT_SPECIFICATIONS);
   }
 
-  public MyMapFileSerializationTest(
+  public TimeSerializationTest(
       TestParameters parameters,
       LibraryDesugaringSpecification libraryDesugaringSpecification,
       CompilationSpecification compilationSpecification) {
@@ -58,11 +67,10 @@ public class MyMapFileSerializationTest extends DesugaredLibraryTestBase {
   }
 
   @Test
-  public void testMapSerialization() throws Exception {
+  public void testZonedDateTimeSerialization() throws Throwable {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
-        .addInnerClasses(MyMapFileSerializationTest.class)
+        .addInnerClasses(TimeSerializationTest.class)
         .addKeepMainRule(Executor.class)
-        .noMinification()
         .compile()
         .withArt6Plus64BitsLib()
         .run(
@@ -77,31 +85,33 @@ public class MyMapFileSerializationTest extends DesugaredLibraryTestBase {
 
     @SuppressWarnings("unchecked")
     public static void main(String[] args) throws Exception {
-      MyMap<String, String> map = new MyMap<>();
-      map.put("k1", "v1");
-      map.put("k2", "v2");
+      ZoneOffset offset = ZoneOffset.UTC;
+      System.out.println(offset);
+      ZoneId gmt = ZoneId.of("GMT");
+      System.out.println(gmt);
+      ZonedDateTime dateTime = ZonedDateTime.of(2008, 6, 1, 20, 30, 42, 111, gmt);
+      System.out.println(dateTime);
       File file = new File(args[0]);
 
       FileOutputStream fos = new FileOutputStream(file);
       ObjectOutputStream oos = new ObjectOutputStream(fos);
-      oos.writeObject(map);
+      oos.writeObject(offset);
+      oos.writeObject(gmt);
+      oos.writeObject(dateTime);
       oos.close();
       fos.close();
 
       FileInputStream fis = new FileInputStream(file);
       ObjectInputStream ois = new ObjectInputStream(fis);
-      MyMap<String, String> newMap = (MyMap<String, String>) ois.readObject();
+      ZoneOffset newOffset = (ZoneOffset) ois.readObject();
+      ZoneId newGmt = (ZoneId) ois.readObject();
+      ZonedDateTime newDateTime = (ZonedDateTime) ois.readObject();
       fis.close();
       ois.close();
 
-      System.out.println(map.size());
-      System.out.println(newMap.size());
-      System.out.println(map.get("k1"));
-      System.out.println(newMap.get("k1"));
-      System.out.println(map.get("k2"));
-      System.out.println(newMap.get("k2"));
+      System.out.println(newOffset);
+      System.out.println(newGmt);
+      System.out.println(newDateTime);
     }
   }
-
-  static class MyMap<R, T> extends ConcurrentHashMap<R, T> {}
 }

@@ -318,9 +318,9 @@
     }
   ],
   "shrinker_config": [
+    "-keepclassmembers class j$.** extends java.io.Serializable { void <init>(); private static final java.io.ObjectStreamField[] serialPersistentFields; static final long serialVersionUID; java.lang.Object readResolve(); java.lang.Object writeReplace(); private void readObject(java.io.ObjectInputStream); private void writeObject(java.io.ObjectOutputStream); private void readObjectNoData(); }",
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap$TreeBin { int lockState; }",
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap { int sizeCtl; int transferIndex; long baseCount; int cellsBusy; }",
-    "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap { private void readObject(java.io.ObjectInputStream); private void writeObject(java.io.ObjectOutputStream); private void readObjectNoData(); private static final java.io.ObjectStreamField[] serialPersistentFields; private static final long serialVersionUID;}",
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap$CounterCell { long value; }",
     "-keepclassmembers enum * { public static **[] values(); public static ** valueOf(java.lang.String); public static final !synthetic <fields>; }",
     "-keeppackagenames j$.**",

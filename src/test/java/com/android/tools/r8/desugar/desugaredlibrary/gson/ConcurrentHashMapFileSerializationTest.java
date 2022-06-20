@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.gson;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.gson.GsonDesugaredLibraryTestUtils.uniqueName;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.junit.Assert.assertFalse;
@@ -72,7 +73,10 @@ public class ConcurrentHashMapFileSerializationTest extends DesugaredLibraryTest
         .compile()
         .inspectL8(this::assertVersionUID)
         .withArt6Plus64BitsLib()
-        .run(parameters.getRuntime(), Executor.class)
+        .run(
+            parameters.getRuntime(),
+            Executor.class,
+            uniqueName(libraryDesugaringSpecification, compilationSpecification, parameters))
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
@@ -90,15 +94,15 @@ public class ConcurrentHashMapFileSerializationTest extends DesugaredLibraryTest
   @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
   static class Executor {
     public static void main(String[] args) throws Exception {
-      chmTest();
+      chmTest(args[0]);
     }
 
     @SuppressWarnings("unchecked")
-    private static void chmTest() throws IOException, ClassNotFoundException {
+    private static void chmTest(String uniqueName) throws IOException, ClassNotFoundException {
       ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
       map.put("k1", "v1");
       map.put("k2", "v2");
-      File file = new File("testTemp");
+      File file = new File(uniqueName);
 
       FileOutputStream fos = new FileOutputStream(file);
       ObjectOutputStream oos = new ObjectOutputStream(fos);
