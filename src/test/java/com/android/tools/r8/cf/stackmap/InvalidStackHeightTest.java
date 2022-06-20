@@ -5,8 +5,6 @@
 package com.android.tools.r8.cf.stackmap;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -79,23 +77,6 @@ public class InvalidStackHeightTest extends TestBase {
   private void inspect(TestDiagnosticMessages diagnostics) {
     diagnostics.assertWarningMessageThatMatches(
         containsString("The max stack height of 1 is violated"));
-  }
-
-  @Test()
-  public void testR8InputVerification() throws Exception {
-    try {
-      testForR8(parameters.getBackend())
-          .addProgramClassFileData(getMainWithChangedMaxStackHeight())
-          .enableInliningAnnotations()
-          .addKeepMainRule(Main.class)
-          .setMinApi(parameters.getApiLevel())
-          .addOptionsModification(options -> options.testing.verifyInputs = true)
-          .compile();
-    } catch (CompilationFailedException e) {
-      assertTrue(e.getCause().getMessage().contains("Insufficient maximum stack size"));
-      return;
-    }
-    fail("Should always throw");
   }
 
   public byte[] getMainWithChangedMaxStackHeight() throws Exception {
