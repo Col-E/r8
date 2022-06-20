@@ -4,6 +4,7 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.cf.code.frame.FrameType;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -111,13 +112,17 @@ public class CfArrayLoad extends CfArrayLoadOrStore {
             appView,
             config,
             getExpectedArrayType(dexItemFactory),
-            (state, head) ->
-                head.isNullType()
-                    ? state.push(appView, config, getType())
-                    : state.push(
-                        config,
-                        head.asInitializedReferenceType()
-                            .getInitializedType()
-                            .toArrayElementType(dexItemFactory)));
+            (state, head) -> {
+              if (head.isNullType()) {
+                return getType() == MemberType.OBJECT
+                    ? state.push(config, FrameType.initialized(DexItemFactory.nullValueType))
+                    : state.push(appView, config, getType());
+              }
+              return state.push(
+                  config,
+                  head.asInitializedReferenceType()
+                      .getInitializedType()
+                      .toArrayElementType(dexItemFactory));
+            });
   }
 }
