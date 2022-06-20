@@ -12,10 +12,10 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
-import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * The {@link StringBuilderOracle} can answer if an instruction is of particular interest to the
@@ -23,13 +23,14 @@ import java.util.List;
  */
 interface StringBuilderOracle {
 
-  boolean isModeledStringBuilderInstruction(Instruction instruction);
+  boolean isModeledStringBuilderInstruction(
+      Instruction instruction, Predicate<Value> isLiveStringBuilder);
 
   boolean hasStringBuilderType(Value value);
 
   boolean isStringBuilderType(DexType type);
 
-  boolean isToString(Instruction instruction);
+  boolean isToString(Instruction instruction, Value value);
 
   String getConstantArgument(Instruction instruction);
 
@@ -50,13 +51,18 @@ interface StringBuilderOracle {
     }
 
     @Override
-    public boolean isModeledStringBuilderInstruction(Instruction instruction) {
+    public boolean isModeledStringBuilderInstruction(
+        Instruction instruction, Predicate<Value> isLiveStringBuilder) {
       if (instruction.isNewInstance()) {
         return isStringBuilderType(instruction.asNewInstance().getType());
       } else if (instruction.isInvokeMethod()) {
         DexMethod invokedMethod = instruction.asInvokeMethod().getInvokedMethod();
-        return isStringBuildingMethod(factory.stringBuilderMethods, invokedMethod)
-            || isStringBuildingMethod(factory.stringBufferMethods, invokedMethod);
+        if (isStringBuildingMethod(factory.stringBuilderMethods, invokedMethod)
+            || isStringBuildingMethod(factory.stringBufferMethods, invokedMethod)) {
+          return true;
+        }
+        return invokedMethod == factory.objectMembers.toString
+            && isLiveStringBuilder.test(instruction.getFirstOperand());
       }
       return false;
     }
@@ -80,14 +86,18 @@ interface StringBuilderOracle {
     }
 
     @Override
-    public boolean isToString(Instruction instruction) {
-      if (!instruction.isInvokeMethodWithReceiver()) {
+    public boolean isToString(Instruction instruction, Value value) {
+      if (!instruction.isInvokeVirtual()) {
         return false;
       }
-      InvokeMethodWithReceiver invoke = instruction.asInvokeMethodWithReceiver();
+      InvokeVirtual invoke = instruction.asInvokeVirtual();
+      if (invoke.getReceiver() != value) {
+        return false;
+      }
       DexMethod invokedMethod = invoke.getInvokedMethod();
       return factory.stringBuilderMethods.toString == invokedMethod
-          || factory.stringBufferMethods.toString == invokedMethod;
+          || factory.stringBufferMethods.toString == invokedMethod
+          || factory.objectMembers.toString == invokedMethod;
     }
 
     @Override
@@ -151,13 +161,16 @@ interface StringBuilderOracle {
         return false;
       }
       DexMethod invokedMethod = instruction.asInvokeMethod().getInvokedMethod();
+      if (factory.stringBuilderMethods.isAppendSubArrayMethod(invokedMethod)
+          || factory.stringBufferMethods.isAppendSubArrayMethod(invokedMethod)) {
+        return false;
+      }
       return factory.stringBuilderMethods.isAppendMethod(invokedMethod)
           || factory.stringBufferMethods.isAppendMethod(invokedMethod);
     }
 
     @Override
     public boolean canObserveStringBuilderCall(Instruction instruction) {
-      assert isModeledStringBuilderInstruction(instruction);
       if (!instruction.isInvokeMethod()) {
         assert false : "Expecting a call to string builder";
         return true;

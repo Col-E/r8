@@ -8,6 +8,7 @@ import static com.android.tools.r8.ToolHelper.getFilesInTestFolderRelativeToClas
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.KotlinCompilerTool;
@@ -100,11 +101,18 @@ public class StringPlusTest extends KotlinTestBase {
                 // TODO(b/190489514): We should be able to optimize constant stringPlus calls.
                 assertThat(methodSubject, CodeMatchers.invokesMethodWithName("stringPlus"));
               }
-              // TODO(b/219455761): StringBuilderOptimizer fails to remove constant input.
-              assertThat(
-                  methodSubject,
-                  CodeMatchers.invokesMethodWithHolderAndName(
-                      typeName(StringBuilder.class), "append"));
+              // We cannot remove the <init> -> <append> call since that changes the capacity
+              // and the string builder is escaping into System.out.
+              assertEquals(
+                  1,
+                  methodSubject
+                      .streamInstructions()
+                      .filter(
+                          instructionSubject ->
+                              CodeMatchers.isInvokeWithTarget(
+                                      typeName(StringBuilder.class), "append")
+                                  .test(instructionSubject))
+                      .count());
             })
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .run(parameters.getRuntime(), MAIN)

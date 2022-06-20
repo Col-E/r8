@@ -246,16 +246,12 @@ class StringBuilderNodeMuncher {
       boolean removeNode;
       boolean isEscaping = munchingState.escaping.contains(root);
       while (currentNode != null) {
-        removeNode =
-            currentNode.isSplitReferenceNode()
-                && (currentNode.getSuccessors().isEmpty() || currentNode.hasSinglePredecessor());
         // Remove appends if the string builder do not escape, is not inspected or materialized
-        if (removeNode) {
-          // TODO(b/190489514): See if this larger pattern is necessary.
-          assert false : "Check when this happens";
-        }
         // and if it is not part of a loop.
-        if (currentNode.isAppendNode() && !isEscaping) {
+        removeNode = false;
+        if (currentNode.isSplitReferenceNode()) {
+          removeNode = currentNode.getSuccessors().isEmpty() || currentNode.hasSinglePredecessor();
+        } else if (currentNode.isAppendNode() && !isEscaping) {
           AppendNode appendNode = currentNode.asAppendNode();
           boolean canRemoveIfNoInspectionOrMaterializing =
               !munchingState.inspectingCapacity.contains(root)
@@ -271,8 +267,7 @@ class StringBuilderNodeMuncher {
                 appendNode.getInstruction(), RemoveStringBuilderAction.getInstance());
             removeNode = true;
           }
-        }
-        if (currentNode.isInitNode()
+        } else if (currentNode.isInitNode()
             && currentNode.asInitNode().hasConstantArgument()
             && currentNode.hasSinglePredecessor()
             && currentNode.getSinglePredecessor().isNewInstanceNode()

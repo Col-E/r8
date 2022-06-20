@@ -9,7 +9,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
@@ -113,27 +112,27 @@ public class StringConcatenationTest extends TestBase {
 
     method = mainClass.uniqueMethodWithName("trivialSequence");
     assertThat(method, isPresent());
-    expectedCount = isR8 ? 1 : 3;
+    expectedCount = isReleaseMode ? 1 : 3;
     assertEquals(expectedCount, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("builderWithInitialValue");
     assertThat(method, isPresent());
-    expectedCount = isR8 ? 1 : 3;
+    expectedCount = isReleaseMode ? 1 : 3;
     assertEquals(expectedCount, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("builderWithCapacity");
     assertThat(method, isPresent());
-    expectedCount = isR8 ? 1 : 0;
+    expectedCount = isReleaseMode ? 1 : 0;
     assertEquals(expectedCount, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("nonStringArgs");
     assertThat(method, isPresent());
-    expectedCount = isR8 ? 1 : 0;
+    expectedCount = isReleaseMode ? 1 : 0;
     assertEquals(expectedCount, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("typeConversion");
     assertThat(method, isPresent());
-    expectedCount = isR8 ? 1 : 0;
+    expectedCount = isReleaseMode ? 1 : 0;
     assertEquals(expectedCount, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("typeConversion_withPhis");
@@ -142,41 +141,31 @@ public class StringConcatenationTest extends TestBase {
 
     method = mainClass.uniqueMethodWithName("nestedBuilders_appendBuilderItself");
     assertThat(method, isPresent());
-    // TODO(b/113859361): merge builders
-    expectedCount = 3;
-    assertEquals(expectedCount, countConstString(method));
+    assertEquals(isReleaseMode ? 1 : 3, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("nestedBuilders_appendBuilderResult");
     assertThat(method, isPresent());
-    // TODO(b/113859361): merge builders
-    expectedCount = 3;
-    assertEquals(expectedCount, countConstString(method));
+    assertEquals(isReleaseMode ? 1 : 3, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("nestedBuilders_conditional");
     assertThat(method, isPresent());
-    assertEquals(4, countConstString(method));
+    assertEquals(isReleaseMode ? 3 : 4, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("concatenatedBuilders_init");
     assertThat(method, isPresent());
-    // TODO(b/113859361): merge builders
-    expectedCount = 2;
-    assertEquals(expectedCount, countConstString(method));
+    assertEquals(isReleaseMode ? 1 : 2, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("concatenatedBuilders_append");
     assertThat(method, isPresent());
-    // TODO(b/113859361): merge builders
-    expectedCount = 2;
-    assertEquals(expectedCount, countConstString(method));
+    assertEquals(isReleaseMode ? 1 : 2, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("concatenatedBuilders_conditional");
     assertThat(method, isPresent());
-    // TODO(b/113859361): merge builders
-    expectedCount = 4;
-    assertEquals(expectedCount, countConstString(method));
+    assertEquals(isReleaseMode ? 2 : 4, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("simplePhi");
     assertThat(method, isPresent());
-    assertEquals(4, countConstString(method));
+    assertEquals(isReleaseMode ? 3 : 4, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("phiAtInit");
     assertThat(method, isPresent());
@@ -188,7 +177,7 @@ public class StringConcatenationTest extends TestBase {
 
     method = mainClass.uniqueMethodWithName("conditionalPhiWithoutAppend");
     assertThat(method, isPresent());
-    assertEquals(3, countConstString(method));
+    assertEquals(isReleaseMode ? 2 : 3, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("loop");
     assertThat(method, isPresent());
@@ -204,26 +193,31 @@ public class StringConcatenationTest extends TestBase {
   }
 
   @Test
-  public void testD8() throws Exception {
+  public void testD8Debug() throws Exception {
     assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
-
-    D8TestRunResult result =
+    test(
         testForD8()
             .debug()
             .addProgramClasses(MAIN)
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN)
-            .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, false, false);
+            .assertSuccessWithOutput(JAVA_OUTPUT),
+        false,
+        false);
+  }
 
-    result =
+  @Test
+  public void testD8Release() throws Exception {
+    assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
+    test(
         testForD8()
             .release()
             .addProgramClasses(MAIN)
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN)
-            .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, false, true);
+            .assertSuccessWithOutput(JAVA_OUTPUT),
+        false,
+        true);
   }
 
   @Test

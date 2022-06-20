@@ -80,6 +80,7 @@ import com.android.tools.r8.ir.optimize.membervaluepropagation.D8MemberValueProp
 import com.android.tools.r8.ir.optimize.membervaluepropagation.MemberValuePropagation;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.R8MemberValuePropagation;
 import com.android.tools.r8.ir.optimize.outliner.Outliner;
+import com.android.tools.r8.ir.optimize.string.StringBuilderAppendOptimizer;
 import com.android.tools.r8.ir.optimize.string.StringBuilderOptimizer;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.logging.Log;
@@ -1315,15 +1316,14 @@ public class IRConverter {
     timing.begin("Rewrite move result");
     codeRewriter.rewriteMoveResult(code);
     timing.end();
-    // TODO(b/114002137): for now, string concatenation depends on rewriteMoveResult.
+    // TODO(b/114002137): Also run for CF
     if (options.enableStringConcatenationOptimization
         && !isDebugMode
         && options.isGeneratingDex()) {
       timing.begin("Rewrite string concat");
-      stringBuilderOptimizer.computeTrivialStringConcatenation(code);
+      StringBuilderAppendOptimizer.run(appView, code);
       timing.end();
     }
-
     timing.begin("Split range invokes");
     codeRewriter.splitRangeInvokeConstants(code);
     timing.end();

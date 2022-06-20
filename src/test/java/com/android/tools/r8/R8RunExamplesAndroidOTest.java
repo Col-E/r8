@@ -131,7 +131,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 4, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 3, "lambdadesugaring"))
         .run();
   }
 
@@ -170,7 +170,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withMinApiLevel(AndroidApiLevel.N)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 4, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 3, "lambdadesugaring"))
         .run();
   }
 

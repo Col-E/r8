@@ -38,7 +38,11 @@ public interface StringBuilderAction {
         InstructionListIterator iterator,
         Instruction instruction,
         StringBuilderOracle oracle) {
-      assert oracle.isModeledStringBuilderInstruction(instruction);
+      assert oracle.isModeledStringBuilderInstruction(
+          instruction,
+          value ->
+              value.getType().isClassType()
+                  && oracle.isStringBuilderType(value.getType().asClassType().getClassType()));
       if (oracle.isAppend(instruction) && instruction.outValue() != null) {
         // Append will return the string builder instance. Before removing, ensure that
         // all users of the output values uses the receiver.
@@ -70,7 +74,7 @@ public interface StringBuilderAction {
         InstructionListIterator iterator,
         Instruction instruction,
         StringBuilderOracle oracle) {
-      assert oracle.isToString(instruction);
+      assert oracle.isToString(instruction, instruction.getFirstOperand());
       iterator.replaceCurrentInstructionWithConstString(appView, code, replacement);
     }
   }

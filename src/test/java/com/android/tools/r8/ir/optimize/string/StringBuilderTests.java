@@ -37,7 +37,7 @@ public class StringBuilderTests extends TestBase {
   @Parameters(name = "{0}, configuration: {1}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), getTestExpectations());
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(), getTestExpectations());
   }
 
   private static class StringBuilderResult {
@@ -94,14 +94,14 @@ public class StringBuilderTests extends TestBase {
         StringBuilderResult.create(
             Main.class.getMethod("materializingWithAdditionalAppend"),
             StringUtils.lines("Hello World", "Hello WorldObservable"),
-            1,
-            3,
-            2),
+            0,
+            0,
+            0),
         StringBuilderResult.create(
             Main.class.getMethod("appendWithNonConstant"),
             StringUtils.lines("Hello World, Hello World"),
             1,
-            3,
+            2,
             1),
         StringBuilderResult.create(
             Main.class.getMethod("simpleLoopTest"),
@@ -109,13 +109,12 @@ public class StringBuilderTests extends TestBase {
             1,
             1,
             1),
-        // TODO(b/222437581): Should not remove StringBuilder
         StringBuilderResult.create(
             Main.class.getMethod("simpleLoopTest2"),
             StringUtils.lines("Hello World", "Hello WorldHello World"),
-            0,
-            0,
-            0),
+            1,
+            1,
+            1),
         StringBuilderResult.create(
             Main.class.getMethod("simpleLoopWithStringBuilderInBodyTest"),
             StringUtils.lines("Hello World"),
@@ -129,27 +128,27 @@ public class StringBuilderTests extends TestBase {
             0,
             0),
         StringBuilderResult.create(
-            Main.class.getMethod("diamondWithUseTest"), StringUtils.lines("Hello World"), 1, 3, 1),
+            Main.class.getMethod("diamondWithUseTest"), StringUtils.lines("Hello World"), 1, 2, 1),
         StringBuilderResult.create(
             Main.class.getMethod("diamondsWithSingleUseTest"),
             StringUtils.lines("Hello World"),
             1,
-            3,
+            2,
             1),
         StringBuilderResult.create(
             Main.class.getMethod("escapeTest"), StringUtils.lines("Hello World"), 2, 2, 1),
         StringBuilderResult.create(
             Main.class.getMethod("intoPhiTest"), StringUtils.lines("Hello World"), 2, 2, 1),
         StringBuilderResult.create(
-            Main.class.getMethod("optimizePartial"), StringUtils.lines("Hello World.."), 1, 4, 1),
+            Main.class.getMethod("optimizePartial"), StringUtils.lines("Hello World.."), 1, 2, 1),
         StringBuilderResult.create(
             Main.class.getMethod("multipleToStrings"),
             StringUtils.lines("Hello World", "Hello World.."),
-            1,
-            4,
-            2),
+            0,
+            0,
+            0),
         StringBuilderResult.create(
-            Main.class.getMethod("changeAppendType"), StringUtils.lines("1 World"), 1, 3, 1),
+            Main.class.getMethod("changeAppendType"), StringUtils.lines("1 World"), 1, 2, 1),
         StringBuilderResult.create(
             Main.class.getMethod("checkCapacity"), StringUtils.lines("true"), 2, 1, 0),
         StringBuilderResult.create(
@@ -157,29 +156,29 @@ public class StringBuilderTests extends TestBase {
         StringBuilderResult.create(
             Main.class.getMethod("stringBuilderWithStringBuilderToString"),
             StringUtils.lines("Hello World"),
-            1,
-            1,
-            1),
+            0,
+            0,
+            0),
         StringBuilderResult.create(
             Main.class.getMethod("stringBuilderWithStringBuilder"),
             StringUtils.lines("Hello World"),
-            2,
-            2,
-            1),
+            0,
+            0,
+            0),
         StringBuilderResult.create(
             Main.class.getMethod("stringBuilderInStringBuilderConstructor"),
             StringUtils.lines("Hello World"),
-            2,
-            1,
-            1),
+            0,
+            0,
+            0),
         StringBuilderResult.create(
             Main.class.getMethod("interDependencyTest"),
             StringUtils.lines("World Hello World "),
-            2,
-            2,
-            1),
+            0,
+            0,
+            0),
         StringBuilderResult.create(
-            Main.class.getMethod("stringBuilderSelfReference"), StringUtils.lines(""), 1, 1, 1),
+            Main.class.getMethod("stringBuilderSelfReference"), StringUtils.lines(""), 0, 0, 0),
         StringBuilderResult.create(
             Main.class.getMethod("unknownStringBuilderInstruction"),
             StringUtils.lines("Hello World"),
@@ -214,8 +213,6 @@ public class StringBuilderTests extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    boolean hasError =
-        stringBuilderTest.getMethodName().equals("simpleLoopTest2") && parameters.isDexRuntime();
     compilationResults
         .apply(parameters)
         .inspect(
@@ -235,9 +232,7 @@ public class StringBuilderTests extends TestBase {
                   stringBuilderTest.toStrings, countStringBuilderToStrings(foundMethodSubject));
             })
         .run(parameters.getRuntime(), Main.class, stringBuilderTest.getMethodName())
-        // TODO(b/222437581): Incorrect result for string builder inside loop.
-        .assertSuccessWithOutputLinesIf(hasError, "Hello World", "Hello World")
-        .assertSuccessWithOutputIf(!hasError, stringBuilderTest.expected);
+        .assertSuccessWithOutput(stringBuilderTest.expected);
   }
 
   private long countStringBuilderInits(FoundMethodSubject method) {

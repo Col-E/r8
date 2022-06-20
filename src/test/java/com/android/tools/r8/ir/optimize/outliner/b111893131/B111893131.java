@@ -81,6 +81,7 @@ public class B111893131 extends TestBase {
               // To trigger outliner, set # of expected outline candidate as threshold.
               options.outline.threshold = 2;
               options.inlinerOptions().enableInlining = false;
+              options.enableStringConcatenationOptimization = false;
             });
     ProcessResult result = runOnArtRaw(app, TestClass.class);
     assertEquals(result.toString(), 0, result.exitCode);

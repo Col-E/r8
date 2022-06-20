@@ -229,7 +229,8 @@ public class StringBuilderAppendOptimizer {
             if (instruction.isAssume()) {
               return;
             }
-            if (oracle.isModeledStringBuilderInstruction(instruction)) {
+            if (oracle.isModeledStringBuilderInstruction(
+                instruction, escapeState::isLiveStringBuilder)) {
               createNodesForStringBuilderInstruction(instruction, escapeState, nodeConsumer);
             } else {
               for (Value newEscapedValue : escapeState.getNewlyEscaped()) {
@@ -291,7 +292,7 @@ public class StringBuilderAppendOptimizer {
                     escapeState,
                     actual -> nodeConsumer.accept(actual, appendNode),
                     escaped -> nodeConsumer.accept(escaped, createMutateNode()));
-              } else if (oracle.isToString(instruction)) {
+              } else if (oracle.isToString(instruction, receiver)) {
                 visitStringBuilderValues(
                     receiver,
                     escapeState,

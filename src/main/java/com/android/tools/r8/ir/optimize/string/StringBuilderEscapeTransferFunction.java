@@ -53,16 +53,30 @@ public class StringBuilderEscapeTransferFunction
   public TransferFunctionResult<StringBuilderEscapeState> apply(
       Instruction instruction, StringBuilderEscapeState state) {
     StringBuilderEscapeState.Builder builder = state.builder();
-    boolean isStringBuilderInstruction = oracle.isModeledStringBuilderInstruction(instruction);
+    boolean isStringBuilderInstruction =
+        oracle.isModeledStringBuilderInstruction(instruction, state::isLiveStringBuilder);
     if (!isStringBuilderInstruction && isEscapingInstructionForInValues(instruction)) {
       for (Value inValue : instruction.inValues()) {
         if (isLiveStringBuilder(builder, inValue)) {
-          // TODO(b/232377424): Account for calls to Object (such as Object.toString()).
           builder.addEscaping(inValue);
         }
       }
     }
+    if (isStringBuilderInstruction) {
+      if (instruction.isInvokeMethodWithReceiver()) {
+        Value firstOperand = instruction.getFirstOperand();
+        if (!builder.getLiveStringBuilders().contains(firstOperand)) {
+          // We can have constant NULL being the first operand, which we have not marked as
+          // a live string builder.
+          assert firstOperand.isConstZero();
+          builder.addLiveStringBuilder(firstOperand);
+        }
+      } else {
+        assert instruction.isNewInstance();
+      }
+    }
     assert !isStringBuilderInstruction
+        || instruction.isNewInstance()
         || builder.getLiveStringBuilders().contains(instruction.getFirstOperand());
     Value outValue = instruction.outValue();
     if (outValue != null) {

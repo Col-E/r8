@@ -2127,6 +2127,10 @@ public class DexItemFactory {
       return appendPrimitiveMethods.contains(method);
     }
 
+    public boolean isAppendSubArrayMethod(DexMethod method) {
+      return appendSubCharArray == method || appendSubCharSequence == method;
+    }
+
     public boolean isAppendStringMethod(DexMethod method) {
       return method == appendString;
     }

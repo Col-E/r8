@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize.canonicalization;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.NeverInline;
@@ -159,7 +158,7 @@ public class StringCanonicalizationTest extends TestBase {
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
     // CF should not canonicalize strings or lower them. See (r8g/30163) and (r8g/30320).
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -202,24 +201,25 @@ public class StringCanonicalizationTest extends TestBase {
   }
 
   @Test
-  public void testD8() throws Exception {
-    assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
+  public void testR8Debug() throws Exception {
+    D8TestCompileResult result =
+        testForD8()
+            .debug()
+            .addProgramClassesAndInnerClasses(MAIN)
+            .setMinApi(parameters.getApiLevel())
+            .compile();
+    test(result, 2, 1, 1, 1, 1);
+  }
 
+  @Test
+  public void testD8Release() throws Exception {
     D8TestCompileResult result =
         testForD8()
             .release()
             .addProgramClassesAndInnerClasses(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .compile();
-    test(result, 1, 1, 1, 1, 1);
-
-    result =
-        testForD8()
-            .debug()
-            .addProgramClassesAndInnerClasses(MAIN)
-            .setMinApi(parameters.getRuntime())
-            .compile();
-    test(result, 2, 1, 1, 1, 1);
+    test(result, 1, 1, 1, 1, 0);
   }
 
   @Test
@@ -230,9 +230,8 @@ public class StringCanonicalizationTest extends TestBase {
             .enableProguardTestOptions()
             .enableInliningAnnotations()
             .addKeepMainRule(MessageLoader.class)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .compile();
-    test(result, 1, 1, 1, 1, 1);
+    test(result, 1, 1, 1, 1, 0);
   }
-
 }

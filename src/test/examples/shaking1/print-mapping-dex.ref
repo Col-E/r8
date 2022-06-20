@@ -4,5 +4,5 @@ shaking1.Used -> a.a:
     3:5:void <init>(java.lang.String):13:13 -> <init>
     0:6:void main(java.lang.String[]):8:8 -> main
     7:21:void main(java.lang.String[]):9:9 -> main
-    0:19:java.lang.String method():17:17 -> a
+    0:16:java.lang.String method():17:17 -> a
     java.lang.String name -> a

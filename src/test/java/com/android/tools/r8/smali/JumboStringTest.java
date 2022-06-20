@@ -20,11 +20,19 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class JumboStringTest extends SmaliTestBase {
   private static Pair<StringBuilder, StringBuilder> builders;
-  private final TestParameters parameters;
+
+  @Parameter() public TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimes().withOnlyDexRuntimeApiLevel().build();
+  }
 
   @BeforeClass
   public static void createBuilders() {
@@ -47,15 +55,6 @@ public class JumboStringTest extends SmaliTestBase {
     builder.append(StringUtils.lines("    move-result-object   v0"));
     builder.append(StringUtils.lines("    return-object        v0"));
     builders = new Pair<>(builder, expectedBuilder);
-  }
-
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().build();
-  }
-
-  public JumboStringTest(TestParameters parameters) {
-    this.parameters = parameters;
   }
 
   @Test
@@ -82,16 +81,21 @@ public class JumboStringTest extends SmaliTestBase {
     testForR8(parameters.getBackend())
         .addProgramDexFileData(smaliBuilder.compile())
         .addKeepMainRule(DEFAULT_CLASS_NAME)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(
+            options -> {
+              options.enableStringConcatenationOptimization = false;
+            })
         .run(parameters.getRuntime(), DEFAULT_CLASS_NAME)
         .assertSuccessWithOutput(builders.getSecond().toString())
-        .inspect(inspector -> {
-          ClassSubject main = inspector.clazz(DEFAULT_CLASS_NAME);
-          assertThat(main, isPresent());
-          MethodSubject method = main.uniqueMethodWithName(DEFAULT_METHOD_NAME);
-          assertThat(method, isPresent());
-          assertTrue(method.streamInstructions().anyMatch(InstructionSubject::isJumboString));
-        });
+        .inspect(
+            inspector -> {
+              ClassSubject main = inspector.clazz(DEFAULT_CLASS_NAME);
+              assertThat(main, isPresent());
+              MethodSubject method = main.uniqueMethodWithName(DEFAULT_METHOD_NAME);
+              assertThat(method, isPresent());
+              assertTrue(method.streamInstructions().anyMatch(InstructionSubject::isJumboString));
+            });
   }
 
   @Test
@@ -128,18 +132,23 @@ public class JumboStringTest extends SmaliTestBase {
         .addProgramDexFileData(smaliBuilder.compile())
         .addKeepMainRule(DEFAULT_CLASS_NAME)
         .addKeepRules("-addconfigurationdebugging")
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(
+            options -> {
+              options.enableStringConcatenationOptimization = false;
+            })
         .run(parameters.getRuntime(), DEFAULT_CLASS_NAME)
         .assertSuccessWithOutput(builders.getSecond().toString())
-        .inspect(inspector -> {
-          ClassSubject main = inspector.clazz(DEFAULT_CLASS_NAME);
-          assertThat(main, isPresent());
-          MethodSubject method = main.uniqueMethodWithName(DEFAULT_METHOD_NAME);
-          assertThat(method, isPresent());
-          assertTrue(method.streamInstructions().anyMatch(InstructionSubject::isJumboString));
-          MethodSubject method2 = main.uniqueMethodWithName(DEFAULT_METHOD_NAME + "2");
-          assertThat(method2, isPresent());
-          assertTrue(method2.streamInstructions().anyMatch(InstructionSubject::isJumboString));
-        });
+        .inspect(
+            inspector -> {
+              ClassSubject main = inspector.clazz(DEFAULT_CLASS_NAME);
+              assertThat(main, isPresent());
+              MethodSubject method = main.uniqueMethodWithName(DEFAULT_METHOD_NAME);
+              assertThat(method, isPresent());
+              assertTrue(method.streamInstructions().anyMatch(InstructionSubject::isJumboString));
+              MethodSubject method2 = main.uniqueMethodWithName(DEFAULT_METHOD_NAME + "2");
+              assertThat(method2, isPresent());
+              assertTrue(method2.streamInstructions().anyMatch(InstructionSubject::isJumboString));
+            });
   }
 }

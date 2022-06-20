@@ -41,10 +41,9 @@ public class StringBuilderWithIndirectPhiMutationThroughPhiOperandTest extends T
             .inspect(
                 inspector -> {
                   MethodSubject mainMethodSubject = inspector.clazz(Main.class).mainMethod();
-                  // TODO(b/114002137): This should be optimized into having only 3 append calls,
-                  //  since append("baz").append("qux") can be optimized into append("bazqux").
+                  // TODO(b/114002137): Also run for CF
                   assertEquals(
-                      4,
+                      parameters.isCfRuntime() ? 4 : 3,
                       mainMethodSubject
                           .streamInstructions()
                           .filter(isInvokeStringBuilderAppendWithString())
