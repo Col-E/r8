@@ -1870,7 +1870,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean allowInvokeErrors = false;
     public boolean allowUnnecessaryDontWarnWildcards = true;
     public boolean allowUnusedDontWarnRules = true;
-    public boolean reportUnusedProguardConfigurationRules = false;
+    public boolean reportUnusedProguardConfigurationRules =
+        System.getProperty("com.android.tools.r8.reportUnusedProguardConfigurationRules") != null;
     public boolean alwaysUseExistingAccessInfoCollectionsInMemberRebinding = true;
     public boolean alwaysUsePessimisticRegisterAllocation = false;
     public boolean enableCheckCastAndInstanceOfRemoval = true;
@@ -1878,7 +1879,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean enableInvokeSuperToInvokeVirtualRewriting = true;
     public boolean enableMultiANewArrayDesugaringForClassFiles = false;
     public boolean enableSwitchToIfRewriting = true;
-    public boolean enableEnumUnboxingDebugLogs = false;
+    public boolean enableEnumUnboxingDebugLogs =
+        System.getProperty("com.android.tools.r8.enableEnumUnboxingDebugLogs") != null;
     public boolean forceRedundantConstNumberRemoval = false;
     public boolean enableExperimentalDesugaredLibraryKeepRuleGenerator = false;
     public boolean invertConditionals = false;
