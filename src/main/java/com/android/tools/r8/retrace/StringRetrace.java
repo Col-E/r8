@@ -176,8 +176,7 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
    * @param lineSupplier the supplier of strings with returning null as terminator
    * @param lineConsumer the consumer of retraced strings
    */
-  public <E extends Exception> void retrace(
-      Supplier<String> lineSupplier, Consumer<String> lineConsumer) throws E {
+  public void retrace(Supplier<String> lineSupplier, Consumer<String> lineConsumer) {
     RetraceStackTraceContext context = RetraceStackTraceContext.empty();
     String retraceLine;
     while ((retraceLine = lineSupplier.get()) != null) {
