@@ -744,8 +744,6 @@ public class SyntheticFinalization {
       }
       DexClass clazz = appView.appInfo().definitionForWithoutExistenceAssert(externalType);
       if (clazz != null && isNotSyntheticType(clazz.type)) {
-        assert options.testing.allowConflictingSyntheticTypes
-            : "Unexpected creation of an existing external synthetic type: " + clazz;
         externalType = null;
       }
     } while (externalType == null);

@@ -1931,8 +1931,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     // minified field names instead of original field names.
     public boolean enableRecordModeling = true;
 
-    public boolean allowConflictingSyntheticTypes = false;
-
     // Flag to allow processing of resources in D8. A data resource consumer still needs to be
     // specified.
     public boolean enableD8ResourcesPassThrough = false;

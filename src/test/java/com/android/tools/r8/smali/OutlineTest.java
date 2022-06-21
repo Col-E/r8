@@ -950,10 +950,7 @@ public class OutlineTest extends SmaliTestBase {
     for (int i = 1; i < count; i++) {
       // Build a new application with the Outliner class.
       originalApplication = processedApplication;
-      processedApplication =
-          processApplication(
-              originalApplication,
-              options.andThen(o -> o.testing.allowConflictingSyntheticTypes = true));
+      processedApplication = processApplication(originalApplication, options);
       assertEquals((i + 1) * 3, getNumberOfProgramClasses(processedApplication));
     }
 
