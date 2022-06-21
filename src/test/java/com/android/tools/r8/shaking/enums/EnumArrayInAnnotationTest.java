@@ -6,11 +6,11 @@ package com.android.tools.r8.shaking.enums;
 
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.ProguardVersion;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.TestShrinkerBuilder;
-import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.lang.annotation.ElementType;
@@ -67,6 +67,7 @@ public class EnumArrayInAnnotationTest extends TestBase {
             builder -> {
               // Do nothing for DEX.
             })
+        .setMinApi(parameters.getApiLevel())
         .addKeepRuntimeVisibleAnnotations()
         .run(parameters.getRuntime(), Main.class)
         .applyIf(
@@ -78,9 +79,31 @@ public class EnumArrayInAnnotationTest extends TestBase {
                 && useGenericEnumsRule
                 && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK11),
             r -> r.assertFailureWithErrorThatThrows(EnumConstantNotPresentException.class),
-            parameters.isDexRuntime()
-                && parameters.asDexRuntime().getVm().isOlderThan(DexVm.ART_8_1_0_HOST),
-            r -> r.assertFailureWithErrorThatThrows(ClassNotFoundException.class),
+            r -> r.assertSuccessWithOutput(EXPECTED_RESULT));
+  }
+
+  @Test
+  public void testProguard() throws Exception {
+    assumeTrue(parameters.isCfRuntime());
+    testForProguard(ProguardVersion.V7_0_0)
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Main.class)
+        .applyIf(
+            useGenericEnumsRule,
+            TestShrinkerBuilder::addKeepEnumsRule,
+            builder ->
+                builder.addKeepRules(
+                    "-keepclassmembernames enum "
+                        + EnumArrayInAnnotationTest.Enum.class.getTypeName()
+                        + " { <fields>; }"))
+        .addKeepRules("-dontwarn " + getClass().getTypeName())
+        .addKeepRuntimeVisibleAnnotations()
+        .run(parameters.getRuntime(), Main.class)
+        .applyIf(
+            !useGenericEnumsRule && parameters.asCfRuntime().isOlderThan(CfVm.JDK11),
+            r -> r.assertFailureWithErrorThatThrows(ArrayStoreException.class),
+            !useGenericEnumsRule && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK11),
+            r -> r.assertFailureWithErrorThatThrows(EnumConstantNotPresentException.class),
             r -> r.assertSuccessWithOutput(EXPECTED_RESULT));
   }
 

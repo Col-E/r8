@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking.enums;
 
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.ProguardVersion;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestShrinkerBuilder;
@@ -74,6 +75,28 @@ public class EnumInAnnotationTest extends TestBase {
             parameters.isCfRuntime() && useGenericEnumsRule,
             r -> r.assertFailureWithErrorThatThrows(EnumConstantNotPresentException.class),
             r -> r.assertSuccessWithOutput(EXPECTED_RESULT));
+  }
+
+  @Test
+  public void testProguard() throws Exception {
+    assumeTrue(parameters.isCfRuntime());
+    testForProguard(ProguardVersion.V7_0_0)
+        .addInnerClasses(EnumInAnnotationTest.class)
+        .addKeepMainRule(Main.class)
+        .addKeepEnumsRule()
+        .applyIf(
+            useGenericEnumsRule,
+            TestShrinkerBuilder::addKeepEnumsRule,
+            builder ->
+                builder.addKeepRules(
+                    "-keepclassmembernames class "
+                        + EnumInAnnotationTest.Enum.class.getTypeName()
+                        + " { <fields>; }"))
+        .addKeepRules("-dontwarn " + getClass().getTypeName())
+        .addKeepRuntimeVisibleAnnotations()
+        .compile()
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
   public enum Enum {
