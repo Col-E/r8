@@ -1,4 +1,4 @@
-// Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -8,7 +8,9 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.TestShrinkerBuilder;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.lang.annotation.ElementType;
@@ -23,7 +25,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class EnumInAnnotationTest extends TestBase {
+public class EnumArrayInAnnotationTest extends TestBase {
 
   @Parameter(0)
   public TestParameters parameters;
@@ -37,13 +39,13 @@ public class EnumInAnnotationTest extends TestBase {
         getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
-  private static String EXPECTED_RESULT = StringUtils.lines("TEST_ONE");
+  private static String EXPECTED_RESULT = StringUtils.lines("TEST_ONE", "TEST_TWO");
 
   @Test
   public void testRuntime() throws Exception {
     assumeTrue(useGenericEnumsRule);
     testForRuntime(parameters)
-        .addInnerClasses(EnumInAnnotationTest.class)
+        .addInnerClasses(getClass())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
@@ -51,28 +53,34 @@ public class EnumInAnnotationTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(EnumInAnnotationTest.class)
+        .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addKeepEnumsRule()
         .applyIf(
             parameters.isCfRuntime() && useGenericEnumsRule,
             TestShrinkerBuilder::addKeepEnumsRule,
             parameters.isCfRuntime() && !useGenericEnumsRule,
             builder ->
                 builder.addKeepRules(
-                    "-keepclassmembernames class "
-                        + EnumInAnnotationTest.Enum.class.getTypeName()
+                    "-keepclassmembernames enum "
+                        + EnumArrayInAnnotationTest.Enum.class.getTypeName()
                         + " { <fields>; }"),
             builder -> {
               // Do nothing for DEX.
             })
-        .setMinApi(parameters.getApiLevel())
         .addKeepRuntimeVisibleAnnotations()
-        .compile()
         .run(parameters.getRuntime(), Main.class)
         .applyIf(
-            parameters.isCfRuntime() && useGenericEnumsRule,
+            parameters.isCfRuntime()
+                && useGenericEnumsRule
+                && parameters.asCfRuntime().isOlderThan(CfVm.JDK11),
+            r -> r.assertFailureWithErrorThatThrows(ArrayStoreException.class),
+            parameters.isCfRuntime()
+                && useGenericEnumsRule
+                && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK11),
             r -> r.assertFailureWithErrorThatThrows(EnumConstantNotPresentException.class),
+            parameters.isDexRuntime()
+                && parameters.asDexRuntime().getVm().isOlderThan(DexVm.ART_8_1_0_HOST),
+            r -> r.assertFailureWithErrorThatThrows(ClassNotFoundException.class),
             r -> r.assertSuccessWithOutput(EXPECTED_RESULT));
   }
 
@@ -85,14 +93,16 @@ public class EnumInAnnotationTest extends TestBase {
   @Target({ElementType.TYPE})
   public @interface MyAnnotation {
 
-    Enum value();
+    Enum[] value();
   }
 
-  @MyAnnotation(value = Enum.TEST_ONE)
+  @MyAnnotation(value = {Enum.TEST_ONE, Enum.TEST_TWO})
   public static class Main {
 
     public static void main(String[] args) {
-      System.out.println(Main.class.getAnnotation(MyAnnotation.class).value());
+      for (Enum enm : Main.class.getAnnotation(MyAnnotation.class).value()) {
+        System.out.println(enm);
+      }
     }
   }
 }
