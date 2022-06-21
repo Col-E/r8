@@ -378,7 +378,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
   private void analyzeFieldInstruction(
       FieldInstruction fieldInstruction, Set<DexType> eligibleEnums, ProgramMethod context) {
     DexField field = fieldInstruction.getField();
-    DexProgramClass enumClass = getEnumUnboxingCandidateOrNull(field.holder);
+    DexProgramClass enumClass = getEnumUnboxingCandidateOrNull(field.getHolderType());
     if (enumClass != null) {
       FieldResolutionResult resolutionResult = appView.appInfo().resolveField(field, context);
       if (resolutionResult.isSingleFieldResolutionResult()) {
@@ -552,14 +552,15 @@ public class EnumUnboxerImpl extends EnumUnboxer {
           }
         }
       } else if (use.isFieldPut()) {
-        DexType type = use.asFieldInstruction().getField().type;
-        if (enumUnboxingCandidatesInfo.isCandidate(type)) {
-          eligibleEnums.add(type);
+        DexProgramClass enumClass =
+            getEnumUnboxingCandidateOrNull(use.asFieldInstruction().getField().getType());
+        if (enumClass != null) {
+          eligibleEnums.add(enumClass.getType());
         }
       } else if (use.isReturn()) {
-        DexType returnType = code.method().getReference().proto.returnType;
-        if (enumUnboxingCandidatesInfo.isCandidate(returnType)) {
-          eligibleEnums.add(returnType);
+        DexProgramClass enumClass = getEnumUnboxingCandidateOrNull(code.context().getReturnType());
+        if (enumClass != null) {
+          eligibleEnums.add(enumClass.getType());
         }
       }
     }
