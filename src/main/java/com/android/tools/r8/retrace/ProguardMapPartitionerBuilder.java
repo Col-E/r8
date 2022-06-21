@@ -8,9 +8,12 @@ import com.android.tools.r8.Keep;
 import java.util.function.Consumer;
 
 @Keep
-public interface MappingPartitions {
+public interface ProguardMapPartitionerBuilder<
+    B extends ProguardMapPartitionerBuilder<B, P>, P extends ProguardMapPartitioner> {
 
-  byte[] getMetadata();
+  B setProguardMapProducer(ProguardMapProducer proguardMapProducer);
 
-  void visitPartitions(Consumer<MappingPartition> consumer);
+  B setPartitionConsumer(Consumer<MappingPartition> consumer);
+
+  P build();
 }

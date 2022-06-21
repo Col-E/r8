@@ -7,7 +7,7 @@ package com.android.tools.r8.retrace;
 import com.android.tools.r8.Keep;
 
 @Keep
-public interface MappingPartitioner {
+public interface MappingPartitionMetadata {
 
-  MappingPartitions partition(ProguardMapProducer mapProducer);
+  byte[] getBytes();
 }

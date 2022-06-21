@@ -6,6 +6,7 @@ package com.android.tools.r8.retrace.internal;
 
 import static com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.LineParserState.COMPLETE_CLASS_MAPPING;
 import static com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.LineParserState.IS_COMMENT_SOURCE_FILE;
+import static com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.LineParserState.NOT_CLASS_MAPPING_OR_SOURCE_FILE;
 import static java.lang.Integer.MAX_VALUE;
 
 import com.android.tools.r8.errors.Unreachable;
@@ -207,6 +208,7 @@ public abstract class ProguardMapReaderWithFiltering implements LineReader {
 
   private boolean isInsideClassOfInterest = false;
   private boolean seenFirstClass = false;
+  private LineParserState lineParserState = NOT_CLASS_MAPPING_OR_SOURCE_FILE;
 
   @Override
   public String readLine() throws IOException {
@@ -218,7 +220,7 @@ public abstract class ProguardMapReaderWithFiltering implements LineReader {
       if (filter == null) {
         return new String(bytes, startIndex, endIndex - startIndex, StandardCharsets.UTF_8);
       }
-      LineParserState lineParserState = LineParserState.computeState(bytes, startIndex, endIndex);
+      lineParserState = LineParserState.computeState(bytes, startIndex, endIndex);
       if (lineParserState == COMPLETE_CLASS_MAPPING) {
         seenFirstClass = true;
         String classMapping = getBufferAsString(bytes);
@@ -233,6 +235,10 @@ public abstract class ProguardMapReaderWithFiltering implements LineReader {
         return getBufferAsString(bytes);
       }
     }
+  }
+
+  public boolean isClassMapping() {
+    return lineParserState == COMPLETE_CLASS_MAPPING;
   }
 
   private String getBufferAsString(byte[] bytes) {
