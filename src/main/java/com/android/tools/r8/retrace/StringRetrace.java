@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Specialized Retrace class for retracing string retraces, with special handling for appending
@@ -167,6 +168,23 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
     List<String> result = new ArrayList<>();
     joinAmbiguousLines(listResultWithContext.getResult(), result::add);
     return ResultWithContextImpl.create(result, listResultWithContext.getContext());
+  }
+
+  /**
+   * Processes supplied strings and calls lineConsumer with retraced strings in a streaming way
+   *
+   * @param lineSupplier the supplier of strings with returning null as terminator
+   * @param lineConsumer the consumer of retraced strings
+   */
+  public <E extends Exception> void retrace(
+      Supplier<String> lineSupplier, Consumer<String> lineConsumer) throws E {
+    RetraceStackTraceContext context = RetraceStackTraceContext.empty();
+    String retraceLine;
+    while ((retraceLine = lineSupplier.get()) != null) {
+      ResultWithContext<List<String>> result = retrace(retraceLine, context);
+      context = result.getContext();
+      result.getResult().forEach(lineConsumer);
+    }
   }
 
   private void joinAmbiguousLines(
