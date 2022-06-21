@@ -10,6 +10,7 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.LineReader;
 import com.android.tools.r8.naming.MapVersion;
+import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.retrace.MappingPartition;
 import com.android.tools.r8.retrace.MappingPartitionMetadata;
 import com.android.tools.r8.retrace.ProguardMapPartitioner;
@@ -55,8 +56,9 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
                     proguardMapProducer.get(), alwaysTrue(), true));
     // Produce a global mapper to read all from the reader but also to capture all source file
     // mappings.
-    ClassNameMapper.mapperFromLineReaderWithFiltering(
-        reader, MapVersion.MAP_VERSION_UNKNOWN, diagnosticsHandler, true, true);
+    ClassNameMapper classMapper =
+        ClassNameMapper.mapperFromLineReaderWithFiltering(
+            reader, MapVersion.MAP_VERSION_UNKNOWN, diagnosticsHandler, true, true);
     // We can then iterate over all sections.
     reader.forEachClassMapping(
         (classMapping, entries) -> {
@@ -77,7 +79,12 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
             diagnosticsHandler.error(new ExceptionDiagnostic(e));
           }
         });
-    return null;
+    MapVersion mapVersion = MapVersion.MAP_VERSION_UNKNOWN;
+    MapVersionMappingInformation mapVersionInfo = classMapper.getFirstMapVersionInformation();
+    if (mapVersionInfo != null) {
+      mapVersion = mapVersionInfo.getMapVersion();
+    }
+    return MappingPartitionMetadataInternal.obfuscatedTypeNameAsKey(mapVersion);
   }
 
   public static class PartitionLineReader implements LineReader {

@@ -112,13 +112,14 @@ public class ProguardMappingSupplierImpl extends ProguardMappingSupplier {
     if (classNameMapper == null) {
       return MapVersion.MAP_VERSION_NONE;
     } else {
-      MapVersionMappingInformation mapVersion = classNameMapper.getFirstMappingInformation();
+      MapVersionMappingInformation mapVersion = classNameMapper.getFirstMapVersionInformation();
       return mapVersion == null ? MapVersion.MAP_VERSION_UNKNOWN : mapVersion.getMapVersion();
     }
   }
 
   @Override
-  public ProguardMappingSupplier registerClassUse(ClassReference classReference) {
+  public ProguardMappingSupplier registerClassUse(
+      DiagnosticsHandler diagnosticsHandler, ClassReference classReference) {
     if (!hasClassMappingFor(classReference.getTypeName())) {
       pendingClassMappings.add(classReference.getTypeName());
     }

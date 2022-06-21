@@ -418,7 +418,7 @@ public class ClassNameMapper implements ProguardMap {
     return mapVersions;
   }
 
-  public MapVersionMappingInformation getFirstMappingInformation() {
+  public MapVersionMappingInformation getFirstMapVersionInformation() {
     return mapVersions.isEmpty() ? null : mapVersions.iterator().next();
   }
 }

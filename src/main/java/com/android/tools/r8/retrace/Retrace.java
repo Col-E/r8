@@ -361,14 +361,18 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
         parsedStackTrace.forEach(
             proxy -> {
               if (proxy.hasClassName()) {
-                mappingSupplier.registerClassUse(proxy.getClassReference());
+                mappingSupplier.registerClassUse(diagnosticsHandler, proxy.getClassReference());
               }
               if (proxy.hasMethodArguments()) {
                 Arrays.stream(proxy.getMethodArguments().split(","))
-                    .forEach(typeName -> registerUseFromTypeReference(mappingSupplier, typeName));
+                    .forEach(
+                        typeName ->
+                            registerUseFromTypeReference(
+                                mappingSupplier, typeName, diagnosticsHandler));
               }
               if (proxy.hasFieldOrReturnType() && !proxy.getFieldOrReturnType().equals("void")) {
-                registerUseFromTypeReference(mappingSupplier, proxy.getFieldOrReturnType());
+                registerUseFromTypeReference(
+                    mappingSupplier, proxy.getFieldOrReturnType(), diagnosticsHandler);
               }
             });
         timing.begin("Retracing");
@@ -393,13 +397,13 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
   }
 
   private static void registerUseFromTypeReference(
-      MappingSupplier<?> mappingSupplier, String typeName) {
+      MappingSupplier<?> mappingSupplier, String typeName, DiagnosticsHandler diagnosticsHandler) {
     TypeReference typeReference = Reference.typeFromTypeName(typeName);
     if (typeReference.isArray()) {
       typeReference = typeReference.asArray().getBaseType();
     }
     if (typeReference.isClass()) {
-      mappingSupplier.registerClassUse(typeReference.asClass());
+      mappingSupplier.registerClassUse(diagnosticsHandler, typeReference.asClass());
     }
   }
 

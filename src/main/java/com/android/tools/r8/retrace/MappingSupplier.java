@@ -18,7 +18,8 @@ public abstract class MappingSupplier<T extends MappingSupplier<T>>
    *
    * @param classReference The minified class reference allowed to be lookup up.
    */
-  public abstract T registerClassUse(ClassReference classReference);
+  public abstract T registerClassUse(
+      DiagnosticsHandler diagnosticsHandler, ClassReference classReference);
 
   public abstract void verifyMappingFileHash(DiagnosticsHandler diagnosticsHandler);
 }

@@ -5,7 +5,7 @@
 package com.android.tools.r8.retrace.api;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestParameters;
@@ -22,9 +22,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class RetraceSplitterStringTest extends RetraceApiTestBase {
+public class RetracePartitionStringTest extends RetraceApiTestBase {
 
-  public RetraceSplitterStringTest(TestParameters parameters) {
+  public RetracePartitionStringTest(TestParameters parameters) {
     super(parameters);
   }
 
@@ -68,8 +68,7 @@ public class RetraceSplitterStringTest extends RetraceApiTestBase {
                           new String(partition.getPayload(), StandardCharsets.UTF_8)))
               .build()
               .run();
-      // TODO(b/211603371): Figure out what metadata should be.
-      assertNull(metadataData);
+      assertNotNull(metadataData);
       assertEquals(2, partitions.size());
       assertEquals(aMapping, partitions.get("a"));
       assertEquals(bMapping, partitions.get("b"));

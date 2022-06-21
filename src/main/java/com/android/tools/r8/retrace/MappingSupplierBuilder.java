@@ -8,7 +8,7 @@ import com.android.tools.r8.Keep;
 
 @Keep
 public abstract class MappingSupplierBuilder<
-    P extends MappingSupplier, T extends MappingSupplierBuilder<P, T>> {
+    P extends MappingSupplier<P>, T extends MappingSupplierBuilder<P, T>> {
 
   public abstract T self();
 
