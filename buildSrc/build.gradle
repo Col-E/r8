@@ -7,10 +7,18 @@ apply plugin: 'idea'
 repositories {
     mavenCentral()
 }
+ext {
+    asmVersion = '9.3'
+}
 
 dependencies {
     compile group: 'com.google.guava', name: 'guava', version: '19.0'
     compile group: 'org.smali', name: 'smali', version: '2.2b4'
+    compile group: 'org.ow2.asm', name: 'asm', version: asmVersion
+    compile group: 'org.ow2.asm', name: 'asm-commons', version: asmVersion
+    compile group: 'org.ow2.asm', name: 'asm-tree', version: asmVersion
+    compile group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
+    compile group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
 }
 
 sourceCompatibility = JavaVersion.VERSION_1_8

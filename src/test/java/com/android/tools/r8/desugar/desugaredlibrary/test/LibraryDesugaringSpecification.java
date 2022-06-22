@@ -168,7 +168,7 @@ public class LibraryDesugaringSpecification {
       CustomConversionVersion legacy) {
     this(
         name,
-        ImmutableSet.of(desugarJdkLibs, ToolHelper.getConvertedDesugaredLibConversions(legacy)),
+        ImmutableSet.of(desugarJdkLibs, ToolHelper.getDesugarLibConversions(legacy)),
         Paths.get("src/library_desugar/" + specificationPath),
         ImmutableSet.of(ToolHelper.getAndroidJar(androidJarLevel)),
         descriptor,

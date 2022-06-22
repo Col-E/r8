@@ -15,7 +15,6 @@ import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.benchmarks.BenchmarkResults;
-import com.android.tools.r8.desugar.desugaredlibrary.jdk11.ConversionConverter;
 import com.android.tools.r8.desugar.desugaredlibrary.jdk11.DesugaredLibraryJDK11Undesugarer;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.CustomConversionVersion;
 import com.android.tools.r8.dex.ApplicationReader;
@@ -180,8 +179,6 @@ public class ToolHelper {
   public static final Path DEPS = Paths.get(LIBS_DIR, "deps_all.jar");
   public static final Path R8_RETRACE_JAR = Paths.get(LIBS_DIR, "r8retrace.jar");
 
-  public static final Path DESUGAR_LIB_CONVERSIONS =
-      Paths.get(LIBS_DIR, "library_desugar_conversions.zip");
   public static final String DESUGARED_LIB_RELEASES_DIR =
       OPEN_JDK_DIR + "desugar_jdk_libs_releases/";
   public static final Path DESUGARED_JDK_8_LIB_JAR =
@@ -189,8 +186,10 @@ public class ToolHelper {
   public static final Path DESUGARED_JDK_11_LIB_JAR =
       Paths.get(OPEN_JDK_DIR + "desugar_jdk_libs_11/desugar_jdk_libs.jar");
 
-  public static Path getConvertedDesugaredLibConversions(CustomConversionVersion legacy) {
-    return ConversionConverter.convertJar(DESUGAR_LIB_CONVERSIONS, legacy);
+  public static Path getDesugarLibConversions(CustomConversionVersion legacy) {
+    return legacy == CustomConversionVersion.LEGACY
+        ? Paths.get(LIBS_DIR, "library_desugar_conversions_legacy.jar")
+        : Paths.get(LIBS_DIR, "library_desugar_conversions.jar");
   }
 
   public static Path getUndesugaredJdk11LibJarForTesting() {
