@@ -68,6 +68,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.Monitor;
@@ -459,9 +460,13 @@ public class CfPrinter {
     if (type.isInitializedReferenceType()) {
       if (type.isNullType()) {
         builder.append("null");
+      } else if (type.isInitializedNonNullReferenceTypeWithInterfaces()) {
+        appendTypeElement(
+            type.asInitializedNonNullReferenceTypeWithInterfaces()
+                .getInitializedTypeWithInterfaces());
       } else {
-        assert type.isInitializedNonNullReferenceType();
-        appendType(type.asInitializedNonNullReferenceType().getInitializedType());
+        assert type.isInitializedNonNullReferenceTypeWithoutInterfaces();
+        appendType(type.asInitializedNonNullReferenceTypeWithoutInterfaces().getInitializedType());
       }
     } else if (type.isUninitializedNew()) {
       builder.append("uninitialized ").append(getLabel(type.getUninitializedLabel()));
@@ -778,6 +783,10 @@ public class CfPrinter {
     } else {
       builder.append(type);
     }
+  }
+
+  private void appendTypeElement(TypeElement type) {
+    builder.append(type.toString());
   }
 
   private void appendClass(DexType type) {

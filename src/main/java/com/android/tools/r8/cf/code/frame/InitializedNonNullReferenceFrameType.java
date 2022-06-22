@@ -4,144 +4,65 @@
 
 package com.android.tools.r8.cf.code.frame;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexTypeUtils;
-import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.naming.NamingLens;
-import org.objectweb.asm.Opcodes;
+import com.android.tools.r8.ir.analysis.type.ReferenceTypeElement;
 
-public class InitializedNonNullReferenceFrameType extends BaseFrameType
+public abstract class InitializedNonNullReferenceFrameType extends BaseFrameType
     implements InitializedReferenceFrameType {
 
-  private final DexType type;
-
-  InitializedNonNullReferenceFrameType(DexType type) {
-    assert type != null;
-    assert type.isReferenceType();
-    assert !type.isNullValueType();
-    this.type = type;
-  }
-
   @Override
-  public boolean isPrecise() {
+  public final boolean isInitialized() {
     return true;
   }
 
   @Override
-  public PreciseFrameType asPrecise() {
+  public final boolean isInitializedReferenceType() {
+    return true;
+  }
+
+  @Override
+  public final InitializedNonNullReferenceFrameType asInitializedReferenceType() {
     return this;
   }
 
   @Override
-  public boolean isInitializedReferenceType() {
+  public final boolean isInitializedNonNullReferenceType() {
     return true;
   }
 
   @Override
-  public InitializedNonNullReferenceFrameType asInitializedReferenceType() {
+  public final InitializedNonNullReferenceFrameType asInitializedNonNullReferenceType() {
     return this;
   }
 
   @Override
-  public boolean isInitializedNonNullReferenceType() {
+  public final boolean isObject() {
     return true;
   }
 
   @Override
-  public InitializedNonNullReferenceFrameType asInitializedNonNullReferenceType() {
+  public final boolean isPrecise() {
+    return true;
+  }
+
+  @Override
+  public final PreciseFrameType asPrecise() {
     return this;
   }
 
   @Override
-  public SingleFrameType join(
-      AppView<? extends AppInfoWithClassHierarchy> appView, SingleFrameType frameType) {
-    if (equals(frameType) || frameType.isNullType()) {
-      return this;
-    }
-    if (frameType.isOneWord() || frameType.isPrimitive() || frameType.isUninitialized()) {
-      return FrameType.oneWord();
-    }
-    DexType otherType = frameType.asInitializedNonNullReferenceType().getInitializedType();
-    DexType joinType =
-        DexTypeUtils.toDexType(
-            appView, type.toTypeElement(appView).join(otherType.toTypeElement(appView), appView));
-    return FrameType.initializedNonNullReference(joinType);
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null || getClass() != obj.getClass()) {
-      return false;
-    }
-    InitializedNonNullReferenceFrameType initializedType =
-        (InitializedNonNullReferenceFrameType) obj;
-    return type == initializedType.type;
-  }
-
-  @Override
-  public int hashCode() {
-    return type.hashCode();
-  }
-
-  @Override
-  public String toString() {
-    return "Initialized(" + type.toString() + ")";
-  }
-
-  @Override
-  public Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
-    DexType rewrittenType = graphLens.lookupType(type);
-    assert rewrittenType != DexItemFactory.nullValueType;
-    switch (rewrittenType.toShorty()) {
-      case 'L':
-        return namingLens.lookupInternalName(rewrittenType);
-      case 'I':
-        return Opcodes.INTEGER;
-      case 'F':
-        return Opcodes.FLOAT;
-      case 'J':
-        return Opcodes.LONG;
-      case 'D':
-        return Opcodes.DOUBLE;
-      default:
-        throw new Unreachable("Unexpected value type: " + rewrittenType);
-    }
-  }
-
-  @Override
-  public SingleFrameType asSingle() {
+  public final SingleFrameType asSingle() {
     return this;
   }
 
-  @Override
-  public boolean isInitialized() {
-    return true;
-  }
+  public abstract ReferenceTypeElement getInitializedTypeWithInterfaces(
+      AppView<? extends AppInfoWithClassHierarchy> appView);
 
   @Override
-  public DexType getInitializedType() {
-    return type;
-  }
-
-  @Override
-  public DexType getInitializedType(DexItemFactory dexItemFactory) {
-    return getInitializedType();
-  }
-
-  @Override
-  public boolean isObject() {
-    return true;
-  }
-
-  @Override
-  public DexType getObjectType(DexType context) {
-    return type;
+  public final DexType getObjectType(DexItemFactory dexItemFactory, DexType context) {
+    return getInitializedType(dexItemFactory);
   }
 }

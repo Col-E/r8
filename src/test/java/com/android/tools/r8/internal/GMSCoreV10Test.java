@@ -196,8 +196,6 @@ public class GMSCoreV10Test extends GMSCoreCompilationTestBase {
             "android.media.RemoteDisplayState$RemoteDisplayInfo",
             "com.android.internal.location.ProviderProperties",
             "com.android.internal.location.ProviderRequest")
-        .addOptionsModification(
-            options -> options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
         .allowDiagnosticMessages()
         .allowUnusedProguardConfigurationRules()
         .setMinApi(parameters.getApiLevel())

@@ -545,13 +545,17 @@ public class CfCodePrinter extends CfPrinter {
         return frameTypeType() + "." + frameType.asPrimitive().getTypeName() + "Type()";
       }
     } else {
-      assert frameType.isInitialized();
+      assert frameType.isInitializedReferenceType();
+      assert !frameType.isInitializedNonNullReferenceTypeWithInterfaces()
+          : "Unexpected InitializedNonNullReferenceTypeWithInterfaces in CfFrame";
       if (frameType.isNullType()) {
-        return frameTypeType() + ".initialized(" + dexItemFactoryType() + ".nullValueType)";
+        return frameTypeType() + ".nullType()";
       } else {
+        assert frameType.isInitializedNonNullReferenceTypeWithoutInterfaces();
         return frameTypeType()
-            + ".initialized("
-            + dexType(frameType.asInitializedNonNullReferenceType().getInitializedType())
+            + ".initializedNonNullReference("
+            + dexType(
+                frameType.asInitializedNonNullReferenceTypeWithoutInterfaces().getInitializedType())
             + ")";
       }
     }

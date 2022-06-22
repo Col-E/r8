@@ -202,7 +202,7 @@ public final class EnumUnboxingCfMethods {
                     new int[] {0, 1, 2},
                     new FrameType[] {
                       FrameType.intType(),
-                      FrameType.initialized(options.itemFactory.intArrayType),
+                      FrameType.initializedNonNullReference(options.itemFactory.intArrayType),
                       FrameType.intType()
                     })),
             new CfLoad(ValueType.INT, 2),
@@ -224,7 +224,8 @@ public final class EnumUnboxingCfMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.intType(), FrameType.initialized(options.itemFactory.intArrayType)
+                      FrameType.intType(),
+                      FrameType.initializedNonNullReference(options.itemFactory.intArrayType)
                     })),
             new CfLoad(ValueType.OBJECT, 1),
             new CfReturn(ValueType.OBJECT),
@@ -298,7 +299,8 @@ public final class EnumUnboxingCfMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.intType(), FrameType.initialized(options.itemFactory.stringType)
+                      FrameType.intType(),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType)
                     })),
             new CfReturnVoid(),
             label3),

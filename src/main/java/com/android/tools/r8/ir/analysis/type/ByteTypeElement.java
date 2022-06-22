@@ -12,6 +12,11 @@ public class ByteTypeElement extends SinglePrimitiveTypeElement {
   }
 
   @Override
+  public String getDescriptor() {
+    return "B";
+  }
+
+  @Override
   public String getTypeName() {
     return "byte";
   }

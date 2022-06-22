@@ -12,6 +12,8 @@ import com.android.tools.r8.ir.code.NumericType;
 /** A {@link TypeElement} that abstracts primitive types. */
 public abstract class PrimitiveTypeElement extends TypeElement {
 
+  public abstract String getDescriptor();
+
   public abstract String getTypeName();
 
   @Override

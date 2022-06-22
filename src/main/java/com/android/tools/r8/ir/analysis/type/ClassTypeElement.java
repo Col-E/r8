@@ -153,6 +153,7 @@ public class ClassTypeElement extends ReferenceTypeElement {
     return getOrCreateVariant(nullability().meet(nullability));
   }
 
+  @Override
   public DexType toDexType(DexItemFactory dexItemFactory) {
     if (type == dexItemFactory.objectType) {
       DexType singleKnownInterface = getInterfaces().getSingleKnownInterface();

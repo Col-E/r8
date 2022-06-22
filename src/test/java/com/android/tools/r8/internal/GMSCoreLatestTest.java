@@ -110,8 +110,6 @@ public class GMSCoreLatestTest extends GMSCoreCompilationTestBase {
             "com.android.internal.location.ProviderRequest",
             "com.google.protobuf.java_com_google_android_libraries_performance_primes_release"
                 + "_gmscore__primes_bcdd2915GeneratedExtensionRegistryLite$Loader")
-        .addOptionsModification(
-            options -> options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
         .allowDiagnosticMessages()
         .allowUnusedProguardConfigurationRules()
         .setMinApi(parameters.getApiLevel())

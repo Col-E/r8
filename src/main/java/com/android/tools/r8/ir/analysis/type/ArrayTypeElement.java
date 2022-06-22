@@ -33,6 +33,7 @@ public class ArrayTypeElement extends ReferenceTypeElement {
     this.variants = variants;
   }
 
+  @Override
   public DexType toDexType(DexItemFactory factory) {
     TypeElement baseTypeLattice = getBaseType();
     DexType baseType;

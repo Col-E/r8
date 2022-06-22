@@ -135,12 +135,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType(
                               "Ljava/util/concurrent/atomic/AtomicReferenceArray;")),
                       FrameType.intType(),
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.INT, 1),
@@ -167,12 +167,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType(
                               "Ljava/util/concurrent/atomic/AtomicReferenceArray;")),
                       FrameType.intType(),
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.INT, 1),
@@ -212,12 +212,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType(
                               "Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;")),
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.OBJECT, 1),
@@ -244,12 +244,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType(
                               "Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;")),
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.OBJECT, 1),
@@ -289,11 +289,11 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType(
                               "Ljava/util/concurrent/atomic/AtomicReference;")),
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.OBJECT, 1),
@@ -317,11 +317,11 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType(
                               "Ljava/util/concurrent/atomic/AtomicReference;")),
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
@@ -540,8 +540,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.charSequenceType),
-                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -566,8 +566,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.charSequenceType),
-                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -614,8 +614,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.charSequenceType),
-                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -628,8 +628,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.charSequenceType),
-                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -744,8 +744,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.throwableType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
@@ -792,12 +792,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.throwableType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     }),
                 new ArrayDeque<>(
                     Arrays.asList(
-                        FrameType.initialized(
+                        FrameType.initializedNonNullReference(
                             options.itemFactory.createType("Ljava/lang/Exception;"))))),
             new CfStore(ValueType.OBJECT, 2),
             label6,
@@ -861,11 +861,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.throwableType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     }),
                 new ArrayDeque<>(
-                    Arrays.asList(FrameType.initialized(options.itemFactory.throwableType)))),
+                    Arrays.asList(
+                        FrameType.initializedNonNullReference(options.itemFactory.throwableType)))),
             new CfStore(ValueType.OBJECT, 2),
             label8,
             new CfNew(options.itemFactory.createType("Ljava/lang/AssertionError;")),
@@ -928,12 +929,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.throwableType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     }),
                 new ArrayDeque<>(
                     Arrays.asList(
-                        FrameType.initialized(
+                        FrameType.initializedNonNullReference(
                             options.itemFactory.createType(
                                 "Ljava/lang/reflect/InvocationTargetException;"))))),
             new CfStore(ValueType.OBJECT, 2),
@@ -952,8 +953,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.throwableType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfGoto(label20),
             label12,
@@ -961,11 +962,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.throwableType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     }),
                 new ArrayDeque<>(
-                    Arrays.asList(FrameType.initialized(options.itemFactory.throwableType)))),
+                    Arrays.asList(
+                        FrameType.initializedNonNullReference(options.itemFactory.throwableType)))),
             new CfStore(ValueType.OBJECT, 2),
             label13,
             new CfLoad(ValueType.OBJECT, 0),
@@ -1017,13 +1019,13 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.throwableType),
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.throwableType)
+                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.throwableType)
                     }),
                 new ArrayDeque<>(
                     Arrays.asList(
-                        FrameType.initialized(
+                        FrameType.initializedNonNullReference(
                             options.itemFactory.createType("Ljava/lang/Exception;"))))),
             new CfStore(ValueType.OBJECT, 3),
             label18,
@@ -1031,9 +1033,9 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.throwableType),
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.throwableType)
+                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.throwableType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfThrow(),
@@ -1042,9 +1044,9 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.throwableType),
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.throwableType)
+                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.throwableType)
                     })),
             new CfLoad(ValueType.OBJECT, 2),
             new CfThrow(),
@@ -1053,8 +1055,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.throwableType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfReturnVoid(),
             label21),
@@ -1148,10 +1150,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("[Ljava/lang/Object;")),
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/ArrayList;")),
-                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("[Ljava/lang/Object;")),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -1190,8 +1194,10 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/ArrayList;"))
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("[Ljava/lang/Object;")),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/ArrayList;"))
                     })),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
@@ -1304,10 +1310,11 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("[Ljava/util/Map$Entry;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/HashMap;")),
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/HashMap;")),
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("[Ljava/util/Map$Entry;")),
                       FrameType.intType(),
                       FrameType.intType()
@@ -1421,10 +1428,11 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("[Ljava/util/Map$Entry;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/HashMap;")),
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/HashMap;")),
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("[Ljava/util/Map$Entry;")),
                       FrameType.intType(),
                       FrameType.intType()
@@ -1436,9 +1444,10 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("[Ljava/util/Map$Entry;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/HashMap;"))
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/HashMap;"))
                     })),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
@@ -1497,9 +1506,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/HashSet;")),
-                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("[Ljava/lang/Object;")),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/HashSet;")),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("[Ljava/lang/Object;")),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -1581,9 +1593,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/HashSet;")),
-                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("[Ljava/lang/Object;")),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/HashSet;")),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("[Ljava/lang/Object;")),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -1594,8 +1609,10 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/HashSet;"))
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("[Ljava/lang/Object;")),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/HashSet;"))
                     })),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
@@ -1662,11 +1679,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/Collection;")),
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/ArrayList;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/Iterator;"))
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/Iterator;"))
                     })),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
@@ -1713,9 +1731,10 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/Collection;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/ArrayList;"))
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/ArrayList;"))
                     })),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
@@ -1793,9 +1812,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/Map;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/HashMap;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/Iterator;"))
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/Map;")),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/HashMap;")),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/Iterator;"))
                     })),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
@@ -1871,8 +1893,10 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/Map;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/HashMap;"))
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/Map;")),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/HashMap;"))
                     })),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
@@ -1939,10 +1963,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/Collection;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/HashSet;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/Iterator;"))
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/HashSet;")),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/Iterator;"))
                     })),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
@@ -1989,9 +2015,10 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/Collection;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/HashSet;"))
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/HashSet;"))
                     })),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
@@ -2455,7 +2482,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType()
@@ -2625,7 +2652,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType), FrameType.intType()
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.intType()
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.INT, 1),
@@ -2726,7 +2754,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
                       FrameType.intType(),
                       FrameType.longType(),
                       FrameType.longHighType()
@@ -3194,7 +3222,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType()
@@ -3318,7 +3346,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -3335,7 +3363,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -3375,7 +3403,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -3420,7 +3448,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5, 6},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -3434,7 +3462,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5, 6},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -3455,7 +3483,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -3522,7 +3550,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -3569,7 +3597,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -3615,7 +3643,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -3644,7 +3672,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -4033,7 +4061,7 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType(),
                       FrameType.intType(),
-                      FrameType.initialized(options.itemFactory.charArrayType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charArrayType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType()
@@ -4077,7 +4105,7 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType(),
                       FrameType.intType(),
-                      FrameType.initialized(options.itemFactory.charArrayType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charArrayType),
                       FrameType.intType()
                     })),
             new CfLoad(ValueType.INT, 2),
@@ -4104,7 +4132,7 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType(),
                       FrameType.intType(),
-                      FrameType.initialized(options.itemFactory.charArrayType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charArrayType),
                       FrameType.intType()
                     })),
             new CfLoad(ValueType.LONG, 0),
@@ -4129,7 +4157,7 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType(),
                       FrameType.intType(),
-                      FrameType.initialized(options.itemFactory.charArrayType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charArrayType),
                       FrameType.intType(),
                       FrameType.longType(),
                       FrameType.longHighType()
@@ -4170,7 +4198,7 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType(),
                       FrameType.intType(),
-                      FrameType.initialized(options.itemFactory.charArrayType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charArrayType),
                       FrameType.intType(),
                       FrameType.longType(),
                       FrameType.longHighType(),
@@ -4217,7 +4245,7 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType(),
                       FrameType.intType(),
-                      FrameType.initialized(options.itemFactory.charArrayType),
+                      FrameType.initializedNonNullReference(options.itemFactory.charArrayType),
                       FrameType.intType()
                     })),
             new CfNew(options.itemFactory.stringType),
@@ -6154,9 +6182,9 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/Comparator;"))
                     })),
             new CfLoad(ValueType.OBJECT, 2),
@@ -6177,9 +6205,9 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/Comparator;"))
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
@@ -6246,8 +6274,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfIf(If.Type.NE, ValueType.OBJECT, label2),
@@ -6258,8 +6286,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceOf(options.itemFactory.booleanArrayType),
@@ -6290,8 +6318,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfConstNumber(0, ValueType.INT),
             label5,
@@ -6299,8 +6327,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -6309,8 +6337,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceOf(options.itemFactory.byteArrayType),
@@ -6341,8 +6369,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfConstNumber(0, ValueType.INT),
             label9,
@@ -6350,8 +6378,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -6360,8 +6388,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceOf(options.itemFactory.charArrayType),
@@ -6392,8 +6420,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfConstNumber(0, ValueType.INT),
             label13,
@@ -6401,8 +6429,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -6411,8 +6439,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceOf(options.itemFactory.doubleArrayType),
@@ -6443,8 +6471,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfConstNumber(0, ValueType.INT),
             label17,
@@ -6452,8 +6480,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -6462,8 +6490,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceOf(options.itemFactory.floatArrayType),
@@ -6494,8 +6522,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfConstNumber(0, ValueType.INT),
             label21,
@@ -6503,8 +6531,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -6513,8 +6541,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceOf(options.itemFactory.intArrayType),
@@ -6545,8 +6573,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfConstNumber(0, ValueType.INT),
             label25,
@@ -6554,8 +6582,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -6564,8 +6592,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceOf(options.itemFactory.longArrayType),
@@ -6596,8 +6624,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfConstNumber(0, ValueType.INT),
             label29,
@@ -6605,8 +6633,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -6615,8 +6643,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceOf(options.itemFactory.shortArrayType),
@@ -6647,8 +6675,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfConstNumber(0, ValueType.INT),
             label33,
@@ -6656,8 +6684,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -6666,8 +6694,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceOf(options.itemFactory.createType("[Ljava/lang/Object;")),
@@ -6698,8 +6726,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfConstNumber(0, ValueType.INT),
             label37,
@@ -6707,8 +6735,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -6717,8 +6745,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.OBJECT, 1),
@@ -6769,8 +6797,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfConstNumber(1, ValueType.INT),
             new CfGoto(label3),
@@ -6779,8 +6807,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfConstNumber(0, ValueType.INT),
             label3,
@@ -6788,8 +6816,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -6817,7 +6845,9 @@ public final class BackportedMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {FrameType.initialized(options.itemFactory.objectType)})),
+                    new FrameType[] {
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                    })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
@@ -6830,7 +6860,9 @@ public final class BackportedMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {FrameType.initialized(options.itemFactory.objectType)}),
+                    new FrameType[] {
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                    }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
             label3),
@@ -6857,13 +6889,17 @@ public final class BackportedMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {FrameType.initialized(options.itemFactory.objectType)})),
+                    new FrameType[] {
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                    })),
             new CfConstNumber(0, ValueType.INT),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {FrameType.initialized(options.itemFactory.objectType)}),
+                    new FrameType[] {
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                    }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
             label3),
@@ -6890,13 +6926,17 @@ public final class BackportedMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {FrameType.initialized(options.itemFactory.objectType)})),
+                    new FrameType[] {
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                    })),
             new CfConstNumber(0, ValueType.INT),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {FrameType.initialized(options.itemFactory.objectType)}),
+                    new FrameType[] {
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                    }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
             label3),
@@ -6924,8 +6964,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 1),
             new CfConstString(options.itemFactory.createString("defaultObj")),
@@ -6966,8 +7006,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/function/Supplier;"))
                     })),
             new CfLoad(ValueType.OBJECT, 1),
@@ -7042,8 +7082,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.stringType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfReturn(ValueType.OBJECT),
@@ -7087,8 +7127,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/function/Supplier;"))
                     })),
             new CfConstNull(),
@@ -7097,12 +7137,13 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/function/Supplier;"))
                     }),
                 new ArrayDeque<>(
-                    Arrays.asList(FrameType.initialized(options.itemFactory.stringType)))),
+                    Arrays.asList(
+                        FrameType.initializedNonNullReference(options.itemFactory.stringType)))),
             new CfStore(ValueType.OBJECT, 2),
             label4,
             new CfNew(options.itemFactory.createType("Ljava/lang/NullPointerException;")),
@@ -7122,8 +7163,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/function/Supplier;"))
                     })),
             new CfLoad(ValueType.OBJECT, 0),
@@ -7180,8 +7221,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.stringType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
@@ -7196,11 +7237,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.stringType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType)
                     }),
                 new ArrayDeque<>(
-                    Arrays.asList(FrameType.initialized(options.itemFactory.stringType)))),
+                    Arrays.asList(
+                        FrameType.initializedNonNullReference(options.itemFactory.stringType)))),
             new CfReturn(ValueType.OBJECT),
             label3),
         ImmutableList.of(),
@@ -7252,10 +7294,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/Optional;")),
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/Optional;")),
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/function/Consumer;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Runnable;"))
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/lang/Runnable;"))
                     })),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
@@ -7270,10 +7314,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/Optional;")),
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/Optional;")),
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/function/Consumer;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Runnable;"))
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/lang/Runnable;"))
                     })),
             new CfReturnVoid(),
             label4),
@@ -7327,11 +7373,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/OptionalDouble;")),
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/function/DoubleConsumer;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Runnable;"))
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/lang/Runnable;"))
                     })),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
@@ -7346,11 +7393,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/OptionalDouble;")),
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/function/DoubleConsumer;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Runnable;"))
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/lang/Runnable;"))
                     })),
             new CfReturnVoid(),
             label4),
@@ -7404,11 +7452,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/OptionalInt;")),
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/function/IntConsumer;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Runnable;"))
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/lang/Runnable;"))
                     })),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
@@ -7423,11 +7472,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/OptionalInt;")),
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/function/IntConsumer;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Runnable;"))
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/lang/Runnable;"))
                     })),
             new CfReturnVoid(),
             label4),
@@ -7481,11 +7531,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/OptionalLong;")),
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/function/LongConsumer;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Runnable;"))
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/lang/Runnable;"))
                     })),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
@@ -7500,11 +7551,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/OptionalLong;")),
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/function/LongConsumer;")),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Runnable;"))
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/lang/Runnable;"))
                     })),
             new CfReturnVoid(),
             label4),
@@ -7539,7 +7591,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/Optional;"))
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/Optional;"))
                     })),
             new CfConstNumber(0, ValueType.INT),
             label2,
@@ -7547,7 +7600,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/Optional;"))
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/Optional;"))
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -7583,7 +7637,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/OptionalDouble;"))
                     })),
             new CfConstNumber(0, ValueType.INT),
@@ -7592,7 +7646,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/OptionalDouble;"))
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
@@ -7629,7 +7683,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/OptionalInt;"))
                     })),
             new CfConstNumber(0, ValueType.INT),
@@ -7638,7 +7692,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/OptionalInt;"))
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
@@ -7675,7 +7729,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/OptionalLong;"))
                     })),
             new CfConstNumber(0, ValueType.INT),
@@ -7684,7 +7738,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/OptionalLong;"))
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
@@ -7735,8 +7789,9 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/Optional;")),
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/Optional;")),
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/function/Supplier;"))
                     })),
             new CfLoad(ValueType.OBJECT, 1),
@@ -7810,7 +7865,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/Optional;"))
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/Optional;"))
                     })),
             new CfInvoke(
                 184,
@@ -7870,7 +7926,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/OptionalDouble;"))
                     })),
             new CfInvoke(
@@ -7931,7 +7987,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/OptionalInt;"))
                     })),
             new CfInvoke(
@@ -7992,7 +8048,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("Ljava/util/OptionalLong;"))
                     })),
             new CfInvoke(
@@ -8136,7 +8192,9 @@ public final class BackportedMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {FrameType.initialized(options.itemFactory.objectType)})),
+                    new FrameType[] {
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                    })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 184,
@@ -8151,10 +8209,12 @@ public final class BackportedMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {FrameType.initialized(options.itemFactory.objectType)}),
+                    new FrameType[] {
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                    }),
                 new ArrayDeque<>(
                     Arrays.asList(
-                        FrameType.initialized(
+                        FrameType.initializedNonNullReference(
                             options.itemFactory.createType("Ljava/util/stream/Stream;"))))),
             new CfReturn(ValueType.OBJECT),
             label3),
@@ -8196,7 +8256,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -8234,7 +8294,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType()
@@ -8257,7 +8317,9 @@ public final class BackportedMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {FrameType.initialized(options.itemFactory.stringType)})),
+                    new FrameType[] {
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType)
+                    })),
             new CfConstNumber(1, ValueType.INT),
             new CfReturn(ValueType.INT),
             label9),
@@ -8302,8 +8364,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.charSequenceType),
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("[Ljava/lang/CharSequence;"))
                     })),
             new CfNew(options.itemFactory.stringBuilderType),
@@ -8343,10 +8405,10 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.charSequenceType),
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("[Ljava/lang/CharSequence;")),
-                      FrameType.initialized(options.itemFactory.stringBuilderType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringBuilderType),
                       FrameType.intType()
                     })),
             new CfLoad(ValueType.INT, 3),
@@ -8389,10 +8451,10 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.charSequenceType),
-                      FrameType.initialized(
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(
                           options.itemFactory.createType("[Ljava/lang/CharSequence;")),
-                      FrameType.initialized(options.itemFactory.stringBuilderType)
+                      FrameType.initializedNonNullReference(options.itemFactory.stringBuilderType)
                     })),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
@@ -8444,8 +8506,9 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.charSequenceType),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Iterable;"))
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/lang/Iterable;"))
                     })),
             new CfNew(options.itemFactory.stringBuilderType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
@@ -8504,10 +8567,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.charSequenceType),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Iterable;")),
-                      FrameType.initialized(options.itemFactory.stringBuilderType),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/Iterator;"))
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/lang/Iterable;")),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringBuilderType),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/Iterator;"))
                     })),
             new CfLoad(ValueType.OBJECT, 3),
             new CfInvoke(
@@ -8558,10 +8623,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.charSequenceType),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Iterable;")),
-                      FrameType.initialized(options.itemFactory.stringBuilderType),
-                      FrameType.initialized(options.itemFactory.createType("Ljava/util/Iterator;"))
+                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/lang/Iterable;")),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringBuilderType),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Ljava/util/Iterator;"))
                     })),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
@@ -8654,7 +8721,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType), FrameType.intType()
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.intType()
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
@@ -8675,7 +8743,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -8686,7 +8754,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -8701,7 +8769,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -8805,7 +8873,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -8831,10 +8899,10 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
                       FrameType.intType(),
                       FrameType.intType(),
-                      FrameType.initialized(options.itemFactory.stringBuilderType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringBuilderType),
                       FrameType.intType()
                     })),
             new CfLoad(ValueType.INT, 4),
@@ -8860,10 +8928,10 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
                       FrameType.intType(),
                       FrameType.intType(),
-                      FrameType.initialized(options.itemFactory.stringBuilderType)
+                      FrameType.initializedNonNullReference(options.itemFactory.stringBuilderType)
                     })),
             new CfLoad(ValueType.OBJECT, 3),
             new CfInvoke(
@@ -8919,7 +8987,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -8956,7 +9024,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType()
@@ -8980,7 +9048,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -9019,7 +9087,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType()
@@ -9043,7 +9111,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -9100,7 +9168,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -9137,7 +9205,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType()
@@ -9161,7 +9229,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -9214,7 +9282,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType), FrameType.intType()
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.intType()
                     })),
             new CfLoad(ValueType.INT, 1),
             new CfIf(If.Type.LE, ValueType.INT, label7),
@@ -9250,7 +9319,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -9273,7 +9342,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType), FrameType.intType()
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.intType()
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfConstNumber(0, ValueType.INT),
@@ -9353,12 +9423,12 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.throwableType),
-                      FrameType.initialized(options.itemFactory.throwableType)
+                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
+                      FrameType.initializedNonNullReference(options.itemFactory.throwableType)
                     }),
                 new ArrayDeque<>(
                     Arrays.asList(
-                        FrameType.initialized(
+                        FrameType.initializedNonNullReference(
                             options.itemFactory.createType("Ljava/lang/Exception;"))))),
             new CfStore(ValueType.OBJECT, 2),
             label4,
@@ -9366,8 +9436,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.throwableType),
-                      FrameType.initialized(options.itemFactory.throwableType)
+                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
+                      FrameType.initializedNonNullReference(options.itemFactory.throwableType)
                     })),
             new CfReturnVoid(),
             label5),
@@ -9430,10 +9500,12 @@ public final class BackportedMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {FrameType.initialized(options.itemFactory.throwableType)}),
+                    new FrameType[] {
+                      FrameType.initializedNonNullReference(options.itemFactory.throwableType)
+                    }),
                 new ArrayDeque<>(
                     Arrays.asList(
-                        FrameType.initialized(
+                        FrameType.initializedNonNullReference(
                             options.itemFactory.createType("Ljava/lang/Exception;"))))),
             new CfStore(ValueType.OBJECT, 1),
             label4,
@@ -9467,12 +9539,13 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("Lsun/misc/Unsafe;")),
-                      FrameType.initialized(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Lsun/misc/Unsafe;")),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
                       FrameType.longType(),
                       FrameType.longHighType(),
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.OBJECT, 1),
@@ -9500,12 +9573,13 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("Lsun/misc/Unsafe;")),
-                      FrameType.initialized(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("Lsun/misc/Unsafe;")),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
                       FrameType.longType(),
                       FrameType.longHighType(),
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.OBJECT, 1),

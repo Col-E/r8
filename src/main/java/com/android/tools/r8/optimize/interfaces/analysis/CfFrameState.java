@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.AbstractState;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
@@ -173,15 +174,18 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
 
   @SuppressWarnings("InconsistentOverloads")
   public final CfFrameState popObject(
+      AppView<?> appView,
       DexType expectedType,
       CfAnalysisConfig config,
       BiFunction<CfFrameState, PreciseFrameType, CfFrameState> fn) {
     CfAssignability assignability = config.getAssignability();
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
     return pop(
         (state, head) ->
             head.isObject()
                     && assignability.isAssignable(
-                        head.getObjectType(config.getCurrentContext().getHolderType()),
+                        head.getObjectType(
+                            dexItemFactory, config.getCurrentContext().getHolderType()),
                         expectedType)
                 ? fn.apply(state, head)
                 : errorUnexpectedStack(head, expectedType));
@@ -223,6 +227,8 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
   }
 
   public abstract CfFrameState push(CfAnalysisConfig config, DexType type);
+
+  public abstract CfFrameState push(CfAnalysisConfig config, TypeElement type);
 
   public abstract CfFrameState push(CfAnalysisConfig config, PreciseFrameType frameType);
 

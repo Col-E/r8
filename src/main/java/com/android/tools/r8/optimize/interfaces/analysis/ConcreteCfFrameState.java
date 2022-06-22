@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.FunctionUtils;
@@ -231,11 +232,23 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   private static boolean isArrayTypeOrNull(FrameType frameType) {
-    if (frameType.isInitializedNonNullReferenceType()
-        && frameType.asInitializedNonNullReferenceType().getInitializedType().isArrayType()) {
-      return true;
+    if (frameType.isInitializedReferenceType()) {
+      if (frameType.isNullType()) {
+        return true;
+      } else if (frameType.isInitializedNonNullReferenceTypeWithInterfaces()) {
+        return frameType
+            .asInitializedNonNullReferenceTypeWithInterfaces()
+            .getInitializedTypeWithInterfaces()
+            .isArrayType();
+      } else {
+        assert frameType.isInitializedNonNullReferenceTypeWithoutInterfaces();
+        return frameType
+            .asInitializedNonNullReferenceTypeWithoutInterfaces()
+            .getInitializedType()
+            .isArrayType();
+      }
     }
-    return frameType.isNullType();
+    return false;
   }
 
   @Override
@@ -269,6 +282,11 @@ public class ConcreteCfFrameState extends CfFrameState {
 
   @Override
   public CfFrameState push(CfAnalysisConfig config, DexType type) {
+    return push(config, FrameType.initialized(type));
+  }
+
+  @Override
+  public CfFrameState push(CfAnalysisConfig config, TypeElement type) {
     return push(config, FrameType.initialized(type));
   }
 

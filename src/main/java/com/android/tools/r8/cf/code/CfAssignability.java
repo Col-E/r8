@@ -66,10 +66,11 @@ public class CfAssignability {
       if (source.isInitialized()) {
         // Both are instantiated types and we resort to primitive type/java type hierarchy checking.
         return isAssignable(
-            source.asInitializedReferenceType().getInitializedType(),
-            target.asInitializedReferenceType().getInitializedType());
+            source.asInitializedReferenceType().getInitializedType(dexItemFactory),
+            target.asInitializedReferenceType().getInitializedType(dexItemFactory));
       }
-      return target.asInitializedReferenceType().getInitializedType() == dexItemFactory.objectType;
+      return target.asInitializedReferenceType().getInitializedType(dexItemFactory)
+          == dexItemFactory.objectType;
     }
     return false;
   }

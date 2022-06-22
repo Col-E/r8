@@ -4,9 +4,4 @@
 
 package com.android.tools.r8.cf.code.frame;
 
-import com.android.tools.r8.graph.DexType;
-
-public interface InitializedReferenceFrameType extends InitializedFrameType, SingleFrameType {
-
-  DexType getInitializedType();
-}
+public interface InitializedReferenceFrameType extends InitializedFrameType, SingleFrameType {}

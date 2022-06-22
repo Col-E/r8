@@ -47,10 +47,6 @@ public class WhyAreYouKeepingAllTest extends TestBase {
         .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
         .addKeepRuleFiles(MAIN_KEEP)
         .addKeepRules(WHY_ARE_YOU_KEEPING_ALL)
-        .addOptionsModification(
-            // TODO(b/236581210): Should only suppress AutoCloseable due to assignments from
-            //  ZipFile.
-            options -> options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
         .collectStdout()
         .compile()
         .assertStdoutThatMatches(containsString("referenced in keep rule"))

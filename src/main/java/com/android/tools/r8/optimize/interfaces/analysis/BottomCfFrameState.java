@@ -11,6 +11,7 @@ import com.android.tools.r8.cf.code.frame.UninitializedFrameType;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ValueType;
 import java.util.function.BiFunction;
 
@@ -93,6 +94,11 @@ public class BottomCfFrameState extends CfFrameState {
 
   @Override
   public CfFrameState push(CfAnalysisConfig config, DexType type) {
+    return this;
+  }
+
+  @Override
+  public CfFrameState push(CfAnalysisConfig config, TypeElement type) {
     return this;
   }
 

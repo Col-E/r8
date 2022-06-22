@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.analysis.framework.intraprocedural.cf.CfControlFl
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.cf.CfIntraproceduralDataflowAnalysis;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.InterfaceCollection;
+import com.android.tools.r8.ir.analysis.type.ReferenceTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.optimize.interfaces.collection.NonEmptyOpenClosedInterfacesCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -173,10 +174,11 @@ public class CfOpenClosedInterfacesAnalysis {
           FrameType array = stack.peekFirst();
           FrameType value = stack.peekLast();
           if (array.isInitializedNonNullReferenceType()) {
-            DexType arrayType = array.asInitializedReferenceType().getInitializedType();
+            ReferenceTypeElement arrayType =
+                array.asInitializedNonNullReferenceType().getInitializedTypeWithInterfaces(appView);
             if (arrayType.isArrayType()) {
               processAssignment(
-                  value, arrayType.toArrayElementType(dexItemFactory), openInterfaceConsumer);
+                  value, arrayType.asArrayType().getMemberType(), openInterfaceConsumer);
             } else {
               assert false;
             }
@@ -235,16 +237,25 @@ public class CfOpenClosedInterfacesAnalysis {
       FrameType fromType, DexType toType, Consumer<DexClass> openInterfaceConsumer) {
     if (fromType.isInitializedNonNullReferenceType()) {
       processAssignment(
-          fromType.asInitializedNonNullReferenceType().getInitializedType(),
+          fromType.asInitializedNonNullReferenceType().getInitializedTypeWithInterfaces(appView),
           toType,
           openInterfaceConsumer);
     }
   }
 
   private void processAssignment(
-      DexType fromType, DexType toType, Consumer<DexClass> openInterfaceConsumer) {
-    processAssignment(
-        fromType.toTypeElement(appView), toType.toTypeElement(appView), openInterfaceConsumer);
+      FrameType fromType, TypeElement toType, Consumer<DexClass> openInterfaceConsumer) {
+    if (fromType.isInitializedNonNullReferenceType()) {
+      processAssignment(
+          fromType.asInitializedNonNullReferenceType().getInitializedTypeWithInterfaces(appView),
+          toType,
+          openInterfaceConsumer);
+    }
+  }
+
+  private void processAssignment(
+      ReferenceTypeElement fromType, DexType toType, Consumer<DexClass> openInterfaceConsumer) {
+    processAssignment(fromType, toType.toTypeElement(appView), openInterfaceConsumer);
   }
 
   private void processAssignment(

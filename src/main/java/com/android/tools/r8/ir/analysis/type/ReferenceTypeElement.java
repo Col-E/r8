@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.analysis.type;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexType;
 
 public abstract class ReferenceTypeElement extends TypeElement {
 
@@ -36,6 +37,11 @@ public abstract class ReferenceTypeElement extends TypeElement {
     @Override
     public ReferenceTypeElement join(ReferenceTypeElement other, AppView<?> appView) {
       return other.joinNullability(nullability());
+    }
+
+    @Override
+    public DexType toDexType(DexItemFactory dexItemFactory) {
+      return DexItemFactory.nullValueType;
     }
 
     @Override
@@ -115,6 +121,8 @@ public abstract class ReferenceTypeElement extends TypeElement {
   public ReferenceTypeElement asReferenceType() {
     return this;
   }
+
+  public abstract DexType toDexType(DexItemFactory dexItemFactory);
 
   @Override
   public boolean equals(Object o) {

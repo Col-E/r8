@@ -12,6 +12,11 @@ public class ShortTypeElement extends SinglePrimitiveTypeElement {
   }
 
   @Override
+  public String getDescriptor() {
+    return "S";
+  }
+
+  @Override
   public String getTypeName() {
     return "short";
   }

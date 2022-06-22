@@ -32,13 +32,6 @@ public class InterfaceInvokeWithNonTrivialButImpreciseStaticTypeTest extends Tes
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                // TODO(b/236581210): I is spuriously reported as being "open" due to lossy joins in
-                //  the analysis of cf code.
-                options
-                    .getOpenClosedInterfacesOptions()
-                    .suppressSingleOpenInterface(Reference.classFromClass(I.class)))
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())

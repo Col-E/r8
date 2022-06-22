@@ -12,6 +12,11 @@ public class BooleanTypeElement extends SinglePrimitiveTypeElement {
   }
 
   @Override
+  public String getDescriptor() {
+    return "Z";
+  }
+
+  @Override
   public String getTypeName() {
     return "boolean";
   }

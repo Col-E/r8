@@ -259,9 +259,10 @@ public class CfFrame extends CfInstruction implements Cloneable {
   }
 
   private void internalRegisterUse(UseRegistry<?> registry, FrameType frameType) {
-    if (frameType.isInitializedNonNullReferenceType()) {
+    assert !frameType.isInitializedNonNullReferenceTypeWithInterfaces();
+    if (frameType.isInitializedNonNullReferenceTypeWithoutInterfaces()) {
       registry.registerTypeReference(
-          frameType.asInitializedNonNullReferenceType().getInitializedType());
+          frameType.asInitializedNonNullReferenceTypeWithoutInterfaces().getInitializedType());
     } else if (frameType.isUninitializedNew()) {
       registry.registerTypeReference(frameType.asUninitializedNew().getUninitializedNewType());
     }

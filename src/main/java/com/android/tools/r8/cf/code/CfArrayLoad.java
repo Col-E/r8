@@ -118,11 +118,21 @@ public class CfArrayLoad extends CfArrayLoadOrStore {
                     ? state.push(config, FrameType.nullType())
                     : state.push(appView, config, getType());
               }
-              return state.push(
-                  config,
-                  head.asInitializedNonNullReferenceType()
-                      .getInitializedType()
-                      .toArrayElementType(dexItemFactory));
+              if (head.isInitializedNonNullReferenceTypeWithInterfaces()) {
+                return state.push(
+                    config,
+                    head.asInitializedNonNullReferenceTypeWithInterfaces()
+                        .getInitializedTypeWithInterfaces()
+                        .asArrayType()
+                        .getMemberType());
+              } else {
+                assert head.isInitializedNonNullReferenceTypeWithoutInterfaces();
+                return state.push(
+                    config,
+                    head.asInitializedNonNullReferenceTypeWithoutInterfaces()
+                        .getInitializedType()
+                        .toArrayElementType(dexItemFactory));
+              }
             });
   }
 }

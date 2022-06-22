@@ -638,7 +638,12 @@ public class CfSourceCode implements SourceCode {
 
   private DexType convertUninitialized(FrameType type) {
     if (type.isInitializedReferenceType()) {
-      return type.asInitializedReferenceType().getInitializedType();
+      if (type.isNullType()) {
+        return type.asNullType().getInitializedType();
+      } else {
+        assert type.isInitializedNonNullReferenceTypeWithoutInterfaces();
+        return type.asInitializedNonNullReferenceTypeWithoutInterfaces().getInitializedType();
+      }
     }
     if (type.isPrimitive()) {
       if (type.isSinglePrimitive()) {

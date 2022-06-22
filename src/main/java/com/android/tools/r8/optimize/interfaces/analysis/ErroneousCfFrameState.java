@@ -11,7 +11,13 @@ import com.android.tools.r8.cf.code.frame.UninitializedFrameType;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.ReferenceTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.utils.Pair;
+import java.util.Iterator;
 import java.util.function.BiFunction;
 
 /** An analysis state representing that the code does not type check. */
@@ -57,10 +63,21 @@ public class ErroneousCfFrameState extends CfFrameState {
       if (frameType.isInitializedReferenceType()) {
         if (frameType.isNullType()) {
           return "null";
+        } else if (frameType.isInitializedNonNullReferenceTypeWithInterfaces()) {
+          ReferenceTypeElement initializedType =
+              frameType
+                  .asInitializedNonNullReferenceTypeWithInterfaces()
+                  .getInitializedTypeWithInterfaces();
+          if (initializedType.isArrayType()) {
+            return format(initializedType);
+          } else {
+            assert initializedType.isClassType();
+            return "initialized " + format(initializedType);
+          }
         } else {
-          assert frameType.isInitializedNonNullReferenceType();
+          assert frameType.isInitializedNonNullReferenceTypeWithoutInterfaces();
           DexType initializedType =
-              frameType.asInitializedNonNullReferenceType().getInitializedType();
+              frameType.asInitializedNonNullReferenceTypeWithoutInterfaces().getInitializedType();
           if (initializedType.isArrayType()) {
             return initializedType.getTypeName();
           } else {
@@ -89,6 +106,45 @@ public class ErroneousCfFrameState extends CfFrameState {
       } else {
         return frameType.isOneWord() ? "a single width value" : "a double width value";
       }
+    }
+  }
+
+  private static String format(TypeElement type) {
+    if (type.isArrayType()) {
+      ArrayTypeElement arrayType = type.asArrayType();
+      TypeElement baseType = arrayType.getBaseType();
+      assert baseType.isClassType() || baseType.isPrimitiveType();
+      boolean parenthesize =
+          baseType.isClassType() && !baseType.asClassType().getInterfaces().isEmpty();
+      StringBuilder result = new StringBuilder();
+      if (parenthesize) {
+        result.append("(");
+      }
+      result.append(format(baseType));
+      if (parenthesize) {
+        result.append(")");
+      }
+      for (int i = 0; i < arrayType.getNesting(); i++) {
+        result.append("[]");
+      }
+      return result.toString();
+    } else if (type.isClassType()) {
+      ClassTypeElement classType = type.asClassType();
+      StringBuilder result = new StringBuilder(classType.getClassType().getTypeName());
+      if (!classType.getInterfaces().isEmpty()) {
+        Iterator<Pair<DexType, Boolean>> iterator =
+            classType.getInterfaces().getInterfaceList().iterator();
+        result.append(" implements ").append(iterator.next().getFirst().getTypeName());
+        while (iterator.hasNext()) {
+          result.append(", ").append(iterator.next().getFirst().getTypeName());
+        }
+      }
+      return result.toString();
+    } else if (type.isNullType()) {
+      return "null";
+    } else {
+      assert type.isPrimitiveType();
+      return type.asPrimitiveType().getTypeName();
     }
   }
 
@@ -182,6 +238,11 @@ public class ErroneousCfFrameState extends CfFrameState {
 
   @Override
   public CfFrameState push(CfAnalysisConfig config, DexType type) {
+    return this;
+  }
+
+  @Override
+  public CfFrameState push(CfAnalysisConfig config, TypeElement type) {
     return this;
   }
 

@@ -91,9 +91,6 @@ public class YouTubeV1620Test extends YouTubeCompilationTestBase {
                         keepAllProtosRule(),
                         keepDynamicMethodSignatureRule(),
                         keepNewMessageInfoSignatureRule())
-                    .addOptionsModification(
-                        options ->
-                            options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
                     .allowCheckDiscardedErrors(true));
     assertRewrittenProtoSchemasMatch(
         new CodeInspector(getProgramFiles()), r8CompileResult.inspector());

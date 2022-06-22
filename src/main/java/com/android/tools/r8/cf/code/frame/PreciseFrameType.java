@@ -11,8 +11,9 @@ public interface PreciseFrameType extends FrameType {
 
   @Override
   default PreciseFrameType map(Function<DexType, DexType> fn) {
-    if (isInitializedNonNullReferenceType()) {
-      DexType type = asInitializedNonNullReferenceType().getInitializedType();
+    assert !isInitializedNonNullReferenceTypeWithInterfaces();
+    if (isInitializedNonNullReferenceTypeWithoutInterfaces()) {
+      DexType type = asInitializedNonNullReferenceTypeWithoutInterfaces().getInitializedType();
       DexType newType = fn.apply(type);
       if (type != newType) {
         return FrameType.initializedNonNullReference(newType);

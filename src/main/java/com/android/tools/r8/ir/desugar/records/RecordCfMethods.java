@@ -122,9 +122,10 @@ public final class RecordCfMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
-                      FrameType.initialized(options.itemFactory.classType),
-                      FrameType.initialized(options.itemFactory.stringType)
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("[Ljava/lang/Object;")),
+                      FrameType.initializedNonNullReference(options.itemFactory.classType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType)
                     })),
             new CfLoad(ValueType.OBJECT, 2),
             new CfConstString(options.itemFactory.createString(";")),
@@ -142,13 +143,14 @@ public final class RecordCfMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
-                      FrameType.initialized(options.itemFactory.classType),
-                      FrameType.initialized(options.itemFactory.stringType)
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("[Ljava/lang/Object;")),
+                      FrameType.initializedNonNullReference(options.itemFactory.classType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType)
                     }),
                 new ArrayDeque<>(
                     Arrays.asList(
-                        FrameType.initialized(
+                        FrameType.initializedNonNullReference(
                             options.itemFactory.createType("[Ljava/lang/String;"))))),
             new CfStore(ValueType.OBJECT, 3),
             label3,
@@ -198,11 +200,13 @@ public final class RecordCfMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
-                      FrameType.initialized(options.itemFactory.classType),
-                      FrameType.initialized(options.itemFactory.stringType),
-                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/String;")),
-                      FrameType.initialized(options.itemFactory.stringBuilderType),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("[Ljava/lang/Object;")),
+                      FrameType.initializedNonNullReference(options.itemFactory.classType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("[Ljava/lang/String;")),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringBuilderType),
                       FrameType.intType()
                     })),
             new CfLoad(ValueType.INT, 5),
@@ -267,11 +271,13 @@ public final class RecordCfMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
-                      FrameType.initialized(options.itemFactory.classType),
-                      FrameType.initialized(options.itemFactory.stringType),
-                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/String;")),
-                      FrameType.initialized(options.itemFactory.stringBuilderType),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("[Ljava/lang/Object;")),
+                      FrameType.initializedNonNullReference(options.itemFactory.classType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("[Ljava/lang/String;")),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringBuilderType),
                       FrameType.intType()
                     })),
             new CfIinc(5, 1),
@@ -281,11 +287,13 @@ public final class RecordCfMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
-                      FrameType.initialized(options.itemFactory.classType),
-                      FrameType.initialized(options.itemFactory.stringType),
-                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/String;")),
-                      FrameType.initialized(options.itemFactory.stringBuilderType)
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("[Ljava/lang/Object;")),
+                      FrameType.initializedNonNullReference(options.itemFactory.classType),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(
+                          options.itemFactory.createType("[Ljava/lang/String;")),
+                      FrameType.initializedNonNullReference(options.itemFactory.stringBuilderType)
                     })),
             new CfLoad(ValueType.OBJECT, 4),
             new CfConstString(options.itemFactory.createString("]")),

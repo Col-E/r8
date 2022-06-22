@@ -68,13 +68,12 @@ public class NullFrameType extends SingletonFrameType implements InitializedRefe
     return getInitializedType();
   }
 
-  @Override
   public DexType getInitializedType() {
     return DexItemFactory.nullValueType;
   }
 
   @Override
-  public DexType getObjectType(DexType context) {
+  public DexType getObjectType(DexItemFactory dexItemFactory, DexType context) {
     return getInitializedType();
   }
 

@@ -66,7 +66,9 @@ public final class CfUtilityMethodsForCodeOptimizations {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {FrameType.initialized(options.itemFactory.objectType)})),
+                    new FrameType[] {
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                    })),
             new CfReturnVoid(),
             label3),
         ImmutableList.of(),
@@ -171,7 +173,9 @@ public final class CfUtilityMethodsForCodeOptimizations {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {FrameType.initialized(options.itemFactory.objectType)})),
+                    new FrameType[] {
+                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                    })),
             new CfReturnVoid(),
             label3),
         ImmutableList.of(),

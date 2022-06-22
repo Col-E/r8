@@ -19,6 +19,11 @@ public class SinglePrimitiveTypeElement extends PrimitiveTypeElement {
   }
 
   @Override
+  public String getDescriptor() {
+    throw new Unreachable("Unexpected attempt to get descriptor of " + this);
+  }
+
+  @Override
   public String getTypeName() {
     throw new Unreachable("Unexpected attempt to get type name of " + this);
   }

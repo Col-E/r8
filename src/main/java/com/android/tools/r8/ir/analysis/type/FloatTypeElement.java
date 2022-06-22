@@ -11,6 +11,11 @@ public class FloatTypeElement extends SinglePrimitiveTypeElement {
   }
 
   @Override
+  public String getDescriptor() {
+    return "F";
+  }
+
+  @Override
   public String getTypeName() {
     return "float";
   }
