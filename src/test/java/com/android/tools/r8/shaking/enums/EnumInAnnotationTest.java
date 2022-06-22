@@ -71,10 +71,7 @@ public class EnumInAnnotationTest extends TestBase {
         .addKeepRuntimeVisibleAnnotations()
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        .applyIf(
-            parameters.isCfRuntime() && useGenericEnumsRule,
-            r -> r.assertFailureWithErrorThatThrows(EnumConstantNotPresentException.class),
-            r -> r.assertSuccessWithOutput(EXPECTED_RESULT));
+        .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
   @Test

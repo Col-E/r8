@@ -70,16 +70,7 @@ public class EnumArrayInAnnotationTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepRuntimeVisibleAnnotations()
         .run(parameters.getRuntime(), Main.class)
-        .applyIf(
-            parameters.isCfRuntime()
-                && useGenericEnumsRule
-                && parameters.asCfRuntime().isOlderThan(CfVm.JDK11),
-            r -> r.assertFailureWithErrorThatThrows(ArrayStoreException.class),
-            parameters.isCfRuntime()
-                && useGenericEnumsRule
-                && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK11),
-            r -> r.assertFailureWithErrorThatThrows(EnumConstantNotPresentException.class),
-            r -> r.assertSuccessWithOutput(EXPECTED_RESULT));
+        .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
   @Test

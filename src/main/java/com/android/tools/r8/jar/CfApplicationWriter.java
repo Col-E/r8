@@ -599,7 +599,9 @@ public class CfApplicationWriter {
         visitor.visitEnum(
             name,
             getNamingLens().lookupDescriptor(enumField.getType()).toString(),
-            getNamingLens().lookupName(enumField).toString());
+            // Write the original name of the enum, as the Java runtime will use Enum.valueOf to
+            // find the enum's referenced in annotations. See b/236691999 for details.
+            enumField.name.toString());
         break;
 
       case FIELD:
