@@ -4,18 +4,24 @@
 
 package com.android.tools.r8.retrace.internal;
 
+import com.android.tools.r8.naming.MapVersion;
+import com.android.tools.r8.retrace.MappingPartitionFromKeySupplier;
 import com.android.tools.r8.retrace.PartitionMappingSupplier;
-import com.android.tools.r8.utils.ConsumerUtils;
-import java.util.function.Consumer;
-import java.util.function.Function;
+import com.android.tools.r8.retrace.PrepareMappingPartitionsCallback;
+import com.android.tools.r8.retrace.RegisterMappingPartitionCallback;
 
 public class PartitionMappingSupplierBuilderImpl extends PartitionMappingSupplier.Builder {
 
-  private Function<String, byte[]> partitionSupplier;
-  private Consumer<String> partitionToFetchConsumer = ConsumerUtils.emptyConsumer();
-  private Runnable prepare = () -> {};
+  private MappingPartitionFromKeySupplier partitionSupplier;
+  private RegisterMappingPartitionCallback registerPartitionCallback = key -> {};
+  private PrepareMappingPartitionsCallback prepare = () -> {};
   private byte[] metadata;
+  private final MapVersion fallbackMapVersion;
   private boolean allowExperimental = false;
+
+  public PartitionMappingSupplierBuilderImpl(MapVersion fallbackMapVersion) {
+    this.fallbackMapVersion = fallbackMapVersion;
+  }
 
   @Override
   public PartitionMappingSupplier.Builder self() {
@@ -35,28 +41,38 @@ public class PartitionMappingSupplierBuilderImpl extends PartitionMappingSupplie
   }
 
   @Override
-  public PartitionMappingSupplier.Builder setPartitionSupplier(
-      Function<String, byte[]> partitionSupplier) {
-    this.partitionSupplier = partitionSupplier;
+  public PartitionMappingSupplier.Builder setRegisterMappingPartitionCallback(
+      RegisterMappingPartitionCallback registerPartitionCallback) {
+    this.registerPartitionCallback = registerPartitionCallback;
     return self();
   }
 
   @Override
-  public PartitionMappingSupplier.Builder setPartitionToFetchConsumer(
-      Consumer<String> partitionToFetchConsumer) {
-    this.partitionToFetchConsumer = partitionToFetchConsumer;
-    return self();
-  }
-
-  @Override
-  public PartitionMappingSupplier.Builder setPrepareNewPartitions(Runnable prepare) {
+  public PartitionMappingSupplier.Builder setPrepareMappingPartitionsCallback(
+      PrepareMappingPartitionsCallback prepare) {
     this.prepare = prepare;
     return self();
   }
 
   @Override
+  public PartitionMappingSupplier.Builder setMappingPartitionFromKeySupplier(
+      MappingPartitionFromKeySupplier partitionSupplier) {
+    this.partitionSupplier = partitionSupplier;
+    return self();
+  }
+
+  @Override
   public PartitionMappingSupplier build() {
+    if (partitionSupplier == null) {
+      throw new RuntimeException(
+          "Cannot build without providing a mapping partition from key supplier.");
+    }
     return new PartitionMappingSupplierImpl(
-        metadata, partitionToFetchConsumer, prepare, partitionSupplier, allowExperimental);
+        metadata,
+        registerPartitionCallback,
+        prepare,
+        partitionSupplier,
+        allowExperimental,
+        fallbackMapVersion);
   }
 }

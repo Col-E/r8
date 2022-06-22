@@ -15,7 +15,10 @@ import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformati
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.InvalidMappingFileException;
+import com.android.tools.r8.retrace.MappingPartitionFromKeySupplier;
 import com.android.tools.r8.retrace.PartitionMappingSupplier;
+import com.android.tools.r8.retrace.PrepareMappingPartitionsCallback;
+import com.android.tools.r8.retrace.RegisterMappingPartitionCallback;
 import com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.ProguardMapReaderWithFilteringInputBuffer;
 import com.android.tools.r8.utils.StringDiagnostic;
 import java.io.ByteArrayInputStream;
@@ -24,8 +27,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * IntelliJ highlights the class as being invalid because it cannot see getClassNameMapper is
@@ -34,10 +35,11 @@ import java.util.function.Function;
 public class PartitionMappingSupplierImpl extends PartitionMappingSupplier {
 
   private final byte[] metadata;
-  private final Consumer<String> partitionToFetchConsumer;
-  private final Runnable prepare;
-  private final Function<String, byte[]> partitionSupplier;
+  private final RegisterMappingPartitionCallback registerPartitionCallback;
+  private final PrepareMappingPartitionsCallback prepare;
+  private final MappingPartitionFromKeySupplier partitionSupplier;
   private final boolean allowExperimental;
+  private final MapVersion fallbackMapVersion;
 
   private ClassNameMapper classNameMapper;
   private final Set<String> pendingKeys = new LinkedHashSet<>();
@@ -47,21 +49,26 @@ public class PartitionMappingSupplierImpl extends PartitionMappingSupplier {
 
   PartitionMappingSupplierImpl(
       byte[] metadata,
-      Consumer<String> partitionToFetchConsumer,
-      Runnable prepare,
-      Function<String, byte[]> partitionSupplier,
-      boolean allowExperimental) {
+      RegisterMappingPartitionCallback registerPartitionCallback,
+      PrepareMappingPartitionsCallback prepare,
+      MappingPartitionFromKeySupplier partitionSupplier,
+      boolean allowExperimental,
+      MapVersion fallbackMapVersion) {
     this.metadata = metadata;
-    this.partitionToFetchConsumer = partitionToFetchConsumer;
+    this.registerPartitionCallback = registerPartitionCallback;
     this.prepare = prepare;
     this.partitionSupplier = partitionSupplier;
     this.allowExperimental = allowExperimental;
+    this.fallbackMapVersion = fallbackMapVersion;
   }
 
   private MappingPartitionMetadataInternal getMetadata(DiagnosticsHandler diagnosticsHandler) {
+    if (mappingPartitionMetadataCache != null) {
+      return mappingPartitionMetadataCache;
+    }
     return mappingPartitionMetadataCache =
         MappingPartitionMetadataInternal.createFromBytes(
-            metadata, MapVersion.MAP_VERSION_NONE, diagnosticsHandler);
+            metadata, fallbackMapVersion, diagnosticsHandler);
   }
 
   @Override
@@ -86,13 +93,13 @@ public class PartitionMappingSupplierImpl extends PartitionMappingSupplier {
   private ClassNameMapper getClassNameMapper(DiagnosticsHandler diagnosticsHandler) {
     MappingPartitionMetadataInternal metadata = getMetadata(diagnosticsHandler);
     if (!pendingKeys.isEmpty()) {
-      prepare.run();
+      prepare.prepare();
     }
     for (String pendingKey : pendingKeys) {
       try {
         LineReader reader =
             new ProguardMapReaderWithFilteringInputBuffer(
-                new ByteArrayInputStream(partitionSupplier.apply(pendingKey)), alwaysTrue(), true);
+                new ByteArrayInputStream(partitionSupplier.get(pendingKey)), alwaysTrue(), true);
         classNameMapper =
             ClassNameMapper.mapperFromLineReaderWithFiltering(
                     reader, metadata.getMapVersion(), diagnosticsHandler, true, allowExperimental)
@@ -118,7 +125,7 @@ public class PartitionMappingSupplierImpl extends PartitionMappingSupplier {
 
   private void registerKeyUse(String key) {
     if (!builtKeys.contains(key) && pendingKeys.add(key)) {
-      partitionToFetchConsumer.accept(key);
+      registerPartitionCallback.register(key);
     }
   }
 

@@ -89,9 +89,9 @@ public class RetracePartitionRoundTripTest extends RetraceApiTestBase {
       PartitionMappingSupplier mappingSupplier =
           PartitionMappingSupplier.builder()
               .setMetadata(metadataData.getBytes())
-              .setPartitionToFetchConsumer(preFetchedKeys::add)
-              .setPrepareNewPartitions(() -> prepareCounter++)
-              .setPartitionSupplier(
+              .setRegisterMappingPartitionCallback(preFetchedKeys::add)
+              .setPrepareMappingPartitionsCallback(() -> prepareCounter++)
+              .setMappingPartitionFromKeySupplier(
                   key -> {
                     assertTrue(preFetchedKeys.contains(key));
                     return partitions.get(key);
