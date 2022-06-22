@@ -16,4 +16,4 @@ def GetHeadRevision(checkout_dir, use_main=False):
   cmd = ['git', 'rev-parse', revision_from]
   utils.PrintCmd(cmd)
   with utils.ChangedWorkingDirectory(checkout_dir):
-    return subprocess.check_output(cmd).strip()
+    return subprocess.check_output(cmd).strip().decode('utf-8')
