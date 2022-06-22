@@ -12,7 +12,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.retrace.MappingPartitionMetadata;
 import com.android.tools.r8.retrace.ProguardMapPartitioner;
 import com.android.tools.r8.retrace.ProguardMapProducer;
-import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -36,23 +35,20 @@ public class RetracePartitionStringTest extends RetraceApiTestBase {
   public static class ApiTest implements RetraceApiBinaryTest {
 
     private final String aMapping =
-        StringUtils.joinLines(
-            "com.foo.bar.baz -> a:",
-            "# someCommentHere",
-            "  int field -> c",
-            "  void method() -> d");
+        "com.foo.bar.baz -> a:\n"
+            + "# someCommentHere\n"
+            + "  int field -> c\n"
+            + "  void method() -> d";
 
     private final String bMapping =
-        StringUtils.joinLines(
-            "com.android.google.r8 -> b:",
-            " boolean otherField -> e",
-            "  int otherMethod() -> f",
-            "# otherCommentHere");
+        "com.android.google.r8 -> b:\n"
+            + " boolean otherField -> e\n"
+            + "  int otherMethod() -> f\n"
+            + "# otherCommentHere";
 
-    private final String header =
-        StringUtils.lines("# { id: 'com.android.tools.r8.mapping', version: '2.0' }");
+    private final String header = "# { id: 'com.android.tools.r8.mapping', version: '2.0' }";
 
-    private final String mapping = header + aMapping + StringUtils.LINE_SEPARATOR + bMapping;
+    private final String mapping = header + "\n" + aMapping + "\n" + bMapping;
 
     @Test
     public void test() throws IOException {
