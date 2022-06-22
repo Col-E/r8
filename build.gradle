@@ -1016,7 +1016,7 @@ task rawBuildLibraryDesugarConversions(type: Zip, dependsOn: downloadDeps) {
 }
 
 task buildLibraryDesugarConversions(type: CustomConversionAsmRewriterTask, dependsOn: rawBuildLibraryDesugarConversions) {
-    rawJar = file("tmp/library_desugar_conversions_raw.zip")
+    rawJar = file("build/tmp/desugaredlibrary/library_desugar_conversions_raw.zip")
     outputDirectory = file("build/libs")
 }
 
