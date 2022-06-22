@@ -1061,7 +1061,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
                       || previousMethodSignature.isHorizontallyMergedInstanceInitializer(
                           dexItemFactory)
                   ? FrameType.uninitializedThis()
-                  : FrameType.initialized(previousMethodSignature.getHolderType()),
+                  : FrameType.initializedNonNullReference(previousMethodSignature.getHolderType()),
               helper);
       localIndex++;
     }

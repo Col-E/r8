@@ -87,7 +87,9 @@ public class ServiceLoaderSourceCode {
     CfLabel tryCatchHandler = new CfLabel();
     builder.add(
         tryCatchHandler,
-        CfFrame.builder().push(FrameType.initialized(factory.throwableType)).build(),
+        CfFrame.builder()
+            .push(FrameType.initializedNonNullReference(factory.throwableType))
+            .build(),
         new CfStore(ValueType.OBJECT, 0),
         new CfNew(factory.serviceLoaderConfigurationErrorType),
         new CfStackInstruction(CfStackInstruction.Opcode.Dup),

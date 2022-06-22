@@ -54,15 +54,19 @@ public class ErroneousCfFrameState extends CfFrameState {
 
   private static String format(FrameType frameType, FormatKind formatKind) {
     if (frameType.isInitialized()) {
-      if (frameType.isObject()) {
-        DexType initializedType = frameType.asInitializedReferenceType().getInitializedType();
-        if (initializedType.isArrayType()) {
-          return initializedType.getTypeName();
-        } else if (initializedType.isClassType()) {
-          return "initialized " + initializedType.getTypeName();
-        } else {
-          assert initializedType.isNullValueType();
+      if (frameType.isInitializedReferenceType()) {
+        if (frameType.isNullType()) {
           return "null";
+        } else {
+          assert frameType.isInitializedNonNullReferenceType();
+          DexType initializedType =
+              frameType.asInitializedNonNullReferenceType().getInitializedType();
+          if (initializedType.isArrayType()) {
+            return initializedType.getTypeName();
+          } else {
+            assert initializedType.isClassType();
+            return "initialized " + initializedType.getTypeName();
+          }
         }
       } else {
         assert frameType.isPrimitive();

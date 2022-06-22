@@ -551,7 +551,7 @@ public class CfCodePrinter extends CfPrinter {
       } else {
         return frameTypeType()
             + ".initialized("
-            + dexType(frameType.asInitializedReferenceType().getInitializedType())
+            + dexType(frameType.asInitializedNonNullReferenceType().getInitializedType())
             + ")";
       }
     }

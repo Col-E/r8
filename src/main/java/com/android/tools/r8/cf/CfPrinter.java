@@ -457,7 +457,12 @@ public class CfPrinter {
 
   private void print(FrameType type) {
     if (type.isInitializedReferenceType()) {
-      appendType(type.asInitializedReferenceType().getInitializedType());
+      if (type.isNullType()) {
+        builder.append("null");
+      } else {
+        assert type.isInitializedNonNullReferenceType();
+        appendType(type.asInitializedNonNullReferenceType().getInitializedType());
+      }
     } else if (type.isUninitializedNew()) {
       builder.append("uninitialized ").append(getLabel(type.getUninitializedLabel()));
     } else {

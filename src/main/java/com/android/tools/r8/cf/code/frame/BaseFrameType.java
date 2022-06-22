@@ -76,6 +76,11 @@ public abstract class BaseFrameType implements FrameType {
   }
 
   @Override
+  public NullFrameType asNullType() {
+    return null;
+  }
+
+  @Override
   public boolean isObject() {
     return false;
   }
@@ -135,6 +140,16 @@ public abstract class BaseFrameType implements FrameType {
 
   @Override
   public InitializedReferenceFrameType asInitializedReferenceType() {
+    return null;
+  }
+
+  @Override
+  public boolean isInitializedNonNullReferenceType() {
+    return false;
+  }
+
+  @Override
+  public InitializedNonNullReferenceFrameType asInitializedNonNullReferenceType() {
     return null;
   }
 

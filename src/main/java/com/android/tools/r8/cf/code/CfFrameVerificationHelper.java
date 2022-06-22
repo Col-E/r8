@@ -151,7 +151,8 @@ public class CfFrameVerificationHelper implements CfAnalysisConfig {
               "Could not assign " + guard.getTypeName() + " to java.lang.Throwable",
               appView);
         }
-        Deque<PreciseFrameType> sourceStack = ImmutableDeque.of(FrameType.initialized(guard));
+        Deque<PreciseFrameType> sourceStack =
+            ImmutableDeque.of(FrameType.initializedNonNullReference(guard));
         AssignabilityResult assignabilityResult =
             assignability.isStackAssignable(sourceStack, destinationFrame.getStack());
         if (assignabilityResult.isFailed()) {

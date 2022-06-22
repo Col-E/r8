@@ -115,12 +115,12 @@ public class CfArrayLoad extends CfArrayLoadOrStore {
             (state, head) -> {
               if (head.isNullType()) {
                 return getType() == MemberType.OBJECT
-                    ? state.push(config, FrameType.initialized(DexItemFactory.nullValueType))
+                    ? state.push(config, FrameType.nullType())
                     : state.push(appView, config, getType());
               }
               return state.push(
                   config,
-                  head.asInitializedReferenceType()
+                  head.asInitializedNonNullReferenceType()
                       .getInitializedType()
                       .toArrayElementType(dexItemFactory));
             });

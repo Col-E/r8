@@ -91,9 +91,9 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
       CfFrame frame =
           CfFrame.builder()
               .appendLocal(FrameType.initialized(typeArray))
-              .appendLocal(FrameType.initialized(factory.intType))
+              .appendLocal(FrameType.intType())
               .appendLocal(FrameType.initialized(convertedTypeArray))
-              .appendLocal(FrameType.initialized(factory.intType))
+              .appendLocal(FrameType.intType())
               .build();
 
       // int t1 = arg.length;

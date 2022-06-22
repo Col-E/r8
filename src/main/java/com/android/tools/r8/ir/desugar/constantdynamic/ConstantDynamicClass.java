@@ -306,7 +306,7 @@ public class ConstantDynamicClass {
     instructions.add(initializedTrueSecond);
     instructions.add(
         CfFrame.builder()
-            .appendLocal(FrameType.initialized(builder.getFactory().objectType))
+            .appendLocal(FrameType.initializedNonNullReference(builder.getFactory().objectType))
             .build());
     instructions.add(new CfLoad(ValueType.OBJECT, 0));
     instructions.add(new CfMonitor(Monitor.Type.EXIT));
@@ -316,8 +316,8 @@ public class ConstantDynamicClass {
     instructions.add(tryCatchTarget);
     instructions.add(
         CfFrame.builder()
-            .appendLocal(FrameType.initialized(builder.getFactory().objectType))
-            .push(FrameType.initialized(builder.getFactory().throwableType))
+            .appendLocal(FrameType.initializedNonNullReference(builder.getFactory().objectType))
+            .push(FrameType.initializedNonNullReference(builder.getFactory().throwableType))
             .build());
     instructions.add(new CfStore(ValueType.OBJECT, 1));
     instructions.add(new CfLoad(ValueType.OBJECT, 0));

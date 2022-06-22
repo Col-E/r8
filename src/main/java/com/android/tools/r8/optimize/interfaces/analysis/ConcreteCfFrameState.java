@@ -231,8 +231,8 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   private static boolean isArrayTypeOrNull(FrameType frameType) {
-    if (frameType.isInitializedReferenceType()
-        && frameType.asInitializedReferenceType().getInitializedType().isArrayType()) {
+    if (frameType.isInitializedNonNullReferenceType()
+        && frameType.asInitializedNonNullReferenceType().getInitializedType().isArrayType()) {
       return true;
     }
     return frameType.isNullType();
@@ -299,7 +299,7 @@ public class ConcreteCfFrameState extends CfFrameState {
     ArrayDeque<PreciseFrameType> newStack = new ArrayDeque<>();
     int newStackHeight = 0;
     return new ConcreteCfFrameState(newLocals, newStack, newStackHeight)
-        .push(config, FrameType.initialized(guard));
+        .push(config, FrameType.initializedNonNullReference(guard));
   }
 
   @Override

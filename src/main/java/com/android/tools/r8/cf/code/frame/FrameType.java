@@ -65,7 +65,17 @@ public interface FrameType {
 
   static InitializedReferenceFrameType initializedReference(DexType type) {
     assert type.isReferenceType();
-    return new InitializedReferenceFrameType(type);
+    return type.isNullValueType() ? nullType() : initializedNonNullReference(type);
+  }
+
+  static InitializedNonNullReferenceFrameType initializedNonNullReference(DexType type) {
+    assert type.isReferenceType();
+    assert !type.isNullValueType();
+    return new InitializedNonNullReferenceFrameType(type);
+  }
+
+  static NullFrameType nullType() {
+    return NullFrameType.SINGLETON;
   }
 
   static PrimitiveFrameType primitive(DexType type) {
@@ -116,7 +126,7 @@ public interface FrameType {
     assert memberType.isPrecise();
     switch (memberType) {
       case OBJECT:
-        return FrameType.initialized(factory.objectType);
+        return FrameType.initializedNonNullReference(factory.objectType);
       case BOOLEAN_OR_BYTE:
       case CHAR:
       case SHORT:
@@ -165,6 +175,10 @@ public interface FrameType {
 
   InitializedReferenceFrameType asInitializedReferenceType();
 
+  boolean isInitializedNonNullReferenceType();
+
+  InitializedNonNullReferenceFrameType asInitializedNonNullReferenceType();
+
   boolean isInt();
 
   boolean isLong();
@@ -174,6 +188,8 @@ public interface FrameType {
   boolean isLongHigh();
 
   boolean isNullType();
+
+  NullFrameType asNullType();
 
   boolean isObject();
 

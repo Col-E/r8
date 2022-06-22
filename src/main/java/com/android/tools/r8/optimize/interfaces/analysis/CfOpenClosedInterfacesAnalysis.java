@@ -172,13 +172,13 @@ public class CfOpenClosedInterfacesAnalysis {
         stack -> {
           FrameType array = stack.peekFirst();
           FrameType value = stack.peekLast();
-          if (array.isInitializedReferenceType()) {
+          if (array.isInitializedNonNullReferenceType()) {
             DexType arrayType = array.asInitializedReferenceType().getInitializedType();
             if (arrayType.isArrayType()) {
               processAssignment(
                   value, arrayType.toArrayElementType(dexItemFactory), openInterfaceConsumer);
             } else {
-              assert arrayType.isNullValueType();
+              assert false;
             }
           } else {
             assert false;
@@ -233,9 +233,9 @@ public class CfOpenClosedInterfacesAnalysis {
 
   private void processAssignment(
       FrameType fromType, DexType toType, Consumer<DexClass> openInterfaceConsumer) {
-    if (fromType.isInitializedReferenceType() && !fromType.isNullType()) {
+    if (fromType.isInitializedNonNullReferenceType()) {
       processAssignment(
-          fromType.asInitializedReferenceType().getInitializedType(),
+          fromType.asInitializedNonNullReferenceType().getInitializedType(),
           toType,
           openInterfaceConsumer);
     }
@@ -408,7 +408,9 @@ public class CfOpenClosedInterfacesAnalysis {
         } else {
           initialState =
               initialState.storeLocal(
-                  localIndex, FrameType.initialized(context.getHolderType()), config);
+                  localIndex,
+                  FrameType.initializedNonNullReference(context.getHolderType()),
+                  config);
         }
         localIndex++;
       }
