@@ -127,14 +127,17 @@ public final class R8Command extends BaseCompilerCommand {
 
     Builder(DiagnosticsHandler diagnosticsHandler) {
       super(diagnosticsHandler);
+      setIgnoreDexInArchive(true);
     }
 
     private Builder(AndroidApp app) {
       super(app);
+      setIgnoreDexInArchive(true);
     }
 
     private Builder(AndroidApp app, DiagnosticsHandler diagnosticsHandler) {
       super(app, diagnosticsHandler);
+      setIgnoreDexInArchive(true);
     }
 
     // Internal

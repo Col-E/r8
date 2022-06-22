@@ -15,7 +15,6 @@ public class CompatProguardCommandBuilder extends R8Command.Builder {
       boolean forceProguardCompatibility, DiagnosticsHandler diagnosticsHandler) {
     super(diagnosticsHandler);
     setProguardCompatibility(forceProguardCompatibility);
-    setIgnoreDexInArchive(true);
   }
 
   public CompatProguardCommandBuilder(boolean forceProguardCompatibility) {
@@ -26,6 +25,5 @@ public class CompatProguardCommandBuilder extends R8Command.Builder {
       boolean forceProguardCompatibility, boolean disableVerticalClassMerging) {
     setProguardCompatibility(forceProguardCompatibility);
     setDisableVerticalClassMerging(disableVerticalClassMerging);
-    setIgnoreDexInArchive(true);
   }
 }

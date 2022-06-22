@@ -22,6 +22,7 @@ import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.references.Reference;
@@ -60,16 +61,15 @@ public class MainDexTracingTest extends TestBase {
   private static final String EXAMPLE_SRC_DIR = ToolHelper.EXAMPLES_DIR;
   private static final String EXAMPLE_O_SRC_DIR = ToolHelper.EXAMPLES_ANDROID_O_DIR;
 
-  @Parameters(name = "{0}, {1}")
-  public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withNoneRuntime().build(), Backend.values());
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
   }
 
-  private final Backend backend;
+  private final Backend backend = Backend.CF;
 
-  public MainDexTracingTest(TestParameters parameters, Backend backend) {
+  public MainDexTracingTest(TestParameters parameters) {
     parameters.assertNoneRuntime();
-    this.backend = backend;
   }
 
   private Path getInputJar(Path cfJar) throws Exception {
