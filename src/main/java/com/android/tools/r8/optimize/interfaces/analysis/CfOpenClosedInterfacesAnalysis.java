@@ -4,13 +4,8 @@
 
 package com.android.tools.r8.optimize.interfaces.analysis;
 
-import com.android.tools.r8.cf.code.CfArrayStore;
 import com.android.tools.r8.cf.code.CfAssignability;
-import com.android.tools.r8.cf.code.CfInstanceFieldWrite;
 import com.android.tools.r8.cf.code.CfInstruction;
-import com.android.tools.r8.cf.code.CfInvoke;
-import com.android.tools.r8.cf.code.CfReturn;
-import com.android.tools.r8.cf.code.CfStaticFieldWrite;
 import com.android.tools.r8.cf.code.CfSubtypingAssignability;
 import com.android.tools.r8.cf.code.frame.FrameType;
 import com.android.tools.r8.graph.AppView;
@@ -19,7 +14,6 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -30,10 +24,6 @@ import com.android.tools.r8.ir.analysis.framework.intraprocedural.TransferFuncti
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.cf.CfBlock;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.cf.CfControlFlowGraph;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.cf.CfIntraproceduralDataflowAnalysis;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.InterfaceCollection;
-import com.android.tools.r8.ir.analysis.type.ReferenceTypeElement;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.optimize.interfaces.collection.NonEmptyOpenClosedInterfacesCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
@@ -52,14 +42,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class CfOpenClosedInterfacesAnalysis {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final CfAssignability assignability;
-  private final DexItemFactory dexItemFactory;
   private final InternalOptions options;
 
   private final Set<DexClass> openInterfaces = Sets.newConcurrentHashSet();
@@ -70,7 +58,6 @@ public class CfOpenClosedInterfacesAnalysis {
   public CfOpenClosedInterfacesAnalysis(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
     this.assignability = new CfSubtypingAssignability(appView);
-    this.dexItemFactory = appView.dexItemFactory();
     this.options = appView.options();
   }
 
@@ -105,7 +92,8 @@ public class CfOpenClosedInterfacesAnalysis {
     DataflowAnalysisResult result = analysis.run(cfg.getEntryBlock());
     assert result.isSuccessfulAnalysisResult();
 
-    Set<DexClass> openInterfacesForMethod = Sets.newIdentityHashSet();
+    CfOpenClosedInterfacesAnalysisHelper helper =
+        new CfOpenClosedInterfacesAnalysisHelper(appView, method);
     for (CfBlock block : cfg.getBlocks()) {
       if (analysis.isIntermediateBlock(block)) {
         continue;
@@ -119,7 +107,7 @@ public class CfOpenClosedInterfacesAnalysis {
             instructionIndex <= block.getLastInstructionIndex();
             instructionIndex++) {
           CfInstruction instruction = cfCode.getInstruction(instructionIndex);
-          processInstruction(method, instruction, state, openInterfacesForMethod::add);
+          helper.processInstruction(instruction, state);
           state = transfer.apply(instruction, state).asAbstractState();
           if (state.isError()) {
             return registerUnverifiableCode(method, instructionIndex, state.asError());
@@ -132,157 +120,7 @@ public class CfOpenClosedInterfacesAnalysis {
         }
       } while (block != null);
     }
-    return openInterfacesForMethod;
-  }
-
-  private void processInstruction(
-      ProgramMethod method,
-      CfInstruction instruction,
-      CfFrameState state,
-      Consumer<DexClass> openInterfaceConsumer) {
-    assert !state.isError();
-    if (state.isBottom()) {
-      // Represents that this instruction is unreachable from the method entry point.
-      return;
-    }
-    assert state.isConcrete();
-    ConcreteCfFrameState concreteState = state.asConcrete();
-    if (instruction.isArrayStore()) {
-      processArrayStore(instruction.asArrayStore(), concreteState, openInterfaceConsumer);
-    } else if (instruction.isInstanceFieldPut()) {
-      processInstanceFieldPut(
-          instruction.asInstanceFieldPut(), concreteState, openInterfaceConsumer);
-    } else if (instruction.isInvoke()) {
-      processInvoke(instruction.asInvoke(), concreteState, openInterfaceConsumer);
-    } else if (instruction.isReturn() && !instruction.isReturnVoid()) {
-      processReturn(instruction.asReturn(), method, concreteState, openInterfaceConsumer);
-    } else if (instruction.isStaticFieldPut()) {
-      processStaticFieldPut(instruction.asStaticFieldPut(), concreteState, openInterfaceConsumer);
-    }
-  }
-
-  private void processArrayStore(
-      CfArrayStore arrayStore,
-      ConcreteCfFrameState state,
-      Consumer<DexClass> openInterfaceConsumer) {
-    if (!arrayStore.getType().isObject()) {
-      return;
-    }
-    state.peekStackElements(
-        3,
-        stack -> {
-          FrameType array = stack.peekFirst();
-          FrameType value = stack.peekLast();
-          if (array.isInitializedNonNullReferenceType()) {
-            ReferenceTypeElement arrayType =
-                array.asInitializedNonNullReferenceType().getInitializedTypeWithInterfaces(appView);
-            if (arrayType.isArrayType()) {
-              processAssignment(
-                  value, arrayType.asArrayType().getMemberType(), openInterfaceConsumer);
-            } else {
-              assert false;
-            }
-          } else {
-            assert false;
-          }
-        });
-  }
-
-  private void processInstanceFieldPut(
-      CfInstanceFieldWrite instanceFieldPut,
-      ConcreteCfFrameState state,
-      Consumer<DexClass> openInterfaceConsumer) {
-    state.peekStackElement(
-        head ->
-            processAssignment(head, instanceFieldPut.getField().getType(), openInterfaceConsumer),
-        options);
-  }
-
-  private void processInvoke(
-      CfInvoke invoke, ConcreteCfFrameState state, Consumer<DexClass> openInterfaceConsumer) {
-    DexMethod invokedMethod = invoke.getMethod();
-    state.peekStackElements(
-        invokedMethod.getNumberOfArguments(invoke.isInvokeStatic()),
-        arguments -> {
-          int argumentIndex = 0;
-          for (FrameType argument : arguments) {
-            DexType parameter =
-                invokedMethod.getArgumentType(argumentIndex, invoke.isInvokeStatic());
-            processAssignment(argument, parameter, openInterfaceConsumer);
-            argumentIndex++;
-          }
-        },
-        options);
-  }
-
-  private void processReturn(
-      CfReturn returnInstruction,
-      ProgramMethod context,
-      ConcreteCfFrameState state,
-      Consumer<DexClass> openInterfaceConsumer) {
-    state.peekStackElement(
-        head -> processAssignment(head, context.getReturnType(), openInterfaceConsumer), options);
-  }
-
-  private void processStaticFieldPut(
-      CfStaticFieldWrite staticFieldPut,
-      ConcreteCfFrameState state,
-      Consumer<DexClass> openInterfaceConsumer) {
-    state.peekStackElement(
-        head -> processAssignment(head, staticFieldPut.getField().getType(), openInterfaceConsumer),
-        options);
-  }
-
-  private void processAssignment(
-      FrameType fromType, DexType toType, Consumer<DexClass> openInterfaceConsumer) {
-    if (fromType.isInitializedNonNullReferenceType()) {
-      processAssignment(
-          fromType.asInitializedNonNullReferenceType().getInitializedTypeWithInterfaces(appView),
-          toType,
-          openInterfaceConsumer);
-    }
-  }
-
-  private void processAssignment(
-      FrameType fromType, TypeElement toType, Consumer<DexClass> openInterfaceConsumer) {
-    if (fromType.isInitializedNonNullReferenceType()) {
-      processAssignment(
-          fromType.asInitializedNonNullReferenceType().getInitializedTypeWithInterfaces(appView),
-          toType,
-          openInterfaceConsumer);
-    }
-  }
-
-  private void processAssignment(
-      ReferenceTypeElement fromType, DexType toType, Consumer<DexClass> openInterfaceConsumer) {
-    processAssignment(fromType, toType.toTypeElement(appView), openInterfaceConsumer);
-  }
-
-  private void processAssignment(
-      TypeElement fromType, TypeElement toType, Consumer<DexClass> openInterfaceConsumer) {
-    // If the type is an interface type, then check that the assigned value is a subtype of the
-    // interface type, or mark the interface as open.
-    if (!toType.isClassType()) {
-      return;
-    }
-    ClassTypeElement toClassType = toType.asClassType();
-    if (toClassType.getClassType() != dexItemFactory.objectType) {
-      return;
-    }
-    InterfaceCollection interfaceCollection = toClassType.getInterfaces();
-    interfaceCollection.forEachKnownInterface(
-        knownInterfaceType -> {
-          DexClass knownInterface = appView.definitionFor(knownInterfaceType);
-          if (knownInterface == null) {
-            return;
-          }
-          assert knownInterface.isInterface();
-          if (fromType.lessThanOrEqualUpToNullability(toType, appView)) {
-            return;
-          }
-          assert verifyOpenInterfaceWitnessIsSuppressed(fromType, knownInterface);
-          openInterfaceConsumer.accept(knownInterface);
-        });
+    return helper.getOpenInterfaces();
   }
 
   private void setClosedInterfaces() {
@@ -344,21 +182,9 @@ public class CfOpenClosedInterfacesAnalysis {
     methods.forEach(method -> reporter.warning(unverifiableCodeDiagnostics.get(method)));
   }
 
-  private boolean verifyOpenInterfaceWitnessIsSuppressed(
-      TypeElement valueType, DexClass openInterface) {
-    assert options.getOpenClosedInterfacesOptions().isSuppressed(appView, valueType, openInterface)
-        : "Unexpected open interface "
-            + openInterface.getTypeName()
-            + " (assignment: "
-            + valueType
-            + ")";
-    return true;
-  }
-
   private class TransferFunction
       implements AbstractTransferFunction<CfBlock, CfInstruction, CfFrameState> {
 
-    private final CfCode code;
     private final CfAnalysisConfig config;
     private final ProgramMethod context;
 
@@ -366,7 +192,6 @@ public class CfOpenClosedInterfacesAnalysis {
       CfCode code = context.getDefinition().getCode().asCfCode();
       int maxLocals = code.getMaxLocals();
       int maxStack = code.getMaxStack();
-      this.code = code;
       this.config =
           new CfAnalysisConfig() {
 
