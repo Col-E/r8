@@ -66,7 +66,7 @@ R8_TESTS_DEPS_JAR = os.path.join(LIBS, 'test_deps_all.jar')
 R8LIB_TESTS_DEPS_JAR = R8_TESTS_DEPS_JAR
 MAVEN_ZIP = os.path.join(LIBS, 'r8.zip')
 MAVEN_ZIP_LIB = os.path.join(LIBS, 'r8lib.zip')
-LIBRARY_DESUGAR_CONVERSIONS_ZIP = os.path.join(LIBS, 'library_desugar_conversions.zip')
+LIBRARY_DESUGAR_CONVERSIONS_ZIP = os.path.join(LIBS, 'library_desugar_conversions.jar')
 
 DESUGAR_CONFIGURATION = os.path.join(
       'src', 'library_desugar', 'desugar_jdk_libs.json')
