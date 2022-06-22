@@ -39,6 +39,11 @@ public abstract class MissingClassesTestBase extends TestBase {
 
   interface MissingInterface {}
 
+  interface MissingFunctionalInterface {
+
+    void m();
+  }
+
   protected final TestParameters parameters;
 
   @Parameters(name = "{0}")
