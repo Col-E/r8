@@ -205,14 +205,22 @@ public class MissingClasses {
         assert !synthesizingContextReferences.isEmpty();
         for (DexReference synthesizingContextReference : synthesizingContextReferences) {
           if (synthesizingContextReference.isDexMethod()) {
-            DexProgramClass holder =
+            DexProgramClass synthesizingContextHolder =
                 appView
                     .definitionFor(synthesizingContextReference.getContextType())
                     .asProgramClass();
             ProgramMethod synthesizingContext =
-                holder.lookupProgramMethod(synthesizingContextReference.asDexMethod());
-            assert synthesizingContext != null;
-            rewrittenContexts.add(synthesizingContext);
+                synthesizingContextHolder.lookupProgramMethod(
+                    synthesizingContextReference.asDexMethod());
+            if (synthesizingContext != null) {
+              rewrittenContexts.add(synthesizingContext);
+            } else {
+              // The synthesizing context no longer exists. It must have been forcefully moved due
+              // to desugaring. For now we report the holder of the synthesizing context as the
+              // origin of the missing class reference.
+              assert synthesizingContextHolder.isInterface();
+              rewrittenContexts.add(synthesizingContextHolder);
+            }
           } else if (synthesizingContextReference.isDexType()) {
             DexProgramClass synthesizingClass =
                 appView.definitionFor(synthesizingContextReference.asDexType()).asProgramClass();
