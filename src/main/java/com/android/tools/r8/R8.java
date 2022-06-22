@@ -442,6 +442,7 @@ public class R8 {
       assert appView.appInfo().hasLiveness();
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
 
+      // TODO(b/214496607): Evaluate build speed. Avoid fixpoint when frames are present.
       assert new CfOpenClosedInterfacesAnalysis(appViewWithLiveness).run(executorService);
 
       new StartupInstrumentation(appView).instrumentAllClasses(executorService);

@@ -36,6 +36,16 @@ public class CfArrayStore extends CfArrayLoadOrStore {
     return getStoreType();
   }
 
+  @Override
+  public boolean isArrayStore() {
+    return true;
+  }
+
+  @Override
+  public CfArrayStore asArrayStore() {
+    return this;
+  }
+
   private int getStoreType() {
     switch (getType()) {
       case OBJECT:

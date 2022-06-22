@@ -8,8 +8,11 @@ import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
+import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ir.optimize.classmerger.vertical.StaticPutToInterfaceWithObjectMergingTest.I;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.transformers.ClassFileTransformer.MethodPredicate;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.io.IOException;
@@ -53,15 +56,15 @@ public class ReturnObjectAsInterfaceMergingTest extends TestBase {
         .addKeepMainRule(Main.class)
         // Keep get() to prevent that we optimize it into having static return type A.
         .addKeepRules("-keepclassmembers class " + Main.class.getTypeName() + " { *** get(...); }")
-        .addNoVerticalClassMergingAnnotations()
+        .addOptionsModification(
+            options ->
+                options
+                    .getOpenClosedInterfacesOptions()
+                    .suppressSingleOpenInterface(Reference.classFromClass(I.class)))
         .applyIf(
-            !enableVerticalClassMerging,
-            testBuilder ->
-                testBuilder
-                    .addOptionsModification(
-                        options ->
-                            options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
-                    .enableNoVerticalClassMergingAnnotations())
+            enableVerticalClassMerging,
+            R8TestBuilder::addNoVerticalClassMergingAnnotations,
+            R8TestBuilder::enableNoVerticalClassMergingAnnotations)
         .addVerticallyMergedClassesInspector(
             inspector -> {
               if (enableVerticalClassMerging) {

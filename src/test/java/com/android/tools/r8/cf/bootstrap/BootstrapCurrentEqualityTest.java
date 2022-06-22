@@ -102,9 +102,9 @@ public class BootstrapCurrentEqualityTest extends TestBase {
           .addKeepRuleFiles(MAIN_KEEP)
           .addOptionsModification(
               options ->
-                  options
-                      .getOpenClosedInterfacesOptions()
-                      .suppressZipFileAssignmentsToJavaLangAutoCloseable())
+                  // TODO(b/236581210): Should only suppress AutoCloseable due to assignments from
+                  //  ZipFile.
+                  options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
           .compile()
           .apply(c -> FileUtils.writeTextFile(map, c.getProguardMap()))
           .writeToZip(jar);

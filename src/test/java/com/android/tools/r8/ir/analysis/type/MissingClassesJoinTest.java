@@ -5,6 +5,9 @@
 package com.android.tools.r8.ir.analysis.type;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticException;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertFalse;
@@ -16,8 +19,11 @@ import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.UnverifiableCfCodeDiagnostic;
 import com.google.common.base.Throwables;
 import java.util.List;
 import org.junit.Test;
@@ -75,16 +81,27 @@ public class MissingClassesJoinTest extends TestBase {
               .setMinApi(parameters.getApiLevel())
               .compileWithExpectedDiagnostics(
                   diagnostics -> {
-                    if (!allowTypeErrors) {
+                    if (allowTypeErrors) {
+                      MethodReference mainMethodReference =
+                          MethodReferenceUtils.mainMethod(TestClass.class);
+                      diagnostics.assertWarningsMatch(
+                          allOf(
+                              diagnosticType(UnverifiableCfCodeDiagnostic.class),
+                              diagnosticMessage(
+                                  containsString(
+                                      "Unverifiable code in `"
+                                          + MethodReferenceUtils.toSourceString(mainMethodReference)
+                                          + "`"))),
+                          diagnosticMessage(
+                              equalTo(
+                                  "The method `"
+                                      + MethodReferenceUtils.toSourceString(mainMethodReference)
+                                      + "` does not type check and will be assumed to "
+                                      + "be unreachable.")));
+                    } else {
                       diagnostics.assertErrorThatMatches(diagnosticException(AssertionError.class));
                     }
-                  })
-              .assertAllWarningMessagesMatch(
-                  equalTo(
-                      "The method `void "
-                          + TestClass.class.getTypeName()
-                          + ".main(java.lang.String[])` does not type check and will be assumed to"
-                          + " be unreachable."));
+                  });
 
       // Compilation fails unless type errors are allowed.
       assertTrue(allowTypeErrors);

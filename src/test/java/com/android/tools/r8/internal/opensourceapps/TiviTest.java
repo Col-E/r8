@@ -93,6 +93,8 @@ public class TiviTest extends TestBase {
         .addClasspathFiles(outDirectory.resolve("classpath.jar"))
         .addLibraryFiles(outDirectory.resolve("library.jar"))
         .addKeepRuleFiles(outDirectory.resolve("proguard.config"))
+        .addOptionsModification(
+            options -> options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
         .setMinApi(AndroidApiLevel.M)
         .allowDiagnosticMessages()
         .allowUnnecessaryDontWarnWildcards()

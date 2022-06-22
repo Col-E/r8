@@ -46,6 +46,21 @@ public class CfInstanceFieldWrite extends CfFieldInstruction {
   }
 
   @Override
+  public boolean isFieldPut() {
+    return true;
+  }
+
+  @Override
+  public boolean isInstanceFieldPut() {
+    return true;
+  }
+
+  @Override
+  public CfInstanceFieldWrite asInstanceFieldPut() {
+    return this;
+  }
+
+  @Override
   void internalRegisterUse(
       UseRegistry<?> registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
     registry.registerInstanceFieldWrite(getField());

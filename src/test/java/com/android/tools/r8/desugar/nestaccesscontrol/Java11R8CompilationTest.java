@@ -50,6 +50,9 @@ public class Java11R8CompilationTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_11_JAR)
         .addKeepRuleFiles(MAIN_KEEP)
+        .addOptionsModification(
+            // TODO(b/236581210): There should be no open interfaces.
+            options -> options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
         .compile()
         .inspect(this::assertNotEmpty)
         .inspect(Java11R8CompilationTest::assertNoNests);

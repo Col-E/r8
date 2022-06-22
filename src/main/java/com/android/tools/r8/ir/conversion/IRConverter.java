@@ -86,7 +86,6 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorIROptimizer;
-import com.android.tools.r8.optimize.interfaces.analysis.OpenClosedInterfacesAnalysis;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepMethodInfo;
@@ -142,7 +141,6 @@ public class IRConverter {
   private final ServiceLoaderRewriter serviceLoaderRewriter;
   private final EnumValueOptimizer enumValueOptimizer;
   private final EnumUnboxer enumUnboxer;
-  private final OpenClosedInterfacesAnalysis openClosedInterfacesAnalysis;
 
   public final AssumeInserter assumeInserter;
   private final DynamicTypeOptimization dynamicTypeOptimization;
@@ -228,7 +226,6 @@ public class IRConverter {
       this.methodOptimizationInfoCollector = null;
       this.enumValueOptimizer = null;
       this.enumUnboxer = EnumUnboxer.empty();
-      this.openClosedInterfacesAnalysis = OpenClosedInterfacesAnalysis.empty();
       this.assumeInserter = null;
       return;
     }
@@ -262,8 +259,6 @@ public class IRConverter {
       this.memberValuePropagation = new R8MemberValuePropagation(appViewWithLiveness);
       this.methodOptimizationInfoCollector =
           new MethodOptimizationInfoCollector(appViewWithLiveness, this);
-      // TODO(b/214496607): Enable open/closed interfaces analysis.
-      this.openClosedInterfacesAnalysis = OpenClosedInterfacesAnalysis.empty();
       if (options.isMinifying()) {
         this.identifierNameStringMarker = new IdentifierNameStringMarker(appViewWithLiveness);
       } else {
@@ -299,7 +294,6 @@ public class IRConverter {
       this.methodOptimizationInfoCollector = null;
       this.enumValueOptimizer = null;
       this.enumUnboxer = EnumUnboxer.empty();
-      this.openClosedInterfacesAnalysis = OpenClosedInterfacesAnalysis.empty();
     }
     this.stringSwitchRemover =
         options.isStringSwitchConversionEnabled()
@@ -669,7 +663,6 @@ public class IRConverter {
     appView.withArgumentPropagator(
         argumentPropagator -> argumentPropagator.initializeCodeScanner(executorService, timing));
     enumUnboxer.prepareForPrimaryOptimizationPass(graphLensForPrimaryOptimizationPass);
-    openClosedInterfacesAnalysis.prepareForPrimaryOptimizationPass();
     outliner.prepareForPrimaryOptimizationPass(graphLensForPrimaryOptimizationPass);
 
     if (fieldAccessAnalysis != null) {
@@ -857,7 +850,6 @@ public class IRConverter {
     if (inliner != null) {
       inliner.onLastWaveDone(postMethodProcessorBuilder, executorService, timing);
     }
-    openClosedInterfacesAnalysis.onPrimaryOptimizationPassComplete();
 
     // Ensure determinism of method-to-reprocess set.
     appView.testing().checkDeterminism(postMethodProcessorBuilder::dump);
@@ -1163,8 +1155,6 @@ public class IRConverter {
     // we will return with a throw-null method above.
     assert code.verifyTypes(appView);
     assert code.isConsistentSSA(appView);
-
-    openClosedInterfacesAnalysis.analyze(context, code);
 
     if (shouldPassThrough(context)) {
       // If the code is pass trough, do not finalize by overwriting the existing code.

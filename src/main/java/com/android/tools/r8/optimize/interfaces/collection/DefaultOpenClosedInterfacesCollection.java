@@ -22,8 +22,7 @@ public class DefaultOpenClosedInterfacesCollection extends OpenClosedInterfacesC
 
   @Override
   public boolean isDefinitelyClosed(DexClass clazz) {
-    // TODO(b/214496607): Should return false.
-    return true;
+    return false;
   }
 
   @Override

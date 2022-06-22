@@ -14,6 +14,7 @@ import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
@@ -40,6 +41,13 @@ public class UnusedInterfaceRemovalTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(UnusedInterfaceRemovalTest.class)
         .addKeepMainRule(TestClass.class)
+        .addOptionsModification(
+            options ->
+                // TODO(b/236581210): I is spuriously reported as being "open" due to lossy joins in
+                //  the analysis of cf code.
+                options
+                    .getOpenClosedInterfacesOptions()
+                    .suppressSingleOpenInterface(Reference.classFromClass(I.class)))
         .enableNoVerticalClassMergingAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())

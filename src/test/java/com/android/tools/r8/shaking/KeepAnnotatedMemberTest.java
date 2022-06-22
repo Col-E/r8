@@ -10,18 +10,15 @@ import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -84,6 +81,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
         .addDontWarnGoogle()
         .addDontWarnJavax()
         .addDontWarn("org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement")
+        .apply(this::suppressAllOpenInterfaces)
         .compile();
   }
 
@@ -97,6 +95,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
         .addDontWarnGoogle()
         .addDontWarnJavax()
         .addDontWarn("org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement")
+        .apply(this::suppressAllOpenInterfaces)
         .compile();
   }
 
@@ -122,6 +121,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
         .addDontWarnGoogle()
         .addDontWarnJavax()
         .addDontWarn("org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement")
+        .apply(this::suppressAllOpenInterfaces)
         .compile()
         .inspect(
             inspector -> {
@@ -211,13 +211,9 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .addKeepMainRule(R8.class)
             .addKeepClassRules(CLASS_WITH_ANNOTATED_METHOD)
             .addKeepRules("-keepclassmembers class * { @" + PRESENT_ANNOTATION + " *** *(...); }")
-            .addOptionsModification(
-                options ->
-                    options
-                        .getOpenClosedInterfacesOptions()
-                        .suppressZipFileAssignmentsToJavaLangAutoCloseable())
             .addDontWarnGoogle()
             .addDontWarnJavaxNullableAnnotation()
+            .apply(this::suppressAllOpenInterfaces)
             .apply(this::configureHorizontalClassMerging)
             .compile()
             .graphInspector();
@@ -235,12 +231,8 @@ public class KeepAnnotatedMemberTest extends TestBase {
                     + " *** *(...); }")
             .addDontWarnGoogle()
             .addDontWarnJavaxNullableAnnotation()
-            .addOptionsModification(
-                options ->
-                    options
-                        .getOpenClosedInterfacesOptions()
-                        .suppressZipFileAssignmentsToJavaLangAutoCloseable())
             .apply(this::configureHorizontalClassMerging)
+            .apply(this::suppressAllOpenInterfaces)
             .compile()
             .graphInspector();
     assertRetainedClassesEqual(referenceInspector, ifThenKeepClassMembersInspector);
@@ -258,12 +250,8 @@ public class KeepAnnotatedMemberTest extends TestBase {
                     + " *** *(...); }")
             .addDontWarnGoogle()
             .addDontWarnJavaxNullableAnnotation()
-            .addOptionsModification(
-                options ->
-                    options
-                        .getOpenClosedInterfacesOptions()
-                        .suppressZipFileAssignmentsToJavaLangAutoCloseable())
             .apply(this::configureHorizontalClassMerging)
+            .apply(this::suppressAllOpenInterfaces)
             .compile()
             .graphInspector();
     assertRetainedClassesEqual(referenceInspector, ifThenKeepClassesWithMembersInspector);
@@ -283,12 +271,8 @@ public class KeepAnnotatedMemberTest extends TestBase {
                     + " <2> <3>(...); }")
             .addDontWarnGoogle()
             .addDontWarnJavaxNullableAnnotation()
-            .addOptionsModification(
-                options ->
-                    options
-                        .getOpenClosedInterfacesOptions()
-                        .suppressZipFileAssignmentsToJavaLangAutoCloseable())
             .apply(this::configureHorizontalClassMerging)
+            .apply(this::suppressAllOpenInterfaces)
             .compile()
             .graphInspector();
     assertRetainedClassesEqual(referenceInspector, ifHasMemberThenKeepClassInspector);
@@ -334,10 +318,9 @@ public class KeepAnnotatedMemberTest extends TestBase {
         notInConditional);
   }
 
-  private void assertAllClassesAreSynthetics(Set<String> classNames) {
-    for (String className : classNames) {
-      ClassReference classReference = Reference.classFromTypeName(className);
-      assertTrue(className, SyntheticItemsTestUtils.isExternalSynthetic(classReference));
-    }
+  private void suppressAllOpenInterfaces(R8TestBuilder<?> testBuilder) {
+    // TODO(b/236581210): There should be no open interfaces.
+    testBuilder.addOptionsModification(
+        options -> options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces());
   }
 }

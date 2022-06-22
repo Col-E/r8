@@ -135,6 +135,14 @@ public abstract class CfInstruction implements CfOrDexInstruction {
     return TraversalContinuation.doContinue(initialValue);
   }
 
+  public boolean isArrayStore() {
+    return false;
+  }
+
+  public CfArrayStore asArrayStore() {
+    return null;
+  }
+
   @Override
   public CfInstruction asCfInstruction() {
     return this;
@@ -180,6 +188,38 @@ public abstract class CfInstruction implements CfOrDexInstruction {
 
   public boolean isFieldInstruction() {
     return false;
+  }
+
+  public boolean isFieldGet() {
+    return false;
+  }
+
+  public boolean isInstanceFieldGet() {
+    return false;
+  }
+
+  public boolean isStaticFieldGet() {
+    return false;
+  }
+
+  public boolean isFieldPut() {
+    return false;
+  }
+
+  public boolean isInstanceFieldPut() {
+    return false;
+  }
+
+  public CfInstanceFieldWrite asInstanceFieldPut() {
+    return null;
+  }
+
+  public boolean isStaticFieldPut() {
+    return false;
+  }
+
+  public CfStaticFieldWrite asStaticFieldPut() {
+    return null;
   }
 
   public CfGoto asGoto() {
@@ -309,6 +349,10 @@ public abstract class CfInstruction implements CfOrDexInstruction {
   /** Return true if this instruction is CfReturn or CfReturnVoid. */
   public boolean isReturn() {
     return false;
+  }
+
+  public CfReturn asReturn() {
+    return null;
   }
 
   public boolean isReturnVoid() {

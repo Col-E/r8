@@ -1621,6 +1621,14 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       allowOpenInterfaces = false;
     }
 
+    public OpenClosedInterfacesOptions suppressSingleOpenInterface(ClassReference classReference) {
+      assert !allowOpenInterfaces;
+      suppressions.add(
+          (appView, valueType, openInterface) ->
+              openInterface.getTypeName().equals(classReference.getTypeName()));
+      return this;
+    }
+
     public void suppressAllOpenInterfaces() {
       assert !allowOpenInterfaces;
       suppressions.add((appView, valueType, openInterface) -> true);

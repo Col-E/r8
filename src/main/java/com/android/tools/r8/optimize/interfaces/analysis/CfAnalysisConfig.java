@@ -19,4 +19,6 @@ public interface CfAnalysisConfig {
   int getMaxStack();
 
   boolean isImmediateSuperClassOfCurrentContext(DexType type);
+
+  boolean isStrengthenFramesEnabled();
 }

@@ -10,6 +10,7 @@ import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.transformers.ClassFileTransformer.MethodPredicate;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -62,11 +63,19 @@ public class InterfaceInvokeWithObjectReceiverInliningTest extends TestBase {
         .addKeepMainRule(Main.class)
         // Keep get() to prevent that we optimize it into having static return type A.
         .addKeepRules("-keepclassmembers class " + Main.class.getTypeName() + " { *** get(...); }")
-        .addInliningAnnotations()
-        .addNoVerticalClassMergingAnnotations()
-        .applyIf(!enableInlining, R8TestBuilder::enableInliningAnnotations)
+        .addOptionsModification(
+            options ->
+                options
+                    .getOpenClosedInterfacesOptions()
+                    .suppressSingleOpenInterface(Reference.classFromClass(I.class)))
         .applyIf(
-            !enableVerticalClassMerging, R8TestBuilder::enableNoVerticalClassMergingAnnotations)
+            enableInlining,
+            R8TestBuilder::addInliningAnnotations,
+            R8TestBuilder::enableInliningAnnotations)
+        .applyIf(
+            enableVerticalClassMerging,
+            R8TestBuilder::addNoVerticalClassMergingAnnotations,
+            R8TestBuilder::enableNoVerticalClassMergingAnnotations)
         .addVerticallyMergedClassesInspector(
             inspector -> {
               if (enableVerticalClassMerging) {

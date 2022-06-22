@@ -20,6 +20,10 @@ public enum MemberType {
   INT_OR_FLOAT,
   LONG_OR_DOUBLE;
 
+  public boolean isObject() {
+    return this == OBJECT;
+  }
+
   public boolean isPrecise() {
     return this != INT_OR_FLOAT && this != LONG_OR_DOUBLE;
   }

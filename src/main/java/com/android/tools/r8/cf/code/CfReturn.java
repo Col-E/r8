@@ -106,6 +106,11 @@ public class CfReturn extends CfJumpInstruction {
   }
 
   @Override
+  public CfReturn asReturn() {
+    return this;
+  }
+
+  @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
     Slot pop = state.pop();
     builder.addReturn(pop.register);

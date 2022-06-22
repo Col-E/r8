@@ -4,7 +4,9 @@
 package com.android.tools.r8.regress.b78493232;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.AsmTestBase;
@@ -96,12 +98,14 @@ public class Regress78493232_WithPhi extends AsmTestBase {
                 diagnostics ->
                     diagnostics.assertWarningsMatch(
                         diagnosticMessage(
-                            equalTo(
-                                "Unverifiable code in `java.lang.String regress78493232.Test."
-                                    + "methodCausingIssue(byte, short, int)` at instruction 53: "
-                                    + "Cannot join stacks, expected frame types at stack index 1 "
-                                    + "to join to a precise (non-top) type, but types null and "
-                                    + "uninitialized java.lang.String do not."))))
+                            allOf(
+                                startsWith(
+                                    "Unverifiable code in `java.lang.String regress78493232.Test."
+                                        + "methodCausingIssue(byte, short, int)`"),
+                                containsString(
+                                    "Cannot join stacks, expected frame types at stack index 1 "
+                                        + "to join to a precise (non-top) type, but types null "
+                                        + "and uninitialized java.lang.String do not.")))))
             .run(parameters.getRuntime(), MAIN);
     checkResult(result);
   }

@@ -9,6 +9,7 @@ import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.references.Reference;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -31,6 +32,13 @@ public class InterfaceInvokeWithNonTrivialButImpreciseStaticTypeTest extends Tes
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
+        .addOptionsModification(
+            options ->
+                // TODO(b/236581210): I is spuriously reported as being "open" due to lossy joins in
+                //  the analysis of cf code.
+                options
+                    .getOpenClosedInterfacesOptions()
+                    .suppressSingleOpenInterface(Reference.classFromClass(I.class)))
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())

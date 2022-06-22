@@ -103,6 +103,11 @@ public class CfFrameVerificationHelper implements CfAnalysisConfig {
     return true;
   }
 
+  @Override
+  public boolean isStrengthenFramesEnabled() {
+    return false;
+  }
+
   public void seenLabel(CfLabel label) {
     if (tryCatchRangeLabels.contains(label)) {
       for (CfTryCatch tryCatchRange : tryCatchRanges) {

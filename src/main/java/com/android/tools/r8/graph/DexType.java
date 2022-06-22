@@ -157,8 +157,7 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
     if (clazz == null) {
       return false;
     }
-    // TODO(b/214496607): Allow uninstantiated reasoning for closed interfaces.
-    if (clazz.isInterface()) {
+    if (clazz.isInterface() && appView.getOpenClosedInterfacesCollection().isMaybeOpen(clazz)) {
       return false;
     }
     return !appView.appInfo().isInstantiatedDirectlyOrIndirectly(clazz);

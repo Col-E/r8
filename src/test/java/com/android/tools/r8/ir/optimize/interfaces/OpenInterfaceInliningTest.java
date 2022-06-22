@@ -71,8 +71,7 @@ public class OpenInterfaceInliningTest extends TestBase {
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/214496607): Should succeed with the expected output.
-        .assertFailureWithErrorThatThrows(ClassCastException.class);
+        .assertSuccessWithOutputLines(getExpectedOutputLines());
   }
 
   private List<Class<?>> getProgramClasses() {

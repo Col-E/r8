@@ -68,6 +68,9 @@ public class Java11R8BootstrapTest extends TestBase {
         .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_11_JAR)
         .addLibraryFiles(Jdk11TestUtils.getJdk11LibraryFiles(getStaticTemp()))
         .addKeepRuleFiles(MAIN_KEEP)
+        .addOptionsModification(
+            // TODO(b/236581210): There should be no open interfaces.
+            options -> options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
         .applyIf(
             desugar,
             builder ->

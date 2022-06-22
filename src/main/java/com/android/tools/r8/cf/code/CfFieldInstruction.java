@@ -77,18 +77,6 @@ public abstract class CfFieldInstruction extends CfInstruction {
     return visitor.visit(this, other.asFieldInstruction(), CfFieldInstruction::specify);
   }
 
-  public boolean isFieldGet() {
-    return false;
-  }
-
-  public boolean isStaticFieldGet() {
-    return false;
-  }
-
-  public boolean isStaticFieldPut() {
-    return false;
-  }
-
   public abstract CfFieldInstruction createWithField(DexField field);
 
   @Override

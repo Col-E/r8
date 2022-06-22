@@ -42,8 +42,18 @@ public class CfStaticFieldWrite extends CfFieldInstruction {
   }
 
   @Override
+  public boolean isFieldPut() {
+    return true;
+  }
+
+  @Override
   public boolean isStaticFieldPut() {
     return true;
+  }
+
+  @Override
+  public CfStaticFieldWrite asStaticFieldPut() {
+    return this;
   }
 
   @Override

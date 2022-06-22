@@ -24,6 +24,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.FunctionUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Iterables;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -35,6 +36,7 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
 public class ConcreteCfFrameState extends CfFrameState {
@@ -77,6 +79,9 @@ public class ConcreteCfFrameState extends CfFrameState {
         config.getAssignability().isFrameAssignable(currentFrame, frame);
     if (assignabilityResult.isFailed()) {
       return error(assignabilityResult.asFailed().getMessage());
+    }
+    if (config.isStrengthenFramesEnabled()) {
+      return this;
     }
     CfFrame frameCopy = frame.mutableCopy();
     return new ConcreteCfFrameState(
@@ -133,6 +138,29 @@ public class ConcreteCfFrameState extends CfFrameState {
               : frameType);
     }
     return new ConcreteCfFrameState(locals, newStack, stackHeight);
+  }
+
+  public void peekStackElement(Consumer<PreciseFrameType> consumer, InternalOptions options) {
+    if (!stack.isEmpty()) {
+      consumer.accept(stack.peekLast());
+    } else {
+      assert options.getTestingOptions().allowTypeErrors;
+    }
+  }
+
+  public void peekStackElements(
+      int number, Consumer<Deque<PreciseFrameType>> consumer, InternalOptions options) {
+    if (stack.size() >= number) {
+      Deque<PreciseFrameType> result = new ArrayDeque<>(number);
+      Iterator<PreciseFrameType> iterator = stack.descendingIterator();
+      while (iterator.hasNext() && number > 0) {
+        result.addFirst(iterator.next());
+        number--;
+      }
+      consumer.accept(result);
+    } else {
+      assert options.getTestingOptions().allowTypeErrors;
+    }
   }
 
   @Override
