@@ -7,17 +7,21 @@ package com.android.tools.r8.shaking.enums;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ProguardVersion;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.TestShrinkerBuilder;
+import com.android.tools.r8.TestState;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.nio.file.Path;
 import java.util.List;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -39,7 +43,21 @@ public class EnumArrayInAnnotationTest extends TestBase {
         getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
-  private static String EXPECTED_RESULT = StringUtils.lines("TEST_ONE", "TEST_TWO");
+  private static final String EXPECTED_RESULT = StringUtils.lines("TEST_ONE", "TEST_TWO");
+
+  public static Path r8cf;
+
+  @BeforeClass
+  public static void setUp() throws Exception {
+    r8cf =
+        R8FullTestBuilder.create(new TestState(getStaticTemp()), Backend.CF)
+            .addInnerClasses(EnumArrayInAnnotationTest.class)
+            .addKeepMainRule(Main.class)
+            .addKeepEnumsRule()
+            .addKeepRuntimeVisibleAnnotations()
+            .compile()
+            .writeToZip();
+  }
 
   @Test
   public void testRuntime() throws Exception {
@@ -74,6 +92,23 @@ public class EnumArrayInAnnotationTest extends TestBase {
   }
 
   @Test
+  public void testR8WithR8Input() throws Exception {
+    assumeTrue(useGenericEnumsRule);
+    testForR8(parameters.getBackend())
+        .addProgramFiles(r8cf)
+        .addKeepMainRule(Main.class)
+        .addKeepEnumsRule()
+        .setMinApi(parameters.getApiLevel())
+        .addKeepRuntimeVisibleAnnotations()
+        .run(parameters.getRuntime(), Main.class)
+        .applyIf(
+            parameters.isDexRuntime(),
+            // TODO(b/236691999): This should not fail.
+            r -> r.assertFailureWithErrorThatThrows(NoSuchFieldError.class),
+            r -> r.assertSuccessWithOutput(EXPECTED_RESULT));
+  }
+
+  @Test
   public void testProguard() throws Exception {
     assumeTrue(parameters.isCfRuntime());
     testForProguard(ProguardVersion.V7_0_0)
@@ -87,7 +122,7 @@ public class EnumArrayInAnnotationTest extends TestBase {
                     "-keepclassmembernames enum "
                         + EnumArrayInAnnotationTest.Enum.class.getTypeName()
                         + " { <fields>; }"))
-        .addKeepRules("-dontwarn " + getClass().getTypeName())
+        .addDontWarn(getClass())
         .addKeepRuntimeVisibleAnnotations()
         .run(parameters.getRuntime(), Main.class)
         .applyIf(

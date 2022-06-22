@@ -7,16 +7,20 @@ package com.android.tools.r8.shaking.enums;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ProguardVersion;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestShrinkerBuilder;
+import com.android.tools.r8.TestState;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.nio.file.Path;
 import java.util.List;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -38,13 +42,28 @@ public class EnumInAnnotationTest extends TestBase {
         getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
-  private static String EXPECTED_RESULT = StringUtils.lines("TEST_ONE");
+  private static final String EXPECTED_RESULT = StringUtils.lines("TEST_ONE");
+
+  public static Path r8cf;
+
+  @BeforeClass
+  public static void setUp() throws Exception {
+    // Prepare a R8 processed JAR keeping Main with annotations and generic enum rule.
+    r8cf =
+        R8FullTestBuilder.create(new TestState(getStaticTemp()), Backend.CF)
+            .addInnerClasses(EnumInAnnotationTest.class)
+            .addKeepMainRule(Main.class)
+            .addKeepEnumsRule()
+            .addKeepRuntimeVisibleAnnotations()
+            .compile()
+            .writeToZip();
+  }
 
   @Test
   public void testRuntime() throws Exception {
     assumeTrue(useGenericEnumsRule);
     testForRuntime(parameters)
-        .addInnerClasses(EnumInAnnotationTest.class)
+        .addInnerClasses(getClass())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
@@ -69,9 +88,25 @@ public class EnumInAnnotationTest extends TestBase {
             })
         .setMinApi(parameters.getApiLevel())
         .addKeepRuntimeVisibleAnnotations()
-        .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED_RESULT);
+  }
+
+  @Test
+  public void testR8WithR8Input() throws Exception {
+    assumeTrue(useGenericEnumsRule);
+    testForR8(parameters.getBackend())
+        .addProgramFiles(r8cf)
+        .addKeepMainRule(Main.class)
+        .addKeepEnumsRule()
+        .setMinApi(parameters.getApiLevel())
+        .addKeepRuntimeVisibleAnnotations()
+        .run(parameters.getRuntime(), Main.class)
+        .applyIf(
+            parameters.isDexRuntime(),
+            // TODO(b/236691999): This should not fail.
+            r -> r.assertFailureWithErrorThatThrows(NoSuchFieldError.class),
+            r -> r.assertSuccessWithOutput(EXPECTED_RESULT));
   }
 
   @Test
@@ -89,7 +124,7 @@ public class EnumInAnnotationTest extends TestBase {
                     "-keepclassmembernames class "
                         + EnumInAnnotationTest.Enum.class.getTypeName()
                         + " { <fields>; }"))
-        .addKeepRules("-dontwarn " + getClass().getTypeName())
+        .addDontWarn(getClass())
         .addKeepRuntimeVisibleAnnotations()
         .compile()
         .run(parameters.getRuntime(), Main.class)
