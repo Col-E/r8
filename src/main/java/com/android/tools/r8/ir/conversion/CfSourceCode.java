@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.conversion;
 import static it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMaps.emptyMap;
 
 import com.android.tools.r8.cf.code.CfFrame;
+import com.android.tools.r8.cf.code.CfFrameVerifier;
 import com.android.tools.r8.cf.code.CfGoto;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfLabel;
@@ -21,7 +22,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
-import com.android.tools.r8.graph.CfCode.StackMapStatus;
 import com.android.tools.r8.graph.CfCodeDiagnostics;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DebugLocalInfo.PrintLevel;
@@ -693,7 +693,7 @@ public class CfSourceCode implements SourceCode {
   @Override
   public DexType getPhiTypeForBlock(
       int register, int blockOffset, ValueTypeConstraint constraint, RegisterReadType readType) {
-    assert code.getStackMapStatus() != StackMapStatus.NOT_VERIFIED;
+    assert code.getStackMapStatus() != CfFrameVerifier.StackMapStatus.NOT_VERIFIED;
     if (code.getStackMapStatus().isInvalidOrNotPresent()) {
       return null;
     }
@@ -881,7 +881,7 @@ public class CfSourceCode implements SourceCode {
 
   @Override
   public boolean hasValidTypesFromStackMap() {
-    return code.getStackMapStatus() == StackMapStatus.VALID;
+    return code.getStackMapStatus() == CfFrameVerifier.StackMapStatus.VALID;
   }
 
   @Override

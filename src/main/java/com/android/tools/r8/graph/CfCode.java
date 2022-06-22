@@ -9,7 +9,9 @@ import static com.android.tools.r8.graph.DexCode.FAKE_THIS_SUFFIX;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.cf.code.CfFrame;
-import com.android.tools.r8.cf.code.CfFrameVerificationHelper;
+import com.android.tools.r8.cf.code.CfFrameVerifier;
+import com.android.tools.r8.cf.code.CfFrameVerifier.StackMapStatus;
+import com.android.tools.r8.cf.code.CfFrameVerifierEventConsumer;
 import com.android.tools.r8.cf.code.CfIinc;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfLabel;
@@ -17,7 +19,6 @@ import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfTryCatch;
-import com.android.tools.r8.cf.code.frame.FrameType;
 import com.android.tools.r8.dex.code.CfOrDexInstruction;
 import com.android.tools.r8.dex.code.DexBase5Format;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
@@ -39,46 +40,28 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
-import com.android.tools.r8.optimize.interfaces.analysis.ConcreteCfFrameState;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.google.common.base.Strings;
+import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Map;
+import java.util.Set;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
 public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCode> {
-
-  public enum StackMapStatus {
-    NOT_VERIFIED,
-    NOT_PRESENT,
-    INVALID,
-    VALID;
-
-    public boolean isValid() {
-      return this == VALID || this == NOT_PRESENT;
-    }
-
-    public boolean isInvalidOrNotPresent() {
-      return this == INVALID || this == NOT_PRESENT;
-    }
-  }
 
   public static class LocalVariableInfo {
 
@@ -149,7 +132,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
   private List<CfInstruction> instructions;
   private final List<CfTryCatch> tryCatchRanges;
   private final List<LocalVariableInfo> localVariables;
-  private StackMapStatus stackMapStatus = StackMapStatus.NOT_VERIFIED;
+  private StackMapStatus stackMapStatus = CfFrameVerifier.StackMapStatus.NOT_VERIFIED;
   private final com.android.tools.r8.position.Position diagnosticPosition;
   private final BytecodeMetadata<CfInstruction> metadata;
 
@@ -261,7 +244,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
   }
 
   public StackMapStatus getStackMapStatus() {
-    assert stackMapStatus != StackMapStatus.NOT_VERIFIED;
+    assert stackMapStatus != CfFrameVerifier.StackMapStatus.NOT_VERIFIED;
     return stackMapStatus;
   }
 
@@ -279,6 +262,15 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
 
   public List<CfTryCatch> getTryCatchRanges() {
     return tryCatchRanges;
+  }
+
+  public Set<CfLabel> getTryCatchRangeLabels() {
+    Set<CfLabel> tryCatchRangeLabels = Sets.newIdentityHashSet();
+    for (CfTryCatch tryCatchRange : getTryCatchRanges()) {
+      tryCatchRangeLabels.add(tryCatchRange.start);
+      tryCatchRangeLabels.add(tryCatchRange.end);
+    }
+    return tryCatchRangeLabels;
   }
 
   public CfInstruction getInstruction(int index) {
@@ -415,7 +407,8 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
       LensCodeRewriterUtils rewriter,
       MethodVisitor visitor) {
     GraphLens graphLens = appView.graphLens();
-    assert verifyFrames(method, appView).isValid() : "Could not validate stack map frames";
+    assert verifyFrames(method, appView).isValidOrNotPresent()
+        : "Could not validate stack map frames";
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     InitClassLens initClassLens = appView.initClassLens();
     InternalOptions options = appView.options();
@@ -553,7 +546,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
 
   private void verifyFramesOrRemove(ProgramMethod method, AppView<?> appView, GraphLens codeLens) {
     stackMapStatus = verifyFrames(method, appView, codeLens);
-    if (!stackMapStatus.isValid()) {
+    if (!stackMapStatus.isValidOrNotPresent()) {
       ArrayList<CfInstruction> copy = new ArrayList<>(instructions);
       copy.removeIf(CfInstruction::isFrame);
       setInstructions(copy);
@@ -896,184 +889,23 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
   }
 
   public StackMapStatus verifyFrames(ProgramMethod method, AppView<?> appView, GraphLens codeLens) {
-    GraphLens graphLens = appView.graphLens();
-    DexEncodedMethod definition = method.getDefinition();
-    if (!appView.options().canUseInputStackMaps()
-        || appView.options().testing.disableStackMapVerification) {
-      return StackMapStatus.NOT_PRESENT;
-    }
-    if (definition.hasClassFileVersion()
-        && definition.getClassFileVersion().isLessThan(CfVersion.V1_7)) {
-      return StackMapStatus.NOT_PRESENT;
-    }
+    CfFrameVerifierEventConsumer eventConsumer =
+        new CfFrameVerifierEventConsumer() {
 
-    RewrittenPrototypeDescription protoChanges =
-        graphLens.lookupPrototypeChangesForMethodDefinition(method.getReference(), codeLens);
-
-    DexMethod previousMethodSignature =
-        graphLens.getOriginalMethodSignature(method.getReference(), codeLens);
-    boolean previousMethodSignatureIsInstance =
-        method.getDefinition().isInstance()
-            || protoChanges.getArgumentInfoCollection().isConvertedToStaticMethod();
-
-    // Build a map from labels to frames.
-    Map<CfLabel, CfFrame> stateMap = new IdentityHashMap<>();
-    List<CfLabel> labels = new ArrayList<>();
-    boolean requireStackMapFrame = !tryCatchRanges.isEmpty();
-    for (CfInstruction instruction : instructions) {
-      if (instruction.isFrame()) {
-        CfFrame frame = instruction.asFrame();
-        if (!labels.isEmpty()) {
-          for (CfLabel label : labels) {
-            if (stateMap.containsKey(label)) {
-              return reportStackMapError(
-                  CfCodeStackMapValidatingException.multipleFramesForLabel(method, appView),
-                  appView);
-            }
-            stateMap.put(label, frame);
+          @Override
+          public void acceptError(CfCodeDiagnostics diagnostics) {
+            // Stack maps was required from version V1_6 (50), but the JVM gave a grace-period and
+            // only started enforcing stack maps from 51 in JVM 8. As a consequence, we have
+            // different android libraries that has V1_7 code but has no stack maps. To not fail on
+            // compilations we only report a warning.
+            appView.options().reporter.warning(diagnostics);
           }
-        } else if (instruction != instructions.get(0)) {
-          // From b/168212806, it is possible that the first instruction is a frame.
-          return reportStackMapError(
-              CfCodeStackMapValidatingException.unexpectedStackMapFrame(method, appView), appView);
-        }
-      }
-      // We are trying to map a frame to a label, but we can have positions in between, so skip
-      // those.
-      if (instruction.isPosition()) {
-        continue;
-      } else if (instruction.isLabel()) {
-        labels.add(instruction.asLabel());
-      } else {
-        labels.clear();
-      }
-      if (!requireStackMapFrame) {
-        requireStackMapFrame = instruction.isJump() && !finalAndExitInstruction(instruction);
-      }
-    }
-    // If there are no frames but we have seen a jump instruction, we cannot verify the stack map.
-    if (requireStackMapFrame && stateMap.isEmpty()) {
-      return reportStackMapError(
-          CfCodeStackMapValidatingException.noFramesForMethodWithJumps(method, appView), appView);
-    }
-    CfFrameVerificationHelper helper =
-        new CfFrameVerificationHelper(appView, this, codeLens, method, stateMap, tryCatchRanges);
-    CfCodeDiagnostics diagnostics = helper.checkTryCatchRanges();
-    if (diagnostics != null) {
-      return reportStackMapError(diagnostics, appView);
-    }
-    TraversalContinuation<CfCodeDiagnostics, CfFrameState> initialState =
-        computeInitialState(
-            appView, helper, method, previousMethodSignature, previousMethodSignatureIsInstance);
-    if (initialState.shouldBreak()) {
-      return reportStackMapError(initialState.asBreak().getValue(), appView);
-    }
-    CfFrameState state = initialState.asContinue().getValue();
-    for (int i = 0; i < instructions.size(); i++) {
-      CfInstruction instruction = instructions.get(i);
-      assert !state.isError();
-      // Check the exceptional edge prior to evaluating the instruction. The local state is stable
-      // at this point as store operations are not throwing and the current stack does not
-      // affect the exceptional transfer (the exception edge is always a singleton stack).
-      if (instruction.canThrow()) {
-        assert !instruction.isStore();
-        state = helper.checkExceptionEdges(state);
-      }
-      if (instruction.isLabel()) {
-        helper.seenLabel(instruction.asLabel());
-      }
-      state = instruction.evaluate(state, appView, helper);
-      if (instruction.isJumpWithNormalTarget()) {
-        CfInstruction fallthroughInstruction =
-            (i + 1) < instructions.size() ? instructions.get(i + 1) : null;
-        TraversalContinuation<CfCodeDiagnostics, CfFrameState> traversalContinuation =
-            instruction.traverseNormalTargets(
-                (target, currentState) -> {
-                  if (target != fallthroughInstruction) {
-                    assert target.isLabel();
-                    currentState = helper.checkTarget(currentState, target.asLabel());
-                  }
-                  return TraversalContinuation.doContinue(currentState);
-                },
-                fallthroughInstruction,
-                state);
-        state = traversalContinuation.asContinue().getValue();
-      }
-      TraversalContinuation<CfCodeDiagnostics, CfFrameState> traversalContinuation =
-          helper.computeStateForNextInstruction(instruction, i, state);
-      if (traversalContinuation.isContinue()) {
-        state = traversalContinuation.asContinue().getValue();
-      } else {
-        return reportStackMapError(traversalContinuation.asBreak().getValue(), appView);
-      }
-      if (state.isError()) {
-        return reportStackMapError(
-            CfCodeStackMapValidatingException.invalidStackMapForInstruction(
-                method, i, instruction, state.asError().getMessage(), appView),
-            appView);
-      }
-    }
-    return StackMapStatus.VALID;
-  }
-
-  private StackMapStatus reportStackMapError(CfCodeDiagnostics diagnostics, AppView<?> appView) {
-    // Stack maps was required from version V1_6 (50), but the JVM gave a grace-period and only
-    // started enforcing stack maps from 51 in JVM 8. As a consequence, we have different android
-    // libraries that has V1_7 code but has no stack maps. To not fail on compilations we only
-    // report a warning.
-    appView.options().reporter.warning(diagnostics);
-    return StackMapStatus.INVALID;
-  }
-
-  private boolean finalAndExitInstruction(CfInstruction instruction) {
-    boolean isReturnOrThrow = instruction.isThrow() || instruction.isReturn();
-    if (!isReturnOrThrow) {
-      return false;
-    }
-    for (int i = instructions.size() - 1; i >= 0; i--) {
-      CfInstruction instr = instructions.get(i);
-      if (instr == instruction) {
-        return true;
-      }
-      if (instr.isPosition() || instr.isLabel()) {
-        continue;
-      }
-      return false;
-    }
-    throw new Unreachable("Instruction " + instruction + " should be in instructions");
-  }
-
-  private TraversalContinuation<CfCodeDiagnostics, CfFrameState> computeInitialState(
-      AppView<?> appView,
-      CfFrameVerificationHelper helper,
-      ProgramMethod method,
-      DexMethod previousMethodSignature,
-      boolean previousMethodSignatureIsInstance) {
-    DexItemFactory dexItemFactory = appView.dexItemFactory();
-    CfFrameState state = new ConcreteCfFrameState();
-    int localIndex = 0;
-    if (previousMethodSignatureIsInstance) {
-      state =
-          state.storeLocal(
-              localIndex,
-              previousMethodSignature.isInstanceInitializer(dexItemFactory)
-                      || previousMethodSignature.mustBeInlinedIntoInstanceInitializer(appView)
-                      || previousMethodSignature.isHorizontallyMergedInstanceInitializer(
-                          dexItemFactory)
-                  ? FrameType.uninitializedThis()
-                  : FrameType.initializedNonNullReference(previousMethodSignature.getHolderType()),
-              helper);
-      localIndex++;
-    }
-    for (DexType parameter : previousMethodSignature.getParameters()) {
-      state = state.storeLocal(localIndex, FrameType.initialized(parameter), helper);
-      localIndex += parameter.getRequiredRegisters();
-    }
-    if (state.isError()) {
-      return TraversalContinuation.doBreak(
-          CfCodeStackMapValidatingException.invalidStackMapForInstruction(
-              method, 0, instructions.get(0), state.asError().getMessage(), appView));
-    }
-    return TraversalContinuation.doContinue(state);
+        };
+    CfFrameVerifier helper =
+        CfFrameVerifier.builder(appView, this, method)
+            .setCodeLens(codeLens)
+            .setEventConsumer(eventConsumer)
+            .build();
+    return helper.run();
   }
 }
