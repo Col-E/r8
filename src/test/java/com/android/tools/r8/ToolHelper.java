@@ -123,8 +123,8 @@ public class ToolHelper {
 
   public static final String R8_TEST_BUCKET = "r8-test-results";
 
-  public static final String ASM_JAR = BUILD_DIR + "deps/asm-9.2.jar";
-  public static final String ASM_UTIL_JAR = BUILD_DIR + "deps/asm-util-9.2.jar";
+  public static final String ASM_JAR = BUILD_DIR + "deps/asm-9.3.jar";
+  public static final String ASM_UTIL_JAR = BUILD_DIR + "deps/asm-util-9.3.jar";
 
   public static final Path API_SAMPLE_JAR = Paths.get("tests", "r8_api_usage_sample.jar");
 
