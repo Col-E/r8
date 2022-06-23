@@ -68,7 +68,7 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
     reader.forEachClassMapping(
         (classMapping, entries) -> {
           try {
-            String payload = StringUtils.joinLines(entries);
+            String payload = StringUtils.join("\n", entries);
             ClassNameMapper classNameMapper = ClassNameMapper.mapperFromString(payload);
             if (classNameMapper.getClassNameMappings().size() != 1) {
               diagnosticsHandler.error(
