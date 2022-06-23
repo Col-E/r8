@@ -449,10 +449,8 @@ public class TypeLatticeTest extends TestBase {
   @Test
   public void joinPrimitiveAndClassArrays() {
     assertEquals(
-        array(3, factory.objectType),
-        join(
-            array(4, factory.intType),
-            array(3, factory.stringType)));
+        array(array(array(element(factory.objectType, maybeNull(), factory.serializableType)))),
+        join(array(4, factory.intType), array(3, factory.stringType)));
   }
 
   @Test
@@ -476,10 +474,8 @@ public class TypeLatticeTest extends TestBase {
   @Test
   public void joinDistinctNestingClassArrays() {
     assertEquals(
-        array(3, factory.objectType),
-        join(
-            array(3, factory.stringType),
-            array(4, factory.stringType)));
+        array(array(array(element(factory.objectType, maybeNull(), factory.serializableType)))),
+        join(array(3, factory.stringType), array(4, factory.stringType)));
   }
 
   @Test

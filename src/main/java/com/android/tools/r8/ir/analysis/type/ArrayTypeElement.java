@@ -184,22 +184,23 @@ public class ArrayTypeElement extends ReferenceTypeElement {
       // Return null indicating the join is the same as the member to avoid object allocation.
       return null;
     }
-    if (aMember.isArrayType() && bMember.isArrayType()) {
-      TypeElement aMemberMember = aMember.asArrayType().getMemberType();
-      TypeElement bMemberMember = bMember.asArrayType().getMemberType();
-      TypeElement join =
-          joinMember(
-              aMemberMember,
-              bMemberMember,
-              appView,
-              aMember.nullability().join(bMember.nullability()));
-      return join == null ? null : ArrayTypeElement.create(join, nullability);
-    }
-    if (aMember.isClassType() && bMember.isClassType()) {
-      ReferenceTypeElement join = aMember.asClassType().join(bMember.asClassType(), appView);
+    if (aMember.isReferenceType() && bMember.isReferenceType()) {
+      if (aMember.isArrayType() && bMember.isArrayType()) {
+        TypeElement aMemberMember = aMember.asArrayType().getMemberType();
+        TypeElement bMemberMember = bMember.asArrayType().getMemberType();
+        TypeElement join =
+            joinMember(
+                aMemberMember,
+                bMemberMember,
+                appView,
+                aMember.nullability().join(bMember.nullability()));
+        return join == null ? null : ArrayTypeElement.create(join, nullability);
+      }
+      ReferenceTypeElement join =
+          aMember.asReferenceType().join(bMember.asReferenceType(), appView);
       return ArrayTypeElement.create(join, nullability);
-    }
-    if (aMember.isPrimitiveType() || bMember.isPrimitiveType()) {
+    } else {
+      assert aMember.isPrimitiveType() || bMember.isPrimitiveType();
       if (appView.enableWholeProgramOptimizations()) {
         assert appView.hasClassHierarchy();
         DexItemFactory dexItemFactory = appView.dexItemFactory();
@@ -216,6 +217,5 @@ public class ArrayTypeElement extends ReferenceTypeElement {
       }
       return objectClassType(appView, nullability);
     }
-    return objectArrayType(appView, nullability);
   }
 }
