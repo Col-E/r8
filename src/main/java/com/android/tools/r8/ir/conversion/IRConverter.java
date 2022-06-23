@@ -81,7 +81,6 @@ import com.android.tools.r8.ir.optimize.membervaluepropagation.MemberValuePropag
 import com.android.tools.r8.ir.optimize.membervaluepropagation.R8MemberValuePropagation;
 import com.android.tools.r8.ir.optimize.outliner.Outliner;
 import com.android.tools.r8.ir.optimize.string.StringBuilderAppendOptimizer;
-import com.android.tools.r8.ir.optimize.string.StringBuilderOptimizer;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
@@ -123,7 +122,6 @@ public class IRConverter {
   private final FieldAccessAnalysis fieldAccessAnalysis;
   private final LibraryMethodOverrideAnalysis libraryMethodOverrideAnalysis;
   private final StringOptimizer stringOptimizer;
-  private final StringBuilderOptimizer stringBuilderOptimizer;
   private final IdempotentFunctionCallCanonicalizer idempotentFunctionCallCanonicalizer;
   private final ClassInliner classInliner;
   private final InternalOptions options;
@@ -182,7 +180,6 @@ public class IRConverter {
     this.classInitializerDefaultsOptimization =
         new ClassInitializerDefaultsOptimization(appView, this);
     this.stringOptimizer = new StringOptimizer(appView);
-    this.stringBuilderOptimizer = new StringBuilderOptimizer(appView);
     this.deadCodeRemover = new DeadCodeRemover(appView, codeRewriter);
     this.assertionsRewriter = new AssertionsRewriter(appView);
     this.idempotentFunctionCallCanonicalizer = new IdempotentFunctionCallCanonicalizer(appView);
@@ -806,9 +803,6 @@ public class IRConverter {
       }
       if (stringOptimizer != null) {
         stringOptimizer.logResult();
-      }
-      if (stringBuilderOptimizer != null) {
-        stringBuilderOptimizer.logResults();
       }
     }
 
