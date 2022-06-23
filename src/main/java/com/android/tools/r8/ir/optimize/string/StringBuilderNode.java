@@ -39,8 +39,8 @@ class StringBuilderNode {
     ImplicitToStringNode getImplicitToStringNode();
   }
 
-  private final Set<StringBuilderNode> successors = Sets.newIdentityHashSet();
-  private final Set<StringBuilderNode> predecessors = Sets.newIdentityHashSet();
+  private final Set<StringBuilderNode> successors = Sets.newLinkedHashSet();
+  private final Set<StringBuilderNode> predecessors = Sets.newLinkedHashSet();
 
   // Field uses to ensure that munching will not operate on the same value multiple times. If all
   // peep holes would look in the same direction, this field could be removed.

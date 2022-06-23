@@ -44,6 +44,7 @@ import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -155,7 +156,7 @@ public class StringBuilderAppendOptimizer {
               DFSNodeWithState<BasicBlock, StringBuilderGraphState> node,
               Function<BasicBlock, DFSNodeWithState<BasicBlock, StringBuilderGraphState>>
                   childNodeConsumer) {
-            Map<Value, StringBuilderNode> currentRoots = new IdentityHashMap<>();
+            Map<Value, StringBuilderNode> currentRoots = new LinkedHashMap<>();
             Map<Value, StringBuilderNode> currentTails = new IdentityHashMap<>();
             BasicBlock block = node.getNode();
             StringBuilderEscapeState previousState = analysis.computeBlockEntryState(block);
@@ -434,11 +435,12 @@ public class StringBuilderAppendOptimizer {
               }
             }
             if (state.isPartOfLoop) {
-              for (Value value : state.roots.keySet()) {
-                LoopNode loopNode = StringBuilderNode.createLoopNode();
-                loopNode.addSuccessor(state.roots.get(value));
-                state.roots.put(value, loopNode);
-              }
+              state.roots.replaceAll(
+                  (value, currentRoot) -> {
+                    LoopNode loopNode = StringBuilderNode.createLoopNode();
+                    loopNode.addSuccessor(currentRoot);
+                    return loopNode;
+                  });
             }
             return TraversalContinuation.doContinue(state);
           }
