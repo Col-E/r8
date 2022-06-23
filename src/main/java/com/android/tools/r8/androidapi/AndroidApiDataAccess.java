@@ -9,7 +9,7 @@ import static com.android.tools.r8.utils.ZipUtils.getOffsetOfResourceInZip;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.dex.CompatByteBuffer;
-import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
@@ -92,7 +92,9 @@ public abstract class AndroidApiDataAccess {
       InternalOptions options, DiagnosticsHandler diagnosticsHandler) {
     URL resource = AndroidApiDataAccess.class.getClassLoader().getResource(RESOURCE_NAME);
     if (resource == null) {
-      throw new CompilationError("Could not find the api database at " + RESOURCE_NAME);
+      diagnosticsHandler.warning(
+          new StringDiagnostic("Could not find the api database at " + RESOURCE_NAME));
+      return new AndroidApiDataAccessNoBacking();
     }
     if (options.apiModelingOptions().useMemoryMappedByteBuffer) {
       try {
@@ -126,11 +128,14 @@ public abstract class AndroidApiDataAccess {
     try (InputStream apiInputStream =
         AndroidApiDataAccess.class.getClassLoader().getResourceAsStream(RESOURCE_NAME)) {
       if (apiInputStream == null) {
-        throw new CompilationError("Could not find the api database at: " + resource);
+        diagnosticsHandler.warning(
+            new StringDiagnostic("Could not open the api database at " + RESOURCE_NAME));
+        return new AndroidApiDataAccessNoBacking();
       }
       return new AndroidApiDataAccessInMemory(ByteStreams.toByteArray(apiInputStream));
     } catch (IOException e) {
-      throw new CompilationError("Could not read the api database.", e);
+      diagnosticsHandler.warning(new ExceptionDiagnostic(e));
+      return new AndroidApiDataAccessNoBacking();
     }
   }
 
@@ -306,6 +311,10 @@ public abstract class AndroidApiDataAccess {
         serialized);
   }
 
+  public boolean isNoBacking() {
+    return false;
+  }
+
   public static class AndroidApiDataAccessByteMapped extends AndroidApiDataAccess {
 
     private final CompatByteBuffer mappedByteBuffer;
@@ -435,6 +444,40 @@ public abstract class AndroidApiDataAccess {
         index = endIndex + 1;
       }
       return 0;
+    }
+  }
+
+  public static class AndroidApiDataAccessNoBacking extends AndroidApiDataAccess {
+
+    @Override
+    int readConstantPoolSize() {
+      throw new Unreachable();
+    }
+
+    @Override
+    PositionAndLength readPositionAndLength(int offset) {
+      throw new Unreachable();
+    }
+
+    @Override
+    boolean payloadHasConstantPoolValue(int offset, int length, byte[] value) {
+      throw new Unreachable();
+    }
+
+    @Override
+    int payloadContainsConstantPoolValue(
+        int offset, int length, byte[] value, BiPredicate<Integer, byte[]> predicate) {
+      throw new Unreachable();
+    }
+
+    @Override
+    byte readApiLevelForPayloadOffset(int offset, int length, byte[] value) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public boolean isNoBacking() {
+      return true;
     }
   }
 }

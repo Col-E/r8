@@ -175,11 +175,6 @@ public class AndroidApiLevelHashingDatabaseImpl implements AndroidApiLevelDataba
     return lookupApiLevel(field);
   }
 
-  private int getConstantPoolId(DexString string) {
-    return constantPoolCache.computeIfAbsent(
-        string, key -> getDataAccess(options, diagnosticsHandler).getConstantPoolIndex(string));
-  }
-
   private AndroidApiLevel lookupApiLevel(DexReference reference) {
     // We use Android platform to track if an element is unknown since no occurrences of that api
     // level exists in the database.
@@ -187,10 +182,21 @@ public class AndroidApiLevelHashingDatabaseImpl implements AndroidApiLevelDataba
         lookupCache.computeIfAbsent(
             reference,
             ref -> {
+              // Prefetch the data access
+              if (dataAccess == null) {
+                getDataAccess(options, diagnosticsHandler);
+              }
+              if (dataAccess.isNoBacking()) {
+                return ANDROID_PLATFORM;
+              }
               byte[] uniqueDescriptorForReference;
               try {
                 uniqueDescriptorForReference =
-                    getUniqueDescriptorForReference(ref, this::getConstantPoolId);
+                    getUniqueDescriptorForReference(
+                        ref,
+                        string ->
+                            constantPoolCache.computeIfAbsent(
+                                string, key -> dataAccess.getConstantPoolIndex(string)));
               } catch (Exception e) {
                 uniqueDescriptorForReference = getNonExistingDescriptor();
               }
@@ -198,8 +204,7 @@ public class AndroidApiLevelHashingDatabaseImpl implements AndroidApiLevelDataba
                 return ANDROID_PLATFORM;
               } else {
                 byte apiLevelForReference =
-                    getDataAccess(options, diagnosticsHandler)
-                        .getApiLevelForReference(uniqueDescriptorForReference, ref);
+                    dataAccess.getApiLevelForReference(uniqueDescriptorForReference, ref);
                 return (apiLevelForReference <= 0)
                     ? ANDROID_PLATFORM
                     : AndroidApiLevel.getAndroidApiLevel(apiLevelForReference);
