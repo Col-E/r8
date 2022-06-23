@@ -65,7 +65,7 @@ public class SealedClassTest extends KotlinTestBase {
   public void testR8() throws ExecutionException, CompilationFailedException, IOException {
     testForR8(parameters.getBackend())
         .addProgramFiles(compilationResults.getForConfiguration(kotlinc, targetVersion))
-        .addProgramFiles(buildOnDexRuntime(parameters, kotlinc.getKotlinStdlibJar()))
+        .addProgramFiles(kotlinc.getKotlinStdlibJar())
         .addProgramFiles(kotlinc.getKotlinAnnotationJar())
         .setMinApi(parameters.getApiLevel())
         .allowAccessModification()
