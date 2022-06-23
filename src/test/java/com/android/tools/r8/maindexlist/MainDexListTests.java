@@ -10,77 +10,36 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.ByteDataView;
+import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
-import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.DiagnosticsMatcher;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
-import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.ClassAccessFlags;
-import com.android.tools.r8.graph.Code;
-import com.android.tools.r8.graph.DebugLocalInfo;
-import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexTypeList;
-import com.android.tools.r8.graph.DirectMappedDexApplication;
-import com.android.tools.r8.graph.GenericSignature.ClassSignature;
-import com.android.tools.r8.graph.MethodAccessFlags;
-import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
-import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
-import com.android.tools.r8.ir.code.CatchHandlers;
-import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.Phi.RegisterReadType;
-import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.code.Position.SyntheticPosition;
-import com.android.tools.r8.ir.code.ValueTypeConstraint;
-import com.android.tools.r8.ir.conversion.DexBuilder;
-import com.android.tools.r8.ir.conversion.IRBuilder;
-import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
-import com.android.tools.r8.ir.conversion.SourceCode;
-import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
-import com.android.tools.r8.ir.regalloc.RegisterAllocator;
-import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.origin.SynthesizedOrigin;
-import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
-import com.android.tools.r8.utils.AbortException;
-import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.transformers.ClassTransformer;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.MainDexListParser;
-import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.ThreadUtils;
-import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.google.common.collect.ImmutableList;
@@ -89,26 +48,22 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 @RunWith(Parameterized.class)
 public class MainDexListTests extends TestBase {
@@ -154,21 +109,22 @@ public class MainDexListTests extends TestBase {
 
     // Generates an application with many classes, every even in one package and every odd in
     // another. Keep the number of methods low enough for single dex application.
-    AndroidApp generated = generateApplication(
-        MANY_CLASSES, AndroidApiLevel.getDefault().getLevel(),
-        MANY_CLASSES_SINGLE_DEX_METHODS_PER_CLASS);
-    generated.write(getManyClassesSingleDexAppPath(), OutputMode.DexIndexed);
+    generateApplication(
+        getManyClassesSingleDexAppPath(), MANY_CLASSES, MANY_CLASSES_SINGLE_DEX_METHODS_PER_CLASS);
 
     // Generates an application with many classes, every even in one package and every odd in
     // another. Add enough methods so the application cannot fit into one dex file.
-    generated = generateApplication(
-        MANY_CLASSES, AndroidApiLevel.L.getLevel(), MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS);
-    generated.write(getManyClassesMultiDexAppPath(), OutputMode.DexIndexed);
+    generateApplication(
+        getManyClassesMultiDexAppPath(), MANY_CLASSES, MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS);
 
     // Generates an application with two classes, each with the maximum possible number of methods.
-    generated = generateApplication(TWO_LARGE_CLASSES, AndroidApiLevel.N.getLevel(),
-        MAX_METHOD_COUNT);
-    generated.write(getTwoLargeClassesAppPath(), OutputMode.DexIndexed);
+    generateApplication(getTwoLargeClassesAppPath(), TWO_LARGE_CLASSES, getLargeClassMethodCount());
+  }
+
+  private static int getLargeClassMethodCount() {
+    int otherConstantPoolEntries = 23;
+    int maxMethodCount = MAX_METHOD_COUNT - otherConstantPoolEntries;
+    return maxMethodCount;
   }
 
   private static Path getTwoLargeClassesAppPath() {
@@ -183,16 +139,9 @@ public class MainDexListTests extends TestBase {
     return generatedApplicationsFolder.getRoot().toPath().resolve("many-classes-stereo.zip");
   }
 
-  private static Path getManyClassesForceMultiDexAppPath() {
-    return generatedApplicationsFolder.getRoot().toPath().resolve("many-classes-stereo-forced.zip");
-  }
-
-  private static Set<DexType> parse(Path path, DexItemFactory itemFactory) throws IOException {
+  private static Set<DexType> parse(Path path, DexItemFactory itemFactory) {
     return MainDexListParser.parseList(StringResource.fromFile(path), itemFactory);
   }
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void checkGeneratedFileFitInSingleDexFile() {
@@ -221,20 +170,23 @@ public class MainDexListTests extends TestBase {
         getTwoLargeClassesAppPath(),
         false,
         test -> {
-          TestDiagnosticsHandler handler = new TestDiagnosticsHandler();
+          TestDiagnosticMessagesImpl handler = new TestDiagnosticMessagesImpl();
           try {
             test.run(handler);
             fail("Expect to fail, for there are too many classes for the main-dex list.");
           } catch (Throwable e) {
             assert e instanceof CompilationFailedException;
-            assertEquals(1, handler.errors.size());
-            DexFileOverflowDiagnostic overflow = (DexFileOverflowDiagnostic) handler.errors.get(0);
+            handler.assertErrorsMatch(
+                DiagnosticsMatcher.diagnosticType(DexFileOverflowDiagnostic.class));
+            DexFileOverflowDiagnostic overflow =
+                (DexFileOverflowDiagnostic) handler.getErrors().get(0);
             // Make sure {@link MonoDexDistributor} was _not_ used, i.e., a spec was given.
             assertTrue(overflow.hasMainDexSpecification());
             // Make sure what exceeds the limit is the number of methods.
             assertTrue(overflow.getNumberOfMethods() > overflow.getMaximumNumberOfMethods());
             assertEquals(
-                TWO_LARGE_CLASSES.size() * MAX_METHOD_COUNT, overflow.getNumberOfMethods());
+                TWO_LARGE_CLASSES.size() * getLargeClassMethodCount(),
+                overflow.getNumberOfMethods());
           }
         });
   }
@@ -261,7 +213,7 @@ public class MainDexListTests extends TestBase {
 
   @Test
   public void allClassesInMainDex() throws Throwable {
-    // Degenerated case with an app thats fit into a single dex, and where the main dex list
+    // Degenerated case with an app that fits into a single dex, and where the main dex list
     // contains all classes.
     verifyMainDexContains(MANY_CLASSES, getManyClassesSingleDexAppPath(), true);
   }
@@ -273,14 +225,16 @@ public class MainDexListTests extends TestBase {
         getManyClassesMultiDexAppPath(),
         false,
         test -> {
-          TestDiagnosticsHandler handler = new TestDiagnosticsHandler();
+          TestDiagnosticMessagesImpl handler = new TestDiagnosticMessagesImpl();
           try {
             test.run(handler);
             fail("Expect to fail, for there are too many classes for the main-dex list.");
           } catch (Throwable e) {
             assert e instanceof CompilationFailedException;
-            assertEquals(1, handler.errors.size());
-            DexFileOverflowDiagnostic overflow = (DexFileOverflowDiagnostic) handler.errors.get(0);
+            handler.assertErrorsMatch(
+                DiagnosticsMatcher.diagnosticType(DexFileOverflowDiagnostic.class));
+            DexFileOverflowDiagnostic overflow =
+                (DexFileOverflowDiagnostic) handler.getErrors().get(0);
             // Make sure {@link MonoDexDistributor} was _not_ used, i.e., a main-dex spec was given.
             assertTrue(overflow.hasMainDexSpecification());
             // Make sure what exceeds the limit is the number of methods.
@@ -552,44 +506,6 @@ public class MainDexListTests extends TestBase {
             .collect(Collectors.toList()), false);
   }
 
-  @Test
-  public void checkIntermediateMultiDex() throws Exception {
-    // Generates an application with many classes, every even in one package and every odd in
-    // another. Add enough methods so the application cannot fit into one dex file.
-    // Notice that this one allows multidex while using lower API.
-    AndroidApp generated = generateApplication(
-        MANY_CLASSES, AndroidApiLevel.K.getLevel(), true, MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS);
-    generated.write(getManyClassesForceMultiDexAppPath(), OutputMode.DexIndexed);
-    // Make sure the generated app indeed has multiple dex files.
-    assertTrue(generated.getDexProgramResourcesForTesting().size() > 1);
-  }
-
-  @Test
-  public void testMultiDexFailDueToMinApi() throws Exception {
-    // Generates an application with many classes, every even in one package and every odd in
-    // another. Add enough methods so the application cannot fit into one dex file.
-    // Notice that this one fails due to the min API.
-    TestDiagnosticsHandler handler = new TestDiagnosticsHandler();
-    try {
-      generateApplication(
-          MANY_CLASSES,
-          AndroidApiLevel.K.getLevel(),
-          false,
-          MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS,
-          handler);
-      fail("Expect to fail, for there are many classes while multidex is not enabled.");
-    } catch (AbortException e) {
-      assertEquals(1, handler.errors.size());
-      DexFileOverflowDiagnostic overflow = (DexFileOverflowDiagnostic) handler.errors.get(0);
-      // Make sure {@link MonoDexDistributor} was used, i.e., no main-dex specification was given.
-      assertFalse(overflow.hasMainDexSpecification());
-      // Make sure what exceeds the limit is the number of methods.
-      assertEquals(
-          MANY_CLASSES_COUNT * MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS,
-          overflow.getNumberOfMethods());
-    }
-  }
-
   private static String typeToEntry(String type) {
     return type.replace(".", "/") + FileUtils.CLASS_EXTENSION;
   }
@@ -637,7 +553,7 @@ public class MainDexListTests extends TestBase {
       boolean minimalMainDex,
       MultiDexTestMode testMode,
       DiagnosticsHandler handler)
-      throws IOException, ExecutionException, CompilationFailedException {
+      throws IOException, CompilationFailedException {
     AndroidApp originalApp = AndroidApp.builder().addProgramFiles(app).build();
     CodeInspector originalInspector = new CodeInspector(originalApp);
     for (String clazz : mainDex) {
@@ -663,8 +579,8 @@ public class MainDexListTests extends TestBase {
         builder.addMainDexListFiles(mainDexList);
         break;
       case MULTIPLE_FILES: {
-        // Partion the main dex list into several files.
-        List<List<String>> partitions = Lists.partition(mainDex, Math.max(mainDex.size() / 3, 1));
+          // Partition the main dex list into several files.
+          List<List<String>> partitions = Lists.partition(mainDex, Math.max(mainDex.size() / 3, 1));
         List<Path> mainDexListFiles = new ArrayList<>();
         for (List<String> partition : partitions) {
           Path partialMainDexList = temp.newFile().toPath();
@@ -725,7 +641,7 @@ public class MainDexListTests extends TestBase {
           singleDexApp,
           test -> {
             try {
-              test.run(new TestDiagnosticsHandler());
+              test.run(new TestDiagnosticMessagesImpl());
             } catch (Throwable e) {
               throw new RuntimeException(e);
             }
@@ -748,270 +664,46 @@ public class MainDexListTests extends TestBase {
     }
   }
 
-  public static AndroidApp generateApplication(List<String> classes, int minApi, int methodCount)
-      throws IOException, ExecutionException {
-    return generateApplication(classes, minApi, false, methodCount);
+  private static void generateApplication(Path output, List<String> classes, int methodCount)
+      throws IOException {
+    ArchiveConsumer consumer = new ArchiveConsumer(output);
+    for (String typename : classes) {
+      String descriptor = DescriptorUtils.javaTypeToDescriptor(typename);
+      byte[] bytes =
+          transformer(ClassStub.class)
+              .setClassDescriptor(descriptor)
+              .addClassTransformer(
+                  new ClassTransformer() {
+                    @Override
+                    public MethodVisitor visitMethod(
+                        int access,
+                        String name,
+                        String descriptor,
+                        String signature,
+                        String[] exceptions) {
+                      // This strips <init>() too.
+                      if (name.equals("methodStub")) {
+                        for (int i = 0; i < methodCount; i++) {
+                          MethodVisitor mv =
+                              super.visitMethod(
+                                  access, "method" + i, descriptor, signature, exceptions);
+                          mv.visitCode();
+                          mv.visitInsn(Opcodes.RETURN);
+                          mv.visitMaxs(0, 0);
+                          mv.visitEnd();
+                        }
+                      }
+                      return null;
+                    }
+                  })
+              .transform();
+      consumer.accept(ByteDataView.of(bytes), descriptor, null);
+    }
+    consumer.finished(null);
   }
 
-  private static AndroidApp generateApplication(
-      List<String> classes, int minApi, boolean intermediate, int methodCount)
-      throws IOException, ExecutionException {
-    return generateApplication(
-        classes, minApi, intermediate, methodCount, new DiagnosticsHandler() {});
-  }
-
-  private static AndroidApp generateApplication(
-      List<String> classes,
-      int minApi,
-      boolean intermediate,
-      int methodCount,
-      DiagnosticsHandler diagnosticsHandler)
-      throws IOException, ExecutionException {
-    Timing timing = Timing.empty();
-    InternalOptions options =
-        new InternalOptions(new DexItemFactory(), new Reporter(diagnosticsHandler));
-    options.setMinApiLevel(AndroidApiLevel.getAndroidApiLevel(minApi));
-    options.intermediate = intermediate;
-    DexItemFactory factory = options.itemFactory;
-    AppView<?> appView = AppView.createForR8(DexApplication.builder(options, timing).build());
-    DexApplication.Builder<?> builder = DexApplication.builder(options, timing);
-    for (String clazz : classes) {
-      DexString desc = factory.createString(DescriptorUtils.javaTypeToDescriptor(clazz));
-      DexType type = factory.createType(desc);
-      DexProgramClass programClass =
-          new DexProgramClass(
-              type,
-              null,
-              new SynthesizedOrigin("test", MainDexListTests.class),
-              ClassAccessFlags.fromSharedAccessFlags(0),
-              factory.objectType,
-              DexTypeList.empty(),
-              null,
-              null,
-              Collections.emptyList(),
-              Collections.emptyList(),
-              null,
-              Collections.emptyList(),
-              ClassSignature.noSignature(),
-              DexAnnotationSet.empty(),
-              DexEncodedField.EMPTY_ARRAY,
-              DexEncodedField.EMPTY_ARRAY,
-              MethodCollectionFactory.empty(),
-              false,
-              DexProgramClass::invalidChecksumRequest);
-      DexEncodedMethod[] directMethods = new DexEncodedMethod[methodCount];
-      for (int i = 0; i < methodCount; i++) {
-        MethodAccessFlags access = MethodAccessFlags.fromSharedAccessFlags(0, false);
-        access.setPublic();
-        access.setStatic();
-        DexMethod voidReturnMethod =
-            factory.createMethod(
-                desc,
-                factory.createString("method" + i),
-                factory.voidDescriptor,
-                DexString.EMPTY_ARRAY);
-        Code code =
-            new SynthesizedCode(
-                (ignored, callerPosition) -> new ReturnVoidCode(voidReturnMethod, callerPosition)) {
-              @Override
-              public Consumer<UseRegistry> getRegistryCallback(DexClassAndMethod method) {
-                throw new Unreachable();
-              }
-            };
-        DexEncodedMethod method =
-            DexEncodedMethod.builder()
-                .setMethod(voidReturnMethod)
-                .setAccessFlags(access)
-                .setCode(code)
-                .disableAndroidApiLevelCheck()
-                .build();
-        ProgramMethod programMethod = new ProgramMethod(programClass, method);
-        IRCode ir =
-            code.buildIR(
-                programMethod,
-                appView,
-                Origin.unknown(),
-                new MutableMethodConversionOptions(options));
-        RegisterAllocator allocator = new LinearScanRegisterAllocator(appView, ir);
-        programMethod.setCode(
-            new DexBuilder(ir, BytecodeMetadataProvider.empty(), allocator, options).build(),
-            appView);
-        directMethods[i] = method;
-      }
-      programClass.getMethodCollection().addDirectMethods(Arrays.asList(directMethods));
-      builder.addProgramClass(programClass);
-    }
-    DirectMappedDexApplication application = builder.build().toDirect();
-    ApplicationWriter writer =
-        new ApplicationWriter(
-            AppView.createForD8(
-                AppInfo.createInitialAppInfo(
-                    application, GlobalSyntheticsStrategy.forNonSynthesizing())),
-            null);
-    ExecutorService executor = ThreadUtils.getExecutorService(options);
-    AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
-    try {
-      writer.write(executor);
-    } finally {
-      executor.shutdown();
-    }
-    options.signalFinishedToConsumers();
-    return compatSink.build();
-  }
-
-  // Code stub to generate methods with "return-void" bodies.
-  private static class ReturnVoidCode implements SourceCode {
-
-    private final Position position;
-
-    public ReturnVoidCode(DexMethod method, Position callerPosition) {
-      this.position =
-          SyntheticPosition.builder()
-              .setLine(0)
-              .setMethod(method)
-              .setCallerPosition(callerPosition)
-              .build();
-    }
-
-    @Override
-    public int instructionCount() {
-      return 1;
-    }
-
-    @Override
-    public int instructionIndex(int instructionOffset) {
-      return instructionOffset;
-    }
-
-    @Override
-    public int instructionOffset(int instructionIndex) {
-      return instructionIndex;
-    }
-
-    @Override
-    public DebugLocalInfo getIncomingLocalAtBlock(int register, int blockOffset) {
-      return null;
-    }
-
-    @Override
-    public DexType getPhiTypeForBlock(
-        int register, int blockOffset, ValueTypeConstraint constraint, RegisterReadType readType) {
-      throw new Unreachable("Should never generate a phi");
-    }
-
-    @Override
-    public DebugLocalInfo getIncomingLocal(int register) {
-      return null;
-    }
-
-    @Override
-    public DebugLocalInfo getOutgoingLocal(int register) {
-      return null;
-    }
-
-    @Override
-    public int traceInstruction(int instructionIndex, IRBuilder builder) {
-      return instructionIndex;
-    }
-
-    @Override
-    public void setUp() {
-      // Intentionally empty.
-    }
-
-    @Override
-    public void clear() {
-      // Intentionally empty.
-    }
-
-    @Override
-    public void buildPrelude(IRBuilder builder) {
-      // Intentionally empty.
-    }
-
-    @Override
-    public void buildInstruction(
-        IRBuilder builder, int instructionIndex, boolean firstBlockInstruction) {
-      assert instructionIndex == 0;
-      builder.addReturn();
-    }
-
-    @Override
-    public void buildBlockTransfer(
-        IRBuilder builder, int predecessorOffset, int successorOffset, boolean isExceptional) {
-      throw new Unreachable();
-    }
-
-    @Override
-    public void buildPostlude(IRBuilder builder) {
-      // Intentionally empty.
-    }
-
-    @Override
-    public void resolveAndBuildSwitch(
-        int value, int fallthroughOffset, int payloadOffset, IRBuilder builder) {
-      throw new Unreachable();
-    }
-
-    @Override
-    public void resolveAndBuildNewArrayFilledData(
-        int arrayRef, int payloadOffset, IRBuilder builder) {
-      throw new Unreachable();
-    }
-
-    @Override
-    public CatchHandlers<Integer> getCurrentCatchHandlers(IRBuilder builder) {
-      return null;
-    }
-
-    @Override
-    public int getMoveExceptionRegister(int instructionIndex) {
-      throw new Unreachable();
-    }
-
-    @Override
-    public Position getCanonicalDebugPositionAtOffset(int offset) {
-      return Position.none();
-    }
-
-    @Override
-    public Position getCurrentPosition() {
-      return position;
-    }
-
-    @Override
-    public boolean verifyRegister(int register) {
-      throw new Unreachable();
-    }
-
-    @Override
-    public boolean verifyCurrentInstructionCanThrow() {
-      throw new Unreachable();
-    }
-
-    @Override
-    public boolean verifyLocalInScope(DebugLocalInfo local) {
-      throw new Unreachable();
-    }
-  }
-
-  private class TestDiagnosticsHandler implements DiagnosticsHandler {
-
-    public List<Diagnostic> errors = new ArrayList<>();
-    public List<Diagnostic> warnings = new ArrayList<>();
-
-    public int numberOfErrorsAndWarnings() {
-      return errors.size() + warnings.size();
-    }
-
-    @Override
-    public void error(Diagnostic error) {
-      errors.add(error);
-    }
-
-    @Override
-    public void warning(Diagnostic warning) {
-      warnings.add(warning);
-    }
+  // Simple stub/template for generating the input classes.
+  public static class ClassStub {
+    public static void methodStub() {}
   }
 }
