@@ -10,6 +10,7 @@ import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.cf.code.CfInvokeDynamic;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
@@ -34,6 +35,7 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
+import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.ir.desugar.ProgramAdditions;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -145,6 +147,20 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
                 DexMethod invokedMethod = instruction.asInvoke().getMethod();
                 if (needsDesugaring(invokedMethod, method)) {
                   prepareDesugarMethodInstruction(invokedMethod, method, programAdditions);
+                }
+              } else if (instruction.isInvokeDynamic()) {
+                // Starting from Java 17, lambda can use nest based access. We need to generate
+                // bridges for the targeted lambda method.
+                CfInvokeDynamic cfInvokeDynamic = instruction.asInvokeDynamic();
+                LambdaDescriptor lambdaDescriptor =
+                    LambdaDescriptor.tryInfer(
+                        cfInvokeDynamic.getCallSite(), appView.appInfoForDesugaring(), method);
+                if (lambdaDescriptor != null) {
+                  DexMember<?, ?> member = lambdaDescriptor.implHandle.member;
+                  if (needsDesugaring(member, method)) {
+                    assert member.isDexMethod();
+                    prepareDesugarMethodInstruction(member.asDexMethod(), method, programAdditions);
+                  }
                 }
               }
             });

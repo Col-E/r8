@@ -690,6 +690,8 @@ public final class LambdaClass {
         assert !appView.options().isGeneratingClassFiles() || replacement.getCode().isCfCode();
         assert !appView.options().isGeneratingDex() || replacement.getCode().isDexCode();
         ProgramMethod newMethod = new ProgramMethod(implMethodHolder, replacement);
+        // TODO(b/236937595): Investigate why processing is needed here only in desugared library
+        // compilation.
         if (appView.options().isDesugaredLibraryCompilation()) {
           assert appView.options().isGeneratingClassFiles();
           needsProcessingConsumer.accept(newMethod);
@@ -778,6 +780,8 @@ public final class LambdaClass {
         assert !appView.options().isGeneratingClassFiles() || replacement.getCode().isCfCode();
         assert !appView.options().isGeneratingDex() || replacement.getCode().isDexCode();
         ProgramMethod newMethod = new ProgramMethod(implMethodHolder, replacement);
+        // TODO(b/236937595): Investigate why processing is needed here only in desugared library
+        // compilation.
         if (appView.options().isDesugaredLibraryCompilation()) {
           assert appView.options().isGeneratingClassFiles();
           needsProcessingConsumer.accept(newMethod);
@@ -846,10 +850,7 @@ public final class LambdaClass {
                   .disableAndroidApiLevelCheck()
                   .build());
       accessorClass.addDirectMethod(accessorMethod.getDefinition());
-      if (appView.options().isDesugaredLibraryCompilation()
-          || appView.options().isGeneratingDex()) {
-        needsProcessingConsumer.accept(accessorMethod);
-      }
+      needsProcessingConsumer.accept(accessorMethod);
       return accessorMethod;
     }
   }
