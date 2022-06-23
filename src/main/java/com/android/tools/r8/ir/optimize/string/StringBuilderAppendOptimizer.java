@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
+import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.AppendNode;
@@ -262,7 +263,7 @@ public class StringBuilderAppendOptimizer {
               assert newInstanceValue != null;
               nodeConsumer.accept(
                   newInstanceValue, createNewInstanceNode(instruction.asNewInstance()));
-            } else {
+            } else if (instruction.isInvokeMethodWithReceiver()) {
               InvokeMethodWithReceiver invoke = instruction.asInvokeMethodWithReceiver();
               Value receiver = invoke.getReceiver();
               if (oracle.isInit(instruction)) {
@@ -316,6 +317,17 @@ public class StringBuilderAppendOptimizer {
                     escaped ->
                         nodeConsumer.accept(escaped, createOtherStringBuilderNode(instruction)));
               }
+            } else {
+              assert instruction.isInvokeStatic();
+              InvokeStatic invoke = instruction.asInvokeStatic();
+              assert invoke.getInvokedMethod()
+                  == appView.dexItemFactory().objectsMethods.toStringWithObject;
+              visitStringBuilderValues(
+                  invoke.getFirstOperand(),
+                  escapeState,
+                  actual ->
+                      nodeConsumer.accept(actual, createToStringNode(instruction.asInvokeMethod())),
+                  escaped -> nodeConsumer.accept(escaped, createInspectionNode(instruction)));
             }
           }
 

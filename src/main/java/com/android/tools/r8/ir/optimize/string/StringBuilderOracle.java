@@ -61,7 +61,8 @@ interface StringBuilderOracle {
             || isStringBuildingMethod(factory.stringBufferMethods, invokedMethod)) {
           return true;
         }
-        return invokedMethod == factory.objectMembers.toString
+        return (invokedMethod == factory.objectMembers.toString
+                || invokedMethod == factory.objectsMethods.toStringWithObject)
             && isLiveStringBuilder.test(instruction.getFirstOperand());
       }
       return false;
@@ -87,17 +88,20 @@ interface StringBuilderOracle {
 
     @Override
     public boolean isToString(Instruction instruction, Value value) {
-      if (!instruction.isInvokeVirtual()) {
+      if (!instruction.isInvokeMethod()) {
         return false;
       }
-      InvokeVirtual invoke = instruction.asInvokeVirtual();
-      if (invoke.getReceiver() != value) {
+      if (instruction.inValues().isEmpty()) {
         return false;
       }
-      DexMethod invokedMethod = invoke.getInvokedMethod();
+      if (instruction.getFirstOperand() != value) {
+        return false;
+      }
+      DexMethod invokedMethod = instruction.asInvokeMethod().getInvokedMethod();
       return factory.stringBuilderMethods.toString == invokedMethod
           || factory.stringBufferMethods.toString == invokedMethod
-          || factory.objectMembers.toString == invokedMethod;
+          || factory.objectMembers.toString == invokedMethod
+          || factory.objectsMethods.toStringWithObject == invokedMethod;
     }
 
     @Override

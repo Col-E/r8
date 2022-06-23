@@ -42,9 +42,9 @@ public class StringBuilderWithObjectsToStringTest extends TestBase {
             inspector -> {
               MethodSubject mainMethodSubject = inspector.clazz(Main.class).mainMethod();
               assertThat(mainMethodSubject, isPresent());
-              // TODO(b/219455761): Extend StringBuilder optimizer to Objects.toString().
+              // TODO(b/114002137): Also run for CF
               assertEquals(
-                  canUseJavaUtilObjects(parameters),
+                  parameters.isCfRuntime(),
                   mainMethodSubject
                       .streamInstructions()
                       .anyMatch(InstructionSubject::isNewInstance));

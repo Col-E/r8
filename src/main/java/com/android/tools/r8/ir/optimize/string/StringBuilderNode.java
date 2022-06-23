@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.string;
 
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
+import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.google.common.collect.Sets;
@@ -426,9 +427,9 @@ class StringBuilderNode {
    */
   static class ToStringNode extends StringBuilderNode implements StringBuilderInstruction {
 
-    private final InvokeVirtual instruction;
+    private final InvokeMethod instruction;
 
-    private ToStringNode(InvokeVirtual instruction) {
+    private ToStringNode(InvokeMethod instruction) {
       this.instruction = instruction;
     }
 
@@ -534,7 +535,7 @@ class StringBuilderNode {
   }
 
   /**
-   * ImplicitToStringNode are placed a StringBuilder/StringBuffer is appended to another
+   * ImplicitToStringNode are placed when StringBuilder/StringBuffer is appended to another
    * StringBuilder/StringBuffer.
    */
   static class ImplicitToStringNode extends StringBuilderNode {
@@ -588,7 +589,7 @@ class StringBuilderNode {
     return new AppendNode(instruction);
   }
 
-  static ToStringNode createToStringNode(InvokeVirtual instruction) {
+  static ToStringNode createToStringNode(InvokeMethod instruction) {
     return new ToStringNode(instruction);
   }
 

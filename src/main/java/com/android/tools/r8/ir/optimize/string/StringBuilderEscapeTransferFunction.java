@@ -63,7 +63,8 @@ public class StringBuilderEscapeTransferFunction
       }
     }
     if (isStringBuilderInstruction) {
-      if (instruction.isInvokeMethodWithReceiver()) {
+      if (instruction.isInvokeMethod()) {
+        assert !instruction.inValues().isEmpty();
         Value firstOperand = instruction.getFirstOperand();
         if (!builder.getLiveStringBuilders().contains(firstOperand)) {
           // We can have constant NULL being the first operand, which we have not marked as
