@@ -72,6 +72,7 @@ public class CompileDumpD8 {
           case "--classfile":
             {
               outputMode = OutputMode.ClassFile;
+              break;
             }
           case "--debug":
             {
