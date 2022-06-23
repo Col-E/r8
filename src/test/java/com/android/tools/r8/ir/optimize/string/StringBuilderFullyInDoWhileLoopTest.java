@@ -5,7 +5,7 @@ package com.android.tools.r8.ir.optimize.string;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -45,11 +45,10 @@ public class StringBuilderFullyInDoWhileLoopTest extends TestBase {
   private void inspect(CodeInspector inspector) {
     MethodSubject mainMethodSubject = inspector.clazz(TestClass.class).mainMethod();
     assertThat(mainMethodSubject, isPresent());
-    assertEquals(
-        parameters.isCfRuntime(),
+    assertTrue(
         mainMethodSubject
             .streamInstructions()
-            .anyMatch(instruction -> instruction.isNewInstance("java.lang.StringBuilder")));
+            .noneMatch(instruction -> instruction.isNewInstance("java.lang.StringBuilder")));
   }
 
   static class TestClass {

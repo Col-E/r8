@@ -41,9 +41,8 @@ public class StringBuilderWithIndirectPhiMutationThroughPhiOperandTest extends T
             .inspect(
                 inspector -> {
                   MethodSubject mainMethodSubject = inspector.clazz(Main.class).mainMethod();
-                  // TODO(b/114002137): Also run for CF
                   assertEquals(
-                      parameters.isCfRuntime() ? 4 : 3,
+                      3,
                       mainMethodSubject
                           .streamInstructions()
                           .filter(isInvokeStringBuilderAppendWithString())

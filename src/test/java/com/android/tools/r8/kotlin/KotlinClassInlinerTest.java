@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -161,7 +162,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
               } else {
                 assertThat(
                     inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateless$1"),
-                    notIf(isPresent(), testParameters.isDexRuntime()));
+                    CoreMatchers.not(isPresent()));
               }
 
               // TODO(b/173337498): MainKt$testStateful$1 should be class inlined.

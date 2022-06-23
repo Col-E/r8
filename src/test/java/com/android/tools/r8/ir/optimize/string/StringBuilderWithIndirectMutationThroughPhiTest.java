@@ -42,7 +42,7 @@ public class StringBuilderWithIndirectMutationThroughPhiTest extends TestBase {
                 inspector -> {
                   MethodSubject mainMethodSubject = inspector.clazz(Main.class).mainMethod();
                   assertEquals(
-                      parameters.isCfRuntime() ? 4 : 3,
+                      3,
                       mainMethodSubject
                           .streamInstructions()
                           .filter(isInvokeStringBuilderAppendWithString())

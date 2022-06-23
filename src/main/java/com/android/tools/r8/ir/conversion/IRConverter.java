@@ -1316,10 +1316,7 @@ public class IRConverter {
     timing.begin("Rewrite move result");
     codeRewriter.rewriteMoveResult(code);
     timing.end();
-    // TODO(b/114002137): Also run for CF
-    if (options.enableStringConcatenationOptimization
-        && !isDebugMode
-        && options.isGeneratingDex()) {
+    if (options.enableStringConcatenationOptimization && !isDebugMode) {
       timing.begin("Rewrite string concat");
       StringBuilderAppendOptimizer.run(appView, code);
       timing.end();

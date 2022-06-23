@@ -46,7 +46,6 @@ public class PrimitiveTypesTest extends TestBase {
   private void validateOutlining(CodeInspector inspector, Class<?> testClass, String argumentType) {
     boolean isStringBuilderOptimized =
         enableArgumentPropagation
-            && parameters.isDexRuntime()
             && (argumentType.equals("char") || argumentType.equals("boolean"));
     if (isStringBuilderOptimized) {
       assertEquals(1, inspector.allClasses().size());

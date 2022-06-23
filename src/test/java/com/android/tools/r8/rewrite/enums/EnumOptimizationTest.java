@@ -78,13 +78,8 @@ public class EnumOptimizationTest extends TestBase {
     if (enableOptimization) {
       assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("simple"), 1);
       assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("local"), 1);
-      // String concatenation optimization is enabled for DEX output.
       // Even replaced ordinal is concatenated (and gone).
-      if (parameters.isDexRuntime()) {
-        assertOrdinalReplacedAndGone(clazz.uniqueMethodWithName("multipleUsages"));
-      } else {
-        assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("multipleUsages"), 1);
-      }
+      assertOrdinalReplacedAndGone(clazz.uniqueMethodWithName("multipleUsages"));
       assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("inlined"), 1);
       assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("inSwitch"), 11);
       assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("differentTypeStaticField"), 1);
@@ -131,9 +126,7 @@ public class EnumOptimizationTest extends TestBase {
     if (enableOptimization) {
       assertNameReplacedWithConst(clazz.uniqueMethodWithName("simple"), "TWO");
       assertNameReplacedWithConst(clazz.uniqueMethodWithName("local"), "TWO");
-      // String concatenation optimization is enabled for DEX output.
-      String expectedConst = parameters.isDexRuntime() ? "1TWO" : "TWO";
-      assertNameReplacedWithConst(clazz.uniqueMethodWithName("multipleUsages"), expectedConst);
+      assertNameReplacedWithConst(clazz.uniqueMethodWithName("multipleUsages"), "1TWO");
       assertNameReplacedWithConst(clazz.uniqueMethodWithName("inlined"), "TWO");
       assertNameReplacedWithConst(clazz.uniqueMethodWithName("differentTypeStaticField"), "DOWN");
       assertNameReplacedWithConst(clazz.uniqueMethodWithName("nonStaticGet"), "TWO");

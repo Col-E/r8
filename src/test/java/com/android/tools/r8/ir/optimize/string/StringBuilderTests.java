@@ -37,7 +37,7 @@ public class StringBuilderTests extends TestBase {
   @Parameters(name = "{0}, configuration: {1}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withDexRuntimes().withAllApiLevels().build(), getTestExpectations());
+        getTestParameters().withAllRuntimesAndApiLevels().build(), getTestExpectations());
   }
 
   private static class StringBuilderResult {

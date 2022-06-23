@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.optimize.string;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -42,12 +42,10 @@ public class StringBuilderWithObjectsToStringTest extends TestBase {
             inspector -> {
               MethodSubject mainMethodSubject = inspector.clazz(Main.class).mainMethod();
               assertThat(mainMethodSubject, isPresent());
-              // TODO(b/114002137): Also run for CF
-              assertEquals(
-                  parameters.isCfRuntime(),
+              assertTrue(
                   mainMethodSubject
                       .streamInstructions()
-                      .anyMatch(InstructionSubject::isNewInstance));
+                      .noneMatch(InstructionSubject::isNewInstance));
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("foo");
