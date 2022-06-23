@@ -42,7 +42,8 @@ public class RetraceApiTestCollection
           RetracePartitionStringTest.ApiTest.class,
           RetracePartitionRoundTripTest.ApiTest.class,
           RetracePartitionJoinNoMetadataTest.ApiTest.class,
-          RetracePartitionSerializedObfuscatedKeyTest.ApiTest.class);
+          RetracePartitionSerializedObfuscatedKeyTest.ApiTest.class,
+          RetracePartitionRoundTripInlineTest.ApiTest.class);
 
   public static List<Class<? extends RetraceApiBinaryTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
       ImmutableList.of();

@@ -8,8 +8,10 @@ import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.LineReader;
 import com.android.tools.r8.naming.MapVersion;
+import com.android.tools.r8.naming.mappinginformation.FileNameInformation;
 import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.retrace.MappingPartition;
 import com.android.tools.r8.retrace.MappingPartitionMetadata;
@@ -24,9 +26,12 @@ import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -63,18 +68,30 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
     reader.forEachClassMapping(
         (classMapping, entries) -> {
           try {
-            String payLoad = StringUtils.joinLines(entries);
-            ClassNameMapper classNameMapper = ClassNameMapper.mapperFromString(payLoad);
+            String payload = StringUtils.joinLines(entries);
+            ClassNameMapper classNameMapper = ClassNameMapper.mapperFromString(payload);
             if (classNameMapper.getClassNameMappings().size() != 1) {
               diagnosticsHandler.error(
-                  new StringDiagnostic("Multiple class names in payload\n: " + payLoad));
+                  new StringDiagnostic("Multiple class names in payload\n: " + payload));
               return;
             }
-            String obfuscatedName =
-                classNameMapper.getClassNameMappings().keySet().iterator().next();
-            // TODO(b/211603371): Handle inline source file names by adding to partition.
+            Entry<String, ClassNamingForNameMapper> currentClassMapping =
+                classNameMapper.getClassNameMappings().entrySet().iterator().next();
+            ClassNamingForNameMapper value = currentClassMapping.getValue();
+            Set<String> seenMappings = new HashSet<>();
+            StringBuilder payloadWithClassReferences = new StringBuilder();
+            value.visitAllFullyQualifiedReferences(
+                holder -> {
+                  if (seenMappings.add(holder)) {
+                    payloadWithClassReferences.append(
+                        getSourceFileMapping(holder, classMapper.getSourceFile(holder)));
+                  }
+                });
+            payloadWithClassReferences.append(payload);
             mappingPartitionConsumer.accept(
-                new MappingPartitionImpl(obfuscatedName, payLoad.getBytes(StandardCharsets.UTF_8)));
+                new MappingPartitionImpl(
+                    currentClassMapping.getKey(),
+                    payloadWithClassReferences.toString().getBytes(StandardCharsets.UTF_8)));
           } catch (IOException e) {
             diagnosticsHandler.error(new ExceptionDiagnostic(e));
           }
@@ -85,6 +102,19 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
       mapVersion = mapVersionInfo.getMapVersion();
     }
     return MappingPartitionMetadataInternal.obfuscatedTypeNameAsKey(mapVersion);
+  }
+
+  private String getSourceFileMapping(String className, String sourceFile) {
+    if (sourceFile == null) {
+      return "";
+    }
+    return className
+        + " -> "
+        + className
+        + ":"
+        + "\n  # "
+        + FileNameInformation.build(sourceFile).serialize()
+        + "\n";
   }
 
   public static class PartitionLineReader implements LineReader {

@@ -365,6 +365,30 @@ public class ClassNamingForNameMapper implements ClassNaming {
     return fieldMembers.values();
   }
 
+  public void visitAllFullyQualifiedReferences(Consumer<String> consumer) {
+    mappedFieldNamingsByName
+        .values()
+        .forEach(
+            mappedFields ->
+                mappedFields.forEach(
+                    mappedField -> {
+                      if (mappedField.renamedSignature.isQualified()) {
+                        consumer.accept(mappedField.renamedSignature.toHolderFromQualified());
+                      }
+                    }));
+    mappedRangesByRenamedName
+        .values()
+        .forEach(
+            mappedRanges -> {
+              mappedRanges.mappedRanges.forEach(
+                  mappedRange -> {
+                    if (mappedRange.signature.isQualified()) {
+                      consumer.accept(mappedRange.signature.toHolderFromQualified());
+                    }
+                  });
+            });
+  }
+
   @Override
   public <T extends Throwable> void forAllMethodNaming(
       ThrowingConsumer<MemberNaming, T> consumer) throws T {
