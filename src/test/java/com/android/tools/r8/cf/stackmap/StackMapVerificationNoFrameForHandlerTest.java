@@ -95,7 +95,11 @@ public class StackMapVerificationNoFrameForHandlerTest extends TestBase {
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .allowDiagnosticWarningMessages(!includeFrameInHandler)
-        .addOptionsModification(options -> options.testing.readInputStackMaps = true)
+        .addOptionsModification(
+            options -> {
+              options.getCfCodeAnalysisOptions().setEnableUnverifiableCodeReporting(false);
+              options.testing.readInputStackMaps = true;
+            })
         .compileWithExpectedDiagnostics(this::verifyWarningsRegardingStackMap)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED_OUTPUT);

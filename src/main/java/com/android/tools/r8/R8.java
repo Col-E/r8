@@ -442,7 +442,6 @@ public class R8 {
       assert appView.appInfo().hasLiveness();
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
 
-      // TODO(b/214496607): Avoid fixpoint when frames are present.
       new CfOpenClosedInterfacesAnalysis(appViewWithLiveness).run(executorService);
 
       new StartupInstrumentation(appView).instrumentAllClasses(executorService);

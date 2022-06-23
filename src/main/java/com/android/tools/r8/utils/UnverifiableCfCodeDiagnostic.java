@@ -37,12 +37,13 @@ public class UnverifiableCfCodeDiagnostic implements Diagnostic {
 
   @Override
   public String getDiagnosticMessage() {
-    return "Unverifiable code in `"
-        + MethodReferenceUtils.toSourceString(methodReference)
-        + "` at instruction "
-        + instructionIndex
-        + ": "
-        + message
-        + ".";
+    StringBuilder builder =
+        new StringBuilder("Unverifiable code in `")
+            .append(MethodReferenceUtils.toSourceString(methodReference))
+            .append("`");
+    if (instructionIndex >= 0) {
+      builder.append(" at instruction ").append(instructionIndex);
+    }
+    return builder.append(": ").append(message).append(".").toString();
   }
 }

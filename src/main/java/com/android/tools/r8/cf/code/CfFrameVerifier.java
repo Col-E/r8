@@ -117,6 +117,7 @@ public class CfFrameVerifier {
       if (instruction.isLabel()) {
         updateActiveCatchHandlers(instruction.asLabel());
       }
+      eventConsumer.acceptInstructionState(instruction, state);
       state = instruction.evaluate(state, appView, config);
       if (instruction.isJumpWithNormalTarget()) {
         CfInstruction fallthroughInstruction =
@@ -372,6 +373,14 @@ public class CfFrameVerifier {
     NOT_PRESENT,
     INVALID,
     VALID;
+
+    public boolean isNotPresent() {
+      return this == NOT_PRESENT;
+    }
+
+    public boolean isValid() {
+      return this == VALID;
+    }
 
     public boolean isValidOrNotPresent() {
       return this == VALID || this == NOT_PRESENT;

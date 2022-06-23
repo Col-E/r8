@@ -5,6 +5,7 @@
 package com.android.tools.r8.missingclasses;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.diagnostic.DefinitionContext;
@@ -27,19 +28,25 @@ public class MissingClassReferencedFromCatchHandlerTest extends MissingClassesTe
   @Test(expected = CompilationFailedException.class)
   public void testNoRules() throws Exception {
     compileWithExpectedDiagnostics(
-        Main.class, diagnostics -> inspectDiagnosticsWithNoRules(diagnostics, referencedFrom));
+        Main.class,
+        diagnostics -> inspectDiagnosticsWithNoRules(diagnostics, referencedFrom),
+        this::configure);
   }
 
   @Test
   public void testDontWarnMainClass() throws Exception {
     compileWithExpectedDiagnostics(
-        Main.class, TestDiagnosticMessages::assertNoMessages, addDontWarn(Main.class));
+        Main.class,
+        TestDiagnosticMessages::assertNoMessages,
+        addDontWarn(Main.class).andThen(this::configure));
   }
 
   @Test
   public void testDontWarnMissingClass() throws Exception {
     compileWithExpectedDiagnostics(
-        Main.class, TestDiagnosticMessages::assertNoMessages, addDontWarn(MissingClass.class));
+        Main.class,
+        TestDiagnosticMessages::assertNoMessages,
+        addDontWarn(MissingClass.class).andThen(this::configure));
   }
 
   @Test
@@ -47,7 +54,12 @@ public class MissingClassReferencedFromCatchHandlerTest extends MissingClassesTe
     compileWithExpectedDiagnostics(
         Main.class,
         diagnostics -> inspectDiagnosticsWithIgnoreWarnings(diagnostics, referencedFrom),
-        addIgnoreWarnings());
+        addIgnoreWarnings().andThen(this::configure));
+  }
+
+  public void configure(R8FullTestBuilder testBuilder) {
+    testBuilder.addOptionsModification(
+        options -> options.getCfCodeAnalysisOptions().setEnableUnverifiableCodeReporting(false));
   }
 
   static class Main {

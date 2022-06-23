@@ -11,6 +11,7 @@ import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfStaticFieldWrite;
 import com.android.tools.r8.cf.code.frame.FrameType;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCodeDiagnostics;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -22,6 +23,8 @@ import com.android.tools.r8.ir.analysis.type.ReferenceTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.UnverifiableCfCodeDiagnostic;
+import com.android.tools.r8.utils.collections.ProgramMethodMap;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
@@ -33,12 +36,17 @@ class CfOpenClosedInterfacesAnalysisHelper {
   private final InternalOptions options;
 
   private final Set<DexClass> openInterfaces = Sets.newIdentityHashSet();
+  private final ProgramMethodMap<UnverifiableCfCodeDiagnostic> unverifiableCodeDiagnostics;
 
-  CfOpenClosedInterfacesAnalysisHelper(AppView<AppInfoWithLiveness> appView, ProgramMethod method) {
+  CfOpenClosedInterfacesAnalysisHelper(
+      AppView<AppInfoWithLiveness> appView,
+      ProgramMethod method,
+      ProgramMethodMap<UnverifiableCfCodeDiagnostic> unverifiableCodeDiagnostics) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
     this.method = method;
     this.options = appView.options();
+    this.unverifiableCodeDiagnostics = unverifiableCodeDiagnostics;
   }
 
   Set<DexClass> getOpenInterfaces() {
@@ -166,6 +174,33 @@ class CfOpenClosedInterfacesAnalysisHelper {
           assert verifyOpenInterfaceWitnessIsSuppressed(fromType, knownInterface);
           openInterfaces.add(knownInterface);
         });
+  }
+
+  void registerUnverifiableCode(
+      ProgramMethod method, int instructionIndex, ErroneousCfFrameState state) {
+    if (options.getCfCodeAnalysisOptions().isUnverifiableCodeReportingEnabled()) {
+      unverifiableCodeDiagnostics.put(
+          method,
+          new UnverifiableCfCodeDiagnostic(
+              method.getMethodReference(),
+              instructionIndex,
+              state.getMessage(),
+              method.getOrigin()));
+    }
+    openInterfaces.clear();
+  }
+
+  void registerUnverifiableCodeWithFrames(CfCodeDiagnostics diagnostics) {
+    if (options.getCfCodeAnalysisOptions().isUnverifiableCodeReportingEnabled()) {
+      unverifiableCodeDiagnostics.put(
+          method,
+          new UnverifiableCfCodeDiagnostic(
+              method.getMethodReference(),
+              -1,
+              diagnostics.getDiagnosticMessage(),
+              method.getOrigin()));
+    }
+    openInterfaces.clear();
   }
 
   private boolean verifyOpenInterfaceWitnessIsSuppressed(

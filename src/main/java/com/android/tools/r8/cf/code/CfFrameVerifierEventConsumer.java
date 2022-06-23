@@ -5,8 +5,11 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.graph.CfCodeDiagnostics;
+import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 
 public interface CfFrameVerifierEventConsumer {
 
-  void acceptError(CfCodeDiagnostics diagnostics);
+  default void acceptError(CfCodeDiagnostics diagnostics) {}
+
+  default void acceptInstructionState(CfInstruction instruction, CfFrameState state) {}
 }
