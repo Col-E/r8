@@ -193,7 +193,8 @@ public class CfBuilder {
     DexBuilder.removeRedundantDebugPositions(code);
     CfCode code = buildCfCode();
     assert verifyInvokeInterface(code, appView);
-    assert code.verifyFrames(method, appView, appView.graphLens()).isValidOrNotPresent();
+    assert code.getOrComputeStackMapStatus(method, appView, appView.graphLens())
+        .isValidOrNotPresent();
     return code;
   }
 

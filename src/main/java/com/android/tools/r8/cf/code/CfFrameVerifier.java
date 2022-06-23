@@ -378,6 +378,10 @@ public class CfFrameVerifier {
       return this == NOT_PRESENT;
     }
 
+    public boolean isNotVerified() {
+      return this == NOT_VERIFIED;
+    }
+
     public boolean isValid() {
       return this == VALID;
     }

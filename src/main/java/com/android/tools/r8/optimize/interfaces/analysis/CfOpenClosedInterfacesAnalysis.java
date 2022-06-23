@@ -91,8 +91,12 @@ public class CfOpenClosedInterfacesAnalysis {
     CfAnalysisConfig config = createConfig(method, cfCode);
     CfOpenClosedInterfacesAnalysisHelper helper =
         new CfOpenClosedInterfacesAnalysisHelper(appView, method, unverifiableCodeDiagnostics);
-    if (runLinearScan(method, cfCode, config, helper).isNotPresent()) {
+    StackMapStatus stackMapStatus = runLinearScan(method, cfCode, config, helper);
+    if (stackMapStatus.isNotPresent()) {
       runFixpoint(method, cfCode, config, helper);
+      cfCode.setStackMapStatus(stackMapStatus);
+    } else if (stackMapStatus.isValid()) {
+      cfCode.setStackMapStatus(stackMapStatus);
     }
     return helper.getOpenInterfaces();
   }
