@@ -357,19 +357,33 @@ def clean_config_line(line, minify, optimize, shrink):
     return True
   return False
 
-def prepare_wrapper(dist, temp, jdkhome):
-  wrapper_file = os.path.join(
+def prepare_r8_wrapper(dist, temp, jdkhome):
+  compile_with_javac(
+    dist,
+    temp,
+    jdkhome,
+    os.path.join(
       utils.REPO_ROOT,
-      'src/main/java/com/android/tools/r8/utils/CompileDumpCompatR8.java')
+      'src/main/java/com/android/tools/r8/utils/CompileDumpCompatR8.java'))
+
+def prepare_d8_wrapper(dist, temp, jdkhome):
+  compile_with_javac(
+    dist,
+    temp,
+    jdkhome,
+    os.path.join(
+      utils.REPO_ROOT,
+      'src/main/java/com/android/tools/r8/utils/CompileDumpD8.java'))
+
+def compile_with_javac(dist, temp, jdkhome, path):
   cmd = [
     jdk.GetJavacExecutable(jdkhome),
-    wrapper_file,
+    path,
     '-d', temp,
     '-cp', dist,
   ]
   utils.PrintCmd(cmd)
   subprocess.check_output(cmd)
-  return temp
 
 def is_hash(version):
   return len(version) == 40
@@ -396,7 +410,8 @@ def run1(out, args, otherargs, jdkhome=None):
     jar = args.r8_jar if args.r8_jar else download_distribution(version, args.nolib, temp)
     if ':' not in jar and not os.path.exists(jar):
       error("Distribution does not exist: " + jar)
-    wrapper_dir = prepare_wrapper(jar, temp, jdkhome)
+    prepare_r8_wrapper(jar, temp, jdkhome)
+    prepare_d8_wrapper(jar, temp, jdkhome)
     cmd = [jdk.GetJavaExecutable(jdkhome)]
     if args.debug_agent:
       if not args.nolib:
@@ -415,9 +430,9 @@ def run1(out, args, otherargs, jdkhome=None):
     if hasattr(args, 'properties'):
       cmd.extend(args.properties);
     cmd.extend(determine_properties(build_properties))
-    cmd.extend(['-cp', '%s:%s' % (wrapper_dir, jar)])
+    cmd.extend(['-cp', '%s:%s' % (temp, jar)])
     if compiler == 'd8':
-      cmd.append('com.android.tools.r8.D8')
+      cmd.append('com.android.tools.r8.utils.CompileDumpD8')
     if compiler == 'l8':
       cmd.append('com.android.tools.r8.L8')
     if compiler.startswith('r8'):
