@@ -22,7 +22,8 @@ LUCI_SCHEDULE = os.path.join(utils.REPO_ROOT, 'infra', 'config', 'global',
 #   triggers: "BUILDER_NAME"
 TRIGGERS_RE = r'^  triggers: "(\w.*)"'
 
-DESUGAR_BOT = 'lib_desugar-archive'
+DESUGAR_JDK11_BOT = 'lib_desugar-archive-jdk11'
+DESUGAR_JDK8_BOT = 'lib_desugar-archive-jdk11'
 
 def ParseOptions():
   result = optparse.OptionParser()
@@ -33,9 +34,13 @@ def ParseOptions():
                     help='Run the specified cl on the bots. This should be '
                     'the full url, e.g., '
                     'https://r8-review.googlesource.com/c/r8/+/37420/1')
-  result.add_option('--desugar',
-                    help='Run the library desugar and archiving bot.',
+  result.add_option('--desugar-jdk11',
+                    help='Run the jdk11 library desugar and archiving bot.',
                     default=False, action='store_true')
+  result.add_option('--desugar-jdk8',
+                    help='Run the jdk8 library desugar and archiving bot.',
+                    default=False, action='store_true')
+
   result.add_option('--builder', help='Trigger specific builder')
   return result.parse_args()
 
@@ -60,7 +65,8 @@ def get_builders():
         else:
           assert 'release' not in builder, builder
           main_builders.append(builder)
-  print('Desugar builder:\n  ' + DESUGAR_BOT)
+  print('Desugar jdk11 builder:\n  ' + DESUGAR_JDK11_BOT)
+  print('Desugar jdk8 builder:\n  ' + DESUGAR_JDK8_BOT)
   print('Main builders:\n  ' + '\n  '.join(main_builders))
   print('Release builders:\n  ' + '\n  '.join(release_builders))
   return (main_builders, release_builders)
@@ -84,7 +90,8 @@ def trigger_cl(builders, cl_url):
 
 def Main():
   (options, args) = ParseOptions()
-  if len(args) != 1 and not options.cl and not options.desugar:
+  desugar = options.desugar-jdk11 or options.desugar-jdk8
+  if len(args) != 1 and not options.cl and not desugar:
     print('Takes exactly one argument, the commit to run')
     return 1
 
@@ -92,19 +99,20 @@ def Main():
     print('You can\'t run cls on the release bots')
     return 1
 
-  if options.cl and options.desugar:
+  if options.cl and desugar:
     print('You can\'t run cls on the desugar bot')
     return 1
 
-  commit = None if (options.cl or options.desugar)  else args[0]
+  commit = None if (options.cl or desugar)  else args[0]
   (main_builders, release_builders) = get_builders()
   builders = release_builders if options.release else main_builders
   if options.builder:
     builder = options.builder
     assert builder in main_builders or builder in release_builders
     builders = [options.builder]
-  if options.desugar:
-    builders = [DESUGAR_BOT]
+  if desugar:
+    assert options.desugar_jdk8 or options.desugar_jdk11
+    builders = [DESUGAR_JDK8_BOT if options.desugar_jdk8 else DESUGAR_JDK11_BOT]
     commit = git_utils.GetHeadRevision(utils.REPO_ROOT, use_main=True)
   if options.cl:
     trigger_cl(builders, options.cl)
