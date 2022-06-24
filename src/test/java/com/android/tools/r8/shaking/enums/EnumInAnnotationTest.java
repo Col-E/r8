@@ -4,6 +4,10 @@
 
 package com.android.tools.r8.shaking.enums;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ProguardVersion;
@@ -13,6 +17,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.TestState;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.StringUtils;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -42,9 +47,10 @@ public class EnumInAnnotationTest extends TestBase {
         getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
-  private static final String EXPECTED_RESULT = StringUtils.lines("TEST_ONE");
+  private static final String EXPECTED_RESULT = StringUtils.lines("TEST_ONE", "TEST_TWO");
 
   public static Path r8cf;
+  public static Box<String> minifiedEnumName = new Box<>();
 
   @BeforeClass
   public static void setUp() throws Exception {
@@ -56,6 +62,17 @@ public class EnumInAnnotationTest extends TestBase {
             .addKeepEnumsRule()
             .addKeepRuntimeVisibleAnnotations()
             .compile()
+            .inspect(
+                inspector -> {
+                  assertThat(inspector.clazz(Enum.class), isPresentAndRenamed());
+                  assertThat(
+                      inspector.clazz(Enum.class).uniqueFieldWithName("TEST_ONE"),
+                      isPresentAndNotRenamed());
+                  assertThat(
+                      inspector.clazz(Enum.class).uniqueFieldWithName("TEST_TWO"),
+                      isPresentAndRenamed());
+                  minifiedEnumName.set(inspector.clazz(Enum.class).getFinalName());
+                })
             .writeToZip();
   }
 
@@ -70,6 +87,7 @@ public class EnumInAnnotationTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    assumeTrue(!parameters.isDexRuntime() || useGenericEnumsRule);
     testForR8(parameters.getBackend())
         .addInnerClasses(EnumInAnnotationTest.class)
         .addKeepMainRule(Main.class)
@@ -85,10 +103,20 @@ public class EnumInAnnotationTest extends TestBase {
                         + " { <fields>; }"),
             builder -> {
               // Do nothing for DEX.
+              assertTrue(useGenericEnumsRule); // Check not running twice.
             })
         .setMinApi(parameters.getApiLevel())
         .addKeepRuntimeVisibleAnnotations()
         .run(parameters.getRuntime(), Main.class)
+        .inspect(
+            inspector -> {
+              assertThat(
+                  inspector.clazz(Enum.class).uniqueFieldWithName("TEST_ONE"),
+                  parameters.isCfRuntime() ? isPresentAndNotRenamed() : isPresentAndRenamed());
+              assertThat(
+                  inspector.clazz(Enum.class).uniqueFieldWithName("TEST_TWO"),
+                  useGenericEnumsRule ? isPresentAndRenamed() : isPresentAndNotRenamed());
+            })
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
@@ -102,11 +130,13 @@ public class EnumInAnnotationTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepRuntimeVisibleAnnotations()
         .run(parameters.getRuntime(), Main.class)
-        .applyIf(
-            parameters.isDexRuntime(),
-            // TODO(b/236691999): This should not fail.
-            r -> r.assertFailureWithErrorThatThrows(NoSuchFieldError.class),
-            r -> r.assertSuccessWithOutput(EXPECTED_RESULT));
+        .inspect(
+            inspector -> {
+              assertThat(
+                  inspector.clazz(minifiedEnumName.get()).uniqueFieldWithName("TEST_ONE"),
+                  parameters.isCfRuntime() ? isPresentAndNotRenamed() : isPresentAndRenamed());
+            })
+        .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
   @Test
@@ -121,9 +151,7 @@ public class EnumInAnnotationTest extends TestBase {
             TestShrinkerBuilder::addKeepEnumsRule,
             builder ->
                 builder.addKeepRules(
-                    "-keepclassmembernames class "
-                        + EnumInAnnotationTest.Enum.class.getTypeName()
-                        + " { <fields>; }"))
+                    "-keepclassmembernames class " + Enum.class.getTypeName() + " { <fields>; }"))
         .addDontWarn(getClass())
         .addKeepRuntimeVisibleAnnotations()
         .compile()
@@ -148,6 +176,7 @@ public class EnumInAnnotationTest extends TestBase {
 
     public static void main(String[] args) {
       System.out.println(Main.class.getAnnotation(MyAnnotation.class).value());
+      System.out.println(Enum.TEST_TWO);
     }
   }
 }

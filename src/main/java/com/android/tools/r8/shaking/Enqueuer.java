@@ -5387,10 +5387,16 @@ public class Enqueuer {
                     fieldReference, new FieldAccessInfoImpl(fieldReference));
         fieldAccessInfo.setReadFromAnnotation();
         markFieldAsLive(field, context, reason);
-        // When an annotation has a field of an enum type the JVM will use the values() method on
-        // that enum class if the field is referenced.
+        // In a class file an enum reference in an annotation is written as enum descriptor and
+        // enum name. At runtime the JVM use valueOf on the enum class with the name to get the
+        // instance. This indirectly use the values() method on that enum class. Also keep the
+        // name of the field and the name of the enum in sync as otherwise recovering the field to
+        // name relationship requires analysis of the enum <clinit> when this CF code is processed
+        // again (e.g. as input to D8 for converting to DEX). See b/236691999 for more info.
         if (options.isGeneratingClassFiles() && field.getHolder().isEnum()) {
           markEnumValuesAsReachable(field.getHolder(), reason);
+          applyMinimumKeepInfoWhenLive(
+              field, KeepFieldInfo.newEmptyJoiner().disallowMinification());
         }
       } else {
         // There is no dispatch on annotations, so only keep what is directly referenced.
