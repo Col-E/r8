@@ -1034,9 +1034,14 @@ public class ArgumentPropagatorProgramOptimizer {
       if (!appView.appInfo().isSubtype(newParameterType, staticType)) {
         return null;
       }
-      return AccessUtils.isAccessibleInSameContextsAs(newParameterType, staticType, appView)
-          ? newParameterType
-          : null;
+      if (!AccessUtils.isAccessibleInSameContextsAs(newParameterType, staticType, appView)) {
+        return null;
+      }
+      if (!AndroidApiLevelUtils.isApiSafeForTypeStrengthening(
+          newParameterType, staticType, appView)) {
+        return null;
+      }
+      return newParameterType;
     }
 
     private RewrittenPrototypeDescription computePrototypeChangesForMethod(
