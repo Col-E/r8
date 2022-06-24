@@ -20,12 +20,12 @@ public class RetraceOptions {
   private final boolean verifyMappingFileHash;
   private final String regularExpression;
   private final DiagnosticsHandler diagnosticsHandler;
-  private final MappingSupplier mappingSupplier;
+  private final MappingSupplier<?> mappingSupplier;
 
   private RetraceOptions(
       String regularExpression,
       DiagnosticsHandler diagnosticsHandler,
-      MappingSupplier mappingSupplier,
+      MappingSupplier<?> mappingSupplier,
       boolean isVerbose,
       boolean verifyMappingFileHash) {
     this.regularExpression = regularExpression;
@@ -54,7 +54,7 @@ public class RetraceOptions {
     return diagnosticsHandler;
   }
 
-  public MappingSupplier getMappingSupplier() {
+  public MappingSupplier<?> getMappingSupplier() {
     return mappingSupplier;
   }
 
@@ -78,7 +78,7 @@ public class RetraceOptions {
     private boolean isVerbose;
     private boolean verifyMappingFileHash;
     private final DiagnosticsHandler diagnosticsHandler;
-    private MappingSupplier mappingSupplier;
+    private MappingSupplier<?> mappingSupplier;
     private String regularExpression = defaultRegularExpression();
 
     Builder(DiagnosticsHandler diagnosticsHandler) {
@@ -98,9 +98,15 @@ public class RetraceOptions {
     }
 
     /** Set a mapping supplier for providing mapping contents. */
-    public Builder setMappingSupplier(MappingSupplier producer) {
-      this.mappingSupplier = producer;
+    public Builder setMappingSupplier(MappingSupplier<?> supplier) {
+      this.mappingSupplier = supplier;
       return this;
+    }
+
+    /** Helper method to set a ProguardMapSupplier from a ProguardMapProducer */
+    public Builder setProguardMapProducer(ProguardMapProducer producer) {
+      return setMappingSupplier(
+          ProguardMappingSupplier.builder().setProguardMapProducer(producer).build());
     }
 
     /**

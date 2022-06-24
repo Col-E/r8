@@ -181,7 +181,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
    * @param context The context to retrace the stack trace in
    * @return list of potentially ambiguous stack traces.
    */
-  public ResultWithContext<List<List<List<T>>>> retraceStackTrace(
+  public ResultWithContext<List<List<T>>> retraceStackTrace(
       List<T> stackTrace, RetraceStackTraceContext context) {
     ListUtils.forEachWithIndex(
         stackTrace,
@@ -203,7 +203,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
    * @param context The context to retrace the stack trace in
    * @return list of potentially ambiguous stack traces.
    */
-  public ResultWithContext<List<List<List<T>>>> retraceStackTraceParsed(
+  public ResultWithContext<List<List<T>>> retraceStackTraceParsed(
       List<ST> stackTrace, RetraceStackTraceContext context) {
     RetraceStackTraceElementProxyEquivalence<T, ST> equivalence =
         new RetraceStackTraceElementProxyEquivalence<>(isVerbose);
@@ -255,7 +255,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
    * @param context The context to retrace the stack trace in
    * @return A collection of retraced frame where each entry in the outer list is ambiguous
    */
-  public ResultWithContext<List<List<T>>> retraceFrame(
+  public ResultWithContext<List<T>> retraceFrame(
       T stackTraceFrame, RetraceStackTraceContext context) {
     Map<RetraceStackTraceElementProxy<T, ST>, List<T>> ambiguousBlocks = new HashMap<>();
     List<RetraceStackTraceElementProxy<T, ST>> ambiguousKeys = new ArrayList<>();
@@ -287,8 +287,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
    * @param context The context to retrace the stack trace in
    * @return the retraced stack trace line
    */
-  public ResultWithContext<List<T>> retraceLine(
-      T stackTraceLine, RetraceStackTraceContext context) {
+  public ResultWithContext<T> retraceLine(T stackTraceLine, RetraceStackTraceContext context) {
     ST parsedLine = stackTraceLineParser.parse(stackTraceLine);
     Box<RetraceStackTraceContext> contextBox = new Box<>(context);
     List<T> result =
@@ -376,14 +375,12 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
               }
             });
         timing.begin("Retracing");
-        ResultWithContext<List<String>> listResultWithContext =
-            stringRetracer.retraceParsed(parsedStackTrace, context);
+        ResultWithContext<String> result = stringRetracer.retraceParsed(parsedStackTrace, context);
         timing.end();
         timing.begin("Report result");
-        context = listResultWithContext.getContext();
-        List<String> result = listResultWithContext.getResult();
+        context = result.getContext();
         if (!result.isEmpty() || currentStackTrace.isEmpty()) {
-          command.getRetracedStackTraceConsumer().accept(result);
+          command.getRetracedStackTraceConsumer().accept(result.getLines());
         }
         timing.end();
       }

@@ -18,7 +18,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 /**
  * Specialized Retrace class for retracing string retraces, with special handling for appending
@@ -82,12 +81,12 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
    * @param context The context to retrace the stack trace in
    * @return the retraced stack trace
    */
-  public ResultWithContext<List<String>> retrace(
+  public ResultWithContext<String> retrace(
       List<String> stackTrace, RetraceStackTraceContext context) {
-    ResultWithContext<List<List<List<String>>>> listResultWithContext =
+    ResultWithContext<List<List<String>>> listResultWithContext =
         retraceStackTrace(stackTrace, context);
     List<String> retracedStrings = new ArrayList<>();
-    for (List<List<String>> newLines : listResultWithContext.getResult()) {
+    for (List<List<String>> newLines : listResultWithContext.getLines()) {
       ListUtils.forEachWithIndex(
           newLines,
           (inlineFrames, ambiguousIndex) -> {
@@ -122,12 +121,12 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
    * @param context The context to retrace the stack trace in
    * @return the retraced stack trace
    */
-  public ResultWithContext<List<String>> retraceParsed(
+  public ResultWithContext<String> retraceParsed(
       List<StackTraceElementStringProxy> stackTrace, RetraceStackTraceContext context) {
-    ResultWithContext<List<List<List<String>>>> listResultWithContext =
+    ResultWithContext<List<List<String>>> listResultWithContext =
         retraceStackTraceParsed(stackTrace, context);
     List<String> retracedStrings = new ArrayList<>();
-    for (List<List<String>> newLines : listResultWithContext.getResult()) {
+    for (List<List<String>> newLines : listResultWithContext.getLines()) {
       ListUtils.forEachWithIndex(
           newLines,
           (inlineFrames, ambiguousIndex) -> {
@@ -161,12 +160,11 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
    * @param context The context to retrace the stack trace in
    * @return the retraced frames
    */
-  public ResultWithContext<List<String>> retrace(
+  public ResultWithContext<String> retrace(
       String stackTraceLine, RetraceStackTraceContext context) {
-    ResultWithContext<List<List<String>>> listResultWithContext =
-        retraceFrame(stackTraceLine, context);
+    ResultWithContext<List<String>> listResultWithContext = retraceFrame(stackTraceLine, context);
     List<String> result = new ArrayList<>();
-    joinAmbiguousLines(listResultWithContext.getResult(), result::add);
+    joinAmbiguousLines(listResultWithContext.getLines(), result::add);
     return ResultWithContextImpl.create(result, listResultWithContext.getContext());
   }
 
@@ -176,13 +174,14 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
    * @param lineSupplier the supplier of strings with returning null as terminator
    * @param lineConsumer the consumer of retraced strings
    */
-  public void retrace(Supplier<String> lineSupplier, Consumer<String> lineConsumer) {
+  public <E extends Throwable> void retraceSupplier(
+      StreamSupplier<E> lineSupplier, Consumer<String> lineConsumer) throws E {
     RetraceStackTraceContext context = RetraceStackTraceContext.empty();
     String retraceLine;
-    while ((retraceLine = lineSupplier.get()) != null) {
-      ResultWithContext<List<String>> result = retrace(retraceLine, context);
+    while ((retraceLine = lineSupplier.getNext()) != null) {
+      ResultWithContext<String> result = retrace(retraceLine, context);
       context = result.getContext();
-      result.getResult().forEach(lineConsumer);
+      result.forEach(lineConsumer);
     }
   }
 

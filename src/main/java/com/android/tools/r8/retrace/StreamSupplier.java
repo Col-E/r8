@@ -5,17 +5,15 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.Keep;
-import java.util.List;
-import java.util.function.Consumer;
 
+/**
+ * Supplier of input lines to be retraced.
+ *
+ * @param <E> the type of the {@link Throwable}
+ */
+@FunctionalInterface
 @Keep
-public interface ResultWithContext<T> {
+public interface StreamSupplier<E extends Throwable> {
 
-  RetraceStackTraceContext getContext();
-
-  List<T> getLines();
-
-  void forEach(Consumer<T> consumer);
-
-  boolean isEmpty();
+  String getNext() throws E;
 }
