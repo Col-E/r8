@@ -29,7 +29,8 @@ import subprocess
 import sys
 import utils
 
-VERSION_FILE = 'VERSION_JDK11.txt'
+VERSION_FILE_JDK8 = 'VERSION.txt'
+VERSION_FILE_JDK11 = 'VERSION_JDK11.txt'
 LIBRARY_NAME = 'desugar_jdk_libs'
 
 def ParseOptions(argv):
@@ -170,7 +171,10 @@ def Main(argv):
 
   with utils.TempDir() as checkout_dir:
     CloneDesugaredLibrary(options.github_account, checkout_dir)
-    version = GetVersion(os.path.join(checkout_dir, VERSION_FILE))
+    version = GetVersion(
+      os.path.join(
+        checkout_dir,
+        VERSION_FILE_JDK11 if variant == 'jdk11' else VERSION_FILE_JDK8))
 
     destination = archive.GetVersionDestination(
         'gs://', LIBRARY_NAME + '/' + version, is_main)
