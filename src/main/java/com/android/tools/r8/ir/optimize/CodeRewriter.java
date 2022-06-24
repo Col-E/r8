@@ -921,20 +921,18 @@ public class CodeRewriter {
           if (options.testing.enableDeadSwitchCaseElimination) {
             SwitchCaseEliminator eliminator =
                 removeUnnecessarySwitchCases(code, theSwitch, iterator, switchCaseAnalyzer);
-            if (eliminator != null) {
-              if (eliminator.mayHaveIntroducedUnreachableBlocks()) {
-                needToRemoveUnreachableBlocks = true;
-              }
-
-              iterator.previous();
-              instruction = iterator.next();
-              if (instruction.isGoto()) {
-                continue;
-              }
-
-              assert instruction.isSwitch();
-              theSwitch = instruction.asSwitch();
+            if (eliminator.mayHaveIntroducedUnreachableBlocks()) {
+              needToRemoveUnreachableBlocks = true;
             }
+
+            iterator.previous();
+            instruction = iterator.next();
+            if (instruction.isGoto()) {
+              continue;
+            }
+
+            assert instruction.isSwitch();
+            theSwitch = instruction.asSwitch();
           }
           if (theSwitch.isIntSwitch()) {
             rewriteIntSwitch(code, blocksIterator, block, iterator, theSwitch.asIntSwitch());
@@ -1111,46 +1109,38 @@ public class CodeRewriter {
       InstructionListIterator iterator,
       SwitchCaseAnalyzer switchCaseAnalyzer) {
     BasicBlock defaultTarget = theSwitch.fallthroughBlock();
-    SwitchCaseEliminator eliminator = null;
+    SwitchCaseEliminator eliminator = new SwitchCaseEliminator(theSwitch, iterator);
     BasicBlockBehavioralSubsumption behavioralSubsumption =
         new BasicBlockBehavioralSubsumption(appView, code);
 
     // Compute the set of switch cases that can be removed.
+    boolean hasSwitchCaseToDefaultRewrite = false;
     AbstractValue switchAbstractValue = theSwitch.value().getAbstractValue(appView, code.context());
     for (int i = 0; i < theSwitch.numberOfKeys(); i++) {
       BasicBlock targetBlock = theSwitch.targetBlock(i);
 
       if (switchCaseAnalyzer.switchCaseIsAlwaysHit(theSwitch, i)) {
-        if (eliminator == null) {
-          eliminator = new SwitchCaseEliminator(theSwitch, iterator);
-        }
         eliminator.markSwitchCaseAsAlwaysHit(i);
         break;
       }
 
       // This switch case can be removed if the behavior of the target block is equivalent to the
       // behavior of the default block, or if the switch case is unreachable.
-      if (switchCaseAnalyzer.switchCaseIsUnreachable(theSwitch, switchAbstractValue, i)
-          || behavioralSubsumption.isSubsumedBy(targetBlock, defaultTarget)) {
-        if (eliminator == null) {
-          eliminator = new SwitchCaseEliminator(theSwitch, iterator);
-        }
+      if (switchCaseAnalyzer.switchCaseIsUnreachable(theSwitch, switchAbstractValue, i)) {
         eliminator.markSwitchCaseForRemoval(i);
+      } else if (behavioralSubsumption.isSubsumedBy(targetBlock, defaultTarget)) {
+        eliminator.markSwitchCaseForRemoval(i);
+        hasSwitchCaseToDefaultRewrite = true;
       }
     }
 
-    if (eliminator == null || eliminator.isFallthroughLive()) {
-      if (switchCaseAnalyzer.switchFallthroughIsNeverHit(theSwitch, switchAbstractValue)) {
-        if (eliminator == null) {
-          eliminator = new SwitchCaseEliminator(theSwitch, iterator);
-        }
-        eliminator.markSwitchFallthroughAsNeverHit();
-      }
+    if (eliminator.isFallthroughLive()
+        && !hasSwitchCaseToDefaultRewrite
+        && switchCaseAnalyzer.switchFallthroughIsNeverHit(theSwitch, switchAbstractValue)) {
+      eliminator.markSwitchFallthroughAsNeverHit();
     }
 
-    if (eliminator != null) {
-      eliminator.optimize();
-    }
+    eliminator.optimize();
     return eliminator;
   }
 
