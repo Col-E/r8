@@ -383,7 +383,8 @@ def generate_jar_with_desugar_configuration(
     move(destination + '.zip', destination)
 
 # Generate the maven zip for the configuration to desugar desugar_jdk_libs.
-def generate_desugar_configuration_maven_zip(out, configuration, implementation):
+def generate_desugar_configuration_maven_zip(
+    out, configuration, implementation, conversions):
   with utils.TempDir() as tmp_dir:
     version = utils.desugar_configuration_version(configuration)
     # Generate the pom file.
@@ -394,7 +395,7 @@ def generate_desugar_configuration_maven_zip(out, configuration, implementation)
     generate_jar_with_desugar_configuration(
         configuration,
         implementation,
-        utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP,
+        conversions,
         jar_file)
     # Write the maven zip file.
     generate_maven_zip(

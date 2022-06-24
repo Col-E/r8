@@ -92,9 +92,9 @@ public class CustomConversionAsmRewriter {
       return;
     }
     if (legacy == LEGACY
-        && (entry.getName().contains("java.nio.file")
+        && (entry.getName().contains("java/nio/file")
             || entry.getName().contains("ApiFlips")
-            || entry.getName().contains("java.adapter"))) {
+            || entry.getName().contains("java/adapter"))) {
       return;
     }
     final byte[] bytes = ByteStreams.toByteArray(input);

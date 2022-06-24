@@ -66,6 +66,7 @@ R8_TESTS_DEPS_JAR = os.path.join(LIBS, 'test_deps_all.jar')
 R8LIB_TESTS_DEPS_JAR = R8_TESTS_DEPS_JAR
 MAVEN_ZIP = os.path.join(LIBS, 'r8.zip')
 MAVEN_ZIP_LIB = os.path.join(LIBS, 'r8lib.zip')
+LIBRARY_DESUGAR_CONVERSIONS_LEGACY_ZIP = os.path.join(LIBS, 'library_desugar_conversions_legacy.jar')
 LIBRARY_DESUGAR_CONVERSIONS_ZIP = os.path.join(LIBS, 'library_desugar_conversions.jar')
 
 DESUGAR_CONFIGURATION = os.path.join(
@@ -78,8 +79,8 @@ DESUGAR_IMPLEMENTATION_JDK11 = os.path.join(
       'third_party', 'openjdk', 'desugar_jdk_libs_11', 'desugar_jdk_libs.jar')
 DESUGAR_CONFIGURATION_MAVEN_ZIP = os.path.join(
   LIBS, 'desugar_jdk_libs_configuration.zip')
-DESUGAR_CONFIGURATION_LEGACY_JDK11_MAVEN_ZIP = os.path.join(
-  LIBS, 'desugar_jdk_libs_configuration_legacy_jdk11.zip')
+DESUGAR_CONFIGURATION_JDK11_LEGACY_MAVEN_ZIP = os.path.join(
+  LIBS, 'desugar_jdk_libs_configuration_jdk11_legacy.zip')
 GENERATED_LICENSE = os.path.join(GENERATED_LICENSE_DIR, 'LICENSE')
 RT_JAR = os.path.join(REPO_ROOT, 'third_party/openjdk/openjdk-rt-1.8/rt.jar')
 R8LIB_KEEP_RULES = os.path.join(REPO_ROOT, 'src/main/keep.txt')
