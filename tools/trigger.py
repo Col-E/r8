@@ -23,7 +23,7 @@ LUCI_SCHEDULE = os.path.join(utils.REPO_ROOT, 'infra', 'config', 'global',
 TRIGGERS_RE = r'^  triggers: "(\w.*)"'
 
 DESUGAR_JDK11_BOT = 'lib_desugar-archive-jdk11'
-DESUGAR_JDK8_BOT = 'lib_desugar-archive-jdk11'
+DESUGAR_JDK8_BOT = 'lib_desugar-archive-jdk8'
 
 def ParseOptions():
   result = optparse.OptionParser()
@@ -90,7 +90,7 @@ def trigger_cl(builders, cl_url):
 
 def Main():
   (options, args) = ParseOptions()
-  desugar = options.desugar-jdk11 or options.desugar-jdk8
+  desugar = options.desugar_jdk11 or options.desugar_jdk8
   if len(args) != 1 and not options.cl and not desugar:
     print('Takes exactly one argument, the commit to run')
     return 1
