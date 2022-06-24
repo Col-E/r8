@@ -67,7 +67,7 @@ public class Regress191296688 extends KotlinTestBase {
             .addProgramClasses(A.class)
             .setMinApi(parameters.getApiLevel())
             .compile()
-            .inspect(this::verifyVirtualCallToPrivate)
+            .inspect(this::verifyDirectCallToPrivate)
             .writeToZip();
     testForD8()
         .addProgramFiles(desugaredJar)
@@ -77,7 +77,7 @@ public class Regress191296688 extends KotlinTestBase {
         .assertSuccessWithOutputLines("hep");
   }
 
-  private void verifyVirtualCallToPrivate(CodeInspector inspector) {
+  private void verifyDirectCallToPrivate(CodeInspector inspector) {
     ClassSubject bClassSubject = inspector.clazz(PKG + ".B");
     MethodSubject proceedMethodSubject = bClassSubject.uniqueMethodWithName("proceed");
     assertThat(proceedMethodSubject, isPresent());
@@ -87,7 +87,7 @@ public class Regress191296688 extends KotlinTestBase {
                 method ->
                     method
                         .streamInstructions()
-                        .filter(InstructionSubject::isInvokeVirtual)
+                        .filter(InstructionSubject::isInvokeSpecialOrDirect)
                         .anyMatch(isInvokeWithTarget(proceedMethodSubject))));
   }
 }
