@@ -793,6 +793,18 @@ public class AndroidApp {
     }
   }
 
+  public void signalFinishedToProviders(Reporter reporter) throws IOException {
+    for (ProgramResourceProvider provider : programResourceProviders) {
+      provider.finished(reporter);
+    }
+    for (ClassFileResourceProvider provider : classpathResourceProviders) {
+      provider.finished(reporter);
+    }
+    for (ClassFileResourceProvider provider : libraryResourceProviders) {
+      provider.finished(reporter);
+    }
+  }
+
   /**
    * Builder interface for constructing an AndroidApp.
    */

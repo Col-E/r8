@@ -38,9 +38,12 @@ import java.util.zip.ZipFile;
  */
 @Keep
 public class ArchiveClassFileProvider implements ClassFileResourceProvider, Closeable {
+  private final Path archive;
   private final Origin origin;
-  private final ZipFile zipFile;
-  private final Set<String> descriptors = new HashSet<>();
+  private final Predicate<String> include;
+
+  private ZipFile lazyZipFile = null;
+  private Set<String> lazyDescriptors = null;
 
   /**
    * Creates a lazy class-file program-resource provider.
@@ -59,36 +62,23 @@ public class ArchiveClassFileProvider implements ClassFileResourceProvider, Clos
    */
   public ArchiveClassFileProvider(Path archive, Predicate<String> include) throws IOException {
     assert isArchive(archive);
+    this.archive = archive;
+    this.include = include;
     origin = new PathOrigin(archive);
-    try {
-      zipFile = FileUtils.createZipFile(archive.toFile(), StandardCharsets.UTF_8);
-    } catch (IOException e) {
-      if (!Files.exists(archive)) {
-        throw new NoSuchFileException(archive.toString());
-      } else {
-        throw e;
-      }
-    }
-    final Enumeration<? extends ZipEntry> entries = zipFile.entries();
-    while (entries.hasMoreElements()) {
-      ZipEntry entry = entries.nextElement();
-      String name = entry.getName();
-      if (ZipUtils.isClassFile(name) && include.test(name)) {
-        descriptors.add(DescriptorUtils.guessTypeDescriptor(name));
-      }
-    }
+    ensureZipFile();
   }
 
   @Override
   public Set<String> getClassDescriptors() {
-    return Collections.unmodifiableSet(descriptors);
+    return ensureDescriptors();
   }
 
   @Override
   public ProgramResource getProgramResource(String descriptor) {
-    if (!descriptors.contains(descriptor)) {
+    if (!ensureDescriptors().contains(descriptor)) {
       return null;
     }
+    ZipFile zipFile = ensureZipFile();
     ZipEntry zipEntry = getZipEntryFromDescriptor(descriptor);
     try (InputStream inputStream = zipFile.getInputStream(zipEntry)) {
       return ProgramResource.fromBytes(
@@ -102,17 +92,60 @@ public class ArchiveClassFileProvider implements ClassFileResourceProvider, Clos
   }
 
   @Override
-  protected void finalize() throws Throwable {
+  public void finished(DiagnosticsHandler handler) throws IOException {
     close();
-    super.finalize();
   }
 
   @Override
   public void close() throws IOException {
-    zipFile.close();
+    if (lazyZipFile != null) {
+      lazyZipFile.close();
+    }
+    lazyZipFile = null;
+    lazyDescriptors = null;
+  }
+
+  private void reopenZipFile() throws IOException {
+    assert lazyZipFile == null;
+    assert lazyDescriptors == null;
+    try {
+      lazyZipFile = FileUtils.createZipFile(archive.toFile(), StandardCharsets.UTF_8);
+    } catch (IOException e) {
+      if (!Files.exists(archive)) {
+        throw new NoSuchFileException(archive.toString());
+      } else {
+        throw e;
+      }
+    }
+    lazyDescriptors = new HashSet<>();
+    final Enumeration<? extends ZipEntry> entries = lazyZipFile.entries();
+    while (entries.hasMoreElements()) {
+      ZipEntry entry = entries.nextElement();
+      String name = entry.getName();
+      if (ZipUtils.isClassFile(name) && include.test(name)) {
+        lazyDescriptors.add(DescriptorUtils.guessTypeDescriptor(name));
+      }
+    }
+  }
+
+  private ZipFile ensureZipFile() {
+    if (lazyZipFile == null) {
+      try {
+        reopenZipFile();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
+    return lazyZipFile;
+  }
+
+  private Set<String> ensureDescriptors() {
+    ensureZipFile();
+    return Collections.unmodifiableSet(lazyDescriptors);
   }
 
   private ZipEntry getZipEntryFromDescriptor(String descriptor) {
-    return zipFile.getEntry(descriptor.substring(1, descriptor.length() - 1) + CLASS_EXTENSION);
+    return ensureZipFile()
+        .getEntry(descriptor.substring(1, descriptor.length() - 1) + CLASS_EXTENSION);
   }
 }

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import java.io.IOException;
 import java.util.Collection;
 
 /** Program resource provider. */
@@ -13,5 +14,19 @@ public interface ProgramResourceProvider {
 
   default DataResourceProvider getDataResourceProvider() {
     return null;
+  }
+
+  /**
+   * Callback signifying that a given compilation unit is done using the resource provider.
+   *
+   * <p>This can be used to clean-up resources once it is guaranteed that the compiler will no
+   * longer request them. If a client shares a resource provider among multiple compilation units
+   * then the provider should be sure to either retain the resources or support reloading them on
+   * demand.
+   *
+   * <p>Providers should make sure finished can be safely called multiple times.
+   */
+  default void finished(DiagnosticsHandler handler) throws IOException {
+    // Do nothing by default.
   }
 }

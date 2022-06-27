@@ -108,6 +108,7 @@ public class DexFileMergerHelper {
       } catch (ExecutionException e) {
         throw unwrapExecutionException(e);
       } finally {
+        inputApp.signalFinishedToProviders(options.reporter);
         options.signalFinishedToConsumers();
       }
     } finally {

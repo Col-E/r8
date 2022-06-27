@@ -148,6 +148,7 @@ public class L8 {
     } catch (ExecutionException e) {
       throw unwrapExecutionException(e);
     } finally {
+      inputApp.signalFinishedToProviders(options.reporter);
       options.signalFinishedToConsumers();
       // Dump timings.
       if (options.printTimes) {

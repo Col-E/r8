@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.isArchive;
 
 import com.android.tools.r8.ClassFileResourceProvider;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.errors.CompilationError;
@@ -113,9 +114,16 @@ class InternalArchiveClassFileProvider implements ClassFileResourceProvider, Aut
   }
 
   @Override
+  public void finished(DiagnosticsHandler handler) throws IOException {
+    close();
+  }
+
+  @Override
   public void close() throws IOException {
-    openedZipFile.close();
-    openedZipFile = null;
+    if (openedZipFile != null) {
+      openedZipFile.close();
+      openedZipFile = null;
+    }
   }
 
   private ZipEntry getZipEntryFromDescriptor(String descriptor) throws IOException {
