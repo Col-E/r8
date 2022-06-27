@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 
 public class UnresolvableMethodWithClassMergingTest extends HorizontalClassMergingTestBase {
@@ -14,15 +14,15 @@ public class UnresolvableMethodWithClassMergingTest extends HorizontalClassMergi
     super(parameters);
   }
 
-  // TODO(christofferqa): Should not fail compilation.
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class, A.class, B.class)
         .addKeepMainRule(Main.class)
         .addDontWarn(Missing.class)
         .addHorizontallyMergedClassesInspector(
-            inspector -> inspector.assertMergedInto(B.class, A.class).assertNoOtherClassesMerged())
+            HorizontallyMergedClassesInspector::assertNoOtherClassesMerged)
+        .noMinification()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .addRunClasspathFiles(buildOnDexRuntime(parameters, Missing.class))

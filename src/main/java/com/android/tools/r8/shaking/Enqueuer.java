@@ -3436,6 +3436,20 @@ public class Enqueuer {
             markMethodAsTargeted(new ProgramMethod(clazz, method), reason);
           }
         });
+
+    // Disallow optimization of types referenced from unresolvable methods. The graph lenses created
+    // by various optimizations only store mappings for method definitions, thus no lenses contain
+    // mappings for unresolvable methods. This can be problematic if an unresolvable method refers
+    // to a class that no longer exists as a result of an optimization.
+    for (DexType referencedType : symbolicMethod.getReferencedBaseTypes(appView.dexItemFactory())) {
+      if (referencedType.isClassType()) {
+        DexProgramClass clazz = asProgramClassOrNull(definitionFor(referencedType, context));
+        if (clazz != null) {
+          applyMinimumKeepInfoWhenLive(
+              clazz, KeepClassInfo.newEmptyJoiner().disallowOptimization());
+        }
+      }
+    }
   }
 
   private DexMethod generatedEnumValuesMethod(DexClass enumClass) {
@@ -3576,7 +3590,7 @@ public class Enqueuer {
           .forEachRuleInstance(
               appView,
               (clazz, minimumKeepInfo) ->
-                  applyMinimumKeepInfoWhenLive(clazz, preconditionEvent, minimumKeepInfo),
+                  applyMinimumKeepInfoWhenLive(clazz, minimumKeepInfo, preconditionEvent),
               (field, minimumKeepInfo) ->
                   applyMinimumKeepInfoWhenLive(field, minimumKeepInfo, preconditionEvent),
               this::applyMinimumKeepInfoWhenLiveOrTargeted);
@@ -3646,8 +3660,14 @@ public class Enqueuer {
 
   private void applyMinimumKeepInfoWhenLive(
       DexProgramClass clazz,
-      EnqueuerEvent preconditionEvent,
       KeepClassInfo.Joiner minimumKeepInfo) {
+    applyMinimumKeepInfoWhenLive(clazz, minimumKeepInfo, EnqueuerEvent.unconditional());
+  }
+
+  private void applyMinimumKeepInfoWhenLive(
+      DexProgramClass clazz,
+      KeepClassInfo.Joiner minimumKeepInfo,
+      EnqueuerEvent preconditionEvent) {
     if (liveTypes.contains(clazz)) {
       keepInfo.joinClass(clazz, info -> info.merge(minimumKeepInfo));
     } else {
@@ -3674,7 +3694,7 @@ public class Enqueuer {
       DexProgramClass clazz,
       KeepClassInfo.Joiner minimumKeepInfo) {
     if (isPreconditionForMinimumKeepInfoSatisfied(preconditionEvent)) {
-      applyMinimumKeepInfoWhenLive(clazz, preconditionEvent, minimumKeepInfo);
+      applyMinimumKeepInfoWhenLive(clazz, minimumKeepInfo, preconditionEvent);
     } else {
       dependentMinimumKeepInfo
           .getOrCreateMinimumKeepInfoFor(preconditionEvent)
@@ -3803,7 +3823,7 @@ public class Enqueuer {
       minimumKeepClassInfoDependentOnPrecondition.forEach(
           appView,
           (clazz, minimumKeepInfoForClass) ->
-              applyMinimumKeepInfoWhenLive(clazz, preconditionEvent, minimumKeepInfoForClass),
+              applyMinimumKeepInfoWhenLive(clazz, minimumKeepInfoForClass, preconditionEvent),
           (field, minimumKeepInfoForField) ->
               applyMinimumKeepInfoWhenLive(field, minimumKeepInfoForField, preconditionEvent),
           (method, minimumKeepInfoForMethod) ->
