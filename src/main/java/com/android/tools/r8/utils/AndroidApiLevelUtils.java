@@ -106,7 +106,7 @@ public class AndroidApiLevelUtils {
     return apiLevelOfOriginal.max(apiLevel).isLessThanOrEqualTo(options.getMinApiLevel()).isTrue();
   }
 
-  private static boolean isApiSafeForReference(LibraryDefinition definition, AppView<?> appView) {
+  public static boolean isApiSafeForReference(LibraryDefinition definition, AppView<?> appView) {
     return isApiSafeForReference(definition, appView.apiLevelCompute(), appView.options());
   }
 

@@ -18,6 +18,7 @@ import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.utils.AndroidApiLevelUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.OptionalBool;
@@ -856,8 +857,8 @@ public abstract class DexClass extends DexDefinition
   public boolean isResolvable(AppView<?> appView) {
     if (isResolvable.isUnknown()) {
       boolean resolvable;
-      if (!isProgramClass()) {
-        resolvable = appView.dexItemFactory().libraryTypesAssumedToBePresent.contains(type);
+      if (isLibraryClass()) {
+        resolvable = AndroidApiLevelUtils.isApiSafeForReference(asLibraryClass(), appView);
       } else {
         resolvable = true;
         for (DexType supertype : allImmediateSupertypes()) {
