@@ -377,15 +377,24 @@ def prepare_google3(args):
                     'desugar_jdk_libs_configuration.jar')
       download_file(options.version, 'r8retrace-exclude-deps.jar', 'retrace_lib.jar')
       g4_open('METADATA')
-      sed(r'[1-9]\.[0-9]{1,2}\.[0-9]{1,3}-dev',
-          options.version,
-          os.path.join(third_party_r8, 'METADATA'))
+      metadata_path = os.path.join(third_party_r8, 'METADATA')
+      match_count = 0
+      version_match_regexp = r'[1-9]\.[0-9]{1,2}\.[0-9]{1,3}-dev'
+      for line in open(metadata_path, 'r'):
+        result = re.search(version_match_regexp, line)
+        if result:
+          match_count = match_count + 1
+      if match_count != 3:
+        print(("Could not find the previous -dev release string to replace in " +
+            "METADATA. Expected to find is mentioned 3 times. Please update %s " +
+            "manually and run again with options --google " +
+            "--use-existing-work-branch.") % metadata_path)
+        sys.exit(1)
+      sed(version_match_regexp, options.version, metadata_path)
       sed(r'\{ year.*\}',
           ('{ year: %i month: %i day: %i }'
            % (today.year, today.month, today.day)),
-          os.path.join(third_party_r8, 'METADATA'))
-
-
+          metadata_path)
       subprocess.check_output('chmod u+w *', shell=True)
 
     with utils.ChangedWorkingDirectory(google3_base):
@@ -554,10 +563,14 @@ def check_no_google3_client(args, client_name):
   if not args.use_existing_work_branch:
     clients = subprocess.check_output('g4 myclients', shell=True).decode('utf-8')
     if ':%s:' % client_name in clients:
-      print(("Remove the existing '%s' client before continuing " +
-             "(force delete: 'g4 citc -d -f %s'), " +
-             "or use option --use-existing-work-branch.") % (client_name, client_name))
-      sys.exit(1)
+      if args.delete_work_branch:
+        subprocess.check_call('g4 citc -d -f %s' % client_name, shell=True)
+      else:
+        print(("Remove the existing '%s' client before continuing " +
+               "(force delete: 'g4 citc -d -f %s'), " +
+               "or use either --use-existing-work-branch or " +
+               "--delete-work-branch.") % (client_name, client_name))
+        sys.exit(1)
 
 
 def extract_version_from_pom(pom_file):
@@ -823,6 +836,10 @@ def parse_options():
                       default=False,
                       action='store_true',
                       help='Use existing work branch/CL in aosp/studio/google3')
+  result.add_argument('--delete-work-branch', '--delete_work_branch',
+                      default=False,
+                      action='store_true',
+                      help='Delete CL in google3')
   result.add_argument('--no-upload', '--no_upload',
                       default=False,
                       action='store_true',
