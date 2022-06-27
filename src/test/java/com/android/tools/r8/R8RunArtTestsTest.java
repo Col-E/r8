@@ -498,37 +498,23 @@ public abstract class R8RunArtTestsTest {
   static {
     ImmutableMap.Builder<DexVm.Version, List<String>> builder = ImmutableMap.builder();
     builder
-        .put(
-            DexVm.Version.V13_0_0,
-            ImmutableList.of("454-get-vreg", "457-regs", "543-env-long-ref", "518-null-array-get"))
-        .put(
-            DexVm.Version.V12_0_0,
-            ImmutableList.of("454-get-vreg", "457-regs", "543-env-long-ref", "518-null-array-get"))
+        .put(DexVm.Version.V13_0_0, ImmutableList.of("543-env-long-ref", "518-null-array-get"))
+        .put(DexVm.Version.V12_0_0, ImmutableList.of("543-env-long-ref", "518-null-array-get"))
         .put(
             DexVm.Version.V10_0_0,
             ImmutableList.of(
                 // TODO(b/144975341): Triage, Verif error.
                 "518-null-array-get",
                 // TODO(b/144975341): Triage, Linking error.
-                "457-regs",
-                "543-env-long-ref",
-                "454-get-vreg"))
+                "543-env-long-ref"))
         .put(
             DexVm.Version.V9_0_0,
             ImmutableList.of(
-                // TODO(120400625): Triage.
-                "454-get-vreg",
-                // TODO(120402198): Triage.
-                "457-regs",
                 // TODO(120401674): Triage.
                 "543-env-long-ref",
                 // TODO(120261858) Triage.
                 "518-null-array-get"))
-        .put(
-            DexVm.Version.V8_1_0,
-            ImmutableList.of(
-                // TODO(119938529): Triage.
-                "709-checker-varhandles", "454-get-vreg", "457-regs"))
+        .put(DexVm.Version.V8_1_0, ImmutableList.of())
         .put(
             DexVm.Version.V7_0_0,
             ImmutableList.of(
@@ -872,7 +858,12 @@ public abstract class R8RunArtTestsTest {
                       DexVm.Version.V4_4_4,
                       DexVm.Version.V5_1_1,
                       DexVm.Version.V6_0_1,
-                      DexVm.Version.V7_0_0)))
+                      DexVm.Version.V7_0_0,
+                      DexVm.Version.V8_1_0,
+                      DexVm.Version.V9_0_0,
+                      DexVm.Version.V10_0_0,
+                      DexVm.Version.V12_0_0,
+                      DexVm.Version.V13_0_0)))
           .put("454-get-vreg", TestCondition.match(TestCondition.R8DEX_COMPILER))
           // Fails: regs_jni.cc:42] Check failed: GetVReg(m, 0, kIntVReg, &value)
           // The R8/D8 code does not put values in the same registers as the tests expects.
@@ -884,7 +875,12 @@ public abstract class R8RunArtTestsTest {
                       DexVm.Version.V4_4_4,
                       DexVm.Version.V5_1_1,
                       DexVm.Version.V6_0_1,
-                      DexVm.Version.V7_0_0)))
+                      DexVm.Version.V7_0_0,
+                      DexVm.Version.V8_1_0,
+                      DexVm.Version.V9_0_0,
+                      DexVm.Version.V10_0_0,
+                      DexVm.Version.V12_0_0,
+                      DexVm.Version.V13_0_0)))
           .put("457-regs", TestCondition.match(TestCondition.R8DEX_COMPILER))
           // Class not found.
           .put("529-checker-unresolved", TestCondition.any())

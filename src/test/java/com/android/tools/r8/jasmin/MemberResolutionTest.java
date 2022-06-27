@@ -579,12 +579,10 @@ public class MemberResolutionTest extends JasminTestBase {
 
   private void ensureSameOutput(JasminBuilder app) throws Exception {
     String javaOutput = runOnJava(app, MAIN_CLASS);
-    String dxOutput = runOnArtDx(app, MAIN_CLASS);
     String d8Output = runOnArtD8(app, MAIN_CLASS);
     String r8Output = runOnArtR8(app, MAIN_CLASS);
     String r8ShakenOutput = runOnArtR8(app, MAIN_CLASS, keepMainProguardConfiguration(MAIN_CLASS),
         null);
-    Assert.assertEquals(javaOutput, dxOutput);
     Assert.assertEquals(javaOutput, d8Output);
     Assert.assertEquals(javaOutput, r8Output);
     Assert.assertEquals(javaOutput, r8ShakenOutput);
@@ -603,7 +601,6 @@ public class MemberResolutionTest extends JasminTestBase {
 
   private void ensureAllFail(JasminBuilder app) throws Exception {
     ensureFails(app, MAIN_CLASS, this::runOnJavaRaw);
-    ensureFails(app, MAIN_CLASS, this::runOnArtDxRaw);
     ensureFails(app, MAIN_CLASS, this::runOnArtD8Raw);
     ensureFails(app, MAIN_CLASS, (a, m) -> runOnArtR8Raw(a, m, null));
     ensureFails(app, MAIN_CLASS,
@@ -623,7 +620,6 @@ public class MemberResolutionTest extends JasminTestBase {
           }
         };
     runtest.accept(() -> runOnJavaNoVerifyRaw(app, MAIN_CLASS), null);
-    runtest.accept(() -> runOnArtDxRaw(app, MAIN_CLASS), null);
     runtest.accept(() -> runOnArtD8Raw(app, MAIN_CLASS), CompilerUnderTest.D8);
     runtest.accept(() -> runOnArtR8Raw(app, MAIN_CLASS, null), CompilerUnderTest.R8);
     runtest.accept(() -> runOnArtR8Raw(app, MAIN_CLASS, keepMainProguardConfiguration(MAIN_CLASS),
@@ -644,8 +640,6 @@ public class MemberResolutionTest extends JasminTestBase {
 
   private void ensureRuntimeException(JasminBuilder app, Class exception) throws Exception {
     String name = exception.getSimpleName();
-    ProcessResult dxOutput = runOnArtDxRaw(app, MAIN_CLASS);
-    Assert.assertTrue(dxOutput.stderr.contains(name));
     ProcessResult d8Output = runOnArtD8Raw(app, MAIN_CLASS);
     Assert.assertTrue(d8Output.stderr.contains(name));
     ProcessResult r8Output = runOnArtR8Raw(app, MAIN_CLASS, null);
@@ -660,16 +654,14 @@ public class MemberResolutionTest extends JasminTestBase {
   private void ensureRuntimeException(JasminBuilder app, JasminBuilder library, Class exception)
       throws Exception {
     String name = exception.getSimpleName();
-    ProcessResult dxOutput = runOnArtDxRaw(app, library, MAIN_CLASS);
-    Assert.assertTrue(dxOutput.stderr.contains(name));
     ProcessResult d8Output = runOnArtD8Raw(app, library, MAIN_CLASS);
-    Assert.assertTrue(d8Output.stderr.contains(name));
+    Assert.assertTrue(d8Output.toString(), d8Output.stderr.contains(name));
     ProcessResult r8Output = runOnArtR8Raw(app, library, MAIN_CLASS,
         noShrinkingNoMinificationProguardConfiguration(), null);
-    Assert.assertTrue(r8Output.stderr.contains(name));
+    Assert.assertTrue(r8Output.toString(), r8Output.stderr.contains(name));
     ProcessResult r8ShakenOutput = runOnArtR8Raw(app, library, MAIN_CLASS,
         keepMainProguardConfiguration(MAIN_CLASS), null);
-    Assert.assertTrue(r8ShakenOutput.stderr.contains(name));
+    Assert.assertTrue(r8ShakenOutput.toString(), r8ShakenOutput.stderr.contains(name));
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(app, library, MAIN_CLASS);
     Assert.assertTrue(javaOutput.stderr.contains(name));
   }
