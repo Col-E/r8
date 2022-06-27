@@ -174,7 +174,7 @@ def Main(argv):
     version = GetVersion(
       os.path.join(
         checkout_dir,
-        VERSION_FILE_JDK11 if variant == 'jdk11' else VERSION_FILE_JDK8))
+        VERSION_FILE_JDK11 if options.variant == 'jdk11' else VERSION_FILE_JDK8))
 
     destination = archive.GetVersionDestination(
         'gs://', LIBRARY_NAME + '/' + version, is_main)
