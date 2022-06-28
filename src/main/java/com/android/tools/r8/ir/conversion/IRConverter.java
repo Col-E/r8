@@ -795,7 +795,6 @@ public class IRConverter {
     }
 
     if (Log.ENABLED) {
-      constantCanonicalizer.logResults();
       if (idempotentFunctionCallCanonicalizer != null) {
         idempotentFunctionCallCanonicalizer.logResults();
       }

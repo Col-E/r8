@@ -27,11 +27,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.logging.Log;
-import com.android.tools.r8.utils.StringUtils;
 import it.unimi.dsi.fastutil.Hash.Strategy;
-import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenCustomHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectSortedMap.FastSortedEntrySet;
@@ -48,43 +44,8 @@ public class ConstantCanonicalizer {
 
   private final CodeRewriter codeRewriter;
 
-  private int numberOfConstNumberCanonicalization = 0;
-  private int numberOfConstStringCanonicalization = 0;
-  private int numberOfDexItemBasedConstStringCanonicalization = 0;
-  private int numberOfConstClassCanonicalization = 0;
-  private int numberOfEffectivelyFinalFieldCanonicalization = 0;
-  private final Object2IntMap<Long> histogramOfCanonicalizationCandidatesPerMethod;
-
   public ConstantCanonicalizer(CodeRewriter codeRewriter) {
     this.codeRewriter = codeRewriter;
-    if (Log.ENABLED) {
-      histogramOfCanonicalizationCandidatesPerMethod = new Object2IntArrayMap<>();
-    } else {
-      histogramOfCanonicalizationCandidatesPerMethod = null;
-    }
-  }
-
-  public void logResults() {
-    assert Log.ENABLED;
-    Log.info(getClass(),
-        "# const-number canonicalization: %s", numberOfConstNumberCanonicalization);
-    Log.info(getClass(),
-        "# const-string canonicalization: %s", numberOfConstStringCanonicalization);
-    Log.info(getClass(),
-        "# item-based const-string canonicalization: %s",
-        numberOfDexItemBasedConstStringCanonicalization);
-    Log.info(getClass(),
-        "# const-class canonicalization: %s", numberOfConstClassCanonicalization);
-    Log.info(
-        getClass(),
-        "# effectively final field canonicalization: %s",
-        numberOfEffectivelyFinalFieldCanonicalization);
-    assert histogramOfCanonicalizationCandidatesPerMethod != null;
-    Log.info(getClass(), "------ histogram of constant canonicalization candidates ------");
-    histogramOfCanonicalizationCandidatesPerMethod.forEach((length, count) -> {
-      Log.info(getClass(),
-          "%s: %s (%s)", length, StringUtils.times("*", Math.min(count, 53)), count);
-    });
   }
 
   public void canonicalize(AppView<?> appView, IRCode code) {
@@ -193,14 +154,6 @@ public class ConstantCanonicalizer {
         valuesDefinedByConstant.object2ObjectEntrySet();
     // Sort the most frequently used constant first and exclude constant use only one time, such
     // as the {@code MAX_CANONICALIZED_CONSTANT} will be canonicalized into the entry block.
-    if (Log.ENABLED && Log.isLoggingEnabledFor(ConstantCanonicalizer.class)) {
-      Long numOfCandidates = entries.stream().filter(a -> a.getValue().size() > 1).count();
-      synchronized (histogramOfCanonicalizationCandidatesPerMethod) {
-        int count = histogramOfCanonicalizationCandidatesPerMethod.getOrDefault(numOfCandidates, 0);
-        histogramOfCanonicalizationCandidatesPerMethod.put(numOfCandidates, count + 1);
-      }
-    }
-
     Iterator<Object2ObjectMap.Entry<Instruction, List<Value>>> iterator =
         entries.stream()
             .filter(a -> a.getValue().size() > 1)
@@ -223,35 +176,20 @@ public class ConstantCanonicalizer {
       } else {
         switch (canonicalizedConstant.opcode()) {
           case CONST_CLASS:
-            if (Log.ENABLED) {
-              numberOfConstClassCanonicalization++;
-            }
             newConst = ConstClass.copyOf(code, canonicalizedConstant.asConstClass());
             break;
           case CONST_NUMBER:
-            if (Log.ENABLED) {
-              numberOfConstNumberCanonicalization++;
-            }
             newConst = ConstNumber.copyOf(code, canonicalizedConstant.asConstNumber());
             break;
           case CONST_STRING:
-            if (Log.ENABLED) {
-              numberOfConstStringCanonicalization++;
-            }
             newConst = ConstString.copyOf(code, canonicalizedConstant.asConstString());
             break;
           case DEX_ITEM_BASED_CONST_STRING:
-            if (Log.ENABLED) {
-              numberOfDexItemBasedConstStringCanonicalization++;
-            }
             newConst =
                 DexItemBasedConstString.copyOf(
                     code, canonicalizedConstant.asDexItemBasedConstString());
             break;
           case STATIC_GET:
-            if (Log.ENABLED) {
-              numberOfEffectivelyFinalFieldCanonicalization++;
-            }
             newConst = StaticGet.copyOf(code, canonicalizedConstant.asStaticGet());
             break;
           default:
