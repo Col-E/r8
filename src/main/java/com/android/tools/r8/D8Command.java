@@ -90,7 +90,6 @@ public final class D8Command extends BaseCompilerCommand {
     private String synthesizedClassPrefix = "";
     private boolean enableMainDexListCheck = true;
     private boolean minimalMainDex = false;
-    private boolean skipDump = false;
     private final List<ProguardConfigurationSource> mainDexRules = new ArrayList<>();
     private boolean enableMissingLibraryApiModeling = false;
 
@@ -265,15 +264,6 @@ public final class D8Command extends BaseCompilerCommand {
       return self();
     }
 
-    /**
-     * Allow to skip to dump into file and dump into directory instruction, this is primarily used
-     * for chained compilation in L8 so there are no duplicated dumps.
-     */
-    Builder skipDump() {
-      skipDump = true;
-      return self();
-    }
-
     @Override
     Builder self() {
       return this;
@@ -427,7 +417,6 @@ public final class D8Command extends BaseCompilerCommand {
           getAssertionsConfiguration(),
           getOutputInspections(),
           synthesizedClassPrefix,
-          skipDump,
           enableMainDexListCheck,
           minimalMainDex,
           mainDexKeepRules,
@@ -447,7 +436,6 @@ public final class D8Command extends BaseCompilerCommand {
   private final StringConsumer desugaredLibraryKeepRuleConsumer;
   private final DesugaredLibrarySpecification desugaredLibrarySpecification;
   private final String synthesizedClassPrefix;
-  private final boolean skipDump;
   private final boolean enableMainDexListCheck;
   private final boolean minimalMainDex;
   private final ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
@@ -519,7 +507,6 @@ public final class D8Command extends BaseCompilerCommand {
       List<AssertionsConfiguration> assertionsConfiguration,
       List<Consumer<Inspector>> outputInspections,
       String synthesizedClassPrefix,
-      boolean skipDump,
       boolean enableMainDexListCheck,
       boolean minimalMainDex,
       ImmutableList<ProguardConfigurationRule> mainDexKeepRules,
@@ -554,7 +541,6 @@ public final class D8Command extends BaseCompilerCommand {
     this.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
     this.desugaredLibrarySpecification = desugaredLibrarySpecification;
     this.synthesizedClassPrefix = synthesizedClassPrefix;
-    this.skipDump = skipDump;
     this.enableMainDexListCheck = enableMainDexListCheck;
     this.minimalMainDex = minimalMainDex;
     this.mainDexKeepRules = mainDexKeepRules;
@@ -571,7 +557,6 @@ public final class D8Command extends BaseCompilerCommand {
     desugaredLibraryKeepRuleConsumer = null;
     desugaredLibrarySpecification = null;
     synthesizedClassPrefix = null;
-    skipDump = false;
     enableMainDexListCheck = true;
     minimalMainDex = false;
     mainDexKeepRules = null;
@@ -669,7 +654,7 @@ public final class D8Command extends BaseCompilerCommand {
 
     internal.configureAndroidPlatformBuild(getAndroidPlatformBuild());
 
-    internal.setDumpInputFlags(getDumpInputFlags(), skipDump);
+    internal.setDumpInputFlags(getDumpInputFlags());
     internal.dumpOptions = dumpOptions();
 
     return internal;

@@ -217,7 +217,7 @@ public final class L8Command extends BaseCompilerCommand {
     internal.apiModelingOptions().disableApiCallerIdentification();
     internal.apiModelingOptions().disableMissingApiModeling();
 
-    internal.setDumpInputFlags(getDumpInputFlags(), false);
+    internal.setDumpInputFlags(getDumpInputFlags());
     internal.dumpOptions = dumpOptions();
 
     return internal;

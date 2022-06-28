@@ -245,7 +245,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private List<AssertionsConfiguration> assertionsConfiguration = new ArrayList<>();
     private List<Consumer<Inspector>> outputInspections = new ArrayList<>();
     protected StringConsumer proguardMapConsumer = null;
-    private DumpInputFlags dumpInputFlags = DumpInputFlags.noDump();
+    private DumpInputFlags dumpInputFlags = DumpInputFlags.getDefault();
     private MapIdProvider mapIdProvider = null;
     private SourceFileProvider sourceFileProvider = null;
     private boolean isAndroidPlatformBuild = false;
@@ -662,6 +662,15 @@ public abstract class BaseCompilerCommand extends BaseCommand {
 
     public boolean getAndroidPlatformBuild() {
       return isAndroidPlatformBuild;
+    }
+
+    /**
+     * Allow to skip to dump into file and dump into directory instruction, this is primarily used
+     * for chained compilation in L8 so there are no duplicated dumps.
+     */
+    B skipDump() {
+      dumpInputFlags = DumpInputFlags.noDump();
+      return self();
     }
 
     B dumpInputToFile(Path file) {

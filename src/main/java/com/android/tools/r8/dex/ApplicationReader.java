@@ -41,6 +41,7 @@ import com.android.tools.r8.utils.ClassProvider;
 import com.android.tools.r8.utils.ClasspathClassCollection;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DexVersion;
+import com.android.tools.r8.utils.DumpInputFlags;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LibraryClassCollection;
 import com.android.tools.r8.utils.MainDexListParser;
@@ -49,9 +50,7 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -113,7 +112,7 @@ public class ApplicationReader {
         inputApp.getProguardMapInputData(),
         executorService,
         ProgramClassCollection.defaultConflictResolver(options.reporter),
-        false);
+        DumpInputFlags.noDump());
   }
 
   public final LazyLoadedDexApplication read(
@@ -131,19 +130,17 @@ public class ApplicationReader {
       ExecutorService executorService,
       ProgramClassConflictResolver resolver)
       throws IOException {
-    return read(proguardMap, executorService, resolver, true);
+    return read(proguardMap, executorService, resolver, options.getDumpInputFlags());
   }
 
   public final LazyLoadedDexApplication read(
       StringResource proguardMap,
       ExecutorService executorService,
       ProgramClassConflictResolver resolver,
-      boolean shouldDump)
+      DumpInputFlags dumpInputFlags)
       throws IOException {
     assert verifyMainDexOptionsCompatible(inputApp, options);
-    if (shouldDump) {
-      dumpApplication();
-    }
+    dumpApplication(dumpInputFlags);
 
     if (options.testing.verifyInputs) {
       inputApp.validateInputs();
@@ -184,31 +181,19 @@ public class ApplicationReader {
     return builder.build();
   }
 
-  private void dumpApplication() throws IOException {
-    Path dumpOutput = null;
-    boolean cleanDump = false;
-    if (options.dumpInputToFile != null) {
-      dumpOutput = Paths.get(options.dumpInputToFile);
-    } else if (options.dumpInputToDirectory != null) {
-      dumpOutput =
-          Paths.get(options.dumpInputToDirectory).resolve("dump" + System.nanoTime() + ".zip");
-    } else if (options.testing.dumpAll) {
-      cleanDump = true;
-      dumpOutput = Paths.get("/tmp").resolve("dump" + System.nanoTime() + ".zip");
+  private void dumpApplication(DumpInputFlags dumpInputFlags) {
+    if (dumpInputFlags.isNoDump()) {
+      return;
     }
-    if (dumpOutput != null) {
-      timing.begin("ApplicationReader.dump");
-      inputApp.dump(dumpOutput, options.dumpOptions, options.reporter, options.dexItemFactory());
-      if (cleanDump) {
-        Files.delete(dumpOutput);
-      }
-      timing.end();
-      Diagnostic message = new StringDiagnostic("Dumped compilation inputs to: " + dumpOutput);
-      if (options.dumpInputToFile != null) {
-        throw options.reporter.fatalError(message);
-      } else if (!cleanDump) {
-        options.reporter.info(message);
-      }
+    Path dumpOutput = dumpInputFlags.getDumpPath();
+    timing.begin("ApplicationReader.dump");
+    inputApp.dump(dumpOutput, options.dumpOptions, options.reporter, options.dexItemFactory());
+    timing.end();
+    Diagnostic message = new StringDiagnostic("Dumped compilation inputs to: " + dumpOutput);
+    if (dumpInputFlags.shouldFailCompilation()) {
+      throw options.reporter.fatalError(message);
+    } else {
+      options.reporter.info(message);
     }
   }
 

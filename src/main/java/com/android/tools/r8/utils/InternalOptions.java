@@ -278,10 +278,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // To print memory one also have to enable printtimes.
   public boolean printMemory = System.getProperty("com.android.tools.r8.printmemory") != null;
 
-  public String dumpInputToFile = System.getProperty("com.android.tools.r8.dumpinputtofile");
-  public String dumpInputToDirectory =
-      System.getProperty("com.android.tools.r8.dumpinputtodirectory");
-
   // Flag to toggle if DEX code objects should pass-through without IR processing.
   public boolean passthroughDexCode = false;
 
@@ -414,6 +410,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean emitPermittedSubclassesAnnotationsInDex =
       System.getProperty("com.android.tools.r8.emitPermittedSubclassesAnnotationsInDex") != null;
 
+  private DumpInputFlags dumpInputFlags = DumpInputFlags.getDefault();
+
   // Contain the contents of the build properties file from the compiler command.
   public DumpOptions dumpOptions;
 
@@ -462,19 +460,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return marker;
   }
 
-  public void setDumpInputFlags(DumpInputFlags dumpInputFlags, boolean skipDump) {
-    if (skipDump) {
-      dumpInputToDirectory = null;
-      dumpInputToFile = null;
-      return;
-    }
-
-    if (dumpInputFlags.getDumpInputToFile() != null) {
-      dumpInputToFile = dumpInputFlags.getDumpInputToFile().toString();
-    }
-    if (dumpInputFlags.getDumpInputToDirectory() != null) {
-      dumpInputToDirectory = dumpInputFlags.getDumpInputToDirectory().toString();
-    }
+  public void setDumpInputFlags(DumpInputFlags dumpInputFlags) {
+    this.dumpInputFlags = dumpInputFlags;
   }
 
   public boolean hasConsumer() {
@@ -870,6 +857,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public CfCodeAnalysisOptions getCfCodeAnalysisOptions() {
     return cfCodeAnalysisOptions;
+  }
+
+  public DumpInputFlags getDumpInputFlags() {
+    return dumpInputFlags;
   }
 
   public OpenClosedInterfacesOptions getOpenClosedInterfacesOptions() {
@@ -1952,10 +1943,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean disableStackMapVerification = false;
 
     public boolean disableShortenLiveRanges = false;
-
-    // Force each call of application read to dump its inputs to a file, which is subsequently
-    // deleted. Useful to check that our dump functionality does not cause compilation failure.
-    public boolean dumpAll = false;
 
     // Option for testing outlining with interface array arguments, see b/132420510.
     public boolean allowOutlinerInterfaceArrayArguments = false;

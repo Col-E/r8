@@ -3,16 +3,19 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dump;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.DumpInputFlags;
 import com.android.tools.r8.utils.ZipUtils;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -40,6 +43,28 @@ public class DumpInputsTest extends TestBase {
   }
 
   @Test
+  public void testDumpToFileOptionsModification() throws Exception {
+    Path dump = temp.newFolder().toPath().resolve("dump.zip");
+    try {
+      testForR8(parameters.getBackend())
+          .addProgramClasses(TestClass.class)
+          .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
+          .addKeepMainRule(TestClass.class)
+          .addOptionsModification(
+              options -> options.setDumpInputFlags(DumpInputFlags.dumpToFile(dump)))
+          .allowDiagnosticErrorMessages()
+          .compileWithExpectedDiagnostics(
+              diagnostics ->
+                  diagnostics.assertErrorsMatch(
+                      diagnosticMessage(containsString("Dumped compilation inputs to:"))));
+      fail("Expected compilation to fail");
+    } catch (CompilationFailedException e) {
+      // Expected.
+    }
+    verifyDump(dump, false, true);
+  }
+
+  @Test
   public void testDumpToFileSystemProperty() throws Exception {
     Path dump = temp.newFolder().toPath().resolve("dump.zip");
     try {
@@ -47,11 +72,11 @@ public class DumpInputsTest extends TestBase {
           .addJvmFlag("-Dcom.android.tools.r8.dumpinputtofile=" + dump)
           .addProgramClasses(TestClass.class)
           .compile();
+      fail("Expected external compilation to exit");
     } catch (AssertionError e) {
-      verifyDump(dump, false, true);
-      return;
+      // Expected.
     }
-    fail("Expected external compilation to exit");
+    verifyDump(dump, false, true);
   }
 
   @Test
@@ -70,7 +95,7 @@ public class DumpInputsTest extends TestBase {
   }
 
   @Test
-  public void testDumpToDirectorySystemProperty() throws Exception {
+  public void testDumpToDirectoryOptionsModification() throws Exception {
     Path dumpDir = temp.newFolder().toPath();
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class)
@@ -78,14 +103,28 @@ public class DumpInputsTest extends TestBase {
         // Ensure the compilation and run can actually succeed.
         .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
         .addKeepMainRule(TestClass.class)
-        .addOptionsModification(options -> options.dumpInputToDirectory = dumpDir.toString())
+        .addOptionsModification(
+            options -> options.setDumpInputFlags(DumpInputFlags.dumpToDirectory(dumpDir)))
         .allowDiagnosticInfoMessages()
         .compile()
         .assertAllInfoMessagesMatch(containsString("Dumped compilation inputs to:"))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello, world");
+    verifyDumpDirectory(dumpDir, false, true);
+  }
 
-    verifyDumpDirectory(dumpDir, false, false);
+  @Test
+  public void testDumpToDirectorySystemProperty() throws Exception {
+    Path dumpDir = temp.newFolder().toPath();
+    testForExternalR8(parameters.getBackend(), parameters.getRuntime())
+        .addJvmFlag("-Dcom.android.tools.r8.dumpinputtodirectory=" + dumpDir.toString())
+        .addProgramClasses(TestClass.class)
+        // Setting a directory will allow compilation to continue.
+        // Ensure the compilation and run can actually succeed.
+        .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
+        .addKeepMainRule(TestClass.class)
+        .compile();
+    verifyDumpDirectory(dumpDir, false, true);
   }
 
   @Test
@@ -95,7 +134,6 @@ public class DumpInputsTest extends TestBase {
         .dumpInputToDirectory(dumpDir.toString())
         .addProgramClasses(TestClass.class)
         .compile();
-
     verifyDumpDirectory(dumpDir, false, false);
   }
 

@@ -14,6 +14,7 @@ import com.android.tools.r8.DiagnosticsMatcher;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.android.tools.r8.utils.DumpInputFlags;
 import com.android.tools.r8.utils.ZipUtils;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -58,7 +59,8 @@ public class DesugaredLibraryDumpInputsTest extends DesugaredLibraryTestBase {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
-        .addOptionsModification(options -> options.dumpInputToDirectory = dumpDir.toString())
+        .addOptionsModification(
+            options -> options.setDumpInputFlags(DumpInputFlags.dumpToDirectory(dumpDir)))
         .allowDiagnosticInfoMessages()
         .compile()
         .inspectDiagnosticMessages(

@@ -14,6 +14,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.DumpInputFlags;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils;
@@ -103,7 +104,8 @@ public class DumpMainDexInputsTest extends TestBase {
         .addMainDexListFiles(
             mainDexListForMainDexFile1AndMainDexFile2(), mainDexListForMainDexFile3())
         .addMainDexListClasses(MainDexClass1.class, MainDexClass2.class, TestClass.class)
-        .addOptionsModification(options -> options.dumpInputToDirectory = dumpDir.toString())
+        .addOptionsModification(
+            options -> options.setDumpInputFlags(DumpInputFlags.dumpToDirectory(dumpDir)))
         .compileWithExpectedDiagnostics(
             diagnostics ->
                 diagnostics
@@ -131,7 +133,8 @@ public class DumpMainDexInputsTest extends TestBase {
         .addInnerClasses(DumpMainDexInputsTest.class)
         .addMainDexRulesFiles(newMainDexRulesPath1(), newMainDexRulesPath2())
         .addMainDexKeepClassRules(MainDexClass1.class, MainDexClass2.class, TestClass.class)
-        .addOptionsModification(options -> options.dumpInputToDirectory = dumpDir.toString())
+        .addOptionsModification(
+            options -> options.setDumpInputFlags(DumpInputFlags.dumpToDirectory(dumpDir)))
         .compile()
         .assertAllInfoMessagesMatch(containsString("Dumped compilation inputs to:"))
         .run(parameters.getRuntime(), TestClass.class)
@@ -150,7 +153,8 @@ public class DumpMainDexInputsTest extends TestBase {
         .addInnerClasses(DumpMainDexInputsTest.class)
         .addMainDexRuleFiles(newMainDexRulesPath1(), newMainDexRulesPath2())
         .addMainDexKeepClassRules(MainDexClass1.class, MainDexClass2.class, TestClass.class)
-        .addOptionsModification(options -> options.dumpInputToDirectory = dumpDir.toString())
+        .addOptionsModification(
+            options -> options.setDumpInputFlags(DumpInputFlags.dumpToDirectory(dumpDir)))
         .addKeepAllClassesRule()
         .allowDiagnosticMessages()
         .compile()
