@@ -114,7 +114,9 @@ public class AndroidApiLevelUtils {
       LibraryDefinition definition,
       AndroidApiLevelCompute androidApiLevelCompute,
       InternalOptions options) {
-    assert options.apiModelingOptions().enableApiCallerIdentification;
+    if (!options.apiModelingOptions().enableApiCallerIdentification) {
+      return false;
+    }
     ComputedApiLevel apiLevel =
         androidApiLevelCompute.computeApiLevelForLibraryReference(
             definition.getReference(), ComputedApiLevel.unknown());

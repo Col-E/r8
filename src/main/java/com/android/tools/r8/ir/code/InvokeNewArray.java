@@ -183,14 +183,8 @@ public class InvokeNewArray extends Invoke {
 
     // Check if the type is guaranteed to be present.
     DexClass clazz = appView.definitionFor(baseType);
-    if (clazz == null) {
+    if (clazz == null || !clazz.isResolvable(appView)) {
       return true;
-    }
-
-    if (clazz.isLibraryClass()) {
-      if (!appView.dexItemFactory().libraryTypesAssumedToBePresent.contains(baseType)) {
-        return true;
-      }
     }
 
     // Check if the type is guaranteed to be accessible.

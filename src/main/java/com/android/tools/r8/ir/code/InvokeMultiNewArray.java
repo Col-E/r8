@@ -140,12 +140,7 @@ public class InvokeMultiNewArray extends Invoke {
 
     // Check if the type is guaranteed to be present.
     DexClass clazz = appView.definitionFor(baseType);
-    if (clazz == null) {
-      return true;
-    }
-
-    if (clazz.isLibraryClass()
-        && !appView.dexItemFactory().libraryTypesAssumedToBePresent.contains(baseType)) {
+    if (clazz == null || !clazz.isResolvable(appView)) {
       return true;
     }
 

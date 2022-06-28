@@ -170,12 +170,7 @@ public class NewInstance extends Instruction {
     }
 
     DexClass definition = appView.definitionFor(clazz);
-    if (definition == null || definition.accessFlags.isAbstract()) {
-      return true;
-    }
-
-    if (definition.isLibraryClass()
-        && !dexItemFactory.libraryTypesAssumedToBePresent.contains(clazz)) {
+    if (definition == null || definition.isAbstract() || !definition.isResolvable(appView)) {
       return true;
     }
 
