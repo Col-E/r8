@@ -27,7 +27,6 @@ import com.android.tools.r8.ir.optimize.MemberPoolCollection.MemberPool;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.optimize.PublicizerLens.PublicizedLensBuilder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.KeepFieldInfo;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.OptionalBool;
@@ -134,17 +133,17 @@ public final class AccessModifier {
   }
 
   private void processField(ProgramField field) {
-    finalizeField(field);
-    publicizeField(field);
+    if (appView.appInfo().isAccessModificationAllowed(field)) {
+      finalizeField(field);
+      publicizeField(field);
+    }
   }
 
   private void finalizeField(ProgramField field) {
     FieldAccessFlags flags = field.getAccessFlags();
     FieldAccessInfo accessInfo =
         appView.appInfo().getFieldAccessInfoCollection().get(field.getReference());
-    KeepFieldInfo keepInfo = appView.getKeepInfo(field);
-    if (keepInfo.isAccessModificationAllowed(options)
-        && !keepInfo.isPinned(options)
+    if (!appView.getKeepInfo(field).isPinned(options)
         && !accessInfo.hasReflectiveWrite()
         && !accessInfo.isWrittenFromMethodHandle()
         && accessInfo.isWrittenOnlyInMethodSatisfying(
@@ -159,17 +158,9 @@ public final class AccessModifier {
 
   private void publicizeField(ProgramField field) {
     FieldAccessFlags flags = field.getAccessFlags();
-    if (flags.isPublic()) {
-      return;
+    if (!flags.isPublic()) {
+      flags.promoteToPublic();
     }
-    if (!appView.appInfo().isAccessModificationAllowed(field)) {
-      // TODO(b/131130038): Also do not publicize package-private and protected fields that
-      //  are kept.
-      if (flags.isPrivate()) {
-        return;
-      }
-    }
-    flags.promoteToPublic();
   }
 
   private boolean publicizeMethod(ProgramMethod method) {

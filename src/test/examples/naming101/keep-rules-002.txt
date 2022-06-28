@@ -6,10 +6,10 @@
 
 -repackageclasses 'naming101.a'
 
--keep public class **.a {
+-keep,allowaccessmodification public class **.a {
   *;
 }
 
--keep,allowobfuscation class * {
+-keep,allowaccessmodification,allowobfuscation class * {
   *;
 }

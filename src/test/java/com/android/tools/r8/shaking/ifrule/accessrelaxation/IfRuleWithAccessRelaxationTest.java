@@ -41,7 +41,9 @@ public class IfRuleWithAccessRelaxationTest extends TestBase {
             .addInnerClasses(IfRuleWithAccessRelaxationTest.class)
             .addKeepMainRule(TestClass.class)
             .addKeepRules(
-                "-keep class " + TestClass.class.getTypeName() + " { int field; }",
+                "-keep,allowaccessmodification class " + TestClass.class.getTypeName() + " {",
+                "  int field;",
+                "}",
                 "-if class " + TestClass.class.getTypeName() + " { protected int field; }",
                 "-keep class " + Unused1.class.getTypeName(),
                 "-if class " + TestClass.class.getTypeName() + " {",

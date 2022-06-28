@@ -6,6 +6,6 @@
 
 -flattenpackagehierarchy 'p44.y'
 
--keep,allowobfuscation class * {
+-keep,allowaccessmodification,allowobfuscation class * {
   *;
 }

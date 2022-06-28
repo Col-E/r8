@@ -6,6 +6,6 @@
 
 -repackageclasses 'p44.x'
 
--keep,allowobfuscation class * {
+-keep,allowaccessmodification,allowobfuscation class * {
   *;
 }

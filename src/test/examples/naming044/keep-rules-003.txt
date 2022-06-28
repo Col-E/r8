@@ -6,6 +6,6 @@
 
 -flattenpackagehierarchy ''
 
--keep,allowobfuscation class * {
+-keep,allowaccessmodification,allowobfuscation class * {
   *;
 }

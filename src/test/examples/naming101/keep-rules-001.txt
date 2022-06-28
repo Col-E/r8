@@ -6,6 +6,6 @@
 
 -repackageclasses ''
 
--keep,allowobfuscation class * {
+-keep,allowaccessmodification,allowobfuscation class * {
   *;
 }
