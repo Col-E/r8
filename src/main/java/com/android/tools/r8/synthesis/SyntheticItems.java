@@ -937,25 +937,6 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return globalSynthetic;
   }
 
-  // TODO(b/230445931): Remove this once possible.
-  @Deprecated
-  public DexProgramClass legacyEnsureGlobalClass(
-      Supplier<MissingGlobalSyntheticsConsumerDiagnostic> diagnosticSupplier,
-      SyntheticKindSelector kindSelector,
-      DexType globalType,
-      AppView<?> appView,
-      Consumer<SyntheticProgramClassBuilder> fn,
-      Consumer<DexProgramClass> onCreationConsumer) {
-    SyntheticKind kind = kindSelector.select(naming);
-    assert kind.isGlobal();
-    if (appView.options().intermediate && !appView.options().hasGlobalSyntheticsConsumer()) {
-      appView.reporter().fatalError(diagnosticSupplier.get());
-    }
-    // A global type is its own context.
-    SynthesizingContext outerContext = SynthesizingContext.fromType(globalType);
-    return internalEnsureFixedProgramClass(kind, fn, onCreationConsumer, outerContext, appView);
-  }
-
   /** Create a single synthetic method item. */
   public ProgramMethod createMethod(
       SyntheticKindSelector kindSelector,

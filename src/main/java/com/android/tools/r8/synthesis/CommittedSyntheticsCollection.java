@@ -300,9 +300,10 @@ class CommittedSyntheticsCollection {
         builder.addSyntheticInput(syntheticInput);
       }
     }
-    // Global synthetic contexts are only collected for per-file modes which should never
-    // prune items.
-    assert globalContexts.isEmpty();
+    // Global synthetic contexts are only collected for per-file modes which only prune synthetic
+    // items, not inputs.
+    assert globalContexts.isEmpty()
+        || prunedItems.getNoLongerSyntheticItems().size() == prunedItems.getRemovedClasses().size();
     return changed ? builder.build() : this;
   }
 

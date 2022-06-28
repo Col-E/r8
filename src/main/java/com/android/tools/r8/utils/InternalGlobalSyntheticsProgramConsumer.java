@@ -209,14 +209,12 @@ public abstract class InternalGlobalSyntheticsProgramConsumer
         // is not applied to SyntheticItems in AppView.
         Set<DexType> contexts = globalsToContexts.get(globalType);
         // TODO(b/231598779): Contexts should never be null once fixed for records.
-        assert (contexts == null) == (globalType == appView.dexItemFactory().recordTagType);
-        if (contexts != null) {
-          assert !contexts.isEmpty();
-          for (DexType contextType : contexts) {
-            contextToGlobals
-                .computeIfAbsent(contextType, k -> SetUtils.newIdentityHashSet())
-                .add(globalType);
-          }
+        assert contexts != null;
+        assert !contexts.isEmpty();
+        for (DexType contextType : contexts) {
+          contextToGlobals
+              .computeIfAbsent(contextType, k -> SetUtils.newIdentityHashSet())
+              .add(globalType);
         }
       }
       contextToGlobals.forEach(

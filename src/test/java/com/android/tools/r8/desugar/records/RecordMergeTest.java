@@ -10,10 +10,10 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8TestCompileResult;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -23,6 +23,7 @@ import com.android.tools.r8.synthesis.globals.GlobalSyntheticsTestingConsumer;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Path;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -73,15 +74,25 @@ public class RecordMergeTest extends TestBase {
 
   @Test
   public void testMergeDesugaredInputs() throws Exception {
-    // TODO(b/231598779): Records do not yet have contexts so per-file modes fail.
-    //  This test should be extended or duplicated to also test the pre-file-dex modes.
-    assumeTrue("b/230445931", parameters.isDexRuntime());
+    testMergeDesugaredInputsDexPerClass(false);
+  }
+
+  @Test
+  public void testMergeDesugaredInputsDexPerClass() throws Exception {
+    Assume.assumeTrue("CF is already run from the other test", parameters.isDexRuntime());
+    testMergeDesugaredInputsDexPerClass(true);
+  }
+
+  private void testMergeDesugaredInputsDexPerClass(boolean filePerClass) throws Exception {
     GlobalSyntheticsTestingConsumer globals1 = new GlobalSyntheticsTestingConsumer();
     Path output1 =
         testForD8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA_1)
             .setMinApi(parameters.getApiLevel())
             .setIntermediate(true)
+            .applyIf(
+                filePerClass && !parameters.isCfRuntime(),
+                b -> b.setOutputMode(OutputMode.DexFilePerClassFile))
             .apply(b -> b.getBuilder().setGlobalSyntheticsConsumer(globals1))
             .compile()
             .inspect(this::assertDoesNotHaveRecordTag)
@@ -93,6 +104,9 @@ public class RecordMergeTest extends TestBase {
             .addProgramClassFileData(PROGRAM_DATA_2)
             .setMinApi(parameters.getApiLevel())
             .setIntermediate(true)
+            .applyIf(
+                filePerClass && !parameters.isCfRuntime(),
+                b -> b.setOutputMode(OutputMode.DexFilePerClassFile))
             .apply(b -> b.getBuilder().setGlobalSyntheticsConsumer(globals2))
             .compile()
             .inspect(this::assertDoesNotHaveRecordTag)
@@ -107,8 +121,8 @@ public class RecordMergeTest extends TestBase {
             .apply(
                 b ->
                     b.getBuilder()
-                        .addGlobalSyntheticsResourceProviders(
-                            globals1.getIndexedModeProvider(), globals2.getIndexedModeProvider()))
+                        .addGlobalSyntheticsResourceProviders(globals1.getProviders())
+                        .addGlobalSyntheticsResourceProviders(globals2.getProviders()))
             .setMinApi(parameters.getApiLevel())
             .compile()
             .inspect(this::assertHasRecordTag);

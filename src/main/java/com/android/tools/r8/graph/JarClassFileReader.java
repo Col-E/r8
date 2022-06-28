@@ -533,7 +533,7 @@ public class JarClassFileReader<T extends DexClass> {
       if (!accessFlags.isRecord()) {
         return;
       }
-      application.setHasReadRecordReferenceFromProgramClass();
+      application.addRecordWitness(type, classKind);
       // TODO(b/169645628): Change this logic if we start stripping the record components.
       // Another approach would be to mark a bit in fields that are record components instead.
       String message = "Records are expected to have one record component per instance field.";
@@ -680,7 +680,7 @@ public class JarClassFileReader<T extends DexClass> {
     public void visitEnd() {
       FieldAccessFlags flags = createFieldAccessFlags(access);
       DexField dexField = parent.application.getField(parent.type, name, desc);
-      parent.application.checkFieldForRecord(dexField);
+      parent.application.checkFieldForRecord(dexField, parent.classKind);
       Wrapper<DexField> signature = FieldSignatureEquivalence.get().wrap(dexField);
       if (parent.fieldSignatures.add(signature)) {
         DexAnnotationSet annotationSet =
@@ -898,7 +898,7 @@ public class JarClassFileReader<T extends DexClass> {
     @Override
     public void visitEnd() {
       InternalOptions options = parent.application.options;
-      parent.application.checkMethodForRecord(method);
+      parent.application.checkMethodForRecord(method, parent.classKind);
       if (!flags.isAbstract() && !flags.isNative() && classRequiresCode()) {
         code = new LazyCfCode(parent.origin, parent.context, parent.application);
       }

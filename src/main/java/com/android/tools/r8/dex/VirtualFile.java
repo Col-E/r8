@@ -78,7 +78,7 @@ public class VirtualFile {
   private final IndexedItemTransaction transaction;
   private final FeatureSplit featureSplit;
 
-  private final DexProgramClass primaryClass;
+  private final DexString primaryClassDescriptor;
   private DebugRepresentation debugRepresentation;
 
   VirtualFile(int id, AppView<?> appView) {
@@ -107,7 +107,10 @@ public class VirtualFile {
     this.id = id;
     this.indexedItems = new VirtualFileIndexedItemCollection(appView);
     this.transaction = new IndexedItemTransaction(indexedItems, appView);
-    this.primaryClass = primaryClass;
+    this.primaryClassDescriptor =
+        primaryClass == null
+            ? null
+            : appView.getNamingLens().lookupClassDescriptor(primaryClass.type);
     this.featureSplit = featureSplit;
   }
 
@@ -129,7 +132,7 @@ public class VirtualFile {
   }
 
   public String getPrimaryClassDescriptor() {
-    return primaryClass == null ? null : primaryClass.type.descriptor.toString();
+    return primaryClassDescriptor == null ? null : primaryClassDescriptor.toString();
   }
 
   public void setDebugRepresentation(DebugRepresentation debugRepresentation) {

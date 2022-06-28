@@ -26,6 +26,7 @@ import com.android.tools.r8.errors.MissingGlobalSyntheticsConsumerDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.DexApplicationReadFlags;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -35,6 +36,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaring;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
@@ -125,7 +127,7 @@ public class RecordDesugaring
       ProgramMethod programMethod, CfInstructionDesugaringEventConsumer eventConsumer) {
     CfCode cfCode = programMethod.getDefinition().getCode().asCfCode();
     for (CfInstruction instruction : cfCode.getInstructions()) {
-      scanInstruction(instruction, eventConsumer);
+      scanInstruction(instruction, eventConsumer, programMethod);
     }
   }
 
@@ -134,26 +136,28 @@ public class RecordDesugaring
   // does not rewrite any instruction, and desugarInstruction is expected to rewrite at least one
   // instruction for assertions to be valid.
   private void scanInstruction(
-      CfInstruction instruction, CfInstructionDesugaringEventConsumer eventConsumer) {
+      CfInstruction instruction,
+      CfInstructionDesugaringEventConsumer eventConsumer,
+      ProgramMethod context) {
     assert !instruction.isInitClass();
     if (instruction.isInvoke()) {
       CfInvoke cfInvoke = instruction.asInvoke();
       if (refersToRecord(cfInvoke.getMethod(), factory)) {
-        ensureRecordClass(eventConsumer);
+        ensureRecordClass(eventConsumer, context);
       }
       return;
     }
     if (instruction.isFieldInstruction()) {
       CfFieldInstruction fieldInstruction = instruction.asFieldInstruction();
       if (refersToRecord(fieldInstruction.getField(), factory)) {
-        ensureRecordClass(eventConsumer);
+        ensureRecordClass(eventConsumer, context);
       }
       return;
     }
     if (instruction.isTypeInstruction()) {
       CfTypeInstruction typeInstruction = instruction.asTypeInstruction();
       if (refersToRecord(typeInstruction.getType(), factory)) {
-        ensureRecordClass(eventConsumer);
+        ensureRecordClass(eventConsumer, context);
       }
       return;
     }
@@ -369,21 +373,36 @@ public class RecordDesugaring
     return false;
   }
 
-  private void ensureRecordClass(RecordDesugaringEventConsumer eventConsumer) {
+  /**
+   * If java.lang.Record is referenced from a class' supertype or a program method/field signature,
+   * then the global synthetic is generated upfront of the compilation to avoid confusing D8/R8.
+   *
+   * <p>However, if java.lang.Record is referenced only from an instruction, for example, the code
+   * contains "x instance of java.lang.Record" but no record type is present, then the global
+   * synthetic is generated during instruction desugaring scanning.
+   */
+  private void ensureRecordClass(
+      RecordDesugaringEventConsumer eventConsumer, Collection<ProgramDefinition> contexts) {
     DexItemFactory factory = appView.dexItemFactory();
     checkRecordTagNotPresent(factory);
     appView
         .getSyntheticItems()
-        .legacyEnsureGlobalClass(
+        .ensureGlobalClass(
             () -> new MissingGlobalSyntheticsConsumerDiagnostic("Record desugaring"),
             kinds -> kinds.RECORD_TAG,
             factory.recordType,
+            contexts,
             appView,
             builder -> {
               DexEncodedMethod init = synthesizeRecordInitMethod();
               builder.setAbstract().setDirectMethods(ImmutableList.of(init));
             },
             eventConsumer::acceptRecordClass);
+  }
+
+  private void ensureRecordClass(
+      RecordDesugaringEventConsumer eventConsumer, ProgramDefinition context) {
+    ensureRecordClass(eventConsumer, ImmutableList.of(context));
   }
 
   private void checkRecordTagNotPresent(DexItemFactory factory) {
@@ -483,8 +502,16 @@ public class RecordDesugaring
   public void synthesizeClasses(
       ClassSynthesisDesugaringContext processingContext,
       CfClassSynthesizerDesugaringEventConsumer eventConsumer) {
-    if (appView.appInfo().app().getFlags().hasReadRecordReferenceFromProgramClass()) {
-      ensureRecordClass(eventConsumer);
+    DexApplicationReadFlags flags = appView.appInfo().app().getFlags();
+    if (flags.hasReadRecordReferenceFromProgramClass()) {
+      List<ProgramDefinition> classes = new ArrayList<>();
+      for (DexType recordWitness : flags.getRecordWitnesses()) {
+        DexClass dexClass = appView.contextIndependentDefinitionFor(recordWitness);
+        assert dexClass != null;
+        assert dexClass.isProgramClass();
+        classes.add(dexClass.asProgramClass());
+      }
+      ensureRecordClass(eventConsumer, classes);
     }
   }
 

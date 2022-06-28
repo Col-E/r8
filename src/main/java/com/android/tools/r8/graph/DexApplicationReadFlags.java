@@ -3,21 +3,23 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import java.util.Set;
+
 // Flags set based on the application when it was read.
 // Note that in r8, once classes are pruned, the flags may not reflect the application anymore.
 public class DexApplicationReadFlags {
 
   private final boolean hasReadProgramClassFromDex;
   private final boolean hasReadProgramClassFromCf;
-  private final boolean hasReadRecordReferenceFromProgramClass;
+  private final Set<DexType> recordWitnesses;
 
   public DexApplicationReadFlags(
       boolean hasReadProgramClassFromDex,
       boolean hasReadProgramClassFromCf,
-      boolean hasReadRecordReferenceFromProgramClass) {
+      Set<DexType> recordWitnesses) {
     this.hasReadProgramClassFromDex = hasReadProgramClassFromDex;
     this.hasReadProgramClassFromCf = hasReadProgramClassFromCf;
-    this.hasReadRecordReferenceFromProgramClass = hasReadRecordReferenceFromProgramClass;
+    this.recordWitnesses = recordWitnesses;
   }
 
   public boolean hasReadProgramClassFromCf() {
@@ -29,6 +31,10 @@ public class DexApplicationReadFlags {
   }
 
   public boolean hasReadRecordReferenceFromProgramClass() {
-    return hasReadRecordReferenceFromProgramClass;
+    return !recordWitnesses.isEmpty();
+  }
+
+  public Set<DexType> getRecordWitnesses() {
+    return recordWitnesses;
   }
 }

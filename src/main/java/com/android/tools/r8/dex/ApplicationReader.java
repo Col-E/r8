@@ -334,7 +334,7 @@ public class ApplicationReader {
       return new DexApplicationReadFlags(
           hasReadProgramResourceFromDex,
           hasReadProgramResourceFromCf,
-          application.hasReadRecordReferenceFromProgramClass());
+          application.getRecordWitnesses());
     }
 
     private void readDexSources(List<ProgramResource> dexSources, Queue<DexProgramClass> classes)

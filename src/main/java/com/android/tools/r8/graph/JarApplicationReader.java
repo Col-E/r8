@@ -7,7 +7,9 @@ import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.ir.desugar.records.RecordDesugaring;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.Sets;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.objectweb.asm.Type;
 
@@ -25,6 +27,7 @@ public class JarApplicationReader {
   private final ConcurrentHashMap<String, Type> asmTypeCache = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, DexString> stringCache = new ConcurrentHashMap<>();
   private final ApplicationReaderMap applicationReaderMap;
+  private final Set<DexType> recordWitnesses = Sets.newConcurrentHashSet();
 
   private boolean hasReadRecordReferenceFromProgramClass = false;
 
@@ -152,24 +155,26 @@ public class JarApplicationReader {
     return getAsmType(DescriptorUtils.getReturnTypeDescriptor(methodDescriptor));
   }
 
-  public void setHasReadRecordReferenceFromProgramClass() {
-    hasReadRecordReferenceFromProgramClass = true;
-  }
-
-  public boolean hasReadRecordReferenceFromProgramClass() {
-    return hasReadRecordReferenceFromProgramClass;
-  }
-
-  public void checkFieldForRecord(DexField dexField) {
-    if (options.shouldDesugarRecords() && RecordDesugaring.refersToRecord(dexField, getFactory())) {
-      setHasReadRecordReferenceFromProgramClass();
+  public void addRecordWitness(DexType witness, ClassKind<?> classKind) {
+    if (classKind == ClassKind.PROGRAM) {
+      recordWitnesses.add(witness);
     }
   }
 
-  public void checkMethodForRecord(DexMethod dexMethod) {
+  public Set<DexType> getRecordWitnesses() {
+    return recordWitnesses;
+  }
+
+  public void checkFieldForRecord(DexField dexField, ClassKind<?> classKind) {
+    if (options.shouldDesugarRecords() && RecordDesugaring.refersToRecord(dexField, getFactory())) {
+      addRecordWitness(dexField.getHolderType(), classKind);
+    }
+  }
+
+  public void checkMethodForRecord(DexMethod dexMethod, ClassKind<?> classKind) {
     if (options.shouldDesugarRecords()
         && RecordDesugaring.refersToRecord(dexMethod, getFactory())) {
-      setHasReadRecordReferenceFromProgramClass();
+      addRecordWitness(dexMethod.getHolderType(), classKind);
     }
   }
 }
