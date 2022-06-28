@@ -10,11 +10,12 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.FieldAccessFlags;
+import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MethodAccessFlags;
@@ -26,7 +27,8 @@ import com.android.tools.r8.ir.optimize.MemberPoolCollection.MemberPool;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.optimize.PublicizerLens.PublicizedLensBuilder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.KeepInfoCollection;
+import com.android.tools.r8.shaking.KeepFieldInfo;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Timing;
@@ -36,23 +38,23 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
-public final class ClassAndMemberPublicizer {
+public final class AccessModifier {
 
   private final DexApplication application;
   private final AppView<AppInfoWithLiveness> appView;
-  private final KeepInfoCollection keepInfo;
+  private final InternalOptions options;
   private final SubtypingInfo subtypingInfo;
   private final MethodPoolCollection methodPoolCollection;
 
   private final PublicizedLensBuilder lensBuilder = PublicizerLens.createBuilder();
 
-  private ClassAndMemberPublicizer(
+  private AccessModifier(
       DexApplication application,
       AppView<AppInfoWithLiveness> appView,
       SubtypingInfo subtypingInfo) {
     this.application = application;
     this.appView = appView;
-    this.keepInfo = appView.appInfo().getKeepInfo();
+    this.options = appView.options();
     this.subtypingInfo = subtypingInfo;
     this.methodPoolCollection =
         // We will add private instance methods when we promote them.
@@ -73,8 +75,7 @@ public final class ClassAndMemberPublicizer {
       AppView<AppInfoWithLiveness> appView,
       SubtypingInfo subtypingInfo)
       throws ExecutionException {
-    return new ClassAndMemberPublicizer(application, appView, subtypingInfo)
-        .run(executorService, timing);
+    return new AccessModifier(application, appView, subtypingInfo).run(executorService, timing);
   }
 
   private GraphLens run(ExecutorService executorService, Timing timing) throws ExecutionException {
@@ -83,8 +84,8 @@ public final class ClassAndMemberPublicizer {
 
     // Phase 2: Visit classes and promote class/member to public if possible.
     timing.begin("Phase 2: promoteToPublic");
-    appView.appInfo().forEachReachableInterface(clazz -> publicizeType(clazz.getType()));
-    publicizeType(appView.dexItemFactory().objectType);
+    appView.appInfo().forEachReachableInterface(clazz -> processType(clazz.getType()));
+    processType(appView.dexItemFactory().objectType);
     timing.end();
 
     return lensBuilder.build(appView);
@@ -94,21 +95,21 @@ public final class ClassAndMemberPublicizer {
     definition.getAccessFlags().promoteToPublic();
   }
 
-  private void publicizeType(DexType type) {
+  private void processType(DexType type) {
     DexProgramClass clazz = asProgramClassOrNull(application.definitionFor(type));
     if (clazz != null) {
-      publicizeClass(clazz);
+      processClass(clazz);
     }
-    subtypingInfo.forAllImmediateExtendsSubtypes(type, this::publicizeType);
+    subtypingInfo.forAllImmediateExtendsSubtypes(type, this::processType);
   }
 
-  private void publicizeClass(DexProgramClass clazz) {
+  private void processClass(DexProgramClass clazz) {
     if (appView.appInfo().isAccessModificationAllowed(clazz)) {
       doPublicize(clazz);
     }
 
     // Publicize fields.
-    clazz.forEachProgramField(this::publicizeField);
+    clazz.forEachProgramField(this::processField);
 
     // Publicize methods.
     Set<DexEncodedMethod> privateInstanceMethods = new LinkedHashSet<>();
@@ -132,19 +133,43 @@ public final class ClassAndMemberPublicizer {
     }
   }
 
+  private void processField(ProgramField field) {
+    finalizeField(field);
+    publicizeField(field);
+  }
+
+  private void finalizeField(ProgramField field) {
+    FieldAccessFlags flags = field.getAccessFlags();
+    FieldAccessInfo accessInfo =
+        appView.appInfo().getFieldAccessInfoCollection().get(field.getReference());
+    KeepFieldInfo keepInfo = appView.getKeepInfo(field);
+    if (keepInfo.isAccessModificationAllowed(options)
+        && !keepInfo.isPinned(options)
+        && !accessInfo.hasReflectiveWrite()
+        && !accessInfo.isWrittenFromMethodHandle()
+        && accessInfo.isWrittenOnlyInMethodSatisfying(
+            method ->
+                method.getDefinition().isInitializer(flags.isStatic())
+                    && method.getHolder() == field.getHolder())
+        && !flags.isFinal()
+        && !flags.isVolatile()) {
+      flags.promoteToFinal();
+    }
+  }
+
   private void publicizeField(ProgramField field) {
-    DexEncodedField definition = field.getDefinition();
-    if (definition.isPublic()) {
+    FieldAccessFlags flags = field.getAccessFlags();
+    if (flags.isPublic()) {
       return;
     }
     if (!appView.appInfo().isAccessModificationAllowed(field)) {
       // TODO(b/131130038): Also do not publicize package-private and protected fields that
       //  are kept.
-      if (definition.isPrivate()) {
+      if (flags.isPrivate()) {
         return;
       }
     }
-    doPublicize(field);
+    flags.promoteToPublic();
   }
 
   private boolean publicizeMethod(ProgramMethod method) {
