@@ -40,6 +40,9 @@ class Repo(object):
 
 def ParseOptions(argv):
   result = optparse.OptionParser()
+  result.add_option('--bypass-hooks',
+                    help='Bypass presubmit hooks',
+                    action='store_true')
   result.add_option('--delete', '-d',
                     help='Delete closed branches',
                     choices=['y', 'n', 'ask'],
@@ -103,7 +106,7 @@ def main(argv):
 
       utils.RunCmd(['git', 'checkout', branch.name], quiet=True)
 
-      status = get_status_for_current_branch()
+      status = get_status_for_current_branch(branch)
       print('Syncing %s (status: %s)' % (branch.name, status))
 
       pull_for_current_branch(branch, options)
@@ -135,8 +138,10 @@ def main(argv):
               'Cannot upload branch %s since it comes after a local branch'
                   % branch.name)
         else:
-          utils.RunCmd(
-              ['git', 'cl', 'upload', '-m', options.message], quiet=True)
+          upload_cmd = ['git', 'cl', 'upload', '-m', options.message]
+          if options.bypass_hooks:
+            upload_cmd.append('--bypass-hooks')
+          utils.RunCmd(upload_cmd, quiet=True)
 
     if get_delete_branches_option(closed_branches, options):
       delete_branches(closed_branches)
@@ -169,11 +174,13 @@ def get_delete_branches_option(closed_branches, options):
   answer = sys.stdin.read(1)
   return answer.lower() == 'y'
 
-def get_status_for_current_branch():
+def get_status_for_current_branch(current_branch):
+  if current_branch.name == 'main':
+    return 'main'
   return utils.RunCmd(['git', 'cl', 'status', '--field', 'status'], quiet=True)[0].strip()
 
 def is_root_branch(branch, options):
-  return branch == options.from_branch or branch.upstream is None
+  return branch.name == options.from_branch or branch.upstream is None
 
 def pull_for_current_branch(branch, options):
   if branch.name == 'main' and options.skip_main:

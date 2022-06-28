@@ -209,6 +209,8 @@ class ProgressLogger(object):
     self._quiet = quiet
 
   def log(self, text):
+    if len(text.strip()) == 0:
+      return
     if self._quiet:
       if self._has_printed:
         sys.stdout.write(ProgressLogger.UP + ProgressLogger.CLEAR_LINE)
