@@ -118,7 +118,7 @@ public class DumpOptions {
     return builder.toString();
   }
 
-  private Map<String, String> getBuildProperties() {
+  public Map<String, String> getBuildProperties() {
     Map<String, String> buildProperties = new LinkedHashMap<>();
     addDumpEntry(buildProperties, TOOL_KEY, tool.name());
     // We keep the following values for backward compatibility.

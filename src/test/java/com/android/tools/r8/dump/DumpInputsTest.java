@@ -5,6 +5,7 @@ package com.android.tools.r8.dump;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -14,6 +15,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DumpInputFlags;
 import com.android.tools.r8.utils.ZipUtils;
@@ -77,6 +79,30 @@ public class DumpInputsTest extends TestBase {
       // Expected.
     }
     verifyDump(dump, false, true);
+  }
+
+  @Test
+  public void testDumpToFileSystemPropertyWhenMinifying() throws Exception {
+    for (boolean minification : BooleanUtils.values()) {
+      Path dump = temp.newFolder().toPath().resolve("dump.zip");
+      try {
+        testForExternalR8(parameters.getBackend(), parameters.getRuntime())
+            .addJvmFlag("-Dcom.android.tools.r8.dumpinputtofile=" + dump)
+            .addJvmFlag("-Dcom.android.tools.r8.dump.filter.buildproperty.minification=^true$")
+            .addProgramClasses(TestClass.class)
+            .applyIf(!minification, builder -> builder.addKeepRules("-dontobfuscate"))
+            .compile();
+        // Without minification there should be no dump, and thus compilation should succeed.
+        assertFalse(minification);
+      } catch (AssertionError e) {
+        assertTrue(minification);
+      }
+      if (minification) {
+        verifyDump(dump, false, true);
+      } else {
+        assertFalse(Files.exists(dump));
+      }
+    }
   }
 
   @Test
