@@ -14,8 +14,10 @@ import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -109,34 +111,45 @@ public class DumpOptions {
     this.dumpInputToFile = dumpInputToFile;
   }
 
-  public String dumpOptions() {
+  public String getBuildPropertiesFileContent() {
     StringBuilder builder = new StringBuilder();
-    addDumpEntry(builder, TOOL_KEY, tool.name());
+    getBuildProperties()
+        .forEach((key, value) -> builder.append(key).append("=").append(value).append("\n"));
+    return builder.toString();
+  }
+
+  private Map<String, String> getBuildProperties() {
+    Map<String, String> buildProperties = new LinkedHashMap<>();
+    addDumpEntry(buildProperties, TOOL_KEY, tool.name());
     // We keep the following values for backward compatibility.
     addDumpEntry(
-        builder,
+        buildProperties,
         MODE_KEY,
         compilationMode == CompilationMode.DEBUG ? DEBUG_MODE_VALUE : RELEASE_MODE_VALUE);
-    addDumpEntry(builder, MIN_API_KEY, minApi);
-    addDumpEntry(builder, OPTIMIZE_MULTIDEX_FOR_LINEAR_ALLOC_KEY, optimizeMultidexForLinearAlloc);
+    addDumpEntry(buildProperties, MIN_API_KEY, minApi);
+    addDumpEntry(
+        buildProperties, OPTIMIZE_MULTIDEX_FOR_LINEAR_ALLOC_KEY, optimizeMultidexForLinearAlloc);
     if (threadCount != ThreadUtils.NOT_SPECIFIED) {
-      addDumpEntry(builder, THREAD_COUNT_KEY, threadCount);
+      addDumpEntry(buildProperties, THREAD_COUNT_KEY, threadCount);
     }
-    addDumpEntry(builder, DESUGAR_STATE_KEY, desugarState);
-    addDumpEntry(builder, ENABLE_MISSING_LIBRARY_API_MODELING, enableMissingLibraryApiModeling);
+    addDumpEntry(buildProperties, DESUGAR_STATE_KEY, desugarState);
+    addDumpEntry(
+        buildProperties, ENABLE_MISSING_LIBRARY_API_MODELING, enableMissingLibraryApiModeling);
     if (isAndroidPlatformBuild) {
-      addDumpEntry(builder, ANDROID_PLATFORM_BUILD, isAndroidPlatformBuild);
+      addDumpEntry(buildProperties, ANDROID_PLATFORM_BUILD, isAndroidPlatformBuild);
     }
-    addOptionalDumpEntry(builder, INTERMEDIATE_KEY, intermediate);
-    addOptionalDumpEntry(builder, INCLUDE_DATA_RESOURCES_KEY, includeDataResources);
-    addOptionalDumpEntry(builder, TREE_SHAKING_KEY, treeShaking);
-    addOptionalDumpEntry(builder, MINIFICATION_KEY, minification);
-    addOptionalDumpEntry(builder, FORCE_PROGUARD_COMPATIBILITY_KEY, forceProguardCompatibility);
+    addOptionalDumpEntry(buildProperties, INTERMEDIATE_KEY, intermediate);
+    addOptionalDumpEntry(buildProperties, INCLUDE_DATA_RESOURCES_KEY, includeDataResources);
+    addOptionalDumpEntry(buildProperties, TREE_SHAKING_KEY, treeShaking);
+    addOptionalDumpEntry(buildProperties, MINIFICATION_KEY, minification);
+    addOptionalDumpEntry(
+        buildProperties, FORCE_PROGUARD_COMPATIBILITY_KEY, forceProguardCompatibility);
     ArrayList<String> sortedKeys = new ArrayList<>(systemProperties.keySet());
     sortedKeys.sort(String::compareTo);
     sortedKeys.forEach(
-        key -> addDumpEntry(builder, SYSTEM_PROPERTY_PREFIX + key, systemProperties.get(key)));
-    return builder.toString();
+        key ->
+            addDumpEntry(buildProperties, SYSTEM_PROPERTY_PREFIX + key, systemProperties.get(key)));
+    return buildProperties;
   }
 
   public static void parse(String content, DumpOptions.Builder builder) {
@@ -219,12 +232,13 @@ public class DumpOptions {
     return minApi;
   }
 
-  private void addOptionalDumpEntry(StringBuilder builder, String key, Optional<?> optionalValue) {
-    optionalValue.ifPresent(bool -> addDumpEntry(builder, key, bool));
+  private void addOptionalDumpEntry(
+      Map<String, String> buildProperties, String key, Optional<?> optionalValue) {
+    optionalValue.ifPresent(bool -> addDumpEntry(buildProperties, key, bool));
   }
 
-  private void addDumpEntry(StringBuilder builder, String key, Object value) {
-    builder.append(key).append("=").append(value).append("\n");
+  private void addDumpEntry(Map<String, String> buildProperties, String key, Object value) {
+    buildProperties.put(key, Objects.toString(value));
   }
 
   private boolean hasDesugaredLibraryConfiguration() {

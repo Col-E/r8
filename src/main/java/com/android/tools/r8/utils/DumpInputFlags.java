@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.dump.DumpOptions;
 import com.android.tools.r8.errors.Unreachable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -34,8 +35,8 @@ public abstract class DumpInputFlags {
       }
 
       @Override
-      public boolean isNoDump() {
-        return true;
+      public boolean shouldDump(DumpOptions options) {
+        return false;
       }
 
       @Override
@@ -54,6 +55,13 @@ public abstract class DumpInputFlags {
       }
 
       @Override
+      public boolean shouldDump(DumpOptions options) {
+        // TODO(b/236449152): Add support for dumping only with specific build properties (e.g.,
+        //  'tool=R8').
+        return true;
+      }
+
+      @Override
       public boolean shouldFailCompilation() {
         return true;
       }
@@ -69,6 +77,13 @@ public abstract class DumpInputFlags {
       }
 
       @Override
+      public boolean shouldDump(DumpOptions options) {
+        // TODO(b/236449152): Add support for dumping only with specific build properties (e.g.,
+        //  'tool=R8').
+        return true;
+      }
+
+      @Override
       public boolean shouldFailCompilation() {
         return false;
       }
@@ -77,9 +92,7 @@ public abstract class DumpInputFlags {
 
   public abstract Path getDumpPath();
 
-  public boolean isNoDump() {
-    return false;
-  }
+  public abstract boolean shouldDump(DumpOptions options);
 
   public abstract boolean shouldFailCompilation();
 }

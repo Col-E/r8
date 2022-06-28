@@ -16,6 +16,7 @@ import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.StringResource;
+import com.android.tools.r8.dump.DumpOptions;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.UnsupportedMainDexListUsageDiagnostic;
 import com.android.tools.r8.graph.ApplicationReaderMap;
@@ -182,12 +183,13 @@ public class ApplicationReader {
   }
 
   private void dumpApplication(DumpInputFlags dumpInputFlags) {
-    if (dumpInputFlags.isNoDump()) {
+    DumpOptions dumpOptions = options.dumpOptions;
+    if (dumpOptions == null || !dumpInputFlags.shouldDump(dumpOptions)) {
       return;
     }
     Path dumpOutput = dumpInputFlags.getDumpPath();
     timing.begin("ApplicationReader.dump");
-    inputApp.dump(dumpOutput, options.dumpOptions, options.reporter, options.dexItemFactory());
+    inputApp.dump(dumpOutput, dumpOptions, options.reporter, options.dexItemFactory());
     timing.end();
     Diagnostic message = new StringDiagnostic("Dumped compilation inputs to: " + dumpOutput);
     if (dumpInputFlags.shouldFailCompilation()) {

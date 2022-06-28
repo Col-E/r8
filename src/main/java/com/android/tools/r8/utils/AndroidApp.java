@@ -467,9 +467,6 @@ public class AndroidApp {
   }
 
   public void dump(Path output, DumpOptions options, Reporter reporter, DexItemFactory factory) {
-    if (options == null) {
-      return;
-    }
     int nextDexIndex = 0;
     OpenOption[] openOptions =
         new OpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING};
@@ -477,7 +474,10 @@ public class AndroidApp {
       writeToZipStream(
           out, dumpVersionFileName, Version.getVersionString().getBytes(), ZipEntry.DEFLATED);
       writeToZipStream(
-          out, dumpBuildPropertiesFileName, options.dumpOptions().getBytes(), ZipEntry.DEFLATED);
+          out,
+          dumpBuildPropertiesFileName,
+          options.getBuildPropertiesFileContent().getBytes(),
+          ZipEntry.DEFLATED);
       if (options.getDesugaredLibraryJsonSource() != null) {
         writeToZipStream(
             out,
