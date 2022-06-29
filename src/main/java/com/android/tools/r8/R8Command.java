@@ -118,6 +118,8 @@ public final class R8Command extends BaseCompilerCommand {
 
     private final ProguardConfigurationParserOptions.Builder parserOptionsBuilder =
         ProguardConfigurationParserOptions.builder().readEnvironment();
+    private final boolean allowDexInArchive =
+        System.getProperty("com.android.tools.r8.allowDexInputToR8") != null;
 
     // TODO(zerny): Consider refactoring CompatProguardCommandBuilder to avoid subclassing.
     Builder() {
@@ -126,17 +128,17 @@ public final class R8Command extends BaseCompilerCommand {
 
     Builder(DiagnosticsHandler diagnosticsHandler) {
       super(diagnosticsHandler);
-      setIgnoreDexInArchive(true);
+      setIgnoreDexInArchive(!allowDexInArchive);
     }
 
     private Builder(AndroidApp app) {
       super(app);
-      setIgnoreDexInArchive(true);
+      setIgnoreDexInArchive(!allowDexInArchive);
     }
 
     private Builder(AndroidApp app, DiagnosticsHandler diagnosticsHandler) {
       super(app, diagnosticsHandler);
-      setIgnoreDexInArchive(true);
+      setIgnoreDexInArchive(!allowDexInArchive);
     }
 
     // Internal
