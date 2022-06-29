@@ -351,13 +351,13 @@ public abstract class DexInstruction implements CfOrDexInstruction, StructuralIt
     return opcodeDiff != 0 ? opcodeDiff : internalAcceptCompareTo(other, visitor);
   }
 
+  abstract void internalAcceptHashing(HashingVisitor visitor);
+
   @Override
   public final void acceptHashing(HashingVisitor visitor) {
-    // Rather than traverse the full instruction, the compare ID will likely give a reasonable hash.
-    // TODO(b/158159959): This will likely lead to a lot of distinct synthetics hashing to the same
-    //  hash as many have the same instruction pattern such as an invoke of the impl method or a
-    //  field access.
     visitor.visitInt(getCompareToId());
+    visitor.visitInt(getOffset());
+    internalAcceptHashing(visitor);
   }
 
   public abstract String getName();

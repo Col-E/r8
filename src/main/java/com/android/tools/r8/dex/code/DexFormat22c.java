@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.function.BiPredicate;
 
@@ -46,6 +47,13 @@ public abstract class DexFormat22c<T extends DexReference> extends DexBase2Forma
   @Override
   final int internalAcceptCompareTo(DexInstruction other, CompareToVisitor visitor) {
     return visitor.visit(this, (DexFormat22c<? extends DexReference>) other, DexFormat22c::specify);
+  }
+
+  @Override
+  void internalAcceptHashing(HashingVisitor visitor) {
+    visitor.visit(
+        this,
+        (StructuralSpecification<DexFormat22c<? extends DexReference>, ?> spec) -> specify(spec));
   }
 
   @Override

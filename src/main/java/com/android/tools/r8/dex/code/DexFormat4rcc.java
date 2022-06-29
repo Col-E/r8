@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.nio.ShortBuffer;
 import java.util.function.BiPredicate;
@@ -78,6 +79,11 @@ public abstract class DexFormat4rcc extends DexBase4Format {
   @Override
   final int internalAcceptCompareTo(DexInstruction other, CompareToVisitor visitor) {
     return visitor.visit(this, (DexFormat4rcc) other, DexFormat4rcc::specify);
+  }
+
+  @Override
+  final void internalAcceptHashing(HashingVisitor visitor) {
+    visitor.visit(this, DexFormat4rcc::specify);
   }
 
   @Override

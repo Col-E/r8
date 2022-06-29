@@ -7,6 +7,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.function.BiPredicate;
@@ -73,6 +74,11 @@ public abstract class DexFormat35c<T extends IndexedDexItem & StructuralItem<T>>
   @Override
   final int internalAcceptCompareTo(DexInstruction other, CompareToVisitor visitor) {
     return visitor.visit(this, (DexFormat35c<T>) other, DexFormat35c::specify);
+  }
+
+  @Override
+  void internalAcceptHashing(HashingVisitor visitor) {
+    visitor.visit(this, DexFormat35c::specify);
   }
 
   private void appendRegisterArguments(StringBuilder builder, String separator) {

@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.nio.ShortBuffer;
 
@@ -92,6 +93,11 @@ public abstract class DexFormat45cc extends DexBase4Format {
   @Override
   final int internalAcceptCompareTo(DexInstruction other, CompareToVisitor visitor) {
     return visitor.visit(this, (DexFormat45cc) other, DexFormat45cc::specify);
+  }
+
+  @Override
+  final void internalAcceptHashing(HashingVisitor visitor) {
+    visitor.visit(this, DexFormat45cc::specify);
   }
 
   @Override

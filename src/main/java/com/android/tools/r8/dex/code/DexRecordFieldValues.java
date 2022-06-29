@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -74,8 +75,13 @@ public class DexRecordFieldValues extends DexInstruction {
   }
 
   @Override
-  int internalAcceptCompareTo(DexInstruction other, CompareToVisitor visitor) {
+  final int internalAcceptCompareTo(DexInstruction other, CompareToVisitor visitor) {
     return visitor.visit(this, (DexRecordFieldValues) other, DexRecordFieldValues::specify);
+  }
+
+  @Override
+  final void internalAcceptHashing(HashingVisitor visitor) {
+    visitor.visit(this, DexRecordFieldValues::specify);
   }
 
   private static void specify(StructuralSpecification<DexRecordFieldValues, ?> spec) {

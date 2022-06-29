@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import java.nio.ShortBuffer;
 
 abstract class DexFormat11x extends DexBase1Format {
@@ -47,6 +48,11 @@ abstract class DexFormat11x extends DexBase1Format {
   @Override
   final int internalAcceptCompareTo(DexInstruction other, CompareToVisitor visitor) {
     return visitor.visitInt(AA, ((DexFormat11x) other).AA);
+  }
+
+  @Override
+  final void internalAcceptHashing(HashingVisitor visitor) {
+    visitor.visitInt(AA);
   }
 
   @Override

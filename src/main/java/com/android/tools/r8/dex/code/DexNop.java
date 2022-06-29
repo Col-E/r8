@@ -5,6 +5,7 @@ package com.android.tools.r8.dex.code;
 
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 
 public class DexNop extends DexFormat10x {
 
@@ -35,6 +36,12 @@ public class DexNop extends DexFormat10x {
   @Override
   int internalAcceptCompareTo(DexInstruction other, CompareToVisitor visitor) {
     return DexCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
+  }
+
+  // Notice that this must be overridden by the "Nop" subtypes!
+  @Override
+  void internalAcceptHashing(HashingVisitor visitor) {
+    // Nothing to hash besides the compare-id.
   }
 
   // Notice that this must be overridden by the "Nop" subtypes!

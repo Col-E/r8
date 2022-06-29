@@ -7,6 +7,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.function.BiPredicate;
 
@@ -40,6 +41,12 @@ abstract class DexFormat21c<T extends IndexedDexItem> extends DexBase2Format {
         this,
         (DexFormat21c<T>) other,
         spec -> spec.withInt(i -> i.AA).withSpec(this::internalSubSpecify));
+  }
+
+  @Override
+  final void internalAcceptHashing(HashingVisitor visitor) {
+    visitor.visitInt(AA);
+    visitor.visit(this, this::internalSubSpecify);
   }
 
   abstract void internalSubSpecify(StructuralSpecification<DexFormat21c<T>, ?> spec);

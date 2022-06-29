@@ -5,6 +5,7 @@ package com.android.tools.r8.dex.code;
 
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 
 public class DexReturnVoid extends DexFormat10x {
 
@@ -36,6 +37,11 @@ public class DexReturnVoid extends DexFormat10x {
   @Override
   final int internalAcceptCompareTo(DexInstruction other, CompareToVisitor visitor) {
     return DexCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
+  }
+
+  @Override
+  final void internalAcceptHashing(HashingVisitor visitor) {
+    // Nothing to hash except the compare-id.
   }
 
   @Override
