@@ -78,7 +78,7 @@ public class FileApiFlips {
         } catch (ClassCastException cce) {
           throw exceptionOpenOption(cce);
         }
-        convertedSet.add(j$.nio.file.OpenOption.wrap_convert(option));
+        convertedSet.add(OpenOptionConversions.convert(option));
       }
       return convertedSet;
     }
@@ -90,7 +90,7 @@ public class FileApiFlips {
         } catch (ClassCastException cce) {
           throw exceptionOpenOption(cce);
         }
-        convertedSet.add(j$.nio.file.OpenOption.wrap_convert(option));
+        convertedSet.add(OpenOptionConversions.convert(option));
       }
       return convertedSet;
     }

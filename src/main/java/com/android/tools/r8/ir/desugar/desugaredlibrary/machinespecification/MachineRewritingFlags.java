@@ -10,12 +10,13 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -38,7 +39,7 @@ public class MachineRewritingFlags {
       Map<DexMethod, DexMethod> emulatedVirtualRetargetThroughEmulatedInterface,
       Map<DexMethod, DexMethod[]> apiGenericTypesConversion,
       Map<DexType, EmulatedInterfaceDescriptor> emulatedInterfaces,
-      LinkedHashMap<DexType, WrapperDescriptor> wrappers,
+      Map<DexType, List<DexMethod>> wrappers,
       Map<DexType, DexType> legacyBackport,
       Set<DexType> dontRetarget,
       Map<DexType, CustomConversionDescriptor> customConversions,
@@ -100,8 +101,8 @@ public class MachineRewritingFlags {
   // Emulated interface descriptors.
   private final Map<DexType, EmulatedInterfaceDescriptor> emulatedInterfaces;
 
-  // Wrapper descriptors.
-  private final LinkedHashMap<DexType, WrapperDescriptor> wrappers;
+  // Wrappers and the list of methods they implement.
+  private final Map<DexType, List<DexMethod>> wrappers;
 
   private final Map<DexType, DexType> legacyBackport;
   private final Set<DexType> dontRetarget;
@@ -159,7 +160,7 @@ public class MachineRewritingFlags {
     return emulatedInterfaces;
   }
 
-  public Map<DexType, WrapperDescriptor> getWrappers() {
+  public Map<DexType, List<DexMethod>> getWrappers() {
     return wrappers;
   }
 
@@ -248,7 +249,7 @@ public class MachineRewritingFlags {
         ImmutableMap.builder();
     private final ImmutableMap.Builder<DexType, EmulatedInterfaceDescriptor> emulatedInterfaces =
         ImmutableMap.builder();
-    private final LinkedHashMap<DexType, WrapperDescriptor> wrappers = new LinkedHashMap<>();
+    private final ImmutableMap.Builder<DexType, List<DexMethod>> wrappers = ImmutableMap.builder();
     private final ImmutableMap.Builder<DexType, DexType> legacyBackport = ImmutableMap.builder();
     private final ImmutableSet.Builder<DexType> dontRetarget = ImmutableSet.builder();
     private final ImmutableMap.Builder<DexType, CustomConversionDescriptor> customConversions =
@@ -307,8 +308,8 @@ public class MachineRewritingFlags {
       apiGenericTypesConversion.put(method, conversions);
     }
 
-    public void addWrapper(DexType type, WrapperDescriptor descriptor) {
-      this.wrappers.put(type, descriptor);
+    public void addWrapper(DexType wrapperConversion, List<DexMethod> methods) {
+      wrappers.put(wrapperConversion, ImmutableList.copyOf(methods));
     }
 
     public void putLegacyBackport(DexType src, DexType target) {
@@ -366,7 +367,7 @@ public class MachineRewritingFlags {
           emulatedVirtualRetargetThroughEmulatedInterface.build(),
           apiGenericTypesConversion.build(),
           emulatedInterfaces.build(),
-          wrappers,
+          wrappers.build(),
           legacyBackport.build(),
           dontRetarget.build(),
           customConversions.build(),

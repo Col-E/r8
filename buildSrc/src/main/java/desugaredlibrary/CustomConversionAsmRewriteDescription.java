@@ -17,6 +17,8 @@ public class CustomConversionAsmRewriteDescription {
 
   private static final Set<String> ENUM_WRAP_CONVERT_OWNER =
       ImmutableSet.of(
+          "j$/nio/file/StandardOpenOption",
+          "j$/nio/file/LinkOption",
           "j$/nio/file/attribute/PosixFilePermission",
           "j$/util/stream/Collector$Characteristics");
   private static final Set<String> WRAP_CONVERT_OWNER =
@@ -25,14 +27,18 @@ public class CustomConversionAsmRewriteDescription {
           "j$/nio/file/spi/FileTypeDetector",
           "j$/nio/file/Path",
           "j$/nio/file/WatchEvent",
-          "j$/nio/file/OpenOption");
+          "j$/nio/file/attribute/BasicFileAttributes",
+          "j$/nio/file/attribute/BasicFileAttributeView",
+          "j$/nio/file/attribute/FileOwnerAttributeView",
+          "j$/nio/file/attribute/PosixFileAttributes",
+          "j$/nio/file/attribute/PosixFileAttributeView");
 
   static Map<String, String> getJavaWrapConvertOwnerMap() {
-    return computeConvertOwnerMap("$Wrapper");
+    return computeConvertOwnerMap("$VivifiedWrapper");
   }
 
   static Map<String, String> getJ$WrapConvertOwnerMap() {
-    return computeConvertOwnerMap("$VivifiedWrapper");
+    return computeConvertOwnerMap("$Wrapper");
   }
 
   private static HashMap<String, String> computeConvertOwnerMap(String suffix) {

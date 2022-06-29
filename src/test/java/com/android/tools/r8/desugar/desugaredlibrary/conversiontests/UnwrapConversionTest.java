@@ -14,12 +14,9 @@ import com.android.tools.r8.desugar.desugaredlibrary.test.CustomLibrarySpecifica
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.DoubleConsumer;
 import java.util.function.IntConsumer;
-import java.util.stream.BaseStream;
-import java.util.stream.IntStream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -33,7 +30,7 @@ public class UnwrapConversionTest extends DesugaredLibraryTestBase {
   private final CompilationSpecification compilationSpecification;
 
   private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.N;
-  private static final String EXPECTED_RESULT = StringUtils.lines("true", "true", "true", "true");
+  private static final String EXPECTED_RESULT = StringUtils.lines("true", "true");
 
   @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
@@ -67,22 +64,6 @@ public class UnwrapConversionTest extends DesugaredLibraryTestBase {
 
     @SuppressWarnings("all")
     public static void main(String[] args) {
-      consumerTest();
-      streamTest();
-    }
-
-    private static void streamTest() {
-      // Type wrapper.
-      IntStream intStream = Arrays.stream(new int[] {1});
-      BaseStream<?, ?> unwrapped = CustomLibClass.identity(intStream);
-      System.out.println(unwrapped == intStream);
-
-      // Vivified wrapper.
-      IntStream consumer = CustomLibClass.getStream();
-      System.out.println(CustomLibClass.testStream(consumer));
-    }
-
-    private static void consumerTest() {
       // Type wrapper.
       IntConsumer intConsumer = i -> {};
       IntConsumer unwrappedIntConsumer = CustomLibClass.identity(intConsumer);
@@ -113,22 +94,6 @@ public class UnwrapConversionTest extends DesugaredLibraryTestBase {
     @SuppressWarnings("WeakerAccess")
     public static boolean testConsumer(DoubleConsumer doubleConsumer) {
       return doubleConsumer == consumer;
-    }
-
-    private static IntStream intStream = Arrays.stream(new int[] {0});
-
-    @SuppressWarnings("WeakerAccess")
-    public static BaseStream<Integer, IntStream> identity(IntStream arg) {
-      return arg;
-    }
-
-    public static IntStream getStream() {
-      return intStream;
-    }
-
-    @SuppressWarnings("WeakerAccess")
-    public static boolean testStream(BaseStream<?, ?> stream) {
-      return stream == intStream;
     }
   }
 }

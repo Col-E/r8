@@ -5,8 +5,7 @@
 package j$.nio.file.spi;
 
 public class FileSystemProvider {
-  public static java.nio.file.spi.FileSystemProvider inverted_wrap_convert(
-      j$.nio.file.spi.FileSystemProvider provider) {
+  public static java.nio.file.spi.FileSystemProvider wrap_convert(FileSystemProvider provider) {
     // Rewritten in ASM to the wrapper method.
     return null;
   }
