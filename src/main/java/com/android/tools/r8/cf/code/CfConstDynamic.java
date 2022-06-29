@@ -14,10 +14,10 @@ import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.JarApplicationReader;
@@ -34,10 +34,11 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ListIterator;
 import org.objectweb.asm.ConstantDynamic;
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 
 public class CfConstDynamic extends CfInstruction implements CfTypeInstruction {
 
@@ -47,12 +48,12 @@ public class CfConstDynamic extends CfInstruction implements CfTypeInstruction {
       DexString name,
       DexType type,
       DexMethodHandle bootstrapMethod,
-      Object[] bootstrapMethodArguments) {
+      List<DexValue> bootstrapMethodArguments) {
     assert name != null;
     assert type != null;
     assert bootstrapMethod != null;
     assert bootstrapMethodArguments != null;
-    assert bootstrapMethodArguments.length == 0;
+    assert bootstrapMethodArguments.isEmpty();
 
     reference = new ConstantDynamicReference(name, type, bootstrapMethod, bootstrapMethodArguments);
   }
@@ -79,7 +80,7 @@ public class CfConstDynamic extends CfInstruction implements CfTypeInstruction {
     return reference.getBootstrapMethod();
   }
 
-  public Object[] getBootstrapMethodArguments() {
+  public List<DexValue> getBootstrapMethodArguments() {
     return reference.getBootstrapMethodArguments();
   }
 
@@ -87,53 +88,20 @@ public class CfConstDynamic extends CfInstruction implements CfTypeInstruction {
       ConstantDynamic insn, JarApplicationReader application, DexType clazz) {
     String constantName = insn.getName();
     String constantDescriptor = insn.getDescriptor();
-    // TODO(b/178172809): Handle bootstrap arguments.
-    if (insn.getBootstrapMethodArgumentCount() > 0) {
-      throw new CompilationError(
-          "Unsupported dynamic constant (has arguments to bootstrap method)");
-    }
-    if (insn.getBootstrapMethod().getTag() != Opcodes.H_INVOKESTATIC) {
-      throw new CompilationError("Unsupported dynamic constant (not invoke static)");
-    }
-    if (insn.getBootstrapMethod().getOwner().equals("java/lang/invoke/ConstantBootstraps")) {
-      throw new CompilationError(
-          "Unsupported dynamic constant (runtime provided bootstrap method)");
-    }
-    if (application.getTypeFromName(insn.getBootstrapMethod().getOwner()) != clazz) {
-      throw new CompilationError("Unsupported dynamic constant (different owner)");
-    }
-    // Resolve the bootstrap method.
     DexMethodHandle bootstrapMethodHandle =
         DexMethodHandle.fromAsmHandle(insn.getBootstrapMethod(), application, clazz);
-    if (!bootstrapMethodHandle.member.isDexMethod()) {
-      throw new CompilationError("Unsupported dynamic constant (invalid method handle)");
-    }
-    DexMethod bootstrapMethod = bootstrapMethodHandle.asMethod();
-    if (bootstrapMethod.getProto().returnType != application.getTypeFromDescriptor("[Z")
-        && bootstrapMethod.getProto().returnType
-            != application.getTypeFromDescriptor("Ljava/lang/Object;")) {
-      throw new CompilationError("Unsupported dynamic constant (unsupported constant type)");
-    }
-    if (bootstrapMethod.getProto().getParameters().size() != 3) {
-      throw new CompilationError("Unsupported dynamic constant (unsupported signature)");
-    }
-    if (bootstrapMethod.getProto().getParameters().get(0) != application.getFactory().lookupType) {
-      throw new CompilationError(
-          "Unsupported dynamic constant (unexpected type of first argument to bootstrap method");
-    }
-    if (bootstrapMethod.getProto().getParameters().get(1) != application.getFactory().stringType) {
-      throw new CompilationError(
-          "Unsupported dynamic constant (unexpected type of second argument to bootstrap method");
-    }
-    if (bootstrapMethod.getProto().getParameters().get(2) != application.getFactory().classType) {
-      throw new CompilationError(
-          "Unsupported dynamic constant (unexpected type of third argument to bootstrap method");
+    int argumentCount = insn.getBootstrapMethodArgumentCount();
+    List<DexValue> bootstrapMethodArguments = new ArrayList<>(argumentCount);
+    for (int i = 0; i < argumentCount; i++) {
+      Object argument = insn.getBootstrapMethodArgument(i);
+      DexValue dexValue = DexValue.fromAsmBootstrapArgument(argument, application, clazz);
+      bootstrapMethodArguments.add(dexValue);
     }
     return new CfConstDynamic(
         application.getString(constantName),
         application.getTypeFromDescriptor(constantDescriptor),
         bootstrapMethodHandle,
-        new Object[] {});
+        bootstrapMethodArguments);
   }
 
   @Override
@@ -186,8 +154,30 @@ public class CfConstDynamic extends CfInstruction implements CfTypeInstruction {
       NamingLens namingLens,
       LensCodeRewriterUtils rewriter,
       MethodVisitor visitor) {
-    // TODO(b/198142625): Support CONSTANT_Dynamic for R8 cf to cf.
-    throw new CompilationError("Unsupported dynamic constant (not desugaring)");
+    DexMethodHandle rewrittenHandle =
+        rewriter.rewriteDexMethodHandle(
+            reference.getBootstrapMethod(), NOT_ARGUMENT_TO_LAMBDA_METAFACTORY, context);
+    List<DexValue> rewrittenArguments =
+        rewriter.rewriteBootstrapArguments(
+            reference.getBootstrapMethodArguments(), NOT_ARGUMENT_TO_LAMBDA_METAFACTORY, context);
+    Object[] bsmArgs = new Object[rewrittenArguments.size()];
+    for (int i = 0; i < rewrittenArguments.size(); i++) {
+      bsmArgs[i] = CfInvokeDynamic.decodeBootstrapArgument(rewrittenArguments.get(i), namingLens);
+    }
+    ConstantDynamic constantDynamic =
+        new ConstantDynamic(
+            reference.getName().toString(),
+            getConstantTypeDescriptor(graphLens, namingLens, dexItemFactory),
+            rewrittenHandle.toAsmHandle(namingLens),
+            bsmArgs);
+    visitor.visitLdcInsn(constantDynamic);
+  }
+
+  private String getConstantTypeDescriptor(
+      GraphLens graphLens, NamingLens namingLens, DexItemFactory factory) {
+    DexType rewrittenType = graphLens.lookupType(reference.getType());
+    DexType renamedType = namingLens.lookupType(rewrittenType, factory);
+    return renamedType.toDescriptorString();
   }
 
   @Override
@@ -212,7 +202,7 @@ public class CfConstDynamic extends CfInstruction implements CfTypeInstruction {
     registry.registerTypeReference(reference.getType());
     registry.registerMethodHandle(
         reference.getBootstrapMethod(), NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
-    assert reference.getBootstrapMethodArguments().length == 0;
+    assert reference.getBootstrapMethodArguments().isEmpty();
   }
 
   @Override

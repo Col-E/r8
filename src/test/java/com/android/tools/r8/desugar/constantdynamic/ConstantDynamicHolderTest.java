@@ -4,16 +4,23 @@
 
 package com.android.tools.r8.desugar.constantdynamic;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 import static org.objectweb.asm.Opcodes.H_INVOKESTATIC;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.DiagnosticsLevel;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.errors.ConstantDynamicDesugarDiagnostic;
+import com.android.tools.r8.errors.UnsupportedConstDynamicDiagnostic;
+import com.android.tools.r8.errors.UnsupportedFeatureDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.io.IOException;
 import org.junit.Test;
@@ -37,7 +44,7 @@ public class ConstantDynamicHolderTest extends TestBase {
   @Test
   public void testReference() throws Exception {
     assumeTrue(parameters.isCfRuntime());
-    assumeTrue(parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK11));
+    assumeTrue(parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK11));
     assumeTrue(parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
 
     testForJvm()
@@ -46,33 +53,70 @@ public class ConstantDynamicHolderTest extends TestBase {
         .assertSuccessWithOutputLines("null");
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
 
     testForD8()
         .addProgramClassFileData(getTransformedMain())
         .setMinApi(parameters.getApiLevel())
+        .setDiagnosticsLevelModifier(
+            (level, diagnostic) ->
+                (diagnostic instanceof UnsupportedFeatureDiagnostic
+                        || diagnostic instanceof ConstantDynamicDesugarDiagnostic)
+                    ? DiagnosticsLevel.WARNING
+                    : level)
         .compileWithExpectedDiagnostics(
             diagnostics ->
-                diagnostics.assertErrorMessageThatMatches(
-                    containsString(
-                        "Unsupported dynamic constant (runtime provided bootstrap method)")));
+                diagnostics.assertWarningsMatch(
+                    diagnosticType(UnsupportedConstDynamicDiagnostic.class),
+                    allOf(
+                        diagnosticType(ConstantDynamicDesugarDiagnostic.class),
+                        diagnosticMessage(
+                            containsString(
+                                "Unsupported dynamic constant (runtime provided bootstrap"
+                                    + " method)")))))
+        .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatThrows(RuntimeException.class)
+        .assertFailureWithErrorThatMatches(containsString("const-dynamic"));
   }
 
+  // TODO(b/198142625): Support const-dynamic in IR CF/CF.
   @Test(expected = CompilationFailedException.class)
-  public void testR8() throws Exception {
-    assumeTrue(parameters.isDexRuntime() || parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
+  public void testR8Cf() throws Exception {
+    assumeTrue(parameters.isCfRuntime());
+    assumeTrue(parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK11));
+    assumeTrue(parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
 
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getTransformedMain())
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
+        .compile();
+  }
+
+  @Test
+  public void testR8() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(getTransformedMain())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Main.class)
+        .allowDiagnosticWarningMessages()
+        .mapUnsupportedFeaturesToWarnings()
         .compileWithExpectedDiagnostics(
-            diagnostics ->
-                diagnostics.assertErrorMessageThatMatches(
-                    containsString(
-                        "Unsupported dynamic constant (runtime provided bootstrap method)")));
+            diagnostics -> {
+              if (parameters.isDexRuntime()) {
+                diagnostics.assertWarningsMatch(
+                    allOf(
+                        diagnosticType(UnsupportedFeatureDiagnostic.class),
+                        diagnosticMessage(containsString("const-dynamic"))));
+              }
+            })
+        .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatThrows(RuntimeException.class)
+        .assertFailureWithErrorThatMatches(containsString("const-dynamic"));
   }
 
   private byte[] getTransformedMain() throws IOException {

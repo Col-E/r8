@@ -1818,6 +1818,10 @@ public class TestBase {
     return AndroidApiLevel.O;
   }
 
+  public static AndroidApiLevel apiLevelWithInvokePolymorphicSupport() {
+    return AndroidApiLevel.O;
+  }
+
   public static AndroidApiLevel apiLevelWithConstMethodHandleSupport() {
     return AndroidApiLevel.P;
   }

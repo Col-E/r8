@@ -1,8 +1,8 @@
-// Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.cf;
+package com.android.tools.r8.cf.methodhandles;
 
 import com.android.tools.r8.NoVerticalClassMerging;
 import java.lang.invoke.MethodHandle;
@@ -15,13 +15,6 @@ public class MethodHandleTest {
     public C(int i) {
       System.out.println("C " + i);
     }
-
-    public C() {
-      System.out.println("C");
-    }
-
-    public int vi;
-    public static int si;
 
     public static void svi(int i) {
       System.out.println("svi " + i);
@@ -60,20 +53,6 @@ public class MethodHandleTest {
     }
   }
 
-  public static class D extends C {
-    public static MethodHandle vcviSpecialMethod() {
-      try {
-        return MethodHandles.lookup().findSpecial(C.class, "vvi", viType(), D.class);
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    public void vvi(int i) {
-      // Overridden to output nothing.
-    }
-  }
-
   public static class E {
     // Class that is only mentioned in parameter list of LDC(MethodType)-instruction.
   }
@@ -84,7 +63,6 @@ public class MethodHandleTest {
 
   @NoVerticalClassMerging
   public interface I {
-    int ii = 42;
 
     static void svi(int i) {
       System.out.println("svi " + i);
@@ -128,7 +106,6 @@ public class MethodHandleTest {
   public static void main(String[] args) {
     // When MethodHandleTestRunner invokes this program with the JVM, "fail" is passed as arg.
     // When invoked with Art, no arg is passed since interface fields may be modified on Art.
-    String expectedResult = args[0];
     C c = new C(42);
     I i = new Impl();
     try {
@@ -148,33 +125,6 @@ public class MethodHandleTest {
       assertEquals(42L, (long) dijiMethod().invoke(i, 14));
       divicMethod().invoke(i, 15, 'x');
       assertEquals(42L, (long) dijicMethod().invoke(i, 16, 'x'));
-      vciSetField().invoke(c, 17);
-      assertEquals(17, (int) vciGetField().invoke(c));
-      sciSetField().invoke(18);
-      assertEquals(18, (int) sciGetField().invoke());
-      String interfaceSetResult;
-      try {
-        iiSetField().invoke(19);
-        interfaceSetResult = "pass";
-      } catch (RuntimeException e) {
-        if (e.getCause() instanceof IllegalAccessException) {
-          interfaceSetResult = "exception";
-        } else {
-          throw e;
-        }
-      } catch (IllegalAccessError e) {
-        interfaceSetResult = "error";
-      }
-      if (!interfaceSetResult.equals(expectedResult)) {
-        throw new RuntimeException(
-            "Wrong outcome of iiSetField().invoke(): Expected "
-                + expectedResult
-                + " but got "
-                + interfaceSetResult);
-      }
-      assertEquals(interfaceSetResult.equals("pass") ? 19 : 42, (int) iiGetField().invoke());
-      MethodHandle methodHandle = D.vcviSpecialMethod();
-      methodHandle.invoke(new D(), 20);
       constructorMethod().invoke(21);
       System.out.println(veType().parameterType(0).getName().lastIndexOf('.'));
       System.out.println(fType().returnType().getName().lastIndexOf('.'));
@@ -184,12 +134,6 @@ public class MethodHandleTest {
   }
 
   private static void assertEquals(long l, long x) {
-    if (l != x) {
-      throw new AssertionError("Not equal: " + l + " != " + x);
-    }
-  }
-
-  private static void assertEquals(int l, int x) {
     if (l != x) {
       throw new AssertionError("Not equal: " + l + " != " + x);
     }
@@ -342,54 +286,6 @@ public class MethodHandleTest {
   public static MethodHandle dijicMethod() {
     try {
       return MethodHandles.lookup().findVirtual(I.class, "djic", jicType());
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public static MethodHandle vciSetField() {
-    try {
-      return MethodHandles.lookup().findSetter(C.class, "vi", int.class);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public static MethodHandle sciSetField() {
-    try {
-      return MethodHandles.lookup().findStaticSetter(C.class, "si", int.class);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public static MethodHandle vciGetField() {
-    try {
-      return MethodHandles.lookup().findGetter(C.class, "vi", int.class);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public static MethodHandle sciGetField() {
-    try {
-      return MethodHandles.lookup().findStaticGetter(C.class, "si", int.class);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public static MethodHandle iiSetField() {
-    try {
-      return MethodHandles.lookup().findStaticSetter(I.class, "ii", int.class);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public static MethodHandle iiGetField() {
-    try {
-      return MethodHandles.lookup().findStaticGetter(I.class, "ii", int.class);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

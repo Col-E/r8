@@ -509,10 +509,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean shouldKeepStackMapTable() {
-    assert isCfDesugaring() || isRelocatorCompilation() || getProguardConfiguration() != null;
-    return isCfDesugaring()
-        || isRelocatorCompilation()
-        || getProguardConfiguration().getKeepAttributes().stackMapTable;
+    assert isRelocatorCompilation() || getProguardConfiguration() != null;
+    return isRelocatorCompilation() || getProguardConfiguration().getKeepAttributes().stackMapTable;
   }
 
   public boolean shouldRerunEnqueuer() {
@@ -2070,28 +2068,76 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return CfVersion.V1_5;
   }
 
-  public boolean canUseInvokePolymorphicOnVarHandle() {
-    return hasFeaturePresentFrom(AndroidApiLevel.P);
+  public static AndroidApiLevel invokePolymorphicOnMethodHandleApiLevel() {
+    return AndroidApiLevel.O;
   }
 
-  public boolean canUseInvokePolymorphic() {
-    return hasFeaturePresentFrom(AndroidApiLevel.O);
+  public boolean canUseInvokePolymorphicOnMethodHandle() {
+    return hasFeaturePresentFrom(invokePolymorphicOnMethodHandleApiLevel());
+  }
+
+  public static AndroidApiLevel invokePolymorphicOnVarHandleApiLevel() {
+    return AndroidApiLevel.P;
+  }
+
+  public boolean canUseInvokePolymorphicOnVarHandle() {
+    return hasFeaturePresentFrom(invokePolymorphicOnMethodHandleApiLevel());
+  }
+
+  public static AndroidApiLevel constantMethodHandleApiLevel() {
+    return AndroidApiLevel.P;
   }
 
   public boolean canUseConstantMethodHandle() {
-    return hasFeaturePresentFrom(AndroidApiLevel.P);
+    return hasFeaturePresentFrom(constantMethodHandleApiLevel());
+  }
+
+  public static AndroidApiLevel constantMethodTypeApiLevel() {
+    return AndroidApiLevel.P;
   }
 
   public boolean canUseConstantMethodType() {
-    return hasFeaturePresentFrom(AndroidApiLevel.P);
+    return hasFeaturePresentFrom(constantMethodTypeApiLevel());
+  }
+
+  public static AndroidApiLevel invokeCustomApiLevel() {
+    return AndroidApiLevel.O;
   }
 
   public boolean canUseInvokeCustom() {
-    return hasFeaturePresentFrom(AndroidApiLevel.O);
+    return hasFeaturePresentFrom(invokeCustomApiLevel());
+  }
+
+  public static AndroidApiLevel constantDynamicApiLevel() {
+    return null;
+  }
+
+  public boolean canUseConstantDynamic() {
+    return hasFeaturePresentFrom(constantDynamicApiLevel());
+  }
+
+  public static AndroidApiLevel defaultAndStaticInterfaceMethodsApiLevel() {
+    return AndroidApiLevel.N;
+  }
+
+  public static AndroidApiLevel defaultInterfaceMethodsApiLevel() {
+    return defaultAndStaticInterfaceMethodsApiLevel();
+  }
+
+  public static AndroidApiLevel staticInterfaceMethodsApiLevel() {
+    return defaultAndStaticInterfaceMethodsApiLevel();
   }
 
   public boolean canUseDefaultAndStaticInterfaceMethods() {
-    return hasFeaturePresentFrom(AndroidApiLevel.N);
+    return hasFeaturePresentFrom(defaultInterfaceMethodsApiLevel());
+  }
+
+  public static AndroidApiLevel privateInterfaceMethodsApiLevel() {
+    return AndroidApiLevel.N;
+  }
+
+  public boolean canUsePrivateInterfaceMethods() {
+    return hasFeaturePresentFrom(privateInterfaceMethodsApiLevel());
   }
 
   public boolean canUseNestBasedAccess() {
@@ -2135,10 +2181,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         return desugarState.isOn() && !canUseTwrCloseResourceMethod();
     }
     throw new Unreachable();
-  }
-
-  public boolean canUsePrivateInterfaceMethods() {
-    return hasFeaturePresentFrom(AndroidApiLevel.N);
   }
 
   // Debug entries may be dropped only if the source file content allows being omitted from

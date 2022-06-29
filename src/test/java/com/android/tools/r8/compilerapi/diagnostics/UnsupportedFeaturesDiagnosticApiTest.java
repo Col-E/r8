@@ -10,10 +10,19 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.compilerapi.CompilerApiTest;
 import com.android.tools.r8.compilerapi.CompilerApiTestRunner;
-import com.android.tools.r8.errors.InvokeCustomDiagnostic;
+import com.android.tools.r8.errors.UnsupportedConstDynamicDiagnostic;
+import com.android.tools.r8.errors.UnsupportedConstMethodHandleDiagnostic;
+import com.android.tools.r8.errors.UnsupportedConstMethodTypeDiagnostic;
+import com.android.tools.r8.errors.UnsupportedDefaultInterfaceMethodDiagnostic;
 import com.android.tools.r8.errors.UnsupportedFeatureDiagnostic;
+import com.android.tools.r8.errors.UnsupportedInvokeCustomDiagnostic;
+import com.android.tools.r8.errors.UnsupportedInvokePolymorphicMethodHandleDiagnostic;
+import com.android.tools.r8.errors.UnsupportedInvokePolymorphicVarHandleDiagnostic;
+import com.android.tools.r8.errors.UnsupportedPrivateInterfaceMethodDiagnostic;
+import com.android.tools.r8.errors.UnsupportedStaticInterfaceMethodDiagnostic;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import org.junit.Test;
 
@@ -30,12 +39,29 @@ public class UnsupportedFeaturesDiagnosticApiTest extends CompilerApiTestRunner 
 
   @Test
   public void test() throws Exception {
+    check(UnsupportedDefaultInterfaceMethodDiagnostic::new, "default-interface-method", 24);
+    check(UnsupportedStaticInterfaceMethodDiagnostic::new, "static-interface-method", 24);
+    check(UnsupportedPrivateInterfaceMethodDiagnostic::new, "private-interface-method", 24);
+    check(UnsupportedInvokeCustomDiagnostic::new, "invoke-custom", 26);
+    check(
+        UnsupportedInvokePolymorphicMethodHandleDiagnostic::new,
+        "invoke-polymorphic-method-handle",
+        26);
+    check(
+        UnsupportedInvokePolymorphicVarHandleDiagnostic::new, "invoke-polymorphic-var-handle", 28);
+    check(UnsupportedConstMethodHandleDiagnostic::new, "const-method-handle", 28);
+    check(UnsupportedConstMethodTypeDiagnostic::new, "const-method-type", 28);
+    check(UnsupportedConstDynamicDiagnostic::new, "const-dynamic", -1);
+  }
+
+  public void check(
+      BiFunction<Origin, Position, UnsupportedFeatureDiagnostic> makeFn,
+      String descriptor,
+      int level) {
     ApiTest test = new ApiTest(ApiTest.PARAMETERS);
     test.run(
-        new InvokeCustomDiagnostic(Origin.unknown(), Position.UNKNOWN),
-        result -> {
-          assertEquals("invoke-custom @ 26", result);
-        });
+        makeFn.apply(Origin.unknown(), Position.UNKNOWN),
+        result -> assertEquals(descriptor + " @ " + level, result));
   }
 
   public static class ApiTest extends CompilerApiTest {
@@ -49,7 +75,16 @@ public class UnsupportedFeaturesDiagnosticApiTest extends CompilerApiTestRunner 
           new DiagnosticsHandler() {
             @Override
             public void warning(Diagnostic warning) {
-              if (warning instanceof UnsupportedFeatureDiagnostic) {
+              if (warning instanceof UnsupportedConstDynamicDiagnostic
+                  || warning instanceof UnsupportedConstMethodHandleDiagnostic
+                  || warning instanceof UnsupportedConstMethodTypeDiagnostic
+                  || warning instanceof UnsupportedDefaultInterfaceMethodDiagnostic
+                  || warning instanceof UnsupportedInvokeCustomDiagnostic
+                  || warning instanceof UnsupportedInvokePolymorphicMethodHandleDiagnostic
+                  || warning instanceof UnsupportedInvokePolymorphicVarHandleDiagnostic
+                  || warning instanceof UnsupportedPrivateInterfaceMethodDiagnostic
+                  || warning instanceof UnsupportedStaticInterfaceMethodDiagnostic
+                  || warning instanceof UnsupportedFeatureDiagnostic) {
                 UnsupportedFeatureDiagnostic unsupportedFeature =
                     (UnsupportedFeatureDiagnostic) warning;
                 String featureDescriptor = unsupportedFeature.getFeatureDescriptor();

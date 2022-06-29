@@ -228,14 +228,6 @@ public abstract class RunExamplesAndroidPTest<
         .run();
   }
 
-  @Test
-  public void invokeCustomErrorDueToMinSdk() throws Throwable {
-    test("invokecustom-error-due-to-min-sdk", "invokecustom", "InvokeCustom")
-        .withMinApiLevel(AndroidApiLevel.O.getLevel())
-        .withKeepAll()
-        .run();
-  }
-
   abstract RunExamplesAndroidPTest<B>.TestRunner<?> test(String testName, String packageName,
       String mainClass);
 

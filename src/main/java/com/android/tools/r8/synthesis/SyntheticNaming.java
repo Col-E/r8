@@ -75,6 +75,7 @@ public class SyntheticNaming {
   public final SyntheticKind THROW_IAE = generator.forSingleMethod("ThrowIAE");
   public final SyntheticKind THROW_ICCE = generator.forSingleMethod("ThrowICCE");
   public final SyntheticKind THROW_NSME = generator.forSingleMethod("ThrowNSME");
+  public final SyntheticKind THROW_RTE = generator.forSingleMethod("ThrowRTE");
   public final SyntheticKind TWR_CLOSE_RESOURCE = generator.forSingleMethod("TwrCloseResource");
   public final SyntheticKind SERVICE_LOADER = generator.forSingleMethod("ServiceLoad");
   public final SyntheticKind OUTLINE = generator.forSingleMethod("Outline");

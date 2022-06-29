@@ -422,11 +422,13 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
       parameterLabel.write(
           appView, method, dexItemFactory, graphLens, initClassLens, namingLens, rewriter, visitor);
     }
+    boolean discardFrames =
+        classFileVersion.isLessThan(CfVersion.V1_6)
+            || (appView.enableWholeProgramOptimizations()
+                && classFileVersion.isEqualTo(CfVersion.V1_6)
+                && !options.shouldKeepStackMapTable());
     for (CfInstruction instruction : instructions) {
-      if (instruction instanceof CfFrame
-          && (classFileVersion.isLessThan(CfVersion.V1_6)
-              || (classFileVersion.isEqualTo(CfVersion.V1_6)
-                  && !options.shouldKeepStackMapTable()))) {
+      if (discardFrames && instruction instanceof CfFrame) {
         continue;
       }
       instruction.write(

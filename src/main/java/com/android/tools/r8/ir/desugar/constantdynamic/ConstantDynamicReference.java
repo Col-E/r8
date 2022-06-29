@@ -6,20 +6,22 @@ package com.android.tools.r8.ir.desugar.constantdynamic;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexValue;
+import java.util.List;
 import java.util.Objects;
 
 public class ConstantDynamicReference {
   private final DexString name;
   private final DexType type;
   private final DexMethodHandle bootstrapMethod;
-  private final Object[] bootstrapMethodArguments;
+  private final List<DexValue> bootstrapMethodArguments;
 
   public ConstantDynamicReference(
       DexString name,
       DexType type,
       DexMethodHandle bootstrapMethod,
-      Object[] bootstrapMethodArguments) {
-    assert bootstrapMethodArguments.length == 0;
+      List<DexValue> bootstrapMethodArguments) {
+    assert bootstrapMethodArguments.isEmpty();
     this.name = name;
     this.type = type;
     this.bootstrapMethod = bootstrapMethod;
@@ -38,7 +40,7 @@ public class ConstantDynamicReference {
     return bootstrapMethod;
   }
 
-  public Object[] getBootstrapMethodArguments() {
+  public List<DexValue> getBootstrapMethodArguments() {
     return bootstrapMethodArguments;
   }
 

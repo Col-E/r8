@@ -17,12 +17,8 @@ import static com.android.tools.r8.ir.analysis.type.TypeElement.getWide;
 
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.ConstMethodHandleDiagnostic;
-import com.android.tools.r8.errors.ConstMethodTypeDiagnostic;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
-import com.android.tools.r8.errors.InvokePolymorphicMethodHandleDiagnostic;
-import com.android.tools.r8.errors.InvokePolymorphicVarHandleDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
@@ -481,6 +477,14 @@ public class IRBuilder {
     this.prototypeChanges = prototypeChanges;
     this.valueNumberGenerator = valueNumberGenerator;
     this.basicBlockNumberGenerator = new NumberGenerator();
+  }
+
+  private Origin getOrigin() {
+    return origin;
+  }
+
+  private MethodPosition getPosition() {
+    return MethodPosition.create(method);
   }
 
   public DexItemFactory dexItemFactory() {
@@ -1226,11 +1230,7 @@ public class IRBuilder {
   }
 
   public void addConstMethodHandle(int dest, DexMethodHandle methodHandle) {
-    if (!appView.options().canUseConstantMethodHandle()) {
-      throw appView
-          .reporter()
-          .fatalError(new ConstMethodHandleDiagnostic(origin, MethodPosition.create(method)));
-    }
+    assert appView.options().canUseConstantMethodHandle();
     TypeElement typeLattice =
         TypeElement.fromDexType(
             appView.dexItemFactory().methodHandleType, definitelyNotNull(), appView);
@@ -1240,11 +1240,7 @@ public class IRBuilder {
   }
 
   public void addConstMethodType(int dest, DexProto methodType) {
-    if (!appView.options().canUseConstantMethodType()) {
-      throw appView
-          .reporter()
-          .fatalError(new ConstMethodTypeDiagnostic(origin, MethodPosition.create(method)));
-    }
+    assert appView.options().canUseConstantMethodType();
     TypeElement typeLattice =
         TypeElement.fromDexType(
             appView.dexItemFactory().methodTypeType, definitelyNotNull(), appView);
@@ -1502,23 +1498,23 @@ public class IRBuilder {
     add(new RecordFieldValues(fields, out, arguments));
   }
 
+  private boolean verifyRepresentablePolymorphicInvoke(Type type, DexItem item) {
+    if (type != Type.POLYMORPHIC) {
+      return true;
+    }
+    assert item instanceof DexMethod;
+    if (((DexMethod) item).holder == appView.dexItemFactory().methodHandleType) {
+      assert appView.options().canUseInvokePolymorphicOnMethodHandle();
+    }
+    if (((DexMethod) item).holder == appView.dexItemFactory().varHandleType) {
+      assert appView.options().canUseInvokePolymorphicOnVarHandle();
+    }
+    return true;
+  }
+
   public void addInvoke(
       Type type, DexItem item, DexProto callSiteProto, List<Value> arguments, boolean itf) {
-    if (type == Type.POLYMORPHIC) {
-      assert item instanceof DexMethod;
-      if (!appView.options().canUseInvokePolymorphic()) {
-        throw appView
-            .reporter()
-            .fatalError(
-                new InvokePolymorphicMethodHandleDiagnostic(origin, MethodPosition.create(method)));
-      } else if (!appView.options().canUseInvokePolymorphicOnVarHandle()
-          && ((DexMethod) item).holder == appView.dexItemFactory().varHandleType) {
-        throw appView
-            .reporter()
-            .fatalError(
-                new InvokePolymorphicVarHandleDiagnostic(origin, MethodPosition.create(method)));
-      }
-    }
+    assert verifyRepresentablePolymorphicInvoke(type, item);
     add(Invoke.create(type, item, callSiteProto, null, arguments, itf));
   }
 

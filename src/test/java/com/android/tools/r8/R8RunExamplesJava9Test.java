@@ -56,16 +56,4 @@ public class R8RunExamplesJava9Test extends RunExamplesJava9Test<R8Command.Build
   R8TestRunner test(String testName, String packageName, String mainClass) {
     return new R8TestRunner(testName, packageName, mainClass);
   }
-
-  @Test
-  public void varHandle() throws Throwable {
-    test("varhandle", "varhandle", "VarHandleTests")
-        .withBuilderTransformation(
-            builder ->
-                builder.addProguardConfiguration(
-                    ImmutableList.of("-dontwarn java.lang.invoke.VarHandle"), Origin.unknown()))
-        .withMinApiLevel(AndroidApiLevel.P.getLevel())
-        .withKeepAll()
-        .run();
-  }
 }

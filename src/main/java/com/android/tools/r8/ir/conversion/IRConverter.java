@@ -544,7 +544,8 @@ public class IRConverter {
     if (options.testing.forceIRForCfToCfDesugar) {
       return true;
     }
-    return !options.isCfDesugaring();
+    assert method.getDefinition().getCode().isCfCode();
+    return !options.isGeneratingClassFiles();
   }
 
   private void checkPrefixMerging(ProgramMethod method) {

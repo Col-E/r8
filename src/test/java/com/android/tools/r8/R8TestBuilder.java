@@ -82,8 +82,12 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
       builder.addProguardConfiguration(keepRules, Origin.unknown());
     }
     builder.addMainDexRulesFiles(mainDexRulesFiles);
-    builder.setDisableTreeShaking(!enableTreeShaking);
-    builder.setDisableMinification(!enableMinification);
+    if (enableTreeShaking.isFalse()) {
+      builder.setDisableTreeShaking(true);
+    }
+    if (enableMinification.isFalse()) {
+      builder.setDisableMinification(true);
+    }
     StringBuilder proguardMapBuilder = new StringBuilder();
     if (createDefaultProguardMapConsumer) {
       builder.setProguardMapConsumer(

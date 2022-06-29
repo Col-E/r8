@@ -7,16 +7,20 @@ package com.android.tools.r8.ir.desugar.constantdynamic;
 import com.android.tools.r8.cf.code.CfConstDynamic;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
+import com.android.tools.r8.errors.ConstantDynamicDesugarDiagnostic;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.DesugarDescription;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
+import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.utils.Box;
 import java.util.Collection;
 import java.util.HashMap;
@@ -33,9 +37,90 @@ public class ConstantDynamicInstructionDesugaring implements CfInstructionDesuga
     this.appView = appView;
   }
 
+  private DesugarDescription report(String message, ProgramMethod context) {
+    return DesugarDescription.builder()
+        .addScanEffect(
+            () ->
+                appView
+                    .reporter()
+                    .error(
+                        new ConstantDynamicDesugarDiagnostic(
+                            context.getOrigin(), MethodPosition.create(context), message)))
+        .build();
+  }
+
+  private DesugarDescription computeDesugaring(CfInstruction instruction, ProgramMethod context) {
+    if (!instruction.isConstDynamic()) {
+      return DesugarDescription.nothing();
+    }
+    CfConstDynamic constDynamic = instruction.asConstDynamic();
+    if (!constDynamic.getBootstrapMethodArguments().isEmpty()) {
+      // TODO(b/178172809): Handle bootstrap arguments.
+      return report("Unsupported dynamic constant (has arguments to bootstrap method)", context);
+    }
+    if (!constDynamic.getBootstrapMethod().type.isInvokeStatic()) {
+      return report("Unsupported dynamic constant (not invoke static)", context);
+    }
+    DexItemFactory factory = appView.dexItemFactory();
+    DexMethod bootstrapMethod = constDynamic.getBootstrapMethod().asMethod();
+    DexType holder = bootstrapMethod.getHolderType();
+    if (holder == factory.constantBootstrapsType) {
+      return report("Unsupported dynamic constant (runtime provided bootstrap method)", context);
+    }
+    if (holder != context.getHolderType()) {
+      return report("Unsupported dynamic constant (different owner)", context);
+    }
+    if (bootstrapMethod.getProto().returnType != factory.booleanArrayType
+        && bootstrapMethod.getProto().returnType != factory.objectType) {
+      return report("Unsupported dynamic constant (unsupported constant type)", context);
+    }
+    if (bootstrapMethod.getProto().getParameters().size() != 3) {
+      return report("Unsupported dynamic constant (unsupported signature)", context);
+    }
+    if (bootstrapMethod.getProto().getParameters().get(0) != factory.lookupType) {
+      return report(
+          "Unsupported dynamic constant (unexpected type of first argument to bootstrap method",
+          context);
+    }
+    if (bootstrapMethod.getProto().getParameters().get(1) != factory.stringType) {
+      return report(
+          "Unsupported dynamic constant (unexpected type of second argument to bootstrap method",
+          context);
+    }
+    if (bootstrapMethod.getProto().getParameters().get(2) != factory.classType) {
+      return report(
+          "Unsupported dynamic constant (unexpected type of third argument to bootstrap method",
+          context);
+    }
+    return DesugarDescription.builder()
+        .setDesugarRewrite(
+            (freshLocalProvider,
+                localStackAllocator,
+                eventConsumer,
+                context1,
+                methodProcessingContext,
+                dexItemFactory) ->
+                desugarConstDynamicInstruction(
+                    instruction.asConstDynamic(),
+                    freshLocalProvider,
+                    localStackAllocator,
+                    eventConsumer,
+                    context1,
+                    methodProcessingContext))
+        .build();
+  }
+
+  @Override
+  public void scan(ProgramMethod method, CfInstructionDesugaringEventConsumer eventConsumer) {
+    for (CfInstruction instruction :
+        method.getDefinition().getCode().asCfCode().getInstructions()) {
+      computeDesugaring(instruction, method).scan();
+    }
+  }
+
   @Override
   public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    return instruction.isConstDynamic();
+    return computeDesugaring(instruction, context).needsDesugaring();
   }
 
   @Override
@@ -47,17 +132,15 @@ public class ConstantDynamicInstructionDesugaring implements CfInstructionDesuga
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext,
       CfInstructionDesugaringCollection desugaringCollection,
-      DexItemFactory dexItemFactory) {
-    if (instruction.isConstDynamic()) {
-      return desugarConstDynamicInstruction(
-          instruction.asConstDynamic(),
-          freshLocalProvider,
-          localStackAllocator,
-          eventConsumer,
-          context,
-          methodProcessingContext);
-    }
-    return null;
+      DexItemFactory factory) {
+    return computeDesugaring(instruction, context)
+        .desugarInstruction(
+            freshLocalProvider,
+            localStackAllocator,
+            eventConsumer,
+            context,
+            methodProcessingContext,
+            factory);
   }
 
   private Collection<CfInstruction> desugarConstDynamicInstruction(

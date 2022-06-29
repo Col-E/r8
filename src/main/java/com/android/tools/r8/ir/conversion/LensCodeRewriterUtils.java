@@ -181,7 +181,7 @@ public class LensCodeRewriterUtils {
     return methodHandle;
   }
 
-  private List<DexValue> rewriteBootstrapArguments(
+  public List<DexValue> rewriteBootstrapArguments(
       List<DexValue> bootstrapArgs, MethodHandleUse use, ProgramMethod context) {
     List<DexValue> newBootstrapArgs = null;
     boolean changed = false;

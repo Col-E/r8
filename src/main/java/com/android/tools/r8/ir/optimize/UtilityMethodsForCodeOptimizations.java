@@ -172,6 +172,37 @@ public class UtilityMethodsForCodeOptimizations {
         .CfUtilityMethodsForCodeOptimizationsTemplates_throwNoSuchMethodError(options, method);
   }
 
+  public static UtilityMethodForCodeOptimizations synthesizeThrowRuntimeExceptionWithMessageMethod(
+      AppView<?> appView, MethodProcessingContext methodProcessingContext) {
+    InternalOptions options = appView.options();
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    DexProto proto =
+        dexItemFactory.createProto(dexItemFactory.runtimeExceptionType, dexItemFactory.stringType);
+    SyntheticItems syntheticItems = appView.getSyntheticItems();
+    ProgramMethod syntheticMethod =
+        syntheticItems.createMethod(
+            kinds -> kinds.THROW_RTE,
+            methodProcessingContext.createUniqueContext(),
+            appView,
+            builder ->
+                builder
+                    .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                    .setClassFileVersion(CfVersion.V1_8)
+                    .setApiLevelForDefinition(appView.computedMinApiLevel())
+                    .setApiLevelForCode(appView.computedMinApiLevel())
+                    .setCode(
+                        method -> getThrowRuntimeExceptionWithMessageCodeTemplate(method, options))
+                    .setProto(proto));
+    return new UtilityMethodForCodeOptimizations(syntheticMethod);
+  }
+
+  private static CfCode getThrowRuntimeExceptionWithMessageCodeTemplate(
+      DexMethod method, InternalOptions options) {
+    return CfUtilityMethodsForCodeOptimizations
+        .CfUtilityMethodsForCodeOptimizationsTemplates_throwRuntimeExceptionWithMessage(
+            options, method);
+  }
+
   public static class UtilityMethodForCodeOptimizations {
 
     private final ProgramMethod method;

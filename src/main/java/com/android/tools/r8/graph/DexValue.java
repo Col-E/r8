@@ -312,7 +312,7 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
 
   public abstract AbstractValue toAbstractValue(AbstractValueFactory factory);
 
-  static DexValue fromAsmBootstrapArgument(
+  public static DexValue fromAsmBootstrapArgument(
       Object value, JarApplicationReader application, DexType clazz) {
     if (value instanceof Integer) {
       return DexValue.DexValueInt.create((Integer) value);

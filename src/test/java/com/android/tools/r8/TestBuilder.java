@@ -7,6 +7,7 @@ import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.errors.UnsupportedFeatureDiagnostic;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -248,6 +249,12 @@ public abstract class TestBuilder<RR extends TestRunResult<RR>, T extends TestBu
       BiFunction<DiagnosticsLevel, Diagnostic, DiagnosticsLevel> modifier) {
     getState().setDiagnosticsLevelModifier(modifier);
     return self();
+  }
+
+  public T mapUnsupportedFeaturesToWarnings() {
+    return setDiagnosticsLevelModifier(
+        (level, diagnostic) ->
+            diagnostic instanceof UnsupportedFeatureDiagnostic ? DiagnosticsLevel.WARNING : level);
   }
 
   public T allowStdoutMessages() {

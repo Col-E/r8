@@ -666,6 +666,8 @@ public class DexItemFactory {
 
   public final DexType metafactoryType =
       createStaticallyKnownType("Ljava/lang/invoke/LambdaMetafactory;");
+  public final DexType constantBootstrapsType =
+      createStaticallyKnownType("Ljava/lang/invoke/ConstantBootstraps;");
   public final DexType callSiteType = createStaticallyKnownType("Ljava/lang/invoke/CallSite;");
   public final DexType lookupType =
       createStaticallyKnownType("Ljava/lang/invoke/MethodHandles$Lookup;");

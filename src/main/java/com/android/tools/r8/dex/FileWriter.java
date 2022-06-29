@@ -7,10 +7,10 @@ import static com.android.tools.r8.utils.LebUtils.sizeAsUleb128;
 
 import com.android.tools.r8.ByteBufferProvider;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.DefaultInterfaceMethodDiagnostic;
-import com.android.tools.r8.errors.InvokeCustomDiagnostic;
-import com.android.tools.r8.errors.PrivateInterfaceMethodDiagnostic;
-import com.android.tools.r8.errors.StaticInterfaceMethodDiagnostic;
+import com.android.tools.r8.errors.UnsupportedDefaultInterfaceMethodDiagnostic;
+import com.android.tools.r8.errors.UnsupportedInvokeCustomDiagnostic;
+import com.android.tools.r8.errors.UnsupportedPrivateInterfaceMethodDiagnostic;
+import com.android.tools.r8.errors.UnsupportedStaticInterfaceMethodDiagnostic;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
@@ -290,9 +290,9 @@ public class FileWriter {
       if (!options.canUseDefaultAndStaticInterfaceMethods()
           && !options.testing.allowStaticInterfaceMethodsForPreNApiLevel) {
         throw options.reporter.fatalError(
-            new StaticInterfaceMethodDiagnostic(holder.getOrigin(), MethodPosition.create(method)));
+            new UnsupportedStaticInterfaceMethodDiagnostic(
+                holder.getOrigin(), MethodPosition.create(method)));
       }
-
     } else {
       if (method.isInstanceInitializer()) {
         throw new CompilationError(
@@ -301,7 +301,7 @@ public class FileWriter {
       if (!method.accessFlags.isAbstract() && !method.accessFlags.isPrivate() &&
           !options.canUseDefaultAndStaticInterfaceMethods()) {
         throw options.reporter.fatalError(
-            new DefaultInterfaceMethodDiagnostic(
+            new UnsupportedDefaultInterfaceMethodDiagnostic(
                 holder.getOrigin(), MethodPosition.create(method)));
       }
     }
@@ -311,7 +311,8 @@ public class FileWriter {
         return;
       }
       throw options.reporter.fatalError(
-          new PrivateInterfaceMethodDiagnostic(holder.getOrigin(), MethodPosition.create(method)));
+          new UnsupportedPrivateInterfaceMethodDiagnostic(
+              holder.getOrigin(), MethodPosition.create(method)));
     }
 
     if (!method.accessFlags.isPublic()) {
@@ -1382,7 +1383,7 @@ public class FileWriter {
   private void checkThatInvokeCustomIsAllowed() {
     if (!options.canUseInvokeCustom()) {
       throw options.reporter.fatalError(
-          new InvokeCustomDiagnostic(Origin.unknown(), Position.UNKNOWN));
+          new UnsupportedInvokeCustomDiagnostic(Origin.unknown(), Position.UNKNOWN));
     }
   }
 }

@@ -11,6 +11,7 @@ import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Sets;
 import java.io.IOException;
@@ -29,8 +30,8 @@ public abstract class TestShrinkerBuilder<
         T extends TestShrinkerBuilder<C, B, CR, RR, T>>
     extends TestCompilerBuilder<C, B, CR, RR, T> {
 
-  protected boolean enableTreeShaking = true;
-  protected boolean enableMinification = true;
+  protected OptionalBool enableTreeShaking = OptionalBool.UNKNOWN;
+  protected OptionalBool enableMinification = OptionalBool.UNKNOWN;
 
   private final Set<Class<? extends Annotation>> addedTestingAnnotations =
       Sets.newIdentityHashSet();
@@ -67,7 +68,7 @@ public abstract class TestShrinkerBuilder<
   }
 
   public T treeShaking(boolean enable) {
-    enableTreeShaking = enable;
+    enableTreeShaking = OptionalBool.of(enable);
     return self();
   }
 
@@ -76,7 +77,7 @@ public abstract class TestShrinkerBuilder<
   }
 
   public T minification(boolean enable) {
-    enableMinification = enable;
+    enableMinification = OptionalBool.of(enable);
     return self();
   }
 

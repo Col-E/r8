@@ -4,19 +4,23 @@
 package com.android.tools.r8.desugar.constantdynamic;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticOrigin;
-import static com.android.tools.r8.OriginMatcher.hasParent;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.DiagnosticsLevel;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.cf.CfVersion;
-import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.errors.ConstantDynamicDesugarDiagnostic;
+import com.android.tools.r8.errors.UnsupportedConstDynamicDiagnostic;
+import com.android.tools.r8.errors.UnsupportedFeatureDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
@@ -49,7 +53,7 @@ public class SharedBootstrapMethodConstantDynamicTest extends TestBase {
   @Test
   public void testReference() throws Exception {
     assumeTrue(parameters.isCfRuntime());
-    assumeTrue(parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK11));
+    assumeTrue(parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK11));
     assumeTrue(parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
 
     testForJvm()
@@ -59,63 +63,128 @@ public class SharedBootstrapMethodConstantDynamicTest extends TestBase {
   }
 
   @Test
+  public void testD8CfNoDesugar() throws Exception {
+    assumeTrue(parameters.isCfRuntime());
+    assumeTrue(parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK11));
+    assumeTrue(parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
+
+    testForD8(parameters.getBackend())
+        .addProgramClassFileData(getTransformedClasses())
+        .setNoMinApi()
+        .disableDesugaring()
+        .compile()
+        .assertNoMessages()
+        .run(parameters.getRuntime(), MAIN_CLASS)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
+  }
+
+  @Test
   public void testD8Cf() throws Exception {
-    assertThrows(
-        CompilationFailedException.class,
-        () ->
-            testForD8(Backend.CF)
-                .addProgramClassFileData(getTransformedClasses())
-                .setMinApi(parameters.getApiLevel())
-                .compileWithExpectedDiagnostics(
-                    diagnostics -> {
-                      diagnostics.assertOnlyErrors();
-                      diagnostics.assertErrorsMatch(
-                          diagnosticMessage(
-                              containsString("Unsupported dynamic constant (different owner)")));
-                    }));
+    assumeTrue(parameters.isCfRuntime());
+    testForD8(parameters.getBackend())
+        .addProgramClassFileData(getTransformedClasses())
+        .setMinApi(parameters.getApiLevel())
+        .setDiagnosticsLevelModifier(
+            (level, diagnostic) ->
+                (diagnostic instanceof ConstantDynamicDesugarDiagnostic
+                        || diagnostic instanceof UnsupportedFeatureDiagnostic)
+                    ? DiagnosticsLevel.WARNING
+                    : level)
+        .compileWithExpectedDiagnostics(
+            diagnostics ->
+                diagnostics
+                    .assertAllWarningsMatch(
+                        anyOf(
+                            allOf(
+                                diagnosticType(UnsupportedConstDynamicDiagnostic.class),
+                                diagnosticMessage(containsString("const-dynamic"))),
+                            allOf(
+                                diagnosticType(ConstantDynamicDesugarDiagnostic.class),
+                                diagnosticMessage(
+                                    containsString(
+                                        "Unsupported dynamic constant (different owner)")))))
+                    .assertOnlyWarnings())
+        .run(parameters.getRuntime(), MAIN_CLASS)
+        .assertFailureWithErrorThatThrows(RuntimeException.class)
+        .assertFailureWithErrorThatMatches(containsString("const-dynamic"));
   }
 
   @Test
   public void testD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
-
-    assertThrows(
-        CompilationFailedException.class,
-        () ->
-            testForD8(parameters.getBackend())
-                .addProgramClassFileData(getTransformedClasses())
-                .setMinApi(parameters.getApiLevel())
-                .compileWithExpectedDiagnostics(
-                    diagnostics -> {
-                      diagnostics.assertOnlyErrors();
-                      diagnostics.assertErrorsMatch(
-                          allOf(
-                              diagnosticMessage(
-                                  containsString("Unsupported dynamic constant (different owner)")),
-                              diagnosticOrigin(hasParent(Origin.unknown()))));
-                    }));
+    testForD8(parameters.getBackend())
+        .addProgramClassFileData(getTransformedClasses())
+        .setMinApi(parameters.getApiLevel())
+        .setDiagnosticsLevelModifier(
+            (level, diagnostic) ->
+                (diagnostic instanceof ConstantDynamicDesugarDiagnostic
+                        || diagnostic instanceof UnsupportedFeatureDiagnostic)
+                    ? DiagnosticsLevel.WARNING
+                    : level)
+        .compileWithExpectedDiagnostics(
+            diagnostics -> {
+              diagnostics.assertOnlyWarnings();
+              diagnostics.assertAllWarningsMatch(
+                  anyOf(
+                      allOf(
+                          diagnosticType(UnsupportedConstDynamicDiagnostic.class),
+                          diagnosticMessage(containsString("const-dynamic"))),
+                      allOf(
+                          diagnosticType(ConstantDynamicDesugarDiagnostic.class),
+                          diagnosticMessage(
+                              containsString("Unsupported dynamic constant (different owner)")))));
+            })
+        .run(parameters.getRuntime(), MAIN_CLASS)
+        .assertFailureWithErrorThatThrows(RuntimeException.class)
+        .assertFailureWithErrorThatMatches(containsString("const-dynamic"));
   }
 
   @Test
-  public void testR8() throws Exception {
-    assumeTrue(parameters.isDexRuntime() || parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
-
+  public void testR8Cf() {
+    assumeTrue(parameters.isCfRuntime() && parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
     assertThrows(
         CompilationFailedException.class,
         () ->
             testForR8(parameters.getBackend())
                 .addProgramClassFileData(getTransformedClasses())
-                .setMinApi(parameters.getApiLevel())
                 .addKeepMainRule(MAIN_CLASS)
                 .compileWithExpectedDiagnostics(
                     diagnostics -> {
                       diagnostics.assertOnlyErrors();
                       diagnostics.assertErrorsMatch(
-                          allOf(
-                              diagnosticMessage(
-                                  containsString("Unsupported dynamic constant (different owner)")),
-                              diagnosticOrigin(hasParent(Origin.unknown()))));
+                          diagnosticMessage(
+                              containsString("Unsupported dynamic constant (not desugaring)")));
                     }));
+  }
+
+  @Test
+  public void testR8Dex() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(getTransformedClasses())
+        .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(MAIN_CLASS)
+        .allowDiagnosticMessages()
+        .mapUnsupportedFeaturesToWarnings()
+        .compileWithExpectedDiagnostics(
+            diagnostics -> {
+              diagnostics
+                  .assertAllWarningsMatch(
+                      anyOf(
+                          allOf(
+                              diagnosticType(UnsupportedConstDynamicDiagnostic.class),
+                              diagnosticMessage(containsString("const-dynamic"))),
+                          allOf(
+                              diagnosticType(ConstantDynamicDesugarDiagnostic.class),
+                              diagnosticMessage(
+                                  containsString(
+                                      "Unsupported dynamic constant (different owner)")))))
+                  .assertOnlyWarnings();
+            })
+        .run(parameters.getRuntime(), MAIN_CLASS)
+        .assertFailureWithErrorThatThrows(RuntimeException.class)
+        .assertFailureWithErrorThatMatches(containsString("const-dynamic"));
   }
 
   private Collection<byte[]> getTransformedClasses() throws IOException {

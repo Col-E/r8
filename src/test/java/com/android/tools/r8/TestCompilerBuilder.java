@@ -75,6 +75,8 @@ public abstract class TestCompilerBuilder<
   private ProgramConsumer programConsumer;
   private MainDexClassesCollector mainDexClassesCollector;
   private StringConsumer mainDexListConsumer;
+  // TODO(b/186010707): This could become implicit once min always be set when fixed.
+  private boolean noMinApiLevel = false;
   private int minApiLevel = -1;
   private boolean optimizeMultidexForLinearAlloc = false;
   private Consumer<InternalOptions> optionsConsumer = DEFAULT_OPTIONS;
@@ -219,7 +221,7 @@ public abstract class TestCompilerBuilder<
               .addIfNotNull(mainDexListConsumer)
               .build());
     }
-    if (backend.isDex() || !isTestShrinkerBuilder()) {
+    if (!noMinApiLevel && (backend.isDex() || !isTestShrinkerBuilder())) {
       assert !builder.isMinApiLevelSet()
           : "Don't set the API level directly through BaseCompilerCommand.Builder in tests";
       // TODO(b/186010707): This will always be set when fixed.
@@ -361,6 +363,12 @@ public abstract class TestCompilerBuilder<
   public T setMinApi(int minApiLevel) {
     assert minApiLevel != -1;
     this.minApiLevel = minApiLevel;
+    return self();
+  }
+
+  public T setNoMinApi() {
+    this.minApiLevel = -1;
+    this.noMinApiLevel = true;
     return self();
   }
 

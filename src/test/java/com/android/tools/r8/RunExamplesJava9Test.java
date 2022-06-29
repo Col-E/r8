@@ -120,42 +120,17 @@ public abstract class RunExamplesJava9Test
     abstract void build(Path inputFile, Path out) throws Throwable;
   }
 
-  private static List<String> minSdkErrorExpected =
-      ImmutableList.of("varhandle-error-due-to-min-sdk");
+  private static List<String> minSdkErrorExpected = ImmutableList.of();
 
   private static Map<DexVm.Version, List<String>> failsOn;
 
   static {
     ImmutableMap.Builder<DexVm.Version, List<String>> builder = ImmutableMap.builder();
     builder
-        .put(DexVm.Version.V4_0_4, ImmutableList.of(
-            "native-private-interface-methods", // Dex version not supported
-            "varhandle"
-        ))
-        .put(DexVm.Version.V4_4_4, ImmutableList.of(
-            "native-private-interface-methods", // Dex version not supported
-            "varhandle"
-        ))
-        .put(DexVm.Version.V5_1_1, ImmutableList.of(
-            "native-private-interface-methods", // Dex version not supported
-            "varhandle"
-        ))
-        .put(DexVm.Version.V6_0_1, ImmutableList.of(
-            "native-private-interface-methods", // Dex version not supported
-            "varhandle"
-        ))
-        .put(DexVm.Version.V7_0_0, ImmutableList.of(
-            // Dex version not supported
-            "varhandle"
-        ))
-        .put(DexVm.Version.V8_1_0, ImmutableList.of(
-            // Dex version not supported
-            "varhandle"
-        ))
-        .put(DexVm.Version.DEFAULT, ImmutableList.of(
-            // TODO(b/72536415): Update runtime when the support will be ready
-            "varhandle"
-        ));
+        .put(DexVm.Version.V4_0_4, ImmutableList.of("native-private-interface-methods"))
+        .put(DexVm.Version.V4_4_4, ImmutableList.of("native-private-interface-methods"))
+        .put(DexVm.Version.V5_1_1, ImmutableList.of("native-private-interface-methods"))
+        .put(DexVm.Version.V6_0_1, ImmutableList.of("native-private-interface-methods"));
     failsOn = builder.build();
   }
 
@@ -168,20 +143,9 @@ public abstract class RunExamplesJava9Test
               + "1\n2\n3\n4\n5\n6\n7\n8\n99\n"
               + "i1\ni2\ni3\ni4\ni5\ni6\ni7\ni8\ni99\n",
           "native-private-interface-methods",
-          "0: s>i>a\n"
-              + "1: d>i>s>i>a\n"
-              + "2: l>i>s>i>a\n"
-              + "3: x>s\n"
-              + "4: c>d>i>s>i>a\n",
+          "0: s>i>a\n" + "1: d>i>s>i>a\n" + "2: l>i>s>i>a\n" + "3: x>s\n" + "4: c>d>i>s>i>a\n",
           "desugared-private-interface-methods",
-          "0: s>i>a\n"
-              + "1: d>i>s>i>a\n"
-              + "2: l>i>s>i>a\n"
-              + "3: x>s\n"
-              + "4: c>d>i>s>i>a\n",
-          "varhandle",
-          "true\nfalse\n"
-      );
+          "0: s>i>a\n" + "1: d>i>s>i>a\n" + "2: l>i>s>i>a\n" + "3: x>s\n" + "4: c>d>i>s>i>a\n");
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
@@ -237,22 +201,6 @@ public abstract class RunExamplesJava9Test
               assertThat(iFoo, isPresent());
               assertTrue(iFoo.getMethod().isPublicMethod());
             })
-        .run();
-  }
-
-  @Test
-  public void varHandle() throws Throwable {
-    test("varhandle", "varhandle", "VarHandleTests")
-        .withMinApiLevel(AndroidApiLevel.P.getLevel())
-        .withKeepAll()
-        .run();
-  }
-
-  @Test
-  public void varHandleErrorDueToMinSdk() throws Throwable {
-    test("varhandle-error-due-to-min-sdk", "varhandle", "VarHandleTests")
-        .withMinApiLevel(AndroidApiLevel.O.getLevel())
-        .withKeepAll()
         .run();
   }
 

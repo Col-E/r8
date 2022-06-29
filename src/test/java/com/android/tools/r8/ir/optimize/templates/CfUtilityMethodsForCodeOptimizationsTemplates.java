@@ -29,4 +29,8 @@ public class CfUtilityMethodsForCodeOptimizationsTemplates {
   public static NoSuchMethodError throwNoSuchMethodError() {
     throw new NoSuchMethodError();
   }
+
+  public static RuntimeException throwRuntimeExceptionWithMessage(String message) {
+    throw new RuntimeException(message);
+  }
 }

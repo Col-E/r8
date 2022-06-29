@@ -34,6 +34,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
     factory.createSynthesizedType("Ljava/lang/IllegalAccessError;");
     factory.createSynthesizedType("Ljava/lang/IncompatibleClassChangeError;");
     factory.createSynthesizedType("Ljava/lang/NoSuchMethodError;");
+    factory.createSynthesizedType("Ljava/lang/RuntimeException;");
   }
 
   public static CfCode
@@ -141,6 +142,34 @@ public final class CfUtilityMethodsForCodeOptimizations {
                     options.itemFactory.createString("<init>")),
                 false),
             new CfThrow()),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode
+      CfUtilityMethodsForCodeOptimizationsTemplates_throwRuntimeExceptionWithMessage(
+          InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        3,
+        1,
+        ImmutableList.of(
+            label0,
+            new CfNew(options.itemFactory.createType("Ljava/lang/RuntimeException;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                183,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/RuntimeException;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.voidType, options.itemFactory.stringType),
+                    options.itemFactory.createString("<init>")),
+                false),
+            new CfThrow(),
+            label1),
         ImmutableList.of(),
         ImmutableList.of());
   }

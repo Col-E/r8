@@ -98,7 +98,7 @@ public class CfInvokeDynamic extends CfInstruction {
     return 5;
   }
 
-  private Object decodeBootstrapArgument(DexValue value, NamingLens lens) {
+  public static Object decodeBootstrapArgument(DexValue value, NamingLens lens) {
     switch (value.getValueKind()) {
       case DOUBLE:
         return value.asDexValueDouble().getValue();

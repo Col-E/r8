@@ -15,12 +15,14 @@ public abstract class UnsupportedFeatureDiagnostic implements Diagnostic {
   public static String makeMessage(
       AndroidApiLevel minApiLevel, String unsupportedFeatures, String sourceString) {
     String message =
-        unsupportedFeatures
-            + " are only supported starting with "
-            + minApiLevel.getName()
-            + " (--min-api "
-            + minApiLevel.getLevel()
-            + ")";
+        minApiLevel == null
+            ? (unsupportedFeatures + " are not supported at any API level known by the compiler")
+            : (unsupportedFeatures
+                + " are only supported starting with "
+                + minApiLevel.getName()
+                + " (--min-api "
+                + minApiLevel.getLevel()
+                + ")");
     message = (sourceString != null) ? message + ": " + sourceString : message;
     return message;
   }
