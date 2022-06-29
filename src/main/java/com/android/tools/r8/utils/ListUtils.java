@@ -268,8 +268,22 @@ public class ListUtils {
     void accept(T item, int index);
   }
 
+  public static <T> List<T> sort(List<T> items, Comparator<T> comparator) {
+    List<T> sorted = new ArrayList<>(items);
+    sorted.sort(comparator);
+    return sorted;
+  }
+
   public static <T> void destructiveSort(List<T> items, Comparator<T> comparator) {
     items.sort(comparator);
+  }
+
+  // Utility to add a slow verification of a comparator as part of sorting. Note that this
+  // should not generally be used in asserts unless the quadratic behavior can be tolerated.
+  public static <T> List<T> sortAndVerify(List<T> items, Comparator<T> comparator) {
+    List<T> sorted = sort(items, comparator);
+    assert verifyComparatorOnSortedList(sorted, comparator);
+    return sorted;
   }
 
   // Utility to add a slow verification of a comparator as part of sorting. Note that this
