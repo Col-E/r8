@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 
 public abstract class CfArrayLoadOrStore extends CfInstruction {
 
@@ -61,5 +62,10 @@ public abstract class CfArrayLoadOrStore extends CfInstruction {
   public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
     return CfCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
+  }
+
+  @Override
+  public void internalAcceptHashing(HashingVisitor visitor) {
+    // Nothing to add.
   }
 }

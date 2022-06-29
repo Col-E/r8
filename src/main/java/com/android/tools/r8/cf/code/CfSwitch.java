@@ -25,6 +25,7 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.TraversalUtils;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -76,6 +77,15 @@ public class CfSwitch extends CfJumpInstruction {
             spec.withCustomItem(CfSwitch::getDefaultTarget, helper.labelAcceptor())
                 .withIntArray(i -> i.keys)
                 .withCustomItemCollection(CfSwitch::getSwitchTargets, helper.labelAcceptor()));
+  }
+
+  @Override
+  public void internalAcceptHashing(HashingVisitor visitor) {
+    visitor.visitInt(keys.length);
+    for (int i = 0; i < keys.length; i++) {
+      visitor.visitInt(keys[i]);
+    }
+    // No label identity info to add.
   }
 
   public Kind getKind() {

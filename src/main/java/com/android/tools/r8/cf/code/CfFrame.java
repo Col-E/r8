@@ -31,6 +31,7 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.IntObjConsumer;
 import com.android.tools.r8.utils.collections.ImmutableDeque;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.google.common.collect.Iterables;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -71,6 +72,11 @@ public class CfFrame extends CfInstruction implements Cloneable {
     // The frame should be determined by the code so it should for equal iff the code is equal.
     // Thus we just require the frame to be in place.
     return CfCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
+  }
+
+  @Override
+  public void internalAcceptHashing(HashingVisitor visitor) {
+    // Nothing to add.
   }
 
   private final Int2ObjectSortedMap<FrameType> locals;

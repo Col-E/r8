@@ -25,6 +25,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.objectweb.asm.MethodVisitor;
@@ -87,6 +88,11 @@ public class CfRecordFieldValues extends CfInstruction {
   public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
     return visitor.visit(this, other.asRecordFieldValues(), CfRecordFieldValues::specify);
+  }
+
+  @Override
+  public void internalAcceptHashing(HashingVisitor visitor) {
+    visitor.visit(this, CfRecordFieldValues::specify);
   }
 
   @Override

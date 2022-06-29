@@ -27,6 +27,7 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import java.util.ListIterator;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -69,6 +70,11 @@ public class CfNewArray extends CfInstruction implements CfTypeInstruction {
   public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
     return type.acceptCompareTo(((CfNewArray) other).type, visitor);
+  }
+
+  @Override
+  public void internalAcceptHashing(HashingVisitor visitor) {
+    type.acceptHashing(visitor);
   }
 
   private int getPrimitiveTypeCode() {

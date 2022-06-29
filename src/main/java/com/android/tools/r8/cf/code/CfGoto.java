@@ -22,6 +22,7 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import java.util.function.BiFunction;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -43,6 +44,11 @@ public class CfGoto extends CfJumpInstruction {
   public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
     return helper.compareLabels(target, ((CfGoto) other).target, visitor);
+  }
+
+  @Override
+  public void internalAcceptHashing(HashingVisitor visitor) {
+    // We have no label identity to hash based on.
   }
 
   @Override

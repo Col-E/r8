@@ -23,6 +23,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -51,6 +52,11 @@ public class CfConstNumber extends CfInstruction {
   public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
     return visitor.visit(this, (CfConstNumber) other, CfConstNumber::specify);
+  }
+
+  @Override
+  public void internalAcceptHashing(HashingVisitor visitor) {
+    visitor.visit(this, CfConstNumber::specify);
   }
 
   public ValueType getType() {

@@ -21,6 +21,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
@@ -44,6 +45,11 @@ public class CfLabel extends CfInstruction {
   public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
     return helper.compareLabels(this, other.asLabel(), visitor);
+  }
+
+  @Override
+  public void internalAcceptHashing(HashingVisitor visitor) {
+    // No label identity to use.
   }
 
   @Override

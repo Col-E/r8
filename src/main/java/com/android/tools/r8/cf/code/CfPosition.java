@@ -22,6 +22,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import org.objectweb.asm.MethodVisitor;
 
 public class CfPosition extends CfInstruction {
@@ -48,6 +49,12 @@ public class CfPosition extends CfInstruction {
         spec ->
             spec.withInt(p -> p.position.getLine())
                 .withCustomItem(p -> p.label, helper.labelAcceptor()));
+  }
+
+  @Override
+  public void internalAcceptHashing(HashingVisitor visitor) {
+    visitor.visitInt(position.getLine());
+    // No label identity to add.
   }
 
   @Override

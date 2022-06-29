@@ -25,6 +25,7 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.ListIterator;
 import org.objectweb.asm.MethodVisitor;
@@ -77,6 +78,11 @@ public class CfMultiANewArray extends CfInstruction implements CfTypeInstruction
   public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
     return visitor.visit(this, (CfMultiANewArray) other, CfMultiANewArray::specify);
+  }
+
+  @Override
+  public void internalAcceptHashing(HashingVisitor visitor) {
+    visitor.visit(this, CfMultiANewArray::specify);
   }
 
   @Override

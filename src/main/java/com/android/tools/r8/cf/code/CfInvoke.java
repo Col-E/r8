@@ -35,6 +35,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.Arrays;
 import java.util.ListIterator;
@@ -70,6 +71,11 @@ public class CfInvoke extends CfInstruction {
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
     CfInvoke otherInvoke = other.asInvoke();
     return visitor.visit(this, otherInvoke, CfInvoke::specify);
+  }
+
+  @Override
+  public void internalAcceptHashing(HashingVisitor visitor) {
+    visitor.visit(this, CfInvoke::specify);
   }
 
   public DexMethod getMethod() {

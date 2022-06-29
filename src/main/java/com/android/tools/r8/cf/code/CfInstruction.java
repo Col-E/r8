@@ -28,6 +28,7 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import java.util.ListIterator;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -82,6 +83,13 @@ public abstract class CfInstruction implements CfOrDexInstruction {
       return diff;
     }
     return internalAcceptCompareTo(o, visitor, helper);
+  }
+
+  public abstract void internalAcceptHashing(HashingVisitor visitor);
+
+  public final void acceptHashing(HashingVisitor visitor) {
+    visitor.visitInt(getCompareToId());
+    internalAcceptHashing(visitor);
   }
 
   @Override

@@ -26,6 +26,7 @@ import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import java.util.ListIterator;
 import org.objectweb.asm.MethodVisitor;
 
@@ -48,6 +49,11 @@ public class CfDexItemBasedConstString extends CfInstruction {
   public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
     return visitor.visitDexReference(item, ((CfDexItemBasedConstString) other).item);
+  }
+
+  @Override
+  public void internalAcceptHashing(HashingVisitor visitor) {
+    visitor.visitDexReference(item);
   }
 
   public DexReference getItem() {

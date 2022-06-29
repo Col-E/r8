@@ -7,14 +7,25 @@ import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.utils.structural.Equatable;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.List;
 import java.util.Objects;
 
-public class ConstantDynamicReference {
+public class ConstantDynamicReference implements StructuralItem<ConstantDynamicReference> {
   private final DexString name;
   private final DexType type;
   private final DexMethodHandle bootstrapMethod;
   private final List<DexValue> bootstrapMethodArguments;
+
+  private static void specify(StructuralSpecification<ConstantDynamicReference, ?> spec) {
+    spec.withItem(ConstantDynamicReference::getName)
+        .withItem(ConstantDynamicReference::getType)
+        .withItem(ConstantDynamicReference::getBootstrapMethod)
+        .withItemCollection(ConstantDynamicReference::getBootstrapMethodArguments);
+  }
 
   public ConstantDynamicReference(
       DexString name,
@@ -26,6 +37,16 @@ public class ConstantDynamicReference {
     this.type = type;
     this.bootstrapMethod = bootstrapMethod;
     this.bootstrapMethodArguments = bootstrapMethodArguments;
+  }
+
+  @Override
+  public ConstantDynamicReference self() {
+    return this;
+  }
+
+  @Override
+  public StructuralMapping<ConstantDynamicReference> getStructuralMapping() {
+    return ConstantDynamicReference::specify;
   }
 
   public DexString getName() {
@@ -46,18 +67,11 @@ public class ConstantDynamicReference {
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) return true;
-    if (!(obj instanceof ConstantDynamicReference)) {
-      return false;
-    }
-    ConstantDynamicReference other = (ConstantDynamicReference) obj;
-    return Objects.equals(name, other.name)
-        && Objects.equals(type, other.type)
-        && Objects.equals(bootstrapMethod, other.bootstrapMethod);
+    return Equatable.equalsImpl(this, obj);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, type, bootstrapMethod);
+    return Objects.hash(name, type, bootstrapMethod, bootstrapMethodArguments);
   }
 }

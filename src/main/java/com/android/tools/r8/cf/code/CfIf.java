@@ -22,6 +22,7 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfAnalysisConfig;
 import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import java.util.function.BiFunction;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -44,6 +45,11 @@ public class CfIf extends CfConditionalJumpInstruction {
     assert kind == otherIf.kind;
     assert type == otherIf.type;
     return helper.compareLabels(target, otherIf.target, visitor);
+  }
+
+  @Override
+  public void internalAcceptHashing(HashingVisitor visitor) {
+    // The compare-id distinguishes types and we have no label identity to use.
   }
 
   @Override
