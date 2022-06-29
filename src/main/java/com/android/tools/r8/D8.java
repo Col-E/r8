@@ -208,6 +208,7 @@ public final class D8 {
     }
     Timing timing = Timing.create("D8", options);
     try {
+      timing.begin("Pre conversion");
       // Synthetic assertion to check that testing assertions works and can be enabled.
       assert forTesting(options, () -> !options.testing.testEnableTestAssertions);
 
@@ -246,9 +247,9 @@ public final class D8 {
       if (options.testing.enableD8ResourcesPassThrough) {
         appView.setAppServices(AppServices.builder(appView).build());
       }
-
+      timing.end();
       new IRConverter(appView, timing, printer).convert(appView, executor);
-
+      timing.begin("Post conversion");
       if (options.printCfg) {
         if (options.printCfgFile == null || options.printCfgFile.isEmpty()) {
           System.out.print(printer.toString());
@@ -286,9 +287,22 @@ public final class D8 {
       }
       Marker.checkCompatibleDesugaredLibrary(markers, options.reporter);
 
-      InspectorImpl.runInspections(options.outputInspections, appView.appInfo().classes());
-      appView.setNamingLens(PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView));
-      appView.setNamingLens(RecordRewritingNamingLens.createRecordRewritingNamingLens(appView));
+      timing.time(
+          "Run inspections",
+          () ->
+              InspectorImpl.runInspections(options.outputInspections, appView.appInfo().classes()));
+
+      timing.time(
+          "Create prefix rewriting lens",
+          () ->
+              appView.setNamingLens(
+                  PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView)));
+
+      timing.time(
+          "Create record rewriting lens",
+          () ->
+              appView.setNamingLens(
+                  RecordRewritingNamingLens.createRecordRewritingNamingLens(appView)));
 
       if (options.isGeneratingDex()
           && hasDexResources
@@ -313,20 +327,34 @@ public final class D8 {
       // Since tracing is not lens aware, this needs to be done prior to synthetic finalization
       // which will construct a graph lens.
       if (options.isGeneratingDex() && !options.mainDexKeepRules.isEmpty()) {
+        timing.begin("Generate main-dex list");
         appView.dexItemFactory().clearTypeElementsCache();
         MainDexInfo mainDexInfo =
             new GenerateMainDexList(options)
                 .traceMainDex(
                     executor, appView.appInfo().app(), appView.appInfo().getMainDexInfo());
         appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(mainDexInfo));
+        timing.end();
       }
 
-      finalizeApplication(appView, executor);
+      timing.time("Finalize synthetics", () -> finalizeApplication(appView, executor, timing));
 
-      HorizontalClassMerger.createForD8ClassMerging(appView).runIfNecessary(executor, timing);
+      timing.time(
+          "Horizontal merger",
+          () ->
+              HorizontalClassMerger.createForD8ClassMerging(appView)
+                  .runIfNecessary(executor, timing));
 
-      new GenericSignatureRewriter(appView).runForD8(appView.appInfo().classes(), executor);
-      new KotlinMetadataRewriter(appView).runForD8(executor);
+      timing.time(
+          "Signature rewriter",
+          () ->
+              new GenericSignatureRewriter(appView)
+                  .runForD8(appView.appInfo().classes(), executor));
+
+      timing.time(
+          "Kotlin metadata rewriter", () -> new KotlinMetadataRewriter(appView).runForD8(executor));
+
+      timing.end(); // post-converter
 
       if (options.isGeneratingClassFiles()) {
         new CfApplicationWriter(appView, marker).write(options.getClassFileConsumer(), inputApp);
@@ -366,9 +394,10 @@ public final class D8 {
     appView.setAssumeInfoCollection(assumeInfoCollectionBuilder.build());
   }
 
-  private static void finalizeApplication(AppView<AppInfo> appView, ExecutorService executorService)
+  private static void finalizeApplication(
+      AppView<AppInfo> appView, ExecutorService executorService, Timing timing)
       throws ExecutionException {
-    SyntheticFinalization.finalize(appView, executorService);
+    SyntheticFinalization.finalize(appView, timing, executorService);
   }
 
   private static DexApplication rewriteNonDexInputs(

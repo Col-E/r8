@@ -43,6 +43,7 @@ import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -1086,9 +1087,9 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   // Finalization of synthetic items.
 
-  Result computeFinalSynthetics(AppView<?> appView) {
+  Result computeFinalSynthetics(AppView<?> appView, Timing timing) {
     assert !hasPendingSyntheticClasses();
     return new SyntheticFinalization(appView.options(), this, committed)
-        .computeFinalSynthetics(appView);
+        .computeFinalSynthetics(appView, timing);
   }
 }

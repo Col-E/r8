@@ -36,6 +36,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneRepresentativeMap;
@@ -62,6 +63,9 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public class SyntheticFinalization {
+
+  // TODO(b/237413146): Implement a non-quadratic grouping algorithm.
+  private static final int GROUP_COUNT_THRESHOLD = 10;
 
   public static class Result {
     public final CommittedItems commit;
@@ -155,12 +159,13 @@ public class SyntheticFinalization {
     this.committed = committed;
   }
 
-  public static void finalize(AppView<AppInfo> appView, ExecutorService executorService)
+  public static void finalize(
+      AppView<AppInfo> appView, Timing timing, ExecutorService executorService)
       throws ExecutionException {
     assert !appView.appInfo().hasClassHierarchy();
     assert !appView.appInfo().hasLiveness();
     appView.options().testing.checkDeterminism(appView);
-    Result result = appView.getSyntheticItems().computeFinalSynthetics(appView);
+    Result result = appView.getSyntheticItems().computeFinalSynthetics(appView, timing);
     appView.setAppInfo(new AppInfo(result.commit, result.mainDexInfo));
     if (result.lens != null) {
       appView.setAppInfo(
@@ -177,11 +182,11 @@ public class SyntheticFinalization {
   }
 
   public static void finalizeWithClassHierarchy(
-      AppView<AppInfoWithClassHierarchy> appView, ExecutorService executorService)
+      AppView<AppInfoWithClassHierarchy> appView, ExecutorService executorService, Timing timing)
       throws ExecutionException {
     assert !appView.appInfo().hasLiveness();
     appView.options().testing.checkDeterminism(appView);
-    Result result = appView.getSyntheticItems().computeFinalSynthetics(appView);
+    Result result = appView.getSyntheticItems().computeFinalSynthetics(appView, timing);
     appView.setAppInfo(appView.appInfo().rebuildWithClassHierarchy(result.commit));
     appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(result.mainDexInfo));
     if (result.lens != null) {
@@ -199,10 +204,10 @@ public class SyntheticFinalization {
   }
 
   public static void finalizeWithLiveness(
-      AppView<AppInfoWithLiveness> appView, ExecutorService executorService)
+      AppView<AppInfoWithLiveness> appView, ExecutorService executorService, Timing timing)
       throws ExecutionException {
     appView.options().testing.checkDeterminism(appView);
-    Result result = appView.getSyntheticItems().computeFinalSynthetics(appView);
+    Result result = appView.getSyntheticItems().computeFinalSynthetics(appView, timing);
     appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(result.mainDexInfo));
     if (result.lens != null) {
       appView.rewriteWithLensAndApplication(result.lens, result.commit.getApplication().asDirect());
@@ -213,7 +218,7 @@ public class SyntheticFinalization {
     appView.pruneItems(result.prunedItems, executorService);
   }
 
-  Result computeFinalSynthetics(AppView<?> appView) {
+  Result computeFinalSynthetics(AppView<?> appView, Timing timing) {
     assert verifyNoNestedSynthetics(appView.dexItemFactory());
     assert verifyOneSyntheticPerSyntheticClass();
     DexApplication application;
@@ -227,9 +232,18 @@ public class SyntheticFinalization {
       Map<String, NumberGenerator> generators = new HashMap<>();
       application =
           buildLensAndProgram(
+              timing,
               appView,
-              computeEquivalences(appView, committed.getMethods(), generators, lensBuilder),
-              computeEquivalences(appView, committed.getClasses(), generators, lensBuilder),
+              timing.time(
+                  "Method equivalence",
+                  () ->
+                      computeEquivalences(
+                          appView, committed.getMethods(), generators, lensBuilder, timing)),
+              timing.time(
+                  "Class equivalence",
+                  () ->
+                      computeEquivalences(
+                          appView, committed.getClasses(), generators, lensBuilder, timing)),
               lensBuilder,
               (clazz, reference) ->
                   finalClassesBuilder.put(clazz.getType(), ImmutableList.of(reference)),
@@ -289,13 +303,15 @@ public class SyntheticFinalization {
           AppView<?> appView,
           ImmutableMap<DexType, List<R>> references,
           Map<String, NumberGenerator> generators,
-          Builder lensBuilder) {
+          Builder lensBuilder,
+          Timing timing) {
     boolean intermediate = appView.options().intermediate;
     Map<DexType, D> definitions = lookupDefinitions(appView, references);
     ClassToFeatureSplitMap classToFeatureSplitMap =
         appView.appInfo().hasClassHierarchy()
             ? appView.appInfo().withClassHierarchy().getClassToFeatureSplitMap()
             : ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap();
+    timing.begin("Potential equivalences");
     Collection<List<D>> potentialEquivalences =
         computePotentialEquivalences(
             definitions,
@@ -304,13 +320,15 @@ public class SyntheticFinalization {
             appView.graphLens(),
             classToFeatureSplitMap,
             synthetics);
+    timing.end();
     return computeActualEquivalences(
         potentialEquivalences,
         generators,
         appView,
         intermediate,
         classToFeatureSplitMap,
-        lensBuilder);
+        lensBuilder,
+        timing);
   }
 
   private boolean isNotSyntheticType(DexType type) {
@@ -361,6 +379,7 @@ public class SyntheticFinalization {
   }
 
   private static DexApplication buildLensAndProgram(
+      Timing timing,
       AppView<?> appView,
       Map<DexType, EquivalenceGroup<SyntheticMethodDefinition>> syntheticMethodGroups,
       Map<DexType, EquivalenceGroup<SyntheticProgramClassDefinition>> syntheticClassGroups,
@@ -448,10 +467,12 @@ public class SyntheticFinalization {
       assert verifyNonRepresentativesRemovedFromApplication(application, syntheticClassGroups);
       assert verifyNonRepresentativesRemovedFromApplication(application, syntheticMethodGroups);
 
+      timing.begin("Tree fixing");
       DexApplication.Builder<?> builder = application.builder();
       treeFixer.fixupClasses(deduplicatedClasses);
       builder.replaceProgramClasses(treeFixer.fixupClasses(application.classes()));
       application = builder.build();
+      timing.end();
     }
 
     DexString syntheticSourceFileName =
@@ -459,6 +480,7 @@ public class SyntheticFinalization {
             ? appView.dexItemFactory().createString("R8$$SyntheticClass")
             : appView.dexItemFactory().createString("D8$$SyntheticClass");
 
+    timing.begin("Add final synthetics");
     // Add the synthesized from after repackaging which changed class definitions.
     final DexApplication appForLookup = application;
     syntheticClassGroups.forEach(
@@ -491,7 +513,9 @@ public class SyntheticFinalization {
                   representative.getContext(),
                   syntheticMethodDefinition.getReference()));
         });
+    timing.end();
 
+    timing.begin("Finish lens");
     Iterables.<EquivalenceGroup<? extends SyntheticDefinition<?, ?, DexProgramClass>>>concat(
             syntheticClassGroups.values(), syntheticMethodGroups.values())
         .forEach(
@@ -511,6 +535,7 @@ public class SyntheticFinalization {
                             lensBuilder.setRepresentative(rewrittenMethod, method);
                           }
                         }));
+    timing.end();
 
     for (DexType key : syntheticMethodGroups.keySet()) {
       assert application.definitionFor(key) != null;
@@ -557,9 +582,11 @@ public class SyntheticFinalization {
           AppView<?> appView,
           boolean intermediate,
           ClassToFeatureSplitMap classToFeatureSplitMap,
-          Builder lensBuilder) {
+          Builder lensBuilder,
+          Timing timing) {
     Map<String, List<EquivalenceGroup<T>>> groupsPerPrefix = new HashMap<>();
     Map<DexType, EquivalenceGroup<T>> equivalences = new IdentityHashMap<>();
+    timing.begin("Groups");
     potentialEquivalences.forEach(
         members -> {
           List<EquivalenceGroup<T>> groups =
@@ -581,6 +608,8 @@ public class SyntheticFinalization {
             }
           }
         });
+    timing.end();
+    timing.begin("External creation");
     groupsPerPrefix.forEach(
         (externalSyntheticTypePrefix, groups) -> {
           Comparator<EquivalenceGroup<T>> comparator = this::compareForFinalGroupSorting;
@@ -613,6 +642,7 @@ public class SyntheticFinalization {
             equivalences.put(representativeType, group);
           }
         });
+    timing.end();
     equivalences.forEach(
         (representativeType, group) ->
             group.forEach(
@@ -639,6 +669,9 @@ public class SyntheticFinalization {
     List<EquivalenceGroup<T>> groups = new ArrayList<>();
     // Each other member is in a shared group if it is actually equivalent to the first member.
     for (T synthetic : potentialEquivalence) {
+      if (groups.size() > GROUP_COUNT_THRESHOLD) {
+        return ListUtils.map(potentialEquivalence, m -> new EquivalenceGroup<>(m, true));
+      }
       boolean mustBeRepresentative = isPinned(appView, synthetic);
       EquivalenceGroup<T> equivalenceGroup = null;
       for (EquivalenceGroup<T> group : groups) {

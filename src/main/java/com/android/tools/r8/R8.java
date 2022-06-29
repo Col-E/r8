@@ -718,9 +718,9 @@ public class R8 {
       appView.setGraphLens(MemberRebindingIdentityLensFactory.create(appView, executorService));
 
       if (appView.appInfo().hasLiveness()) {
-        SyntheticFinalization.finalizeWithLiveness(appView.withLiveness(), executorService);
+        SyntheticFinalization.finalizeWithLiveness(appView.withLiveness(), executorService, timing);
       } else {
-        SyntheticFinalization.finalizeWithClassHierarchy(appView, executorService);
+        SyntheticFinalization.finalizeWithClassHierarchy(appView, executorService, timing);
       }
 
       // Read any -applymapping input to allow for repackaging to not relocate the classes.
