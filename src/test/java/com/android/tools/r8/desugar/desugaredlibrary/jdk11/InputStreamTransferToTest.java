@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.jdk11;
 
-import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.SPECIFICATIONS_WITH_CF2CF;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
 
 import com.android.tools.r8.TestParameters;
@@ -38,9 +38,9 @@ public class InputStreamTransferToTest extends DesugaredLibraryTestBase {
   @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        getTestParameters().withAllRuntimesAndApiLevels().enableApiLevelsForCf().build(),
         ImmutableList.of(JDK11_PATH),
-        DEFAULT_SPECIFICATIONS);
+        SPECIFICATIONS_WITH_CF2CF);
   }
 
   public InputStreamTransferToTest(

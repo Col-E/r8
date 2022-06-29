@@ -193,14 +193,19 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
 
   public static class WrapperConversionCfCodeProvider extends NullableConversionCfCodeProvider {
 
-    DexField reverseWrapperField;
-    DexField wrapperField;
+    private final DexField reverseWrapperField;
+    private final DexField wrapperField;
+    private final List<DexMethod> subwrapperConvertList;
 
     public WrapperConversionCfCodeProvider(
-        AppView<?> appView, DexField reverseWrapperField, DexField wrapperField) {
+        AppView<?> appView,
+        DexField reverseWrapperField,
+        DexField wrapperField,
+        List<DexMethod> subwrapperConvertList) {
       super(appView, wrapperField.holder);
       this.reverseWrapperField = reverseWrapperField;
       this.wrapperField = wrapperField;
+      this.subwrapperConvertList = subwrapperConvertList;
     }
 
     @Override
@@ -227,6 +232,23 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
       instructions.add(new CfReturn(ValueType.fromDexType(reverseWrapperField.type)));
       instructions.add(unwrapDest);
       instructions.add(frame.clone());
+
+      // if (arg instanceOf Subtype) {
+      //     return SubtypeWrapper.convert((Subtype) arg)
+      // };
+      for (DexMethod convert : subwrapperConvertList) {
+        CfLabel dest = new CfLabel();
+        DexType convertArgType = convert.getArgumentType(0, true);
+        instructions.add(new CfLoad(ValueType.fromDexType(argType), 0));
+        instructions.add(new CfInstanceOf(convertArgType));
+        instructions.add(new CfIf(If.Type.EQ, ValueType.INT, dest));
+        instructions.add(new CfLoad(ValueType.fromDexType(argType), 0));
+        instructions.add(new CfCheckCast(convertArgType));
+        instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, convert, false));
+        instructions.add(new CfReturn(ValueType.fromDexType(reverseWrapperField.type)));
+        instructions.add(dest);
+        instructions.add(frame.clone());
+      }
 
       // return new Wrapper(wrappedValue);
       instructions.add(new CfNew(wrapperField.holder));

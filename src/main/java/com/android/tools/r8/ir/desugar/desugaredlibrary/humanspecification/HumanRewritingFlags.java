@@ -15,11 +15,13 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class HumanRewritingFlags {
 
@@ -443,6 +445,7 @@ public class HumanRewritingFlags {
     }
 
     public HumanRewritingFlags build() {
+      validate();
       return new HumanRewritingFlags(
           ImmutableMap.copyOf(rewritePrefix),
           ImmutableSet.copyOf(dontRewritePrefix),
@@ -461,6 +464,20 @@ public class HumanRewritingFlags {
           ImmutableMap.copyOf(wrapperConversions),
           ImmutableMap.copyOf(amendLibraryMethod),
           ImmutableMap.copyOf(amendLibraryField));
+    }
+
+    private void validate() {
+      SetView<DexType> dups =
+          Sets.intersection(customConversions.keySet(), wrapperConversions.keySet());
+      if (!dups.isEmpty()) {
+        throw reporter.fatalError(
+            new StringDiagnostic(
+                "Invalid desugared library configuration. "
+                    + "Duplicate types in custom conversions and wrapper conversions: "
+                    + String.join(
+                        ", ", dups.stream().map(DexType::toString).collect(Collectors.toSet())),
+                origin));
+      }
     }
   }
 }

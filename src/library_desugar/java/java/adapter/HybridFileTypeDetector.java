@@ -29,7 +29,7 @@ public final class HybridFileTypeDetector {
   static class PlatformFileTypeDetector extends FileTypeDetector {
     @Override
     public String probeContentType(Path path) throws IOException {
-      return j$.nio.file.Files.probeContentType(j$.nio.file.Path.inverted_wrap_convert(path));
+      return j$.nio.file.Files.probeContentType(j$.nio.file.Path.wrap_convert(path));
     }
   }
 }
