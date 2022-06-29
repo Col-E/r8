@@ -6,7 +6,6 @@ package com.android.tools.r8.desugar.desugaredlibrary.r8ondex;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
-import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
@@ -69,7 +68,7 @@ public class HelloWorldCompiledOnArtTest extends DesugaredLibraryTestBase {
             .withDexRuntimesStartingFromIncluding(Version.V7_0_0)
             .withApiLevelsStartingAtIncluding(AndroidApiLevel.L)
             .build(),
-        ImmutableList.of(JDK8, JDK11_PATH),
+        ImmutableList.of(JDK11_PATH),
         ImmutableList.of(D8_L8DEBUG));
   }
 
