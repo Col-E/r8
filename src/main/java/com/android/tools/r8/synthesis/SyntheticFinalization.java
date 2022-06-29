@@ -670,7 +670,8 @@ public class SyntheticFinalization {
     // Each other member is in a shared group if it is actually equivalent to the first member.
     for (T synthetic : potentialEquivalence) {
       if (groups.size() > GROUP_COUNT_THRESHOLD) {
-        return ListUtils.map(potentialEquivalence, m -> new EquivalenceGroup<>(m, true));
+        return ListUtils.map(
+            potentialEquivalence, m -> new EquivalenceGroup<>(m, isPinned(appView, m)));
       }
       boolean mustBeRepresentative = isPinned(appView, synthetic);
       EquivalenceGroup<T> equivalenceGroup = null;
