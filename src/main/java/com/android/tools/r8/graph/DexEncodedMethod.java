@@ -447,10 +447,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return isInstanceInitializer() || isClassInitializer();
   }
 
-  public boolean isInitializer(boolean isStatic) {
-    return isStatic ? isClassInitializer() : isInstanceInitializer();
-  }
-
   public boolean isInstanceInitializer() {
     checkIfObsolete();
     return accessFlags.isConstructor() && !accessFlags.isStatic();

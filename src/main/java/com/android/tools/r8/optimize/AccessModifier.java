@@ -148,7 +148,8 @@ public final class AccessModifier {
         && !accessInfo.isWrittenFromMethodHandle()
         && accessInfo.isWrittenOnlyInMethodSatisfying(
             method ->
-                method.getDefinition().isInitializer(flags.isStatic())
+                method.getDefinition().isInitializer()
+                    && method.getAccessFlags().isStatic() == flags.isStatic()
                     && method.getHolder() == field.getHolder())
         && !flags.isFinal()
         && !flags.isVolatile()) {

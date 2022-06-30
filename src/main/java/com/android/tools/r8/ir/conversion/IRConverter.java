@@ -128,7 +128,6 @@ public class IRConverter {
   private final CfgPrinter printer;
   public final CodeRewriter codeRewriter;
   private final NaturalIntLoopRemover naturalIntLoopRemover = new NaturalIntLoopRemover();
-  private final ConstantCanonicalizer constantCanonicalizer;
   public final MemberValuePropagation<?> memberValuePropagation;
   private final LensCodeRewriter lensCodeRewriter;
   private final Inliner inliner;
@@ -176,7 +175,6 @@ public class IRConverter {
     this.options = appView.options();
     this.printer = printer;
     this.codeRewriter = new CodeRewriter(appView);
-    this.constantCanonicalizer = new ConstantCanonicalizer(codeRewriter);
     this.classInitializerDefaultsOptimization =
         new ClassInitializerDefaultsOptimization(appView, this);
     this.stringOptimizer = new StringOptimizer(appView);
@@ -1430,7 +1428,7 @@ public class IRConverter {
     // TODO(mkroghj) Test if shorten live ranges is worth it.
     if (!options.isGeneratingClassFiles()) {
       timing.begin("Canonicalize constants");
-      constantCanonicalizer.canonicalize(appView, code);
+      new ConstantCanonicalizer(appView, codeRewriter, context, code).canonicalize();
       timing.end();
       previous = printMethod(code, "IR after constant canonicalization (SSA)", previous);
       timing.begin("Create constants for literal instructions");

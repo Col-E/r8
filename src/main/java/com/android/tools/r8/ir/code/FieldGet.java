@@ -13,6 +13,10 @@ public interface FieldGet {
 
   TypeElement getOutType();
 
+  boolean isInstanceGet();
+
+  boolean isStaticGet();
+
   boolean hasUsedOutValue();
 
   Value outValue();

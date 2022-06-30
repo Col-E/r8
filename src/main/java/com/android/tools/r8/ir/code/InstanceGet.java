@@ -39,6 +39,25 @@ public class InstanceGet extends FieldInstruction implements FieldGet, InstanceF
     super(field, dest, object);
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  public static InstanceGet copyOf(IRCode code, InstanceGet original) {
+    Value newValue =
+        new Value(code.valueNumberGenerator.next(), original.getOutType(), original.getLocalInfo());
+    return copyOf(newValue, original);
+  }
+
+  public static InstanceGet copyOf(Value newValue, InstanceGet original) {
+    assert newValue != original.outValue();
+    return InstanceGet.builder()
+        .setField(original.getField())
+        .setObject(original.object())
+        .setOutValue(newValue)
+        .build();
+  }
+
   @Override
   public int opcode() {
     return Opcodes.INSTANCE_GET;
@@ -233,5 +252,36 @@ public class InstanceGet extends FieldInstruction implements FieldGet, InstanceF
   @Override
   public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     return false;
+  }
+
+  @Override
+  public boolean instructionTypeCanBeCanonicalized() {
+    return true;
+  }
+
+  public static class Builder extends BuilderBase<Builder, InstanceGet> {
+
+    private DexField field;
+    private Value object;
+
+    public Builder setField(DexField field) {
+      this.field = field;
+      return this;
+    }
+
+    public Builder setObject(Value object) {
+      this.object = object;
+      return this;
+    }
+
+    @Override
+    public InstanceGet build() {
+      return amend(new InstanceGet(outValue, object, field));
+    }
+
+    @Override
+    public Builder self() {
+      return this;
+    }
   }
 }
