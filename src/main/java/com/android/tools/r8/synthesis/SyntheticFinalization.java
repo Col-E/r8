@@ -35,7 +35,6 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeHashMap;
@@ -54,7 +53,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -594,12 +592,14 @@ public class SyntheticFinalization {
           List<EquivalenceGroup<T>> groups =
               groupEquivalent(appView, members, intermediate, classToFeatureSplitMap);
           for (EquivalenceGroup<T> group : groups) {
-            // If the group has a pinned representative don't construct an external type.
-            if (group.isPinned(appView)) {
+            // If the group already has a representative, then this representative is pinned.
+            // Otherwise, we select a deterministic representative.
+            if (group.hasRepresentative()) {
               EquivalenceGroup<T> previous =
                   equivalences.put(group.getRepresentative().getHolder().getType(), group);
               assert previous == null;
             } else {
+              group.selectDeterministicRepresentative();
               groupsPerPrefix
                   .computeIfAbsent(
                       group.getRepresentative().getPrefixForExternalSyntheticType(),
@@ -666,93 +666,52 @@ public class SyntheticFinalization {
       List<T> potentialEquivalence,
       boolean intermediate,
       ClassToFeatureSplitMap classToFeatureSplitMap) {
-    // Fast path the singleton groups.
-    if (potentialEquivalence.size() == 1) {
-      return ImmutableList.of(EquivalenceGroup.singleton(potentialEquivalence.get(0)));
-    }
-    assert !potentialEquivalence.isEmpty();
-
-    // Sort the potential members and split them up into potential groups of members that are
-    // actually equal.
-    GraphLens graphLens = appView.graphLens();
-    boolean includeContext =
-        intermediate || appView.options().getStartupOptions().isStartupInstrumentationEnabled();
-    List<T> sortedPotentialMembers =
-        ListUtils.sort(
-            potentialEquivalence,
-            (a, b) -> a.compareTo(b, includeContext, graphLens, classToFeatureSplitMap));
-    List<List<T>> potentialGroups = new ArrayList<>();
-    {
-      List<T> currentGroup = new ArrayList<>();
-      T currentRepresentative = sortedPotentialMembers.get(0);
-      for (int i = 1; i < sortedPotentialMembers.size(); i++) {
-        T member = sortedPotentialMembers.get(i);
-        if (!currentRepresentative.isEquivalentTo(
-            member, includeContext, graphLens, classToFeatureSplitMap)) {
-          potentialGroups.add(currentGroup);
-          currentGroup = new ArrayList<>();
-          currentRepresentative = member;
-        }
-        currentGroup.add(member);
+    List<EquivalenceGroup<T>> groups = new ArrayList<>();
+    // Each other member is in a shared group if it is actually equivalent to the first member.
+    for (T synthetic : potentialEquivalence) {
+      if (groups.size() > GROUP_COUNT_THRESHOLD) {
+        return ListUtils.map(
+            potentialEquivalence, m -> new EquivalenceGroup<>(m, isPinned(appView, m)));
       }
-      potentialGroups.add(currentGroup);
-    }
-
-    // Compute the actual groups by picking the group representatives. In cases of pinned members
-    // this may need to split out representatives into their own singleton groups.
-    List<EquivalenceGroup<T>> actualGroups = new ArrayList<>();
-    for (List<T> potentialGroup : potentialGroups) {
-      assert !potentialGroup.isEmpty();
-      if (potentialGroup.size() == 1) {
-        actualGroups.add(EquivalenceGroup.singleton(potentialGroup.get(0)));
-        continue;
-      }
-      List<T> forcedRepresentatives = null;
-      if (appView.enableWholeProgramOptimizations()) {
-        Iterator<T> it = potentialGroup.iterator();
-        while (it.hasNext()) {
-          T member = it.next();
-          boolean mustBeRepresentative = isPinned(appView, member);
-          if (mustBeRepresentative) {
-            if (forcedRepresentatives == null) {
-              forcedRepresentatives = new ArrayList<>();
+      boolean mustBeRepresentative = isPinned(appView, synthetic);
+      EquivalenceGroup<T> equivalenceGroup = null;
+      for (EquivalenceGroup<T> group : groups) {
+        boolean includeContext =
+            intermediate || appView.options().getStartupOptions().isStartupInstrumentationEnabled();
+        if (synthetic.isEquivalentTo(
+            group.hasRepresentative()
+                ? group.getRepresentative()
+                : group.getFirstNonRepresentativeMember(),
+            includeContext,
+            appView.graphLens(),
+            classToFeatureSplitMap)) {
+          if (mustBeRepresentative && group.hasRepresentative()) {
+            // Check if the current synthetic is smaller than the group's representative. If so,
+            // then replace the representative, to ensure deterministic groups, and create a new
+            // singleton group containing the old representative. Otherwise, just add a singleton
+            // group containing the new synthetic.
+            T representative = group.getRepresentative();
+            if (representative
+                    .toReference()
+                    .getReference()
+                    .compareTo(synthetic.toReference().getReference())
+                > 0) {
+              group.replaceAndRemoveRepresentative(synthetic);
+              synthetic = representative;
             }
-            forcedRepresentatives.add(member);
-            it.remove();
+          } else {
+            equivalenceGroup = group;
           }
+          break;
         }
       }
-      if (forcedRepresentatives != null) {
-        assert appView.enableWholeProgramOptimizations();
-        T representative =
-            findSmallestMember(
-                forcedRepresentatives,
-                other -> actualGroups.add(EquivalenceGroup.pinnedSingleton(other)));
-        actualGroups.add(EquivalenceGroup.pinnedGroup(representative, potentialGroup));
+      if (equivalenceGroup != null) {
+        equivalenceGroup.add(synthetic, mustBeRepresentative);
       } else {
-        List<T> members = new ArrayList<>(potentialGroup.size() - 1);
-        T representative = findSmallestMember(potentialGroup, members::add);
-        actualGroups.add(EquivalenceGroup.unpinnedGroup(representative, members));
+        groups.add(new EquivalenceGroup<>(synthetic, mustBeRepresentative));
       }
     }
-    return actualGroups;
-  }
-
-  private static <T extends SyntheticDefinition<?, T, ?>> T findSmallestMember(
-      List<T> members, Consumer<T> notSmallestCallback) {
-    assert !members.isEmpty();
-    T smallest = members.get(0);
-    for (int i = 1; i < members.size(); i++) {
-      T member = members.get(i);
-      if (member.toReference().getReference().compareTo(smallest.toReference().getReference())
-          < 0) {
-        notSmallestCallback.accept(smallest);
-        smallest = member;
-      } else {
-        notSmallestCallback.accept(member);
-      }
-    }
-    return smallest;
+    return groups;
   }
 
   /**
@@ -887,47 +846,28 @@ public class SyntheticFinalization {
   private static class EquivalenceGroup<T extends SyntheticDefinition<?, T, ?>> {
 
     // The members of the equivalence group, *excluding* the representative.
-    private final List<T> members;
-    private final T representative;
-    private final OptionalBool pinned;
+    private List<T> members = new ArrayList<>();
+    private T representative;
 
-    static <T extends SyntheticDefinition<?, T, ?>> EquivalenceGroup<T> singleton(T member) {
-      return new EquivalenceGroup<>(member, ImmutableList.of(), OptionalBool.UNKNOWN);
+    EquivalenceGroup(T member, boolean isRepresentative) {
+      add(member, isRepresentative);
     }
 
-    static <T extends SyntheticDefinition<?, T, ?>> EquivalenceGroup<T> unpinnedGroup(
-        T representative, List<T> members) {
-      return new EquivalenceGroup<>(
-          representative, Collections.unmodifiableList(members), OptionalBool.FALSE);
-    }
-
-    static <T extends SyntheticDefinition<?, T, ?>> EquivalenceGroup<T> pinnedSingleton(T member) {
-      return new EquivalenceGroup<>(member, ImmutableList.of(), OptionalBool.TRUE);
-    }
-
-    static <T extends SyntheticDefinition<?, T, ?>> EquivalenceGroup<T> pinnedGroup(
-        T representative, List<T> members) {
-      return new EquivalenceGroup<>(
-          representative, Collections.unmodifiableList(members), OptionalBool.TRUE);
-    }
-
-    private EquivalenceGroup(T representative, List<T> members, OptionalBool pinned) {
-      assert representative != null;
-      assert members != null;
-      assert pinned != null;
-      this.members = members;
-      this.representative = representative;
-      this.pinned = pinned;
-    }
-
-    public boolean isPinned(AppView<?> appView) {
-      if (pinned.isTrue()) {
-        return true;
+    void add(T member, boolean isRepresentative) {
+      if (isRepresentative) {
+        assert !hasRepresentative();
+        representative = member;
+      } else {
+        members.add(member);
       }
-      if (pinned.isFalse()) {
-        return false;
-      }
-      return SyntheticFinalization.isPinned(appView, representative);
+    }
+
+    int compareToIncludingContext(
+        EquivalenceGroup<T> other,
+        GraphLens graphLens,
+        ClassToFeatureSplitMap classToFeatureSplitMap) {
+      return getRepresentative()
+          .compareTo(other.getRepresentative(), true, graphLens, classToFeatureSplitMap);
     }
 
     public void forEach(Consumer<T> consumer) {
@@ -939,8 +879,18 @@ public class SyntheticFinalization {
       members.forEach(consumer);
     }
 
+    T getFirstNonRepresentativeMember() {
+      assert !members.isEmpty();
+      return members.get(0);
+    }
+
     T getRepresentative() {
+      assert hasRepresentative();
       return representative;
+    }
+
+    boolean hasRepresentative() {
+      return representative != null;
     }
 
     boolean isDerivedFromMainDexList(MainDexInfo mainDexInfo) {
@@ -949,13 +899,44 @@ public class SyntheticFinalization {
               members, member -> member.getContext().isDerivedFromMainDexList(mainDexInfo));
     }
 
+    void replaceAndRemoveRepresentative(T representative) {
+      assert hasRepresentative();
+      this.representative = representative;
+    }
+
+    void selectDeterministicRepresentative() {
+      // Pick a deterministic member as representative.
+      assert !hasRepresentative();
+      int representativeIndex = 0;
+      for (int i = 1; i < members.size(); i++) {
+        T next = members.get(i);
+        T representative = members.get(representativeIndex);
+        if (next.toReference().getReference().compareTo(representative.toReference().getReference())
+            < 0) {
+          representativeIndex = i;
+        }
+      }
+      T representative = members.get(representativeIndex);
+      members.set(representativeIndex, ListUtils.last(members));
+      ListUtils.removeLast(members);
+      setRepresentative(representative);
+    }
+
+    void setRepresentative(T representative) {
+      assert !hasRepresentative();
+      this.representative = representative;
+    }
+
     @Override
     public String toString() {
-      return "EquivalenceGroup{ size = "
-          + (members.size() + 1)
-          + ", repr = "
-          + getRepresentative()
-          + " }";
+      if (hasRepresentative()) {
+        return "EquivalenceGroup{ size = "
+            + (members.size() + 1)
+            + ", repr = "
+            + getRepresentative()
+            + " }";
+      }
+      return "EquivalenceGroup{ size = " + members.size() + " }";
     }
   }
 }
