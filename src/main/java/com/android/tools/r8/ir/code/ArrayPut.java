@@ -159,16 +159,22 @@ public class ArrayPut extends ArrayAccess {
       return true;
     }
 
-    // Check that all usages of the array are array stores.
-    for (Instruction user : array.uniqueUsers()) {
-      if (!user.isArrayPut() || user.asArrayPut().array() != array) {
-        return true;
-      }
-    }
-
-    if (array.numberOfPhiUsers() > 0) {
+    if (array.hasPhiUsers()) {
       // The array could be used indirectly.
       return true;
+    }
+
+    // Check that all usages of the array are array stores.
+    for (Instruction user : array.aliasedUsers()) {
+      if (user.isAssume()) {
+        if (user.outValue().hasPhiUsers()) {
+          return true;
+        }
+        continue;
+      }
+      if (!user.isArrayPut() || user.asArrayPut().array().getAliasedValue() != array) {
+        return true;
+      }
     }
 
     return false;
