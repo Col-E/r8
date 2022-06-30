@@ -5,6 +5,7 @@
 package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.kotlin.KotlinClassMetadataReader.hasKotlinClassMetadataAnnotation;
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getInvalidKotlinInfo;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getNoKotlinInfo;
 
 import com.android.tools.r8.errors.Unreachable;
@@ -26,6 +27,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.Enqueuer.EnqueuerDefinitionSupplier;
 import com.android.tools.r8.shaking.KeepClassInfo;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
@@ -36,6 +38,7 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
   private final AppView<?> appView;
   private final EnqueuerDefinitionSupplier enqueuerDefinitionSupplier;
   private final Set<DexType> prunedTypes;
+  private boolean reportedUnknownMetadataVersion;
 
   public KotlinMetadataEnqueuerExtension(
       AppView<?> appView,
@@ -66,26 +69,52 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
       enqueuer.forAllLiveClasses(
           clazz -> {
             assert clazz.getKotlinInfo().isNoKotlinInformation();
-            if (enqueuer
-                .getKeepInfo(clazz)
-                .isKotlinMetadataRemovalAllowed(appView.options(), keepKotlinMetadata)) {
-              if (KotlinClassMetadataReader.isLambda(appView, clazz)
-                  && clazz.hasClassInitializer()) {
-                feedback.classInitializerMayBePostponed(clazz.getClassInitializer());
+            try {
+              if (enqueuer
+                  .getKeepInfo(clazz)
+                  .isKotlinMetadataRemovalAllowed(appView.options(), keepKotlinMetadata)) {
+                if (KotlinClassMetadataReader.isLambda(appView, clazz)
+                    && clazz.hasClassInitializer()) {
+                  feedback.classInitializerMayBePostponed(clazz.getClassInitializer());
+                }
+                clazz.clearKotlinInfo();
+                clazz.removeAnnotations(
+                    annotation ->
+                        annotation.getAnnotationType()
+                            == appView.dexItemFactory().kotlinMetadataType);
+              } else {
+                clazz.setKotlinInfo(
+                    KotlinClassMetadataReader.getKotlinInfo(
+                        clazz,
+                        appView,
+                        method -> keepByteCodeFunctions.add(method.getReference())));
+                if (clazz.getEnclosingMethodAttribute() != null
+                    && clazz.getEnclosingMethodAttribute().getEnclosingMethod() != null) {
+                  localOrAnonymousClasses.add(clazz);
+                }
               }
-              clazz.clearKotlinInfo();
-              clazz.removeAnnotations(
-                  annotation ->
-                      annotation.getAnnotationType()
-                          == appView.dexItemFactory().kotlinMetadataType);
-            } else {
-              clazz.setKotlinInfo(
-                  KotlinClassMetadataReader.getKotlinInfo(
-                      clazz, appView, method -> keepByteCodeFunctions.add(method.getReference())));
-              if (clazz.getEnclosingMethodAttribute() != null
-                  && clazz.getEnclosingMethodAttribute().getEnclosingMethod() != null) {
-                localOrAnonymousClasses.add(clazz);
-              }
+            } catch (KotlinMetadataException e) {
+              appView
+                  .reporter()
+                  .info(
+                      new StringDiagnostic(
+                          "Class "
+                              + clazz.type.toSourceString()
+                              + " has malformed kotlin.Metadata: "
+                              + e.getMessage()));
+              clazz.setKotlinInfo(getInvalidKotlinInfo());
+              reportUnknownMetadataVersion();
+            } catch (Throwable e) {
+              appView
+                  .reporter()
+                  .info(
+                      new StringDiagnostic(
+                          "Unexpected error while reading "
+                              + clazz.type.toSourceString()
+                              + "'s kotlin.Metadata: "
+                              + e.getMessage()));
+              clazz.setKotlinInfo(getNoKotlinInfo());
+              reportUnknownMetadataVersion();
             }
           });
       for (DexProgramClass localOrAnonymousClass : localOrAnonymousClasses) {
@@ -136,6 +165,13 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
               member ->
                   member.getDefinition().getKotlinInfo().trace(definitionsForContext(member)));
         });
+  }
+
+  private void reportUnknownMetadataVersion() {
+    if (!reportedUnknownMetadataVersion) {
+      reportedUnknownMetadataVersion = true;
+      appView.reporter().warning(KotlinMetadataDiagnostic.unknownMetadataVersion());
+    }
   }
 
   public class KotlinMetadataDefinitionSupplier implements DexDefinitionSupplier {

@@ -195,11 +195,15 @@ public class KotlinMetadataRewriter {
 
   private boolean verifyRewrittenMetadataIsEquivalent(
       DexAnnotation original, DexAnnotation rewritten) {
-    String originalMetadata =
-        kotlinMetadataToString("", toKotlinClassMetadata(kotlin, original.annotation));
-    String rewrittenMetadata =
-        kotlinMetadataToString("", toKotlinClassMetadata(kotlin, rewritten.annotation));
-    assert originalMetadata.equals(rewrittenMetadata) : "The metadata should be equivalent";
+    try {
+      String originalMetadata =
+          kotlinMetadataToString("", toKotlinClassMetadata(kotlin, original.annotation));
+      String rewrittenMetadata =
+          kotlinMetadataToString("", toKotlinClassMetadata(kotlin, rewritten.annotation));
+      assert originalMetadata.equals(rewrittenMetadata) : "The metadata should be equivalent";
+    } catch (KotlinMetadataException ignored) {
+
+    }
     return true;
   }
 
@@ -227,11 +231,6 @@ public class KotlinMetadataRewriter {
       elements.add(
           new DexAnnotationElement(
               kotlin.metadata.metadataVersion, createIntArray(metadataVersion)));
-    }
-    if (writeMetadataFieldInfo.writeByteCodeVersion) {
-      elements.add(
-          new DexAnnotationElement(
-              kotlin.metadata.bytecodeVersion, createIntArray(header.getBytecodeVersion())));
     }
     if (writeMetadataFieldInfo.writeKind) {
       elements.add(

@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.PermittedSubclassAttribute;
 import com.android.tools.r8.kotlin.KotlinClassMetadataReader;
+import com.android.tools.r8.kotlin.KotlinMetadataException;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
@@ -544,9 +545,14 @@ public class FoundClassSubject extends ClassSubject {
     if (!annotationSubject.isPresent()) {
       return new AbsentKmClassSubject();
     }
-    KotlinClassMetadata metadata =
-        KotlinClassMetadataReader.toKotlinClassMetadata(
-            codeInspector.getFactory().kotlin, annotationSubject.getAnnotation());
+    KotlinClassMetadata metadata = null;
+    try {
+      metadata =
+          KotlinClassMetadataReader.toKotlinClassMetadata(
+              codeInspector.getFactory().kotlin, annotationSubject.getAnnotation());
+    } catch (KotlinMetadataException e) {
+      throw new RuntimeException(e);
+    }
     assertTrue(metadata instanceof KotlinClassMetadata.Class);
     KotlinClassMetadata.Class kClass = (KotlinClassMetadata.Class) metadata;
     return new FoundKmClassSubject(codeInspector, getDexProgramClass(), kClass.toKmClass());
@@ -558,9 +564,14 @@ public class FoundClassSubject extends ClassSubject {
     if (!annotationSubject.isPresent()) {
       return new AbsentKmPackageSubject();
     }
-    KotlinClassMetadata metadata =
-        KotlinClassMetadataReader.toKotlinClassMetadata(
-            codeInspector.getFactory().kotlin, annotationSubject.getAnnotation());
+    KotlinClassMetadata metadata = null;
+    try {
+      metadata =
+          KotlinClassMetadataReader.toKotlinClassMetadata(
+              codeInspector.getFactory().kotlin, annotationSubject.getAnnotation());
+    } catch (KotlinMetadataException e) {
+      throw new RuntimeException(e);
+    }
     assertTrue(metadata instanceof KotlinClassMetadata.FileFacade
         || metadata instanceof KotlinClassMetadata.MultiFileClassPart);
     if (metadata instanceof KotlinClassMetadata.FileFacade) {
@@ -579,8 +590,12 @@ public class FoundClassSubject extends ClassSubject {
     if (!annotationSubject.isPresent()) {
       return null;
     }
-    return KotlinClassMetadataReader.toKotlinClassMetadata(
-        codeInspector.getFactory().kotlin, annotationSubject.getAnnotation());
+    try {
+      return KotlinClassMetadataReader.toKotlinClassMetadata(
+          codeInspector.getFactory().kotlin, annotationSubject.getAnnotation());
+    } catch (KotlinMetadataException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

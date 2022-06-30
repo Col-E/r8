@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getInvalidKotlinInfo;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getNoKotlinInfo;
 import static com.android.tools.r8.kotlin.KotlinSyntheticClassInfo.getFlavour;
 
@@ -19,7 +18,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.kotlin.KotlinSyntheticClassInfo.Flavour;
-import com.android.tools.r8.utils.StringDiagnostic;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -36,7 +34,8 @@ public final class KotlinClassMetadataReader {
   private static final int SYNTHETIC_CLASS_KIND = 3;
 
   public static KotlinClassLevelInfo getKotlinInfo(
-      DexClass clazz, AppView<?> appView, Consumer<DexEncodedMethod> keepByteCode) {
+      DexClass clazz, AppView<?> appView, Consumer<DexEncodedMethod> keepByteCode)
+      throws KotlinMetadataException {
     DexAnnotation meta =
         clazz.annotations().getFirstMatching(appView.dexItemFactory().kotlinMetadataType);
     return meta != null ? getKotlinInfo(clazz, appView, keepByteCode, meta) : getNoKotlinInfo();
@@ -46,35 +45,18 @@ public final class KotlinClassMetadataReader {
       DexClass clazz,
       AppView<?> appView,
       Consumer<DexEncodedMethod> keepByteCode,
-      DexAnnotation annotation) {
-    try {
-      Kotlin kotlin = appView.dexItemFactory().kotlin;
-      KotlinClassMetadata kMetadata = toKotlinClassMetadata(kotlin, annotation.annotation);
-      return createKotlinInfo(kotlin, clazz, kMetadata, appView, keepByteCode);
-    } catch (ClassCastException | InconsistentKotlinMetadataException | MetadataError e) {
-      appView
-          .reporter()
-          .info(
-              new StringDiagnostic(
-                  "Class "
-                      + clazz.type.toSourceString()
-                      + " has malformed kotlin.Metadata: "
-                      + e.getMessage()));
-      return getInvalidKotlinInfo();
-    } catch (Throwable e) {
-      appView
-          .reporter()
-          .info(
-              new StringDiagnostic(
-                  "Unexpected error while reading "
-                      + clazz.type.toSourceString()
-                      + "'s kotlin.Metadata: "
-                      + e.getMessage()));
-      return getNoKotlinInfo();
+      DexAnnotation annotation)
+      throws KotlinMetadataException {
+    Kotlin kotlin = appView.dexItemFactory().kotlin;
+    KotlinClassMetadata kMetadata = toKotlinClassMetadata(kotlin, annotation.annotation);
+    if (kMetadata == null) {
+      throw new KotlinMetadataException();
     }
+    return createKotlinInfo(kotlin, clazz, kMetadata, appView, keepByteCode);
   }
 
-  public static boolean isLambda(AppView<?> appView, DexClass clazz) {
+  public static boolean isLambda(AppView<?> appView, DexClass clazz)
+      throws KotlinMetadataException {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     Kotlin kotlin = dexItemFactory.kotlin;
     Flavour flavour = getFlavour(clazz, kotlin);
@@ -108,7 +90,7 @@ public final class KotlinClassMetadataReader {
   }
 
   public static KotlinClassMetadata toKotlinClassMetadata(
-      Kotlin kotlin, DexEncodedAnnotation metadataAnnotation) {
+      Kotlin kotlin, DexEncodedAnnotation metadataAnnotation) throws KotlinMetadataException {
     return toKotlinClassMetadata(kotlin, toElementMap(metadataAnnotation));
   }
 
@@ -122,12 +104,11 @@ public final class KotlinClassMetadataReader {
   }
 
   private static KotlinClassMetadata toKotlinClassMetadata(
-      Kotlin kotlin, Map<DexString, DexAnnotationElement> elementMap) {
+      Kotlin kotlin, Map<DexString, DexAnnotationElement> elementMap)
+      throws KotlinMetadataException {
     int k = getKind(kotlin, elementMap);
     DexAnnotationElement metadataVersion = elementMap.get(kotlin.metadata.metadataVersion);
     int[] mv = metadataVersion == null ? null : getUnboxedIntArray(metadataVersion.value, "mv");
-    DexAnnotationElement bytecodeVersion = elementMap.get(kotlin.metadata.bytecodeVersion);
-    int[] bv = bytecodeVersion == null ? null : getUnboxedIntArray(bytecodeVersion.value, "bv");
     DexAnnotationElement data1 = elementMap.get(kotlin.metadata.data1);
     String[] d1 = data1 == null ? null : getUnboxedStringArray(data1.value, "d1");
     DexAnnotationElement data2 = elementMap.get(kotlin.metadata.data2);
@@ -139,8 +120,12 @@ public final class KotlinClassMetadataReader {
     DexAnnotationElement extraInt = elementMap.get(kotlin.metadata.extraInt);
     Integer xi = extraInt == null ? null : (Integer) extraInt.value.getBoxedValue();
 
-    KotlinClassHeader header = new KotlinClassHeader(k, mv, bv, d1, d2, xs, pn, xi);
-    return KotlinClassMetadata.read(header);
+    try {
+      KotlinClassHeader header = new KotlinClassHeader(k, mv, d1, d2, xs, pn, xi);
+      return KotlinClassMetadata.read(header);
+    } catch (ClassCastException | InconsistentKotlinMetadataException | MetadataError e) {
+      throw new KotlinMetadataException(e);
+    }
   }
 
   private static int getKind(Kotlin kotlin, Map<DexString, DexAnnotationElement> elementMap) {

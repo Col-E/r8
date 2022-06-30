@@ -13,6 +13,9 @@ import com.android.tools.r8.utils.StringUtils;
 
 public class KotlinMetadataDiagnostic implements Diagnostic {
 
+  private static final String LINK_TO_PAGE =
+      "https://developer.android.com/studio/build/kotlin-d8-r8-versions";
+
   private final Origin origin;
   private final Position position;
   private final String message;
@@ -72,5 +75,15 @@ public class KotlinMetadataDiagnostic implements Diagnostic {
             + "':"
             + StringUtils.LINE_SEPARATOR
             + StringUtils.stacktraceAsString(t));
+  }
+
+  static KotlinMetadataDiagnostic unknownMetadataVersion() {
+    return new KotlinMetadataDiagnostic(
+        Origin.unknown(),
+        Position.UNKNOWN,
+        "An error occurred when parsing kotlin metadata. This normally happens when using a newer"
+            + " version of kotlin than the kotlin version released when this version of R8 was"
+            + " created. To find compatible kotlin versions, please see: "
+            + LINK_TO_PAGE);
   }
 }
