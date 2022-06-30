@@ -4,10 +4,11 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.jdk11;
 
-import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.SPECIFICATIONS_WITH_CF2CF;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
@@ -17,6 +18,7 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -38,9 +40,9 @@ public class InputStreamTransferToTest extends DesugaredLibraryTestBase {
   @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        getTestParameters().withAllRuntimesAndApiLevels().enableApiLevelsForCf().build(),
         ImmutableList.of(JDK11_PATH),
-        DEFAULT_SPECIFICATIONS);
+        SPECIFICATIONS_WITH_CF2CF);
   }
 
   public InputStreamTransferToTest(
@@ -54,6 +56,11 @@ public class InputStreamTransferToTest extends DesugaredLibraryTestBase {
 
   @Test
   public void test() throws Exception {
+    // The method is not present on JDK8 so if we don't desugar that won't work.
+    Assume.assumeFalse(
+        parameters.isCfRuntime(CfVm.JDK8)
+            && !libraryDesugaringSpecification.hasNioFileDesugaring(parameters)
+            && compilationSpecification.isCfToCf());
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramFiles(INPUT_JAR)
         .addKeepMainRule(MAIN_CLASS)
