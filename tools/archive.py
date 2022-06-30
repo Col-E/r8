@@ -270,7 +270,7 @@ def Main():
             utils.upload_file_to_cloud_storage(
                 desugar_jdk_libs_configuration_jar, jar_destination)
 
-      # TODO(sgjesse): Refactor this to avoid the duplication of what is above.
+      # TODO(b/237636871): Refactor this to avoid the duplication of what is above.
       # Upload desugar_jdk_libs JDK-11 legacyconfiguration to a maven compatible location.
       if file == utils.DESUGAR_CONFIGURATION_JDK11_LEGACY:
         jar_basename = 'desugar_jdk_libs_configuration.jar'

@@ -495,12 +495,19 @@ def prepare_desugar_library(args):
     library_version = args.desugar_library[0]
     configuration_version = args.desugar_library[1]
 
+    # TODO(b/237636871): Cleanup and generalize.
+    if (not (library_version.startswith('1.1') or library_version.startswith('1.2'))):
+      print("Release script does not support desugared library version %s"
+        % library_version)
+      sys.exit(1)
+
     library_archive = DESUGAR_JDK_LIBS + '.zip'
     library_jar = DESUGAR_JDK_LIBS + '.jar'
     library_artifact_id = \
         '%s:%s:%s' % (ANDROID_TOOLS_PACKAGE, DESUGAR_JDK_LIBS, library_version)
 
-    configuration_archive = DESUGAR_JDK_LIBS_CONFIGURATION + '.zip'
+    postfix = "" if library_version.startswith('1.1') else '_jdk11_legacy'
+    configuration_archive = DESUGAR_JDK_LIBS_CONFIGURATION + postfix + '.zip'
 
     with utils.TempDir() as temp:
       with utils.ChangedWorkingDirectory(temp):
@@ -631,15 +638,23 @@ def gmaven_publisher_stage_redir_test_info(release_id, artifact, dst):
 
 %s
 
-Add the following repository to gradle.build for using 'redir':
+Then add the following repository to settings.gradle to search the 'redir'
+repository:
 
-repositories {
-  maven {
-    url 'http://localhost:1480'
-    allowInsecureProtocol true
+dependencyResolutionManagement {
+  repositories {
+    maven {
+      url 'http://localhost:1480'
+      allowInsecureProtocol true
+    }
   }
-  dependencies {
-    classpath '%s'  // Must be before the Gradle Plugin for Android.
+}
+
+and add the following repository to gradle.build for for the staged version:
+
+dependencies {
+  coreLibraryDesugaring('%s') {
+    changing = true
   }
 }
 
