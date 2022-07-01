@@ -122,17 +122,17 @@ public abstract class DexFormat45cc extends DexBase4Format {
       GraphLens graphLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
-    MethodLookupResult lookup =
-        graphLens.lookupMethod(getMethod(), context.getReference(), Type.POLYMORPHIC);
-    // The method is one of the java.lang.MethodHandle invokes.
-    // Only the argument (getProto()) signature is to be type rewritten.
-    assert lookup.getType() == Type.POLYMORPHIC;
-    assert getMethod() == lookup.getReference();
-    writeFirst(A, G, dest);
-    write16BitReference(lookup.getReference(), dest, mapping);
-    write16BitValue(combineBytes(makeByte(F, E), makeByte(D, C)), dest);
-
+    // The method is one of java.lang.MethodHandle.invoke/invokeExact.
+    // Only the method signature (getProto()) is to be type rewritten.
+    assert rewriter.dexItemFactory().polymorphicMethods.isPolymorphicInvoke(getMethod());
+    assert getMethod()
+        == graphLens
+            .lookupMethod(getMethod(), context.getReference(), Type.POLYMORPHIC)
+            .getReference();
     DexProto rewrittenProto = rewriter.rewriteProto(getProto());
+    writeFirst(A, G, dest);
+    write16BitReference(getMethod(), dest, mapping);
+    write16BitValue(combineBytes(makeByte(F, E), makeByte(D, C)), dest);
     write16BitReference(rewrittenProto, dest, mapping);
   }
 
