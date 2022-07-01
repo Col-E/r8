@@ -4,13 +4,10 @@
 
 package com.android.tools.r8.repackage;
 
-import static org.junit.Assert.assertThrows;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.ACC_SUPER;
 import static org.objectweb.asm.Opcodes.V1_8;
 
-import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.DiagnosticsMatcher;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -35,22 +32,17 @@ public class RepackageObjectOnProgramPathTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    assertThrows(
-        CompilationFailedException.class,
-        () -> {
-          testForR8(parameters.getBackend())
-              .addProgramClassFileData(dumpObject())
-              .addProgramClasses(A.class, Main.class)
-              .setMinApi(parameters.getApiLevel())
-              .enableInliningAnnotations()
-              .addKeepMainRule(Main.class)
-              .addDontWarn("*")
-              .compileWithExpectedDiagnostics(
-                  diagnostics ->
-                      // TODO(b/237124748): We should not throw an error.
-                      diagnostics.assertErrorThatMatches(
-                          DiagnosticsMatcher.diagnosticException(NullPointerException.class)));
-        });
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(dumpObject())
+        .addProgramClasses(A.class, Main.class)
+        .setMinApi(parameters.getApiLevel())
+        .enableInliningAnnotations()
+        .addKeepMainRule(Main.class)
+        .addDontWarn("*")
+        .addKeepClassRules(Object.class)
+        .allowDiagnosticWarningMessages()
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("A::foo");
   }
 
   public static byte[] dumpObject() {

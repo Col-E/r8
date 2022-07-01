@@ -105,7 +105,9 @@ public class RepackagingConstraintGraph {
         new RepackagingUseRegistry(appView, this, clazz, libraryBoundaryNode);
 
     // Trace the references to the immediate super types.
-    registry.registerTypeReference(clazz.getSuperType(), appView.graphLens());
+    if (clazz.superType != null) {
+      registry.registerTypeReference(clazz.getSuperType(), appView.graphLens());
+    }
     clazz.interfaces.forEach(type -> registry.registerTypeReference(type, appView.graphLens()));
 
     // Trace the references from the class annotations.
@@ -156,11 +158,13 @@ public class RepackagingConstraintGraph {
         .forEachType(type -> registry.registerTypeReference(type, appView.graphLens()));
 
     // Check if this overrides a package-private method.
-    DexClass superClass =
-        appView.definitionFor(method.getHolder().getSuperType(), method.getHolder());
-    if (superClass != null) {
-      registry.registerMemberAccess(
-          appView.appInfo().resolveMethodOnLegacy(superClass, method.getReference()));
+    if (method.getHolder().superType != null) {
+      DexClass superClass =
+          appView.definitionFor(method.getHolder().getSuperType(), method.getHolder());
+      if (superClass != null) {
+        registry.registerMemberAccess(
+            appView.appInfo().resolveMethodOnLegacy(superClass, method.getReference()));
+      }
     }
 
     // Trace the references in the method and method parameter annotations.

@@ -261,9 +261,7 @@ public class CfApplicationWriter {
     String name = getNamingLens().lookupInternalName(clazz.type);
     String signature = clazz.getClassSignature().toRenamedString(getNamingLens(), isTypeMissing);
     String superName =
-        clazz.type == options.itemFactory.objectType
-            ? null
-            : getNamingLens().lookupInternalName(clazz.superType);
+        clazz.hasSuperType() ? getNamingLens().lookupInternalName(clazz.superType) : null;
     String[] interfaces = new String[clazz.interfaces.values.length];
     for (int i = 0; i < clazz.interfaces.values.length; i++) {
       interfaces[i] = getNamingLens().lookupInternalName(clazz.interfaces.values[i]);

@@ -52,7 +52,7 @@ public class NoEnums extends SingleClassPolicy {
     } else if (clazz.type == appView.dexItemFactory().enumType) {
       result = true;
     } else {
-      DexClass superClass = appView.definitionFor(clazz.superType);
+      DexClass superClass = clazz.hasSuperType() ? appView.definitionFor(clazz.superType) : null;
       result = superClass != null && isEnumSubtype(superClass);
     }
     cache.put(clazz, result);
