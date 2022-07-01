@@ -9,6 +9,7 @@ import static com.android.tools.r8.ir.code.Opcodes.CONST_STRING;
 import static com.android.tools.r8.ir.code.Opcodes.DEX_ITEM_BASED_CONST_STRING;
 import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_GET;
 import static com.android.tools.r8.ir.code.Opcodes.STATIC_GET;
+import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -22,6 +23,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
@@ -32,15 +34,27 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InstructionOrPhi;
+import com.android.tools.r8.ir.code.InvokeDirect;
+import com.android.tools.r8.ir.code.NewInstance;
+import com.android.tools.r8.ir.code.Phi;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.utils.OptionalBool;
+import com.android.tools.r8.utils.WorkList;
+import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.Hash.Strategy;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenCustomHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectSortedMap.FastSortedEntrySet;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Canonicalize constants.
@@ -54,7 +68,9 @@ public class ConstantCanonicalizer {
   private final CodeRewriter codeRewriter;
   private final ProgramMethod context;
   private final IRCode code;
-  private final boolean isAccessingVolatileField;
+
+  private OptionalBool isAccessingVolatileField = OptionalBool.unknown();
+  private Set<InstanceGet> ineligibleInstanceGetInstructions;
 
   public ConstantCanonicalizer(
       AppView<?> appView, CodeRewriter codeRewriter, ProgramMethod context, IRCode code) {
@@ -62,10 +78,22 @@ public class ConstantCanonicalizer {
     this.codeRewriter = codeRewriter;
     this.context = context;
     this.code = code;
-    this.isAccessingVolatileField = computeIsAccessingVolatileField(appView, code);
   }
 
-  private static boolean computeIsAccessingVolatileField(AppView<?> appView, IRCode code) {
+  private ConstantCanonicalizer clear() {
+    isAccessingVolatileField = OptionalBool.unknown();
+    ineligibleInstanceGetInstructions = null;
+    return this;
+  }
+
+  private boolean getOrComputeIsAccessingVolatileField() {
+    if (isAccessingVolatileField.isUnknown()) {
+      isAccessingVolatileField = OptionalBool.of(computeIsAccessingVolatileField());
+    }
+    return isAccessingVolatileField.isTrue();
+  }
+
+  private boolean computeIsAccessingVolatileField() {
     if (!appView.hasClassHierarchy()) {
       // Conservatively return true.
       return true;
@@ -83,8 +111,48 @@ public class ConstantCanonicalizer {
     return false;
   }
 
-  public void canonicalize() {
-    Object2ObjectLinkedOpenCustomHashMap<Instruction, List<Value>> valuesDefinedByConstant =
+  private Set<InstanceGet> getOrComputeIneligibleInstanceGetInstructions() {
+    if (ineligibleInstanceGetInstructions == null) {
+      ineligibleInstanceGetInstructions = computeIneligibleInstanceGetInstructions();
+    }
+    return ineligibleInstanceGetInstructions;
+  }
+
+  private Set<InstanceGet> computeIneligibleInstanceGetInstructions() {
+    Set<InstanceGet> ineligibleInstanceGetInstructions = Sets.newIdentityHashSet();
+    for (BasicBlock catchHandlerBlock : computeDirectAndIndirectCatchHandlerBlocks()) {
+      for (InstanceGet instanceGet :
+          catchHandlerBlock.<InstanceGet>getInstructions(Instruction::isInstanceGet)) {
+        // If the receiver is defined in a block with catch handlers and the definition of the
+        // receiver is not throwing (typically defined by an assume instruction or a phi), then we
+        // cant split the block and copy the catch handlers, since the canonicalized constant would
+        // then not be defined on the exceptional edge.
+        Value object = instanceGet.object();
+        if (!object.isDefinedByInstructionSatisfying(Instruction::instructionTypeCanThrow)
+            && object.getBlock().hasCatchHandlers()) {
+          ineligibleInstanceGetInstructions.add(instanceGet);
+        }
+      }
+    }
+    return ineligibleInstanceGetInstructions;
+  }
+
+  private Set<BasicBlock> computeDirectAndIndirectCatchHandlerBlocks() {
+    WorkList<BasicBlock> catchHandlerBlocks = WorkList.newIdentityWorkList();
+    for (BasicBlock block : code.getBlocks()) {
+      if (block.entry().isMoveException()) {
+        catchHandlerBlocks.addIfNotSeen(block);
+      }
+    }
+    while (catchHandlerBlocks.hasNext()) {
+      BasicBlock block = catchHandlerBlocks.next();
+      catchHandlerBlocks.addIfNotSeen(block.getSuccessors());
+    }
+    return catchHandlerBlocks.getSeenSet();
+  }
+
+  public ConstantCanonicalizer canonicalize() {
+    Object2ObjectLinkedOpenCustomHashMap<Instruction, List<Instruction>> valuesDefinedByConstant =
         new Object2ObjectLinkedOpenCustomHashMap<>(
             new Strategy<Instruction>() {
 
@@ -125,76 +193,99 @@ public class ConstantCanonicalizer {
             });
 
     // Collect usages of constants that can be canonicalized.
-    for (Instruction current : code.instructions()) {
-      if (isConstantCanonicalizationCandidate(current)) {
-        List<Value> oldValuesDefinedByConstant =
-            valuesDefinedByConstant.computeIfAbsent(current, k -> new ArrayList<>());
-        oldValuesDefinedByConstant.add(current.outValue());
+    for (Instruction instruction : code.instructions()) {
+      if (isConstantCanonicalizationCandidate(instruction)) {
+        valuesDefinedByConstant
+            .computeIfAbsent(instruction, ignoreKey(ArrayList::new))
+            .add(instruction);
       }
     }
 
     if (valuesDefinedByConstant.isEmpty()) {
-      return;
+      return clear();
     }
 
     // Double-check the entry block does not have catch handlers.
     // Otherwise, we need to split it before moving canonicalized const-string, which may throw.
     assert !code.entryBlock().hasCatchHandlers();
-    FastSortedEntrySet<Instruction, List<Value>> entries =
+    FastSortedEntrySet<Instruction, List<Instruction>> entries =
         valuesDefinedByConstant.object2ObjectEntrySet();
     // Sort the most frequently used constant first and exclude constant use only one time, such
     // as the {@code MAX_CANONICALIZED_CONSTANT} will be canonicalized into the entry block.
-    Iterator<Object2ObjectMap.Entry<Instruction, List<Value>>> iterator =
+    Iterator<Object2ObjectMap.Entry<Instruction, List<Instruction>>> iterator =
         entries.stream()
             .filter(a -> a.getValue().size() > 1)
             .sorted((a, b) -> Integer.compare(b.getValue().size(), a.getValue().size()))
             .limit(MAX_CANONICALIZED_CONSTANT)
             .iterator();
-
     if (!iterator.hasNext()) {
-      return;
+      return clear();
     }
 
     boolean shouldSimplifyIfs = false;
+
+    // Insert instructions in the entry block.
+    Map<InstructionOrPhi, List<Instruction>> pendingInsertions = new IdentityHashMap<>();
     do {
-      Object2ObjectMap.Entry<Instruction, List<Value>> entry = iterator.next();
+      Object2ObjectMap.Entry<Instruction, List<Instruction>> entry = iterator.next();
       Instruction canonicalizedConstant = entry.getKey();
       assert canonicalizedConstant.instructionTypeCanBeCanonicalized();
-      Instruction newConst;
+      Instruction newInstruction;
       if (canonicalizedConstant.getBlock().isEntry()) {
-        newConst = canonicalizedConstant;
+        newInstruction = canonicalizedConstant;
       } else {
-        switch (canonicalizedConstant.opcode()) {
-          case CONST_CLASS:
-            newConst = ConstClass.copyOf(code, canonicalizedConstant.asConstClass());
-            break;
-          case CONST_NUMBER:
-            newConst = ConstNumber.copyOf(code, canonicalizedConstant.asConstNumber());
-            break;
-          case CONST_STRING:
-            newConst = ConstString.copyOf(code, canonicalizedConstant.asConstString());
-            break;
-          case DEX_ITEM_BASED_CONST_STRING:
-            newConst =
-                DexItemBasedConstString.copyOf(
-                    code, canonicalizedConstant.asDexItemBasedConstString());
-            break;
-          case INSTANCE_GET:
-            newConst = InstanceGet.copyOf(code, canonicalizedConstant.asInstanceGet());
-            break;
-          case STATIC_GET:
-            newConst = StaticGet.copyOf(code, canonicalizedConstant.asStaticGet());
-            break;
-          default:
-            throw new Unreachable();
+        newInstruction = createMaterializingInstruction(canonicalizedConstant);
+        InstructionOrPhi insertionPoint = getInsertionPointForCanonicalizedConstant(newInstruction);
+        if (insertionPoint == null) {
+          insertCanonicalizedConstantInEntryBlock(newInstruction);
+        } else {
+          // Record that this instruction needs to be inserted at the insertion position. Note that
+          // the insertion position may later be moved if it is itself subject to canonicalization.
+          addPendingInsertion(insertionPoint, newInstruction, pendingInsertions);
         }
-        insertCanonicalizedConstant(newConst);
       }
-      for (Value outValue : entry.getValue()) {
-        outValue.replaceUsers(newConst.outValue());
+      // Remove the canonicalized instructions.
+      for (Instruction oldInstruction : entry.getValue()) {
+        if (oldInstruction != newInstruction) {
+          oldInstruction.outValue().replaceUsers(newInstruction.outValue());
+          oldInstruction
+              .getBlock()
+              .listIterator(code, oldInstruction)
+              .removeOrReplaceByDebugLocalRead();
+
+          // If the removed instruction is an insertion point for another constant, then record that
+          // the constant should instead be inserted at the point where the removed instruction has
+          // been moved to.
+          for (Instruction pendingInsertion :
+              removePendingInsertions(oldInstruction, pendingInsertions)) {
+            addPendingInsertion(newInstruction, pendingInsertion, pendingInsertions);
+          }
+        }
       }
-      shouldSimplifyIfs |= newConst.outValue().hasUserThatMatches(Instruction::isIf);
+      shouldSimplifyIfs |= newInstruction.outValue().hasUserThatMatches(Instruction::isIf);
     } while (iterator.hasNext());
+
+    // Insert instructions that cannot be inserted in the entry block.
+    if (!pendingInsertions.isEmpty()) {
+      BasicBlockIterator blockIterator = code.listIterator();
+      while (blockIterator.hasNext()) {
+        BasicBlock block = blockIterator.next();
+        InstructionListIterator instructionIterator = block.listIterator(code);
+        for (Phi insertionPoint : block.getPhis()) {
+          instructionIterator =
+              insertPendingInsertions(
+                  blockIterator, instructionIterator, insertionPoint, pendingInsertions);
+        }
+        while (instructionIterator.hasNext()) {
+          Instruction insertionPoint = instructionIterator.next();
+          instructionIterator =
+              insertPendingInsertions(
+                  blockIterator, instructionIterator, insertionPoint, pendingInsertions);
+        }
+      }
+    }
+
+    assert pendingInsertions.isEmpty();
 
     shouldSimplifyIfs |= code.removeAllDeadAndTrivialPhis();
 
@@ -203,6 +294,112 @@ public class ConstantCanonicalizer {
     }
 
     assert code.isConsistentSSA(appView);
+    return clear();
+  }
+
+  private void addPendingInsertion(
+      InstructionOrPhi insertionPoint,
+      Instruction newInstruction,
+      Map<InstructionOrPhi, List<Instruction>> pendingInsertions) {
+    pendingInsertions
+        .computeIfAbsent(insertionPoint, ignoreKey(ArrayList::new))
+        .add(newInstruction);
+  }
+
+  private InstructionListIterator insertPendingInsertions(
+      BasicBlockIterator blockIterator,
+      InstructionListIterator instructionIterator,
+      InstructionOrPhi insertionPoint,
+      Map<InstructionOrPhi, List<Instruction>> pendingInsertions) {
+    List<Instruction> pendingInsertionsAtInsertionPoint =
+        removePendingInsertions(insertionPoint, pendingInsertions);
+    if (pendingInsertionsAtInsertionPoint.isEmpty()) {
+      return instructionIterator;
+    }
+    WorkList<Instruction> worklist =
+        WorkList.newIdentityWorkList(pendingInsertionsAtInsertionPoint);
+    while (worklist.hasNext()) {
+      Instruction newInstruction = worklist.next();
+      List<Instruction> pendingInsertionsAfterNewInstruction =
+          removePendingInsertions(newInstruction, pendingInsertions);
+      if (pendingInsertionsAfterNewInstruction.isEmpty()) {
+        instructionIterator =
+            insertCanonicalizedConstantAtInsertionPoint(
+                blockIterator, instructionIterator, insertionPoint, newInstruction);
+      } else {
+        // Process pending insertions before the current instruction to ensure the current
+        // instruction ends up first in the instruction stream.
+        worklist.addIfNotSeen(pendingInsertionsAfterNewInstruction);
+        worklist.addIgnoringSeenSet(newInstruction);
+      }
+    }
+    return instructionIterator;
+  }
+
+  private List<Instruction> removePendingInsertions(
+      InstructionOrPhi insertionPoint, Map<InstructionOrPhi, List<Instruction>> pendingInsertions) {
+    List<Instruction> pendingInstructionsAtInsertionPosition =
+        pendingInsertions.remove(insertionPoint);
+    return pendingInstructionsAtInsertionPosition != null
+        ? pendingInstructionsAtInsertionPosition
+        : Collections.emptyList();
+  }
+
+  private InstructionOrPhi getInsertionPointForCanonicalizedConstant(Instruction newInstruction) {
+    switch (newInstruction.opcode()) {
+      case CONST_CLASS:
+      case CONST_NUMBER:
+      case CONST_STRING:
+      case DEX_ITEM_BASED_CONST_STRING:
+      case STATIC_GET:
+        // Insert in entry block.
+        return null;
+      case INSTANCE_GET:
+        {
+          InstanceGet instanceGet = newInstruction.asInstanceGet();
+          Value object = instanceGet.object();
+          if (object.isThis()) {
+            return null;
+          }
+          if (object.isPhi()) {
+            return object.asPhi();
+          }
+          Instruction definition = object.getDefinition();
+          if (definition.isArgument()) {
+            return code.getLastArgument();
+          }
+          if (definition.isNewInstance()) {
+            InvokeDirect uniqueConstructorInvoke =
+                definition.asNewInstance().getUniqueConstructorInvoke(appView.dexItemFactory());
+            // This is guaranteed to be non-null by isConstantCanonicalizationCandidate.
+            assert uniqueConstructorInvoke != null;
+            return uniqueConstructorInvoke;
+          }
+          return definition;
+        }
+      default:
+        throw new Unreachable();
+    }
+  }
+
+  private Instruction createMaterializingInstruction(Instruction canonicalizedConstant) {
+    switch (canonicalizedConstant.opcode()) {
+      case CONST_CLASS:
+        return ConstClass.copyOf(code, canonicalizedConstant.asConstClass());
+      case CONST_NUMBER:
+        return ConstNumber.copyOf(code, canonicalizedConstant.asConstNumber());
+      case CONST_STRING:
+        return ConstString.copyOf(code, canonicalizedConstant.asConstString());
+      case DEX_ITEM_BASED_CONST_STRING:
+        return DexItemBasedConstString.copyOf(
+            code, canonicalizedConstant.asDexItemBasedConstString());
+      case INSTANCE_GET:
+        return InstanceGet.copyOf(code, canonicalizedConstant.asInstanceGet());
+      case STATIC_GET:
+        return StaticGet.copyOf(code, canonicalizedConstant.asStaticGet());
+      default:
+        throw new Unreachable();
+    }
   }
 
   public boolean isConstantCanonicalizationCandidate(Instruction instruction) {
@@ -230,14 +427,19 @@ public class ConstantCanonicalizer {
       case INSTANCE_GET:
         {
           InstanceGet instanceGet = instruction.asInstanceGet();
-          if (!instanceGet.object().isThis()) {
-            // TODO(b/236661949): Generalize this to more receivers. For canonicalization we need
-            //  the receiver to be non-null (or the instruction can throw) and we also currently
-            //  require the receiver to be defined on-entry, since we always hoist constants to the
-            //  entry block.
+          if (instanceGet.instructionMayHaveSideEffects(appView, context)) {
             return false;
           }
+          if (instanceGet.object().isDefinedByInstructionSatisfying(Instruction::isNewInstance)) {
+            NewInstance newInstance = instanceGet.object().getDefinition().asNewInstance();
+            if (newInstance.getUniqueConstructorInvoke(appView.dexItemFactory()) == null) {
+              return false;
+            }
+          }
           if (!isReadOfFinalFieldOutsideInitializer(instanceGet)) {
+            return false;
+          }
+          if (getOrComputeIneligibleInstanceGetInstructions().contains(instanceGet)) {
             return false;
           }
           break;
@@ -276,7 +478,7 @@ public class ConstantCanonicalizer {
   }
 
   private boolean isReadOfFinalFieldOutsideInitializer(FieldGet fieldGet) {
-    if (isAccessingVolatileField) {
+    if (getOrComputeIsAccessingVolatileField()) {
       // A final field may be initialized concurrently. A requirement for this is that the field is
       // volatile. However, the reading or writing of another volatile field also allows for
       // concurrently initializing a non-volatile field. See also redundant field load elimination.
@@ -350,7 +552,7 @@ public class ConstantCanonicalizer {
     return singleFieldValue.getField().lookupOnClass(fieldHolder) != null;
   }
 
-  private void insertCanonicalizedConstant(Instruction canonicalizedConstant) {
+  private void insertCanonicalizedConstantInEntryBlock(Instruction canonicalizedConstant) {
     BasicBlock entryBlock = code.entryBlock();
     // Insert the constant instruction at the start of the block right after the argument
     // instructions. It is important that the const instruction is put before any instruction
@@ -365,6 +567,76 @@ public class ConstantCanonicalizer {
       }
     }
     it.add(canonicalizedConstant);
+  }
+
+  private InstructionListIterator insertCanonicalizedConstantAtInsertionPoint(
+      BasicBlockIterator blockIterator,
+      InstructionListIterator instructionIterator,
+      InstructionOrPhi insertionPoint,
+      Instruction newInstruction) {
+    // If the insertion point is a phi, then we're inserting the new instruction before all other
+    // instructions in the block.
+    assert !insertionPoint.isPhi() || !instructionIterator.hasPrevious();
+    // If the insertion point is not a phi, the iterator is positioned immediately after the
+    // insertion point.
+    assert insertionPoint.isPhi() || instructionIterator.peekPrevious() == insertionPoint;
+    newInstruction.setPosition(
+        getPositionForCanonicalizationConstantAtInsertionPoint(insertionPoint, newInstruction));
+    if (newInstruction.instructionTypeCanThrow()
+        && insertionPoint.getBlock().hasCatchHandlers()
+        && insertionPoint.getBlock().canThrow()) {
+      // Split the block and rewind the block iterator to the insertion block.
+      BasicBlock splitBlock =
+          instructionIterator.splitCopyCatchHandlers(code, blockIterator, appView.options());
+      BasicBlock previousBlock =
+          blockIterator.previousUntil(block -> block == insertionPoint.getBlock());
+      assert previousBlock == insertionPoint.getBlock();
+      blockIterator.next();
+      if (insertionPoint.isPhi()) {
+        // Add new instruction before the goto and position the instruction iterator before the
+        // first instruction (i.e., at the phi position).
+        assert insertionPoint.getBlock().getInstructions().size() == 1;
+        instructionIterator.previous();
+        instructionIterator.add(newInstruction);
+        instructionIterator.previous();
+        assert !instructionIterator.hasPrevious();
+      } else {
+        // Add the new instruction after the insertion point. If the block containing the insertion
+        // point can throw, we insert the new instruction in the beginning of the split block.
+        // Otherwise, we insert it in the end of the insertion block.
+        if (insertionPoint.getBlock().canThrow()) {
+          assert !splitBlock.canThrow();
+          splitBlock.listIterator(code).add(newInstruction);
+          instructionIterator.previous(2);
+          Instruction next = instructionIterator.next();
+          assert next == insertionPoint;
+        } else {
+          assert splitBlock.canThrow();
+          instructionIterator.previous();
+          instructionIterator.add(newInstruction);
+          instructionIterator.previous(2);
+          Instruction next = instructionIterator.next();
+          assert next == insertionPoint;
+        }
+      }
+    } else {
+      instructionIterator.add(newInstruction);
+      Instruction previous = instructionIterator.previous();
+      assert previous == newInstruction;
+    }
+    return instructionIterator;
+  }
+
+  private Position getPositionForCanonicalizationConstantAtInsertionPoint(
+      InstructionOrPhi insertionPoint, Instruction newInstruction) {
+    Position insertionPosition =
+        insertionPoint.isPhi()
+            ? insertionPoint.getBlock().getPosition()
+            : insertionPoint.asInstruction().getPosition();
+    if (newInstruction.instructionTypeCanThrow() && insertionPosition.isNone()) {
+      return Position.syntheticNone();
+    }
+    return insertionPosition;
   }
 
   private static boolean constantUsedByInvokeRange(Instruction constant) {

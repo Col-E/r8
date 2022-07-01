@@ -19,6 +19,13 @@ public interface InstructionIterator extends Iterator<Instruction>, NextUntilIte
 
   Instruction previous();
 
+  default void previous(int times) {
+    while (times > 0) {
+      previous();
+      times--;
+    }
+  }
+
   /**
    * Peek the next instruction.
    *

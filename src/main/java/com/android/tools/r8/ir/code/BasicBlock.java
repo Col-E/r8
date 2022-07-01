@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
@@ -53,6 +54,7 @@ import java.util.WeakHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * Basic block abstraction.
@@ -716,6 +718,10 @@ public class BasicBlock {
 
   public LinkedList<Instruction> getInstructions() {
     return instructions;
+  }
+
+  public <T extends Instruction> Iterable<T> getInstructions(Predicate<Instruction> predicate) {
+    return IterableUtils.filter(getInstructions(), predicate);
   }
 
   public Iterable<Instruction> instructionsAfter(Instruction instruction) {

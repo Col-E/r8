@@ -88,7 +88,8 @@ public class IterableUtils {
     return -1;
   }
 
-  public static <T> Iterable<T> filter(Iterable<T> iterable, Predicate<? super T> predicate) {
+  public static <S, T extends S> Iterable<T> filter(
+      Iterable<S> iterable, Predicate<? super S> predicate) {
     return () -> IteratorUtils.filter(iterable.iterator(), predicate);
   }
 
