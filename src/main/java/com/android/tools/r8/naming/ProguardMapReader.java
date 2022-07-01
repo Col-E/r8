@@ -18,8 +18,8 @@ import com.android.tools.r8.utils.StringUtils;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -512,7 +512,7 @@ public class ProguardMapReader implements AutoCloseable {
       if (peekChar(0) == ')') {
         arguments = new String[0];
       } else {
-        List<String> items = new LinkedList<>();
+        List<String> items = new ArrayList<>();
         items.add(parseType(true));
         skipWhitespace();
         while (peekChar(0) != ')') {
