@@ -17,6 +17,7 @@ import com.google.common.collect.Sets;
 import java.util.ListIterator;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
 
 public class LinearFlowInstructionListIterator implements InstructionListIterator {
 
@@ -124,7 +125,7 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
   public void replaceCurrentInstructionWithThrow(
       AppView<?> appView,
       IRCode code,
-      ListIterator<BasicBlock> blockIterator,
+      BasicBlockIterator blockIterator,
       Value exceptionValue,
       Set<BasicBlock> blocksToRemove,
       Set<Value> affectedValues) {
@@ -156,8 +157,12 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
 
   @Override
   public BasicBlock splitCopyCatchHandlers(
-      IRCode code, ListIterator<BasicBlock> blockIterator, InternalOptions options) {
-    return currentBlockIterator.splitCopyCatchHandlers(code, blockIterator, options);
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      InternalOptions options,
+      UnaryOperator<BasicBlock> repositioningBlock) {
+    return currentBlockIterator.splitCopyCatchHandlers(
+        code, blockIterator, options, repositioningBlock);
   }
 
   @Override

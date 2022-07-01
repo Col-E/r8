@@ -18,6 +18,7 @@ import java.util.ListIterator;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
 
 public class IRCodeInstructionListIterator implements InstructionListIterator {
 
@@ -105,7 +106,7 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   public void replaceCurrentInstructionWithThrow(
       AppView<?> appView,
       IRCode code,
-      ListIterator<BasicBlock> blockIterator,
+      BasicBlockIterator blockIterator,
       Value exceptionValue,
       Set<BasicBlock> blocksToRemove,
       Set<Value> affectedValues) {
@@ -135,7 +136,10 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
 
   @Override
   public BasicBlock splitCopyCatchHandlers(
-      IRCode code, ListIterator<BasicBlock> blockIterator, InternalOptions options) {
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      InternalOptions options,
+      UnaryOperator<BasicBlock> repositioningBlock) {
     throw new Unimplemented();
   }
 

@@ -64,6 +64,15 @@ public class BasicBlockIterator implements ListIterator<BasicBlock> {
     return listIterator.previousIndex();
   }
 
+  public BasicBlock positionAfterPreviousBlock(BasicBlock previousBlock) {
+    return positionAfterPreviousBlock(currentBlock -> currentBlock == previousBlock);
+  }
+
+  public BasicBlock positionAfterPreviousBlock(Predicate<BasicBlock> predicate) {
+    previousUntil(predicate);
+    return next();
+  }
+
   public BasicBlock previousUntil(Predicate<BasicBlock> predicate) {
     return IteratorUtils.previousUntil(this, predicate);
   }

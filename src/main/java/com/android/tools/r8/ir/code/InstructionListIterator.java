@@ -19,6 +19,8 @@ import com.google.common.collect.Sets;
 import java.util.ListIterator;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 public interface InstructionListIterator
     extends InstructionIterator, ListIterator<Instruction>, PreviousUntilIterator<Instruction> {
@@ -29,12 +31,18 @@ public interface InstructionListIterator
       Instruction instruction,
       InternalOptions options);
 
-  default void addBefore(Instruction instruction) {
-    previous();
+  default void addAndPositionBeforeNewInstruction(Instruction instruction) {
     add(instruction);
-    next();
+    Instruction previous = previous();
+    assert previous == instruction;
   }
 
+  default void addBeforeAndPositionBeforeNewInstruction(Instruction instruction) {
+    previous();
+    add(instruction);
+    Instruction previous = previous();
+    assert previous == instruction;
+  }
   /** See {@link #replaceCurrentInstruction(Instruction, Set)}. */
   default void replaceCurrentInstruction(Instruction newInstruction) {
     replaceCurrentInstruction(newInstruction, null);
@@ -107,6 +115,16 @@ public interface InstructionListIterator
       Value value,
       Position position);
 
+  default Instruction positionAfterPreviousInstruction(Instruction previousInstruction) {
+    return positionAfterPreviousInstruction(
+        currentInstruction -> currentInstruction == previousInstruction);
+  }
+
+  default Instruction positionAfterPreviousInstruction(Predicate<Instruction> predicate) {
+    previousUntil(predicate);
+    return next();
+  }
+
   boolean replaceCurrentInstructionByNullCheckIfPossible(AppView<?> appView, ProgramMethod context);
 
   default boolean removeOrReplaceCurrentInstructionByInitClassIfPossible(
@@ -147,7 +165,7 @@ public interface InstructionListIterator
   void replaceCurrentInstructionWithThrow(
       AppView<?> appView,
       IRCode code,
-      ListIterator<BasicBlock> blockIterator,
+      BasicBlockIterator blockIterator,
       Value exceptionValue,
       Set<BasicBlock> blocksToRemove,
       Set<Value> affectedValues);
@@ -199,8 +217,16 @@ public interface InstructionListIterator
     return split(code, null);
   }
 
+  default BasicBlock splitCopyCatchHandlers(
+      IRCode code, BasicBlockIterator blockIterator, InternalOptions options) {
+    return splitCopyCatchHandlers(code, blockIterator, options, null);
+  }
+
   BasicBlock splitCopyCatchHandlers(
-      IRCode code, ListIterator<BasicBlock> blockIterator, InternalOptions options);
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      InternalOptions options,
+      UnaryOperator<BasicBlock> repositioningBlock);
 
   /**
    * Split the block into three blocks. The first split is at the point of the {@link ListIterator}

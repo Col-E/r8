@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -32,7 +33,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -65,7 +65,7 @@ public class Devirtualizer {
     Map<Value, Map<DexType, Value>> castedReceiverCache = new IdentityHashMap<>();
     Set<SafeCheckCast> newCheckCastInstructions = Sets.newIdentityHashSet();
 
-    ListIterator<BasicBlock> blocks = code.listIterator();
+    BasicBlockIterator blocks = code.listIterator();
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
       InstructionListIterator it = block.listIterator(code);

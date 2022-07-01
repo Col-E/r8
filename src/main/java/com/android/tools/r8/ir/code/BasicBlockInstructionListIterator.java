@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
 
 public class BasicBlockInstructionListIterator implements InstructionListIterator {
 
@@ -439,7 +440,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   public void replaceCurrentInstructionWithThrow(
       AppView<?> appView,
       IRCode code,
-      ListIterator<BasicBlock> blockIterator,
+      BasicBlockIterator blockIterator,
       Value exceptionValue,
       Set<BasicBlock> blocksToRemove,
       Set<Value> affectedValues) {
@@ -657,11 +658,17 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
 
   @Override
   public BasicBlock splitCopyCatchHandlers(
-      IRCode code, ListIterator<BasicBlock> blockIterator, InternalOptions options) {
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      InternalOptions options,
+      UnaryOperator<BasicBlock> repositioningBlock) {
     BasicBlock splitBlock = split(code, blockIterator, false);
     assert !block.hasCatchHandlers();
     if (splitBlock.hasCatchHandlers()) {
       block.copyCatchHandlers(code, blockIterator, splitBlock, options);
+    }
+    if (repositioningBlock != null) {
+      blockIterator.positionAfterPreviousBlock(repositioningBlock.apply(splitBlock));
     }
     return splitBlock;
   }

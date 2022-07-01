@@ -1212,9 +1212,7 @@ public class Inliner {
   }
 
   private void applyMemberValuePropagationToInlinee(
-      IRCode code,
-      ListIterator<BasicBlock> blockIterator,
-      Set<BasicBlock> inlineeBlocks) {
+      IRCode code, BasicBlockIterator blockIterator, Set<BasicBlock> inlineeBlocks) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     new R8MemberValuePropagation(appView)
         .run(code, blockIterator, affectedValues, inlineeBlocks::contains);

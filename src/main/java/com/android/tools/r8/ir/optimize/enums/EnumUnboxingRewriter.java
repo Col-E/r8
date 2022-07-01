@@ -20,6 +20,7 @@ import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ArrayAccess;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
@@ -48,7 +49,6 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -124,7 +124,7 @@ public class EnumUnboxingRewriter {
     ProgramMethod context = code.context();
     Map<Instruction, DexType> convertedEnums = createInitialConvertedEnums(code, prototypeChanges);
     Set<Phi> affectedPhis = Sets.newIdentityHashSet();
-    ListIterator<BasicBlock> blocks = code.listIterator();
+    BasicBlockIterator blocks = code.listIterator();
     Set<BasicBlock> seenBlocks = Sets.newIdentityHashSet();
     Set<Instruction> instructionsToRemove = Sets.newIdentityHashSet();
     Value zeroConstValue = null;

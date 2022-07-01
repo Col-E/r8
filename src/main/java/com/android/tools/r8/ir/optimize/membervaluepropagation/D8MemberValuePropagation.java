@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.ArrayGet;
-import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstancePut;
@@ -18,7 +18,6 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo;
-import java.util.ListIterator;
 import java.util.Set;
 
 public class D8MemberValuePropagation extends MemberValuePropagation<AppInfo> {
@@ -31,7 +30,7 @@ public class D8MemberValuePropagation extends MemberValuePropagation<AppInfo> {
   void rewriteArrayGet(
       IRCode code,
       Set<Value> affectedValues,
-      ListIterator<BasicBlock> blocks,
+      BasicBlockIterator blocks,
       InstructionListIterator iterator,
       ArrayGet arrayGet) {
     // Intentionally empty.
@@ -41,7 +40,7 @@ public class D8MemberValuePropagation extends MemberValuePropagation<AppInfo> {
   void rewriteInstanceGet(
       IRCode code,
       Set<Value> affectedValues,
-      ListIterator<BasicBlock> blocks,
+      BasicBlockIterator blocks,
       InstructionListIterator iterator,
       InstanceGet current) {
     // Intentionally empty.
@@ -57,7 +56,7 @@ public class D8MemberValuePropagation extends MemberValuePropagation<AppInfo> {
       IRCode code,
       ProgramMethod context,
       Set<Value> affectedValues,
-      ListIterator<BasicBlock> blocks,
+      BasicBlockIterator blocks,
       InstructionListIterator iterator,
       InvokeMethod invoke) {
     // Intentionally empty.
@@ -67,7 +66,7 @@ public class D8MemberValuePropagation extends MemberValuePropagation<AppInfo> {
   void rewriteStaticGet(
       IRCode code,
       Set<Value> affectedValues,
-      ListIterator<BasicBlock> blocks,
+      BasicBlockIterator blocks,
       InstructionListIterator iterator,
       StaticGet current) {
     AssumeInfo assumeInfo = appView.getAssumeInfoCollection().get(current.getField());

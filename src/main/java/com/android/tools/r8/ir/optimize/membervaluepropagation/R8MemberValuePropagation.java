@@ -20,6 +20,7 @@ import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstanceGet;
@@ -36,7 +37,6 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfoLookup;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.ListIterator;
 import java.util.Set;
 
 public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWithLiveness> {
@@ -51,7 +51,7 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
   void rewriteArrayGet(
       IRCode code,
       Set<Value> affectedValues,
-      ListIterator<BasicBlock> blocks,
+      BasicBlockIterator blocks,
       InstructionListIterator iterator,
       ArrayGet arrayGet) {
     TypeElement arrayType = arrayGet.array().getType();
@@ -123,7 +123,7 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
       IRCode code,
       ProgramMethod context,
       Set<Value> affectedValues,
-      ListIterator<BasicBlock> blocks,
+      BasicBlockIterator blocks,
       InstructionListIterator iterator,
       InvokeMethod invoke) {
     if (invoke.hasUnusedOutValue()) {
@@ -208,7 +208,7 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
   void rewriteInstanceGet(
       IRCode code,
       Set<Value> affectedValues,
-      ListIterator<BasicBlock> blocks,
+      BasicBlockIterator blocks,
       InstructionListIterator iterator,
       InstanceGet current) {
     rewriteFieldGet(code, affectedValues, blocks, iterator, current);
@@ -218,7 +218,7 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
   void rewriteStaticGet(
       IRCode code,
       Set<Value> affectedValues,
-      ListIterator<BasicBlock> blocks,
+      BasicBlockIterator blocks,
       InstructionListIterator iterator,
       StaticGet current) {
     rewriteFieldGet(code, affectedValues, blocks, iterator, current);
@@ -227,7 +227,7 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
   private void rewriteFieldGet(
       IRCode code,
       Set<Value> affectedValues,
-      ListIterator<BasicBlock> blocks,
+      BasicBlockIterator blocks,
       InstructionListIterator iterator,
       FieldInstruction current) {
     DexField field = current.getField();

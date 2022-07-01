@@ -587,18 +587,13 @@ public class ConstantCanonicalizer {
         && insertionPoint.getBlock().canThrow()) {
       // Split the block and rewind the block iterator to the insertion block.
       BasicBlock splitBlock =
-          instructionIterator.splitCopyCatchHandlers(code, blockIterator, appView.options());
-      BasicBlock previousBlock =
-          blockIterator.previousUntil(block -> block == insertionPoint.getBlock());
-      assert previousBlock == insertionPoint.getBlock();
-      blockIterator.next();
+          instructionIterator.splitCopyCatchHandlers(
+              code, blockIterator, appView.options(), ignore -> insertionPoint.getBlock());
       if (insertionPoint.isPhi()) {
         // Add new instruction before the goto and position the instruction iterator before the
         // first instruction (i.e., at the phi position).
         assert insertionPoint.getBlock().getInstructions().size() == 1;
-        instructionIterator.previous();
-        instructionIterator.add(newInstruction);
-        instructionIterator.previous();
+        instructionIterator.addBeforeAndPositionBeforeNewInstruction(newInstruction);
         assert !instructionIterator.hasPrevious();
       } else {
         // Add the new instruction after the insertion point. If the block containing the insertion
@@ -607,22 +602,14 @@ public class ConstantCanonicalizer {
         if (insertionPoint.getBlock().canThrow()) {
           assert !splitBlock.canThrow();
           splitBlock.listIterator(code).add(newInstruction);
-          instructionIterator.previous(2);
-          Instruction next = instructionIterator.next();
-          assert next == insertionPoint;
         } else {
           assert splitBlock.canThrow();
-          instructionIterator.previous();
-          instructionIterator.add(newInstruction);
-          instructionIterator.previous(2);
-          Instruction next = instructionIterator.next();
-          assert next == insertionPoint;
+          instructionIterator.addBeforeAndPositionBeforeNewInstruction(newInstruction);
         }
+        instructionIterator.positionAfterPreviousInstruction(insertionPoint.asInstruction());
       }
     } else {
-      instructionIterator.add(newInstruction);
-      Instruction previous = instructionIterator.previous();
-      assert previous == newInstruction;
+      instructionIterator.addAndPositionBeforeNewInstruction(newInstruction);
     }
     return instructionIterator;
   }

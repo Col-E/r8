@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
 import org.junit.Test;
 
 public class RegisterMoveSchedulerTest {
@@ -122,7 +123,7 @@ public class RegisterMoveSchedulerTest {
     public void replaceCurrentInstructionWithThrow(
         AppView<?> appView,
         IRCode code,
-        ListIterator<BasicBlock> blockIterator,
+        BasicBlockIterator blockIterator,
         Value exceptionValue,
         Set<BasicBlock> blocksToRemove,
         Set<Value> affectedValues) {
@@ -212,7 +213,10 @@ public class RegisterMoveSchedulerTest {
 
     @Override
     public BasicBlock splitCopyCatchHandlers(
-        IRCode code, ListIterator<BasicBlock> blockIterator, InternalOptions options) {
+        IRCode code,
+        BasicBlockIterator blockIterator,
+        InternalOptions options,
+        UnaryOperator<BasicBlock> repositioningBlock) {
       throw new Unimplemented();
     }
 

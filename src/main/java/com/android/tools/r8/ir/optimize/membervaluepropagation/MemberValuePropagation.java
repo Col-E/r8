@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.InstanceGet;
@@ -38,7 +39,6 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.Sets;
-import java.util.ListIterator;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -71,7 +71,7 @@ public abstract class MemberValuePropagation<T extends AppInfo> {
 
   public void run(
       IRCode code,
-      ListIterator<BasicBlock> blockIterator,
+      BasicBlockIterator blockIterator,
       Set<Value> affectedValues,
       Predicate<BasicBlock> blockTester) {
     ProgramMethod context = code.context();
@@ -118,14 +118,14 @@ public abstract class MemberValuePropagation<T extends AppInfo> {
   abstract void rewriteArrayGet(
       IRCode code,
       Set<Value> affectedValues,
-      ListIterator<BasicBlock> blocks,
+      BasicBlockIterator blocks,
       InstructionListIterator iterator,
       ArrayGet arrayGet);
 
   abstract void rewriteInstanceGet(
       IRCode code,
       Set<Value> affectedValues,
-      ListIterator<BasicBlock> blocks,
+      BasicBlockIterator blocks,
       InstructionListIterator iterator,
       InstanceGet current);
 
@@ -136,14 +136,14 @@ public abstract class MemberValuePropagation<T extends AppInfo> {
       IRCode code,
       ProgramMethod context,
       Set<Value> affectedValues,
-      ListIterator<BasicBlock> blocks,
+      BasicBlockIterator blocks,
       InstructionListIterator iterator,
       InvokeMethod invoke);
 
   abstract void rewriteStaticGet(
       IRCode code,
       Set<Value> affectedValues,
-      ListIterator<BasicBlock> blocks,
+      BasicBlockIterator blocks,
       InstructionListIterator iterator,
       StaticGet current);
 
@@ -152,7 +152,7 @@ public abstract class MemberValuePropagation<T extends AppInfo> {
   boolean applyAssumeInfo(
       IRCode code,
       Set<Value> affectedValues,
-      ListIterator<BasicBlock> blocks,
+      BasicBlockIterator blocks,
       InstructionListIterator iterator,
       Instruction current,
       AssumeInfo assumeInfo) {
