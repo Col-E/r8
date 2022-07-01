@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.optimize.string.StringBuilderNode.AppendNode;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.ImplicitToStringNode;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.InitNode;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.InitOrAppend;
+import com.android.tools.r8.ir.optimize.string.StringBuilderNode.NewInstanceNode;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.StringBuilderInstruction;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.ToStringNode;
 import com.android.tools.r8.utils.WorkList;
@@ -39,6 +40,7 @@ class StringBuilderNodeMuncher {
     private final Set<StringBuilderNode> inspectingCapacity;
     private final Set<StringBuilderNode> looping;
     private final Map<StringBuilderNode, Set<StringBuilderNode>> materializingInstructions;
+    private final Map<StringBuilderNode, NewInstanceNode> newInstances;
     private final Map<Value, String> optimizedStrings = new IdentityHashMap<>();
 
     MunchingState(
@@ -47,13 +49,23 @@ class StringBuilderNodeMuncher {
         Set<StringBuilderNode> inspectingCapacity,
         Set<StringBuilderNode> looping,
         Map<StringBuilderNode, Set<StringBuilderNode>> materializingInstructions,
+        Map<StringBuilderNode, NewInstanceNode> newInstances,
         StringBuilderOracle oracle) {
       this.actions = actions;
       this.escaping = escaping;
       this.inspectingCapacity = inspectingCapacity;
       this.looping = looping;
       this.materializingInstructions = materializingInstructions;
+      this.newInstances = newInstances;
       this.oracle = oracle;
+    }
+
+    public NewInstanceNode getNewInstanceNode(StringBuilderNode root) {
+      return newInstances.get(root);
+    }
+
+    public boolean isLooping(StringBuilderNode root) {
+      return looping.contains(root);
     }
   }
 
@@ -132,11 +144,11 @@ class StringBuilderNodeMuncher {
       if (!currentNode.isToStringNode() && !currentNode.isImplicitToStringNode()) {
         return false;
       }
-      StringBuilderNode root = findFirstNonSentinelRoot(originalRoot);
-      if (!root.isNewInstanceNode() || !root.hasSingleSuccessor()) {
+      NewInstanceNode newInstanceNode = munchingState.getNewInstanceNode(originalRoot);
+      if (newInstanceNode == null || !newInstanceNode.hasSingleSuccessor()) {
         return false;
       }
-      StringBuilderNode init = root.getSingleSuccessor();
+      StringBuilderNode init = newInstanceNode.getSingleSuccessor();
       String rootConstantArgument = getConstantArgumentForNode(init, munchingState);
       if (rootConstantArgument == null || !init.isInitNode()) {
         return false;
@@ -185,24 +197,6 @@ class StringBuilderNodeMuncher {
     }
   }
 
-  /**
-   * Find the first non split reference node or loop-node, which are nodes inserted to track
-   * control-flow.
-   */
-  private static StringBuilderNode findFirstNonSentinelRoot(StringBuilderNode root) {
-    WorkList<StringBuilderNode> workList = WorkList.newIdentityWorkList(root);
-    while (workList.hasNext()) {
-      StringBuilderNode node = workList.next();
-      if (!node.isSplitReferenceNode() && !node.isLoopNode()) {
-        return node;
-      }
-      if (node.hasSingleSuccessor()) {
-        workList.addIfNotSeen(node.getSingleSuccessor());
-      }
-    }
-    return root;
-  }
-
   private static String getConstantArgumentForNode(
       StringBuilderNode node, MunchingState munchingState) {
     if (node.isAppendNode()) {
@@ -249,7 +243,7 @@ class StringBuilderNodeMuncher {
         // Remove appends if the string builder do not escape, is not inspected or materialized
         // and if it is not part of a loop.
         removeNode = false;
-        if (currentNode.isSplitReferenceNode()) {
+        if (currentNode.isSplitReferenceNode() && !munchingState.isLooping(root)) {
           removeNode = currentNode.getSuccessors().isEmpty() || currentNode.hasSinglePredecessor();
         } else if (currentNode.isAppendNode() && !isEscaping) {
           AppendNode appendNode = currentNode.asAppendNode();

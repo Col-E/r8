@@ -37,8 +37,7 @@ public class StringBuilderWithConstantsBeforeAndInOpenEndedIfInLoopTest extends 
                 options.itemFactory.libraryMethodsReturningReceiver = Sets.newIdentityHashSet())
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class, "1", "3")
-        // TODO(b/237674850): Should be 0.1.2.3.
-        .assertSuccessWithOutputLines("0.1.2.3.2.");
+        .assertSuccessWithOutputLines("0.1.2.3.");
   }
 
   static class TestClass {

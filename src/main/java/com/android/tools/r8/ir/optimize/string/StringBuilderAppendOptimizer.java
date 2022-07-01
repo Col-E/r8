@@ -35,6 +35,8 @@ import com.android.tools.r8.ir.optimize.string.StringBuilderNode.ImplicitToStrin
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.InitNode;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.InitOrAppend;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.LoopNode;
+import com.android.tools.r8.ir.optimize.string.StringBuilderNode.NewInstanceNode;
+import com.android.tools.r8.ir.optimize.string.StringBuilderNode.SplitReferenceNode;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNodeMuncher.MunchingState;
 import com.android.tools.r8.ir.optimize.string.StringBuilderOracle.DefaultStringBuilderOracle;
 import com.android.tools.r8.utils.DepthFirstSearchWorkListBase.DepthFirstSearchWorkList;
@@ -42,6 +44,9 @@ import com.android.tools.r8.utils.DepthFirstSearchWorkListBase.StatefulDepthFirs
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
+import it.unimi.dsi.fastutil.objects.Reference2IntLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap.Entry;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -416,10 +421,13 @@ public class StringBuilderAppendOptimizer {
               DFSNodeWithState<BasicBlock, StringBuilderGraphState> node,
               List<DFSNodeWithState<BasicBlock, StringBuilderGraphState>> childStates) {
             StringBuilderGraphState state = node.getState();
+            Reference2IntMap<Value> rootsInChildStateCounts =
+                new Reference2IntLinkedOpenHashMap<>();
             for (DFSNodeWithState<BasicBlock, StringBuilderGraphState> childState : childStates) {
               StringBuilderGraphState childGraphState = childState.getState();
               childGraphState.roots.forEach(
                   (value, sbNode) -> {
+                    rootsInChildStateCounts.put(value, rootsInChildStateCounts.getInt(value) + 1);
                     StringBuilderNode currentRoot = state.roots.get(value);
                     StringBuilderNode currentTail = state.tails.get(value);
                     if (currentRoot == null) {
@@ -444,6 +452,18 @@ public class StringBuilderAppendOptimizer {
                   });
               if (childState.seenAndNotProcessed()) {
                 childGraphState.isPartOfLoop = true;
+              }
+            }
+            // To ensure that we account for control flow correctly, we insert split reference nodes
+            // for all roots we've seen in only a subset of child states.
+            for (Entry<Value> valueEntry : rootsInChildStateCounts.reference2IntEntrySet()) {
+              assert valueEntry.getIntValue() <= childStates.size();
+              if (valueEntry.getIntValue() < childStates.size()) {
+                SplitReferenceNode splitNode = StringBuilderNode.createSplitReferenceNode();
+                StringBuilderNode tail = state.tails.get(valueEntry.getKey());
+                assert tail != null;
+                splitNode.addPredecessor(tail);
+                tail.addSuccessor(splitNode);
               }
             }
             if (state.isPartOfLoop) {
@@ -475,6 +495,7 @@ public class StringBuilderAppendOptimizer {
       Map<Value, StringBuilderNode> stringBuilderGraphs) {
     Map<Instruction, StringBuilderAction> actions = new IdentityHashMap<>();
     // Build state to allow munching over the string builder graphs.
+    Map<StringBuilderNode, NewInstanceNode> newInstances = new IdentityHashMap<>();
     Set<StringBuilderNode> inspectingCapacity = Sets.newIdentityHashSet();
     Set<StringBuilderNode> looping = Sets.newIdentityHashSet();
     Map<StringBuilderNode, Set<StringBuilderNode>> materializing = new IdentityHashMap<>();
@@ -492,6 +513,10 @@ public class StringBuilderAppendOptimizer {
           while (workList.hasNext()) {
             StringBuilderNode next = workList.next();
             nodeToRoots.put(next, root);
+            if (next.isNewInstanceNode()) {
+              StringBuilderNode existing = newInstances.put(root, next.asNewInstanceNode());
+              assert existing == null;
+            }
             if (next.isInitOrAppend()) {
               ImplicitToStringNode dependency = next.asInitOrAppend().getImplicitToStringNode();
               if (dependency != null) {
@@ -518,7 +543,8 @@ public class StringBuilderAppendOptimizer {
         });
 
     MunchingState munchingState =
-        new MunchingState(actions, escaping, inspectingCapacity, looping, materializing, oracle);
+        new MunchingState(
+            actions, escaping, inspectingCapacity, looping, materializing, newInstances, oracle);
 
     boolean keepMunching = true;
     for (int i = 0; i < NUMBER_OF_MUNCHING_PASSES && keepMunching; i++) {

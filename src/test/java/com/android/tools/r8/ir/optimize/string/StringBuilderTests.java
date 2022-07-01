@@ -217,17 +217,21 @@ public class StringBuilderTests extends TestBase {
         .apply(parameters)
         .inspect(
             inspector -> {
-              if (parameters.isCfRuntime()) {
-                // TODO(b/114002137): for now, string concatenation depends on rewriteMoveResult.
-                return;
-              }
               MethodSubject method = inspector.method(stringBuilderTest.method);
               assertThat(method, isPresent());
               FoundMethodSubject foundMethodSubject = method.asFoundMethodSubject();
               assertEquals(
                   stringBuilderTest.stringBuilders, countStringBuilderInits(foundMethodSubject));
-              assertEquals(
-                  stringBuilderTest.appends, countStringBuilderAppends(foundMethodSubject));
+              if (parameters.isCfRuntime()
+                  && (stringBuilderTest.getMethodName().equals("diamondWithUseTest")
+                      || stringBuilderTest.getMethodName().equals("intoPhiTest"))) {
+                // We are not doing block suffix optimization in CF.
+                assertEquals(
+                    stringBuilderTest.appends + 1, countStringBuilderAppends(foundMethodSubject));
+              } else {
+                assertEquals(
+                    stringBuilderTest.appends, countStringBuilderAppends(foundMethodSubject));
+              }
               assertEquals(
                   stringBuilderTest.toStrings, countStringBuilderToStrings(foundMethodSubject));
             })
