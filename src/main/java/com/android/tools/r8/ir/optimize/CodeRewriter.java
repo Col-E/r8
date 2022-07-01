@@ -2013,7 +2013,13 @@ public class CodeRewriter {
         userBlocks.add(user.getBlock());
       }
       for (Phi phi : instruction.outValue().uniquePhiUsers()) {
-        userBlocks.add(phi.getBlock());
+        int predecessorIndex = 0;
+        for (Value operand : phi.getOperands()) {
+          if (operand == instruction.outValue()) {
+            userBlocks.add(phi.getBlock().getPredecessors().get(predecessorIndex));
+          }
+          predecessorIndex++;
+        }
       }
       // Locate the closest dominator block for all user blocks.
       DominatorTree dominatorTree = dominatorTreeMemoization.computeIfAbsent();
