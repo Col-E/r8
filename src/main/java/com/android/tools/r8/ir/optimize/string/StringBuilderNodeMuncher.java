@@ -167,7 +167,6 @@ class StringBuilderNodeMuncher {
         ToStringNode toStringNode = currentNode.asToStringNode();
         munchingState.actions.put(
             toStringNode.getInstruction(), new ReplaceByConstantString(constantArgument));
-        munchingState.materializingInstructions.get(originalRoot).remove(currentNode);
         String oldValue =
             munchingState.optimizedStrings.put(
                 toStringNode.getInstruction().outValue(), constantArgument);
@@ -180,6 +179,7 @@ class StringBuilderNodeMuncher {
         munchingState.actions.put(
             initOrAppend.getInstruction(), new AppendWithNewConstantString(constantArgument));
       }
+      munchingState.materializingInstructions.get(originalRoot).remove(currentNode);
       currentNode.removeNode();
       return true;
     }
@@ -261,7 +261,7 @@ class StringBuilderNodeMuncher {
                   && currentNode.getSuccessors().isEmpty();
           if (canRemoveIfNoInspectionOrMaterializing
               && canRemoveIfLastAndNoLoop
-              && munchingState.oracle.canObserveStringBuilderCall(
+              && !munchingState.oracle.canObserveStringBuilderCall(
                   currentNode.asAppendNode().getInstruction())) {
             munchingState.actions.put(
                 appendNode.getInstruction(), RemoveStringBuilderAction.getInstance());

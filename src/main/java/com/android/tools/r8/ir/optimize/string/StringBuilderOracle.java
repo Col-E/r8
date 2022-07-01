@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
+import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
 import java.util.List;
@@ -109,7 +110,8 @@ interface StringBuilderOracle {
       if (!instruction.isInvokeMethodWithReceiver()) {
         return null;
       }
-      if (isAppend(instruction)) {
+      if (isAppend(instruction)
+          && !isAppendWithSubArray(instruction.asInvokeMethodWithReceiver())) {
         return getConstantStringForAppend(instruction.asInvokeVirtual());
       } else if (isInit(instruction)) {
         return getConstantStringForInit(instruction.asInvokeDirect());
@@ -165,12 +167,14 @@ interface StringBuilderOracle {
         return false;
       }
       DexMethod invokedMethod = instruction.asInvokeMethod().getInvokedMethod();
-      if (factory.stringBuilderMethods.isAppendSubArrayMethod(invokedMethod)
-          || factory.stringBufferMethods.isAppendSubArrayMethod(invokedMethod)) {
-        return false;
-      }
       return factory.stringBuilderMethods.isAppendMethod(invokedMethod)
           || factory.stringBufferMethods.isAppendMethod(invokedMethod);
+    }
+
+    public boolean isAppendWithSubArray(InvokeMethodWithReceiver instruction) {
+      DexMethod invokedMethod = instruction.asInvokeMethod().getInvokedMethod();
+      return factory.stringBuilderMethods.isAppendSubArrayMethod(invokedMethod)
+          || factory.stringBufferMethods.isAppendSubArrayMethod(invokedMethod);
     }
 
     @Override
@@ -185,7 +189,11 @@ interface StringBuilderOracle {
           || factory.stringBuilderMethods.charSequenceConstructor == invokedMethod
           || factory.stringBufferMethods.charSequenceConstructor == invokedMethod) {
         assert instruction.inValues().size() == 2;
-        return instruction.inValues().get(1).getType().isStringType(factory);
+        return !instruction.inValues().get(1).getType().isStringType(factory);
+      }
+      if (factory.stringBuilderMethods.isAppendCharArrayMethod(invokedMethod)
+          || factory.stringBufferMethods.isAppendCharArrayMethod(invokedMethod)) {
+        return instruction.asInvokeVirtual().getFirstNonReceiverArgument().isMaybeNull();
       }
       return false;
     }

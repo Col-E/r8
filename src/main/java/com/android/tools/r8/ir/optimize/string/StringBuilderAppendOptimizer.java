@@ -284,7 +284,7 @@ public class StringBuilderAppendOptimizer {
               } else if (oracle.isAppend(instruction)) {
                 AppendNode appendNode = createAppendNode(instruction.asInvokeVirtual());
                 appendNode.setConstantArgument(oracle.getConstantArgument(instruction));
-                Value arg = invoke.getOperand(1).getAliasedValue();
+                Value arg = invoke.getFirstNonReceiverArgument().getAliasedValue();
                 if (oracle.hasStringBuilderType(arg)) {
                   insertImplicitToStringNode(
                       arg, instruction, appendNode, escapeState, nodeConsumer);
@@ -508,7 +508,7 @@ public class StringBuilderAppendOptimizer {
               escaping.add(root);
             }
             if (next.isToStringNode() || next.isImplicitToStringNode()) {
-              materializingInstructions.add(root);
+              materializingInstructions.add(next);
             }
             if (next.isInspectingNode()) {
               inspectingCapacity.add(root);

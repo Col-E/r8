@@ -2172,6 +2172,10 @@ public class DexItemFactory {
       assert false : "Unexpected invoke targeting `" + invokedMethod.toSourceString() +  "`";
       return false;
     }
+
+    public boolean isAppendCharArrayMethod(DexMethod method) {
+      return method == appendCharArray || method == appendSubCharArray;
+    }
   }
 
   public class SupplierMembers extends LibraryMembers {
