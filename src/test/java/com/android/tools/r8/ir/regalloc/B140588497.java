@@ -5,7 +5,7 @@ package com.android.tools.r8.ir.regalloc;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -13,6 +13,8 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongList;
 import java.util.Iterator;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -46,16 +48,13 @@ public class B140588497 extends TestBase {
 
               MethodSubject m = c.uniqueMethodWithName("invokeRangeTest");
               assertThat(m, isPresent());
-              long prev;
-              long curr = -1;
               Iterator<InstructionSubject> it =
                   m.iterateInstructions(InstructionSubject::isConstNumber);
+              LongList numbers = new LongArrayList();
               while (it.hasNext()) {
-                InstructionSubject instr = it.next();
-                prev = curr;
-                curr = instr.getConstNumber();
-                assertTrue(prev < curr);
+                numbers.add(it.next().getConstNumber());
               }
+              assertEquals(new LongArrayList(new long[] {4, 5, 0, 1, 2, 3}), numbers);
             });
   }
 

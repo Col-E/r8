@@ -137,6 +137,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -1842,7 +1843,7 @@ public class CodeRewriter {
     // TODO(ager): Generalize this to shorten live ranges for more instructions? Currently
     // doing so seems to make things worse.
     LazyBox<DominatorTree> dominatorTreeMemoization = new LazyBox<>(() -> new DominatorTree(code));
-    Map<BasicBlock, Map<Value, Instruction>> addConstantInBlock = new IdentityHashMap<>();
+    Map<BasicBlock, LinkedHashMap<Value, Instruction>> addConstantInBlock = new IdentityHashMap<>();
     LinkedList<BasicBlock> blocks = code.blocks;
     for (BasicBlock block : blocks) {
       if (block == blocks.getFirst()) {
@@ -1852,9 +1853,7 @@ public class CodeRewriter {
             block,
             dominatorTreeMemoization,
             addConstantInBlock,
-            insn ->
-                (insn.isConstNumber() && insn.outValue().hasAnyUsers())
-                    || (insn.isConstString() && insn.outValue().hasAnyUsers()));
+            insn -> insn.isConstNumber() || insn.isConstString());
       } else {
         // For all following blocks only process ConstString with just one use.
         shortenLiveRangesInsideBlock(
@@ -1871,7 +1870,7 @@ public class CodeRewriter {
 
     // Process all blocks in stable order to avoid non-determinism of hash map iterator.
     for (BasicBlock block : blocks) {
-      Map<Value, Instruction> constants = addConstantInBlock.get(block);
+      LinkedHashMap<Value, Instruction> constants = addConstantInBlock.get(block);
       if (constants == null) {
         continue;
       }
@@ -1880,7 +1879,6 @@ public class CodeRewriter {
       if (block != blocks.getFirst() && constants.size() > STOP_SHARED_CONSTANT_THRESHOLD) {
         // If there are too many constants in the same block, they are copied rather than shared
         // except if they are used by phi instructions or they are a string constants.
-        assert constants instanceof LinkedHashMap;
         for (Instruction constantInstruction : constants.values()) {
           if (!constantInstruction.outValue().hasPhiUsers()
               && !constantInstruction.isConstString()) {
@@ -1948,68 +1946,69 @@ public class CodeRewriter {
       IRCode code,
       BasicBlock block,
       LazyBox<DominatorTree> dominatorTreeMemoization,
-      Map<BasicBlock, Map<Value, Instruction>> addConstantInBlock,
-      Predicate<ConstInstruction> selector) {
+      Map<BasicBlock, LinkedHashMap<Value, Instruction>> addConstantInBlock,
+      Predicate<Instruction> selector) {
     InstructionListIterator iterator = block.listIterator(code);
     while (iterator.hasNext()) {
-      Instruction next = iterator.next();
-      if (!next.isConstInstruction()) {
+      Instruction instruction = iterator.next();
+      if (!instruction.isConstInstruction()
+          || instruction.hasUnusedOutValue()
+          || instruction.outValue().hasLocalInfo()) {
         continue;
       }
 
       // We don't want to push const string instructions down into code that has monitors since
       // we may attach catch handlers that are not catch-all when inlining. This is symmetric in how
       // we don't do const string canonicalization.
-      if ((next.isConstString() || next.isDexItemBasedConstString())
+      if ((instruction.isConstString() || instruction.isDexItemBasedConstString())
           && code.metadata().mayHaveMonitorInstruction()) {
         continue;
       }
 
-      ConstInstruction instruction = next.asConstInstruction();
-      if (!selector.test(instruction) || instruction.outValue().hasLocalInfo()) {
+      if (!selector.test(instruction)) {
         continue;
       }
-      Set<Instruction> uniqueUsers = instruction.outValue().uniqueUsers();
-      // Here we try to stop wasting time in the common case of large array of constants creation.
-      // We do not want to move a high number of constants up just to move them down because it
-      // takes multiple seconds in some cases (ZoneName clinit for instance).
-      // In array creation, the pattern is something like:
+
+      // Here we try to stop wasting time in the common case where constants are used immediately
+      // after their definition.
+      //
+      // This is especially important for the creation of large arrays, which has the following code
+      // pattern repeated many times, where the two loaded constants are only used by the ArrayPut
+      // instruction.
+      //
       //   Const number (the array index)
       //   Const (the array entry value)
       //   ArrayPut
-      // And both constants are used only in the put. The heuristic is therefore to check for
-      // constants used only once if the use is within the next two instructions, and only swap
-      // them if that is the case (cannot shorten the live range anyway).
-      // This heuristic drops down the time spent in large array of constant creation in
-      // shortenLiveRanges from multiple seconds to multiple milliseconds.
-      if (uniqueUsers.size() == 1 && instruction.outValue().uniquePhiUsers().size() == 0) {
-        Instruction uniqueUse = uniqueUsers.iterator().next();
-        if (iterator.hasNext()) {
-          Instruction nextNext = iterator.next();
-          if (uniqueUse == nextNext && nextNext.isArrayPut()) {
-            assert !uniqueUse.isConstInstruction();
+      //
+      // The heuristic is therefore to check for constants used only once if the use is within the
+      // next two instructions, and only swap them if that is the case (cannot shorten the live
+      // range anyway).
+      if (instruction.outValue().hasSingleUniqueUser() && !instruction.outValue().hasPhiUsers()) {
+        Instruction uniqueUse = instruction.outValue().singleUniqueUser();
+        Instruction next = iterator.next();
+        if (uniqueUse == next) {
+          continue;
+        }
+        if (next.hasOutValue()
+            && next.outValue().hasSingleUniqueUser()
+            && !next.outValue().hasPhiUsers()
+            && iterator.hasNext()) {
+          Instruction nextNext = iterator.peekNext();
+          Instruction uniqueUseNext = next.outValue().singleUniqueUser();
+          if (uniqueUse == nextNext && uniqueUseNext == nextNext) {
             continue;
           }
-          if (nextNext.isConstInstruction()) {
-            Set<Instruction> uniqueUsersNext = nextNext.outValue().uniqueUsers();
-            if (uniqueUsersNext.size() == 1
-                && nextNext.outValue().uniquePhiUsers().size() == 0
-                && iterator.hasNext()) {
-              Instruction nextNextNext = iterator.peekNext();
-              Instruction uniqueUseNext = uniqueUsersNext.iterator().next();
-              if (uniqueUse == nextNextNext
-                  && uniqueUseNext == nextNextNext
-                  && nextNextNext.isArrayPut()) {
-                continue;
-              }
-            }
-          }
-          iterator.previous();
         }
+        iterator.previous();
+        // The call to removeOrReplaceByDebugLocalRead() at the end of this method will remove the
+        // last returned element of this iterator. Therefore, we re-read this element from the
+        // iterator.
+        iterator.previous();
+        iterator.next();
       }
       // Collect the blocks for all users of the constant.
-      List<BasicBlock> userBlocks = new LinkedList<>();
-      for (Instruction user : uniqueUsers) {
+      Set<BasicBlock> userBlocks = new LinkedHashSet<>();
+      for (Instruction user : instruction.outValue().uniqueUsers()) {
         userBlocks.add(user.getBlock());
       }
       for (Phi phi : instruction.outValue().uniquePhiUsers()) {
@@ -2050,14 +2049,15 @@ public class CodeRewriter {
         }
       }
 
-      Map<Value, Instruction> csts =
-          addConstantInBlock.computeIfAbsent(dominator, k -> new LinkedHashMap<>());
-
       ConstInstruction copy = instruction.isConstNumber()
           ? ConstNumber.copyOf(code, instruction.asConstNumber())
           : ConstString.copyOf(code, instruction.asConstString());
       instruction.outValue().replaceUsers(copy.outValue());
-      csts.put(copy.outValue(), copy);
+      addConstantInBlock
+          .computeIfAbsent(dominator, k -> new LinkedHashMap<>())
+          .put(copy.outValue(), copy);
+      assert iterator.peekPrevious() == instruction;
+      iterator.removeOrReplaceByDebugLocalRead();
     }
   }
 
