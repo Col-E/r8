@@ -326,10 +326,6 @@ public class DexMethodHandle extends IndexedDexItem
         .withNullableItem(m -> m.rewrittenTarget);
   }
 
-  public Handle toAsmHandle() {
-    return toAsmHandle(NamingLens.getIdentityLens());
-  }
-
   public Handle toAsmHandle(NamingLens lens) {
     String owner;
     String name;

@@ -111,12 +111,25 @@ public class CfInvoke extends CfInstruction {
       LensCodeRewriterUtils rewriter,
       MethodVisitor visitor) {
     Invoke.Type invokeType = Invoke.Type.fromCfOpcode(opcode, method, context, appView);
-    MethodLookupResult lookup = graphLens.lookupMethod(method, context.getReference(), invokeType);
-    DexMethod rewrittenMethod = lookup.getReference();
+    Invoke.Type rewrittenType;
+    DexMethod rewrittenMethod;
+    if (invokeType == Type.POLYMORPHIC) {
+      // The method is one of the java.lang.MethodHandle invokes.
+      // Only the argument signature (getProto()) is to be type rewritten.
+      rewrittenType = Type.POLYMORPHIC;
+      DexProto rewrittenProto = rewriter.rewriteProto(method.getProto());
+      rewrittenMethod =
+          dexItemFactory.createMethod(method.getHolderType(), rewrittenProto, method.getName());
+    } else {
+      MethodLookupResult lookup =
+          graphLens.lookupMethod(method, context.getReference(), invokeType);
+      rewrittenType = lookup.getType();
+      rewrittenMethod = lookup.getReference();
+    }
     String owner = namingLens.lookupInternalName(rewrittenMethod.holder);
     String name = namingLens.lookupName(rewrittenMethod).toString();
     String desc = rewrittenMethod.proto.toDescriptorString(namingLens);
-    visitor.visitMethodInsn(lookup.getType().getCfOpcode(), owner, name, desc, itf);
+    visitor.visitMethodInsn(rewrittenType.getCfOpcode(), owner, name, desc, itf);
   }
 
   @Override

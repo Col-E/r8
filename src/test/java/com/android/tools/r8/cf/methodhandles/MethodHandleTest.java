@@ -126,8 +126,8 @@ public class MethodHandleTest {
       divicMethod().invoke(i, 15, 'x');
       assertEquals(42L, (long) dijicMethod().invoke(i, 16, 'x'));
       constructorMethod().invoke(21);
-      System.out.println(veType().parameterType(0).getName().lastIndexOf('.'));
-      System.out.println(fType().returnType().getName().lastIndexOf('.'));
+      System.out.println(veType().parameterType(0).equals(E.class));
+      System.out.println(fType().returnType().equals(F.class));
     } catch (Throwable e) {
       throw new RuntimeException(e);
     }

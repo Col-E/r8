@@ -5,10 +5,8 @@ package com.android.tools.r8.cf.methodhandles;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
@@ -49,8 +47,8 @@ public class MethodHandleTestRunner extends TestBase {
   private String getExpected() {
     return StringUtils.lines(
         "C 42", "svi 1", "sji 2", "svic 3", "sjic 4", "vvi 5", "vji 6", "vvic 7", "vjic 8", "svi 9",
-        "sji 10", "svic 11", "sjic 12", "dvi 13", "dji 14", "dvic 15", "djic 16", "C 21", "37",
-        "37");
+        "sji 10", "svic 11", "sjic 12", "dvi 13", "dji 14", "dvic 15", "djic 16", "C 21", "true",
+        "true");
   }
 
   private final TestParameters parameters;
@@ -118,28 +116,34 @@ public class MethodHandleTestRunner extends TestBase {
             .addProgramClassFileData(getTransformedClasses())
             .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
             .addNoVerticalClassMergingAnnotations();
+    // TODO(b/237750295): The CONSTANT case should not need rules as they are not reflective uses.
     if (minifyMode == MinifyMode.MINIFY) {
       builder
           .enableProguardTestOptions()
           .addKeepMainRule(MethodHandleTest.class)
           .addKeepRules(
-              // Prevent the second argument of C.svic(), C.sjic(), I.sjic() and I.svic() from
-              // being removed although they are never used unused. This is needed since these
-              // methods are accessed reflectively.
               "-keep,allowobfuscation public class " + typeName(C.class) + " {",
+              "  void <init>(int);",
+              "  static void svi(int);",
+              "  static long sji(int);",
               "  static void svic(int, char);",
               "  static long sjic(int, char);",
+              "  void vvi(int);",
+              "  long vji(int);",
+              "  void vvic(int, char);",
+              "  long vjic(int, char);",
               "}",
               "-keep,allowobfuscation public interface " + typeName(I.class) + " {",
-              "  static long sjic(int, char);",
+              "  static void svi(int);",
+              "  static long sji(int);",
               "  static void svic(int, char);",
+              "  static long sjic(int, char);",
+              "  void dvi(int);",
+              "  long dji(int);",
+              "  void dvic(int, char);",
+              "  long djic(int, char);",
               "}");
-      // TODO(b/235810300): The compiler fails with assertion in AppInfoWithLiveness.
-      if (lookupType == LookupType.CONSTANT && hasConstMethodCompileSupport()) {
-        builder.allowDiagnosticMessages();
-        assertThrows(CompilationFailedException.class, builder::compile);
-        return;
-      }
+
     } else {
       builder.noTreeShaking();
       builder.noMinification();
