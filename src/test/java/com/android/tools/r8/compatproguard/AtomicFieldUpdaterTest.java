@@ -126,10 +126,9 @@ public class AtomicFieldUpdaterTest extends CompatProguardSmaliTestBase {
 
     DexCode code = method.getMethod().getCode().asDexCode();
     assertTrue(code.instructions[0] instanceof DexConstClass);
-    assertTrue(code.instructions[1] instanceof DexConstClass);
-    assertTrue(code.instructions[2] instanceof DexConstString);
-    DexConstString constString = (DexConstString) code.instructions[2];
-    assertNotEquals("foo", constString.getString().toString());
+    assertTrue(code.instructions[1] instanceof DexConstString);
+    assertNotEquals("foo", code.instructions[1].asConstString().getString().toString());
+    assertTrue(code.instructions[2] instanceof DexConstClass);
     assertTrue(code.instructions[3] instanceof DexInvokeStatic);
     assertTrue(code.instructions[4] instanceof DexReturnVoid);
   }

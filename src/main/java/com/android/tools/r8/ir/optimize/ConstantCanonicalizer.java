@@ -417,12 +417,6 @@ public class ConstantCanonicalizer {
         break;
       case CONST_STRING:
       case DEX_ITEM_BASED_CONST_STRING:
-        // Do not canonicalize ConstString instructions if there are monitor operations in the code.
-        // That could lead to unbalanced locking and could lead to situations where OOM exceptions
-        // could leave a synchronized method without unlocking the monitor.
-        if (code.metadata().mayHaveMonitorInstruction()) {
-          return false;
-        }
         break;
       case INSTANCE_GET:
         {
@@ -464,6 +458,12 @@ public class ConstantCanonicalizer {
     }
     // Constants with local info must not be canonicalized and must be filtered.
     if (instruction.outValue().hasLocalInfo()) {
+      return false;
+    }
+    // Do not canonicalize throwing instructions if there are monitor operations in the code.
+    // That could lead to unbalanced locking and could lead to situations where OOM exceptions
+    // could leave a synchronized method without unlocking the monitor.
+    if (instruction.instructionTypeCanThrow() && code.metadata().mayHaveMonitorInstruction()) {
       return false;
     }
     // Constants that are used by invoke range are not canonicalized to be compliant with the

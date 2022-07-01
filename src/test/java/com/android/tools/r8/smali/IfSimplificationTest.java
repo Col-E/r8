@@ -180,8 +180,8 @@ public class IfSimplificationTest extends SmaliTestBase {
         ":return",
         "  return v0");
     DexCode code = method.getCode().asDexCode();
-    assertEquals(10, code.instructions.length);
-    assertTrue(code.instructions[9] instanceof DexReturn);
+    assertEquals(12, code.instructions.length);
+    assertTrue(code.instructions[11] instanceof DexReturn);
   }
 
   @Test

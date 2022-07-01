@@ -1428,7 +1428,9 @@ public class IRConverter {
     // TODO(mkroghj) Test if shorten live ranges is worth it.
     if (!options.isGeneratingClassFiles()) {
       timing.begin("Canonicalize constants");
-      new ConstantCanonicalizer(appView, codeRewriter, context, code).canonicalize();
+      ConstantCanonicalizer constantCanonicalizer =
+          new ConstantCanonicalizer(appView, codeRewriter, context, code);
+      constantCanonicalizer.canonicalize();
       timing.end();
       previous = printMethod(code, "IR after constant canonicalization (SSA)", previous);
       timing.begin("Create constants for literal instructions");
@@ -1436,7 +1438,7 @@ public class IRConverter {
       timing.end();
       previous = printMethod(code, "IR after constant literals (SSA)", previous);
       timing.begin("Shorten live ranges");
-      codeRewriter.shortenLiveRanges(code);
+      codeRewriter.shortenLiveRanges(code, constantCanonicalizer);
       timing.end();
       previous = printMethod(code, "IR after shorten live ranges (SSA)", previous);
     }

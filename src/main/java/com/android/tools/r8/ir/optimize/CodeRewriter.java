@@ -7,6 +7,12 @@ package com.android.tools.r8.ir.optimize;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
+import static com.android.tools.r8.ir.code.Opcodes.CONST_CLASS;
+import static com.android.tools.r8.ir.code.Opcodes.CONST_NUMBER;
+import static com.android.tools.r8.ir.code.Opcodes.CONST_STRING;
+import static com.android.tools.r8.ir.code.Opcodes.DEX_ITEM_BASED_CONST_STRING;
+import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_GET;
+import static com.android.tools.r8.ir.code.Opcodes.STATIC_GET;
 
 import com.android.tools.r8.algorithms.scc.SCC;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
@@ -43,15 +49,18 @@ import com.android.tools.r8.ir.code.ArrayLength;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.Binop;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.CatchHandlers.CatchHandler;
 import com.android.tools.r8.ir.code.CheckCast;
+import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DebugLocalWrite;
 import com.android.tools.r8.ir.code.DebugLocalsChange;
+import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
@@ -100,7 +109,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOutputMode;
 import com.android.tools.r8.utils.LazyBox;
 import com.android.tools.r8.utils.LongInterval;
-import com.android.tools.r8.utils.SetUtils;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ArrayListMultimap;
@@ -144,7 +152,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public class CodeRewriter {
@@ -1834,112 +1841,136 @@ public class CodeRewriter {
     return true;
   }
 
-  public void shortenLiveRanges(IRCode code) {
+  public void shortenLiveRanges(IRCode code, ConstantCanonicalizer canonicalizer) {
     if (options.testing.disableShortenLiveRanges) {
       return;
     }
-    // Currently, we are only shortening the live range of ConstNumbers in the entry block
-    // and ConstStrings with one user.
-    // TODO(ager): Generalize this to shorten live ranges for more instructions? Currently
-    // doing so seems to make things worse.
     LazyBox<DominatorTree> dominatorTreeMemoization = new LazyBox<>(() -> new DominatorTree(code));
     Map<BasicBlock, LinkedHashMap<Value, Instruction>> addConstantInBlock = new IdentityHashMap<>();
     LinkedList<BasicBlock> blocks = code.blocks;
     for (BasicBlock block : blocks) {
-      if (block == blocks.getFirst()) {
-        // For the first block process all ConstNumber as well as ConstString instructions.
-        shortenLiveRangesInsideBlock(
-            code,
-            block,
-            dominatorTreeMemoization,
-            addConstantInBlock,
-            insn -> insn.isConstNumber() || insn.isConstString());
-      } else {
-        // For all following blocks only process ConstString with just one use.
-        shortenLiveRangesInsideBlock(
-            code,
-            block,
-            dominatorTreeMemoization,
-            addConstantInBlock,
-            insn -> insn.isConstString() && insn.outValue().numberOfAllUsers() == 1);
-      }
+      shortenLiveRangesInsideBlock(
+          code,
+          block,
+          dominatorTreeMemoization,
+          addConstantInBlock,
+          canonicalizer::isConstantCanonicalizationCandidate);
     }
 
     // Heuristic to decide if constant instructions are shared in dominator block
     // of usages or moved to the usages.
 
     // Process all blocks in stable order to avoid non-determinism of hash map iterator.
-    for (BasicBlock block : blocks) {
-      LinkedHashMap<Value, Instruction> constants = addConstantInBlock.get(block);
-      if (constants == null) {
+    BasicBlockIterator blockIterator = code.listIterator();
+    while (blockIterator.hasNext()) {
+      BasicBlock block = blockIterator.next();
+      Map<Value, Instruction> movedInstructions = addConstantInBlock.get(block);
+      if (movedInstructions == null) {
         continue;
       }
-
-      Set<Value> alreadyMoved = SetUtils.newIdentityHashSet(constants.size());
-      if (block != blocks.getFirst() && constants.size() > STOP_SHARED_CONSTANT_THRESHOLD) {
-        // If there are too many constants in the same block, they are copied rather than shared
-        // except if they are used by phi instructions or they are a string constants.
-        for (Instruction constantInstruction : constants.values()) {
-          if (!constantInstruction.outValue().hasPhiUsers()
-              && !constantInstruction.isConstString()) {
-            assert constantInstruction.isConstNumber();
-            ConstNumber constNumber = constantInstruction.asConstNumber();
-            Value constantValue = constantInstruction.outValue();
-            assert constantValue.hasUsers();
-            assert constantValue.numberOfUsers() == constantValue.numberOfAllUsers();
-            for (Instruction user : constantValue.uniqueUsers()) {
-              ConstNumber newCstNum = ConstNumber.copyOf(code, constNumber);
-              newCstNum.setPosition(user.getPosition());
-              InstructionListIterator iterator = user.getBlock().listIterator(code, user);
-              iterator.previous();
-              iterator.add(newCstNum);
-              user.replaceValue(constantValue, newCstNum.outValue());
-            }
-            constantValue.clearUsers();
-            alreadyMoved.add(constantInstruction.outValue());
-          }
-        }
+      assert !movedInstructions.isEmpty();
+      if (!block.isEntry() && movedInstructions.size() > STOP_SHARED_CONSTANT_THRESHOLD) {
+        // If there are too many constant numbers in the same block they are copied rather than
+        // shared unless used by a phi.
+        movedInstructions
+            .values()
+            .removeIf(
+                movedInstruction -> {
+                  if (movedInstruction.outValue().hasPhiUsers()
+                      || !movedInstruction.isConstNumber()) {
+                    return false;
+                  }
+                  ConstNumber constNumber = movedInstruction.asConstNumber();
+                  Value constantValue = movedInstruction.outValue();
+                  for (Instruction user : constantValue.uniqueUsers()) {
+                    ConstNumber newCstNum = ConstNumber.copyOf(code, constNumber);
+                    newCstNum.setPosition(user.getPosition());
+                    InstructionListIterator iterator = user.getBlock().listIterator(code, user);
+                    iterator.previous();
+                    iterator.add(newCstNum);
+                    user.replaceValue(constantValue, newCstNum.outValue());
+                  }
+                  constantValue.clearUsers();
+                  return true;
+                });
       }
 
       // Add constant into the dominator block of usages.
       boolean hasCatchHandlers = block.hasCatchHandlers();
-      InstructionListIterator it = block.listIterator(code);
-      while (it.hasNext()) {
-        Instruction instruction = it.next();
-        if (instruction.isJumpInstruction()
-            || (hasCatchHandlers && instruction.instructionTypeCanThrow())
-            || (options.canHaveCmpIfFloatBug() && instruction.isCmp())) {
+      InstructionListIterator instructionIterator = block.listIterator(code);
+      while (instructionIterator.hasNext()) {
+        Instruction insertionPoint = instructionIterator.next();
+        if (insertionPoint.isJumpInstruction()
+            || (hasCatchHandlers && insertionPoint.instructionTypeCanThrow())
+            || (options.canHaveCmpIfFloatBug() && insertionPoint.isCmp())) {
           break;
         }
-        forEachUse(
-            instruction,
-            use -> {
-              Instruction constantInstruction = constants.get(use);
-              if (constantInstruction != null && !alreadyMoved.contains(use)) {
-                it.previous();
-                constantInstruction.setPosition(instruction.getPosition());
-                it.add(constantInstruction);
-                it.next();
-                alreadyMoved.add(use);
-              }
-            });
-      }
-      // Insert remaining constant instructions prior to the "exit".
-      Instruction next = it.previous();
-      for (Instruction constantInstruction : constants.values()) {
-        if (!alreadyMoved.contains(constantInstruction.outValue())) {
-          constantInstruction.setPosition(next.getPosition());
-          it.add(constantInstruction);
+        for (Value use :
+            Iterables.concat(insertionPoint.inValues(), insertionPoint.getDebugValues())) {
+          Instruction movedInstruction = movedInstructions.remove(use);
+          if (movedInstruction != null) {
+            instructionIterator =
+                insertInstructionWithShortenedLiveRange(
+                    code, blockIterator, instructionIterator, movedInstruction, insertionPoint);
+          }
         }
+      }
+
+      // Insert remaining constant instructions prior to the "exit".
+      Instruction insertionPoint = instructionIterator.peekPrevious();
+      for (Instruction movedInstruction : movedInstructions.values()) {
+        instructionIterator =
+            insertInstructionWithShortenedLiveRange(
+                code, blockIterator, instructionIterator, movedInstruction, insertionPoint);
       }
     }
 
     assert code.isConsistentSSA(appView);
   }
 
-  private void forEachUse(Instruction instruction, Consumer<Value> fn) {
-    instruction.inValues().forEach(fn);
-    instruction.getDebugValues().forEach(fn);
+  private InstructionListIterator insertInstructionWithShortenedLiveRange(
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      InstructionListIterator instructionIterator,
+      Instruction movedInstruction,
+      Instruction insertionPoint) {
+    Instruction previous = instructionIterator.previous();
+    assert previous == insertionPoint;
+    movedInstruction.setPosition(
+        getPositionForMovedNonThrowingInstruction(movedInstruction, insertionPoint));
+    if (movedInstruction.instructionTypeCanThrow()
+        && insertionPoint.getBlock().hasCatchHandlers()) {
+      // Split the block and reset the block iterator.
+      BasicBlock splitBlock =
+          instructionIterator.splitCopyCatchHandlers(code, blockIterator, appView.options());
+      BasicBlock previousBlock = blockIterator.previousUntil(b -> b == splitBlock);
+      assert previousBlock == splitBlock;
+      blockIterator.next();
+
+      // Add the constant instruction before the exit instruction.
+      assert !instructionIterator.hasNext();
+      instructionIterator.previous();
+      instructionIterator.add(movedInstruction);
+
+      // Continue insertion at the entry of the split block.
+      instructionIterator = splitBlock.listIterator(code);
+    } else {
+      instructionIterator.add(movedInstruction);
+    }
+    Instruction next = instructionIterator.next();
+    assert next == insertionPoint;
+    return instructionIterator;
+  }
+
+  private Position getPositionForMovedNonThrowingInstruction(
+      Instruction movedInstruction, Instruction insertionPoint) {
+    // If the type of the moved instruction is throwing and we don't have a position at the
+    // insertion point, we use the special synthetic-none position, which is OK as the moved
+    // instruction instance is known not to throw (or we would not be allowed the move it).
+    if (movedInstruction.instructionTypeCanThrow() && !insertionPoint.getPosition().isSome()) {
+      return Position.syntheticNone();
+    }
+    return insertionPoint.getPosition();
   }
 
   private void shortenLiveRangesInsideBlock(
@@ -1951,17 +1982,7 @@ public class CodeRewriter {
     InstructionListIterator iterator = block.listIterator(code);
     while (iterator.hasNext()) {
       Instruction instruction = iterator.next();
-      if (!instruction.isConstInstruction()
-          || instruction.hasUnusedOutValue()
-          || instruction.outValue().hasLocalInfo()) {
-        continue;
-      }
-
-      // We don't want to push const string instructions down into code that has monitors since
-      // we may attach catch handlers that are not catch-all when inlining. This is symmetric in how
-      // we don't do const string canonicalization.
-      if ((instruction.isConstString() || instruction.isDexItemBasedConstString())
-          && code.metadata().mayHaveMonitorInstruction()) {
+      if (instruction.hasUnusedOutValue() || instruction.outValue().hasLocalInfo()) {
         continue;
       }
 
@@ -2049,9 +2070,29 @@ public class CodeRewriter {
         }
       }
 
-      ConstInstruction copy = instruction.isConstNumber()
-          ? ConstNumber.copyOf(code, instruction.asConstNumber())
-          : ConstString.copyOf(code, instruction.asConstString());
+      Instruction copy;
+      switch (instruction.opcode()) {
+        case CONST_CLASS:
+          copy = ConstClass.copyOf(code, instruction.asConstClass());
+          break;
+        case CONST_NUMBER:
+          copy = ConstNumber.copyOf(code, instruction.asConstNumber());
+          break;
+        case CONST_STRING:
+          copy = ConstString.copyOf(code, instruction.asConstString());
+          break;
+        case DEX_ITEM_BASED_CONST_STRING:
+          copy = DexItemBasedConstString.copyOf(code, instruction.asDexItemBasedConstString());
+          break;
+        case INSTANCE_GET:
+          copy = InstanceGet.copyOf(code, instruction.asInstanceGet());
+          break;
+        case STATIC_GET:
+          copy = StaticGet.copyOf(code, instruction.asStaticGet());
+          break;
+        default:
+          throw new Unreachable();
+      }
       instruction.outValue().replaceUsers(copy.outValue());
       addConstantInBlock
           .computeIfAbsent(dominator, k -> new LinkedHashMap<>())
