@@ -44,7 +44,10 @@ def main():
   if args.branch:
     tag_r8_branch(args.branch, args)
   elif args.agp:
-    tag_agp_version(args.agp, args)
+    if (args.agp == 'all'):
+      tag_all_agp_versions(args)
+    else:
+      tag_agp_version(args.agp, args)
   else:
     print("Should use a top-level option, such as --branch or --agp.")
     return 1
@@ -70,6 +73,26 @@ def get_tag_info_on_origin(tag):
   if len(output.strip()) == 0:
     return None
   return output
+
+def tag_all_agp_versions(args):
+  with utils.TempDir() as temp:
+    url = "%s/maven-metadata.xml" % AGP_MAVEN
+    metadata = os.path.join(temp, "maven-metadata.xml")
+    try:
+      urllib.request.urlretrieve(url, metadata)
+    except urllib.error.HTTPError as e:
+      print('Could not find maven-metadata.xml for agp')
+      print(e)
+      return 1
+    with open(metadata, 'r') as file:
+      data = file.read()
+      pattern = r'<version>(.+)</version>'
+      matches = re.findall(pattern, data)
+      matches.reverse()
+      for version in matches:
+        print('Tagging agp version ' + version)
+        tag_agp_version(version, args)
+
 
 def tag_agp_version(agp, args):
   tag = 'agp-%s' % agp
