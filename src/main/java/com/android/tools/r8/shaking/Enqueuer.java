@@ -1346,24 +1346,17 @@ public class Enqueuer {
 
   void traceMethodHandle(
       DexMethodHandle methodHandle, MethodHandleUse use, ProgramMethod currentMethod) {
-    // If a method handle is not an argument to a lambda metafactory it could flow to a
-    // MethodHandle.invokeExact invocation. For that to work, the receiver type cannot have
-    // changed and therefore we cannot perform member rebinding. For these handles, we maintain
-    // the receiver for the method handle. Therefore, we have to make sure that the receiver
-    // stays in the output (and is not class merged). To ensure that we treat the receiver
-    // as instantiated.
     if (methodHandle.isMethodHandle() && use != MethodHandleUse.ARGUMENT_TO_LAMBDA_METAFACTORY) {
-      DexType type = methodHandle.asMethod().holder;
-      DexProgramClass clazz = getProgramClassOrNull(type, currentMethod);
-      if (clazz != null) {
-        KeepReason reason = KeepReason.methodHandleReferencedIn(currentMethod);
-        if (clazz.isAnnotation()) {
-          markTypeAsLive(clazz, graphReporter.registerClass(clazz, reason));
-        } else if (clazz.isInterface()) {
-          markInterfaceAsInstantiated(clazz, graphReporter.registerInterface(clazz, reason));
-        } else {
-          workList.enqueueMarkInstantiatedAction(
-              clazz, null, InstantiationReason.REFERENCED_IN_METHOD_HANDLE, reason);
+      KeepReason reason = KeepReason.methodHandleReferencedIn(currentMethod);
+      MethodResolutionResult result =
+          resolveMethod(methodHandle.asMethod(), currentMethod, reason, methodHandle.isInterface);
+      if (result.isSingleResolution()) {
+        DexClassAndMethod target = result.asSingleResolution().getResolutionPair();
+        if (target.isProgramMethod()) {
+          // If the method handle is targeting a program method then the structure of the method
+          // must remain, so that invoke/invokeExact dispatches will continue to match.
+          applyMinimumKeepInfoWhenLiveOrTargeted(
+              target.asProgramMethod(), KeepMethodInfo.newEmptyJoiner().disallowOptimization());
         }
       }
     }

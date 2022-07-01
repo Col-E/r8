@@ -7,13 +7,14 @@ import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.R8TestBuilder;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.TestShrinkerBuilder;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.cf.methodhandles.MethodHandleTest.C;
 import com.android.tools.r8.cf.methodhandles.MethodHandleTest.E;
 import com.android.tools.r8.cf.methodhandles.MethodHandleTest.F;
@@ -23,7 +24,6 @@ import com.android.tools.r8.errors.UnsupportedFeatureDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
-import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,11 +39,6 @@ public class MethodHandleTestRunner extends TestBase {
     CONSTANT,
   }
 
-  enum MinifyMode {
-    NONE,
-    MINIFY,
-  }
-
   private String getExpected() {
     return StringUtils.lines(
         "C 42", "svi 1", "sji 2", "svic 3", "sjic 4", "vvi 5", "vji 6", "vvic 7", "vjic 8", "svi 9",
@@ -53,35 +48,16 @@ public class MethodHandleTestRunner extends TestBase {
 
   private final TestParameters parameters;
   private final LookupType lookupType;
-  private final MinifyMode minifyMode;
 
-  @Parameters(name = "{0}, lookup:{1}, minify:{2}")
+  @Parameters(name = "{0}, lookup:{1}")
   public static List<Object[]> data() {
-    List<Object[]> res = new ArrayList<>();
-    for (TestParameters params :
-        TestParameters.builder()
-            .withCfRuntimes()
-            .withDexRuntimesStartingFromExcluding(Version.V7_0_0)
-            // .withApiLevelsStartingAtIncluding(AndroidApiLevel.P)
-            .withAllApiLevels()
-            .build()) {
-      for (LookupType lookupType : LookupType.values()) {
-        for (MinifyMode minifyMode : MinifyMode.values()) {
-          if (lookupType == LookupType.DYNAMIC && minifyMode == MinifyMode.MINIFY) {
-            // Skip because we don't keep the members looked up dynamically.
-            continue;
-          }
-          res.add(new Object[] {params, lookupType.name(), minifyMode.name()});
-        }
-      }
-    }
-    return res;
+    return buildParameters(
+        TestParameters.builder().withAllRuntimesAndApiLevels().build(), LookupType.values());
   }
 
-  public MethodHandleTestRunner(TestParameters parameters, String lookupType, String minifyMode) {
+  public MethodHandleTestRunner(TestParameters parameters, LookupType lookupType) {
     this.parameters = parameters;
-    this.lookupType = LookupType.valueOf(lookupType);
-    this.minifyMode = MinifyMode.valueOf(minifyMode);
+    this.lookupType = lookupType;
   }
 
   @Test
@@ -96,7 +72,7 @@ public class MethodHandleTestRunner extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime() && minifyMode == MinifyMode.NONE);
+    assumeTrue(parameters.isDexRuntime());
     testForD8(parameters.getBackend())
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(getInputClasses())
@@ -108,47 +84,26 @@ public class MethodHandleTestRunner extends TestBase {
   }
 
   @Test
-  public void testR8() throws Exception {
-    R8TestBuilder<?> builder =
-        testForR8(parameters.getBackend())
-            .setMinApi(parameters.getApiLevel())
-            .addProgramClasses(getInputClasses())
-            .addProgramClassFileData(getTransformedClasses())
-            .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
-            .addNoVerticalClassMergingAnnotations();
-    // TODO(b/237750295): The CONSTANT case should not need rules as they are not reflective uses.
-    if (minifyMode == MinifyMode.MINIFY) {
-      builder
-          .enableProguardTestOptions()
-          .addKeepMainRule(MethodHandleTest.class)
-          .addKeepRules(
-              "-keep,allowobfuscation public class " + typeName(C.class) + " {",
-              "  void <init>(int);",
-              "  static void svi(int);",
-              "  static long sji(int);",
-              "  static void svic(int, char);",
-              "  static long sjic(int, char);",
-              "  void vvi(int);",
-              "  long vji(int);",
-              "  void vvic(int, char);",
-              "  long vjic(int, char);",
-              "}",
-              "-keep,allowobfuscation public interface " + typeName(I.class) + " {",
-              "  static void svi(int);",
-              "  static long sji(int);",
-              "  static void svic(int, char);",
-              "  static long sjic(int, char);",
-              "  void dvi(int);",
-              "  long dji(int);",
-              "  void dvic(int, char);",
-              "  long djic(int, char);",
-              "}");
+  public void testKeepAllR8() throws Exception {
+    // For the dynamic case, method handles/types are created reflectively so keep all.
+    runR8(TestShrinkerBuilder::addKeepAllClassesRule);
+  }
 
-    } else {
-      builder.noTreeShaking();
-      builder.noMinification();
-    }
-    builder
+  @Test
+  public void testR8() throws Exception {
+    // We can't shrink the DYNAMIC variant as the methods are looked up reflectively.
+    assumeTrue(lookupType == LookupType.CONSTANT);
+    runR8(b -> {});
+  }
+
+  private void runR8(ThrowableConsumer<R8FullTestBuilder> additionalSetUp) throws Exception {
+    testForR8(parameters.getBackend())
+        .apply(additionalSetUp)
+        .setMinApi(parameters.getApiLevel())
+        .addProgramClasses(getInputClasses())
+        .addProgramClassFileData(getTransformedClasses())
+        .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
+        .addKeepMainRule(MethodHandleTest.class)
         .allowDiagnosticMessages()
         .mapUnsupportedFeaturesToWarnings()
         .compileWithExpectedDiagnostics(this::checkDiagnostics)
@@ -166,6 +121,14 @@ public class MethodHandleTestRunner extends TestBase {
         || parameters.getApiLevel().isGreaterThanOrEqualTo(apiLevelWithInvokePolymorphicSupport());
   }
 
+  private boolean hasMethodHandlesRuntimeSupport() {
+    return parameters.isCfRuntime()
+        || parameters
+            .asDexRuntime()
+            .maxSupportedApiLevel()
+            .isGreaterThanOrEqualTo(apiLevelWithInvokePolymorphicSupport());
+  }
+
   private void checkDiagnostics(TestDiagnosticMessages diagnostics) {
     if ((lookupType == LookupType.DYNAMIC && !hasInvokePolymorphicCompileSupport())
         || (lookupType == LookupType.CONSTANT && !hasConstMethodCompileSupport())) {
@@ -178,6 +141,12 @@ public class MethodHandleTestRunner extends TestBase {
   }
 
   private void checkResult(TestRunResult<?> result) {
+    if (lookupType == LookupType.DYNAMIC && !hasMethodHandlesRuntimeSupport()) {
+      result
+          .assertFailureWithErrorThatThrows(NoClassDefFoundError.class)
+          .assertStderrMatches(containsString("java.lang.invoke.MethodHandles"));
+      return;
+    }
     if (lookupType == LookupType.DYNAMIC && !hasInvokePolymorphicCompileSupport()) {
       result
           .assertFailureWithErrorThatThrows(RuntimeException.class)
