@@ -250,7 +250,7 @@ public class CompileDumpCompatR8 {
         }
       };
     } catch (NoSuchMethodException e) {
-      e.printStackTrace();
+      System.out.println(setter + " is not available on the compiledump version.");
       // The option is not available so we just return an empty consumer
       return args -> {};
     }
