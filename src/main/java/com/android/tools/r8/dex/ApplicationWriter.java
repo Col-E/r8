@@ -163,10 +163,7 @@ public class ApplicationWriter {
   }
 
   public ApplicationWriter(AppView<?> appView, List<Marker> markers) {
-    this(
-        appView,
-        markers,
-        null);
+    this(appView, markers, null);
   }
 
   public ApplicationWriter(

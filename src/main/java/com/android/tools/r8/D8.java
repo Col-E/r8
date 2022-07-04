@@ -337,31 +337,13 @@ public final class D8 {
         timing.end();
       }
 
-      timing.time("Finalize synthetics", () -> finalizeApplication(appView, executor, timing));
-
-      timing.time(
-          "Horizontal merger",
-          () ->
-              HorizontalClassMerger.createForD8ClassMerging(appView)
-                  .runIfNecessary(executor, timing));
-
-      timing.time(
-          "Signature rewriter",
-          () ->
-              new GenericSignatureRewriter(appView)
-                  .runForD8(appView.appInfo().classes(), executor));
-
-      timing.time(
-          "Kotlin metadata rewriter", () -> new KotlinMetadataRewriter(appView).runForD8(executor));
+      finalizeApplication(appView, executor, timing);
 
       timing.end(); // post-converter
 
       if (options.isGeneratingClassFiles()) {
         new CfApplicationWriter(appView, marker).write(options.getClassFileConsumer(), inputApp);
       } else {
-        if (options.apiModelingOptions().enableStubbingOfClasses) {
-          new ApiReferenceStubber(appView).run(executor);
-        }
         new ApplicationWriter(appView, marker == null ? null : ImmutableList.copyOf(markers))
             .write(executor, inputApp);
       }
@@ -397,7 +379,28 @@ public final class D8 {
   private static void finalizeApplication(
       AppView<AppInfo> appView, ExecutorService executorService, Timing timing)
       throws ExecutionException {
-    SyntheticFinalization.finalize(appView, timing, executorService);
+    timing.time(
+        "Finalize synthetics",
+        () -> SyntheticFinalization.finalize(appView, timing, executorService));
+
+    timing.time(
+        "Horizontal merger",
+        () ->
+            HorizontalClassMerger.createForD8ClassMerging(appView)
+                .runIfNecessary(executorService, timing));
+
+    timing.time(
+        "Signature rewriter",
+        () ->
+            new GenericSignatureRewriter(appView)
+                .runForD8(appView.appInfo().classes(), executorService));
+
+    timing.time(
+        "Kotlin metadata rewriter",
+        () -> new KotlinMetadataRewriter(appView).runForD8(executorService));
+
+    timing.time(
+        "Api reference stubber", () -> new ApiReferenceStubber(appView).run(executorService));
   }
 
   private static DexApplication rewriteNonDexInputs(
