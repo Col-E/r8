@@ -225,11 +225,11 @@ class StringBuilderNodeMuncher {
       if (!currentNode.isToStringNode() || !currentNode.hasSinglePredecessor()) {
         return false;
       }
-      StringBuilderNode root = findFirstNonSentinelRoot(originalRoot);
-      if (!root.isNewInstanceNode() || !root.hasSingleSuccessor()) {
+      NewInstanceNode newInstanceNode = munchingState.getNewInstanceNode(originalRoot);
+      if (newInstanceNode == null || !newInstanceNode.hasSingleSuccessor()) {
         return false;
       }
-      InitOrAppendNode firstNode = root.getSingleSuccessor().asInitNode();
+      InitOrAppendNode firstNode = newInstanceNode.getSingleSuccessor().asInitNode();
       if (firstNode == null || !firstNode.hasSingleSuccessor()) {
         return false;
       }
