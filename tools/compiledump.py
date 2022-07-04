@@ -139,6 +139,11 @@ def make_parser():
     help='Run as a platform build',
     default=False,
     action='store_true')
+  parser.add_argument(
+    '--compilation-mode', '--compilation_mode',
+    help='Run compilation in specified mode',
+    choices=['debug', 'release'],
+    default=None)
   return parser
 
 def error(msg):
@@ -283,17 +288,18 @@ def determine_class_file(args, build_properties):
 
 def determine_android_platform_build(args, build_properties):
   if args.android_platform_build:
-    return args.android_platform_build
-  if 'android-platform-build=true' in build_properties:
     return True
-  return None
+  return build_properties.get('android-platform-build') == 'true'
 
 def determine_enable_missing_library_api_modeling(args, build_properties):
   if args.enable_missing_library_api_modeling:
-    return args.enable_missing_library_api_modeling
-  if 'enable-missing-library-api-modeling=true' in build_properties:
     return True
-  return None
+  return build_properties.get('enable-missing-library-api-modeling') == 'true'
+
+def determine_compilation_mode(args, build_properties):
+  if args.compilation_mode:
+    return args.compilation_mode
+  return build_properties.get('mode')
 
 def determine_properties(build_properties):
   args = []
@@ -407,6 +413,7 @@ def run1(out, args, otherargs, jdkhome=None):
     classfile = determine_class_file(args, build_properties)
     android_platform_build = determine_android_platform_build(args, build_properties)
     enable_missing_library_api_modeling = determine_enable_missing_library_api_modeling(args, build_properties)
+    mode = determine_compilation_mode(args, build_properties)
     jar = args.r8_jar if args.r8_jar else download_distribution(version, args.nolib, temp)
     if ':' not in jar and not os.path.exists(jar):
       error("Distribution does not exist: " + jar)
@@ -439,6 +446,10 @@ def run1(out, args, otherargs, jdkhome=None):
       cmd.append('com.android.tools.r8.utils.CompileDumpCompatR8')
     if compiler == 'r8':
       cmd.append('--compat')
+    if mode == 'debug':
+      cmd.append('--debug')
+    else:
+      cmd.append('--release')
     # For recompilation of dumps run_on_app_dumps pass in a program jar.
     cmd.append(determine_program_jar(args, dump))
     cmd.extend(['--output', out])
