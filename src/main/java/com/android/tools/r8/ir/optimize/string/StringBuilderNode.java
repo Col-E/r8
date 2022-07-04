@@ -9,6 +9,7 @@ import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewInstance;
+import com.android.tools.r8.ir.code.Value;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
@@ -27,7 +28,15 @@ class StringBuilderNode {
     StringBuilderInstruction asStringBuilderInstructionNode();
   }
 
-  interface InitOrAppend extends StringBuilderInstruction {
+  interface InitOrAppendNode extends StringBuilderInstruction {
+
+    boolean isInitNode();
+
+    boolean isAppendNode();
+
+    InitNode asInitNode();
+
+    AppendNode asAppendNode();
 
     boolean hasConstantArgument();
 
@@ -38,6 +47,22 @@ class StringBuilderNode {
     void setImplicitToStringNode(ImplicitToStringNode node);
 
     ImplicitToStringNode getImplicitToStringNode();
+
+    boolean hasNonConstantArgument();
+
+    Value getNonConstantArgument();
+
+    default boolean hasConstantOrNonConstantArgument() {
+      return hasConstantArgument() || hasNonConstantArgument();
+    }
+
+    boolean hasSingleSuccessor();
+
+    boolean hasSinglePredecessor();
+
+    StringBuilderNode getSingleSuccessor();
+
+    StringBuilderNode getSinglePredecessor();
   }
 
   private final Set<StringBuilderNode> successors = Sets.newLinkedHashSet();
@@ -69,11 +94,11 @@ class StringBuilderNode {
     return false;
   }
 
-  boolean isInitNode() {
+  public boolean isInitNode() {
     return false;
   }
 
-  boolean isAppendNode() {
+  public boolean isAppendNode() {
     return false;
   }
 
@@ -105,15 +130,15 @@ class StringBuilderNode {
     return null;
   }
 
-  InitNode asInitNode() {
+  public InitNode asInitNode() {
     return null;
   }
 
-  AppendNode asAppendNode() {
+  public AppendNode asAppendNode() {
     return null;
   }
 
-  InitOrAppend asInitOrAppend() {
+  InitOrAppendNode asInitOrAppend() {
     return null;
   }
 
@@ -141,11 +166,11 @@ class StringBuilderNode {
     return isDead;
   }
 
-  boolean hasSingleSuccessor() {
+  public boolean hasSingleSuccessor() {
     return successors.size() == 1;
   }
 
-  StringBuilderNode getSingleSuccessor() {
+  public StringBuilderNode getSingleSuccessor() {
     assert hasSingleSuccessor();
     return successors.iterator().next();
   }
@@ -159,11 +184,11 @@ class StringBuilderNode {
     return successors;
   }
 
-  boolean hasSinglePredecessor() {
+  public boolean hasSinglePredecessor() {
     return predecessors.size() == 1;
   }
 
-  StringBuilderNode getSinglePredecessor() {
+  public StringBuilderNode getSinglePredecessor() {
     assert hasSinglePredecessor();
     return predecessors.iterator().next();
   }
@@ -278,18 +303,19 @@ class StringBuilderNode {
 
   /** An initNode is where a StringBuilder/StringBuffer is initialized. */
   static class InitNode extends StringBuilderNode
-      implements InitOrAppend, StringBuilderInstruction {
+      implements InitOrAppendNode, StringBuilderInstruction {
 
     private final InvokeDirect instruction;
     private ImplicitToStringNode implicitToStringNode;
     private String constantArgument;
+    private Value nonConstantArgument;
 
     private InitNode(InvokeDirect instruction) {
       this.instruction = instruction;
     }
 
     @Override
-    boolean isInitNode() {
+    public boolean isInitNode() {
       return true;
     }
 
@@ -299,12 +325,12 @@ class StringBuilderNode {
     }
 
     @Override
-    InitNode asInitNode() {
+    public InitNode asInitNode() {
       return this;
     }
 
     @Override
-    InitOrAppend asInitOrAppend() {
+    InitOrAppendNode asInitOrAppend() {
       return this;
     }
 
@@ -326,16 +352,6 @@ class StringBuilderNode {
     @Override
     public void setConstantArgument(String constantArgument) {
       this.constantArgument = constantArgument;
-    }
-
-    @Override
-    public void setImplicitToStringNode(ImplicitToStringNode node) {
-      implicitToStringNode = node;
-    }
-
-    @Override
-    public ImplicitToStringNode getImplicitToStringNode() {
-      return implicitToStringNode;
     }
 
     @Override
@@ -347,22 +363,53 @@ class StringBuilderNode {
     public boolean hasConstantArgument() {
       return constantArgument != null;
     }
+
+    public void setNonConstantArgument(Value value) {
+      assert value.isNeverNull();
+      this.nonConstantArgument = value;
+    }
+
+    @Override
+    public void setImplicitToStringNode(ImplicitToStringNode node) {
+      implicitToStringNode = node;
+    }
+
+    @Override
+    public ImplicitToStringNode getImplicitToStringNode() {
+      return implicitToStringNode;
+    }
+
+    @Override
+    public boolean hasNonConstantArgument() {
+      return nonConstantArgument != null;
+    }
+
+    @Override
+    public Value getNonConstantArgument() {
+      assert nonConstantArgument != null;
+      return nonConstantArgument;
+    }
+
+    boolean isConstructorInvokeSideEffectFree(StringBuilderOracle oracle) {
+      return oracle.isConstructorInvokeSideEffectFree(instruction);
+    }
   }
 
   /** AppendNodes are StringBuilder.append or StringBuffer.append. */
   static class AppendNode extends StringBuilderNode
-      implements InitOrAppend, StringBuilderInstruction {
+      implements InitOrAppendNode, StringBuilderInstruction {
 
     private final InvokeVirtual instruction;
     private ImplicitToStringNode implicitToStringNode;
     private String constantArgument;
+    private Value nonConstantArgument;
 
     private AppendNode(InvokeVirtual instruction) {
       this.instruction = instruction;
     }
 
     @Override
-    boolean isAppendNode() {
+    public boolean isAppendNode() {
       return true;
     }
 
@@ -372,12 +419,12 @@ class StringBuilderNode {
     }
 
     @Override
-    AppendNode asAppendNode() {
+    public AppendNode asAppendNode() {
       return this;
     }
 
     @Override
-    InitOrAppend asInitOrAppend() {
+    InitOrAppendNode asInitOrAppend() {
       return this;
     }
 
@@ -409,6 +456,21 @@ class StringBuilderNode {
     @Override
     public ImplicitToStringNode getImplicitToStringNode() {
       return implicitToStringNode;
+    }
+
+    @Override
+    public boolean hasNonConstantArgument() {
+      return nonConstantArgument != null;
+    }
+
+    public void setNonConstantArgument(Value value) {
+      assert value.isNeverNull();
+      this.nonConstantArgument = value;
+    }
+
+    @Override
+    public Value getNonConstantArgument() {
+      return nonConstantArgument;
     }
 
     @Override
@@ -540,13 +602,13 @@ class StringBuilderNode {
    */
   static class ImplicitToStringNode extends StringBuilderNode {
 
-    private final InitOrAppend initOrAppend;
+    private final InitOrAppendNode initOrAppend;
 
-    ImplicitToStringNode(InitOrAppend initOrAppend) {
+    ImplicitToStringNode(InitOrAppendNode initOrAppend) {
       this.initOrAppend = initOrAppend;
     }
 
-    public InitOrAppend getInitOrAppend() {
+    public InitOrAppendNode getInitOrAppend() {
       return initOrAppend;
     }
 
@@ -601,7 +663,7 @@ class StringBuilderNode {
     return new OtherStringBuilderNode(instruction);
   }
 
-  static ImplicitToStringNode createImplicitToStringNode(InitOrAppend otherNode) {
+  static ImplicitToStringNode createImplicitToStringNode(InitOrAppendNode otherNode) {
     return new ImplicitToStringNode(otherNode);
   }
 }
