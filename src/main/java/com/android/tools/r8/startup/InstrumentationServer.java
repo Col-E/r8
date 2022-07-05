@@ -49,11 +49,11 @@ public final class InstrumentationServer {
   }
 
   private static DexEncodedField[] createInstanceFields(DexItemFactory dexItemFactory) {
-    return new DexEncodedField[0];
+    return new DexEncodedField[] {};
   }
 
   private static DexEncodedField[] createStaticFields(DexItemFactory dexItemFactory) {
-    return new DexEncodedField[0];
+    return new DexEncodedField[] {};
   }
 
   private static DexEncodedMethod[] createDirectMethods(DexItemFactory dexItemFactory) {

@@ -9,6 +9,7 @@
 package com.android.tools.r8.startup;
 
 import com.android.tools.r8.ProgramResource.Kind;
+import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -17,6 +18,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
+import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
 import com.android.tools.r8.graph.NestHostClassAttribute;
@@ -49,11 +51,54 @@ public final class InstrumentationServerImpl {
   }
 
   private static DexEncodedField[] createInstanceFields(DexItemFactory dexItemFactory) {
-    return new DexEncodedField[0];
+    return new DexEncodedField[] {
+      DexEncodedField.syntheticBuilder()
+          .setField(
+              dexItemFactory.createField(
+                  dexItemFactory.createType(
+                      "Lcom/android/tools/r8/startup/InstrumentationServerImpl;"),
+                  dexItemFactory.createType("Ljava/lang/StringBuilder;"),
+                  dexItemFactory.createString("builder")))
+          .setAccessFlags(FieldAccessFlags.fromCfAccessFlags(18))
+          .setApiLevel(ComputedApiLevel.unknown())
+          .build(),
+      DexEncodedField.syntheticBuilder()
+          .setField(
+              dexItemFactory.createField(
+                  dexItemFactory.createType(
+                      "Lcom/android/tools/r8/startup/InstrumentationServerImpl;"),
+                  dexItemFactory.createType("Z"),
+                  dexItemFactory.createString("writeToLogcat")))
+          .setAccessFlags(FieldAccessFlags.fromCfAccessFlags(18))
+          .setApiLevel(ComputedApiLevel.unknown())
+          .build(),
+      DexEncodedField.syntheticBuilder()
+          .setField(
+              dexItemFactory.createField(
+                  dexItemFactory.createType(
+                      "Lcom/android/tools/r8/startup/InstrumentationServerImpl;"),
+                  dexItemFactory.createType("Ljava/lang/String;"),
+                  dexItemFactory.createString("logcatTag")))
+          .setAccessFlags(FieldAccessFlags.fromCfAccessFlags(18))
+          .setApiLevel(ComputedApiLevel.unknown())
+          .build()
+    };
   }
 
   private static DexEncodedField[] createStaticFields(DexItemFactory dexItemFactory) {
-    return new DexEncodedField[0];
+    return new DexEncodedField[] {
+      DexEncodedField.syntheticBuilder()
+          .setField(
+              dexItemFactory.createField(
+                  dexItemFactory.createType(
+                      "Lcom/android/tools/r8/startup/InstrumentationServerImpl;"),
+                  dexItemFactory.createType(
+                      "Lcom/android/tools/r8/startup/InstrumentationServerImpl;"),
+                  dexItemFactory.createString("INSTANCE")))
+          .setAccessFlags(FieldAccessFlags.fromCfAccessFlags(26))
+          .setApiLevel(ComputedApiLevel.unknown())
+          .build()
+    };
   }
 
   private static DexEncodedMethod[] createDirectMethods(DexItemFactory dexItemFactory) {

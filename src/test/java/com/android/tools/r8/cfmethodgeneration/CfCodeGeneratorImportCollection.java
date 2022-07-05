@@ -27,6 +27,10 @@ public class CfCodeGeneratorImportCollection {
     return getR8ClassName("graph.GenericSignature", "ClassSignature");
   }
 
+  String getComputedApiLevel() {
+    return getR8ClassName("androidapi", "ComputedApiLevel");
+  }
+
   String getDexAnnotationSet() {
     return getR8ClassName("graph", "DexAnnotationSet");
   }
@@ -53,6 +57,14 @@ public class CfCodeGeneratorImportCollection {
 
   String getEnclosingMethodAttribute() {
     return getR8ClassName("graph", "EnclosingMethodAttribute");
+  }
+
+  String getFieldAccessFlags() {
+    return getR8ClassName("graph", "FieldAccessFlags");
+  }
+
+  String getFieldTypeSignature() {
+    return getR8ClassName("graph.GenericSignature", "FieldTypeSignature");
   }
 
   String getJavaUtilCollections() {

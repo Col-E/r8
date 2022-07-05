@@ -44,6 +44,14 @@ public class JavaStringBuilder {
     return indent(-2).startLine().appendLine('}');
   }
 
+  public JavaStringBuilder appendOpeningArrayBrace() {
+    return appendLine('{').indent(4);
+  }
+
+  public JavaStringBuilder appendClosingArrayBrace() {
+    return indent(-4).startLine().appendLine("};");
+  }
+
   public JavaStringBuilder appendOpeningMultiLineParenthesis() {
     return appendLine('(').indent(4);
   }

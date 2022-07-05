@@ -12,6 +12,9 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.function.Predicate;
 
 public abstract class CfClassGenerator extends CodeGenerationBase {
@@ -141,8 +144,76 @@ public abstract class CfClassGenerator extends CodeGenerationBase {
         .startLine()
         .append("return new ")
         .append(imports.getDexEncodedField())
-        .appendLine("[0];");
+        .append("[] ")
+        .appendOpeningArrayBrace();
 
+    Iterator<Field> fieldIterator =
+        Arrays.stream(getGeneratedClass().getDeclaredFields())
+            .filter(
+                field -> predicate.test(FieldAccessFlags.fromCfAccessFlags(field.getModifiers())))
+            .iterator();
+    while (fieldIterator.hasNext()) {
+      Field field = fieldIterator.next();
+      FieldAccessFlags flags = FieldAccessFlags.fromCfAccessFlags(field.getModifiers());
+      if (predicate.test(flags)) {
+        builder
+            .startLine()
+            .append(imports.getDexEncodedField())
+            .appendLine(".syntheticBuilder()")
+            .indent(4);
+
+        builder.startLine().append(".setField").appendOpeningMultiLineParenthesis();
+
+        builder
+            .startLine()
+            .append("dexItemFactory.createField")
+            .appendOpeningMultiLineParenthesis();
+
+        builder
+            .startLine()
+            .append("dexItemFactory.createType(\"")
+            .append(descriptor(field.getDeclaringClass()))
+            .appendLine("\"),");
+
+        builder
+            .startLine()
+            .append("dexItemFactory.createType(\"")
+            .append(descriptor(field.getType()))
+            .appendLine("\"),");
+
+        builder
+            .startLine()
+            .append("dexItemFactory.createString(\"")
+            .append(field.getName())
+            .append("\")")
+            .appendClosingMultiLineParenthesis()
+            .appendClosingMultiLineParenthesis()
+            .appendLine();
+
+        builder
+            .startLine()
+            .append(".setAccessFlags(")
+            .append(imports.getFieldAccessFlags())
+            .append(".fromCfAccessFlags(")
+            .append(field.getModifiers())
+            .appendLine("))");
+
+        builder
+            .startLine()
+            .append(".setApiLevel(")
+            .append(imports.getComputedApiLevel())
+            .appendLine(".unknown())");
+
+        builder.startLine().append(".build()").indent(-4);
+        if (fieldIterator.hasNext()) {
+          builder.appendLine(',');
+        } else {
+          builder.appendLine();
+        }
+      }
+    }
+
+    builder.appendClosingArrayBrace();
     builder.appendClosingBrace();
   }
 
