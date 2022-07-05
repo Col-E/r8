@@ -1530,8 +1530,13 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       return this;
     }
 
+    public Builder setCode(Function<DexMethod, Code> fn) {
+      this.code = fn.apply(method);
+      return this;
+    }
+
     public Builder unsetCode() {
-      return setCode(null);
+      return setCode((Code) null);
     }
 
     public Builder setGenericSignature(MethodTypeSignature methodSignature) {

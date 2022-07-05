@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.templates.CfUtilityMethodsForCodeOptimizations;
 import com.android.tools.r8.synthesis.SyntheticItems;
-import com.android.tools.r8.utils.InternalOptions;
 
 public class UtilityMethodsForCodeOptimizations {
 
@@ -29,7 +28,6 @@ public class UtilityMethodsForCodeOptimizations {
 
   public static UtilityMethodForCodeOptimizations synthesizeToStringIfNotNullMethod(
       AppView<?> appView, MethodProcessingContext methodProcessingContext) {
-    InternalOptions options = appView.options();
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexProto proto = dexItemFactory.createProto(dexItemFactory.voidType, dexItemFactory.objectType);
     SyntheticItems syntheticItems = appView.getSyntheticItems();
@@ -44,20 +42,19 @@ public class UtilityMethodsForCodeOptimizations {
                     .setClassFileVersion(CfVersion.V1_8)
                     .setApiLevelForDefinition(appView.computedMinApiLevel())
                     .setApiLevelForCode(appView.computedMinApiLevel())
-                    .setCode(method -> getToStringIfNotNullCodeTemplate(method, options))
+                    .setCode(method -> getToStringIfNotNullCodeTemplate(method, dexItemFactory))
                     .setProto(proto));
     return new UtilityMethodForCodeOptimizations(syntheticMethod);
   }
 
   private static CfCode getToStringIfNotNullCodeTemplate(
-      DexMethod method, InternalOptions options) {
+      DexMethod method, DexItemFactory dexItemFactory) {
     return CfUtilityMethodsForCodeOptimizations
-        .CfUtilityMethodsForCodeOptimizationsTemplates_toStringIfNotNull(options, method);
+        .CfUtilityMethodsForCodeOptimizationsTemplates_toStringIfNotNull(dexItemFactory, method);
   }
 
   public static UtilityMethodForCodeOptimizations synthesizeThrowClassCastExceptionIfNotNullMethod(
       AppView<?> appView, MethodProcessingContext methodProcessingContext) {
-    InternalOptions options = appView.options();
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexProto proto = dexItemFactory.createProto(dexItemFactory.voidType, dexItemFactory.objectType);
     SyntheticItems syntheticItems = appView.getSyntheticItems();
@@ -74,21 +71,21 @@ public class UtilityMethodsForCodeOptimizations {
                     .setApiLevelForDefinition(appView.computedMinApiLevel())
                     .setApiLevelForCode(appView.computedMinApiLevel())
                     .setCode(
-                        method -> getThrowClassCastExceptionIfNotNullCodeTemplate(method, options))
+                        method ->
+                            getThrowClassCastExceptionIfNotNullCodeTemplate(method, dexItemFactory))
                     .setProto(proto));
     return new UtilityMethodForCodeOptimizations(syntheticMethod);
   }
 
   private static CfCode getThrowClassCastExceptionIfNotNullCodeTemplate(
-      DexMethod method, InternalOptions options) {
+      DexMethod method, DexItemFactory dexItemFactory) {
     return CfUtilityMethodsForCodeOptimizations
         .CfUtilityMethodsForCodeOptimizationsTemplates_throwClassCastExceptionIfNotNull(
-            options, method);
+            dexItemFactory, method);
   }
 
   public static UtilityMethodForCodeOptimizations synthesizeThrowIllegalAccessErrorMethod(
       AppView<?> appView, MethodProcessingContext methodProcessingContext) {
-    InternalOptions options = appView.options();
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexProto proto = dexItemFactory.createProto(dexItemFactory.illegalAccessErrorType);
     SyntheticItems syntheticItems = appView.getSyntheticItems();
@@ -103,20 +100,21 @@ public class UtilityMethodsForCodeOptimizations {
                     .setClassFileVersion(CfVersion.V1_8)
                     .setApiLevelForDefinition(appView.computedMinApiLevel())
                     .setApiLevelForCode(appView.computedMinApiLevel())
-                    .setCode(method -> getThrowIllegalAccessErrorCodeTemplate(method, options))
+                    .setCode(
+                        method -> getThrowIllegalAccessErrorCodeTemplate(method, dexItemFactory))
                     .setProto(proto));
     return new UtilityMethodForCodeOptimizations(syntheticMethod);
   }
 
   private static CfCode getThrowIllegalAccessErrorCodeTemplate(
-      DexMethod method, InternalOptions options) {
+      DexMethod method, DexItemFactory dexItemFactory) {
     return CfUtilityMethodsForCodeOptimizations
-        .CfUtilityMethodsForCodeOptimizationsTemplates_throwIllegalAccessError(options, method);
+        .CfUtilityMethodsForCodeOptimizationsTemplates_throwIllegalAccessError(
+            dexItemFactory, method);
   }
 
   public static UtilityMethodForCodeOptimizations synthesizeThrowIncompatibleClassChangeErrorMethod(
       AppView<?> appView, MethodProcessingContext methodProcessingContext) {
-    InternalOptions options = appView.options();
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexProto proto = dexItemFactory.createProto(dexItemFactory.icceType);
     SyntheticItems syntheticItems = appView.getSyntheticItems();
@@ -132,21 +130,22 @@ public class UtilityMethodsForCodeOptimizations {
                     .setApiLevelForDefinition(appView.computedMinApiLevel())
                     .setApiLevelForCode(appView.computedMinApiLevel())
                     .setCode(
-                        method -> getThrowIncompatibleClassChangeErrorCodeTemplate(method, options))
+                        method ->
+                            getThrowIncompatibleClassChangeErrorCodeTemplate(
+                                method, dexItemFactory))
                     .setProto(proto));
     return new UtilityMethodForCodeOptimizations(syntheticMethod);
   }
 
   private static CfCode getThrowIncompatibleClassChangeErrorCodeTemplate(
-      DexMethod method, InternalOptions options) {
+      DexMethod method, DexItemFactory dexItemFactory) {
     return CfUtilityMethodsForCodeOptimizations
         .CfUtilityMethodsForCodeOptimizationsTemplates_throwIncompatibleClassChangeError(
-            options, method);
+            dexItemFactory, method);
   }
 
   public static UtilityMethodForCodeOptimizations synthesizeThrowNoSuchMethodErrorMethod(
       AppView<?> appView, MethodProcessingContext methodProcessingContext) {
-    InternalOptions options = appView.options();
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexProto proto = dexItemFactory.createProto(dexItemFactory.noSuchMethodErrorType);
     SyntheticItems syntheticItems = appView.getSyntheticItems();
@@ -161,20 +160,21 @@ public class UtilityMethodsForCodeOptimizations {
                     .setClassFileVersion(CfVersion.V1_8)
                     .setApiLevelForDefinition(appView.computedMinApiLevel())
                     .setApiLevelForCode(appView.computedMinApiLevel())
-                    .setCode(method -> getThrowNoSuchMethodErrorCodeTemplate(method, options))
+                    .setCode(
+                        method -> getThrowNoSuchMethodErrorCodeTemplate(method, dexItemFactory))
                     .setProto(proto));
     return new UtilityMethodForCodeOptimizations(syntheticMethod);
   }
 
   private static CfCode getThrowNoSuchMethodErrorCodeTemplate(
-      DexMethod method, InternalOptions options) {
+      DexMethod method, DexItemFactory dexItemFactory) {
     return CfUtilityMethodsForCodeOptimizations
-        .CfUtilityMethodsForCodeOptimizationsTemplates_throwNoSuchMethodError(options, method);
+        .CfUtilityMethodsForCodeOptimizationsTemplates_throwNoSuchMethodError(
+            dexItemFactory, method);
   }
 
   public static UtilityMethodForCodeOptimizations synthesizeThrowRuntimeExceptionWithMessageMethod(
       AppView<?> appView, MethodProcessingContext methodProcessingContext) {
-    InternalOptions options = appView.options();
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexProto proto =
         dexItemFactory.createProto(dexItemFactory.runtimeExceptionType, dexItemFactory.stringType);
@@ -191,16 +191,17 @@ public class UtilityMethodsForCodeOptimizations {
                     .setApiLevelForDefinition(appView.computedMinApiLevel())
                     .setApiLevelForCode(appView.computedMinApiLevel())
                     .setCode(
-                        method -> getThrowRuntimeExceptionWithMessageCodeTemplate(method, options))
+                        method ->
+                            getThrowRuntimeExceptionWithMessageCodeTemplate(method, dexItemFactory))
                     .setProto(proto));
     return new UtilityMethodForCodeOptimizations(syntheticMethod);
   }
 
   private static CfCode getThrowRuntimeExceptionWithMessageCodeTemplate(
-      DexMethod method, InternalOptions options) {
+      DexMethod method, DexItemFactory dexItemFactory) {
     return CfUtilityMethodsForCodeOptimizations
         .CfUtilityMethodsForCodeOptimizationsTemplates_throwRuntimeExceptionWithMessage(
-            options, method);
+            dexItemFactory, method);
   }
 
   public static class UtilityMethodForCodeOptimizations {

@@ -81,7 +81,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
         appView,
         dexItemFactory.createString("checkNotZero"),
         dexItemFactory.createProto(dexItemFactory.voidType, dexItemFactory.intType),
-        method -> EnumUnboxingCfMethods.EnumUnboxingMethods_zeroCheck(appView.options(), method));
+        method -> EnumUnboxingCfMethods.EnumUnboxingMethods_zeroCheck(dexItemFactory, method));
   }
 
   public ProgramMethod ensureCheckNotZeroWithMessageMethod(AppView<AppInfoWithLiveness> appView) {
@@ -92,7 +92,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
         dexItemFactory.createProto(
             dexItemFactory.voidType, dexItemFactory.intType, dexItemFactory.stringType),
         method ->
-            EnumUnboxingCfMethods.EnumUnboxingMethods_zeroCheckMessage(appView.options(), method));
+            EnumUnboxingCfMethods.EnumUnboxingMethods_zeroCheckMessage(dexItemFactory, method));
   }
 
   public ProgramMethod ensureCompareToMethod(AppView<AppInfoWithLiveness> appView) {
@@ -102,7 +102,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
         dexItemFactory.enumMembers.compareTo.getName(),
         dexItemFactory.createProto(
             dexItemFactory.intType, dexItemFactory.intType, dexItemFactory.intType),
-        method -> EnumUnboxingCfMethods.EnumUnboxingMethods_compareTo(appView.options(), method));
+        method -> EnumUnboxingCfMethods.EnumUnboxingMethods_compareTo(dexItemFactory, method));
   }
 
   public ProgramMethod ensureEqualsMethod(AppView<AppInfoWithLiveness> appView) {
@@ -112,7 +112,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
         dexItemFactory.enumMembers.equals.getName(),
         dexItemFactory.createProto(
             dexItemFactory.booleanType, dexItemFactory.intType, dexItemFactory.intType),
-        method -> EnumUnboxingCfMethods.EnumUnboxingMethods_equals(appView.options(), method));
+        method -> EnumUnboxingCfMethods.EnumUnboxingMethods_equals(dexItemFactory, method));
   }
 
   public ProgramMethod ensureOrdinalMethod(AppView<AppInfoWithLiveness> appView) {
@@ -121,7 +121,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
         appView,
         dexItemFactory.enumMembers.ordinalMethod.getName(),
         dexItemFactory.createProto(dexItemFactory.intType, dexItemFactory.intType),
-        method -> EnumUnboxingCfMethods.EnumUnboxingMethods_ordinal(appView.options(), method));
+        method -> EnumUnboxingCfMethods.EnumUnboxingMethods_ordinal(dexItemFactory, method));
   }
 
   private ProgramMethod internalEnsureMethod(

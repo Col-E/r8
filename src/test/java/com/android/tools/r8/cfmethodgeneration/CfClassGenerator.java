@@ -11,19 +11,25 @@ import com.android.tools.r8.cf.CfCodePrinter;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.graph.JarClassFileReader;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.utils.FieldReferenceUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.Streams;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -34,12 +40,7 @@ public abstract class CfClassGenerator extends CodeGenerationBase {
 
   private final CfCodeGeneratorImportCollection imports = new CfCodeGeneratorImportCollection();
 
-  public abstract Class<?> getGeneratedClass();
-
-  @Override
-  protected DexType getGeneratedType() {
-    return factory.createType(descriptor(getGeneratedClass()));
-  }
+  public abstract Class<?> getImplementation();
 
   public String generateClass() throws IOException {
     return formatRawOutput(generateRawOutput());
@@ -103,7 +104,7 @@ public abstract class CfClassGenerator extends CodeGenerationBase {
         .startLine()
         .append(imports.getClassAccessFlags())
         .append(".fromCfAccessFlags(")
-        .append(getGeneratedClass().getModifiers())
+        .append(getImplementation().getModifiers())
         .appendLine("),");
 
     builder.startLine().appendLine("null,");
@@ -170,9 +171,13 @@ public abstract class CfClassGenerator extends CodeGenerationBase {
         .appendOpeningArrayBrace();
 
     Iterator<Field> fieldIterator =
-        Arrays.stream(getGeneratedClass().getDeclaredFields())
+        Arrays.stream(getImplementation().getDeclaredFields())
             .filter(
                 field -> predicate.test(FieldAccessFlags.fromCfAccessFlags(field.getModifiers())))
+            .sorted(
+                (x, y) ->
+                    FieldReferenceUtils.compare(
+                        Reference.fieldFromField(x), Reference.fieldFromField(y)))
             .iterator();
     while (fieldIterator.hasNext()) {
       Field field = fieldIterator.next();
@@ -259,8 +264,146 @@ public abstract class CfClassGenerator extends CodeGenerationBase {
         .startLine()
         .append("return new ")
         .append(imports.getDexEncodedMethod())
-        .appendLine("[0];");
+        .append("[] ")
+        .appendOpeningArrayBrace();
 
+    getImplementation().getDeclaredConstructors();
+
+    Iterator<Executable> executableIterator =
+        Streams.concat(
+                Arrays.stream(getImplementation().getDeclaredConstructors()),
+                Arrays.stream(getImplementation().getDeclaredMethods()))
+            .filter(
+                executable ->
+                    predicate.test(
+                        MethodAccessFlags.fromCfAccessFlags(executable.getModifiers(), false)))
+            .sorted(
+                (x, y) ->
+                    MethodReferenceUtils.compare(
+                        Reference.methodFromMethod(x), Reference.methodFromMethod(y)))
+            .iterator();
+    while (executableIterator.hasNext()) {
+      Executable executable = executableIterator.next();
+      builder
+          .startLine()
+          .append(imports.getDexEncodedMethod())
+          .appendLine(".syntheticBuilder()")
+          .indent(4);
+
+      builder
+          .startLine()
+          .append(".setAccessFlags(")
+          .append(imports.getMethodAccessFlags())
+          .append(".fromCfAccessFlags(")
+          .append(executable.getModifiers())
+          .append(", false")
+          .appendLine("))");
+
+      builder
+          .startLine()
+          .append(".setApiLevelForCode(")
+          .append(imports.getComputedApiLevel())
+          .appendLine(".unknown())");
+
+      builder
+          .startLine()
+          .append(".setApiLevelForDefinition(")
+          .append(imports.getComputedApiLevel())
+          .appendLine(".unknown())");
+
+      builder
+          .startLine()
+          .append(".setClassFileVersion(")
+          .append(imports.getCfVersion())
+          .appendLine(".V1_8)");
+
+      builder.startLine().append(".setMethod").appendOpeningMultiLineParenthesis();
+
+      if (executable instanceof Constructor<?>) {
+        Constructor<?> constructor = (Constructor<?>) executable;
+        builder
+            .startLine()
+            .append("dexItemFactory.createInstanceInitializer")
+            .appendOpeningMultiLineParenthesis();
+
+        builder
+            .startLine()
+            .append("dexItemFactory.createType(\"")
+            .append(descriptor(constructor.getDeclaringClass()))
+            .append("\")");
+
+        for (Class<?> parameter : constructor.getParameterTypes()) {
+          builder
+              .appendLine(",")
+              .startLine()
+              .append("dexItemFactory.createType(\"")
+              .append(descriptor(parameter))
+              .append("\")");
+        }
+      } else {
+        assert executable instanceof Method;
+        Method method = (Method) executable;
+
+        builder
+            .startLine()
+            .append("dexItemFactory.createMethod")
+            .appendOpeningMultiLineParenthesis();
+
+        builder
+            .startLine()
+            .append("dexItemFactory.createType(\"")
+            .append(descriptor(method.getDeclaringClass()))
+            .appendLine("\"),");
+
+        builder
+            .startLine()
+            .append("dexItemFactory.createProto")
+            .appendOpeningMultiLineParenthesis();
+
+        builder
+            .startLine()
+            .append("dexItemFactory.createType(\"")
+            .append(descriptor(method.getReturnType()))
+            .append("\")");
+
+        for (Class<?> parameter : method.getParameterTypes()) {
+          builder
+              .appendLine(",")
+              .startLine()
+              .append("dexItemFactory.createType(\"")
+              .append(descriptor(parameter))
+              .append("\")");
+        }
+        builder.appendClosingMultiLineParenthesis().appendLine(',');
+
+        builder
+            .startLine()
+            .append("dexItemFactory.createString(\"")
+            .append(method.getName())
+            .append("\")");
+      }
+
+      builder.appendClosingMultiLineParenthesis().appendClosingMultiLineParenthesis().appendLine();
+
+      String createCfCodeMethodName =
+          createCfCodeMethodNames.get(Reference.methodFromMethod(executable));
+      if (createCfCodeMethodName != null) {
+        builder
+            .startLine()
+            .append(".setCode(method -> ")
+            .append(createCfCodeMethodName)
+            .appendLine("(dexItemFactory, method))");
+      }
+
+      builder.startLine().append(".build()").indent(-4);
+      if (executableIterator.hasNext()) {
+        builder.appendLine(',');
+      } else {
+        builder.appendLine();
+      }
+    }
+
+    builder.appendClosingArrayBrace();
     builder.appendClosingBrace();
   }
 
@@ -279,12 +422,14 @@ public abstract class CfClassGenerator extends CodeGenerationBase {
                   continue;
                 }
                 String generatedMethodName = getCreateCfCodeMethodName(method, index);
+                createCfCodeMethodNames.put(
+                    method.getReference().asMethodReference(), generatedMethodName);
                 codePrinter.visitMethod(generatedMethodName, method.getCode().asCfCode());
                 index++;
               }
             },
             ClassKind.PROGRAM);
-    reader.read(Origin.unknown(), ToolHelper.getClassAsBytes(getGeneratedClass()));
+    reader.read(Origin.unknown(), ToolHelper.getClassAsBytes(getImplementation()));
     codePrinter.getImports().forEach(imports::addImport);
     return createCfCodeMethodNames;
   }

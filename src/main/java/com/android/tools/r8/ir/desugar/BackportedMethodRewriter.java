@@ -1078,8 +1078,8 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
                 ? new InvokeRewriter(method, CollectionMethodRewrites.rewriteMapOfEmpty())
                 : new MethodGenerator(
                     method,
-                    (options, methodArg) ->
-                        CollectionMethodGenerators.generateMapOf(options, methodArg, formalCount)));
+                    (ignore, methodArg) ->
+                        CollectionMethodGenerators.generateMapOf(factory, methodArg, formalCount)));
       }
       proto = factory.createProto(type, factory.createArrayType(1, factory.mapEntryType));
       method = factory.createMethod(type, proto, "ofEntries");
@@ -1696,15 +1696,17 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
                       .disableAndroidApiLevelCheck()
                       .setProto(getProto(appView.dexItemFactory()))
                       .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
-                      .setCode(methodSig -> generateTemplateMethod(appView.options(), methodSig)));
+                      .setCode(
+                          methodSig ->
+                              generateTemplateMethod(appView.dexItemFactory(), methodSig)));
     }
 
     public DexProto getProto(DexItemFactory itemFactory) {
       return method.proto;
     }
 
-    public Code generateTemplateMethod(InternalOptions options, DexMethod method) {
-      return factory.create(options, method);
+    public Code generateTemplateMethod(DexItemFactory dexItemFactory, DexMethod method) {
+      return factory.create(dexItemFactory, method);
     }
   }
 
@@ -1743,7 +1745,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
 
   private interface TemplateMethodFactory {
 
-    CfCode create(InternalOptions options, DexMethod method);
+    CfCode create(DexItemFactory factory, DexMethod method);
   }
 
   public interface MethodInvokeRewriter {

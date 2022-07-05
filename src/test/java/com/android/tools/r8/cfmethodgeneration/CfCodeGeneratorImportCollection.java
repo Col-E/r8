@@ -19,6 +19,10 @@ public class CfCodeGeneratorImportCollection {
     return builder.toString();
   }
 
+  String getCfVersion() {
+    return getR8ClassName("cf", "CfVersion");
+  }
+
   String getClassAccessFlags() {
     return getR8ClassName("graph", "ClassAccessFlags");
   }
@@ -70,6 +74,10 @@ public class CfCodeGeneratorImportCollection {
   String getJavaUtilCollections() {
     addImport("java.util.Collections");
     return "Collections";
+  }
+
+  String getMethodAccessFlags() {
+    return getR8ClassName("graph", "MethodAccessFlags");
   }
 
   String getMethodCollectionFactory() {

@@ -23,7 +23,6 @@ import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.ir.desugar.backports.BackportedMethods;
 import com.android.tools.r8.synthesis.SyntheticItems.SyntheticKindSelector;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.function.BiConsumer;
@@ -122,7 +121,7 @@ public class TwrInstructionDesugaring implements CfInstructionDesugaring {
   private ImmutableList<CfInstruction> createAndCallSyntheticMethod(
       SyntheticKindSelector kindSelector,
       DexProto proto,
-      BiFunction<InternalOptions, DexMethod, CfCode> generator,
+      BiFunction<DexItemFactory, DexMethod, CfCode> generator,
       MethodProcessingContext methodProcessingContext,
       BiConsumer<ProgramMethod, ProgramMethod> eventConsumerCallback,
       ProgramMethod context) {
@@ -139,7 +138,8 @@ public class TwrInstructionDesugaring implements CfInstructionDesugaring {
                         .disableAndroidApiLevelCheck()
                         .setProto(proto)
                         .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
-                        .setCode(methodSig -> generator.apply(appView.options(), methodSig)));
+                        .setCode(
+                            methodSig -> generator.apply(appView.dexItemFactory(), methodSig)));
     eventConsumerCallback.accept(method, context);
     return ImmutableList.of(new CfInvoke(Opcodes.INVOKESTATIC, method.getReference(), false));
   }

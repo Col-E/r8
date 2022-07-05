@@ -23,7 +23,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 
@@ -39,7 +38,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
 
   public static CfCode
       CfUtilityMethodsForCodeOptimizationsTemplates_throwClassCastExceptionIfNotNull(
-          InternalOptions options, DexMethod method) {
+          DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -53,23 +52,21 @@ public final class CfUtilityMethodsForCodeOptimizations {
             new CfLoad(ValueType.OBJECT, 0),
             new CfIf(If.Type.EQ, ValueType.OBJECT, label2),
             label1,
-            new CfNew(options.itemFactory.createType("Ljava/lang/ClassCastException;")),
+            new CfNew(factory.createType("Ljava/lang/ClassCastException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/ClassCastException;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/ClassCastException;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
-                    })),
+                    new FrameType[] {FrameType.initializedNonNullReference(factory.objectType)})),
             new CfReturnVoid(),
             label3),
         ImmutableList.of(),
@@ -77,7 +74,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
   }
 
   public static CfCode CfUtilityMethodsForCodeOptimizationsTemplates_throwIllegalAccessError(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     return new CfCode(
         method.holder,
@@ -85,14 +82,14 @@ public final class CfUtilityMethodsForCodeOptimizations {
         0,
         ImmutableList.of(
             label0,
-            new CfNew(options.itemFactory.createType("Ljava/lang/IllegalAccessError;")),
+            new CfNew(factory.createType("Ljava/lang/IllegalAccessError;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/IllegalAccessError;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/IllegalAccessError;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow()),
         ImmutableList.of(),
@@ -101,7 +98,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
 
   public static CfCode
       CfUtilityMethodsForCodeOptimizationsTemplates_throwIncompatibleClassChangeError(
-          InternalOptions options, DexMethod method) {
+          DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     return new CfCode(
         method.holder,
@@ -109,14 +106,14 @@ public final class CfUtilityMethodsForCodeOptimizations {
         0,
         ImmutableList.of(
             label0,
-            new CfNew(options.itemFactory.createType("Ljava/lang/IncompatibleClassChangeError;")),
+            new CfNew(factory.createType("Ljava/lang/IncompatibleClassChangeError;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/IncompatibleClassChangeError;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/IncompatibleClassChangeError;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow()),
         ImmutableList.of(),
@@ -124,7 +121,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
   }
 
   public static CfCode CfUtilityMethodsForCodeOptimizationsTemplates_throwNoSuchMethodError(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     return new CfCode(
         method.holder,
@@ -132,14 +129,14 @@ public final class CfUtilityMethodsForCodeOptimizations {
         0,
         ImmutableList.of(
             label0,
-            new CfNew(options.itemFactory.createType("Ljava/lang/NoSuchMethodError;")),
+            new CfNew(factory.createType("Ljava/lang/NoSuchMethodError;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/NoSuchMethodError;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/NoSuchMethodError;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow()),
         ImmutableList.of(),
@@ -148,7 +145,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
 
   public static CfCode
       CfUtilityMethodsForCodeOptimizationsTemplates_throwRuntimeExceptionWithMessage(
-          InternalOptions options, DexMethod method) {
+          DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -157,16 +154,15 @@ public final class CfUtilityMethodsForCodeOptimizations {
         1,
         ImmutableList.of(
             label0,
-            new CfNew(options.itemFactory.createType("Ljava/lang/RuntimeException;")),
+            new CfNew(factory.createType("Ljava/lang/RuntimeException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/RuntimeException;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.stringType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/RuntimeException;"),
+                    factory.createProto(factory.voidType, factory.stringType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label1),
@@ -175,7 +171,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
   }
 
   public static CfCode CfUtilityMethodsForCodeOptimizationsTemplates_toStringIfNotNull(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -192,19 +188,17 @@ public final class CfUtilityMethodsForCodeOptimizations {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.objectType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.objectType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
-                    })),
+                    new FrameType[] {FrameType.initializedNonNullReference(factory.objectType)})),
             new CfReturnVoid(),
             label3),
         ImmutableList.of(),

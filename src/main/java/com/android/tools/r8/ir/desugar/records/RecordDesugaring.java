@@ -54,7 +54,6 @@ import com.android.tools.r8.ir.synthetic.CallObjectInitCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.RecordCfCodeProvider.RecordEqualsCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.RecordCfCodeProvider.RecordGetFieldsAsObjectsCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.SyntheticCfCodeProvider;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -240,7 +239,6 @@ public class RecordDesugaring
         DexEncodedMethod.syntheticBuilder()
             .setMethod(method)
             .setAccessFlags(methodAccessFlags)
-            .setCode(null)
             // Will be traced by the enqueuer.
             .disableAndroidApiLevelCheck()
             .build();
@@ -285,7 +283,7 @@ public class RecordDesugaring
 
   private ProgramMethod synthesizeRecordHelper(
       DexProto helperProto,
-      BiFunction<InternalOptions, DexMethod, CfCode> codeGenerator,
+      BiFunction<DexItemFactory, DexMethod, CfCode> codeGenerator,
       MethodProcessingContext methodProcessingContext) {
     return appView
         .getSyntheticItems()
@@ -297,7 +295,7 @@ public class RecordDesugaring
                 builder
                     .setProto(helperProto)
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
-                    .setCode(methodSig -> codeGenerator.apply(appView.options(), methodSig))
+                    .setCode(methodSig -> codeGenerator.apply(appView.dexItemFactory(), methodSig))
                     .disableAndroidApiLevelCheck());
   }
 

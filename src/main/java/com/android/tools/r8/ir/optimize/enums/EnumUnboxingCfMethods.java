@@ -35,7 +35,6 @@ import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import java.util.ArrayDeque;
@@ -47,7 +46,7 @@ public final class EnumUnboxingCfMethods {
     factory.createSynthesizedType("Ljava/lang/NullPointerException;");
   }
 
-  public static CfCode EnumUnboxingMethods_compareTo(InternalOptions options, DexMethod method) {
+  public static CfCode EnumUnboxingMethods_compareTo(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -66,14 +65,14 @@ public final class EnumUnboxingCfMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()})),
-            new CfNew(options.itemFactory.createType("Ljava/lang/NullPointerException;")),
+            new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/NullPointerException;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/NullPointerException;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label2,
@@ -89,7 +88,7 @@ public final class EnumUnboxingCfMethods {
         ImmutableList.of());
   }
 
-  public static CfCode EnumUnboxingMethods_equals(InternalOptions options, DexMethod method) {
+  public static CfCode EnumUnboxingMethods_equals(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -105,14 +104,14 @@ public final class EnumUnboxingCfMethods {
             new CfLoad(ValueType.INT, 0),
             new CfIf(If.Type.NE, ValueType.INT, label2),
             label1,
-            new CfNew(options.itemFactory.createType("Ljava/lang/NullPointerException;")),
+            new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/NullPointerException;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/NullPointerException;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label2,
@@ -140,7 +139,7 @@ public final class EnumUnboxingCfMethods {
         ImmutableList.of());
   }
 
-  public static CfCode EnumUnboxingMethods_ordinal(InternalOptions options, DexMethod method) {
+  public static CfCode EnumUnboxingMethods_ordinal(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -154,14 +153,14 @@ public final class EnumUnboxingCfMethods {
             new CfLoad(ValueType.INT, 0),
             new CfIf(If.Type.NE, ValueType.INT, label2),
             label1,
-            new CfNew(options.itemFactory.createType("Ljava/lang/NullPointerException;")),
+            new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/NullPointerException;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/NullPointerException;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label2,
@@ -176,7 +175,7 @@ public final class EnumUnboxingCfMethods {
         ImmutableList.of());
   }
 
-  public static CfCode EnumUnboxingMethods_values(InternalOptions options, DexMethod method) {
+  public static CfCode EnumUnboxingMethods_values(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -191,7 +190,7 @@ public final class EnumUnboxingCfMethods {
         ImmutableList.of(
             label0,
             new CfLoad(ValueType.INT, 0),
-            new CfNewArray(options.itemFactory.intArrayType),
+            new CfNewArray(factory.intArrayType),
             new CfStore(ValueType.OBJECT, 1),
             label1,
             new CfConstNumber(0, ValueType.INT),
@@ -202,7 +201,7 @@ public final class EnumUnboxingCfMethods {
                     new int[] {0, 1, 2},
                     new FrameType[] {
                       FrameType.intType(),
-                      FrameType.initializedNonNullReference(options.itemFactory.intArrayType),
+                      FrameType.initializedNonNullReference(factory.intArrayType),
                       FrameType.intType()
                     })),
             new CfLoad(ValueType.INT, 2),
@@ -225,7 +224,7 @@ public final class EnumUnboxingCfMethods {
                     new int[] {0, 1},
                     new FrameType[] {
                       FrameType.intType(),
-                      FrameType.initializedNonNullReference(options.itemFactory.intArrayType)
+                      FrameType.initializedNonNullReference(factory.intArrayType)
                     })),
             new CfLoad(ValueType.OBJECT, 1),
             new CfReturn(ValueType.OBJECT),
@@ -234,7 +233,7 @@ public final class EnumUnboxingCfMethods {
         ImmutableList.of());
   }
 
-  public static CfCode EnumUnboxingMethods_zeroCheck(InternalOptions options, DexMethod method) {
+  public static CfCode EnumUnboxingMethods_zeroCheck(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -248,14 +247,14 @@ public final class EnumUnboxingCfMethods {
             new CfLoad(ValueType.INT, 0),
             new CfIf(If.Type.NE, ValueType.INT, label2),
             label1,
-            new CfNew(options.itemFactory.createType("Ljava/lang/NullPointerException;")),
+            new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/NullPointerException;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/NullPointerException;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label2,
@@ -268,7 +267,7 @@ public final class EnumUnboxingCfMethods {
   }
 
   public static CfCode EnumUnboxingMethods_zeroCheckMessage(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -282,16 +281,15 @@ public final class EnumUnboxingCfMethods {
             new CfLoad(ValueType.INT, 0),
             new CfIf(If.Type.NE, ValueType.INT, label2),
             label1,
-            new CfNew(options.itemFactory.createType("Ljava/lang/NullPointerException;")),
+            new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/NullPointerException;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.stringType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/NullPointerException;"),
+                    factory.createProto(factory.voidType, factory.stringType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label2,
@@ -299,8 +297,7 @@ public final class EnumUnboxingCfMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.intType(),
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType)
+                      FrameType.intType(), FrameType.initializedNonNullReference(factory.stringType)
                     })),
             new CfReturnVoid(),
             label3),

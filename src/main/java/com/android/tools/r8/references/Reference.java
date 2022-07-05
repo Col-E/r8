@@ -8,6 +8,7 @@ import com.android.tools.r8.KeepForRetraceApi;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Collections;
@@ -117,6 +118,16 @@ public final class Reference {
       TypeReference returnType) {
     return new MethodReference(
         holderClass, methodName, ImmutableList.copyOf(formalTypes), returnType);
+  }
+
+  /** Get a method reference from a Java reflection executable. */
+  public static MethodReference methodFromMethod(Executable executable) {
+    if (executable instanceof Constructor<?>) {
+      return methodFromMethod((Constructor<?>) executable);
+    } else {
+      assert executable instanceof Method;
+      return methodFromMethod((Method) executable);
+    }
   }
 
   /** Get a method reference from a Java reflection method. */

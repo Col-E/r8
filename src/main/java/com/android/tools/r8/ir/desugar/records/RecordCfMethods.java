@@ -34,7 +34,6 @@ import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import java.util.ArrayDeque;
@@ -48,7 +47,7 @@ public final class RecordCfMethods {
     factory.createSynthesizedType("[Ljava/lang/String;");
   }
 
-  public static CfCode RecordMethods_hashCode(InternalOptions options, DexMethod method) {
+  public static CfCode RecordMethods_hashCode(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -61,21 +60,19 @@ public final class RecordCfMethods {
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Arrays;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType,
-                        options.itemFactory.createType("[Ljava/lang/Object;")),
-                    options.itemFactory.createString("hashCode")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Arrays;"),
+                    factory.createProto(factory.intType, factory.createType("[Ljava/lang/Object;")),
+                    factory.createString("hashCode")),
                 false),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.INT),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.objectType,
-                    options.itemFactory.createProto(options.itemFactory.intType),
-                    options.itemFactory.createString("hashCode")),
+                factory.createMethod(
+                    factory.objectType,
+                    factory.createProto(factory.intType),
+                    factory.createString("hashCode")),
                 false),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
             new CfReturn(ValueType.INT),
@@ -84,7 +81,7 @@ public final class RecordCfMethods {
         ImmutableList.of());
   }
 
-  public static CfCode RecordMethods_toString(InternalOptions options, DexMethod method) {
+  public static CfCode RecordMethods_toString(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -108,14 +105,14 @@ public final class RecordCfMethods {
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(options.itemFactory.intType),
-                    options.itemFactory.createString("length")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(factory.intType),
+                    factory.createString("length")),
                 false),
             new CfIf(If.Type.NE, ValueType.INT, label1),
             new CfConstNumber(0, ValueType.INT),
-            new CfNewArray(options.itemFactory.createType("[Ljava/lang/String;")),
+            new CfNewArray(factory.createType("[Ljava/lang/String;")),
             new CfGoto(label2),
             label1,
             new CfFrame(
@@ -123,20 +120,19 @@ public final class RecordCfMethods {
                     new int[] {0, 1, 2},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/lang/Object;")),
-                      FrameType.initializedNonNullReference(options.itemFactory.classType),
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType)
+                          factory.createType("[Ljava/lang/Object;")),
+                      FrameType.initializedNonNullReference(factory.classType),
+                      FrameType.initializedNonNullReference(factory.stringType)
                     })),
             new CfLoad(ValueType.OBJECT, 2),
-            new CfConstString(options.itemFactory.createString(";")),
+            new CfConstString(factory.createString(";")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("[Ljava/lang/String;"),
-                        options.itemFactory.stringType),
-                    options.itemFactory.createString("split")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(
+                        factory.createType("[Ljava/lang/String;"), factory.stringType),
+                    factory.createString("split")),
                 false),
             label2,
             new CfFrame(
@@ -144,24 +140,24 @@ public final class RecordCfMethods {
                     new int[] {0, 1, 2},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/lang/Object;")),
-                      FrameType.initializedNonNullReference(options.itemFactory.classType),
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType)
+                          factory.createType("[Ljava/lang/Object;")),
+                      FrameType.initializedNonNullReference(factory.classType),
+                      FrameType.initializedNonNullReference(factory.stringType)
                     }),
                 new ArrayDeque<>(
                     Arrays.asList(
                         FrameType.initializedNonNullReference(
-                            options.itemFactory.createType("[Ljava/lang/String;"))))),
+                            factory.createType("[Ljava/lang/String;"))))),
             new CfStore(ValueType.OBJECT, 3),
             label3,
-            new CfNew(options.itemFactory.stringBuilderType),
+            new CfNew(factory.stringBuilderType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfStore(ValueType.OBJECT, 4),
             label4,
@@ -169,27 +165,25 @@ public final class RecordCfMethods {
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.classType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("getSimpleName")),
+                factory.createMethod(
+                    factory.classType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("getSimpleName")),
                 false),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
-            new CfConstString(options.itemFactory.createString("[")),
+            new CfConstString(factory.createString("[")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
             label5,
@@ -201,12 +195,12 @@ public final class RecordCfMethods {
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/lang/Object;")),
-                      FrameType.initializedNonNullReference(options.itemFactory.classType),
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                          factory.createType("[Ljava/lang/Object;")),
+                      FrameType.initializedNonNullReference(factory.classType),
+                      FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/lang/String;")),
-                      FrameType.initializedNonNullReference(options.itemFactory.stringBuilderType),
+                          factory.createType("[Ljava/lang/String;")),
+                      FrameType.initializedNonNullReference(factory.stringBuilderType),
                       FrameType.intType()
                     })),
             new CfLoad(ValueType.INT, 5),
@@ -220,31 +214,28 @@ public final class RecordCfMethods {
             new CfArrayLoad(MemberType.OBJECT),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
-            new CfConstString(options.itemFactory.createString("=")),
+            new CfConstString(factory.createString("=")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.INT, 5),
             new CfArrayLoad(MemberType.OBJECT),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.objectType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.objectType),
+                    factory.createString("append")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
             label8,
@@ -256,14 +247,13 @@ public final class RecordCfMethods {
             new CfIfCmp(If.Type.EQ, ValueType.INT, label10),
             label9,
             new CfLoad(ValueType.OBJECT, 4),
-            new CfConstString(options.itemFactory.createString(", ")),
+            new CfConstString(factory.createString(", ")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
             label10,
@@ -272,12 +262,12 @@ public final class RecordCfMethods {
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/lang/Object;")),
-                      FrameType.initializedNonNullReference(options.itemFactory.classType),
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                          factory.createType("[Ljava/lang/Object;")),
+                      FrameType.initializedNonNullReference(factory.classType),
+                      FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/lang/String;")),
-                      FrameType.initializedNonNullReference(options.itemFactory.stringBuilderType),
+                          factory.createType("[Ljava/lang/String;")),
+                      FrameType.initializedNonNullReference(factory.stringBuilderType),
                       FrameType.intType()
                     })),
             new CfIinc(5, 1),
@@ -288,32 +278,31 @@ public final class RecordCfMethods {
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/lang/Object;")),
-                      FrameType.initializedNonNullReference(options.itemFactory.classType),
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                          factory.createType("[Ljava/lang/Object;")),
+                      FrameType.initializedNonNullReference(factory.classType),
+                      FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/lang/String;")),
-                      FrameType.initializedNonNullReference(options.itemFactory.stringBuilderType)
+                          factory.createType("[Ljava/lang/String;")),
+                      FrameType.initializedNonNullReference(factory.stringBuilderType)
                     })),
             new CfLoad(ValueType.OBJECT, 4),
-            new CfConstString(options.itemFactory.createString("]")),
+            new CfConstString(factory.createString("]")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
             label12,
             new CfLoad(ValueType.OBJECT, 4),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 false),
             new CfReturn(ValueType.OBJECT),
             label13),

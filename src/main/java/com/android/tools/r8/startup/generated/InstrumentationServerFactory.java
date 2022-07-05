@@ -6,9 +6,11 @@
 // GENERATED FILE. DO NOT EDIT! See InstrumentationServerClassGenerator.java.
 // ***********************************************************************************
 
-package com.android.tools.r8.startup;
+package com.android.tools.r8.startup.generated;
 
 import com.android.tools.r8.ProgramResource.Kind;
+import com.android.tools.r8.androidapi.ComputedApiLevel;
+import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
@@ -25,24 +27,25 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
 import com.android.tools.r8.graph.NestHostClassAttribute;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 
-public final class InstrumentationServer {
+public final class InstrumentationServerFactory {
   public static DexProgramClass createClass(DexItemFactory dexItemFactory) {
     return new DexProgramClass(
-        dexItemFactory.createType("Lcom/android/tools/r8/startup/InstrumentationServer;"),
+        dexItemFactory.createType(
+            "Lcom/android/tools/r8/startup/generated/InstrumentationServerFactory;"),
         Kind.CF,
         Origin.unknown(),
         ClassAccessFlags.fromCfAccessFlags(1025),
         null,
         DexTypeList.empty(),
-        dexItemFactory.createString("InstrumentationServer"),
+        dexItemFactory.createString("InstrumentationServerFactory"),
         NestHostClassAttribute.none(),
         Collections.emptyList(),
         Collections.emptyList(),
@@ -67,14 +70,53 @@ public final class InstrumentationServer {
   }
 
   private static DexEncodedMethod[] createDirectMethods(DexItemFactory dexItemFactory) {
-    return new DexEncodedMethod[0];
+    return new DexEncodedMethod[] {
+      DexEncodedMethod.syntheticBuilder()
+          .setAccessFlags(MethodAccessFlags.fromCfAccessFlags(9, false))
+          .setApiLevelForCode(ComputedApiLevel.unknown())
+          .setApiLevelForDefinition(ComputedApiLevel.unknown())
+          .setClassFileVersion(CfVersion.V1_8)
+          .setMethod(
+              dexItemFactory.createMethod(
+                  dexItemFactory.createType("Lcom/android/tools/r8/startup/InstrumentationServer;"),
+                  dexItemFactory.createProto(
+                      dexItemFactory.createType(
+                          "Lcom/android/tools/r8/startup/InstrumentationServer;")),
+                  dexItemFactory.createString("getInstance")))
+          .setCode(method -> createCfCode1_getInstance(dexItemFactory, method))
+          .build()
+    };
   }
 
   private static DexEncodedMethod[] createVirtualMethods(DexItemFactory dexItemFactory) {
-    return new DexEncodedMethod[0];
+    return new DexEncodedMethod[] {
+      DexEncodedMethod.syntheticBuilder()
+          .setAccessFlags(MethodAccessFlags.fromCfAccessFlags(1, false))
+          .setApiLevelForCode(ComputedApiLevel.unknown())
+          .setApiLevelForDefinition(ComputedApiLevel.unknown())
+          .setClassFileVersion(CfVersion.V1_8)
+          .setMethod(
+              dexItemFactory.createInstanceInitializer(
+                  dexItemFactory.createType(
+                      "Lcom/android/tools/r8/startup/InstrumentationServer;")))
+          .setCode(method -> createInstanceInitializerCfCode0(dexItemFactory, method))
+          .build(),
+      DexEncodedMethod.syntheticBuilder()
+          .setAccessFlags(MethodAccessFlags.fromCfAccessFlags(1025, false))
+          .setApiLevelForCode(ComputedApiLevel.unknown())
+          .setApiLevelForDefinition(ComputedApiLevel.unknown())
+          .setClassFileVersion(CfVersion.V1_8)
+          .setMethod(
+              dexItemFactory.createMethod(
+                  dexItemFactory.createType("Lcom/android/tools/r8/startup/InstrumentationServer;"),
+                  dexItemFactory.createProto(
+                      dexItemFactory.createType("V"), dexItemFactory.createType("Ljava/io/File;")),
+                  dexItemFactory.createString("writeToFile")))
+          .build()
+    };
   }
 
-  public static CfCode createInstanceInitializerCfCode0(InternalOptions options, DexMethod method) {
+  public static CfCode createInstanceInitializerCfCode0(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -86,10 +128,10 @@ public final class InstrumentationServer {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.objectType,
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.objectType,
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfReturnVoid(),
             label1),
@@ -97,7 +139,7 @@ public final class InstrumentationServer {
         ImmutableList.of());
   }
 
-  public static CfCode createCfCode1_getInstance(InternalOptions options, DexMethod method) {
+  public static CfCode createCfCode1_getInstance(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     return new CfCode(
         method.holder,
@@ -107,13 +149,12 @@ public final class InstrumentationServer {
             label0,
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType(
-                        "Lcom/android/tools/r8/startup/InstrumentationServerImpl;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType(
+                factory.createMethod(
+                    factory.createType("Lcom/android/tools/r8/startup/InstrumentationServerImpl;"),
+                    factory.createProto(
+                        factory.createType(
                             "Lcom/android/tools/r8/startup/InstrumentationServerImpl;")),
-                    options.itemFactory.createString("getInstance")),
+                    factory.createString("getInstance")),
                 false),
             new CfReturn(ValueType.OBJECT)),
         ImmutableList.of(),

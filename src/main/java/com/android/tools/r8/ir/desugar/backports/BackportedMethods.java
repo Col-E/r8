@@ -47,7 +47,6 @@ import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import java.util.ArrayDeque;
@@ -119,7 +118,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode AtomicReferenceArrayMethods_compareAndSet(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -136,11 +135,10 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType(
-                              "Ljava/util/concurrent/atomic/AtomicReferenceArray;")),
+                          factory.createType("Ljava/util/concurrent/atomic/AtomicReferenceArray;")),
                       FrameType.intType(),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.INT, 1),
@@ -148,15 +146,14 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 3),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType(
-                        "Ljava/util/concurrent/atomic/AtomicReferenceArray;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType,
-                        options.itemFactory.intType,
-                        options.itemFactory.objectType,
-                        options.itemFactory.objectType),
-                    options.itemFactory.createString("compareAndSet")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/concurrent/atomic/AtomicReferenceArray;"),
+                    factory.createProto(
+                        factory.booleanType,
+                        factory.intType,
+                        factory.objectType,
+                        factory.objectType),
+                    factory.createString("compareAndSet")),
                 false),
             new CfIf(If.Type.EQ, ValueType.INT, label2),
             label1,
@@ -168,22 +165,19 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType(
-                              "Ljava/util/concurrent/atomic/AtomicReferenceArray;")),
+                          factory.createType("Ljava/util/concurrent/atomic/AtomicReferenceArray;")),
                       FrameType.intType(),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.INT, 1),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType(
-                        "Ljava/util/concurrent/atomic/AtomicReferenceArray;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType, options.itemFactory.intType),
-                    options.itemFactory.createString("get")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/concurrent/atomic/AtomicReferenceArray;"),
+                    factory.createProto(factory.objectType, factory.intType),
+                    factory.createString("get")),
                 false),
             new CfLoad(ValueType.OBJECT, 2),
             new CfIfCmp(If.Type.EQ, ValueType.OBJECT, label0),
@@ -196,7 +190,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode AtomicReferenceFieldUpdaterMethods_compareAndSet(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -213,11 +207,11 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType(
+                          factory.createType(
                               "Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;")),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.OBJECT, 1),
@@ -225,15 +219,14 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 3),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType(
-                        "Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType,
-                        options.itemFactory.objectType,
-                        options.itemFactory.objectType,
-                        options.itemFactory.objectType),
-                    options.itemFactory.createString("compareAndSet")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;"),
+                    factory.createProto(
+                        factory.booleanType,
+                        factory.objectType,
+                        factory.objectType,
+                        factory.objectType),
+                    factory.createString("compareAndSet")),
                 false),
             new CfIf(If.Type.EQ, ValueType.INT, label2),
             label1,
@@ -245,22 +238,20 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType(
+                          factory.createType(
                               "Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;")),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType(
-                        "Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType, options.itemFactory.objectType),
-                    options.itemFactory.createString("get")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;"),
+                    factory.createProto(factory.objectType, factory.objectType),
+                    factory.createString("get")),
                 false),
             new CfLoad(ValueType.OBJECT, 2),
             new CfIfCmp(If.Type.EQ, ValueType.OBJECT, label0),
@@ -273,7 +264,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode AtomicReferenceMethods_compareAndSet(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -290,23 +281,20 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType(
-                              "Ljava/util/concurrent/atomic/AtomicReference;")),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                          factory.createType("Ljava/util/concurrent/atomic/AtomicReference;")),
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.OBJECT, 1),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/concurrent/atomic/AtomicReference;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType,
-                        options.itemFactory.objectType,
-                        options.itemFactory.objectType),
-                    options.itemFactory.createString("compareAndSet")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/concurrent/atomic/AtomicReference;"),
+                    factory.createProto(
+                        factory.booleanType, factory.objectType, factory.objectType),
+                    factory.createString("compareAndSet")),
                 false),
             new CfIf(If.Type.EQ, ValueType.INT, label2),
             label1,
@@ -318,18 +306,17 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType(
-                              "Ljava/util/concurrent/atomic/AtomicReference;")),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                          factory.createType("Ljava/util/concurrent/atomic/AtomicReference;")),
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/concurrent/atomic/AtomicReference;"),
-                    options.itemFactory.createProto(options.itemFactory.objectType),
-                    options.itemFactory.createString("get")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/concurrent/atomic/AtomicReference;"),
+                    factory.createProto(factory.objectType),
+                    factory.createString("get")),
                 false),
             new CfLoad(ValueType.OBJECT, 1),
             new CfIfCmp(If.Type.EQ, ValueType.OBJECT, label0),
@@ -341,7 +328,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode BooleanMethods_compare(InternalOptions options, DexMethod method) {
+  public static CfCode BooleanMethods_compare(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -382,7 +369,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode BooleanMethods_hashCode(InternalOptions options, DexMethod method) {
+  public static CfCode BooleanMethods_hashCode(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -411,7 +398,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode ByteMethods_compare(InternalOptions options, DexMethod method) {
+  public static CfCode ByteMethods_compare(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -429,7 +416,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode ByteMethods_compareUnsigned(InternalOptions options, DexMethod method) {
+  public static CfCode ByteMethods_compareUnsigned(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -451,7 +438,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode ByteMethods_toUnsignedInt(InternalOptions options, DexMethod method) {
+  public static CfCode ByteMethods_toUnsignedInt(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -469,7 +456,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode ByteMethods_toUnsignedLong(InternalOptions options, DexMethod method) {
+  public static CfCode ByteMethods_toUnsignedLong(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -488,7 +475,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode CharSequenceMethods_compare(InternalOptions options, DexMethod method) {
+  public static CfCode CharSequenceMethods_compare(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -512,20 +499,20 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.charSequenceType,
-                    options.itemFactory.createProto(options.itemFactory.intType),
-                    options.itemFactory.createString("length")),
+                factory.createMethod(
+                    factory.charSequenceType,
+                    factory.createProto(factory.intType),
+                    factory.createString("length")),
                 true),
             new CfStore(ValueType.INT, 2),
             label1,
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.charSequenceType,
-                    options.itemFactory.createProto(options.itemFactory.intType),
-                    options.itemFactory.createString("length")),
+                factory.createMethod(
+                    factory.charSequenceType,
+                    factory.createProto(factory.intType),
+                    factory.createString("length")),
                 true),
             new CfStore(ValueType.INT, 3),
             label2,
@@ -540,8 +527,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -552,13 +539,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Math;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType,
-                        options.itemFactory.intType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("min")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Math;"),
+                    factory.createProto(factory.intType, factory.intType, factory.intType),
+                    factory.createString("min")),
                 false),
             new CfStore(ValueType.INT, 5),
             label6,
@@ -566,8 +550,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -581,11 +565,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 4),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.charSequenceType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.charType, options.itemFactory.intType),
-                    options.itemFactory.createString("charAt")),
+                factory.createMethod(
+                    factory.charSequenceType,
+                    factory.createProto(factory.charType, factory.intType),
+                    factory.createString("charAt")),
                 true),
             new CfStore(ValueType.INT, 6),
             label8,
@@ -593,11 +576,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 4),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.charSequenceType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.charType, options.itemFactory.intType),
-                    options.itemFactory.createString("charAt")),
+                factory.createMethod(
+                    factory.charSequenceType,
+                    factory.createProto(factory.charType, factory.intType),
+                    factory.createString("charAt")),
                 true),
             new CfStore(ValueType.INT, 7),
             label9,
@@ -614,8 +596,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -628,8 +610,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -642,7 +624,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode CharacterMethods_compare(InternalOptions options, DexMethod method) {
+  public static CfCode CharacterMethods_compare(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -661,7 +643,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode CharacterMethods_toStringCodepoint(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -670,24 +652,22 @@ public final class BackportedMethods {
         1,
         ImmutableList.of(
             label0,
-            new CfNew(options.itemFactory.stringType),
+            new CfNew(factory.stringType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfLoad(ValueType.INT, 0),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.boxedCharType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.charArrayType, options.itemFactory.intType),
-                    options.itemFactory.createString("toChars")),
+                factory.createMethod(
+                    factory.boxedCharType,
+                    factory.createProto(factory.charArrayType, factory.intType),
+                    factory.createString("toChars")),
                 false),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.charArrayType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(factory.voidType, factory.charArrayType),
+                    factory.createString("<init>")),
                 false),
             new CfReturn(ValueType.OBJECT),
             label1),
@@ -696,7 +676,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode CloseResourceMethod_closeResourceImpl(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -726,17 +706,17 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             new CfLoad(ValueType.OBJECT, 1),
-            new CfInstanceOf(options.itemFactory.autoCloseableType),
+            new CfInstanceOf(factory.autoCloseableType),
             new CfIf(If.Type.EQ, ValueType.INT, label2),
             label1,
             new CfLoad(ValueType.OBJECT, 1),
-            new CfCheckCast(options.itemFactory.autoCloseableType),
+            new CfCheckCast(factory.autoCloseableType),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.autoCloseableType,
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("close")),
+                factory.createMethod(
+                    factory.autoCloseableType,
+                    factory.createProto(factory.voidType),
+                    factory.createString("close")),
                 true),
             new CfGoto(label11),
             label2,
@@ -744,45 +724,45 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.throwableType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.objectType,
-                    options.itemFactory.createProto(options.itemFactory.classType),
-                    options.itemFactory.createString("getClass")),
+                factory.createMethod(
+                    factory.objectType,
+                    factory.createProto(factory.classType),
+                    factory.createString("getClass")),
                 false),
-            new CfConstString(options.itemFactory.createString("close")),
+            new CfConstString(factory.createString("close")),
             new CfConstNumber(0, ValueType.INT),
-            new CfNewArray(options.itemFactory.createType("[Ljava/lang/Class;")),
+            new CfNewArray(factory.createType("[Ljava/lang/Class;")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.classType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/lang/reflect/Method;"),
-                        options.itemFactory.stringType,
-                        options.itemFactory.createType("[Ljava/lang/Class;")),
-                    options.itemFactory.createString("getMethod")),
+                factory.createMethod(
+                    factory.classType,
+                    factory.createProto(
+                        factory.createType("Ljava/lang/reflect/Method;"),
+                        factory.stringType,
+                        factory.createType("[Ljava/lang/Class;")),
+                    factory.createString("getMethod")),
                 false),
             new CfStore(ValueType.OBJECT, 2),
             label3,
             new CfLoad(ValueType.OBJECT, 2),
             new CfLoad(ValueType.OBJECT, 1),
             new CfConstNumber(0, ValueType.INT),
-            new CfNewArray(options.itemFactory.createType("[Ljava/lang/Object;")),
+            new CfNewArray(factory.createType("[Ljava/lang/Object;")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/reflect/Method;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType,
-                        options.itemFactory.objectType,
-                        options.itemFactory.createType("[Ljava/lang/Object;")),
-                    options.itemFactory.createString("invoke")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/reflect/Method;"),
+                    factory.createProto(
+                        factory.objectType,
+                        factory.objectType,
+                        factory.createType("[Ljava/lang/Object;")),
+                    factory.createString("invoke")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
             label4,
@@ -792,68 +772,64 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.throwableType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(
                     Arrays.asList(
                         FrameType.initializedNonNullReference(
-                            options.itemFactory.createType("Ljava/lang/Exception;"))))),
+                            factory.createType("Ljava/lang/Exception;"))))),
             new CfStore(ValueType.OBJECT, 2),
             label6,
-            new CfNew(options.itemFactory.createType("Ljava/lang/AssertionError;")),
+            new CfNew(factory.createType("Ljava/lang/AssertionError;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfNew(options.itemFactory.stringBuilderType),
+            new CfNew(factory.stringBuilderType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.objectType,
-                    options.itemFactory.createProto(options.itemFactory.classType),
-                    options.itemFactory.createString("getClass")),
+                factory.createMethod(
+                    factory.objectType,
+                    factory.createProto(factory.classType),
+                    factory.createString("getClass")),
                 false),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.objectType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.objectType),
+                    factory.createString("append")),
                 false),
-            new CfConstString(options.itemFactory.createString(" does not have a close() method.")),
+            new CfConstString(factory.createString(" does not have a close() method.")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 false),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/AssertionError;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType,
-                        options.itemFactory.stringType,
-                        options.itemFactory.throwableType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/AssertionError;"),
+                    factory.createProto(
+                        factory.voidType, factory.stringType, factory.throwableType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label7,
@@ -861,67 +837,62 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.throwableType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(
-                    Arrays.asList(
-                        FrameType.initializedNonNullReference(options.itemFactory.throwableType)))),
+                    Arrays.asList(FrameType.initializedNonNullReference(factory.throwableType)))),
             new CfStore(ValueType.OBJECT, 2),
             label8,
-            new CfNew(options.itemFactory.createType("Ljava/lang/AssertionError;")),
+            new CfNew(factory.createType("Ljava/lang/AssertionError;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfNew(options.itemFactory.stringBuilderType),
+            new CfNew(factory.stringBuilderType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
-            new CfConstString(options.itemFactory.createString("Fail to call close() on ")),
+            new CfConstString(factory.createString("Fail to call close() on ")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.objectType,
-                    options.itemFactory.createProto(options.itemFactory.classType),
-                    options.itemFactory.createString("getClass")),
+                factory.createMethod(
+                    factory.objectType,
+                    factory.createProto(factory.classType),
+                    factory.createString("getClass")),
                 false),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.objectType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.objectType),
+                    factory.createString("append")),
                 false),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 false),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/AssertionError;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType,
-                        options.itemFactory.stringType,
-                        options.itemFactory.throwableType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/AssertionError;"),
+                    factory.createProto(
+                        factory.voidType, factory.stringType, factory.throwableType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label9,
@@ -929,23 +900,22 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.throwableType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(
                     Arrays.asList(
                         FrameType.initializedNonNullReference(
-                            options.itemFactory.createType(
-                                "Ljava/lang/reflect/InvocationTargetException;"))))),
+                            factory.createType("Ljava/lang/reflect/InvocationTargetException;"))))),
             new CfStore(ValueType.OBJECT, 2),
             label10,
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/reflect/InvocationTargetException;"),
-                    options.itemFactory.createProto(options.itemFactory.throwableType),
-                    options.itemFactory.createString("getCause")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/reflect/InvocationTargetException;"),
+                    factory.createProto(factory.throwableType),
+                    factory.createString("getCause")),
                 false),
             new CfThrow(),
             label11,
@@ -953,8 +923,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.throwableType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfGoto(label20),
             label12,
@@ -962,54 +932,53 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.throwableType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(
-                    Arrays.asList(
-                        FrameType.initializedNonNullReference(options.itemFactory.throwableType)))),
+                    Arrays.asList(FrameType.initializedNonNullReference(factory.throwableType)))),
             new CfStore(ValueType.OBJECT, 2),
             label13,
             new CfLoad(ValueType.OBJECT, 0),
             new CfIf(If.Type.EQ, ValueType.OBJECT, label19),
             label14,
-            new CfConstClass(options.itemFactory.throwableType),
-            new CfConstString(options.itemFactory.createString("addSuppressed")),
+            new CfConstClass(factory.throwableType),
+            new CfConstString(factory.createString("addSuppressed")),
             new CfConstNumber(1, ValueType.INT),
-            new CfNewArray(options.itemFactory.createType("[Ljava/lang/Class;")),
+            new CfNewArray(factory.createType("[Ljava/lang/Class;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfConstNumber(0, ValueType.INT),
-            new CfConstClass(options.itemFactory.throwableType),
+            new CfConstClass(factory.throwableType),
             new CfArrayStore(MemberType.OBJECT),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.classType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/lang/reflect/Method;"),
-                        options.itemFactory.stringType,
-                        options.itemFactory.createType("[Ljava/lang/Class;")),
-                    options.itemFactory.createString("getDeclaredMethod")),
+                factory.createMethod(
+                    factory.classType,
+                    factory.createProto(
+                        factory.createType("Ljava/lang/reflect/Method;"),
+                        factory.stringType,
+                        factory.createType("[Ljava/lang/Class;")),
+                    factory.createString("getDeclaredMethod")),
                 false),
             new CfStore(ValueType.OBJECT, 3),
             label15,
             new CfLoad(ValueType.OBJECT, 3),
             new CfLoad(ValueType.OBJECT, 0),
             new CfConstNumber(1, ValueType.INT),
-            new CfNewArray(options.itemFactory.createType("[Ljava/lang/Object;")),
+            new CfNewArray(factory.createType("[Ljava/lang/Object;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfConstNumber(0, ValueType.INT),
             new CfLoad(ValueType.OBJECT, 2),
             new CfArrayStore(MemberType.OBJECT),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/reflect/Method;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType,
-                        options.itemFactory.objectType,
-                        options.itemFactory.createType("[Ljava/lang/Object;")),
-                    options.itemFactory.createString("invoke")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/reflect/Method;"),
+                    factory.createProto(
+                        factory.objectType,
+                        factory.objectType,
+                        factory.createType("[Ljava/lang/Object;")),
+                    factory.createString("invoke")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
             label16,
@@ -1019,23 +988,23 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.throwableType)
+                      FrameType.initializedNonNullReference(factory.throwableType),
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.throwableType)
                     }),
                 new ArrayDeque<>(
                     Arrays.asList(
                         FrameType.initializedNonNullReference(
-                            options.itemFactory.createType("Ljava/lang/Exception;"))))),
+                            factory.createType("Ljava/lang/Exception;"))))),
             new CfStore(ValueType.OBJECT, 3),
             label18,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.throwableType)
+                      FrameType.initializedNonNullReference(factory.throwableType),
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.throwableType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfThrow(),
@@ -1044,9 +1013,9 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.throwableType)
+                      FrameType.initializedNonNullReference(factory.throwableType),
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.throwableType)
                     })),
             new CfLoad(ValueType.OBJECT, 2),
             new CfThrow(),
@@ -1055,8 +1024,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.throwableType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfReturnVoid(),
             label21),
@@ -1064,53 +1033,48 @@ public final class BackportedMethods {
             new CfTryCatch(
                 label2,
                 label4,
-                ImmutableList.of(
-                    options.itemFactory.createType("Ljava/lang/NoSuchMethodException;")),
+                ImmutableList.of(factory.createType("Ljava/lang/NoSuchMethodException;")),
                 ImmutableList.of(label5)),
             new CfTryCatch(
                 label2,
                 label4,
-                ImmutableList.of(options.itemFactory.createType("Ljava/lang/SecurityException;")),
+                ImmutableList.of(factory.createType("Ljava/lang/SecurityException;")),
                 ImmutableList.of(label5)),
             new CfTryCatch(
                 label2,
                 label4,
-                ImmutableList.of(
-                    options.itemFactory.createType("Ljava/lang/IllegalAccessException;")),
+                ImmutableList.of(factory.createType("Ljava/lang/IllegalAccessException;")),
+                ImmutableList.of(label7)),
+            new CfTryCatch(
+                label2,
+                label4,
+                ImmutableList.of(factory.createType("Ljava/lang/IllegalArgumentException;")),
+                ImmutableList.of(label7)),
+            new CfTryCatch(
+                label2,
+                label4,
+                ImmutableList.of(factory.createType("Ljava/lang/ExceptionInInitializerError;")),
                 ImmutableList.of(label7)),
             new CfTryCatch(
                 label2,
                 label4,
                 ImmutableList.of(
-                    options.itemFactory.createType("Ljava/lang/IllegalArgumentException;")),
-                ImmutableList.of(label7)),
-            new CfTryCatch(
-                label2,
-                label4,
-                ImmutableList.of(
-                    options.itemFactory.createType("Ljava/lang/ExceptionInInitializerError;")),
-                ImmutableList.of(label7)),
-            new CfTryCatch(
-                label2,
-                label4,
-                ImmutableList.of(
-                    options.itemFactory.createType(
-                        "Ljava/lang/reflect/InvocationTargetException;")),
+                    factory.createType("Ljava/lang/reflect/InvocationTargetException;")),
                 ImmutableList.of(label9)),
             new CfTryCatch(
                 label0,
                 label11,
-                ImmutableList.of(options.itemFactory.throwableType),
+                ImmutableList.of(factory.throwableType),
                 ImmutableList.of(label12)),
             new CfTryCatch(
                 label14,
                 label16,
-                ImmutableList.of(options.itemFactory.createType("Ljava/lang/Exception;")),
+                ImmutableList.of(factory.createType("Ljava/lang/Exception;")),
                 ImmutableList.of(label17))),
         ImmutableList.of());
   }
 
-  public static CfCode CollectionMethods_listOfArray(InternalOptions options, DexMethod method) {
+  public static CfCode CollectionMethods_listOfArray(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -1124,17 +1088,16 @@ public final class BackportedMethods {
         6,
         ImmutableList.of(
             label0,
-            new CfNew(options.itemFactory.createType("Ljava/util/ArrayList;")),
+            new CfNew(factory.createType("Ljava/util/ArrayList;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfLoad(ValueType.OBJECT, 0),
             new CfArrayLength(),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/ArrayList;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.intType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/ArrayList;"),
+                    factory.createProto(factory.voidType, factory.intType),
+                    factory.createString("<init>")),
                 false),
             new CfStore(ValueType.OBJECT, 1),
             label1,
@@ -1151,11 +1114,11 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/lang/Object;")),
+                          factory.createType("[Ljava/lang/Object;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/ArrayList;")),
+                          factory.createType("Ljava/util/ArrayList;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/lang/Object;")),
+                          factory.createType("[Ljava/lang/Object;")),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -1171,19 +1134,17 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 5),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Objects;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType, options.itemFactory.objectType),
-                    options.itemFactory.createString("requireNonNull")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Objects;"),
+                    factory.createProto(factory.objectType, factory.objectType),
+                    factory.createString("requireNonNull")),
                 false),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/ArrayList;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType, options.itemFactory.objectType),
-                    options.itemFactory.createString("add")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/ArrayList;"),
+                    factory.createProto(factory.booleanType, factory.objectType),
+                    factory.createString("add")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
             label4,
@@ -1195,19 +1156,19 @@ public final class BackportedMethods {
                     new int[] {0, 1},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/lang/Object;")),
+                          factory.createType("[Ljava/lang/Object;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/ArrayList;"))
+                          factory.createType("Ljava/util/ArrayList;"))
                     })),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Collections;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/List;"),
-                        options.itemFactory.createType("Ljava/util/List;")),
-                    options.itemFactory.createString("unmodifiableList")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Collections;"),
+                    factory.createProto(
+                        factory.createType("Ljava/util/List;"),
+                        factory.createType("Ljava/util/List;")),
+                    factory.createString("unmodifiableList")),
                 false),
             new CfReturn(ValueType.OBJECT),
             label6),
@@ -1215,7 +1176,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode CollectionMethods_mapEntry(InternalOptions options, DexMethod method) {
+  public static CfCode CollectionMethods_mapEntry(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -1227,38 +1188,32 @@ public final class BackportedMethods {
         2,
         ImmutableList.of(
             label0,
-            new CfNew(
-                options.itemFactory.createType("Ljava/util/AbstractMap$SimpleImmutableEntry;")),
+            new CfNew(factory.createType("Ljava/util/AbstractMap$SimpleImmutableEntry;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfLoad(ValueType.OBJECT, 0),
             label1,
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Objects;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType, options.itemFactory.objectType),
-                    options.itemFactory.createString("requireNonNull")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Objects;"),
+                    factory.createProto(factory.objectType, factory.objectType),
+                    factory.createString("requireNonNull")),
                 false),
             new CfLoad(ValueType.OBJECT, 1),
             label2,
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Objects;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType, options.itemFactory.objectType),
-                    options.itemFactory.createString("requireNonNull")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Objects;"),
+                    factory.createProto(factory.objectType, factory.objectType),
+                    factory.createString("requireNonNull")),
                 false),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/AbstractMap$SimpleImmutableEntry;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType,
-                        options.itemFactory.objectType,
-                        options.itemFactory.objectType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/AbstractMap$SimpleImmutableEntry;"),
+                    factory.createProto(factory.voidType, factory.objectType, factory.objectType),
+                    factory.createString("<init>")),
                 false),
             label3,
             new CfReturn(ValueType.OBJECT),
@@ -1267,7 +1222,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode CollectionMethods_mapOfEntries(InternalOptions options, DexMethod method) {
+  public static CfCode CollectionMethods_mapOfEntries(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -1284,17 +1239,16 @@ public final class BackportedMethods {
         8,
         ImmutableList.of(
             label0,
-            new CfNew(options.itemFactory.createType("Ljava/util/HashMap;")),
+            new CfNew(factory.createType("Ljava/util/HashMap;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfLoad(ValueType.OBJECT, 0),
             new CfArrayLength(),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/HashMap;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.intType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/HashMap;"),
+                    factory.createProto(factory.voidType, factory.intType),
+                    factory.createString("<init>")),
                 false),
             new CfStore(ValueType.OBJECT, 1),
             label1,
@@ -1311,11 +1265,11 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/util/Map$Entry;")),
+                          factory.createType("[Ljava/util/Map$Entry;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/HashMap;")),
+                          factory.createType("Ljava/util/HashMap;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/util/Map$Entry;")),
+                          factory.createType("[Ljava/util/Map$Entry;")),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -1330,36 +1284,34 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 5),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Map$Entry;"),
-                    options.itemFactory.createProto(options.itemFactory.objectType),
-                    options.itemFactory.createString("getKey")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Map$Entry;"),
+                    factory.createProto(factory.objectType),
+                    factory.createString("getKey")),
                 true),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Objects;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType, options.itemFactory.objectType),
-                    options.itemFactory.createString("requireNonNull")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Objects;"),
+                    factory.createProto(factory.objectType, factory.objectType),
+                    factory.createString("requireNonNull")),
                 false),
             new CfStore(ValueType.OBJECT, 6),
             label4,
             new CfLoad(ValueType.OBJECT, 5),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Map$Entry;"),
-                    options.itemFactory.createProto(options.itemFactory.objectType),
-                    options.itemFactory.createString("getValue")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Map$Entry;"),
+                    factory.createProto(factory.objectType),
+                    factory.createString("getValue")),
                 true),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Objects;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType, options.itemFactory.objectType),
-                    options.itemFactory.createString("requireNonNull")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Objects;"),
+                    factory.createProto(factory.objectType, factory.objectType),
+                    factory.createString("requireNonNull")),
                 false),
             new CfStore(ValueType.OBJECT, 7),
             label5,
@@ -1368,59 +1320,53 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 7),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/HashMap;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType,
-                        options.itemFactory.objectType,
-                        options.itemFactory.objectType),
-                    options.itemFactory.createString("put")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/HashMap;"),
+                    factory.createProto(factory.objectType, factory.objectType, factory.objectType),
+                    factory.createString("put")),
                 false),
             new CfIf(If.Type.EQ, ValueType.OBJECT, label7),
             label6,
-            new CfNew(options.itemFactory.createType("Ljava/lang/IllegalArgumentException;")),
+            new CfNew(factory.createType("Ljava/lang/IllegalArgumentException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfNew(options.itemFactory.stringBuilderType),
+            new CfNew(factory.stringBuilderType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
-            new CfConstString(options.itemFactory.createString("duplicate key: ")),
+            new CfConstString(factory.createString("duplicate key: ")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfLoad(ValueType.OBJECT, 6),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.objectType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.objectType),
+                    factory.createString("append")),
                 false),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 false),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/IllegalArgumentException;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.stringType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/IllegalArgumentException;"),
+                    factory.createProto(factory.voidType, factory.stringType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label7,
@@ -1429,11 +1375,11 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/util/Map$Entry;")),
+                          factory.createType("[Ljava/util/Map$Entry;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/HashMap;")),
+                          factory.createType("Ljava/util/HashMap;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/util/Map$Entry;")),
+                          factory.createType("[Ljava/util/Map$Entry;")),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -1445,19 +1391,19 @@ public final class BackportedMethods {
                     new int[] {0, 1},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/util/Map$Entry;")),
+                          factory.createType("[Ljava/util/Map$Entry;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/HashMap;"))
+                          factory.createType("Ljava/util/HashMap;"))
                     })),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Collections;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/Map;"),
-                        options.itemFactory.createType("Ljava/util/Map;")),
-                    options.itemFactory.createString("unmodifiableMap")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Collections;"),
+                    factory.createProto(
+                        factory.createType("Ljava/util/Map;"),
+                        factory.createType("Ljava/util/Map;")),
+                    factory.createString("unmodifiableMap")),
                 false),
             new CfReturn(ValueType.OBJECT),
             label9),
@@ -1465,7 +1411,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode CollectionMethods_setOfArray(InternalOptions options, DexMethod method) {
+  public static CfCode CollectionMethods_setOfArray(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -1480,17 +1426,16 @@ public final class BackportedMethods {
         6,
         ImmutableList.of(
             label0,
-            new CfNew(options.itemFactory.createType("Ljava/util/HashSet;")),
+            new CfNew(factory.createType("Ljava/util/HashSet;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfLoad(ValueType.OBJECT, 0),
             new CfArrayLength(),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/HashSet;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.intType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/HashSet;"),
+                    factory.createProto(factory.voidType, factory.intType),
+                    factory.createString("<init>")),
                 false),
             new CfStore(ValueType.OBJECT, 1),
             label1,
@@ -1507,11 +1452,11 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/lang/Object;")),
+                          factory.createType("[Ljava/lang/Object;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/HashSet;")),
+                          factory.createType("Ljava/util/HashSet;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/lang/Object;")),
+                          factory.createType("[Ljava/lang/Object;")),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -1527,65 +1472,60 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 5),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Objects;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType, options.itemFactory.objectType),
-                    options.itemFactory.createString("requireNonNull")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Objects;"),
+                    factory.createProto(factory.objectType, factory.objectType),
+                    factory.createString("requireNonNull")),
                 false),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/HashSet;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType, options.itemFactory.objectType),
-                    options.itemFactory.createString("add")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/HashSet;"),
+                    factory.createProto(factory.booleanType, factory.objectType),
+                    factory.createString("add")),
                 false),
             new CfIf(If.Type.NE, ValueType.INT, label5),
             label4,
-            new CfNew(options.itemFactory.createType("Ljava/lang/IllegalArgumentException;")),
+            new CfNew(factory.createType("Ljava/lang/IllegalArgumentException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfNew(options.itemFactory.stringBuilderType),
+            new CfNew(factory.stringBuilderType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
-            new CfConstString(options.itemFactory.createString("duplicate element: ")),
+            new CfConstString(factory.createString("duplicate element: ")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfLoad(ValueType.OBJECT, 5),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.objectType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.objectType),
+                    factory.createString("append")),
                 false),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 false),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/IllegalArgumentException;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.stringType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/IllegalArgumentException;"),
+                    factory.createProto(factory.voidType, factory.stringType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label5,
@@ -1594,11 +1534,11 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/lang/Object;")),
+                          factory.createType("[Ljava/lang/Object;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/HashSet;")),
+                          factory.createType("Ljava/util/HashSet;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/lang/Object;")),
+                          factory.createType("[Ljava/lang/Object;")),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -1610,19 +1550,19 @@ public final class BackportedMethods {
                     new int[] {0, 1},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/lang/Object;")),
+                          factory.createType("[Ljava/lang/Object;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/HashSet;"))
+                          factory.createType("Ljava/util/HashSet;"))
                     })),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Collections;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/Set;"),
-                        options.itemFactory.createType("Ljava/util/Set;")),
-                    options.itemFactory.createString("unmodifiableSet")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Collections;"),
+                    factory.createProto(
+                        factory.createType("Ljava/util/Set;"),
+                        factory.createType("Ljava/util/Set;")),
+                    factory.createString("unmodifiableSet")),
                 false),
             new CfReturn(ValueType.OBJECT),
             label7),
@@ -1630,7 +1570,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode CollectionsMethods_copyOfList(InternalOptions options, DexMethod method) {
+  public static CfCode CollectionsMethods_copyOfList(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -1644,34 +1584,32 @@ public final class BackportedMethods {
         4,
         ImmutableList.of(
             label0,
-            new CfNew(options.itemFactory.createType("Ljava/util/ArrayList;")),
+            new CfNew(factory.createType("Ljava/util/ArrayList;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Collection;"),
-                    options.itemFactory.createProto(options.itemFactory.intType),
-                    options.itemFactory.createString("size")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Collection;"),
+                    factory.createProto(factory.intType),
+                    factory.createString("size")),
                 true),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/ArrayList;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.intType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/ArrayList;"),
+                    factory.createProto(factory.voidType, factory.intType),
+                    factory.createString("<init>")),
                 false),
             new CfStore(ValueType.OBJECT, 1),
             label1,
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Collection;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/Iterator;")),
-                    options.itemFactory.createString("iterator")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Collection;"),
+                    factory.createProto(factory.createType("Ljava/util/Iterator;")),
+                    factory.createString("iterator")),
                 true),
             new CfStore(ValueType.OBJECT, 2),
             label2,
@@ -1680,28 +1618,28 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/Collection;")),
+                          factory.createType("Ljava/util/Collection;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/ArrayList;")),
+                          factory.createType("Ljava/util/ArrayList;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/Iterator;"))
+                          factory.createType("Ljava/util/Iterator;"))
                     })),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Iterator;"),
-                    options.itemFactory.createProto(options.itemFactory.booleanType),
-                    options.itemFactory.createString("hasNext")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Iterator;"),
+                    factory.createProto(factory.booleanType),
+                    factory.createString("hasNext")),
                 true),
             new CfIf(If.Type.EQ, ValueType.INT, label5),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Iterator;"),
-                    options.itemFactory.createProto(options.itemFactory.objectType),
-                    options.itemFactory.createString("next")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Iterator;"),
+                    factory.createProto(factory.objectType),
+                    factory.createString("next")),
                 true),
             new CfStore(ValueType.OBJECT, 3),
             label3,
@@ -1709,19 +1647,17 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 3),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Objects;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType, options.itemFactory.objectType),
-                    options.itemFactory.createString("requireNonNull")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Objects;"),
+                    factory.createProto(factory.objectType, factory.objectType),
+                    factory.createString("requireNonNull")),
                 false),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/ArrayList;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType, options.itemFactory.objectType),
-                    options.itemFactory.createString("add")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/ArrayList;"),
+                    factory.createProto(factory.booleanType, factory.objectType),
+                    factory.createString("add")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
             label4,
@@ -1732,19 +1668,19 @@ public final class BackportedMethods {
                     new int[] {0, 1},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/Collection;")),
+                          factory.createType("Ljava/util/Collection;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/ArrayList;"))
+                          factory.createType("Ljava/util/ArrayList;"))
                     })),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Collections;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/List;"),
-                        options.itemFactory.createType("Ljava/util/List;")),
-                    options.itemFactory.createString("unmodifiableList")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Collections;"),
+                    factory.createProto(
+                        factory.createType("Ljava/util/List;"),
+                        factory.createType("Ljava/util/List;")),
+                    factory.createString("unmodifiableList")),
                 false),
             new CfReturn(ValueType.OBJECT),
             label6),
@@ -1752,7 +1688,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode CollectionsMethods_copyOfMap(InternalOptions options, DexMethod method) {
+  public static CfCode CollectionsMethods_copyOfMap(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -1769,42 +1705,39 @@ public final class BackportedMethods {
         4,
         ImmutableList.of(
             label0,
-            new CfNew(options.itemFactory.createType("Ljava/util/HashMap;")),
+            new CfNew(factory.createType("Ljava/util/HashMap;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Map;"),
-                    options.itemFactory.createProto(options.itemFactory.intType),
-                    options.itemFactory.createString("size")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Map;"),
+                    factory.createProto(factory.intType),
+                    factory.createString("size")),
                 true),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/HashMap;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.intType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/HashMap;"),
+                    factory.createProto(factory.voidType, factory.intType),
+                    factory.createString("<init>")),
                 false),
             new CfStore(ValueType.OBJECT, 1),
             label1,
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Map;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/Set;")),
-                    options.itemFactory.createString("entrySet")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Map;"),
+                    factory.createProto(factory.createType("Ljava/util/Set;")),
+                    factory.createString("entrySet")),
                 true),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Set;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/Iterator;")),
-                    options.itemFactory.createString("iterator")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Set;"),
+                    factory.createProto(factory.createType("Ljava/util/Iterator;")),
+                    factory.createString("iterator")),
                 true),
             new CfStore(ValueType.OBJECT, 2),
             label2,
@@ -1812,31 +1745,30 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
+                      FrameType.initializedNonNullReference(factory.createType("Ljava/util/Map;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/Map;")),
+                          factory.createType("Ljava/util/HashMap;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/HashMap;")),
-                      FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/Iterator;"))
+                          factory.createType("Ljava/util/Iterator;"))
                     })),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Iterator;"),
-                    options.itemFactory.createProto(options.itemFactory.booleanType),
-                    options.itemFactory.createString("hasNext")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Iterator;"),
+                    factory.createProto(factory.booleanType),
+                    factory.createString("hasNext")),
                 true),
             new CfIf(If.Type.EQ, ValueType.INT, label8),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Iterator;"),
-                    options.itemFactory.createProto(options.itemFactory.objectType),
-                    options.itemFactory.createString("next")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Iterator;"),
+                    factory.createProto(factory.objectType),
+                    factory.createString("next")),
                 true),
-            new CfCheckCast(options.itemFactory.createType("Ljava/util/Map$Entry;")),
+            new CfCheckCast(factory.createType("Ljava/util/Map$Entry;")),
             new CfStore(ValueType.OBJECT, 3),
             label3,
             new CfLoad(ValueType.OBJECT, 1),
@@ -1844,46 +1776,41 @@ public final class BackportedMethods {
             label4,
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Map$Entry;"),
-                    options.itemFactory.createProto(options.itemFactory.objectType),
-                    options.itemFactory.createString("getKey")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Map$Entry;"),
+                    factory.createProto(factory.objectType),
+                    factory.createString("getKey")),
                 true),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Objects;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType, options.itemFactory.objectType),
-                    options.itemFactory.createString("requireNonNull")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Objects;"),
+                    factory.createProto(factory.objectType, factory.objectType),
+                    factory.createString("requireNonNull")),
                 false),
             new CfLoad(ValueType.OBJECT, 3),
             label5,
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Map$Entry;"),
-                    options.itemFactory.createProto(options.itemFactory.objectType),
-                    options.itemFactory.createString("getValue")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Map$Entry;"),
+                    factory.createProto(factory.objectType),
+                    factory.createString("getValue")),
                 true),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Objects;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType, options.itemFactory.objectType),
-                    options.itemFactory.createString("requireNonNull")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Objects;"),
+                    factory.createProto(factory.objectType, factory.objectType),
+                    factory.createString("requireNonNull")),
                 false),
             label6,
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/HashMap;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType,
-                        options.itemFactory.objectType,
-                        options.itemFactory.objectType),
-                    options.itemFactory.createString("put")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/HashMap;"),
+                    factory.createProto(factory.objectType, factory.objectType, factory.objectType),
+                    factory.createString("put")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
             label7,
@@ -1893,20 +1820,19 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
+                      FrameType.initializedNonNullReference(factory.createType("Ljava/util/Map;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/Map;")),
-                      FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/HashMap;"))
+                          factory.createType("Ljava/util/HashMap;"))
                     })),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Collections;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/Map;"),
-                        options.itemFactory.createType("Ljava/util/Map;")),
-                    options.itemFactory.createString("unmodifiableMap")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Collections;"),
+                    factory.createProto(
+                        factory.createType("Ljava/util/Map;"),
+                        factory.createType("Ljava/util/Map;")),
+                    factory.createString("unmodifiableMap")),
                 false),
             new CfReturn(ValueType.OBJECT),
             label9),
@@ -1914,7 +1840,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode CollectionsMethods_copyOfSet(InternalOptions options, DexMethod method) {
+  public static CfCode CollectionsMethods_copyOfSet(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -1928,34 +1854,32 @@ public final class BackportedMethods {
         4,
         ImmutableList.of(
             label0,
-            new CfNew(options.itemFactory.createType("Ljava/util/HashSet;")),
+            new CfNew(factory.createType("Ljava/util/HashSet;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Collection;"),
-                    options.itemFactory.createProto(options.itemFactory.intType),
-                    options.itemFactory.createString("size")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Collection;"),
+                    factory.createProto(factory.intType),
+                    factory.createString("size")),
                 true),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/HashSet;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.intType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/HashSet;"),
+                    factory.createProto(factory.voidType, factory.intType),
+                    factory.createString("<init>")),
                 false),
             new CfStore(ValueType.OBJECT, 1),
             label1,
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Collection;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/Iterator;")),
-                    options.itemFactory.createString("iterator")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Collection;"),
+                    factory.createProto(factory.createType("Ljava/util/Iterator;")),
+                    factory.createString("iterator")),
                 true),
             new CfStore(ValueType.OBJECT, 2),
             label2,
@@ -1964,28 +1888,28 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/Collection;")),
+                          factory.createType("Ljava/util/Collection;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/HashSet;")),
+                          factory.createType("Ljava/util/HashSet;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/Iterator;"))
+                          factory.createType("Ljava/util/Iterator;"))
                     })),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Iterator;"),
-                    options.itemFactory.createProto(options.itemFactory.booleanType),
-                    options.itemFactory.createString("hasNext")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Iterator;"),
+                    factory.createProto(factory.booleanType),
+                    factory.createString("hasNext")),
                 true),
             new CfIf(If.Type.EQ, ValueType.INT, label5),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Iterator;"),
-                    options.itemFactory.createProto(options.itemFactory.objectType),
-                    options.itemFactory.createString("next")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Iterator;"),
+                    factory.createProto(factory.objectType),
+                    factory.createString("next")),
                 true),
             new CfStore(ValueType.OBJECT, 3),
             label3,
@@ -1993,19 +1917,17 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 3),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Objects;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType, options.itemFactory.objectType),
-                    options.itemFactory.createString("requireNonNull")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Objects;"),
+                    factory.createProto(factory.objectType, factory.objectType),
+                    factory.createString("requireNonNull")),
                 false),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/HashSet;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType, options.itemFactory.objectType),
-                    options.itemFactory.createString("add")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/HashSet;"),
+                    factory.createProto(factory.booleanType, factory.objectType),
+                    factory.createString("add")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
             label4,
@@ -2016,19 +1938,19 @@ public final class BackportedMethods {
                     new int[] {0, 1},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/Collection;")),
+                          factory.createType("Ljava/util/Collection;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/HashSet;"))
+                          factory.createType("Ljava/util/HashSet;"))
                     })),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Collections;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/Set;"),
-                        options.itemFactory.createType("Ljava/util/Set;")),
-                    options.itemFactory.createString("unmodifiableSet")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Collections;"),
+                    factory.createProto(
+                        factory.createType("Ljava/util/Set;"),
+                        factory.createType("Ljava/util/Set;")),
+                    factory.createString("unmodifiableSet")),
                 false),
             new CfReturn(ValueType.OBJECT),
             label6),
@@ -2037,7 +1959,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode CollectionsMethods_emptyEnumeration(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     return new CfCode(
         method.holder,
@@ -2047,27 +1969,26 @@ public final class BackportedMethods {
             label0,
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Collections;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/List;")),
-                    options.itemFactory.createString("emptyList")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Collections;"),
+                    factory.createProto(factory.createType("Ljava/util/List;")),
+                    factory.createString("emptyList")),
                 false),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Collections;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/Enumeration;"),
-                        options.itemFactory.createType("Ljava/util/Collection;")),
-                    options.itemFactory.createString("enumeration")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Collections;"),
+                    factory.createProto(
+                        factory.createType("Ljava/util/Enumeration;"),
+                        factory.createType("Ljava/util/Collection;")),
+                    factory.createString("enumeration")),
                 false),
             new CfReturn(ValueType.OBJECT)),
         ImmutableList.of(),
         ImmutableList.of());
   }
 
-  public static CfCode CollectionsMethods_emptyIterator(InternalOptions options, DexMethod method) {
+  public static CfCode CollectionsMethods_emptyIterator(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     return new CfCode(
         method.holder,
@@ -2077,19 +1998,17 @@ public final class BackportedMethods {
             label0,
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Collections;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/List;")),
-                    options.itemFactory.createString("emptyList")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Collections;"),
+                    factory.createProto(factory.createType("Ljava/util/List;")),
+                    factory.createString("emptyList")),
                 false),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/List;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/Iterator;")),
-                    options.itemFactory.createString("iterator")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/List;"),
+                    factory.createProto(factory.createType("Ljava/util/Iterator;")),
+                    factory.createString("iterator")),
                 true),
             new CfReturn(ValueType.OBJECT)),
         ImmutableList.of(),
@@ -2097,7 +2016,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode CollectionsMethods_emptyListIterator(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     return new CfCode(
         method.holder,
@@ -2107,26 +2026,24 @@ public final class BackportedMethods {
             label0,
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Collections;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/List;")),
-                    options.itemFactory.createString("emptyList")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Collections;"),
+                    factory.createProto(factory.createType("Ljava/util/List;")),
+                    factory.createString("emptyList")),
                 false),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/List;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/ListIterator;")),
-                    options.itemFactory.createString("listIterator")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/List;"),
+                    factory.createProto(factory.createType("Ljava/util/ListIterator;")),
+                    factory.createString("listIterator")),
                 true),
             new CfReturn(ValueType.OBJECT)),
         ImmutableList.of(),
         ImmutableList.of());
   }
 
-  public static CfCode DoubleMethods_hashCode(InternalOptions options, DexMethod method) {
+  public static CfCode DoubleMethods_hashCode(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -2139,11 +2056,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.DOUBLE, 0),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Double;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.longType, options.itemFactory.doubleType),
-                    options.itemFactory.createString("doubleToLongBits")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Double;"),
+                    factory.createProto(factory.longType, factory.doubleType),
+                    factory.createString("doubleToLongBits")),
                 false),
             new CfStore(ValueType.LONG, 2),
             label1,
@@ -2159,7 +2075,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode DoubleMethods_isFinite(InternalOptions options, DexMethod method) {
+  public static CfCode DoubleMethods_isFinite(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -2173,21 +2089,19 @@ public final class BackportedMethods {
             new CfLoad(ValueType.DOUBLE, 0),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Double;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType, options.itemFactory.doubleType),
-                    options.itemFactory.createString("isInfinite")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Double;"),
+                    factory.createProto(factory.booleanType, factory.doubleType),
+                    factory.createString("isInfinite")),
                 false),
             new CfIf(If.Type.NE, ValueType.INT, label1),
             new CfLoad(ValueType.DOUBLE, 0),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Double;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType, options.itemFactory.doubleType),
-                    options.itemFactory.createString("isNaN")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Double;"),
+                    factory.createProto(factory.booleanType, factory.doubleType),
+                    factory.createString("isNaN")),
                 false),
             new CfIf(If.Type.NE, ValueType.INT, label1),
             new CfConstNumber(1, ValueType.INT),
@@ -2210,7 +2124,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode FloatMethods_isFinite(InternalOptions options, DexMethod method) {
+  public static CfCode FloatMethods_isFinite(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -2224,21 +2138,19 @@ public final class BackportedMethods {
             new CfLoad(ValueType.FLOAT, 0),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Float;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType, options.itemFactory.floatType),
-                    options.itemFactory.createString("isInfinite")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Float;"),
+                    factory.createProto(factory.booleanType, factory.floatType),
+                    factory.createString("isInfinite")),
                 false),
             new CfIf(If.Type.NE, ValueType.INT, label1),
             new CfLoad(ValueType.FLOAT, 0),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Float;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType, options.itemFactory.floatType),
-                    options.itemFactory.createString("isNaN")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Float;"),
+                    factory.createProto(factory.booleanType, factory.floatType),
+                    factory.createString("isNaN")),
                 false),
             new CfIf(If.Type.NE, ValueType.INT, label1),
             new CfConstNumber(1, ValueType.INT),
@@ -2257,7 +2169,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode IntegerMethods_compare(InternalOptions options, DexMethod method) {
+  public static CfCode IntegerMethods_compare(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -2299,7 +2211,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode IntegerMethods_compareUnsigned(InternalOptions options, DexMethod method) {
+  public static CfCode IntegerMethods_compareUnsigned(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -2324,13 +2236,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Integer;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType,
-                        options.itemFactory.intType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("compare")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Integer;"),
+                    factory.createProto(factory.intType, factory.intType, factory.intType),
+                    factory.createString("compare")),
                 false),
             new CfReturn(ValueType.INT),
             label3),
@@ -2338,7 +2247,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode IntegerMethods_divideUnsigned(InternalOptions options, DexMethod method) {
+  public static CfCode IntegerMethods_divideUnsigned(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -2372,7 +2281,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode IntegerMethods_parseIntSubsequenceWithRadix(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -2386,31 +2295,25 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 2),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.charSequenceType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.charSequenceType,
-                        options.itemFactory.intType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("subSequence")),
+                factory.createMethod(
+                    factory.charSequenceType,
+                    factory.createProto(factory.charSequenceType, factory.intType, factory.intType),
+                    factory.createString("subSequence")),
                 true),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.charSequenceType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.charSequenceType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 true),
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Integer;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType,
-                        options.itemFactory.stringType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("parseInt")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Integer;"),
+                    factory.createProto(factory.intType, factory.stringType, factory.intType),
+                    factory.createString("parseInt")),
                 false),
             new CfReturn(ValueType.INT),
             label1),
@@ -2419,7 +2322,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode IntegerMethods_parseIntSubsequenceWithRadixDalvik(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -2442,11 +2345,10 @@ public final class BackportedMethods {
             label1,
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.charSequenceType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.charType, options.itemFactory.intType),
-                    options.itemFactory.createString("charAt")),
+                factory.createMethod(
+                    factory.charSequenceType,
+                    factory.createProto(factory.charType, factory.intType),
+                    factory.createString("charAt")),
                 true),
             new CfConstNumber(43, ValueType.INT),
             new CfIfCmp(If.Type.NE, ValueType.INT, label4),
@@ -2457,22 +2359,18 @@ public final class BackportedMethods {
             label2,
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.charSequenceType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.charType, options.itemFactory.intType),
-                    options.itemFactory.createString("charAt")),
+                factory.createMethod(
+                    factory.charSequenceType,
+                    factory.createProto(factory.charType, factory.intType),
+                    factory.createString("charAt")),
                 true),
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.boxedCharType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType,
-                        options.itemFactory.charType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("digit")),
+                factory.createMethod(
+                    factory.boxedCharType,
+                    factory.createProto(factory.intType, factory.charType, factory.intType),
+                    factory.createString("digit")),
                 false),
             new CfIf(If.Type.LT, ValueType.INT, label4),
             label3,
@@ -2482,7 +2380,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType()
@@ -2492,31 +2390,25 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 2),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.charSequenceType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.charSequenceType,
-                        options.itemFactory.intType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("subSequence")),
+                factory.createMethod(
+                    factory.charSequenceType,
+                    factory.createProto(factory.charSequenceType, factory.intType, factory.intType),
+                    factory.createString("subSequence")),
                 true),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.charSequenceType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.charSequenceType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 true),
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Integer;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType,
-                        options.itemFactory.stringType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("parseInt")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Integer;"),
+                    factory.createProto(factory.intType, factory.stringType, factory.intType),
+                    factory.createString("parseInt")),
                 false),
             new CfReturn(ValueType.INT),
             label5),
@@ -2524,7 +2416,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode IntegerMethods_parseUnsignedInt(InternalOptions options, DexMethod method) {
+  public static CfCode IntegerMethods_parseUnsignedInt(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -2537,13 +2429,10 @@ public final class BackportedMethods {
             new CfConstNumber(10, ValueType.INT),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Integer;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType,
-                        options.itemFactory.stringType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("parseUnsignedInt")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Integer;"),
+                    factory.createProto(factory.intType, factory.stringType, factory.intType),
+                    factory.createString("parseUnsignedInt")),
                 false),
             new CfReturn(ValueType.INT),
             label1),
@@ -2552,7 +2441,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode IntegerMethods_parseUnsignedIntSubsequenceWithRadix(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -2566,31 +2455,25 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 2),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.charSequenceType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.charSequenceType,
-                        options.itemFactory.intType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("subSequence")),
+                factory.createMethod(
+                    factory.charSequenceType,
+                    factory.createProto(factory.charSequenceType, factory.intType, factory.intType),
+                    factory.createString("subSequence")),
                 true),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.charSequenceType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.charSequenceType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 true),
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Integer;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType,
-                        options.itemFactory.stringType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("parseUnsignedInt")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Integer;"),
+                    factory.createProto(factory.intType, factory.stringType, factory.intType),
+                    factory.createString("parseUnsignedInt")),
                 false),
             new CfReturn(ValueType.INT),
             label1),
@@ -2599,7 +2482,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode IntegerMethods_parseUnsignedIntWithRadix(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -2616,10 +2499,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(options.itemFactory.intType),
-                    options.itemFactory.createString("length")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(factory.intType),
+                    factory.createString("length")),
                 false),
             new CfConstNumber(1, ValueType.INT),
             new CfIfCmp(If.Type.LE, ValueType.INT, label2),
@@ -2627,11 +2510,10 @@ public final class BackportedMethods {
             new CfConstNumber(0, ValueType.INT),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.charType, options.itemFactory.intType),
-                    options.itemFactory.createString("charAt")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(factory.charType, factory.intType),
+                    factory.createString("charAt")),
                 false),
             new CfConstNumber(43, ValueType.INT),
             new CfIfCmp(If.Type.NE, ValueType.INT, label2),
@@ -2640,11 +2522,10 @@ public final class BackportedMethods {
             new CfConstNumber(1, ValueType.INT),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringType, options.itemFactory.intType),
-                    options.itemFactory.createString("substring")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(factory.stringType, factory.intType),
+                    factory.createString("substring")),
                 false),
             new CfStore(ValueType.OBJECT, 0),
             label2,
@@ -2652,20 +2533,16 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
-                      FrameType.intType()
+                      FrameType.initializedNonNullReference(factory.stringType), FrameType.intType()
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.INT, 1),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Long;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.longType,
-                        options.itemFactory.stringType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("parseLong")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Long;"),
+                    factory.createProto(factory.longType, factory.stringType, factory.intType),
+                    factory.createString("parseLong")),
                 false),
             new CfStore(ValueType.LONG, 2),
             label3,
@@ -2676,77 +2553,70 @@ public final class BackportedMethods {
             new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
             new CfIf(If.Type.EQ, ValueType.INT, label5),
             label4,
-            new CfNew(options.itemFactory.createType("Ljava/lang/NumberFormatException;")),
+            new CfNew(factory.createType("Ljava/lang/NumberFormatException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfNew(options.itemFactory.stringBuilderType),
+            new CfNew(factory.stringBuilderType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
-            new CfConstString(options.itemFactory.createString("Input ")),
+            new CfConstString(factory.createString("Input ")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
-            new CfConstString(options.itemFactory.createString(" in base ")),
+            new CfConstString(factory.createString(" in base ")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfLoad(ValueType.INT, 1),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.intType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.intType),
+                    factory.createString("append")),
                 false),
-            new CfConstString(
-                options.itemFactory.createString(" is not in the range of an unsigned integer")),
+            new CfConstString(factory.createString(" is not in the range of an unsigned integer")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 false),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/NumberFormatException;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.stringType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/NumberFormatException;"),
+                    factory.createProto(factory.voidType, factory.stringType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label5,
@@ -2754,7 +2624,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.intType(),
                       FrameType.longType(),
                       FrameType.longHighType()
@@ -2767,7 +2637,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode IntegerMethods_remainderUnsigned(InternalOptions options, DexMethod method) {
+  public static CfCode IntegerMethods_remainderUnsigned(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -2800,7 +2670,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode IntegerMethods_toUnsignedLong(InternalOptions options, DexMethod method) {
+  public static CfCode IntegerMethods_toUnsignedLong(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -2819,7 +2689,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode IntegerMethods_toUnsignedString(InternalOptions options, DexMethod method) {
+  public static CfCode IntegerMethods_toUnsignedString(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -2832,13 +2702,10 @@ public final class BackportedMethods {
             new CfConstNumber(10, ValueType.INT),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Integer;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringType,
-                        options.itemFactory.intType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("toUnsignedString")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Integer;"),
+                    factory.createProto(factory.stringType, factory.intType, factory.intType),
+                    factory.createString("toUnsignedString")),
                 false),
             new CfReturn(ValueType.OBJECT),
             label1),
@@ -2847,7 +2714,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode IntegerMethods_toUnsignedStringWithRadix(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -2867,13 +2734,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 1),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Long;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringType,
-                        options.itemFactory.longType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Long;"),
+                    factory.createProto(factory.stringType, factory.longType, factory.intType),
+                    factory.createString("toString")),
                 false),
             new CfReturn(ValueType.OBJECT),
             label2),
@@ -2881,7 +2745,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode LongMethods_compareUnsigned(InternalOptions options, DexMethod method) {
+  public static CfCode LongMethods_compareUnsigned(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -2906,13 +2770,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.LONG, 6),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Long;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType,
-                        options.itemFactory.longType,
-                        options.itemFactory.longType),
-                    options.itemFactory.createString("compare")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Long;"),
+                    factory.createProto(factory.intType, factory.longType, factory.longType),
+                    factory.createString("compare")),
                 false),
             new CfReturn(ValueType.INT),
             label3),
@@ -2920,7 +2781,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode LongMethods_divideUnsigned(InternalOptions options, DexMethod method) {
+  public static CfCode LongMethods_divideUnsigned(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -3090,7 +2951,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode LongMethods_hashCode(InternalOptions options, DexMethod method) {
+  public static CfCode LongMethods_hashCode(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -3112,7 +2973,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode LongMethods_parseLongSubsequenceWithRadix(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -3126,31 +2987,25 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 2),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.charSequenceType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.charSequenceType,
-                        options.itemFactory.intType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("subSequence")),
+                factory.createMethod(
+                    factory.charSequenceType,
+                    factory.createProto(factory.charSequenceType, factory.intType, factory.intType),
+                    factory.createString("subSequence")),
                 true),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.charSequenceType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.charSequenceType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 true),
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Long;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.longType,
-                        options.itemFactory.stringType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("parseLong")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Long;"),
+                    factory.createProto(factory.longType, factory.stringType, factory.intType),
+                    factory.createString("parseLong")),
                 false),
             new CfReturn(ValueType.LONG),
             label1),
@@ -3159,7 +3014,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode LongMethods_parseLongSubsequenceWithRadixDalvik(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -3182,11 +3037,10 @@ public final class BackportedMethods {
             label1,
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.charSequenceType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.charType, options.itemFactory.intType),
-                    options.itemFactory.createString("charAt")),
+                factory.createMethod(
+                    factory.charSequenceType,
+                    factory.createProto(factory.charType, factory.intType),
+                    factory.createString("charAt")),
                 true),
             new CfConstNumber(43, ValueType.INT),
             new CfIfCmp(If.Type.NE, ValueType.INT, label4),
@@ -3197,22 +3051,18 @@ public final class BackportedMethods {
             label2,
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.charSequenceType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.charType, options.itemFactory.intType),
-                    options.itemFactory.createString("charAt")),
+                factory.createMethod(
+                    factory.charSequenceType,
+                    factory.createProto(factory.charType, factory.intType),
+                    factory.createString("charAt")),
                 true),
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.boxedCharType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType,
-                        options.itemFactory.charType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("digit")),
+                factory.createMethod(
+                    factory.boxedCharType,
+                    factory.createProto(factory.intType, factory.charType, factory.intType),
+                    factory.createString("digit")),
                 false),
             new CfIf(If.Type.LT, ValueType.INT, label4),
             label3,
@@ -3222,7 +3072,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType()
@@ -3232,31 +3082,25 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 2),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.charSequenceType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.charSequenceType,
-                        options.itemFactory.intType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("subSequence")),
+                factory.createMethod(
+                    factory.charSequenceType,
+                    factory.createProto(factory.charSequenceType, factory.intType, factory.intType),
+                    factory.createString("subSequence")),
                 true),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.charSequenceType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.charSequenceType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 true),
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Long;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.longType,
-                        options.itemFactory.stringType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("parseLong")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Long;"),
+                    factory.createProto(factory.longType, factory.stringType, factory.intType),
+                    factory.createString("parseLong")),
                 false),
             new CfReturn(ValueType.LONG),
             label5),
@@ -3264,7 +3108,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode LongMethods_parseUnsignedLong(InternalOptions options, DexMethod method) {
+  public static CfCode LongMethods_parseUnsignedLong(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -3277,13 +3121,10 @@ public final class BackportedMethods {
             new CfConstNumber(10, ValueType.INT),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Long;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.longType,
-                        options.itemFactory.stringType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("parseUnsignedLong")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Long;"),
+                    factory.createProto(factory.longType, factory.stringType, factory.intType),
+                    factory.createString("parseUnsignedLong")),
                 false),
             new CfReturn(ValueType.LONG),
             label1),
@@ -3292,7 +3133,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode LongMethods_parseUnsignedLongSubsequenceWithRadix(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -3329,16 +3170,15 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 4),
             new CfIf(If.Type.NE, ValueType.INT, label3),
             label2,
-            new CfNew(options.itemFactory.createType("Ljava/lang/NumberFormatException;")),
+            new CfNew(factory.createType("Ljava/lang/NumberFormatException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfConstString(options.itemFactory.createString("empty string")),
+            new CfConstString(factory.createString("empty string")),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/NumberFormatException;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.stringType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/NumberFormatException;"),
+                    factory.createProto(factory.voidType, factory.stringType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label3,
@@ -3346,7 +3186,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -3363,39 +3203,36 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
-            new CfNew(options.itemFactory.createType("Ljava/lang/NumberFormatException;")),
+            new CfNew(factory.createType("Ljava/lang/NumberFormatException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfConstString(options.itemFactory.createString("illegal radix: ")),
+            new CfConstString(factory.createString("illegal radix: ")),
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringType, options.itemFactory.intType),
-                    options.itemFactory.createString("valueOf")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(factory.stringType, factory.intType),
+                    factory.createString("valueOf")),
                 false),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringType, options.itemFactory.stringType),
-                    options.itemFactory.createString("concat")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(factory.stringType, factory.stringType),
+                    factory.createString("concat")),
                 false),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/NumberFormatException;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.stringType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/NumberFormatException;"),
+                    factory.createProto(factory.voidType, factory.stringType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label5,
@@ -3403,7 +3240,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -3414,13 +3251,10 @@ public final class BackportedMethods {
             new CfNumberConversion(NumericType.INT, NumericType.LONG),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Long;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.longType,
-                        options.itemFactory.longType,
-                        options.itemFactory.longType),
-                    options.itemFactory.createString("divideUnsigned")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Long;"),
+                    factory.createProto(factory.longType, factory.longType, factory.longType),
+                    factory.createString("divideUnsigned")),
                 false),
             new CfStore(ValueType.LONG, 5),
             label6,
@@ -3428,11 +3262,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 1),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.charSequenceType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.charType, options.itemFactory.intType),
-                    options.itemFactory.createString("charAt")),
+                factory.createMethod(
+                    factory.charSequenceType,
+                    factory.createProto(factory.charType, factory.intType),
+                    factory.createString("charAt")),
                 true),
             new CfConstNumber(43, ValueType.INT),
             new CfIfCmp(If.Type.NE, ValueType.INT, label7),
@@ -3448,7 +3281,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5, 6},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -3462,7 +3295,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5, 6},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -3483,7 +3316,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -3503,22 +3336,18 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 10),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.charSequenceType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.charType, options.itemFactory.intType),
-                    options.itemFactory.createString("charAt")),
+                factory.createMethod(
+                    factory.charSequenceType,
+                    factory.createProto(factory.charType, factory.intType),
+                    factory.createString("charAt")),
                 true),
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.boxedCharType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType,
-                        options.itemFactory.charType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("digit")),
+                factory.createMethod(
+                    factory.boxedCharType,
+                    factory.createProto(factory.intType, factory.charType, factory.intType),
+                    factory.createString("digit")),
                 false),
             new CfStore(ValueType.INT, 11),
             label13,
@@ -3526,23 +3355,22 @@ public final class BackportedMethods {
             new CfConstNumber(-1, ValueType.INT),
             new CfIfCmp(If.Type.NE, ValueType.INT, label15),
             label14,
-            new CfNew(options.itemFactory.createType("Ljava/lang/NumberFormatException;")),
+            new CfNew(factory.createType("Ljava/lang/NumberFormatException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.charSequenceType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.charSequenceType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 true),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/NumberFormatException;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.stringType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/NumberFormatException;"),
+                    factory.createProto(factory.voidType, factory.stringType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label15,
@@ -3550,7 +3378,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -3582,13 +3410,10 @@ public final class BackportedMethods {
             label16,
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Long;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.longType,
-                        options.itemFactory.longType,
-                        options.itemFactory.longType),
-                    options.itemFactory.createString("remainderUnsigned")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Long;"),
+                    factory.createProto(factory.longType, factory.longType, factory.longType),
+                    factory.createString("remainderUnsigned")),
                 false),
             new CfNumberConversion(NumericType.LONG, NumericType.INT),
             new CfIfCmp(If.Type.LE, ValueType.INT, label18),
@@ -3597,7 +3422,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -3610,32 +3435,30 @@ public final class BackportedMethods {
                       FrameType.intType(),
                       FrameType.intType()
                     })),
-            new CfNew(options.itemFactory.createType("Ljava/lang/NumberFormatException;")),
+            new CfNew(factory.createType("Ljava/lang/NumberFormatException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfConstString(options.itemFactory.createString("Too large for unsigned long: ")),
+            new CfConstString(factory.createString("Too large for unsigned long: ")),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.charSequenceType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.charSequenceType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 true),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringType, options.itemFactory.stringType),
-                    options.itemFactory.createString("concat")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(factory.stringType, factory.stringType),
+                    factory.createString("concat")),
                 false),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/NumberFormatException;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.stringType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/NumberFormatException;"),
+                    factory.createProto(factory.voidType, factory.stringType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label18,
@@ -3643,7 +3466,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -3672,7 +3495,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType(),
@@ -3691,7 +3514,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode LongMethods_parseUnsignedLongWithRadix(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -3705,23 +3528,23 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(options.itemFactory.intType),
-                    options.itemFactory.createString("length")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(factory.intType),
+                    factory.createString("length")),
                 false),
             new CfLoad(ValueType.INT, 1),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Long;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.longType,
-                        options.itemFactory.charSequenceType,
-                        options.itemFactory.intType,
-                        options.itemFactory.intType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("parseUnsignedLong")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Long;"),
+                    factory.createProto(
+                        factory.longType,
+                        factory.charSequenceType,
+                        factory.intType,
+                        factory.intType,
+                        factory.intType),
+                    factory.createString("parseUnsignedLong")),
                 false),
             new CfReturn(ValueType.LONG),
             label1),
@@ -3729,7 +3552,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode LongMethods_remainderUnsigned(InternalOptions options, DexMethod method) {
+  public static CfCode LongMethods_remainderUnsigned(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -3900,7 +3723,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode LongMethods_toUnsignedString(InternalOptions options, DexMethod method) {
+  public static CfCode LongMethods_toUnsignedString(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -3913,13 +3736,10 @@ public final class BackportedMethods {
             new CfConstNumber(10, ValueType.INT),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Long;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringType,
-                        options.itemFactory.longType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("toUnsignedString")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Long;"),
+                    factory.createProto(factory.stringType, factory.longType, factory.intType),
+                    factory.createString("toUnsignedString")),
                 false),
             new CfReturn(ValueType.OBJECT),
             label1),
@@ -3928,7 +3748,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode LongMethods_toUnsignedStringWithRadix(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -3967,7 +3787,7 @@ public final class BackportedMethods {
             new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
             new CfIf(If.Type.NE, ValueType.INT, label2),
             label1,
-            new CfConstString(options.itemFactory.createString("0")),
+            new CfConstString(factory.createString("0")),
             new CfReturn(ValueType.OBJECT),
             label2,
             new CfFrame(
@@ -3985,13 +3805,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 2),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Long;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringType,
-                        options.itemFactory.longType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Long;"),
+                    factory.createProto(factory.stringType, factory.longType, factory.intType),
+                    factory.createString("toString")),
                 false),
             new CfReturn(ValueType.OBJECT),
             label4,
@@ -4024,7 +3841,7 @@ public final class BackportedMethods {
                       FrameType.longType(), FrameType.longHighType(), FrameType.intType()
                     })),
             new CfConstNumber(64, ValueType.INT),
-            new CfNewArray(options.itemFactory.charArrayType),
+            new CfNewArray(factory.charArrayType),
             new CfStore(ValueType.OBJECT, 3),
             label7,
             new CfLoad(ValueType.OBJECT, 3),
@@ -4041,11 +3858,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 2),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Integer;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType, options.itemFactory.intType),
-                    options.itemFactory.createString("numberOfTrailingZeros")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Integer;"),
+                    factory.createProto(factory.intType, factory.intType),
+                    factory.createString("numberOfTrailingZeros")),
                 false),
             new CfStore(ValueType.INT, 5),
             label10,
@@ -4061,7 +3877,7 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType(),
                       FrameType.intType(),
-                      FrameType.initializedNonNullReference(options.itemFactory.charArrayType),
+                      FrameType.initializedNonNullReference(factory.charArrayType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType()
@@ -4076,13 +3892,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 2),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.boxedCharType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.charType,
-                        options.itemFactory.intType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("forDigit")),
+                factory.createMethod(
+                    factory.boxedCharType,
+                    factory.createProto(factory.charType, factory.intType, factory.intType),
+                    factory.createString("forDigit")),
                 false),
             new CfArrayStore(MemberType.CHAR),
             label12,
@@ -4105,7 +3918,7 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType(),
                       FrameType.intType(),
-                      FrameType.initializedNonNullReference(options.itemFactory.charArrayType),
+                      FrameType.initializedNonNullReference(factory.charArrayType),
                       FrameType.intType()
                     })),
             new CfLoad(ValueType.INT, 2),
@@ -4132,7 +3945,7 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType(),
                       FrameType.intType(),
-                      FrameType.initializedNonNullReference(options.itemFactory.charArrayType),
+                      FrameType.initializedNonNullReference(factory.charArrayType),
                       FrameType.intType()
                     })),
             new CfLoad(ValueType.LONG, 0),
@@ -4140,13 +3953,10 @@ public final class BackportedMethods {
             new CfNumberConversion(NumericType.INT, NumericType.LONG),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Long;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.longType,
-                        options.itemFactory.longType,
-                        options.itemFactory.longType),
-                    options.itemFactory.createString("divideUnsigned")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Long;"),
+                    factory.createProto(factory.longType, factory.longType, factory.longType),
+                    factory.createString("divideUnsigned")),
                 false),
             new CfStore(ValueType.LONG, 5),
             label19,
@@ -4157,7 +3967,7 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType(),
                       FrameType.intType(),
-                      FrameType.initializedNonNullReference(options.itemFactory.charArrayType),
+                      FrameType.initializedNonNullReference(factory.charArrayType),
                       FrameType.intType(),
                       FrameType.longType(),
                       FrameType.longHighType()
@@ -4178,13 +3988,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 2),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.boxedCharType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.charType,
-                        options.itemFactory.intType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("forDigit")),
+                factory.createMethod(
+                    factory.boxedCharType,
+                    factory.createProto(factory.charType, factory.intType, factory.intType),
+                    factory.createString("forDigit")),
                 false),
             new CfArrayStore(MemberType.CHAR),
             label21,
@@ -4198,7 +4005,7 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType(),
                       FrameType.intType(),
-                      FrameType.initializedNonNullReference(options.itemFactory.charArrayType),
+                      FrameType.initializedNonNullReference(factory.charArrayType),
                       FrameType.intType(),
                       FrameType.longType(),
                       FrameType.longHighType(),
@@ -4221,13 +4028,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 2),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.boxedCharType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.charType,
-                        options.itemFactory.intType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("forDigit")),
+                factory.createMethod(
+                    factory.boxedCharType,
+                    factory.createProto(factory.charType, factory.intType, factory.intType),
+                    factory.createString("forDigit")),
                 false),
             new CfArrayStore(MemberType.CHAR),
             label24,
@@ -4245,10 +4049,10 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType(),
                       FrameType.intType(),
-                      FrameType.initializedNonNullReference(options.itemFactory.charArrayType),
+                      FrameType.initializedNonNullReference(factory.charArrayType),
                       FrameType.intType()
                     })),
-            new CfNew(options.itemFactory.stringType),
+            new CfNew(factory.stringType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfLoad(ValueType.OBJECT, 3),
             new CfLoad(ValueType.INT, 4),
@@ -4258,14 +4062,11 @@ public final class BackportedMethods {
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType,
-                        options.itemFactory.charArrayType,
-                        options.itemFactory.intType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(
+                        factory.voidType, factory.charArrayType, factory.intType, factory.intType),
+                    factory.createString("<init>")),
                 false),
             new CfReturn(ValueType.OBJECT),
             label26),
@@ -4273,7 +4074,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_addExactInt(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_addExactInt(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -4316,14 +4117,14 @@ public final class BackportedMethods {
                       FrameType.longHighType(),
                       FrameType.intType()
                     })),
-            new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
+            new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/ArithmeticException;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/ArithmeticException;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label5),
@@ -4331,7 +4132,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_addExactLong(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_addExactLong(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -4438,14 +4239,14 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     })),
-            new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
+            new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/ArithmeticException;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/ArithmeticException;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label8),
@@ -4453,7 +4254,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_decrementExactInt(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_decrementExactInt(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -4468,14 +4269,14 @@ public final class BackportedMethods {
             new CfConstNumber(-2147483648, ValueType.INT),
             new CfIfCmp(If.Type.NE, ValueType.INT, label2),
             label1,
-            new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
+            new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/ArithmeticException;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/ArithmeticException;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label2,
@@ -4490,7 +4291,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_decrementExactLong(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_decrementExactLong(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -4506,14 +4307,14 @@ public final class BackportedMethods {
             new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
             new CfIf(If.Type.NE, ValueType.INT, label2),
             label1,
-            new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
+            new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/ArithmeticException;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/ArithmeticException;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label2,
@@ -4530,7 +4331,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_floorDivInt(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_floorDivInt(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -4618,7 +4419,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_floorDivLong(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_floorDivLong(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -4724,7 +4525,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_floorDivLongInt(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_floorDivLongInt(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -4738,13 +4539,10 @@ public final class BackportedMethods {
             new CfNumberConversion(NumericType.INT, NumericType.LONG),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Math;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.longType,
-                        options.itemFactory.longType,
-                        options.itemFactory.longType),
-                    options.itemFactory.createString("floorDiv")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Math;"),
+                    factory.createProto(factory.longType, factory.longType, factory.longType),
+                    factory.createString("floorDiv")),
                 false),
             new CfReturn(ValueType.LONG),
             label1),
@@ -4752,7 +4550,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_floorModInt(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_floorModInt(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -4827,7 +4625,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_floorModLong(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_floorModLong(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -4919,7 +4717,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_floorModLongInt(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_floorModLongInt(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -4933,13 +4731,10 @@ public final class BackportedMethods {
             new CfNumberConversion(NumericType.INT, NumericType.LONG),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Math;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.longType,
-                        options.itemFactory.longType,
-                        options.itemFactory.longType),
-                    options.itemFactory.createString("floorMod")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Math;"),
+                    factory.createProto(factory.longType, factory.longType, factory.longType),
+                    factory.createString("floorMod")),
                 false),
             new CfNumberConversion(NumericType.LONG, NumericType.INT),
             new CfReturn(ValueType.INT),
@@ -4948,7 +4743,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_incrementExactInt(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_incrementExactInt(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -4963,14 +4758,14 @@ public final class BackportedMethods {
             new CfConstNumber(2147483647, ValueType.INT),
             new CfIfCmp(If.Type.NE, ValueType.INT, label2),
             label1,
-            new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
+            new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/ArithmeticException;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/ArithmeticException;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label2,
@@ -4985,7 +4780,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_incrementExactLong(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_incrementExactLong(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -5001,14 +4796,14 @@ public final class BackportedMethods {
             new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
             new CfIf(If.Type.NE, ValueType.INT, label2),
             label1,
-            new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
+            new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/ArithmeticException;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/ArithmeticException;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label2,
@@ -5025,7 +4820,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_multiplyExactInt(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_multiplyExactInt(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -5068,14 +4863,14 @@ public final class BackportedMethods {
                       FrameType.longHighType(),
                       FrameType.intType()
                     })),
-            new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
+            new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/ArithmeticException;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/ArithmeticException;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label5),
@@ -5083,7 +4878,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_multiplyExactLong(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_multiplyExactLong(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -5111,11 +4906,10 @@ public final class BackportedMethods {
             label1,
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Long;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType, options.itemFactory.longType),
-                    options.itemFactory.createString("numberOfLeadingZeros")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Long;"),
+                    factory.createProto(factory.intType, factory.longType),
+                    factory.createString("numberOfLeadingZeros")),
                 false),
             new CfLoad(ValueType.LONG, 0),
             new CfConstNumber(-1, ValueType.LONG),
@@ -5123,22 +4917,20 @@ public final class BackportedMethods {
             label2,
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Long;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType, options.itemFactory.longType),
-                    options.itemFactory.createString("numberOfLeadingZeros")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Long;"),
+                    factory.createProto(factory.intType, factory.longType),
+                    factory.createString("numberOfLeadingZeros")),
                 false),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
             new CfLoad(ValueType.LONG, 2),
             label3,
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Long;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType, options.itemFactory.longType),
-                    options.itemFactory.createString("numberOfLeadingZeros")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Long;"),
+                    factory.createProto(factory.intType, factory.longType),
+                    factory.createString("numberOfLeadingZeros")),
                 false),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
             new CfLoad(ValueType.LONG, 2),
@@ -5147,11 +4939,10 @@ public final class BackportedMethods {
             label4,
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Long;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType, options.itemFactory.longType),
-                    options.itemFactory.createString("numberOfLeadingZeros")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Long;"),
+                    factory.createProto(factory.intType, factory.longType),
+                    factory.createString("numberOfLeadingZeros")),
                 false),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
             new CfStore(ValueType.INT, 4),
@@ -5283,14 +5074,14 @@ public final class BackportedMethods {
                       FrameType.longHighType(),
                       FrameType.intType()
                     })),
-            new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
+            new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/ArithmeticException;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/ArithmeticException;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label16),
@@ -5298,7 +5089,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_multiplyExactLongInt(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_multiplyExactLongInt(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -5312,13 +5103,10 @@ public final class BackportedMethods {
             new CfNumberConversion(NumericType.INT, NumericType.LONG),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Math;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.longType,
-                        options.itemFactory.longType,
-                        options.itemFactory.longType),
-                    options.itemFactory.createString("multiplyExact")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Math;"),
+                    factory.createProto(factory.longType, factory.longType, factory.longType),
+                    factory.createString("multiplyExact")),
                 false),
             new CfReturn(ValueType.LONG),
             label1),
@@ -5326,7 +5114,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_multiplyFull(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_multiplyFull(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -5346,7 +5134,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_multiplyHigh(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_multiplyHigh(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -5450,7 +5238,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_negateExactInt(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_negateExactInt(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -5465,14 +5253,14 @@ public final class BackportedMethods {
             new CfConstNumber(-2147483648, ValueType.INT),
             new CfIfCmp(If.Type.NE, ValueType.INT, label2),
             label1,
-            new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
+            new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/ArithmeticException;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/ArithmeticException;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label2,
@@ -5486,7 +5274,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_negateExactLong(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_negateExactLong(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -5502,14 +5290,14 @@ public final class BackportedMethods {
             new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
             new CfIf(If.Type.NE, ValueType.INT, label2),
             label1,
-            new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
+            new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/ArithmeticException;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/ArithmeticException;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label2,
@@ -5525,7 +5313,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_nextDownDouble(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_nextDownDouble(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -5538,11 +5326,10 @@ public final class BackportedMethods {
             new CfNeg(NumericType.DOUBLE),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Math;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.doubleType, options.itemFactory.doubleType),
-                    options.itemFactory.createString("nextUp")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Math;"),
+                    factory.createProto(factory.doubleType, factory.doubleType),
+                    factory.createString("nextUp")),
                 false),
             new CfNeg(NumericType.DOUBLE),
             new CfReturn(ValueType.DOUBLE),
@@ -5551,7 +5338,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_nextDownFloat(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_nextDownFloat(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -5564,11 +5351,10 @@ public final class BackportedMethods {
             new CfNeg(NumericType.FLOAT),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Math;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.floatType, options.itemFactory.floatType),
-                    options.itemFactory.createString("nextUp")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Math;"),
+                    factory.createProto(factory.floatType, factory.floatType),
+                    factory.createString("nextUp")),
                 false),
             new CfNeg(NumericType.FLOAT),
             new CfReturn(ValueType.FLOAT),
@@ -5577,7 +5363,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_subtractExactInt(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_subtractExactInt(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -5620,14 +5406,14 @@ public final class BackportedMethods {
                       FrameType.longHighType(),
                       FrameType.intType()
                     })),
-            new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
+            new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/ArithmeticException;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/ArithmeticException;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label5),
@@ -5635,7 +5421,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_subtractExactLong(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_subtractExactLong(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -5742,14 +5528,14 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     })),
-            new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
+            new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/ArithmeticException;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/ArithmeticException;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label8),
@@ -5757,7 +5543,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode MathMethods_toIntExact(InternalOptions options, DexMethod method) {
+  public static CfCode MathMethods_toIntExact(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -5779,14 +5565,14 @@ public final class BackportedMethods {
             new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
             new CfIf(If.Type.EQ, ValueType.INT, label3),
             label2,
-            new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
+            new CfNew(factory.createType("Ljava/lang/ArithmeticException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/ArithmeticException;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/ArithmeticException;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label3,
@@ -5803,8 +5589,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode ObjectsMethods_checkFromIndexSize(
-      InternalOptions options, DexMethod method) {
+  public static CfCode ObjectsMethods_checkFromIndexSize(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -5833,103 +5618,94 @@ public final class BackportedMethods {
                     new FrameType[] {
                       FrameType.intType(), FrameType.intType(), FrameType.intType()
                     })),
-            new CfNew(options.itemFactory.createType("Ljava/lang/IndexOutOfBoundsException;")),
+            new CfNew(factory.createType("Ljava/lang/IndexOutOfBoundsException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfNew(options.itemFactory.stringBuilderType),
+            new CfNew(factory.stringBuilderType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
-            new CfConstString(options.itemFactory.createString("Range [")),
+            new CfConstString(factory.createString("Range [")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
-                false),
-            new CfLoad(ValueType.INT, 0),
-            new CfInvoke(
-                182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.intType),
-                    options.itemFactory.createString("append")),
-                false),
-            new CfConstString(options.itemFactory.createString(", ")),
-            new CfInvoke(
-                182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfLoad(ValueType.INT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.intType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.intType),
+                    factory.createString("append")),
                 false),
-            new CfConstString(options.itemFactory.createString(" + ")),
+            new CfConstString(factory.createString(", ")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
+                false),
+            new CfLoad(ValueType.INT, 0),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.intType),
+                    factory.createString("append")),
+                false),
+            new CfConstString(factory.createString(" + ")),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfLoad(ValueType.INT, 1),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.intType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.intType),
+                    factory.createString("append")),
                 false),
-            new CfConstString(options.itemFactory.createString(") out of bounds for length ")),
+            new CfConstString(factory.createString(") out of bounds for length ")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfLoad(ValueType.INT, 2),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.intType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.intType),
+                    factory.createString("append")),
                 false),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 false),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/IndexOutOfBoundsException;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.stringType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/IndexOutOfBoundsException;"),
+                    factory.createProto(factory.voidType, factory.stringType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label2,
@@ -5946,7 +5722,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode ObjectsMethods_checkFromToIndex(InternalOptions options, DexMethod method) {
+  public static CfCode ObjectsMethods_checkFromToIndex(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -5972,85 +5748,78 @@ public final class BackportedMethods {
                     new FrameType[] {
                       FrameType.intType(), FrameType.intType(), FrameType.intType()
                     })),
-            new CfNew(options.itemFactory.createType("Ljava/lang/IndexOutOfBoundsException;")),
+            new CfNew(factory.createType("Ljava/lang/IndexOutOfBoundsException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfNew(options.itemFactory.stringBuilderType),
+            new CfNew(factory.stringBuilderType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
-            new CfConstString(options.itemFactory.createString("Range [")),
+            new CfConstString(factory.createString("Range [")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfLoad(ValueType.INT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.intType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.intType),
+                    factory.createString("append")),
                 false),
-            new CfConstString(options.itemFactory.createString(", ")),
+            new CfConstString(factory.createString(", ")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfLoad(ValueType.INT, 1),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.intType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.intType),
+                    factory.createString("append")),
                 false),
-            new CfConstString(options.itemFactory.createString(") out of bounds for length ")),
+            new CfConstString(factory.createString(") out of bounds for length ")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfLoad(ValueType.INT, 2),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.intType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.intType),
+                    factory.createString("append")),
                 false),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 false),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/IndexOutOfBoundsException;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.stringType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/IndexOutOfBoundsException;"),
+                    factory.createProto(factory.voidType, factory.stringType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label2,
@@ -6067,7 +5836,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode ObjectsMethods_checkIndex(InternalOptions options, DexMethod method) {
+  public static CfCode ObjectsMethods_checkIndex(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -6087,67 +5856,62 @@ public final class BackportedMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()})),
-            new CfNew(options.itemFactory.createType("Ljava/lang/IndexOutOfBoundsException;")),
+            new CfNew(factory.createType("Ljava/lang/IndexOutOfBoundsException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfNew(options.itemFactory.stringBuilderType),
+            new CfNew(factory.stringBuilderType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
-            new CfConstString(options.itemFactory.createString("Index ")),
+            new CfConstString(factory.createString("Index ")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfLoad(ValueType.INT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.intType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.intType),
+                    factory.createString("append")),
                 false),
-            new CfConstString(options.itemFactory.createString(" out of bounds for length ")),
+            new CfConstString(factory.createString(" out of bounds for length ")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfLoad(ValueType.INT, 1),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.intType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.intType),
+                    factory.createString("append")),
                 false),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 false),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/IndexOutOfBoundsException;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.stringType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/IndexOutOfBoundsException;"),
+                    factory.createProto(factory.voidType, factory.stringType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label2,
@@ -6161,7 +5925,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode ObjectsMethods_compare(InternalOptions options, DexMethod method) {
+  public static CfCode ObjectsMethods_compare(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -6182,33 +5946,30 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/Comparator;"))
+                          factory.createType("Ljava/util/Comparator;"))
                     })),
             new CfLoad(ValueType.OBJECT, 2),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Comparator;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType,
-                        options.itemFactory.objectType,
-                        options.itemFactory.objectType),
-                    options.itemFactory.createString("compare")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Comparator;"),
+                    factory.createProto(factory.intType, factory.objectType, factory.objectType),
+                    factory.createString("compare")),
                 true),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/Comparator;"))
+                          factory.createType("Ljava/util/Comparator;"))
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -6217,7 +5978,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode ObjectsMethods_deepEquals(InternalOptions options, DexMethod method) {
+  public static CfCode ObjectsMethods_deepEquals(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -6274,8 +6035,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfIf(If.Type.NE, ValueType.OBJECT, label2),
@@ -6286,29 +6047,27 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
-            new CfInstanceOf(options.itemFactory.booleanArrayType),
+            new CfInstanceOf(factory.booleanArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label6),
             label3,
             new CfLoad(ValueType.OBJECT, 1),
-            new CfInstanceOf(options.itemFactory.booleanArrayType),
+            new CfInstanceOf(factory.booleanArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label4),
             new CfLoad(ValueType.OBJECT, 0),
-            new CfCheckCast(options.itemFactory.booleanArrayType),
+            new CfCheckCast(factory.booleanArrayType),
             new CfLoad(ValueType.OBJECT, 1),
-            new CfCheckCast(options.itemFactory.booleanArrayType),
+            new CfCheckCast(factory.booleanArrayType),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Arrays;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType,
-                        options.itemFactory.booleanArrayType,
-                        options.itemFactory.booleanArrayType),
-                    options.itemFactory.createString("equals")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Arrays;"),
+                    factory.createProto(
+                        factory.booleanType, factory.booleanArrayType, factory.booleanArrayType),
+                    factory.createString("equals")),
                 false),
             new CfIf(If.Type.EQ, ValueType.INT, label4),
             new CfConstNumber(1, ValueType.INT),
@@ -6318,8 +6077,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfConstNumber(0, ValueType.INT),
             label5,
@@ -6327,8 +6086,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -6337,29 +6096,27 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
-            new CfInstanceOf(options.itemFactory.byteArrayType),
+            new CfInstanceOf(factory.byteArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label10),
             label7,
             new CfLoad(ValueType.OBJECT, 1),
-            new CfInstanceOf(options.itemFactory.byteArrayType),
+            new CfInstanceOf(factory.byteArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label8),
             new CfLoad(ValueType.OBJECT, 0),
-            new CfCheckCast(options.itemFactory.byteArrayType),
+            new CfCheckCast(factory.byteArrayType),
             new CfLoad(ValueType.OBJECT, 1),
-            new CfCheckCast(options.itemFactory.byteArrayType),
+            new CfCheckCast(factory.byteArrayType),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Arrays;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType,
-                        options.itemFactory.byteArrayType,
-                        options.itemFactory.byteArrayType),
-                    options.itemFactory.createString("equals")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Arrays;"),
+                    factory.createProto(
+                        factory.booleanType, factory.byteArrayType, factory.byteArrayType),
+                    factory.createString("equals")),
                 false),
             new CfIf(If.Type.EQ, ValueType.INT, label8),
             new CfConstNumber(1, ValueType.INT),
@@ -6369,8 +6126,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfConstNumber(0, ValueType.INT),
             label9,
@@ -6378,8 +6135,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -6388,29 +6145,27 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
-            new CfInstanceOf(options.itemFactory.charArrayType),
+            new CfInstanceOf(factory.charArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label14),
             label11,
             new CfLoad(ValueType.OBJECT, 1),
-            new CfInstanceOf(options.itemFactory.charArrayType),
+            new CfInstanceOf(factory.charArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label12),
             new CfLoad(ValueType.OBJECT, 0),
-            new CfCheckCast(options.itemFactory.charArrayType),
+            new CfCheckCast(factory.charArrayType),
             new CfLoad(ValueType.OBJECT, 1),
-            new CfCheckCast(options.itemFactory.charArrayType),
+            new CfCheckCast(factory.charArrayType),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Arrays;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType,
-                        options.itemFactory.charArrayType,
-                        options.itemFactory.charArrayType),
-                    options.itemFactory.createString("equals")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Arrays;"),
+                    factory.createProto(
+                        factory.booleanType, factory.charArrayType, factory.charArrayType),
+                    factory.createString("equals")),
                 false),
             new CfIf(If.Type.EQ, ValueType.INT, label12),
             new CfConstNumber(1, ValueType.INT),
@@ -6420,8 +6175,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfConstNumber(0, ValueType.INT),
             label13,
@@ -6429,8 +6184,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -6439,29 +6194,27 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
-            new CfInstanceOf(options.itemFactory.doubleArrayType),
+            new CfInstanceOf(factory.doubleArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label18),
             label15,
             new CfLoad(ValueType.OBJECT, 1),
-            new CfInstanceOf(options.itemFactory.doubleArrayType),
+            new CfInstanceOf(factory.doubleArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label16),
             new CfLoad(ValueType.OBJECT, 0),
-            new CfCheckCast(options.itemFactory.doubleArrayType),
+            new CfCheckCast(factory.doubleArrayType),
             new CfLoad(ValueType.OBJECT, 1),
-            new CfCheckCast(options.itemFactory.doubleArrayType),
+            new CfCheckCast(factory.doubleArrayType),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Arrays;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType,
-                        options.itemFactory.doubleArrayType,
-                        options.itemFactory.doubleArrayType),
-                    options.itemFactory.createString("equals")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Arrays;"),
+                    factory.createProto(
+                        factory.booleanType, factory.doubleArrayType, factory.doubleArrayType),
+                    factory.createString("equals")),
                 false),
             new CfIf(If.Type.EQ, ValueType.INT, label16),
             new CfConstNumber(1, ValueType.INT),
@@ -6471,8 +6224,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfConstNumber(0, ValueType.INT),
             label17,
@@ -6480,8 +6233,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -6490,29 +6243,27 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
-            new CfInstanceOf(options.itemFactory.floatArrayType),
+            new CfInstanceOf(factory.floatArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label22),
             label19,
             new CfLoad(ValueType.OBJECT, 1),
-            new CfInstanceOf(options.itemFactory.floatArrayType),
+            new CfInstanceOf(factory.floatArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label20),
             new CfLoad(ValueType.OBJECT, 0),
-            new CfCheckCast(options.itemFactory.floatArrayType),
+            new CfCheckCast(factory.floatArrayType),
             new CfLoad(ValueType.OBJECT, 1),
-            new CfCheckCast(options.itemFactory.floatArrayType),
+            new CfCheckCast(factory.floatArrayType),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Arrays;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType,
-                        options.itemFactory.floatArrayType,
-                        options.itemFactory.floatArrayType),
-                    options.itemFactory.createString("equals")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Arrays;"),
+                    factory.createProto(
+                        factory.booleanType, factory.floatArrayType, factory.floatArrayType),
+                    factory.createString("equals")),
                 false),
             new CfIf(If.Type.EQ, ValueType.INT, label20),
             new CfConstNumber(1, ValueType.INT),
@@ -6522,8 +6273,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfConstNumber(0, ValueType.INT),
             label21,
@@ -6531,8 +6282,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -6541,29 +6292,27 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
-            new CfInstanceOf(options.itemFactory.intArrayType),
+            new CfInstanceOf(factory.intArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label26),
             label23,
             new CfLoad(ValueType.OBJECT, 1),
-            new CfInstanceOf(options.itemFactory.intArrayType),
+            new CfInstanceOf(factory.intArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label24),
             new CfLoad(ValueType.OBJECT, 0),
-            new CfCheckCast(options.itemFactory.intArrayType),
+            new CfCheckCast(factory.intArrayType),
             new CfLoad(ValueType.OBJECT, 1),
-            new CfCheckCast(options.itemFactory.intArrayType),
+            new CfCheckCast(factory.intArrayType),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Arrays;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType,
-                        options.itemFactory.intArrayType,
-                        options.itemFactory.intArrayType),
-                    options.itemFactory.createString("equals")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Arrays;"),
+                    factory.createProto(
+                        factory.booleanType, factory.intArrayType, factory.intArrayType),
+                    factory.createString("equals")),
                 false),
             new CfIf(If.Type.EQ, ValueType.INT, label24),
             new CfConstNumber(1, ValueType.INT),
@@ -6573,8 +6322,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfConstNumber(0, ValueType.INT),
             label25,
@@ -6582,8 +6331,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -6592,29 +6341,27 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
-            new CfInstanceOf(options.itemFactory.longArrayType),
+            new CfInstanceOf(factory.longArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label30),
             label27,
             new CfLoad(ValueType.OBJECT, 1),
-            new CfInstanceOf(options.itemFactory.longArrayType),
+            new CfInstanceOf(factory.longArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label28),
             new CfLoad(ValueType.OBJECT, 0),
-            new CfCheckCast(options.itemFactory.longArrayType),
+            new CfCheckCast(factory.longArrayType),
             new CfLoad(ValueType.OBJECT, 1),
-            new CfCheckCast(options.itemFactory.longArrayType),
+            new CfCheckCast(factory.longArrayType),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Arrays;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType,
-                        options.itemFactory.longArrayType,
-                        options.itemFactory.longArrayType),
-                    options.itemFactory.createString("equals")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Arrays;"),
+                    factory.createProto(
+                        factory.booleanType, factory.longArrayType, factory.longArrayType),
+                    factory.createString("equals")),
                 false),
             new CfIf(If.Type.EQ, ValueType.INT, label28),
             new CfConstNumber(1, ValueType.INT),
@@ -6624,8 +6371,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfConstNumber(0, ValueType.INT),
             label29,
@@ -6633,8 +6380,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -6643,29 +6390,27 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
-            new CfInstanceOf(options.itemFactory.shortArrayType),
+            new CfInstanceOf(factory.shortArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label34),
             label31,
             new CfLoad(ValueType.OBJECT, 1),
-            new CfInstanceOf(options.itemFactory.shortArrayType),
+            new CfInstanceOf(factory.shortArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label32),
             new CfLoad(ValueType.OBJECT, 0),
-            new CfCheckCast(options.itemFactory.shortArrayType),
+            new CfCheckCast(factory.shortArrayType),
             new CfLoad(ValueType.OBJECT, 1),
-            new CfCheckCast(options.itemFactory.shortArrayType),
+            new CfCheckCast(factory.shortArrayType),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Arrays;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType,
-                        options.itemFactory.shortArrayType,
-                        options.itemFactory.shortArrayType),
-                    options.itemFactory.createString("equals")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Arrays;"),
+                    factory.createProto(
+                        factory.booleanType, factory.shortArrayType, factory.shortArrayType),
+                    factory.createString("equals")),
                 false),
             new CfIf(If.Type.EQ, ValueType.INT, label32),
             new CfConstNumber(1, ValueType.INT),
@@ -6675,8 +6420,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfConstNumber(0, ValueType.INT),
             label33,
@@ -6684,8 +6429,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -6694,29 +6439,29 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
-            new CfInstanceOf(options.itemFactory.createType("[Ljava/lang/Object;")),
+            new CfInstanceOf(factory.createType("[Ljava/lang/Object;")),
             new CfIf(If.Type.EQ, ValueType.INT, label38),
             label35,
             new CfLoad(ValueType.OBJECT, 1),
-            new CfInstanceOf(options.itemFactory.createType("[Ljava/lang/Object;")),
+            new CfInstanceOf(factory.createType("[Ljava/lang/Object;")),
             new CfIf(If.Type.EQ, ValueType.INT, label36),
             new CfLoad(ValueType.OBJECT, 0),
-            new CfCheckCast(options.itemFactory.createType("[Ljava/lang/Object;")),
+            new CfCheckCast(factory.createType("[Ljava/lang/Object;")),
             new CfLoad(ValueType.OBJECT, 1),
-            new CfCheckCast(options.itemFactory.createType("[Ljava/lang/Object;")),
+            new CfCheckCast(factory.createType("[Ljava/lang/Object;")),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Arrays;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType,
-                        options.itemFactory.createType("[Ljava/lang/Object;"),
-                        options.itemFactory.createType("[Ljava/lang/Object;")),
-                    options.itemFactory.createString("deepEquals")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Arrays;"),
+                    factory.createProto(
+                        factory.booleanType,
+                        factory.createType("[Ljava/lang/Object;"),
+                        factory.createType("[Ljava/lang/Object;")),
+                    factory.createString("deepEquals")),
                 false),
             new CfIf(If.Type.EQ, ValueType.INT, label36),
             new CfConstNumber(1, ValueType.INT),
@@ -6726,8 +6471,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfConstNumber(0, ValueType.INT),
             label37,
@@ -6735,8 +6480,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -6745,18 +6490,17 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.objectType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType, options.itemFactory.objectType),
-                    options.itemFactory.createString("equals")),
+                factory.createMethod(
+                    factory.objectType,
+                    factory.createProto(factory.booleanType, factory.objectType),
+                    factory.createString("equals")),
                 false),
             new CfReturn(ValueType.INT),
             label39),
@@ -6764,7 +6508,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode ObjectsMethods_equals(InternalOptions options, DexMethod method) {
+  public static CfCode ObjectsMethods_equals(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -6785,11 +6529,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.objectType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType, options.itemFactory.objectType),
-                    options.itemFactory.createString("equals")),
+                factory.createMethod(
+                    factory.objectType,
+                    factory.createProto(factory.booleanType, factory.objectType),
+                    factory.createString("equals")),
                 false),
             new CfIf(If.Type.EQ, ValueType.INT, label2),
             label1,
@@ -6797,8 +6540,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfConstNumber(1, ValueType.INT),
             new CfGoto(label3),
@@ -6807,8 +6550,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfConstNumber(0, ValueType.INT),
             label3,
@@ -6816,8 +6559,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -6826,7 +6569,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode ObjectsMethods_hashCode(InternalOptions options, DexMethod method) {
+  public static CfCode ObjectsMethods_hashCode(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -6845,24 +6588,20 @@ public final class BackportedMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
-                    })),
+                    new FrameType[] {FrameType.initializedNonNullReference(factory.objectType)})),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.objectType,
-                    options.itemFactory.createProto(options.itemFactory.intType),
-                    options.itemFactory.createString("hashCode")),
+                factory.createMethod(
+                    factory.objectType,
+                    factory.createProto(factory.intType),
+                    factory.createString("hashCode")),
                 false),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
-                    }),
+                    new FrameType[] {FrameType.initializedNonNullReference(factory.objectType)}),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
             label3),
@@ -6870,7 +6609,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode ObjectsMethods_isNull(InternalOptions options, DexMethod method) {
+  public static CfCode ObjectsMethods_isNull(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -6889,17 +6628,13 @@ public final class BackportedMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
-                    })),
+                    new FrameType[] {FrameType.initializedNonNullReference(factory.objectType)})),
             new CfConstNumber(0, ValueType.INT),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
-                    }),
+                    new FrameType[] {FrameType.initializedNonNullReference(factory.objectType)}),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
             label3),
@@ -6907,7 +6642,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode ObjectsMethods_nonNull(InternalOptions options, DexMethod method) {
+  public static CfCode ObjectsMethods_nonNull(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -6926,17 +6661,13 @@ public final class BackportedMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
-                    })),
+                    new FrameType[] {FrameType.initializedNonNullReference(factory.objectType)})),
             new CfConstNumber(0, ValueType.INT),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
-                    }),
+                    new FrameType[] {FrameType.initializedNonNullReference(factory.objectType)}),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
             label3),
@@ -6944,8 +6675,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode ObjectsMethods_requireNonNullElse(
-      InternalOptions options, DexMethod method) {
+  public static CfCode ObjectsMethods_requireNonNullElse(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -6964,20 +6694,17 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 1),
-            new CfConstString(options.itemFactory.createString("defaultObj")),
+            new CfConstString(factory.createString("defaultObj")),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Objects;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType,
-                        options.itemFactory.objectType,
-                        options.itemFactory.stringType),
-                    options.itemFactory.createString("requireNonNull")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Objects;"),
+                    factory.createProto(factory.objectType, factory.objectType, factory.stringType),
+                    factory.createString("requireNonNull")),
                 false),
             new CfReturn(ValueType.OBJECT),
             label2),
@@ -6986,7 +6713,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode ObjectsMethods_requireNonNullElseGet(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -7006,43 +6733,37 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/function/Supplier;"))
+                          factory.createType("Ljava/util/function/Supplier;"))
                     })),
             new CfLoad(ValueType.OBJECT, 1),
-            new CfConstString(options.itemFactory.createString("supplier")),
+            new CfConstString(factory.createString("supplier")),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Objects;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType,
-                        options.itemFactory.objectType,
-                        options.itemFactory.stringType),
-                    options.itemFactory.createString("requireNonNull")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Objects;"),
+                    factory.createProto(factory.objectType, factory.objectType, factory.stringType),
+                    factory.createString("requireNonNull")),
                 false),
-            new CfCheckCast(options.itemFactory.createType("Ljava/util/function/Supplier;")),
+            new CfCheckCast(factory.createType("Ljava/util/function/Supplier;")),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/function/Supplier;"),
-                    options.itemFactory.createProto(options.itemFactory.objectType),
-                    options.itemFactory.createString("get")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/function/Supplier;"),
+                    factory.createProto(factory.objectType),
+                    factory.createString("get")),
                 true),
             new CfStore(ValueType.OBJECT, 2),
             label2,
             new CfLoad(ValueType.OBJECT, 2),
-            new CfConstString(options.itemFactory.createString("supplier.get()")),
+            new CfConstString(factory.createString("supplier.get()")),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Objects;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType,
-                        options.itemFactory.objectType,
-                        options.itemFactory.stringType),
-                    options.itemFactory.createString("requireNonNull")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Objects;"),
+                    factory.createProto(factory.objectType, factory.objectType, factory.stringType),
+                    factory.createString("requireNonNull")),
                 false),
             new CfReturn(ValueType.OBJECT),
             label3),
@@ -7051,7 +6772,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode ObjectsMethods_requireNonNullMessage(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -7065,16 +6786,15 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfIf(If.Type.NE, ValueType.OBJECT, label2),
             label1,
-            new CfNew(options.itemFactory.createType("Ljava/lang/NullPointerException;")),
+            new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/NullPointerException;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.stringType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/NullPointerException;"),
+                    factory.createProto(factory.voidType, factory.stringType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label2,
@@ -7082,8 +6802,8 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.stringType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfReturn(ValueType.OBJECT),
@@ -7093,7 +6813,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode ObjectsMethods_requireNonNullSupplier(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -7115,21 +6835,21 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/function/Supplier;"),
-                    options.itemFactory.createProto(options.itemFactory.objectType),
-                    options.itemFactory.createString("get")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/function/Supplier;"),
+                    factory.createProto(factory.objectType),
+                    factory.createString("get")),
                 true),
-            new CfCheckCast(options.itemFactory.stringType),
+            new CfCheckCast(factory.stringType),
             new CfGoto(label3),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/function/Supplier;"))
+                          factory.createType("Ljava/util/function/Supplier;"))
                     })),
             new CfConstNull(),
             label3,
@@ -7137,25 +6857,23 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/function/Supplier;"))
+                          factory.createType("Ljava/util/function/Supplier;"))
                     }),
                 new ArrayDeque<>(
-                    Arrays.asList(
-                        FrameType.initializedNonNullReference(options.itemFactory.stringType)))),
+                    Arrays.asList(FrameType.initializedNonNullReference(factory.stringType)))),
             new CfStore(ValueType.OBJECT, 2),
             label4,
-            new CfNew(options.itemFactory.createType("Ljava/lang/NullPointerException;")),
+            new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/NullPointerException;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.stringType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/NullPointerException;"),
+                    factory.createProto(factory.voidType, factory.stringType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label5,
@@ -7163,9 +6881,9 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/function/Supplier;"))
+                          factory.createType("Ljava/util/function/Supplier;"))
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfReturn(ValueType.OBJECT),
@@ -7174,7 +6892,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode ObjectsMethods_toString(InternalOptions options, DexMethod method) {
+  public static CfCode ObjectsMethods_toString(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -7184,16 +6902,13 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             new CfLoad(ValueType.OBJECT, 0),
-            new CfConstString(options.itemFactory.createString("null")),
+            new CfConstString(factory.createString("null")),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Objects;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringType,
-                        options.itemFactory.objectType,
-                        options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Objects;"),
+                    factory.createProto(factory.stringType, factory.objectType, factory.stringType),
+                    factory.createString("toString")),
                 false),
             new CfReturn(ValueType.OBJECT),
             label1),
@@ -7201,7 +6916,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode ObjectsMethods_toStringDefault(InternalOptions options, DexMethod method) {
+  public static CfCode ObjectsMethods_toStringDefault(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -7221,35 +6936,34 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.stringType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.objectType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.objectType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 false),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.stringType)
                     }),
                 new ArrayDeque<>(
-                    Arrays.asList(
-                        FrameType.initializedNonNullReference(options.itemFactory.stringType)))),
+                    Arrays.asList(FrameType.initializedNonNullReference(factory.stringType)))),
             new CfReturn(ValueType.OBJECT),
             label3),
         ImmutableList.of(),
         ImmutableList.of());
   }
 
-  public static CfCode OptionalMethods_ifPresentOrElse(InternalOptions options, DexMethod method) {
+  public static CfCode OptionalMethods_ifPresentOrElse(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -7264,10 +6978,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Optional;"),
-                    options.itemFactory.createProto(options.itemFactory.booleanType),
-                    options.itemFactory.createString("isPresent")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Optional;"),
+                    factory.createProto(factory.booleanType),
+                    factory.createString("isPresent")),
                 false),
             new CfIf(If.Type.EQ, ValueType.INT, label2),
             label1,
@@ -7275,18 +6989,17 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Optional;"),
-                    options.itemFactory.createProto(options.itemFactory.objectType),
-                    options.itemFactory.createString("get")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Optional;"),
+                    factory.createProto(factory.objectType),
+                    factory.createString("get")),
                 false),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/function/Consumer;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.objectType),
-                    options.itemFactory.createString("accept")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/function/Consumer;"),
+                    factory.createProto(factory.voidType, factory.objectType),
+                    factory.createString("accept")),
                 true),
             new CfGoto(label3),
             label2,
@@ -7295,19 +7008,19 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/Optional;")),
+                          factory.createType("Ljava/util/Optional;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/function/Consumer;")),
+                          factory.createType("Ljava/util/function/Consumer;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/lang/Runnable;"))
+                          factory.createType("Ljava/lang/Runnable;"))
                     })),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Runnable;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("run")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Runnable;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("run")),
                 true),
             label3,
             new CfFrame(
@@ -7315,11 +7028,11 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/Optional;")),
+                          factory.createType("Ljava/util/Optional;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/function/Consumer;")),
+                          factory.createType("Ljava/util/function/Consumer;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/lang/Runnable;"))
+                          factory.createType("Ljava/lang/Runnable;"))
                     })),
             new CfReturnVoid(),
             label4),
@@ -7328,7 +7041,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode OptionalMethods_ifPresentOrElseDouble(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -7343,10 +7056,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/OptionalDouble;"),
-                    options.itemFactory.createProto(options.itemFactory.booleanType),
-                    options.itemFactory.createString("isPresent")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/OptionalDouble;"),
+                    factory.createProto(factory.booleanType),
+                    factory.createString("isPresent")),
                 false),
             new CfIf(If.Type.EQ, ValueType.INT, label2),
             label1,
@@ -7354,18 +7067,17 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/OptionalDouble;"),
-                    options.itemFactory.createProto(options.itemFactory.doubleType),
-                    options.itemFactory.createString("getAsDouble")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/OptionalDouble;"),
+                    factory.createProto(factory.doubleType),
+                    factory.createString("getAsDouble")),
                 false),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/function/DoubleConsumer;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.doubleType),
-                    options.itemFactory.createString("accept")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/function/DoubleConsumer;"),
+                    factory.createProto(factory.voidType, factory.doubleType),
+                    factory.createString("accept")),
                 true),
             new CfGoto(label3),
             label2,
@@ -7374,19 +7086,19 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/OptionalDouble;")),
+                          factory.createType("Ljava/util/OptionalDouble;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/function/DoubleConsumer;")),
+                          factory.createType("Ljava/util/function/DoubleConsumer;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/lang/Runnable;"))
+                          factory.createType("Ljava/lang/Runnable;"))
                     })),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Runnable;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("run")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Runnable;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("run")),
                 true),
             label3,
             new CfFrame(
@@ -7394,11 +7106,11 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/OptionalDouble;")),
+                          factory.createType("Ljava/util/OptionalDouble;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/function/DoubleConsumer;")),
+                          factory.createType("Ljava/util/function/DoubleConsumer;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/lang/Runnable;"))
+                          factory.createType("Ljava/lang/Runnable;"))
                     })),
             new CfReturnVoid(),
             label4),
@@ -7407,7 +7119,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode OptionalMethods_ifPresentOrElseInt(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -7422,10 +7134,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/OptionalInt;"),
-                    options.itemFactory.createProto(options.itemFactory.booleanType),
-                    options.itemFactory.createString("isPresent")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/OptionalInt;"),
+                    factory.createProto(factory.booleanType),
+                    factory.createString("isPresent")),
                 false),
             new CfIf(If.Type.EQ, ValueType.INT, label2),
             label1,
@@ -7433,18 +7145,17 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/OptionalInt;"),
-                    options.itemFactory.createProto(options.itemFactory.intType),
-                    options.itemFactory.createString("getAsInt")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/OptionalInt;"),
+                    factory.createProto(factory.intType),
+                    factory.createString("getAsInt")),
                 false),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/function/IntConsumer;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.intType),
-                    options.itemFactory.createString("accept")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/function/IntConsumer;"),
+                    factory.createProto(factory.voidType, factory.intType),
+                    factory.createString("accept")),
                 true),
             new CfGoto(label3),
             label2,
@@ -7453,19 +7164,19 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/OptionalInt;")),
+                          factory.createType("Ljava/util/OptionalInt;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/function/IntConsumer;")),
+                          factory.createType("Ljava/util/function/IntConsumer;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/lang/Runnable;"))
+                          factory.createType("Ljava/lang/Runnable;"))
                     })),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Runnable;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("run")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Runnable;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("run")),
                 true),
             label3,
             new CfFrame(
@@ -7473,11 +7184,11 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/OptionalInt;")),
+                          factory.createType("Ljava/util/OptionalInt;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/function/IntConsumer;")),
+                          factory.createType("Ljava/util/function/IntConsumer;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/lang/Runnable;"))
+                          factory.createType("Ljava/lang/Runnable;"))
                     })),
             new CfReturnVoid(),
             label4),
@@ -7486,7 +7197,7 @@ public final class BackportedMethods {
   }
 
   public static CfCode OptionalMethods_ifPresentOrElseLong(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -7501,10 +7212,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/OptionalLong;"),
-                    options.itemFactory.createProto(options.itemFactory.booleanType),
-                    options.itemFactory.createString("isPresent")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/OptionalLong;"),
+                    factory.createProto(factory.booleanType),
+                    factory.createString("isPresent")),
                 false),
             new CfIf(If.Type.EQ, ValueType.INT, label2),
             label1,
@@ -7512,18 +7223,17 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/OptionalLong;"),
-                    options.itemFactory.createProto(options.itemFactory.longType),
-                    options.itemFactory.createString("getAsLong")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/OptionalLong;"),
+                    factory.createProto(factory.longType),
+                    factory.createString("getAsLong")),
                 false),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/function/LongConsumer;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.longType),
-                    options.itemFactory.createString("accept")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/function/LongConsumer;"),
+                    factory.createProto(factory.voidType, factory.longType),
+                    factory.createString("accept")),
                 true),
             new CfGoto(label3),
             label2,
@@ -7532,19 +7242,19 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/OptionalLong;")),
+                          factory.createType("Ljava/util/OptionalLong;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/function/LongConsumer;")),
+                          factory.createType("Ljava/util/function/LongConsumer;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/lang/Runnable;"))
+                          factory.createType("Ljava/lang/Runnable;"))
                     })),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Runnable;"),
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("run")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Runnable;"),
+                    factory.createProto(factory.voidType),
+                    factory.createString("run")),
                 true),
             label3,
             new CfFrame(
@@ -7552,11 +7262,11 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/OptionalLong;")),
+                          factory.createType("Ljava/util/OptionalLong;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/function/LongConsumer;")),
+                          factory.createType("Ljava/util/function/LongConsumer;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/lang/Runnable;"))
+                          factory.createType("Ljava/lang/Runnable;"))
                     })),
             new CfReturnVoid(),
             label4),
@@ -7564,7 +7274,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode OptionalMethods_isEmpty(InternalOptions options, DexMethod method) {
+  public static CfCode OptionalMethods_isEmpty(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -7578,10 +7288,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Optional;"),
-                    options.itemFactory.createProto(options.itemFactory.booleanType),
-                    options.itemFactory.createString("isPresent")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Optional;"),
+                    factory.createProto(factory.booleanType),
+                    factory.createString("isPresent")),
                 false),
             new CfIf(If.Type.NE, ValueType.INT, label1),
             new CfConstNumber(1, ValueType.INT),
@@ -7592,7 +7302,7 @@ public final class BackportedMethods {
                     new int[] {0},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/Optional;"))
+                          factory.createType("Ljava/util/Optional;"))
                     })),
             new CfConstNumber(0, ValueType.INT),
             label2,
@@ -7601,7 +7311,7 @@ public final class BackportedMethods {
                     new int[] {0},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/Optional;"))
+                          factory.createType("Ljava/util/Optional;"))
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -7610,7 +7320,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode OptionalMethods_isEmptyDouble(InternalOptions options, DexMethod method) {
+  public static CfCode OptionalMethods_isEmptyDouble(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -7624,10 +7334,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/OptionalDouble;"),
-                    options.itemFactory.createProto(options.itemFactory.booleanType),
-                    options.itemFactory.createString("isPresent")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/OptionalDouble;"),
+                    factory.createProto(factory.booleanType),
+                    factory.createString("isPresent")),
                 false),
             new CfIf(If.Type.NE, ValueType.INT, label1),
             new CfConstNumber(1, ValueType.INT),
@@ -7638,7 +7348,7 @@ public final class BackportedMethods {
                     new int[] {0},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/OptionalDouble;"))
+                          factory.createType("Ljava/util/OptionalDouble;"))
                     })),
             new CfConstNumber(0, ValueType.INT),
             label2,
@@ -7647,7 +7357,7 @@ public final class BackportedMethods {
                     new int[] {0},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/OptionalDouble;"))
+                          factory.createType("Ljava/util/OptionalDouble;"))
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -7656,7 +7366,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode OptionalMethods_isEmptyInt(InternalOptions options, DexMethod method) {
+  public static CfCode OptionalMethods_isEmptyInt(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -7670,10 +7380,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/OptionalInt;"),
-                    options.itemFactory.createProto(options.itemFactory.booleanType),
-                    options.itemFactory.createString("isPresent")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/OptionalInt;"),
+                    factory.createProto(factory.booleanType),
+                    factory.createString("isPresent")),
                 false),
             new CfIf(If.Type.NE, ValueType.INT, label1),
             new CfConstNumber(1, ValueType.INT),
@@ -7684,7 +7394,7 @@ public final class BackportedMethods {
                     new int[] {0},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/OptionalInt;"))
+                          factory.createType("Ljava/util/OptionalInt;"))
                     })),
             new CfConstNumber(0, ValueType.INT),
             label2,
@@ -7693,7 +7403,7 @@ public final class BackportedMethods {
                     new int[] {0},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/OptionalInt;"))
+                          factory.createType("Ljava/util/OptionalInt;"))
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -7702,7 +7412,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode OptionalMethods_isEmptyLong(InternalOptions options, DexMethod method) {
+  public static CfCode OptionalMethods_isEmptyLong(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -7716,10 +7426,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/OptionalLong;"),
-                    options.itemFactory.createProto(options.itemFactory.booleanType),
-                    options.itemFactory.createString("isPresent")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/OptionalLong;"),
+                    factory.createProto(factory.booleanType),
+                    factory.createString("isPresent")),
                 false),
             new CfIf(If.Type.NE, ValueType.INT, label1),
             new CfConstNumber(1, ValueType.INT),
@@ -7730,7 +7440,7 @@ public final class BackportedMethods {
                     new int[] {0},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/OptionalLong;"))
+                          factory.createType("Ljava/util/OptionalLong;"))
                     })),
             new CfConstNumber(0, ValueType.INT),
             label2,
@@ -7739,7 +7449,7 @@ public final class BackportedMethods {
                     new int[] {0},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/OptionalLong;"))
+                          factory.createType("Ljava/util/OptionalLong;"))
                     }),
                 new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
             new CfReturn(ValueType.INT),
@@ -7748,7 +7458,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode OptionalMethods_or(InternalOptions options, DexMethod method) {
+  public static CfCode OptionalMethods_or(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -7764,21 +7474,20 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Objects;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType, options.itemFactory.objectType),
-                    options.itemFactory.createString("requireNonNull")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Objects;"),
+                    factory.createProto(factory.objectType, factory.objectType),
+                    factory.createString("requireNonNull")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
             label1,
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Optional;"),
-                    options.itemFactory.createProto(options.itemFactory.booleanType),
-                    options.itemFactory.createString("isPresent")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Optional;"),
+                    factory.createProto(factory.booleanType),
+                    factory.createString("isPresent")),
                 false),
             new CfIf(If.Type.EQ, ValueType.INT, label3),
             label2,
@@ -7790,38 +7499,37 @@ public final class BackportedMethods {
                     new int[] {0, 1},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/Optional;")),
+                          factory.createType("Ljava/util/Optional;")),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/function/Supplier;"))
+                          factory.createType("Ljava/util/function/Supplier;"))
                     })),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/function/Supplier;"),
-                    options.itemFactory.createProto(options.itemFactory.objectType),
-                    options.itemFactory.createString("get")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/function/Supplier;"),
+                    factory.createProto(factory.objectType),
+                    factory.createString("get")),
                 true),
-            new CfCheckCast(options.itemFactory.createType("Ljava/util/Optional;")),
+            new CfCheckCast(factory.createType("Ljava/util/Optional;")),
             new CfStore(ValueType.OBJECT, 2),
             label4,
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Objects;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType, options.itemFactory.objectType),
-                    options.itemFactory.createString("requireNonNull")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Objects;"),
+                    factory.createProto(factory.objectType, factory.objectType),
+                    factory.createString("requireNonNull")),
                 false),
-            new CfCheckCast(options.itemFactory.createType("Ljava/util/Optional;")),
+            new CfCheckCast(factory.createType("Ljava/util/Optional;")),
             new CfReturn(ValueType.OBJECT),
             label5),
         ImmutableList.of(),
         ImmutableList.of());
   }
 
-  public static CfCode OptionalMethods_stream(InternalOptions options, DexMethod method) {
+  public static CfCode OptionalMethods_stream(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -7835,29 +7543,28 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Optional;"),
-                    options.itemFactory.createProto(options.itemFactory.booleanType),
-                    options.itemFactory.createString("isPresent")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Optional;"),
+                    factory.createProto(factory.booleanType),
+                    factory.createString("isPresent")),
                 false),
             new CfIf(If.Type.EQ, ValueType.INT, label2),
             label1,
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Optional;"),
-                    options.itemFactory.createProto(options.itemFactory.objectType),
-                    options.itemFactory.createString("get")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Optional;"),
+                    factory.createProto(factory.objectType),
+                    factory.createString("get")),
                 false),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/stream/Stream;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/stream/Stream;"),
-                        options.itemFactory.objectType),
-                    options.itemFactory.createString("of")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/stream/Stream;"),
+                    factory.createProto(
+                        factory.createType("Ljava/util/stream/Stream;"), factory.objectType),
+                    factory.createString("of")),
                 true),
             new CfReturn(ValueType.OBJECT),
             label2,
@@ -7866,15 +7573,14 @@ public final class BackportedMethods {
                     new int[] {0},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/Optional;"))
+                          factory.createType("Ljava/util/Optional;"))
                     })),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/stream/Stream;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/stream/Stream;")),
-                    options.itemFactory.createString("empty")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/stream/Stream;"),
+                    factory.createProto(factory.createType("Ljava/util/stream/Stream;")),
+                    factory.createString("empty")),
                 true),
             new CfReturn(ValueType.OBJECT),
             label3),
@@ -7882,129 +7588,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode OptionalMethods_streamDouble(InternalOptions options, DexMethod method) {
-    CfLabel label0 = new CfLabel();
-    CfLabel label1 = new CfLabel();
-    CfLabel label2 = new CfLabel();
-    CfLabel label3 = new CfLabel();
-    return new CfCode(
-        method.holder,
-        2,
-        1,
-        ImmutableList.of(
-            label0,
-            new CfLoad(ValueType.OBJECT, 0),
-            new CfInvoke(
-                182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/OptionalDouble;"),
-                    options.itemFactory.createProto(options.itemFactory.booleanType),
-                    options.itemFactory.createString("isPresent")),
-                false),
-            new CfIf(If.Type.EQ, ValueType.INT, label2),
-            label1,
-            new CfLoad(ValueType.OBJECT, 0),
-            new CfInvoke(
-                182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/OptionalDouble;"),
-                    options.itemFactory.createProto(options.itemFactory.doubleType),
-                    options.itemFactory.createString("getAsDouble")),
-                false),
-            new CfInvoke(
-                184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/stream/DoubleStream;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/stream/DoubleStream;"),
-                        options.itemFactory.doubleType),
-                    options.itemFactory.createString("of")),
-                true),
-            new CfReturn(ValueType.OBJECT),
-            label2,
-            new CfFrame(
-                new Int2ObjectAVLTreeMap<>(
-                    new int[] {0},
-                    new FrameType[] {
-                      FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/OptionalDouble;"))
-                    })),
-            new CfInvoke(
-                184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/stream/DoubleStream;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/stream/DoubleStream;")),
-                    options.itemFactory.createString("empty")),
-                true),
-            new CfReturn(ValueType.OBJECT),
-            label3),
-        ImmutableList.of(),
-        ImmutableList.of());
-  }
-
-  public static CfCode OptionalMethods_streamInt(InternalOptions options, DexMethod method) {
-    CfLabel label0 = new CfLabel();
-    CfLabel label1 = new CfLabel();
-    CfLabel label2 = new CfLabel();
-    CfLabel label3 = new CfLabel();
-    return new CfCode(
-        method.holder,
-        1,
-        1,
-        ImmutableList.of(
-            label0,
-            new CfLoad(ValueType.OBJECT, 0),
-            new CfInvoke(
-                182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/OptionalInt;"),
-                    options.itemFactory.createProto(options.itemFactory.booleanType),
-                    options.itemFactory.createString("isPresent")),
-                false),
-            new CfIf(If.Type.EQ, ValueType.INT, label2),
-            label1,
-            new CfLoad(ValueType.OBJECT, 0),
-            new CfInvoke(
-                182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/OptionalInt;"),
-                    options.itemFactory.createProto(options.itemFactory.intType),
-                    options.itemFactory.createString("getAsInt")),
-                false),
-            new CfInvoke(
-                184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/stream/IntStream;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/stream/IntStream;"),
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("of")),
-                true),
-            new CfReturn(ValueType.OBJECT),
-            label2,
-            new CfFrame(
-                new Int2ObjectAVLTreeMap<>(
-                    new int[] {0},
-                    new FrameType[] {
-                      FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/OptionalInt;"))
-                    })),
-            new CfInvoke(
-                184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/stream/IntStream;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/stream/IntStream;")),
-                    options.itemFactory.createString("empty")),
-                true),
-            new CfReturn(ValueType.OBJECT),
-            label3),
-        ImmutableList.of(),
-        ImmutableList.of());
-  }
-
-  public static CfCode OptionalMethods_streamLong(InternalOptions options, DexMethod method) {
+  public static CfCode OptionalMethods_streamDouble(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -8018,29 +7602,28 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/OptionalLong;"),
-                    options.itemFactory.createProto(options.itemFactory.booleanType),
-                    options.itemFactory.createString("isPresent")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/OptionalDouble;"),
+                    factory.createProto(factory.booleanType),
+                    factory.createString("isPresent")),
                 false),
             new CfIf(If.Type.EQ, ValueType.INT, label2),
             label1,
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/OptionalLong;"),
-                    options.itemFactory.createProto(options.itemFactory.longType),
-                    options.itemFactory.createString("getAsLong")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/OptionalDouble;"),
+                    factory.createProto(factory.doubleType),
+                    factory.createString("getAsDouble")),
                 false),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/stream/LongStream;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/stream/LongStream;"),
-                        options.itemFactory.longType),
-                    options.itemFactory.createString("of")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/stream/DoubleStream;"),
+                    factory.createProto(
+                        factory.createType("Ljava/util/stream/DoubleStream;"), factory.doubleType),
+                    factory.createString("of")),
                 true),
             new CfReturn(ValueType.OBJECT),
             label2,
@@ -8049,15 +7632,14 @@ public final class BackportedMethods {
                     new int[] {0},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/OptionalLong;"))
+                          factory.createType("Ljava/util/OptionalDouble;"))
                     })),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/stream/LongStream;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/stream/LongStream;")),
-                    options.itemFactory.createString("empty")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/stream/DoubleStream;"),
+                    factory.createProto(factory.createType("Ljava/util/stream/DoubleStream;")),
+                    factory.createString("empty")),
                 true),
             new CfReturn(ValueType.OBJECT),
             label3),
@@ -8065,7 +7647,125 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode PredicateMethods_not(InternalOptions options, DexMethod method) {
+  public static CfCode OptionalMethods_streamInt(DexItemFactory factory, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        1,
+        1,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.createType("Ljava/util/OptionalInt;"),
+                    factory.createProto(factory.booleanType),
+                    factory.createString("isPresent")),
+                false),
+            new CfIf(If.Type.EQ, ValueType.INT, label2),
+            label1,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.createType("Ljava/util/OptionalInt;"),
+                    factory.createProto(factory.intType),
+                    factory.createString("getAsInt")),
+                false),
+            new CfInvoke(
+                184,
+                factory.createMethod(
+                    factory.createType("Ljava/util/stream/IntStream;"),
+                    factory.createProto(
+                        factory.createType("Ljava/util/stream/IntStream;"), factory.intType),
+                    factory.createString("of")),
+                true),
+            new CfReturn(ValueType.OBJECT),
+            label2,
+            new CfFrame(
+                new Int2ObjectAVLTreeMap<>(
+                    new int[] {0},
+                    new FrameType[] {
+                      FrameType.initializedNonNullReference(
+                          factory.createType("Ljava/util/OptionalInt;"))
+                    })),
+            new CfInvoke(
+                184,
+                factory.createMethod(
+                    factory.createType("Ljava/util/stream/IntStream;"),
+                    factory.createProto(factory.createType("Ljava/util/stream/IntStream;")),
+                    factory.createString("empty")),
+                true),
+            new CfReturn(ValueType.OBJECT),
+            label3),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode OptionalMethods_streamLong(DexItemFactory factory, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        2,
+        1,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.createType("Ljava/util/OptionalLong;"),
+                    factory.createProto(factory.booleanType),
+                    factory.createString("isPresent")),
+                false),
+            new CfIf(If.Type.EQ, ValueType.INT, label2),
+            label1,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.createType("Ljava/util/OptionalLong;"),
+                    factory.createProto(factory.longType),
+                    factory.createString("getAsLong")),
+                false),
+            new CfInvoke(
+                184,
+                factory.createMethod(
+                    factory.createType("Ljava/util/stream/LongStream;"),
+                    factory.createProto(
+                        factory.createType("Ljava/util/stream/LongStream;"), factory.longType),
+                    factory.createString("of")),
+                true),
+            new CfReturn(ValueType.OBJECT),
+            label2,
+            new CfFrame(
+                new Int2ObjectAVLTreeMap<>(
+                    new int[] {0},
+                    new FrameType[] {
+                      FrameType.initializedNonNullReference(
+                          factory.createType("Ljava/util/OptionalLong;"))
+                    })),
+            new CfInvoke(
+                184,
+                factory.createMethod(
+                    factory.createType("Ljava/util/stream/LongStream;"),
+                    factory.createProto(factory.createType("Ljava/util/stream/LongStream;")),
+                    factory.createString("empty")),
+                true),
+            new CfReturn(ValueType.OBJECT),
+            label3),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode PredicateMethods_not(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -8077,11 +7777,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/function/Predicate;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/function/Predicate;")),
-                    options.itemFactory.createString("negate")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/function/Predicate;"),
+                    factory.createProto(factory.createType("Ljava/util/function/Predicate;")),
+                    factory.createString("negate")),
                 true),
             new CfReturn(ValueType.OBJECT),
             label1),
@@ -8089,7 +7788,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode ShortMethods_compare(InternalOptions options, DexMethod method) {
+  public static CfCode ShortMethods_compare(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -8107,7 +7806,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode ShortMethods_compareUnsigned(InternalOptions options, DexMethod method) {
+  public static CfCode ShortMethods_compareUnsigned(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -8129,7 +7828,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode ShortMethods_toUnsignedInt(InternalOptions options, DexMethod method) {
+  public static CfCode ShortMethods_toUnsignedInt(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -8147,7 +7846,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode ShortMethods_toUnsignedLong(InternalOptions options, DexMethod method) {
+  public static CfCode ShortMethods_toUnsignedLong(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     return new CfCode(
@@ -8166,7 +7865,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode StreamMethods_ofNullable(InternalOptions options, DexMethod method) {
+  public static CfCode StreamMethods_ofNullable(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -8181,48 +7880,42 @@ public final class BackportedMethods {
             new CfIf(If.Type.NE, ValueType.OBJECT, label1),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/stream/Stream;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/stream/Stream;")),
-                    options.itemFactory.createString("empty")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/stream/Stream;"),
+                    factory.createProto(factory.createType("Ljava/util/stream/Stream;")),
+                    factory.createString("empty")),
                 true),
             new CfGoto(label2),
             label1,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
-                    })),
+                    new FrameType[] {FrameType.initializedNonNullReference(factory.objectType)})),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/stream/Stream;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/stream/Stream;"),
-                        options.itemFactory.objectType),
-                    options.itemFactory.createString("of")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/stream/Stream;"),
+                    factory.createProto(
+                        factory.createType("Ljava/util/stream/Stream;"), factory.objectType),
+                    factory.createString("of")),
                 true),
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
-                    }),
+                    new FrameType[] {FrameType.initializedNonNullReference(factory.objectType)}),
                 new ArrayDeque<>(
                     Arrays.asList(
                         FrameType.initializedNonNullReference(
-                            options.itemFactory.createType("Ljava/util/stream/Stream;"))))),
+                            factory.createType("Ljava/util/stream/Stream;"))))),
             new CfReturn(ValueType.OBJECT),
             label3),
         ImmutableList.of(),
         ImmutableList.of());
   }
 
-  public static CfCode StringMethods_isBlank(InternalOptions options, DexMethod method) {
+  public static CfCode StringMethods_isBlank(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -8245,10 +7938,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(options.itemFactory.intType),
-                    options.itemFactory.createString("length")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(factory.intType),
+                    factory.createString("length")),
                 false),
             new CfStore(ValueType.INT, 2),
             label2,
@@ -8256,7 +7949,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -8268,22 +7961,20 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 1),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType, options.itemFactory.intType),
-                    options.itemFactory.createString("codePointAt")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(factory.intType, factory.intType),
+                    factory.createString("codePointAt")),
                 false),
             new CfStore(ValueType.INT, 3),
             label4,
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.boxedCharType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType, options.itemFactory.intType),
-                    options.itemFactory.createString("isWhitespace")),
+                factory.createMethod(
+                    factory.boxedCharType,
+                    factory.createProto(factory.booleanType, factory.intType),
+                    factory.createString("isWhitespace")),
                 false),
             new CfIf(If.Type.NE, ValueType.INT, label6),
             label5,
@@ -8294,7 +7985,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType()
@@ -8303,11 +7994,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.boxedCharType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType, options.itemFactory.intType),
-                    options.itemFactory.createString("charCount")),
+                factory.createMethod(
+                    factory.boxedCharType,
+                    factory.createProto(factory.intType, factory.intType),
+                    factory.createString("charCount")),
                 false),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
             new CfStore(ValueType.INT, 1),
@@ -8317,9 +8007,7 @@ public final class BackportedMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType)
-                    })),
+                    new FrameType[] {FrameType.initializedNonNullReference(factory.stringType)})),
             new CfConstNumber(1, ValueType.INT),
             new CfReturn(ValueType.INT),
             label9),
@@ -8327,7 +8015,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode StringMethods_joinArray(InternalOptions options, DexMethod method) {
+  public static CfCode StringMethods_joinArray(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -8347,16 +8035,15 @@ public final class BackportedMethods {
             label0,
             new CfLoad(ValueType.OBJECT, 0),
             new CfIf(If.Type.NE, ValueType.OBJECT, label1),
-            new CfNew(options.itemFactory.createType("Ljava/lang/NullPointerException;")),
+            new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfConstString(options.itemFactory.createString("delimiter")),
+            new CfConstString(factory.createString("delimiter")),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/NullPointerException;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.stringType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/NullPointerException;"),
+                    factory.createProto(factory.voidType, factory.stringType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label1,
@@ -8364,18 +8051,18 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/lang/CharSequence;"))
+                          factory.createType("[Ljava/lang/CharSequence;"))
                     })),
-            new CfNew(options.itemFactory.stringBuilderType),
+            new CfNew(factory.stringBuilderType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfStore(ValueType.OBJECT, 2),
             label2,
@@ -8389,12 +8076,10 @@ public final class BackportedMethods {
             new CfArrayLoad(MemberType.OBJECT),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType,
-                        options.itemFactory.charSequenceType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.charSequenceType),
+                    factory.createString("append")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
             label4,
@@ -8405,10 +8090,10 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/lang/CharSequence;")),
-                      FrameType.initializedNonNullReference(options.itemFactory.stringBuilderType),
+                          factory.createType("[Ljava/lang/CharSequence;")),
+                      FrameType.initializedNonNullReference(factory.stringBuilderType),
                       FrameType.intType()
                     })),
             new CfLoad(ValueType.INT, 3),
@@ -8420,12 +8105,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType,
-                        options.itemFactory.charSequenceType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.charSequenceType),
+                    factory.createString("append")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
             label7,
@@ -8435,12 +8118,10 @@ public final class BackportedMethods {
             new CfArrayLoad(MemberType.OBJECT),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType,
-                        options.itemFactory.charSequenceType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.charSequenceType),
+                    factory.createString("append")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
             label8,
@@ -8451,18 +8132,18 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("[Ljava/lang/CharSequence;")),
-                      FrameType.initializedNonNullReference(options.itemFactory.stringBuilderType)
+                          factory.createType("[Ljava/lang/CharSequence;")),
+                      FrameType.initializedNonNullReference(factory.stringBuilderType)
                     })),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 false),
             new CfReturn(ValueType.OBJECT),
             label10),
@@ -8470,7 +8151,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode StringMethods_joinIterable(InternalOptions options, DexMethod method) {
+  public static CfCode StringMethods_joinIterable(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -8489,16 +8170,15 @@ public final class BackportedMethods {
             label0,
             new CfLoad(ValueType.OBJECT, 0),
             new CfIf(If.Type.NE, ValueType.OBJECT, label1),
-            new CfNew(options.itemFactory.createType("Ljava/lang/NullPointerException;")),
+            new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfConstString(options.itemFactory.createString("delimiter")),
+            new CfConstString(factory.createString("delimiter")),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/NullPointerException;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.stringType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/NullPointerException;"),
+                    factory.createProto(factory.voidType, factory.stringType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label1,
@@ -8506,39 +8186,38 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/lang/Iterable;"))
+                          factory.createType("Ljava/lang/Iterable;"))
                     })),
-            new CfNew(options.itemFactory.stringBuilderType),
+            new CfNew(factory.stringBuilderType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
             new CfStore(ValueType.OBJECT, 2),
             label2,
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Iterable;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/util/Iterator;")),
-                    options.itemFactory.createString("iterator")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/Iterable;"),
+                    factory.createProto(factory.createType("Ljava/util/Iterator;")),
+                    factory.createString("iterator")),
                 true),
             new CfStore(ValueType.OBJECT, 3),
             label3,
             new CfLoad(ValueType.OBJECT, 3),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Iterator;"),
-                    options.itemFactory.createProto(options.itemFactory.booleanType),
-                    options.itemFactory.createString("hasNext")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Iterator;"),
+                    factory.createProto(factory.booleanType),
+                    factory.createString("hasNext")),
                 true),
             new CfIf(If.Type.EQ, ValueType.INT, label8),
             label4,
@@ -8546,20 +8225,18 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 3),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Iterator;"),
-                    options.itemFactory.createProto(options.itemFactory.objectType),
-                    options.itemFactory.createString("next")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Iterator;"),
+                    factory.createProto(factory.objectType),
+                    factory.createString("next")),
                 true),
-            new CfCheckCast(options.itemFactory.charSequenceType),
+            new CfCheckCast(factory.charSequenceType),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType,
-                        options.itemFactory.charSequenceType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.charSequenceType),
+                    factory.createString("append")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
             label5,
@@ -8567,20 +8244,20 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/lang/Iterable;")),
-                      FrameType.initializedNonNullReference(options.itemFactory.stringBuilderType),
+                          factory.createType("Ljava/lang/Iterable;")),
+                      FrameType.initializedNonNullReference(factory.stringBuilderType),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/Iterator;"))
+                          factory.createType("Ljava/util/Iterator;"))
                     })),
             new CfLoad(ValueType.OBJECT, 3),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Iterator;"),
-                    options.itemFactory.createProto(options.itemFactory.booleanType),
-                    options.itemFactory.createString("hasNext")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Iterator;"),
+                    factory.createProto(factory.booleanType),
+                    factory.createString("hasNext")),
                 true),
             new CfIf(If.Type.EQ, ValueType.INT, label8),
             label6,
@@ -8588,12 +8265,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType,
-                        options.itemFactory.charSequenceType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.charSequenceType),
+                    factory.createString("append")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
             label7,
@@ -8601,20 +8276,18 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 3),
             new CfInvoke(
                 185,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Iterator;"),
-                    options.itemFactory.createProto(options.itemFactory.objectType),
-                    options.itemFactory.createString("next")),
+                factory.createMethod(
+                    factory.createType("Ljava/util/Iterator;"),
+                    factory.createProto(factory.objectType),
+                    factory.createString("next")),
                 true),
-            new CfCheckCast(options.itemFactory.charSequenceType),
+            new CfCheckCast(factory.charSequenceType),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType,
-                        options.itemFactory.charSequenceType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.charSequenceType),
+                    factory.createString("append")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
             new CfGoto(label5),
@@ -8623,20 +8296,20 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.charSequenceType),
+                      FrameType.initializedNonNullReference(factory.charSequenceType),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/lang/Iterable;")),
-                      FrameType.initializedNonNullReference(options.itemFactory.stringBuilderType),
+                          factory.createType("Ljava/lang/Iterable;")),
+                      FrameType.initializedNonNullReference(factory.stringBuilderType),
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Ljava/util/Iterator;"))
+                          factory.createType("Ljava/util/Iterator;"))
                     })),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 false),
             new CfReturn(ValueType.OBJECT),
             label9),
@@ -8644,7 +8317,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode StringMethods_repeat(InternalOptions options, DexMethod method) {
+  public static CfCode StringMethods_repeat(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -8671,49 +8344,46 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 1),
             new CfIf(If.Type.GE, ValueType.INT, label2),
             label1,
-            new CfNew(options.itemFactory.createType("Ljava/lang/IllegalArgumentException;")),
+            new CfNew(factory.createType("Ljava/lang/IllegalArgumentException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfNew(options.itemFactory.stringBuilderType),
+            new CfNew(factory.stringBuilderType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
-            new CfConstString(options.itemFactory.createString("count is negative: ")),
+            new CfConstString(factory.createString("count is negative: ")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfLoad(ValueType.INT, 1),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.intType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.intType),
+                    factory.createString("append")),
                 false),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 false),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/IllegalArgumentException;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.stringType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/IllegalArgumentException;"),
+                    factory.createProto(factory.voidType, factory.stringType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label2,
@@ -8721,16 +8391,15 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
-                      FrameType.intType()
+                      FrameType.initializedNonNullReference(factory.stringType), FrameType.intType()
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(options.itemFactory.intType),
-                    options.itemFactory.createString("length")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(factory.intType),
+                    factory.createString("length")),
                 false),
             new CfStore(ValueType.INT, 2),
             label3,
@@ -8743,18 +8412,18 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
-            new CfConstString(options.itemFactory.createString("")),
+            new CfConstString(factory.createString("")),
             new CfReturn(ValueType.OBJECT),
             label5,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -8769,103 +8438,96 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(options.itemFactory.intType),
-                    options.itemFactory.createString("length")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(factory.intType),
+                    factory.createString("length")),
                 false),
             new CfConstNumber(2147483647, ValueType.INT),
             new CfLoad(ValueType.INT, 1),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Div, NumericType.INT),
             new CfIfCmp(If.Type.LE, ValueType.INT, label10),
             label8,
-            new CfNew(options.itemFactory.createType("Ljava/lang/OutOfMemoryError;")),
+            new CfNew(factory.createType("Ljava/lang/OutOfMemoryError;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfNew(options.itemFactory.stringBuilderType),
+            new CfNew(factory.stringBuilderType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.voidType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
                 false),
-            new CfConstString(options.itemFactory.createString("Repeating ")),
+            new CfConstString(factory.createString("Repeating ")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfLoad(ValueType.OBJECT, 0),
             label9,
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(options.itemFactory.intType),
-                    options.itemFactory.createString("length")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(factory.intType),
+                    factory.createString("length")),
                 false),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.intType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.intType),
+                    factory.createString("append")),
                 false),
-            new CfConstString(options.itemFactory.createString(" bytes String ")),
+            new CfConstString(factory.createString(" bytes String ")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfLoad(ValueType.INT, 1),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.intType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.intType),
+                    factory.createString("append")),
                 false),
             new CfConstString(
-                options.itemFactory.createString(
-                    " times will produce a String exceeding maximum size.")),
+                factory.createString(" times will produce a String exceeding maximum size.")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 false),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/OutOfMemoryError;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.stringType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/OutOfMemoryError;"),
+                    factory.createProto(factory.voidType, factory.stringType),
+                    factory.createString("<init>")),
                 false),
             new CfThrow(),
             label10,
@@ -8873,22 +8535,21 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
-            new CfNew(options.itemFactory.stringBuilderType),
+            new CfNew(factory.stringBuilderType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfLoad(ValueType.INT, 2),
             new CfLoad(ValueType.INT, 1),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.INT),
             new CfInvoke(
                 183,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.voidType, options.itemFactory.intType),
-                    options.itemFactory.createString("<init>")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.voidType, factory.intType),
+                    factory.createString("<init>")),
                 false),
             new CfStore(ValueType.OBJECT, 3),
             label11,
@@ -8899,10 +8560,10 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.intType(),
                       FrameType.intType(),
-                      FrameType.initializedNonNullReference(options.itemFactory.stringBuilderType),
+                      FrameType.initializedNonNullReference(factory.stringBuilderType),
                       FrameType.intType()
                     })),
             new CfLoad(ValueType.INT, 4),
@@ -8913,11 +8574,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
-                    options.itemFactory.createString("append")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
             label14,
@@ -8928,18 +8588,18 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.intType(),
                       FrameType.intType(),
-                      FrameType.initializedNonNullReference(options.itemFactory.stringBuilderType)
+                      FrameType.initializedNonNullReference(factory.stringBuilderType)
                     })),
             new CfLoad(ValueType.OBJECT, 3),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringBuilderType,
-                    options.itemFactory.createProto(options.itemFactory.stringType),
-                    options.itemFactory.createString("toString")),
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
                 false),
             new CfReturn(ValueType.OBJECT),
             label16),
@@ -8947,7 +8607,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode StringMethods_strip(InternalOptions options, DexMethod method) {
+  public static CfCode StringMethods_strip(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -8976,10 +8636,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(options.itemFactory.intType),
-                    options.itemFactory.createString("length")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(factory.intType),
+                    factory.createString("length")),
                 false),
             new CfStore(ValueType.INT, 2),
             label2,
@@ -8987,7 +8647,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -8999,22 +8659,20 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 1),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType, options.itemFactory.intType),
-                    options.itemFactory.createString("codePointAt")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(factory.intType, factory.intType),
+                    factory.createString("codePointAt")),
                 false),
             new CfStore(ValueType.INT, 3),
             label4,
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.boxedCharType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType, options.itemFactory.intType),
-                    options.itemFactory.createString("isWhitespace")),
+                factory.createMethod(
+                    factory.boxedCharType,
+                    factory.createProto(factory.booleanType, factory.intType),
+                    factory.createString("isWhitespace")),
                 false),
             new CfIf(If.Type.NE, ValueType.INT, label6),
             label5,
@@ -9024,7 +8682,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType()
@@ -9033,11 +8691,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.boxedCharType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType, options.itemFactory.intType),
-                    options.itemFactory.createString("charCount")),
+                factory.createMethod(
+                    factory.boxedCharType,
+                    factory.createProto(factory.intType, factory.intType),
+                    factory.createString("charCount")),
                 false),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
             new CfStore(ValueType.INT, 1),
@@ -9048,7 +8705,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -9060,24 +8717,20 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 2),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.boxedCharType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType,
-                        options.itemFactory.charSequenceType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("codePointBefore")),
+                factory.createMethod(
+                    factory.boxedCharType,
+                    factory.createProto(factory.intType, factory.charSequenceType, factory.intType),
+                    factory.createString("codePointBefore")),
                 false),
             new CfStore(ValueType.INT, 3),
             label10,
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.boxedCharType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType, options.itemFactory.intType),
-                    options.itemFactory.createString("isWhitespace")),
+                factory.createMethod(
+                    factory.boxedCharType,
+                    factory.createProto(factory.booleanType, factory.intType),
+                    factory.createString("isWhitespace")),
                 false),
             new CfIf(If.Type.NE, ValueType.INT, label12),
             label11,
@@ -9087,7 +8740,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType()
@@ -9096,11 +8749,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.boxedCharType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType, options.itemFactory.intType),
-                    options.itemFactory.createString("charCount")),
+                factory.createMethod(
+                    factory.boxedCharType,
+                    factory.createProto(factory.intType, factory.intType),
+                    factory.createString("charCount")),
                 false),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
             new CfStore(ValueType.INT, 2),
@@ -9111,7 +8763,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -9120,13 +8772,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 2),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringType,
-                        options.itemFactory.intType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("substring")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(factory.stringType, factory.intType, factory.intType),
+                    factory.createString("substring")),
                 false),
             new CfReturn(ValueType.OBJECT),
             label15),
@@ -9134,7 +8783,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode StringMethods_stripLeading(InternalOptions options, DexMethod method) {
+  public static CfCode StringMethods_stripLeading(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -9157,10 +8806,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(options.itemFactory.intType),
-                    options.itemFactory.createString("length")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(factory.intType),
+                    factory.createString("length")),
                 false),
             new CfStore(ValueType.INT, 2),
             label2,
@@ -9168,7 +8817,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -9180,22 +8829,20 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 1),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType, options.itemFactory.intType),
-                    options.itemFactory.createString("codePointAt")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(factory.intType, factory.intType),
+                    factory.createString("codePointAt")),
                 false),
             new CfStore(ValueType.INT, 3),
             label4,
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.boxedCharType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType, options.itemFactory.intType),
-                    options.itemFactory.createString("isWhitespace")),
+                factory.createMethod(
+                    factory.boxedCharType,
+                    factory.createProto(factory.booleanType, factory.intType),
+                    factory.createString("isWhitespace")),
                 false),
             new CfIf(If.Type.NE, ValueType.INT, label6),
             label5,
@@ -9205,7 +8852,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.intType(),
                       FrameType.intType(),
                       FrameType.intType()
@@ -9214,11 +8861,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.boxedCharType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType, options.itemFactory.intType),
-                    options.itemFactory.createString("charCount")),
+                factory.createMethod(
+                    factory.boxedCharType,
+                    factory.createProto(factory.intType, factory.intType),
+                    factory.createString("charCount")),
                 false),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
             new CfStore(ValueType.INT, 1),
@@ -9229,7 +8875,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -9238,13 +8884,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 2),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringType,
-                        options.itemFactory.intType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("substring")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(factory.stringType, factory.intType, factory.intType),
+                    factory.createString("substring")),
                 false),
             new CfReturn(ValueType.OBJECT),
             label9),
@@ -9252,7 +8895,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode StringMethods_stripTrailing(InternalOptions options, DexMethod method) {
+  public static CfCode StringMethods_stripTrailing(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -9271,10 +8914,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(options.itemFactory.intType),
-                    options.itemFactory.createString("length")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(factory.intType),
+                    factory.createString("length")),
                 false),
             new CfStore(ValueType.INT, 1),
             label1,
@@ -9282,8 +8925,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
-                      FrameType.intType()
+                      FrameType.initializedNonNullReference(factory.stringType), FrameType.intType()
                     })),
             new CfLoad(ValueType.INT, 1),
             new CfIf(If.Type.LE, ValueType.INT, label7),
@@ -9292,24 +8934,20 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 1),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.boxedCharType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType,
-                        options.itemFactory.charSequenceType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("codePointBefore")),
+                factory.createMethod(
+                    factory.boxedCharType,
+                    factory.createProto(factory.intType, factory.charSequenceType, factory.intType),
+                    factory.createString("codePointBefore")),
                 false),
             new CfStore(ValueType.INT, 2),
             label3,
             new CfLoad(ValueType.INT, 2),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.boxedCharType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType, options.itemFactory.intType),
-                    options.itemFactory.createString("isWhitespace")),
+                factory.createMethod(
+                    factory.boxedCharType,
+                    factory.createProto(factory.booleanType, factory.intType),
+                    factory.createString("isWhitespace")),
                 false),
             new CfIf(If.Type.NE, ValueType.INT, label5),
             label4,
@@ -9319,7 +8957,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
+                      FrameType.initializedNonNullReference(factory.stringType),
                       FrameType.intType(),
                       FrameType.intType()
                     })),
@@ -9327,11 +8965,10 @@ public final class BackportedMethods {
             new CfLoad(ValueType.INT, 2),
             new CfInvoke(
                 184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.boxedCharType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.intType, options.itemFactory.intType),
-                    options.itemFactory.createString("charCount")),
+                factory.createMethod(
+                    factory.boxedCharType,
+                    factory.createProto(factory.intType, factory.intType),
+                    factory.createString("charCount")),
                 false),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
             new CfStore(ValueType.INT, 1),
@@ -9342,21 +8979,17 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.stringType),
-                      FrameType.intType()
+                      FrameType.initializedNonNullReference(factory.stringType), FrameType.intType()
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfConstNumber(0, ValueType.INT),
             new CfLoad(ValueType.INT, 1),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.stringType,
-                        options.itemFactory.intType,
-                        options.itemFactory.intType),
-                    options.itemFactory.createString("substring")),
+                factory.createMethod(
+                    factory.stringType,
+                    factory.createProto(factory.stringType, factory.intType, factory.intType),
+                    factory.createString("substring")),
                 false),
             new CfReturn(ValueType.OBJECT),
             label8),
@@ -9364,7 +8997,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode ThrowableMethods_addSuppressed(InternalOptions options, DexMethod method) {
+  public static CfCode ThrowableMethods_addSuppressed(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -9377,43 +9010,43 @@ public final class BackportedMethods {
         3,
         ImmutableList.of(
             label0,
-            new CfConstClass(options.itemFactory.throwableType),
-            new CfConstString(options.itemFactory.createString("addSuppressed")),
+            new CfConstClass(factory.throwableType),
+            new CfConstString(factory.createString("addSuppressed")),
             new CfConstNumber(1, ValueType.INT),
-            new CfNewArray(options.itemFactory.createType("[Ljava/lang/Class;")),
+            new CfNewArray(factory.createType("[Ljava/lang/Class;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfConstNumber(0, ValueType.INT),
-            new CfConstClass(options.itemFactory.throwableType),
+            new CfConstClass(factory.throwableType),
             new CfArrayStore(MemberType.OBJECT),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.classType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/lang/reflect/Method;"),
-                        options.itemFactory.stringType,
-                        options.itemFactory.createType("[Ljava/lang/Class;")),
-                    options.itemFactory.createString("getDeclaredMethod")),
+                factory.createMethod(
+                    factory.classType,
+                    factory.createProto(
+                        factory.createType("Ljava/lang/reflect/Method;"),
+                        factory.stringType,
+                        factory.createType("[Ljava/lang/Class;")),
+                    factory.createString("getDeclaredMethod")),
                 false),
             new CfStore(ValueType.OBJECT, 2),
             label1,
             new CfLoad(ValueType.OBJECT, 2),
             new CfLoad(ValueType.OBJECT, 0),
             new CfConstNumber(1, ValueType.INT),
-            new CfNewArray(options.itemFactory.createType("[Ljava/lang/Object;")),
+            new CfNewArray(factory.createType("[Ljava/lang/Object;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfConstNumber(0, ValueType.INT),
             new CfLoad(ValueType.OBJECT, 1),
             new CfArrayStore(MemberType.OBJECT),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/reflect/Method;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType,
-                        options.itemFactory.objectType,
-                        options.itemFactory.createType("[Ljava/lang/Object;")),
-                    options.itemFactory.createString("invoke")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/reflect/Method;"),
+                    factory.createProto(
+                        factory.objectType,
+                        factory.objectType,
+                        factory.createType("[Ljava/lang/Object;")),
+                    factory.createString("invoke")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
             label2,
@@ -9423,21 +9056,21 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
-                      FrameType.initializedNonNullReference(options.itemFactory.throwableType)
+                      FrameType.initializedNonNullReference(factory.throwableType),
+                      FrameType.initializedNonNullReference(factory.throwableType)
                     }),
                 new ArrayDeque<>(
                     Arrays.asList(
                         FrameType.initializedNonNullReference(
-                            options.itemFactory.createType("Ljava/lang/Exception;"))))),
+                            factory.createType("Ljava/lang/Exception;"))))),
             new CfStore(ValueType.OBJECT, 2),
             label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.throwableType),
-                      FrameType.initializedNonNullReference(options.itemFactory.throwableType)
+                      FrameType.initializedNonNullReference(factory.throwableType),
+                      FrameType.initializedNonNullReference(factory.throwableType)
                     })),
             new CfReturnVoid(),
             label5),
@@ -9445,12 +9078,12 @@ public final class BackportedMethods {
             new CfTryCatch(
                 label0,
                 label2,
-                ImmutableList.of(options.itemFactory.createType("Ljava/lang/Exception;")),
+                ImmutableList.of(factory.createType("Ljava/lang/Exception;")),
                 ImmutableList.of(label3))),
         ImmutableList.of());
   }
 
-  public static CfCode ThrowableMethods_getSuppressed(InternalOptions options, DexMethod method) {
+  public static CfCode ThrowableMethods_getSuppressed(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -9463,67 +9096,65 @@ public final class BackportedMethods {
         2,
         ImmutableList.of(
             label0,
-            new CfConstClass(options.itemFactory.throwableType),
-            new CfConstString(options.itemFactory.createString("getSuppressed")),
+            new CfConstClass(factory.throwableType),
+            new CfConstString(factory.createString("getSuppressed")),
             new CfConstNumber(0, ValueType.INT),
-            new CfNewArray(options.itemFactory.createType("[Ljava/lang/Class;")),
+            new CfNewArray(factory.createType("[Ljava/lang/Class;")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.classType,
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("Ljava/lang/reflect/Method;"),
-                        options.itemFactory.stringType,
-                        options.itemFactory.createType("[Ljava/lang/Class;")),
-                    options.itemFactory.createString("getDeclaredMethod")),
+                factory.createMethod(
+                    factory.classType,
+                    factory.createProto(
+                        factory.createType("Ljava/lang/reflect/Method;"),
+                        factory.stringType,
+                        factory.createType("[Ljava/lang/Class;")),
+                    factory.createString("getDeclaredMethod")),
                 false),
             new CfStore(ValueType.OBJECT, 1),
             label1,
             new CfLoad(ValueType.OBJECT, 1),
             new CfLoad(ValueType.OBJECT, 0),
             new CfConstNumber(0, ValueType.INT),
-            new CfNewArray(options.itemFactory.createType("[Ljava/lang/Object;")),
+            new CfNewArray(factory.createType("[Ljava/lang/Object;")),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/reflect/Method;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType,
-                        options.itemFactory.objectType,
-                        options.itemFactory.createType("[Ljava/lang/Object;")),
-                    options.itemFactory.createString("invoke")),
+                factory.createMethod(
+                    factory.createType("Ljava/lang/reflect/Method;"),
+                    factory.createProto(
+                        factory.objectType,
+                        factory.objectType,
+                        factory.createType("[Ljava/lang/Object;")),
+                    factory.createString("invoke")),
                 false),
-            new CfCheckCast(options.itemFactory.createType("[Ljava/lang/Throwable;")),
+            new CfCheckCast(factory.createType("[Ljava/lang/Throwable;")),
             label2,
             new CfReturn(ValueType.OBJECT),
             label3,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
-                    new FrameType[] {
-                      FrameType.initializedNonNullReference(options.itemFactory.throwableType)
-                    }),
+                    new FrameType[] {FrameType.initializedNonNullReference(factory.throwableType)}),
                 new ArrayDeque<>(
                     Arrays.asList(
                         FrameType.initializedNonNullReference(
-                            options.itemFactory.createType("Ljava/lang/Exception;"))))),
+                            factory.createType("Ljava/lang/Exception;"))))),
             new CfStore(ValueType.OBJECT, 1),
             label4,
             new CfConstNumber(0, ValueType.INT),
-            new CfNewArray(options.itemFactory.createType("[Ljava/lang/Throwable;")),
+            new CfNewArray(factory.createType("[Ljava/lang/Throwable;")),
             new CfReturn(ValueType.OBJECT),
             label5),
         ImmutableList.of(
             new CfTryCatch(
                 label0,
                 label2,
-                ImmutableList.of(options.itemFactory.createType("Ljava/lang/Exception;")),
+                ImmutableList.of(factory.createType("Ljava/lang/Exception;")),
                 ImmutableList.of(label3))),
         ImmutableList.of());
   }
 
   public static CfCode UnsafeMethods_compareAndSwapObject(
-      InternalOptions options, DexMethod method) {
+      DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
@@ -9540,12 +9171,12 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Lsun/misc/Unsafe;")),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                          factory.createType("Lsun/misc/Unsafe;")),
+                      FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.longType(),
                       FrameType.longHighType(),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.OBJECT, 1),
@@ -9554,15 +9185,15 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 5),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Lsun/misc/Unsafe;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType,
-                        options.itemFactory.objectType,
-                        options.itemFactory.longType,
-                        options.itemFactory.objectType,
-                        options.itemFactory.objectType),
-                    options.itemFactory.createString("compareAndSwapObject")),
+                factory.createMethod(
+                    factory.createType("Lsun/misc/Unsafe;"),
+                    factory.createProto(
+                        factory.booleanType,
+                        factory.objectType,
+                        factory.longType,
+                        factory.objectType,
+                        factory.objectType),
+                    factory.createString("compareAndSwapObject")),
                 false),
             new CfIf(If.Type.EQ, ValueType.INT, label2),
             label1,
@@ -9574,25 +9205,22 @@ public final class BackportedMethods {
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
                       FrameType.initializedNonNullReference(
-                          options.itemFactory.createType("Lsun/misc/Unsafe;")),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
+                          factory.createType("Lsun/misc/Unsafe;")),
+                      FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.longType(),
                       FrameType.longHighType(),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType),
-                      FrameType.initializedNonNullReference(options.itemFactory.objectType)
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.OBJECT, 1),
             new CfLoad(ValueType.LONG, 2),
             new CfInvoke(
                 182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Lsun/misc/Unsafe;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.objectType,
-                        options.itemFactory.objectType,
-                        options.itemFactory.longType),
-                    options.itemFactory.createString("getObject")),
+                factory.createMethod(
+                    factory.createType("Lsun/misc/Unsafe;"),
+                    factory.createProto(factory.objectType, factory.objectType, factory.longType),
+                    factory.createString("getObject")),
                 false),
             new CfLoad(ValueType.OBJECT, 4),
             new CfIfCmp(If.Type.EQ, ValueType.OBJECT, label0),

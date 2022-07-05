@@ -14,11 +14,11 @@ import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import org.objectweb.asm.Opcodes;
@@ -27,20 +27,19 @@ public final class CollectionMethodGenerators {
 
   private CollectionMethodGenerators() {}
 
-  public static CfCode generateListOf(InternalOptions options, DexMethod method, int formalCount) {
-    return generateFixedMethods(options, method, formalCount, options.itemFactory.listType);
+  public static CfCode generateListOf(DexItemFactory factory, DexMethod method, int formalCount) {
+    return generateFixedMethods(factory, method, formalCount, factory.listType);
   }
 
-  public static CfCode generateSetOf(InternalOptions options, DexMethod method, int formalCount) {
-    return generateFixedMethods(options, method, formalCount, options.itemFactory.setType);
+  public static CfCode generateSetOf(DexItemFactory factory, DexMethod method, int formalCount) {
+    return generateFixedMethods(factory, method, formalCount, factory.setType);
   }
 
   private static CfCode generateFixedMethods(
-      InternalOptions options, DexMethod method, int formalCount, DexType returnType) {
+      DexItemFactory factory, DexMethod method, int formalCount, DexType returnType) {
     Builder<CfInstruction> builder = ImmutableList.builder();
     builder.add(
-        new CfConstNumber(formalCount, ValueType.INT),
-        new CfNewArray(options.itemFactory.objectArrayType));
+        new CfConstNumber(formalCount, ValueType.INT), new CfNewArray(factory.objectArrayType));
 
     for (int i = 0; i < formalCount; i++) {
       builder.add(
@@ -53,28 +52,24 @@ public final class CollectionMethodGenerators {
     builder.add(
         new CfInvoke(
             Opcodes.INVOKESTATIC,
-            options.itemFactory.createMethod(
+            factory.createMethod(
                 returnType,
-                options.itemFactory.createProto(returnType, options.itemFactory.objectArrayType),
-                options.itemFactory.createString("of")),
+                factory.createProto(returnType, factory.objectArrayType),
+                factory.createString("of")),
             false),
         new CfReturn(ValueType.OBJECT));
 
     return new CfCode(method.holder, 4, formalCount, builder.build());
   }
 
-  public static CfCode generateMapOf(
-      InternalOptions options, DexMethod method, int formalCount) {
-    DexType mapEntryArray =
-        options.itemFactory.createArrayType(1, options.itemFactory.mapEntryType);
-    DexType simpleEntry = options.itemFactory.abstractMapSimpleEntryType;
-    DexMethod simpleEntryConstructor = options.itemFactory.createMethod(
-        simpleEntry,
-        options.itemFactory.createProto(
-            options.itemFactory.voidType,
-            options.itemFactory.objectType,
-            options.itemFactory.objectType),
-        Constants.INSTANCE_INITIALIZER_NAME);
+  public static CfCode generateMapOf(DexItemFactory factory, DexMethod method, int formalCount) {
+    DexType mapEntryArray = factory.createArrayType(1, factory.mapEntryType);
+    DexType simpleEntry = factory.abstractMapSimpleEntryType;
+    DexMethod simpleEntryConstructor =
+        factory.createMethod(
+            simpleEntry,
+            factory.createProto(factory.voidType, factory.objectType, factory.objectType),
+            Constants.INSTANCE_INITIALIZER_NAME);
 
     Builder<CfInstruction> builder = ImmutableList.builder();
     builder.add(
@@ -96,12 +91,10 @@ public final class CollectionMethodGenerators {
     builder.add(
         new CfInvoke(
             Opcodes.INVOKESTATIC,
-            options.itemFactory.createMethod(
-                options.itemFactory.mapType,
-                options.itemFactory.createProto(
-                    options.itemFactory.mapType,
-                    mapEntryArray),
-                options.itemFactory.createString("ofEntries")),
+            factory.createMethod(
+                factory.mapType,
+                factory.createProto(factory.mapType, mapEntryArray),
+                factory.createString("ofEntries")),
             false),
         new CfReturn(ValueType.OBJECT));
 

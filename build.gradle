@@ -1025,6 +1025,7 @@ task testJarSources(type: Jar, dependsOn: [testClasses, buildLibraryDesugarConve
     from sourceSets.test.output
     // We only want to include tests that use R8 when generating keep rules for applymapping.
     include "com/android/tools/r8/**"
+    include "android/**"
     include "dalvik/**"
 }
 

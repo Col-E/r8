@@ -99,7 +99,6 @@ public class DesugaredLibraryAmender {
         DexEncodedMethod.syntheticBuilder()
             .setMethod(method)
             .setAccessFlags(methodAccessFlags)
-            .setCode(null)
             .setApiLevelForDefinition(minAPILevel)
             .build();
     libClass.getMethodCollection().addMethod(encodedMethod);
