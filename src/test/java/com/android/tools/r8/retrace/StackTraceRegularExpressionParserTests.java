@@ -11,6 +11,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.retrace.stacktraces.InlineFileNameStackTrace;
+import com.android.tools.r8.retrace.stacktraces.LongLineStackTrace;
 import com.android.tools.r8.retrace.stacktraces.RetraceAssertionErrorStackTrace;
 import com.android.tools.r8.retrace.stacktraces.StackTraceForTest;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -1133,6 +1134,13 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
             return 0;
           }
         });
+  }
+
+  /** This is a regression test for b/234758957 */
+  // TODO(b/234758957): Should not loop.
+  @Test(expected = StackOverflowError.class)
+  public void testLongLine() {
+    runRetraceTest("(?:.*?\\(\\s*%s(?:\\s*:\\s*%l\\s*)?\\)\\s*%c\\.%m)|", new LongLineStackTrace());
   }
 
   private TestDiagnosticMessagesImpl runRetraceTest(
