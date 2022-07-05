@@ -95,7 +95,7 @@ public class CfCodeGeneratorImportCollection {
     return name;
   }
 
-  private String addImport(String name) {
+  String addImport(String name) {
     imports.add(name);
     return name;
   }

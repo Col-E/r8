@@ -79,6 +79,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.objectweb.asm.Opcodes;
 
 /** Rudimentary printer to print the source representation for creating CfCode object. */
 public class CfCodePrinter extends CfPrinter {
@@ -593,7 +594,22 @@ public class CfCodePrinter extends CfPrinter {
 
   @Override
   public void print(CfFieldInstruction insn) {
-    throw new Unreachable();
+    switch (insn.getOpcode()) {
+      case Opcodes.GETFIELD:
+        printNewInstruction("CfInstanceFieldRead", dexField(insn.getField()));
+        break;
+      case Opcodes.PUTFIELD:
+        printNewInstruction("CfInstanceFieldWrite", dexField(insn.getField()));
+        break;
+      case Opcodes.GETSTATIC:
+        printNewInstruction("CfStaticFieldRead", dexField(insn.getField()));
+        break;
+      case Opcodes.PUTSTATIC:
+        printNewInstruction("CfStaticFieldWrite", dexField(insn.getField()));
+        break;
+      default:
+        throw new Unreachable();
+    }
   }
 
   @Override

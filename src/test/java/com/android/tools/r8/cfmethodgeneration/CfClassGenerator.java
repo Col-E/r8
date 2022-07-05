@@ -6,15 +6,28 @@ package com.android.tools.r8.cfmethodgeneration;
 
 import static com.android.tools.r8.utils.PredicateUtils.not;
 
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.cf.CfCodePrinter;
+import com.android.tools.r8.graph.ClassKind;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
+import com.android.tools.r8.graph.JarApplicationReader;
+import com.android.tools.r8.graph.JarClassFileReader;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.function.Predicate;
 
 public abstract class CfClassGenerator extends CodeGenerationBase {
@@ -32,21 +45,30 @@ public abstract class CfClassGenerator extends CodeGenerationBase {
     return formatRawOutput(generateRawOutput());
   }
 
-  private String generateRawOutput() {
+  private String generateRawOutput() throws IOException {
     String classDeclaration = generateClassDeclaration();
     return StringUtils.lines(getHeaderString(), imports.generateImports(), classDeclaration);
   }
 
-  private String generateClassDeclaration() {
+  private String generateClassDeclaration() throws IOException {
     JavaStringBuilder builder = new JavaStringBuilder();
     builder.append("public final class " + getGeneratedClassName() + " ").appendOpeningBrace();
     generateCreateClassMethod(builder);
     generateCreateFieldsMethod(builder, "createInstanceFields", not(FieldAccessFlags::isStatic));
     generateCreateFieldsMethod(builder, "createStaticFields", FieldAccessFlags::isStatic);
+    CfCodePrinter codePrinter = new CfCodePrinter();
+    Map<MethodReference, String> createCfCodeMethodNames = generateCreateCfCodeMethods(codePrinter);
     generateCreateMethodsMethod(
-        builder, "createDirectMethods", MethodAccessFlags::belongsToDirectPool);
+        builder,
+        "createDirectMethods",
+        MethodAccessFlags::belongsToDirectPool,
+        createCfCodeMethodNames);
     generateCreateMethodsMethod(
-        builder, "createVirtualMethods", MethodAccessFlags::belongsToVirtualPool);
+        builder,
+        "createVirtualMethods",
+        MethodAccessFlags::belongsToVirtualPool,
+        createCfCodeMethodNames);
+    codePrinter.getMethods().forEach(builder::appendLine);
     builder.appendClosingBrace();
     return builder.toString();
   }
@@ -218,7 +240,10 @@ public abstract class CfClassGenerator extends CodeGenerationBase {
   }
 
   private void generateCreateMethodsMethod(
-      JavaStringBuilder builder, String methodName, Predicate<MethodAccessFlags> predicate) {
+      JavaStringBuilder builder,
+      String methodName,
+      Predicate<MethodAccessFlags> predicate,
+      Map<MethodReference, String> createCfCodeMethodNames) {
     builder
         .startLine()
         .append("private static ")
@@ -237,6 +262,41 @@ public abstract class CfClassGenerator extends CodeGenerationBase {
         .appendLine("[0];");
 
     builder.appendClosingBrace();
+  }
+
+  private Map<MethodReference, String> generateCreateCfCodeMethods(CfCodePrinter codePrinter)
+      throws IOException {
+    Map<MethodReference, String> createCfCodeMethodNames = new HashMap<>();
+    InternalOptions options = new InternalOptions(factory, new Reporter());
+    options.testing.readInputStackMaps = true;
+    JarClassFileReader<DexProgramClass> reader =
+        new JarClassFileReader<>(
+            new JarApplicationReader(options),
+            clazz -> {
+              int index = 0;
+              for (DexEncodedMethod method : clazz.allMethodsSorted()) {
+                if (!method.hasCode()) {
+                  continue;
+                }
+                String generatedMethodName = getCreateCfCodeMethodName(method, index);
+                codePrinter.visitMethod(generatedMethodName, method.getCode().asCfCode());
+                index++;
+              }
+            },
+            ClassKind.PROGRAM);
+    reader.read(Origin.unknown(), ToolHelper.getClassAsBytes(getGeneratedClass()));
+    codePrinter.getImports().forEach(imports::addImport);
+    return createCfCodeMethodNames;
+  }
+
+  private String getCreateCfCodeMethodName(DexEncodedMethod method, int index) {
+    if (method.isClassInitializer()) {
+      return "createClassInitializerCfCode";
+    }
+    if (method.isInstanceInitializer()) {
+      return "createInstanceInitializerCfCode" + index;
+    }
+    return "createCfCode" + index + "_" + method.getName().toString();
   }
 
   public void writeClassToFile() throws IOException {
