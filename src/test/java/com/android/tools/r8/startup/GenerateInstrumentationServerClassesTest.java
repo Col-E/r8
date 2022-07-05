@@ -11,7 +11,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.cfmethodgeneration.CfClassGenerator;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -64,8 +63,8 @@ public class GenerateInstrumentationServerClassesTest extends TestBase {
     }
 
     @Override
-    protected DexType getGeneratedType() {
-      return factory.createType(descriptor(clazz));
+    public Class<?> getGeneratedClass() {
+      return clazz;
     }
 
     @Override

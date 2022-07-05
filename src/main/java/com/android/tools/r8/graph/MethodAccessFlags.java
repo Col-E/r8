@@ -65,6 +65,14 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
     return new Builder();
   }
 
+  public boolean belongsToDirectPool() {
+    return isStatic() || isPrivate() || isConstructor();
+  }
+
+  public boolean belongsToVirtualPool() {
+    return !belongsToDirectPool();
+  }
+
   @Override
   public MethodAccessFlags copy() {
     return new MethodAccessFlags(originalFlags, modifiedFlags);

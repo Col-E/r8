@@ -11,7 +11,9 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -23,6 +25,14 @@ public abstract class CodeGenerationBase extends TestBase {
       GOOGLE_FORMAT_DIR.resolve("google-java-format-1.7-all-deps.jar");
 
   protected final DexItemFactory factory = new DexItemFactory();
+
+  public static String formatRawOutput(String rawOutput) throws IOException {
+    File temporaryFile = File.createTempFile("output-", ".java");
+    Files.write(temporaryFile.toPath(), rawOutput.getBytes());
+    String result = formatRawOutput(temporaryFile.toPath());
+    temporaryFile.deleteOnExit();
+    return result;
+  }
 
   public static String formatRawOutput(Path tempFile) throws IOException {
     // Apply google format.
@@ -46,6 +56,10 @@ public abstract class CodeGenerationBase extends TestBase {
       return content.replace(StringUtils.LINE_SEPARATOR, "\n");
     }
     return content;
+  }
+
+  public String getGeneratedClassDescriptor() {
+    return getGeneratedType().toDescriptorString();
   }
 
   public String getGeneratedClassName() {

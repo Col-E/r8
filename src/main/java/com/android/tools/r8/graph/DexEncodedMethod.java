@@ -573,11 +573,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public boolean belongsToDirectPool() {
-    return accessFlags.isStatic() || accessFlags.isPrivate() || accessFlags.isConstructor();
+    return accessFlags.belongsToDirectPool();
   }
 
   public boolean belongsToVirtualPool() {
-    return !belongsToDirectPool();
+    return accessFlags.belongsToVirtualPool();
   }
 
   @Override
