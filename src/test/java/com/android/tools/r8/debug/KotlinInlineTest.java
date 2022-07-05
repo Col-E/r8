@@ -361,6 +361,12 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
         checkLocal(p_mangledLvName),
         stepInto(),
         // We're out of inlinee2
+        // For kotlin dev (18.alpha) we need an additional step, see b/238067321.
+        applyIf(
+            kotlinParameters
+                .getCompilerVersion()
+                .isGreaterThan(KotlinCompilerVersion.KOTLINC_1_7_0),
+            this::stepInto),
         checkMethod(DEBUGGEE_CLASS, inliningMethodName),
         checkLocal(inlinee1_inlineScope),
         checkNoLocal(inlinee2_inlineScope),
