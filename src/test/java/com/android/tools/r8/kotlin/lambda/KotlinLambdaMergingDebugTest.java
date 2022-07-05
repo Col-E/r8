@@ -6,7 +6,6 @@ package com.android.tools.r8.kotlin.lambda;
 import static org.hamcrest.CoreMatchers.equalTo;
 
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.KotlinCompilerTool.KotlinTargetVersion;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
@@ -45,7 +44,7 @@ public class KotlinLambdaMergingDebugTest extends KotlinTestBase {
     testForR8(parameters.getBackend())
         .setMode(CompilationMode.DEBUG)
         .addProgramFiles(
-            compiledJars.getForConfiguration(kotlinc, KotlinTargetVersion.JAVA_6),
+            compiledJars.getForConfiguration(kotlinc, kotlinParameters.getTargetVersion()),
             kotlinc.getKotlinAnnotationJar())
         .addProgramFiles(getJavaJarFile(FOLDER))
         .setMinApi(parameters.getApiLevel())

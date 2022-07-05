@@ -51,7 +51,7 @@ public class MetadataRewriteInnerClassTest extends KotlinMetadataTestBase {
   }
 
   private String replaceInitNameInExpectedBasedOnKotlinVersion(String expected) {
-    return kotlinParameters.isNewerThanOrEqualTo(KotlinCompilerVersion.KOTLIN_DEV)
+    return kotlinParameters.isNewerThanOrEqualTo(KotlinCompilerVersion.KOTLINC_1_7_0)
         ? expected.replace("<init>", "`<init>`")
         : expected;
   }

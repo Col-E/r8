@@ -4,9 +4,8 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_4_20;
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLIN_DEV;
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_5_0;
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_6_0;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
@@ -63,7 +62,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
   }
 
   @Test
-  public void test_dataclass_gettersOnly() throws Exception {
+  public void testDataclassGettersOnly() throws Exception {
     String mainClassName = "dataclass.MainGettersOnlyKt";
     MethodSignature testMethodSignature =
         new MethodSignature("testDataClassGetters", "void", Collections.emptyList());
@@ -99,7 +98,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
   }
 
   @Test
-  public void test_dataclass_componentOnly() throws Exception {
+  public void testDataclassComponentOnly() throws Exception {
     String mainClassName = "dataclass.MainComponentOnlyKt";
     MethodSignature testMethodSignature =
         new MethodSignature("testAllDataClassComponentFunctions", "void", Collections.emptyList());
@@ -135,7 +134,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
   }
 
   @Test
-  public void test_dataclass_componentPartial() throws Exception {
+  public void testDataclassComponentPartial() throws Exception {
     String mainClassName = "dataclass.MainComponentPartialKt";
     MethodSignature testMethodSignature =
         new MethodSignature("testSomeDataClassComponentFunctions", "void", Collections.emptyList());
@@ -178,7 +177,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
   }
 
   @Test
-  public void test_dataclass_copyIsRemovedIfNotUsed() throws Exception {
+  public void testDataclassCopyIsRemovedIfNotUsed() throws Exception {
     String mainClassName = "dataclass.MainComponentOnlyKt";
     MethodSignature testMethodSignature =
         new MethodSignature("testDataClassCopy", "void", Collections.emptyList());
@@ -203,7 +202,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
   }
 
   @Test
-  public void test_dataclass_copyDefaultIsRemovedIfNotUsed() throws Exception {
+  public void testDataclassCopyDefaultIsRemovedIfNotUsed() throws Exception {
     String mainClassName = "dataclass.MainCopyKt";
     MethodSignature testMethodSignature =
         new MethodSignature("testDataClassCopyWithDefault", "void", Collections.emptyList());
@@ -216,10 +215,10 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
                     .addOptionsModification(disableClassInliner))
         .inspect(
             inspector -> {
-              // TODO(b/210828502): Investigate why Person is not removed with kotlin dev.
+              // TODO(b/210828502): Investigate why Person is not removed with kotlin 1.7 and 1.8.
               if (allowAccessModification
-                  && !(kotlinc.isOneOf(KOTLINC_1_3_72, KOTLINC_1_4_20, KOTLIN_DEV)
-                      && testParameters.isCfRuntime())) {
+                  && (kotlinc.isOneOf(KOTLINC_1_5_0, KOTLINC_1_6_0)
+                      || testParameters.isDexRuntime())) {
                 checkClassIsRemoved(inspector, TEST_DATA_CLASS.getClassName());
               } else {
                 ClassSubject dataClass =

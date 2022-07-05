@@ -97,7 +97,7 @@ public class StringPlusTest extends KotlinTestBase {
               MethodSubject methodSubject = clazz.mainMethod();
               assertThat(methodSubject, isPresent());
               if (kotlinParameters.isNewerThanOrEqualTo(KotlinCompilerVersion.KOTLINC_1_5_0)
-                  && kotlinParameters.isOlderThan(KotlinCompilerVersion.KOTLIN_DEV)) {
+                  && kotlinParameters.isOlderThan(KotlinCompilerVersion.KOTLINC_1_7_0)) {
                 // TODO(b/190489514): We should be able to optimize constant stringPlus calls.
                 assertThat(methodSubject, CodeMatchers.invokesMethodWithName("stringPlus"));
               }
