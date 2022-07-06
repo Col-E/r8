@@ -60,10 +60,6 @@ public class KotlinTestParameters {
     return !isNewerThanOrEqualTo(otherVersion);
   }
 
-  public boolean isOlderThanMinSupported() {
-    return isOlderThan(KotlinCompilerVersion.MIN_SUPPORTED_VERSION);
-  }
-
   public boolean isFirst() {
     return index == 0;
   }
@@ -130,6 +126,11 @@ public class KotlinTestParameters {
 
     public Builder withOldCompilersStartingFrom(KotlinCompilerVersion minOldVersion) {
       oldCompilerFilter = oldCompilerFilter.and(v -> v.isGreaterThanOrEqualTo(minOldVersion));
+      return this;
+    }
+
+    public Builder withOldCompiler(KotlinCompilerVersion oldVersion) {
+      oldCompilerFilter = oldCompilerFilter.and(v -> v.isEqualTo(oldVersion));
       return this;
     }
 

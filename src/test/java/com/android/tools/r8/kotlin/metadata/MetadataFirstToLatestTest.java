@@ -11,6 +11,7 @@ import static org.junit.Assert.assertThrows;
 
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
+import com.android.tools.r8.KotlinCompilerTool.KotlinTargetVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -44,7 +45,10 @@ public class MetadataFirstToLatestTest extends KotlinMetadataTestBase {
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withCfRuntimes().build(),
-        getKotlinTestParameters().withOldCompilersIfSet().withAllTargetVersions().build());
+        getKotlinTestParameters()
+            .withOldCompilersIfSet()
+            .withTargetVersion(KotlinTargetVersion.JAVA_8)
+            .build());
   }
 
   public MetadataFirstToLatestTest(
@@ -86,15 +90,19 @@ public class MetadataFirstToLatestTest extends KotlinMetadataTestBase {
             .assertAllWarningMessagesMatch(
                 equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
             .writeToZip();
-    AssertionError assertionError =
-        assertThrows(
-            AssertionError.class,
-            () -> {
-              runTest(kotlinParameters.getCompiler().getCompilerVersion(), libJar, stdLibJar);
-            });
-    assertThat(
-        assertionError.getMessage(),
-        containsString("compiled with an incompatible version of Kotlin"));
+    if (kotlinParameters.isOlderThan(KotlinCompilerVersion.KOTLINC_1_4_20)) {
+      AssertionError assertionError =
+          assertThrows(
+              AssertionError.class,
+              () -> {
+                runTest(kotlinParameters.getCompiler().getCompilerVersion(), libJar, stdLibJar);
+              });
+      assertThat(
+          assertionError.getMessage(),
+          containsString("compiled with an incompatible version of Kotlin"));
+    } else {
+      runTest(kotlinParameters.getCompiler().getCompilerVersion(), libJar, stdLibJar);
+    }
   }
 
   @Test

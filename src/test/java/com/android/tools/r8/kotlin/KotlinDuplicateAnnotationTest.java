@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -42,7 +43,11 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withAllRuntimesAndApiLevels().build(),
-        getKotlinTestParameters().withOldCompilersIfSet().withAllTargetVersions().build(),
+        getKotlinTestParameters()
+            .withOldCompilersIfSet()
+            .withOldCompiler(KotlinCompilerVersion.KOTLINC_1_3_72)
+            .withAllTargetVersions()
+            .build(),
         BooleanUtils.values());
   }
 

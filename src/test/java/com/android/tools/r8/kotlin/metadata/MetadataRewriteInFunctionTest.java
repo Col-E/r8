@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_4_20;
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.MIN_SUPPORTED_VERSION;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
@@ -104,8 +105,8 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/function_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
-            .compile(full || kotlinParameters.isOlderThanMinSupported());
-    if (full || kotlinParameters.isOlderThanMinSupported()) {
+            .compile(full || kotlinParameters.isOlderThan(KOTLINC_1_4_20));
+    if (full || kotlinParameters.isOlderThan(KOTLINC_1_4_20)) {
       return;
     }
 
@@ -168,8 +169,8 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/function_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
-            .compile(kotlinParameters.isOlderThanMinSupported());
-    if (kotlinParameters.isOlderThanMinSupported()) {
+            .compile(kotlinParameters.isOlderThan(KOTLINC_1_4_20));
+    if (kotlinParameters.isOlderThan(KOTLINC_1_4_20)) {
       return;
     }
 

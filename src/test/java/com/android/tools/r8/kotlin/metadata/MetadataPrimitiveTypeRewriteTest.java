@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_4_20;
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.MIN_SUPPORTED_VERSION;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.allOf;
@@ -100,7 +101,7 @@ public class MetadataPrimitiveTypeRewriteTest extends KotlinMetadataTestBase {
             .assertAllWarningMessagesMatch(
                 equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
             .writeToZip();
-    boolean expectingCompilationError = kotlinParameters.isOlderThanMinSupported() && !keepUnit;
+    boolean expectingCompilationError = kotlinParameters.isOlderThan(KOTLINC_1_4_20) && !keepUnit;
     Path output =
         kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)

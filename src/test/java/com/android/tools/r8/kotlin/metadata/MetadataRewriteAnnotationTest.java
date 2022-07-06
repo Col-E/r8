@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_4_20;
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.MIN_SUPPORTED_VERSION;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -135,8 +136,8 @@ public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
             .addClasspathFiles(libJar)
             .addSourceFiles(
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
-            .compile(kotlinParameters.isOlderThanMinSupported());
-    if (kotlinParameters.isOlderThanMinSupported()) {
+            .compile(kotlinParameters.isOlderThan(KOTLINC_1_4_20));
+    if (kotlinParameters.isOlderThan(KOTLINC_1_4_20)) {
       return;
     }
     testForJvm()
