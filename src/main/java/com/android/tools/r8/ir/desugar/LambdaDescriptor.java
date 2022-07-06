@@ -203,15 +203,18 @@ public final class LambdaDescriptor {
 
   /** Checks if call site needs a accessor when referenced from `accessedFrom`. */
   boolean needsAccessor(ProgramMethod accessedFrom) {
-    if (implHandle.type.isInvokeInterface()) {
-      // Interface methods must be public.
+    // The invoke-interface may target a private method through nest based access in JDK 17.
+    // If the targetAccessFlags are missing we assume no accessor is needed since that was D8/R8's
+    // behavior prior to the introduction of bridges on invoke-interface.
+    if (implHandle.type.isInvokeInterface()
+        && (targetAccessFlags == null || targetAccessFlags.isPublic())) {
       return false;
     }
 
     boolean staticTarget = implHandle.type.isInvokeStatic();
     boolean instanceTarget = implHandle.type.isInvokeInstance() || implHandle.type.isInvokeDirect();
     boolean initTarget = implHandle.type.isInvokeConstructor();
-    assert instanceTarget || staticTarget || initTarget;
+    assert instanceTarget || staticTarget || initTarget || implHandle.type.isInvokeInterface();
     assert !implHandle.type.isInvokeDirect()
         || (targetAccessFlags.isPrivate()
             && !targetAccessFlags.isConstructor()

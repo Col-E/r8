@@ -174,6 +174,9 @@ public abstract class ClassConverter {
                 definition.markNotProcessed();
               }
               methodProcessor.processMethod(method, instructionDesugaringEventConsumer);
+              if (interfaceProcessor != null) {
+                interfaceProcessor.processMethod(method, instructionDesugaringEventConsumer);
+              }
             },
             executorService);
 

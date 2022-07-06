@@ -2,8 +2,9 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.desugar.nestaccesscontrol;
+package com.android.tools.r8.desugar.lambdas;
 
+import static com.android.tools.r8.utils.AndroidApiLevel.B;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 
 import com.android.tools.r8.TestBase;
@@ -11,7 +12,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.Assume;
@@ -21,17 +22,16 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class NestLambdaJava17Test extends TestBase {
+public class LambdaJava17Test extends TestBase {
 
-  public NestLambdaJava17Test(TestParameters parameters) {
+  public LambdaJava17Test(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   private static final Path JDK17_JAR =
-      Paths.get(ToolHelper.TESTS_BUILD_DIR, "examplesJava17").resolve("nest" + JAR_EXTENSION);
-  private static final String MAIN = "nest.NestLambda";
-  private static final String EXPECTED_RESULT =
-      StringUtils.lines("printed: inner", "printed from itf: here");
+      Paths.get(ToolHelper.TESTS_BUILD_DIR, "examplesJava17").resolve("lambda" + JAR_EXTENSION);
+  private static final String MAIN = "lambda.Lambda";
+  private static final String EXPECTED_RESULT = "[abb, bbc]";
 
   private final TestParameters parameters;
 
@@ -40,7 +40,8 @@ public class NestLambdaJava17Test extends TestBase {
     return getTestParameters()
         .withCfRuntimesStartingFromIncluding(CfVm.JDK17)
         .withDexRuntimes()
-        .withAllApiLevelsAlsoForCf()
+        .withAllApiLevels()
+        .enableApiLevelsForCf()
         .build();
   }
 
@@ -50,29 +51,29 @@ public class NestLambdaJava17Test extends TestBase {
     testForJvm()
         .addProgramFiles(JDK17_JAR)
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+        .assertSuccessWithOutputLines(EXPECTED_RESULT);
   }
 
   @Test
   public void testJavaD8() throws Exception {
-    testForD8(parameters.getBackend())
+    testForDesugaring(parameters)
         .addProgramFiles(JDK17_JAR)
-        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+        .assertSuccessWithOutputLines(EXPECTED_RESULT);
   }
 
   @Test
   public void testR8() throws Exception {
+    Assume.assumeTrue(parameters.isDexRuntime() || parameters.getApiLevel().equals(B));
     testForR8(parameters.getBackend())
         .addProgramFiles(JDK17_JAR)
         .applyIf(
-            parameters.isCfRuntime(),
+            parameters.isCfRuntime() && !parameters.getApiLevel().isEqualTo(AndroidApiLevel.B),
             // Alternatively we need to pass Jdk17 as library.
             b -> b.addKeepRules("-dontwarn java.lang.invoke.StringConcatFactory"))
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(MAIN)
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+        .assertSuccessWithOutputLines(EXPECTED_RESULT);
   }
 }

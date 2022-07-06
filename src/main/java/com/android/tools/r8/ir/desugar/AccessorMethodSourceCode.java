@@ -24,6 +24,7 @@ public class AccessorMethodSourceCode {
         ForwardMethodBuilder.builder(appView.dexItemFactory()).setStaticSource(accessor);
     switch (type) {
       case INVOKE_INSTANCE:
+      case INVOKE_INTERFACE:
         {
           forwardMethodBuilder.setVirtualTarget(target, isInterface);
           break;
@@ -43,8 +44,6 @@ public class AccessorMethodSourceCode {
           forwardMethodBuilder.setConstructorTarget(target, appView.dexItemFactory());
           break;
         }
-      case INVOKE_INTERFACE:
-        throw new Unreachable("Accessor for an interface method?");
       default:
         throw new Unreachable();
     }

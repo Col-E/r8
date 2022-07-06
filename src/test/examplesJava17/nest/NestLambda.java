@@ -4,8 +4,6 @@
 
 package nest;
 
-import java.util.function.Consumer;
-
 public class NestLambda {
 
   private void print(Object o) {
@@ -16,9 +14,14 @@ public class NestLambda {
     return new Inner();
   }
 
-  class Inner {
+  // Avoids java.util.Consumer to run below on Apis below 24.
+  interface ThisConsumer<T> {
+    void accept(T t);
+  }
 
-    void exec(Consumer<Object> consumer) {
+  class Inner implements Itf {
+
+    void exec(ThisConsumer<String> consumer) {
       consumer.accept("inner");
     }
 
@@ -27,7 +30,22 @@ public class NestLambda {
     }
   }
 
+  interface Itf {
+    private void printItf(Object o) {
+      System.out.println("printed from itf: " + o);
+    }
+  }
+
+  void exec(ThisConsumer<String> consumer) {
+    consumer.accept("here");
+  }
+
+  void execItfLambda(Itf itf) {
+    exec(itf::printItf);
+  }
+
   public static void main(String[] args) {
     new NestLambda().getInner().execLambda();
+    new NestLambda().execItfLambda(new Itf() {});
   }
 }
