@@ -1089,7 +1089,7 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
   @Test
   public void testGroups() {
     runRetraceTest(
-        "(?:(?:.*?%c %m\\(%s(?:: %l)?\\)))",
+        "(?:(?:.*?%c %m\\(%s\\s*:\\s*%l\\s*\\)))",
         new StackTraceForTest() {
           @Override
           public List<String> obfuscatedStackTrace() {
@@ -1114,9 +1114,9 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
             return ImmutableList.of(
                 "this.was.Deobfuscated someMethod(Deobfuscated.java: 65)",
                 "this.was.Deobfuscated someMethod(Deobfuscated.java: 65)",
-                "FOO bar(PG:1)",
-                "FOO bar(PG:1 )",
-                "FOO bar(PG: 1 )");
+                "this.was.Deobfuscated someMethod(Deobfuscated.java:65)",
+                "this.was.Deobfuscated someMethod(Deobfuscated.java:65 )",
+                "this.was.Deobfuscated someMethod(Deobfuscated.java: 65 )");
           }
 
           @Override
@@ -1124,9 +1124,9 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
             return ImmutableList.of(
                 "this.was.Deobfuscated void someMethod(int)(Deobfuscated.java: 65)",
                 "this.was.Deobfuscated void someMethod(int)(Deobfuscated.java: 65)",
-                "FOO bar(PG:1)",
-                "FOO bar(PG:1 )",
-                "FOO bar(PG: 1 )");
+                "this.was.Deobfuscated void someMethod(int)(Deobfuscated.java:65)",
+                "this.was.Deobfuscated void someMethod(int)(Deobfuscated.java:65 )",
+                "this.was.Deobfuscated void someMethod(int)(Deobfuscated.java: 65 )");
           }
 
           @Override
@@ -1137,8 +1137,7 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
   }
 
   /** This is a regression test for b/234758957 */
-  // TODO(b/234758957): Should not loop.
-  @Test(expected = StackOverflowError.class)
+  @Test()
   public void testLongLine() {
     runRetraceTest("(?:.*?\\(\\s*%s(?:\\s*:\\s*%l\\s*)?\\)\\s*%c\\.%m)|", new LongLineStackTrace());
   }

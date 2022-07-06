@@ -112,18 +112,6 @@ public class StackTraceRegularExpressionParser
     return captureGroupIndex;
   }
 
-  private boolean isTypeOrBinarySeparator(String regularExpression, int startIndex, int endIndex) {
-    assert endIndex < regularExpression.length();
-    if (startIndex + 1 != endIndex) {
-      return false;
-    }
-    if (regularExpression.charAt(startIndex) != '\\') {
-      return false;
-    }
-    return regularExpression.charAt(startIndex + 1) == '.'
-        || regularExpression.charAt(startIndex + 1) == '/';
-  }
-
   private RegularExpressionGroup getGroupFromVariable(char variable) {
     switch (variable) {
       case 'c':
@@ -274,16 +262,12 @@ public class StackTraceRegularExpressionParser
 
   private static class SourceFileGroup extends RegularExpressionGroup {
 
-    static String subExpressionInternal() {
-      String anyNonDigitNonColonNonWhitespaceChar = "^\\d:\\s";
-      String anyNonColonChar = "^:";
-      String colonWithNonDigitSuffix = ":+[" + anyNonDigitNonColonNonWhitespaceChar + "]";
-      return "((?:(?:(?:" + colonWithNonDigitSuffix + "))|(?:[" + anyNonColonChar + "]))+)?";
-    }
-
     @Override
     String subExpression() {
-      return subExpressionInternal();
+      String anyNonDigitNonColonCharNonWhiteSpace = "[^\\d:\\s]";
+      String anyNonColonChar = "[^:]";
+      String colonsWithNonDigitOrWhiteSpaceSuffix = ":+" + anyNonDigitNonColonCharNonWhiteSpace;
+      return "(?:" + colonsWithNonDigitOrWhiteSpaceSuffix + "|" + anyNonColonChar + "*)*";
     }
 
     @Override
@@ -323,7 +307,7 @@ public class StackTraceRegularExpressionParser
 
     @Override
     String subExpression() {
-      return SourceFileGroup.subExpressionInternal() + "(?::\\d*)?";
+      return ".*";
     }
 
     @Override
@@ -333,8 +317,8 @@ public class StackTraceRegularExpressionParser
         if (startOfGroup == NO_MATCH) {
           return false;
         }
-        int endOfSourceFineInGroup = findEndOfSourceFile(matcher.group(captureGroup));
-        int sourceFileEnd = startOfGroup + endOfSourceFineInGroup;
+        int endOfSourceFileInGroup = findEndOfSourceFile(matcher.group(captureGroup));
+        int sourceFileEnd = startOfGroup + endOfSourceFileInGroup;
         builder.registerSourceFile(startOfGroup, sourceFileEnd);
         int endOfMatch = matcher.end(captureGroup);
         int lineNumberStart = sourceFileEnd + 1;
