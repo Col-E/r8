@@ -5,7 +5,6 @@
 package com.android.tools.r8.experimental.startup;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.experimental.startup.StartupClass.Builder;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 

@@ -127,6 +127,7 @@ public abstract class StartupItem<C, M, R> {
       }
     }
 
+    @SuppressWarnings("unchecked")
     public B self() {
       return (B) this;
     }
