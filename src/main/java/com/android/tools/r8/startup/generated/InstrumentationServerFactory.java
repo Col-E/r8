@@ -38,14 +38,13 @@ import java.util.Collections;
 public final class InstrumentationServerFactory {
   public static DexProgramClass createClass(DexItemFactory dexItemFactory) {
     return new DexProgramClass(
-        dexItemFactory.createType(
-            "Lcom/android/tools/r8/startup/generated/InstrumentationServerFactory;"),
+        dexItemFactory.createType("Lcom/android/tools/r8/startup/InstrumentationServer;"),
         Kind.CF,
         Origin.unknown(),
-        ClassAccessFlags.fromCfAccessFlags(1025),
-        null,
+        ClassAccessFlags.fromCfAccessFlags(1057),
+        dexItemFactory.createType("Ljava/lang/Object;"),
         DexTypeList.empty(),
-        dexItemFactory.createString("InstrumentationServerFactory"),
+        dexItemFactory.createString("InstrumentationServer.java"),
         NestHostClassAttribute.none(),
         Collections.emptyList(),
         Collections.emptyList(),
@@ -72,6 +71,18 @@ public final class InstrumentationServerFactory {
   private static DexEncodedMethod[] createDirectMethods(DexItemFactory dexItemFactory) {
     return new DexEncodedMethod[] {
       DexEncodedMethod.syntheticBuilder()
+          .setAccessFlags(MethodAccessFlags.fromCfAccessFlags(1, true))
+          .setApiLevelForCode(ComputedApiLevel.unknown())
+          .setApiLevelForDefinition(ComputedApiLevel.unknown())
+          .setClassFileVersion(CfVersion.V1_8)
+          .setMethod(
+              dexItemFactory.createMethod(
+                  dexItemFactory.createType("Lcom/android/tools/r8/startup/InstrumentationServer;"),
+                  dexItemFactory.createProto(dexItemFactory.createType("V")),
+                  dexItemFactory.createString("<init>")))
+          .setCode(method -> createInstanceInitializerCfCode0(dexItemFactory, method))
+          .build(),
+      DexEncodedMethod.syntheticBuilder()
           .setAccessFlags(MethodAccessFlags.fromCfAccessFlags(9, false))
           .setApiLevelForCode(ComputedApiLevel.unknown())
           .setApiLevelForDefinition(ComputedApiLevel.unknown())
@@ -90,17 +101,6 @@ public final class InstrumentationServerFactory {
 
   private static DexEncodedMethod[] createVirtualMethods(DexItemFactory dexItemFactory) {
     return new DexEncodedMethod[] {
-      DexEncodedMethod.syntheticBuilder()
-          .setAccessFlags(MethodAccessFlags.fromCfAccessFlags(1, false))
-          .setApiLevelForCode(ComputedApiLevel.unknown())
-          .setApiLevelForDefinition(ComputedApiLevel.unknown())
-          .setClassFileVersion(CfVersion.V1_8)
-          .setMethod(
-              dexItemFactory.createInstanceInitializer(
-                  dexItemFactory.createType(
-                      "Lcom/android/tools/r8/startup/InstrumentationServer;")))
-          .setCode(method -> createInstanceInitializerCfCode0(dexItemFactory, method))
-          .build(),
       DexEncodedMethod.syntheticBuilder()
           .setAccessFlags(MethodAccessFlags.fromCfAccessFlags(1025, false))
           .setApiLevelForCode(ComputedApiLevel.unknown())

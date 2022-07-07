@@ -444,8 +444,6 @@ public class R8 {
 
       new CfOpenClosedInterfacesAnalysis(appViewWithLiveness).run(executorService);
 
-      new StartupInstrumentation(appView).instrumentAllClasses(executorService);
-
       assert verifyNoJarApplicationReaders(appView.appInfo().classes());
       assert appView.checkForTesting(() -> allReferencesAssignedApiLevel(appViewWithLiveness));
       // Build conservative main dex content after first round of tree shaking. This is used

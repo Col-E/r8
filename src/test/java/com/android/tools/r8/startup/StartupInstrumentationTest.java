@@ -4,13 +4,20 @@
 
 package com.android.tools.r8.startup;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.experimental.startup.StartupClass;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.startup.StartupSyntheticPlacementTest.Main;
+import com.android.tools.r8.startup.utils.StartupTestingUtils;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,32 +39,32 @@ public class StartupInstrumentationTest extends TestBase {
   @Test
   public void testD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
+    List<StartupClass<ClassReference>> startupList = new ArrayList<>();
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .addOptionsModification(
-            options -> options.getStartupOptions().setEnableStartupInstrumentation())
+        .apply(StartupTestingUtils.enableStartupInstrumentation(parameters))
+        .release()
         .setMinApi(parameters.getApiLevel())
         .compile()
+        .addRunClasspathFiles(StartupTestingUtils.getAndroidUtilLog(temp))
         .run(parameters.getRuntime(), Main.class)
+        .apply(StartupTestingUtils.removeStartupClassesFromStdout(startupList::add))
         .assertSuccessWithOutputLines(getExpectedOutput());
-  }
-
-  @Test
-  public void testR8() throws Exception {
-    testForR8(parameters.getBackend())
-        .addInnerClasses(getClass())
-        .addKeepClassAndMembersRules(Main.class)
-        .addOptionsModification(
-            options -> options.getStartupOptions().setEnableStartupInstrumentation())
-        .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
-        .compile()
-        .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(getExpectedOutput());
+    assertEquals(getExpectedStartupList(), startupList);
   }
 
   private static List<String> getExpectedOutput() {
-    return ImmutableList.of(descriptor(Main.class), descriptor(AStartupClass.class), "foo");
+    return ImmutableList.of("foo");
+  }
+
+  private List<StartupClass<ClassReference>> getExpectedStartupList() {
+    return ImmutableList.of(
+        StartupClass.<ClassReference>builder()
+            .setReference(Reference.classFromClass(Main.class))
+            .build(),
+        StartupClass.<ClassReference>builder()
+            .setReference(Reference.classFromClass(AStartupClass.class))
+            .build());
   }
 
   static class Main {

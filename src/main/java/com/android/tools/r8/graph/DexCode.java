@@ -78,6 +78,17 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
         .withItemArray(c -> c.instructions);
   }
 
+  public DexCode(int registerSize, int insSize, int outsSize, DexInstruction[] instructions) {
+    this(
+        registerSize,
+        insSize,
+        outsSize,
+        instructions,
+        Try.EMPTY_ARRAY,
+        TryHandler.EMPTY_ARRAY,
+        null);
+  }
+
   public DexCode(
       int registerSize,
       int insSize,
@@ -714,6 +725,8 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
 
   public static class Try extends DexItem implements StructuralItem<Try> {
 
+    public static final Try[] EMPTY_ARRAY = new Try[0];
+
     public static final int NO_INDEX = -1;
 
     public final int handlerOffset;
@@ -778,6 +791,8 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
   }
 
   public static class TryHandler extends DexItem implements StructuralItem<TryHandler> {
+
+    public static final TryHandler[] EMPTY_ARRAY = new TryHandler[0];
 
     public static final int NO_HANDLER = -1;
 

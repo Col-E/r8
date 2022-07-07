@@ -125,6 +125,11 @@ public interface InstructionListIterator
     return next();
   }
 
+  default Instruction positionBeforeNextInstructionThatMatches(Predicate<Instruction> predicate) {
+    nextUntil(predicate);
+    return previous();
+  }
+
   boolean replaceCurrentInstructionByNullCheckIfPossible(AppView<?> appView, ProgramMethod context);
 
   default boolean removeOrReplaceCurrentInstructionByInitClassIfPossible(

@@ -8,6 +8,10 @@ package android.util;
 
 public class Log {
 
+  public static int i(String tag, String message) {
+    throw new RuntimeException();
+  }
+
   public static int v(String tag, String message) {
     throw new RuntimeException();
   }

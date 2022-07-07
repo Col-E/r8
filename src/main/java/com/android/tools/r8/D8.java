@@ -11,6 +11,7 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
+import com.android.tools.r8.experimental.startup.StartupInstrumentation;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
@@ -398,6 +399,9 @@ public final class D8 {
     timing.time(
         "Kotlin metadata rewriter",
         () -> new KotlinMetadataRewriter(appView).runForD8(executorService));
+
+    timing.time(
+        "Startup instrumentation", () -> StartupInstrumentation.run(appView, executorService));
 
     timing.time(
         "Api reference stubber", () -> new ApiReferenceStubber(appView).run(executorService));

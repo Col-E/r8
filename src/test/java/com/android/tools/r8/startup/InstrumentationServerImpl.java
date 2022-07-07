@@ -13,11 +13,11 @@ public class InstrumentationServerImpl extends InstrumentationServer {
 
   private static final InstrumentationServerImpl INSTANCE = new InstrumentationServerImpl();
 
-  private final StringBuilder builder = new StringBuilder();
-
   // May be set to true by the instrumentation.
-  private final boolean writeToLogcat = false;
-  private final String logcatTag = "r8";
+  private static boolean writeToLogcat;
+  private static String logcatTag;
+
+  private final StringBuilder builder = new StringBuilder();
 
   private InstrumentationServerImpl() {}
 
@@ -52,6 +52,6 @@ public class InstrumentationServerImpl extends InstrumentationServer {
   }
 
   private void writeToLogcat(String line) {
-    android.util.Log.v(logcatTag, line);
+    android.util.Log.i(logcatTag, line);
   }
 }

@@ -9,7 +9,6 @@ import static com.android.tools.r8.ir.desugar.lambda.D8LambdaDesugaring.rewriteE
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.experimental.startup.StartupInstrumentation;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
@@ -104,6 +103,7 @@ import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -466,8 +466,6 @@ public class IRConverter {
       D8CfInstructionDesugaringEventConsumer desugaringEventConsumer,
       D8MethodProcessor methodProcessor,
       InterfaceProcessor interfaceProcessor) {
-    new StartupInstrumentation(appView).instrumentClass(clazz);
-
     // When converting all methods on a class always convert <clinit> first.
     ProgramMethod classInitializer = clazz.getProgramClassInitializer();
 
@@ -931,6 +929,16 @@ public class IRConverter {
     }
   }
 
+  public void processClassesConcurrently(
+      Collection<DexProgramClass> classes, ExecutorService executorService)
+      throws ExecutionException {
+    ProgramMethodSet wave = ProgramMethodSet.create();
+    for (DexProgramClass clazz : classes) {
+      clazz.forEachProgramMethod(wave::add);
+    }
+    processMethodsConcurrently(wave, executorService);
+  }
+
   public void processMethodsConcurrently(ProgramMethodSet wave, ExecutorService executorService)
       throws ExecutionException {
     if (!wave.isEmpty()) {
@@ -1112,8 +1120,7 @@ public class IRConverter {
       codeRewriter.simplifyDebugLocals(code);
     }
 
-    if (appView.graphLens().hasCodeRewritings()) {
-      assert lensCodeRewriter != null;
+    if (lensCodeRewriter != null) {
       timing.begin("Lens rewrite");
       lensCodeRewriter.rewrite(code, context, methodProcessor);
       timing.end();

@@ -9,6 +9,11 @@ public class JavaStringBuilder {
   private final StringBuilder builder = new StringBuilder();
   private int indentation = 0;
 
+  public JavaStringBuilder append(boolean b) {
+    builder.append(b);
+    return this;
+  }
+
   public JavaStringBuilder append(char c) {
     builder.append(c);
     return this;

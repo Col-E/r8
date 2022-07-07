@@ -57,6 +57,7 @@ public class StartupSyntheticWithoutContextTest extends TestBase {
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
         .apply(StartupTestingUtils.enableStartupInstrumentation(parameters))
+        .release()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .addRunClasspathFiles(StartupTestingUtils.getAndroidUtilLog(temp))
