@@ -120,11 +120,20 @@ public abstract class StartupItem<C, M, R> {
 
     public StartupItem<C, M, ?> build() {
       if (classReference != null) {
-        return new StartupClass<>(flags, classReference);
+        return buildStartupClass();
       } else {
-        assert methodReference != null;
-        return new StartupMethod<>(flags, methodReference);
+        return buildStartupMethod();
       }
+    }
+
+    public StartupClass<C, M> buildStartupClass() {
+      assert classReference != null;
+      return new StartupClass<>(flags, classReference);
+    }
+
+    public StartupMethod<C, M> buildStartupMethod() {
+      assert methodReference != null;
+      return new StartupMethod<>(flags, methodReference);
     }
 
     @SuppressWarnings("unchecked")

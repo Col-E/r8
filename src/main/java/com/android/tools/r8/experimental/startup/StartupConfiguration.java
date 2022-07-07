@@ -6,9 +6,7 @@ package com.android.tools.r8.experimental.startup;
 
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.Reporter;
@@ -76,108 +74,29 @@ public class StartupConfiguration {
 
   public static StartupConfiguration createStartupConfigurationFromLines(
       DexItemFactory dexItemFactory, Reporter reporter, List<String> startupDescriptors) {
+    StartupConfigurationParser<DexType, DexMethod, DexType> parser =
+        StartupConfigurationParser.createDexParser(dexItemFactory);
     List<StartupClass<DexType, DexMethod>> startupClasses = new ArrayList<>();
     for (String startupDescriptor : startupDescriptors) {
       if (startupDescriptor.isEmpty()) {
         continue;
       }
-      StartupClass.Builder<DexType, DexMethod> startupClassBuilder = StartupClass.builder();
-      startupDescriptor = parseSyntheticFlag(startupDescriptor, startupClassBuilder);
-      parseStartupClassOrMethod(
+      parser.parseLine(
           startupDescriptor,
-          dexItemFactory,
-          startupClass ->
-              startupClasses.add(startupClassBuilder.setClassReference(startupClass).build()),
+          startupClasses::add,
           // TODO(b/238173796): Startup methods should be added as startup methods.
           startupMethod ->
               startupClasses.add(
-                  startupClassBuilder.setClassReference(startupMethod.getHolderType()).build()),
-          actual ->
+                  StartupClass.dexBuilder()
+                      .setClassReference(startupMethod.getReference().getHolderType())
+                      .setFlags(startupMethod.getFlags())
+                      .build()),
+          error ->
               reporter.warning(
                   new StringDiagnostic(
-                      "Invalid descriptor for startup class or method: " + actual)));
+                      "Invalid descriptor for startup class or method: " + error)));
     }
     return new StartupConfiguration(startupClasses);
-  }
-
-  public static String parseSyntheticFlag(
-      String startupDescriptor, StartupItem.Builder<?, ?, ?> startupItemBuilder) {
-    if (!startupDescriptor.isEmpty() && startupDescriptor.charAt(0) == 'S') {
-      startupItemBuilder.setSynthetic();
-      return startupDescriptor.substring(1);
-    }
-    return startupDescriptor;
-  }
-
-  public static void parseStartupClassOrMethod(
-      String startupDescriptor,
-      DexItemFactory dexItemFactory,
-      Consumer<DexType> startupClassConsumer,
-      Consumer<DexMethod> startupMethodConsumer,
-      Consumer<String> parseErrorHandler) {
-    int arrowStartIndex = getArrowStartIndex(startupDescriptor);
-    if (arrowStartIndex >= 0) {
-      DexMethod startupMethod =
-          parseStartupMethodDescriptor(startupDescriptor, arrowStartIndex, dexItemFactory);
-      if (startupMethod != null) {
-        startupMethodConsumer.accept(startupMethod);
-      } else {
-        parseErrorHandler.accept(startupDescriptor);
-      }
-    } else {
-      DexType startupClass = parseStartupClassDescriptor(startupDescriptor, dexItemFactory);
-      if (startupClass != null) {
-        startupClassConsumer.accept(startupClass);
-      } else {
-        parseErrorHandler.accept(startupDescriptor);
-      }
-    }
-  }
-
-  private static int getArrowStartIndex(String startupDescriptor) {
-    return startupDescriptor.indexOf("->");
-  }
-
-  private static DexType parseStartupClassDescriptor(
-      String startupClassDescriptor, DexItemFactory dexItemFactory) {
-    if (DescriptorUtils.isClassDescriptor(startupClassDescriptor)) {
-      return dexItemFactory.createType(startupClassDescriptor);
-    } else {
-      return null;
-    }
-  }
-
-  private static DexMethod parseStartupMethodDescriptor(
-      String startupMethodDescriptor, int arrowStartIndex, DexItemFactory dexItemFactory) {
-    String classDescriptor = startupMethodDescriptor.substring(0, arrowStartIndex);
-    DexType classType = parseStartupClassDescriptor(classDescriptor, dexItemFactory);
-    if (classType == null) {
-      return null;
-    }
-
-    int methodNameStartIndex = arrowStartIndex + 2;
-    String protoWithNameDescriptor = startupMethodDescriptor.substring(methodNameStartIndex);
-    int methodNameEndIndex = protoWithNameDescriptor.indexOf('(');
-    if (methodNameEndIndex <= 0) {
-      return null;
-    }
-    String methodName = protoWithNameDescriptor.substring(0, methodNameEndIndex);
-
-    String protoDescriptor = protoWithNameDescriptor.substring(methodNameEndIndex);
-    DexProto proto = parseStartupMethodProto(protoDescriptor, dexItemFactory);
-    return dexItemFactory.createMethod(classType, proto, methodName);
-  }
-
-  private static DexProto parseStartupMethodProto(
-      String protoDescriptor, DexItemFactory dexItemFactory) {
-    List<DexType> parameterTypes = new ArrayList<>();
-    for (String parameterTypeDescriptor :
-        DescriptorUtils.getArgumentTypeDescriptors(protoDescriptor)) {
-      parameterTypes.add(dexItemFactory.createType(parameterTypeDescriptor));
-    }
-    String returnTypeDescriptor = DescriptorUtils.getReturnTypeDescriptor(protoDescriptor);
-    DexType returnType = dexItemFactory.createType(returnTypeDescriptor);
-    return dexItemFactory.createProto(returnType, parameterTypes);
   }
 
   public boolean hasStartupClasses() {

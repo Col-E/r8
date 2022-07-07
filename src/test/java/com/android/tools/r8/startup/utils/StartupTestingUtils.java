@@ -15,12 +15,14 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.experimental.startup.StartupConfiguration;
+import com.android.tools.r8.experimental.startup.StartupConfigurationParser;
 import com.android.tools.r8.experimental.startup.StartupItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ClassReferenceUtils;
 import com.android.tools.r8.utils.MethodReferenceUtils;
@@ -71,23 +73,18 @@ public class StartupTestingUtils {
   public static void removeStartupListFromStdout(
       D8TestRunResult runResult,
       Consumer<StartupItem<ClassReference, MethodReference, ?>> startupItemConsumer) {
-    DexItemFactory dexItemFactory = new DexItemFactory();
+    StartupConfigurationParser<ClassReference, MethodReference, TypeReference> parser =
+        StartupConfigurationParser.createReferenceParser();
     StringBuilder stdoutBuilder = new StringBuilder();
     String startupDescriptorPrefix = "[" + startupInstrumentationTag + "] ";
     for (String line : StringUtils.splitLines(runResult.getStdOut(), true)) {
       if (line.startsWith(startupDescriptorPrefix)) {
-        StartupItem.Builder<ClassReference, MethodReference, ?> startupItemBuilder =
-            StartupItem.builder();
         String message = line.substring(startupDescriptorPrefix.length());
-        message = StartupConfiguration.parseSyntheticFlag(message, startupItemBuilder);
-        StartupConfiguration.parseStartupClassOrMethod(
+        parser.parseLine(
             message,
-            dexItemFactory,
-            startupClass -> startupItemBuilder.setClassReference(startupClass.asClassReference()),
-            startupMethod ->
-                startupItemBuilder.setMethodReference(startupMethod.asMethodReference()),
+            startupItemConsumer,
+            startupItemConsumer,
             error -> fail("Unexpected parse error: " + error));
-        startupItemConsumer.accept(startupItemBuilder.build());
       } else {
         stdoutBuilder.append(line).append(System.lineSeparator());
       }
