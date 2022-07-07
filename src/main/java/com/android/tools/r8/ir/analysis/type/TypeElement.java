@@ -407,6 +407,11 @@ public abstract class TypeElement {
         .asArrayType();
   }
 
+  public static ClassTypeElement stringClassType(AppView<?> appView) {
+    return fromDexType(appView.dexItemFactory().stringType, Nullability.maybeNull(), appView)
+        .asClassType();
+  }
+
   public static ClassTypeElement classClassType(AppView<?> appView, Nullability nullability) {
     return fromDexType(appView.dexItemFactory().classType, nullability, appView).asClassType();
   }

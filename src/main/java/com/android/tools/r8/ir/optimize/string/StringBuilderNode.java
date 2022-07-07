@@ -50,6 +50,8 @@ class StringBuilderNode {
 
     boolean hasNonConstantArgument();
 
+    void setNonConstantArgument(Value value);
+
     Value getNonConstantArgument();
 
     default boolean hasConstantOrNonConstantArgument() {
@@ -364,8 +366,8 @@ class StringBuilderNode {
       return constantArgument != null;
     }
 
+    @Override
     public void setNonConstantArgument(Value value) {
-      assert value.isNeverNull();
       this.nonConstantArgument = value;
     }
 
@@ -463,8 +465,8 @@ class StringBuilderNode {
       return nonConstantArgument != null;
     }
 
+    @Override
     public void setNonConstantArgument(Value value) {
-      assert value.isNeverNull();
       this.nonConstantArgument = value;
     }
 

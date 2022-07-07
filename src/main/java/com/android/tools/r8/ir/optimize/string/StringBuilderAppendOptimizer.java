@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.analysis.framework.intraprocedural.DataflowAnalys
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.IntraProceduralDataflowAnalysisOptions;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.IntraproceduralDataflowAnalysis;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.TransferFunctionResult;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -107,6 +108,7 @@ public class StringBuilderAppendOptimizer {
         stringBuilderAction.perform(appView, code, it, instruction, oracle);
       }
     }
+    code.removeAllDeadAndTrivialPhis();
   }
 
   private static class StringBuilderGraphState {
@@ -556,7 +558,14 @@ public class StringBuilderAppendOptimizer {
 
     MunchingState munchingState =
         new MunchingState(
-            actions, escaping, inspectingCapacity, looping, materializing, newInstances, oracle);
+            actions,
+            escaping,
+            inspectingCapacity,
+            looping,
+            materializing,
+            newInstances,
+            oracle,
+            () -> code.createValue(TypeElement.stringClassType(appView)));
 
     boolean keepMunching = true;
     for (int i = 0; i < NUMBER_OF_MUNCHING_PASSES && keepMunching; i++) {

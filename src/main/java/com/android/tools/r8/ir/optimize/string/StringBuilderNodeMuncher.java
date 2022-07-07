@@ -8,6 +8,8 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.string.StringBuilderAction.AppendWithNewConstantString;
 import com.android.tools.r8.ir.optimize.string.StringBuilderAction.RemoveStringBuilderAction;
+import com.android.tools.r8.ir.optimize.string.StringBuilderAction.ReplaceArgumentByExistingString;
+import com.android.tools.r8.ir.optimize.string.StringBuilderAction.ReplaceArgumentByStringConcat;
 import com.android.tools.r8.ir.optimize.string.StringBuilderAction.ReplaceByConstantString;
 import com.android.tools.r8.ir.optimize.string.StringBuilderAction.ReplaceByExistingString;
 import com.android.tools.r8.ir.optimize.string.StringBuilderAction.ReplaceByStringConcat;
@@ -25,6 +27,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * StringBuilderNodeMuncher is a classic munching algorithm that will try to remove nodes on string
@@ -46,6 +49,7 @@ class StringBuilderNodeMuncher {
     private final Map<StringBuilderNode, Set<StringBuilderNode>> materializingInstructions;
     private final Map<StringBuilderNode, NewInstanceNode> newInstances;
     private final Map<Value, String> optimizedStrings = new IdentityHashMap<>();
+    private final Supplier<Value> newValueSupplier;
 
     MunchingState(
         Map<Instruction, StringBuilderAction> actions,
@@ -54,7 +58,8 @@ class StringBuilderNodeMuncher {
         Set<StringBuilderNode> looping,
         Map<StringBuilderNode, Set<StringBuilderNode>> materializingInstructions,
         Map<StringBuilderNode, NewInstanceNode> newInstances,
-        StringBuilderOracle oracle) {
+        StringBuilderOracle oracle,
+        Supplier<Value> newValueSupplier) {
       this.actions = actions;
       this.escaping = escaping;
       this.inspectingCapacity = inspectingCapacity;
@@ -62,6 +67,7 @@ class StringBuilderNodeMuncher {
       this.materializingInstructions = materializingInstructions;
       this.newInstances = newInstances;
       this.oracle = oracle;
+      this.newValueSupplier = newValueSupplier;
     }
 
     public NewInstanceNode getNewInstanceNode(StringBuilderNode root) {
@@ -78,6 +84,10 @@ class StringBuilderNodeMuncher {
 
     public boolean isInspecting(StringBuilderNode root) {
       return inspectingCapacity.contains(root);
+    }
+
+    public Value getNewOutValue() {
+      return newValueSupplier.get();
     }
   }
 
@@ -218,11 +228,12 @@ class StringBuilderNodeMuncher {
         StringBuilderNode originalRoot,
         StringBuilderNode currentNode,
         MunchingState munchingState) {
-      if (munchingState.isEscaping(originalRoot) || munchingState.isInspecting(originalRoot)) {
+      if (munchingState.isEscaping(originalRoot)
+          || munchingState.isInspecting(originalRoot)
+          || !currentNode.hasSinglePredecessor()) {
         return false;
       }
-      // TODO(b/129200243): Handle implicit tostring nodes.
-      if (!currentNode.isToStringNode() || !currentNode.hasSinglePredecessor()) {
+      if (!currentNode.isToStringNode() && !currentNode.isImplicitToStringNode()) {
         return false;
       }
       NewInstanceNode newInstanceNode = munchingState.getNewInstanceNode(originalRoot);
@@ -263,29 +274,64 @@ class StringBuilderNodeMuncher {
       if (Iterables.all(initOrAppends, InitOrAppendNode::hasConstantArgument)) {
         return false;
       }
-      // Replace with the string itself.
-      Instruction currentInstruction = currentNode.asToStringNode().getInstruction();
       InitOrAppendNode first = initOrAppends.get(0);
-      if (initOrAppends.size() == 1) {
-        munchingState.actions.put(
-            currentInstruction, new ReplaceByExistingString(first.getNonConstantArgument()));
-      } else {
-        InitOrAppendNode second = initOrAppends.get(1);
-        ReplaceByStringConcat concatAction;
-        if (first.hasConstantArgument()) {
-          concatAction =
-              ReplaceByStringConcat.replaceByNewConstantConcatValue(
-                  first.getConstantArgument(), second.getNonConstantArgument());
-        } else if (second.hasConstantArgument()) {
-          concatAction =
-              ReplaceByStringConcat.replaceByValueConcatNewConstant(
-                  first.getNonConstantArgument(), second.getConstantArgument());
+      // If the string builder dependency is directly given to another string builder, there is
+      // no toString() but an append with this string builder as argument.
+      if (currentNode.isToStringNode()) {
+        Instruction currentInstruction = currentNode.asToStringNode().getInstruction();
+        if (initOrAppends.size() == 1) {
+          // Replace with the string itself.
+          munchingState.actions.put(
+              currentInstruction, new ReplaceByExistingString(first.getNonConstantArgument()));
         } else {
-          concatAction =
-              ReplaceByStringConcat.replaceByValues(
-                  first.getNonConstantArgument(), second.getNonConstantArgument());
+          InitOrAppendNode second = initOrAppends.get(1);
+          ReplaceByStringConcat concatAction;
+          if (first.hasConstantArgument()) {
+            concatAction =
+                ReplaceByStringConcat.replaceByNewConstantConcatValue(
+                    first.getConstantArgument(), second.getNonConstantArgument());
+          } else if (second.hasConstantArgument()) {
+            concatAction =
+                ReplaceByStringConcat.replaceByValueConcatNewConstant(
+                    first.getNonConstantArgument(), second.getConstantArgument());
+          } else {
+            concatAction =
+                ReplaceByStringConcat.replaceByValues(
+                    first.getNonConstantArgument(), second.getNonConstantArgument());
+          }
+          munchingState.actions.put(currentInstruction, concatAction);
         }
-        munchingState.actions.put(currentInstruction, concatAction);
+      } else {
+        assert currentNode.isImplicitToStringNode();
+        ImplicitToStringNode implicitToStringNode = currentNode.asImplicitToStringNode();
+        InitOrAppendNode initOrAppend = implicitToStringNode.getInitOrAppend();
+        if (initOrAppends.size() == 1) {
+          initOrAppend.setNonConstantArgument(first.getNonConstantArgument());
+          munchingState.actions.put(
+              initOrAppend.getInstruction(),
+              new ReplaceArgumentByExistingString(first.getNonConstantArgument()));
+        } else {
+          // Changing append to String.concat require us to calculate a new string value that will
+          // be the result. We allocate it here such that we can use it repeatedly in munching.
+          InitOrAppendNode second = initOrAppends.get(1);
+          Value newOutValue = munchingState.getNewOutValue();
+          initOrAppend.setNonConstantArgument(newOutValue);
+          ReplaceArgumentByStringConcat concatAction;
+          if (first.hasConstantArgument()) {
+            concatAction =
+                ReplaceArgumentByStringConcat.replaceByNewConstantConcatValue(
+                    first.getConstantArgument(), second.getNonConstantArgument(), newOutValue);
+          } else if (second.hasConstantArgument()) {
+            concatAction =
+                ReplaceArgumentByStringConcat.replaceByValueConcatNewConstant(
+                    first.getNonConstantArgument(), second.getConstantArgument(), newOutValue);
+          } else {
+            concatAction =
+                ReplaceArgumentByStringConcat.replaceByValues(
+                    first.getNonConstantArgument(), second.getNonConstantArgument(), newOutValue);
+          }
+          munchingState.actions.put(initOrAppend.getInstruction(), concatAction);
+        }
       }
       munchingState.materializingInstructions.get(originalRoot).remove(currentNode);
       currentNode.removeNode();
@@ -339,12 +385,13 @@ class StringBuilderNodeMuncher {
           boolean canRemoveIfLastAndNoLoop =
               !isLoopingOnPath(root, currentNode, munchingState)
                   && currentNode.getSuccessors().isEmpty();
+          boolean hasKnownArgumentOrCannotBeObserved =
+              appendNode.hasConstantOrNonConstantArgument()
+                  || !munchingState.oracle.canObserveStringBuilderCall(
+                      currentNode.asAppendNode().getInstruction());
           if (canRemoveIfNoInspectionOrMaterializing
               && canRemoveIfLastAndNoLoop
-              && !munchingState.oracle.canObserveStringBuilderCall(
-                  currentNode.asAppendNode().getInstruction())) {
-            munchingState.actions.put(
-                appendNode.getInstruction(), RemoveStringBuilderAction.getInstance());
+              && hasKnownArgumentOrCannotBeObserved) {
             removeNode = true;
           }
         } else if (currentNode.isInitNode()
@@ -362,9 +409,17 @@ class StringBuilderNodeMuncher {
           removedAnyNodes = true;
           currentNode.removeNode();
           if (currentNode.isStringBuilderInstructionNode()) {
-            munchingState.actions.put(
-                currentNode.asStringBuilderInstructionNode().getInstruction(),
-                RemoveStringBuilderAction.getInstance());
+            Instruction currentInstruction =
+                currentNode.asStringBuilderInstructionNode().getInstruction();
+            StringBuilderAction currentAction = munchingState.actions.get(currentInstruction);
+            if (currentAction != null
+                && !currentAction.isAllowedToBeOverwrittenByRemoveStringBuilderAction()) {
+              assert currentAction.isReplaceArgumentByStringConcat();
+              currentAction.asReplaceArgumentByStringConcat().setRemoveInstruction();
+            } else {
+              munchingState.actions.put(
+                  currentInstruction, RemoveStringBuilderAction.getInstance());
+            }
           }
           currentNode =
               currentNode.hasSinglePredecessor() ? currentNode.getSinglePredecessor() : null;

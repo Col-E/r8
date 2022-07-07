@@ -52,8 +52,7 @@ public class StringConcatImplicitToStringSingleTest extends TestBase {
             inspect -> {
               MethodSubject methodSubject = inspect.clazz(Main.class).mainMethod();
               assertThat(methodSubject, isPresent());
-              // TODO(b/129200243): Use the arg string directly as input.
-              assertEquals(2, countStringBuilderInits(methodSubject.asFoundMethodSubject()));
+              assertEquals(0, countStringBuilderInits(methodSubject.asFoundMethodSubject()));
               assertEquals(0, countStringBuilderAppends(methodSubject.asFoundMethodSubject()));
             });
   }
@@ -61,10 +60,8 @@ public class StringConcatImplicitToStringSingleTest extends TestBase {
   public static class Main {
 
     public static void main(String[] args) {
-      String arg = System.currentTimeMillis() > 0 ? "o" : null;
-      if (arg != null) {
-        System.out.println(new StringBuilder(new StringBuilder(arg)).toString());
-      }
+      String arg = System.currentTimeMillis() > 0 ? "o" : "";
+      System.out.println(new StringBuilder(new StringBuilder(arg)).toString());
     }
   }
 }

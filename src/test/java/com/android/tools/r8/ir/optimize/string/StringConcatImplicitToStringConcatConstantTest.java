@@ -21,9 +21,9 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class StringConcatImplicitToStringConcatTest extends TestBase {
+public class StringConcatImplicitToStringConcatConstantTest extends TestBase {
 
-  private static final String EXPECTED = "ok";
+  private static final String EXPECTED = "oko";
 
   @Parameter() public TestParameters parameters;
 
@@ -61,8 +61,8 @@ public class StringConcatImplicitToStringConcatTest extends TestBase {
 
     public static void main(String[] args) {
       String arg1 = System.currentTimeMillis() > 0 ? "o" : "";
-      String arg2 = System.currentTimeMillis() > 0 ? "k" : "";
-      System.out.println(new StringBuilder(new StringBuilder(arg1).append(arg2)).toString());
+      System.out.println(
+          new StringBuilder(new StringBuilder(arg1).append("k").append("o")).toString());
     }
   }
 }

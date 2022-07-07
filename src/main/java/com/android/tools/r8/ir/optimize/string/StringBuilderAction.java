@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.optimize.string;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -28,6 +27,18 @@ public interface StringBuilderAction {
       Instruction instruction,
       StringBuilderOracle oracle);
 
+  default boolean isAllowedToBeOverwrittenByRemoveStringBuilderAction() {
+    return false;
+  }
+
+  default boolean isReplaceArgumentByStringConcat() {
+    return false;
+  }
+
+  default ReplaceArgumentByStringConcat asReplaceArgumentByStringConcat() {
+    return null;
+  }
+
   /** The RemoveStringBuilderAction will simply remove the instruction completely. */
   class RemoveStringBuilderAction implements StringBuilderAction {
 
@@ -40,21 +51,16 @@ public interface StringBuilderAction {
         InstructionListIterator iterator,
         Instruction instruction,
         StringBuilderOracle oracle) {
-      assert oracle.isModeledStringBuilderInstruction(
-          instruction,
-          value ->
-              value.getType().isClassType()
-                  && oracle.isStringBuilderType(value.getType().asClassType().getClassType()));
-      if (oracle.isAppend(instruction) && instruction.outValue() != null) {
-        // Append will return the string builder instance. Before removing, ensure that
-        // all users of the output values uses the receiver.
-        instruction.outValue().replaceUsers(instruction.getFirstOperand());
-      }
-      iterator.removeOrReplaceByDebugLocalRead();
+      removeStringBuilderInstruction(iterator, instruction, oracle);
     }
 
     static RemoveStringBuilderAction getInstance() {
       return INSTANCE;
+    }
+
+    @Override
+    public boolean isAllowedToBeOverwrittenByRemoveStringBuilderAction() {
+      return true;
     }
   }
 
@@ -127,6 +133,11 @@ public interface StringBuilderAction {
       }
     }
 
+    @Override
+    public boolean isAllowedToBeOverwrittenByRemoveStringBuilderAction() {
+      return true;
+    }
+
     private boolean isAppendWithString(DexMethod method, DexItemFactory factory) {
       return factory.stringBufferMethods.isAppendStringMethod(method)
           || factory.stringBuilderMethods.isAppendStringMethod(method);
@@ -148,7 +159,6 @@ public interface StringBuilderAction {
     private final Value existingString;
 
     public ReplaceByExistingString(Value existingString) {
-      assert existingString.isNeverNull();
       this.existingString = existingString;
     }
 
@@ -161,6 +171,11 @@ public interface StringBuilderAction {
         StringBuilderOracle oracle) {
       instruction.outValue().replaceUsers(existingString);
       iterator.removeOrReplaceByDebugLocalRead();
+    }
+
+    @Override
+    public boolean isAllowedToBeOverwrittenByRemoveStringBuilderAction() {
+      return true;
     }
   }
 
@@ -211,18 +226,124 @@ public interface StringBuilderAction {
       assert second != null || constString != null;
       // To ensure that we do not fail narrowing when evaluating String.concat, we mark the type
       // as maybe null.
-      Value newOutValue =
-          code.createValue(
-              TypeElement.stringClassType(appView, Nullability.maybeNull()),
-              instruction.getLocalInfo());
       iterator.replaceCurrentInstruction(
           InvokeVirtual.builder()
-              .setOutValue(newOutValue)
+              .setFreshOutValue(
+                  code, TypeElement.stringClassType(appView), instruction.getLocalInfo())
               .setMethod(appView.dexItemFactory().stringMembers.concat)
               .setArguments(
                   ImmutableList.of(
                       first != null ? first : constString, second != null ? second : constString))
               .build());
+    }
+  }
+
+  class ReplaceArgumentByExistingString implements StringBuilderAction {
+
+    private final Value string;
+
+    public ReplaceArgumentByExistingString(Value string) {
+      this.string = string;
+    }
+
+    @Override
+    public void perform(
+        AppView<?> appView,
+        IRCode code,
+        InstructionListIterator iterator,
+        Instruction instruction,
+        StringBuilderOracle oracle) {
+      instruction.replaceValue(1, string);
+    }
+
+    @Override
+    public boolean isAllowedToBeOverwrittenByRemoveStringBuilderAction() {
+      return true;
+    }
+  }
+
+  class ReplaceArgumentByStringConcat implements StringBuilderAction {
+
+    private final Value first;
+    private final Value second;
+    private final String newConstant;
+    private final Value outValue;
+    private boolean removeInstruction;
+
+    private ReplaceArgumentByStringConcat(
+        Value first, Value second, String newConstant, Value outValue) {
+      assert first != null || newConstant != null;
+      assert second != null || newConstant != null;
+      this.first = first;
+      this.second = second;
+      this.newConstant = newConstant;
+      this.outValue = outValue;
+    }
+
+    public static ReplaceArgumentByStringConcat replaceByValues(
+        Value first, Value second, Value outValue) {
+      return new ReplaceArgumentByStringConcat(first, second, null, outValue);
+    }
+
+    public static ReplaceArgumentByStringConcat replaceByNewConstantConcatValue(
+        String newConstant, Value second, Value outValue) {
+      return new ReplaceArgumentByStringConcat(null, second, newConstant, outValue);
+    }
+
+    public static ReplaceArgumentByStringConcat replaceByValueConcatNewConstant(
+        Value first, String newConstant, Value outValue) {
+      return new ReplaceArgumentByStringConcat(first, null, newConstant, outValue);
+    }
+
+    public void setRemoveInstruction() {
+      removeInstruction = true;
+    }
+
+    @Override
+    public void perform(
+        AppView<?> appView,
+        IRCode code,
+        InstructionListIterator iterator,
+        Instruction instruction,
+        StringBuilderOracle oracle) {
+      assert instruction.isInvokeMethod();
+      assert instruction.inValues().size() == 2;
+      Instruction previous = iterator.previous();
+      assert previous == instruction;
+      Value constString = null;
+      if (newConstant != null) {
+        constString =
+            insertStringConstantInstruction(appView, code, iterator, previous, newConstant);
+      }
+      assert first != null || constString != null;
+      assert second != null || constString != null;
+      InvokeVirtual stringConcat =
+          InvokeVirtual.builder()
+              .setMethod(appView.dexItemFactory().stringMembers.concat)
+              .setOutValue(outValue)
+              .setArguments(
+                  ImmutableList.of(
+                      first != null ? first : constString, second != null ? second : constString))
+              .setPosition(instruction.getPosition())
+              .build();
+      iterator.add(stringConcat);
+      Instruction next = iterator.next();
+      assert next == instruction;
+      if (removeInstruction) {
+        removeStringBuilderInstruction(iterator, instruction, oracle);
+      } else {
+        instruction.replaceValue(1, outValue);
+      }
+    }
+
+    @Override
+    public boolean isReplaceArgumentByStringConcat() {
+      return true;
+    }
+
+    @Override
+    public ReplaceArgumentByStringConcat asReplaceArgumentByStringConcat() {
+      return this;
     }
   }
 
@@ -265,5 +386,20 @@ public interface StringBuilderAction {
               appView, code, appView.dexItemFactory().createString(newString));
     }
     return value;
+  }
+
+  static void removeStringBuilderInstruction(
+      InstructionListIterator iterator, Instruction instruction, StringBuilderOracle oracle) {
+    assert oracle.isModeledStringBuilderInstruction(
+        instruction,
+        value ->
+            value.getType().isClassType()
+                && oracle.isStringBuilderType(value.getType().asClassType().getClassType()));
+    if (oracle.isAppend(instruction) && instruction.outValue() != null) {
+      // Append will return the string builder instance. Before removing, ensure that
+      // all users of the output values uses the receiver.
+      instruction.outValue().replaceUsers(instruction.getFirstOperand());
+    }
+    iterator.removeOrReplaceByDebugLocalRead();
   }
 }
