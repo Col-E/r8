@@ -134,7 +134,7 @@ public class CfStackInstruction extends CfInstruction {
       case Pop:
         {
           Slot pop = state.pop();
-          assert !pop.type.isWide();
+          assert !pop.type.isWide() : "Expected stack type to be single width";
           break;
         }
       case Pop2:
