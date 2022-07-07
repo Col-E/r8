@@ -53,7 +53,20 @@ public class StartupConfigurationParser<C, M, T> {
   public static StartupConfigurationParser<ClassReference, MethodReference, TypeReference>
       createReferenceParser() {
     return new StartupConfigurationParser<>(
-        Reference::classFromDescriptor, Reference::method, Reference::typeFromDescriptor);
+        Reference::classFromDescriptor, Reference::method, Reference::returnTypeFromDescriptor);
+  }
+
+  public void parseLines(
+      List<String> startupDescriptors,
+      Consumer<? super StartupClass<C, M>> startupClassConsumer,
+      Consumer<? super StartupMethod<C, M>> startupMethodConsumer,
+      Consumer<String> parseErrorHandler) {
+    for (String startupDescriptor : startupDescriptors) {
+      if (!startupDescriptor.isEmpty()) {
+        parseLine(
+            startupDescriptor, startupClassConsumer, startupMethodConsumer, parseErrorHandler);
+      }
+    }
   }
 
   public void parseLine(

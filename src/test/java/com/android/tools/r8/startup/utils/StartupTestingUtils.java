@@ -17,6 +17,7 @@ import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.experimental.startup.StartupConfiguration;
 import com.android.tools.r8.experimental.startup.StartupConfigurationParser;
 import com.android.tools.r8.experimental.startup.StartupItem;
+import com.android.tools.r8.experimental.startup.StartupOptions;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -29,6 +30,7 @@ import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;
@@ -38,20 +40,27 @@ public class StartupTestingUtils {
 
   private static String startupInstrumentationTag = "startup";
 
-  public static ThrowableConsumer<D8TestBuilder> enableStartupInstrumentation(
+  public static ThrowableConsumer<D8TestBuilder> enableStartupInstrumentationUsingFile(
       TestParameters parameters) {
-    return testBuilder -> enableStartupInstrumentation(testBuilder, parameters);
+    return testBuilder -> enableStartupInstrumentation(testBuilder, parameters, false);
   }
 
-  public static void enableStartupInstrumentation(
-      D8TestBuilder testBuilder, TestParameters parameters) throws IOException {
+  public static ThrowableConsumer<D8TestBuilder> enableStartupInstrumentationUsingLogcat(
+      TestParameters parameters) {
+    return testBuilder -> enableStartupInstrumentation(testBuilder, parameters, true);
+  }
+
+  private static void enableStartupInstrumentation(
+      D8TestBuilder testBuilder, TestParameters parameters, boolean logcat) throws IOException {
     testBuilder
         .addOptionsModification(
-            options ->
-                options
-                    .getStartupOptions()
-                    .setEnableStartupInstrumentation()
-                    .setStartupInstrumentationTag(startupInstrumentationTag))
+            options -> {
+              StartupOptions startupOptions =
+                  options.getStartupOptions().setEnableStartupInstrumentation();
+              if (logcat) {
+                startupOptions.setStartupInstrumentationTag(startupInstrumentationTag);
+              }
+            })
         .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
         .addLibraryClassFileData(getTransformedAndroidUtilLog());
   }
@@ -63,6 +72,17 @@ public class StartupTestingUtils {
         .setMinApi(AndroidApiLevel.B)
         .compile()
         .writeToZip();
+  }
+
+  public static void readStartupListFromFile(
+      Path path, Consumer<StartupItem<ClassReference, MethodReference, ?>> startupItemConsumer)
+      throws IOException {
+    StartupConfigurationParser.createReferenceParser()
+        .parseLines(
+            Files.readAllLines(path),
+            startupItemConsumer,
+            startupItemConsumer,
+            error -> fail("Unexpected parse error: " + error));
   }
 
   public static ThrowingConsumer<D8TestRunResult, RuntimeException> removeStartupListFromStdout(

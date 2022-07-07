@@ -60,7 +60,7 @@ public class StartupSyntheticWithoutContextTest extends TestBase {
     List<StartupItem<ClassReference, MethodReference, ?>> startupList = new ArrayList<>();
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .apply(StartupTestingUtils.enableStartupInstrumentation(parameters))
+        .apply(StartupTestingUtils.enableStartupInstrumentationUsingLogcat(parameters))
         .release()
         .setMinApi(parameters.getApiLevel())
         .compile()

@@ -74,28 +74,22 @@ public class StartupConfiguration {
 
   public static StartupConfiguration createStartupConfigurationFromLines(
       DexItemFactory dexItemFactory, Reporter reporter, List<String> startupDescriptors) {
-    StartupConfigurationParser<DexType, DexMethod, DexType> parser =
-        StartupConfigurationParser.createDexParser(dexItemFactory);
     List<StartupClass<DexType, DexMethod>> startupClasses = new ArrayList<>();
-    for (String startupDescriptor : startupDescriptors) {
-      if (startupDescriptor.isEmpty()) {
-        continue;
-      }
-      parser.parseLine(
-          startupDescriptor,
-          startupClasses::add,
-          // TODO(b/238173796): Startup methods should be added as startup methods.
-          startupMethod ->
-              startupClasses.add(
-                  StartupClass.dexBuilder()
-                      .setClassReference(startupMethod.getReference().getHolderType())
-                      .setFlags(startupMethod.getFlags())
-                      .build()),
-          error ->
-              reporter.warning(
-                  new StringDiagnostic(
-                      "Invalid descriptor for startup class or method: " + error)));
-    }
+    StartupConfigurationParser.createDexParser(dexItemFactory)
+        .parseLines(
+            startupDescriptors,
+            startupClasses::add,
+            // TODO(b/238173796): Startup methods should be added as startup methods.
+            startupMethod ->
+                startupClasses.add(
+                    StartupClass.dexBuilder()
+                        .setClassReference(startupMethod.getReference().getHolderType())
+                        .setFlags(startupMethod.getFlags())
+                        .build()),
+            error ->
+                reporter.warning(
+                    new StringDiagnostic(
+                        "Invalid descriptor for startup class or method: " + error)));
     return new StartupConfiguration(startupClasses);
   }
 
