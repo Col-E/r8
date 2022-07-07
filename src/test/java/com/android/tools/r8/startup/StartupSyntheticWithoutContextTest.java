@@ -14,19 +14,23 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.experimental.startup.StartupClass;
+import com.android.tools.r8.experimental.startup.StartupItem;
+import com.android.tools.r8.experimental.startup.StartupMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.startup.utils.MixedSectionLayoutInspector;
 import com.android.tools.r8.startup.utils.StartupTestingUtils;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,7 +57,7 @@ public class StartupSyntheticWithoutContextTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    List<StartupClass<ClassReference>> startupList = new ArrayList<>();
+    List<StartupItem<ClassReference, MethodReference, ?>> startupList = new ArrayList<>();
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
         .apply(StartupTestingUtils.enableStartupInstrumentation(parameters))
@@ -62,7 +66,7 @@ public class StartupSyntheticWithoutContextTest extends TestBase {
         .compile()
         .addRunClasspathFiles(StartupTestingUtils.getAndroidUtilLog(temp))
         .run(parameters.getRuntime(), Main.class)
-        .apply(StartupTestingUtils.removeStartupClassesFromStdout(startupList::add))
+        .apply(StartupTestingUtils.removeStartupListFromStdout(startupList::add))
         .assertSuccessWithOutputLines(getExpectedOutput());
     assertEquals(getExpectedStartupList(), startupList);
 
@@ -89,30 +93,50 @@ public class StartupSyntheticWithoutContextTest extends TestBase {
     return ImmutableList.of("A", "B", "C");
   }
 
-  private List<StartupClass<ClassReference>> getExpectedStartupList() {
-    ImmutableList.Builder<StartupClass<ClassReference>> builder = ImmutableList.builder();
-    builder.add(
-        StartupClass.<ClassReference>builder()
-            .setReference(Reference.classFromClass(Main.class))
-            .build());
-    builder.add(
-        StartupClass.<ClassReference>builder()
-            .setReference(Reference.classFromClass(A.class))
-            .build());
-    builder.add(
-        StartupClass.<ClassReference>builder()
-            .setReference(Reference.classFromClass(B.class))
-            .build());
-    builder.add(
-        StartupClass.<ClassReference>builder()
-            .setReference(Reference.classFromClass(B.class))
+  private List<StartupMethod<ClassReference, MethodReference>> getExpectedStartupList()
+      throws NoSuchMethodException {
+    return ImmutableList.of(
+        StartupMethod.referenceBuilder()
+            .setMethodReference(MethodReferenceUtils.classConstructor(Main.class))
+            .build(),
+        StartupMethod.referenceBuilder()
+            .setMethodReference(MethodReferenceUtils.mainMethod(Main.class))
+            .build(),
+        StartupMethod.referenceBuilder()
+            .setMethodReference(MethodReferenceUtils.classConstructor(A.class))
+            .build(),
+        StartupMethod.referenceBuilder()
+            .setMethodReference(Reference.methodFromMethod(A.class.getDeclaredMethod("a")))
+            .build(),
+        StartupMethod.referenceBuilder()
+            .setMethodReference(MethodReferenceUtils.classConstructor(B.class))
+            .build(),
+        StartupMethod.referenceBuilder()
+            .setMethodReference(Reference.methodFromMethod(B.class.getDeclaredMethod("b")))
+            .build(),
+        StartupMethod.referenceBuilder()
+            .setMethodReference(MethodReferenceUtils.classConstructor(B.class))
             .setSynthetic()
+            .build(),
+        StartupMethod.referenceBuilder()
+            .setMethodReference(MethodReferenceUtils.instanceConstructor(B.class))
+            .setSynthetic()
+            .build(),
+        StartupMethod.referenceBuilder()
+            .setMethodReference(
+                Reference.method(
+                    Reference.classFromClass(B.class), "run", Collections.emptyList(), null))
+            .setSynthetic()
+            .build(),
+        StartupMethod.referenceBuilder()
+            .setMethodReference(Reference.methodFromMethod(B.class.getDeclaredMethod("lambda$b$0")))
+            .build(),
+        StartupMethod.referenceBuilder()
+            .setMethodReference(MethodReferenceUtils.classConstructor(C.class))
+            .build(),
+        StartupMethod.referenceBuilder()
+            .setMethodReference(Reference.methodFromMethod(C.class.getDeclaredMethod("c")))
             .build());
-    builder.add(
-        StartupClass.<ClassReference>builder()
-            .setReference(Reference.classFromClass(C.class))
-            .build());
-    return builder.build();
   }
 
   private List<ClassReference> getExpectedClassDataLayout(int virtualFile) {

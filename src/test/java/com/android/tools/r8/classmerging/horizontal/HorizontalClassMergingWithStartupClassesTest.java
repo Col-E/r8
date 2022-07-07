@@ -10,7 +10,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.experimental.startup.StartupClass;
 import com.android.tools.r8.experimental.startup.StartupConfiguration;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexType;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
@@ -54,8 +53,8 @@ public class HorizontalClassMergingWithStartupClassesTest extends TestBase {
                                   startupClasses.forEach(
                                       startupClass ->
                                           builder.addStartupClass(
-                                              StartupClass.<DexType>builder()
-                                                  .setReference(
+                                              StartupClass.dexBuilder()
+                                                  .setClassReference(
                                                       toDexType(startupClass, dexItemFactory))
                                                   .build())))
                           .build());

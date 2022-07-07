@@ -5,17 +5,18 @@
 package com.android.tools.r8.startup;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.experimental.startup.StartupClass;
+import com.android.tools.r8.experimental.startup.StartupItem;
+import com.android.tools.r8.experimental.startup.StartupMethod;
 import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.startup.StartupSyntheticPlacementTest.Main;
 import com.android.tools.r8.startup.utils.StartupTestingUtils;
+import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,13 +34,12 @@ public class StartupInstrumentationTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+    return getTestParameters().withDexRuntimesAndAllApiLevels().build();
   }
 
   @Test
-  public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    List<StartupClass<ClassReference>> startupList = new ArrayList<>();
+  public void test() throws Exception {
+    List<StartupItem<ClassReference, MethodReference, ?>> startupList = new ArrayList<>();
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
         .apply(StartupTestingUtils.enableStartupInstrumentation(parameters))
@@ -48,7 +48,7 @@ public class StartupInstrumentationTest extends TestBase {
         .compile()
         .addRunClasspathFiles(StartupTestingUtils.getAndroidUtilLog(temp))
         .run(parameters.getRuntime(), Main.class)
-        .apply(StartupTestingUtils.removeStartupClassesFromStdout(startupList::add))
+        .apply(StartupTestingUtils.removeStartupListFromStdout(startupList::add))
         .assertSuccessWithOutputLines(getExpectedOutput());
     assertEquals(getExpectedStartupList(), startupList);
   }
@@ -57,13 +57,21 @@ public class StartupInstrumentationTest extends TestBase {
     return ImmutableList.of("foo");
   }
 
-  private List<StartupClass<ClassReference>> getExpectedStartupList() {
+  private List<StartupMethod<ClassReference, MethodReference>> getExpectedStartupList()
+      throws NoSuchMethodException {
     return ImmutableList.of(
-        StartupClass.<ClassReference>builder()
-            .setReference(Reference.classFromClass(Main.class))
+        StartupMethod.referenceBuilder()
+            .setMethodReference(MethodReferenceUtils.classConstructor(Main.class))
             .build(),
-        StartupClass.<ClassReference>builder()
-            .setReference(Reference.classFromClass(AStartupClass.class))
+        StartupMethod.referenceBuilder()
+            .setMethodReference(MethodReferenceUtils.mainMethod(Main.class))
+            .build(),
+        StartupMethod.referenceBuilder()
+            .setMethodReference(MethodReferenceUtils.classConstructor(AStartupClass.class))
+            .build(),
+        StartupMethod.referenceBuilder()
+            .setMethodReference(
+                Reference.methodFromMethod(AStartupClass.class.getDeclaredMethod("foo")))
             .build());
   }
 

@@ -79,7 +79,7 @@ public class StartupMixedSectionLayoutStrategy extends DefaultMixedSectionLayout
             virtualFile.classes().size());
     LensCodeRewriterUtils rewriter = new LensCodeRewriterUtils(appView, true);
     StartupIndexedItemCollection indexedItemCollection = new StartupIndexedItemCollection();
-    for (StartupClass<DexType> startupClass : startupOrderForWriting.getClasses()) {
+    for (StartupClass<DexType, DexMethod> startupClass : startupOrderForWriting.getClasses()) {
       assert !startupClass.isSynthetic();
       DexProgramClass definition = virtualFileDefinitions.get(startupClass.getReference());
       if (definition != null) {

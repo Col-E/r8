@@ -4,84 +4,47 @@
 
 package com.android.tools.r8.experimental.startup;
 
-public class StartupClass<T> {
+import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
 
-  private static final int FLAG_SYNTHETIC = 1;
+// TODO(b/238173796): When updating the compiler to have support for taking a list of startup
+//  methods, this class may likely be removed along with the StartupItem class, so that only
+//  StartupMethod remains.
+public class StartupClass<C, M> extends StartupItem<C, M, C> {
 
-  private final int flags;
-  private final T reference;
-
-  public StartupClass(int flags, T reference) {
-    this.flags = flags;
-    this.reference = reference;
+  public StartupClass(int flags, C reference) {
+    super(flags, reference);
   }
 
-  public static <T> Builder<T> builder() {
+  public static <C, M> Builder<C, M> builder() {
     return new Builder<>();
   }
 
-  public int getFlags() {
-    return flags;
-  }
-
-  public T getReference() {
-    return reference;
-  }
-
-  public boolean isSynthetic() {
-    return (flags & FLAG_SYNTHETIC) != 0;
+  public static Builder<DexType, DexMethod> dexBuilder() {
+    return new Builder<>();
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null || getClass() != obj.getClass()) {
-      return false;
-    }
-    StartupClass<?> startupClass = (StartupClass<?>) obj;
-    return flags == startupClass.flags && reference.equals(startupClass.reference);
+  public boolean isStartupClass() {
+    return true;
   }
 
   @Override
-  public int hashCode() {
-    assert flags <= 1;
-    return (reference.hashCode() << 1) | flags;
+  public StartupClass<C, M> asStartupClass() {
+    return this;
   }
 
-  @Override
-  public String toString() {
-    StringBuilder builder = new StringBuilder();
-    if (isSynthetic()) {
-      builder.append('S');
-    }
-    builder.append(reference);
-    return builder.toString();
-  }
+  public static class Builder<C, M> extends StartupItem.Builder<C, M, Builder<C, M>> {
 
-  public static class Builder<T> {
-
-    private int flags;
-    private T reference;
-
-    public Builder<T> setFlags(int flags) {
-      this.flags = flags;
-      return this;
+    @Override
+    public Builder<C, M> setMethodReference(M reference) {
+      throw new Unreachable();
     }
 
-    public Builder<T> setReference(T reference) {
-      this.reference = reference;
-      return this;
-    }
-
-    public Builder<T> setSynthetic() {
-      this.flags |= FLAG_SYNTHETIC;
-      return this;
-    }
-
-    public StartupClass<T> build() {
-      return new StartupClass<>(flags, reference);
+    @Override
+    public StartupClass<C, M> build() {
+      return new StartupClass<>(flags, classReference);
     }
   }
 }

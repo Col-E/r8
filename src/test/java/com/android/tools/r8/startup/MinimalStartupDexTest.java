@@ -14,7 +14,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.experimental.startup.StartupClass;
 import com.android.tools.r8.experimental.startup.StartupConfiguration;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -53,12 +52,13 @@ public class MinimalStartupDexTest extends TestBase {
                     .setStartupConfiguration(
                         StartupConfiguration.builder()
                             .addStartupClass(
-                                StartupClass.<DexType>builder()
-                                    .setReference(toDexType(Main.class, options.dexItemFactory()))
+                                StartupClass.dexBuilder()
+                                    .setClassReference(
+                                        toDexType(Main.class, options.dexItemFactory()))
                                     .build())
                             .addStartupClass(
-                                StartupClass.<DexType>builder()
-                                    .setReference(
+                                StartupClass.dexBuilder()
+                                    .setClassReference(
                                         toDexType(AStartupClass.class, options.dexItemFactory()))
                                     .build())
                             .build()))

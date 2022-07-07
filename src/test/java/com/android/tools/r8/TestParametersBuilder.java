@@ -133,6 +133,10 @@ public class TestParametersBuilder {
     return withDexRuntimeFilter(vm -> true);
   }
 
+  public TestParametersBuilder withDexRuntimesAndAllApiLevels() {
+    return withDexRuntimes().withAllApiLevels();
+  }
+
   /** Add specific runtime if available. */
   public TestParametersBuilder withDexRuntime(DexVm.Version runtime) {
     return withDexRuntimeFilter(vm -> vm == runtime);

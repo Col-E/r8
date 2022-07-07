@@ -16,6 +16,7 @@ import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.google.common.collect.ImmutableList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 
@@ -54,6 +55,22 @@ public class MethodReferenceUtils {
         }
         return method.getFormalTypes().size() - other.getFormalTypes().size();
       };
+
+  public static MethodReference classConstructor(Class<?> clazz) {
+    return classConstructor(Reference.classFromClass(clazz));
+  }
+
+  public static MethodReference classConstructor(ClassReference type) {
+    return Reference.classConstructor(type);
+  }
+
+  public static MethodReference instanceConstructor(Class<?> clazz) {
+    return instanceConstructor(Reference.classFromClass(clazz));
+  }
+
+  public static MethodReference instanceConstructor(ClassReference type) {
+    return Reference.method(type, "<init>", Collections.emptyList(), null);
+  }
 
   public static int compare(MethodReference methodReference, ClassReference other) {
     return ClassReferenceUtils.compare(other, methodReference) * -1;

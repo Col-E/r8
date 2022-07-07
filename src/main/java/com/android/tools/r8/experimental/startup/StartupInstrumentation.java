@@ -18,7 +18,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue.DexValueBoolean;
 import com.android.tools.r8.graph.DexValue.DexValueString;
@@ -105,11 +104,11 @@ public class StartupInstrumentation {
   }
 
   private void instrumentClass(DexProgramClass clazz) {
-    ProgramMethod classInitializer = ensureClassInitializer(clazz);
-    instrumentClassInitializer(classInitializer);
+    ensureClassInitializer(clazz);
+    clazz.forEachProgramMethod(this::instrumentMethod);
   }
 
-  private ProgramMethod ensureClassInitializer(DexProgramClass clazz) {
+  private void ensureClassInitializer(DexProgramClass clazz) {
     if (!clazz.hasClassInitializer()) {
       ComputedApiLevel computedApiLevel =
           appView.apiLevelCompute().computeInitialMinApiLevel(appView.options());
@@ -125,22 +124,22 @@ public class StartupInstrumentation {
               .setMethod(dexItemFactory.createClassInitializer(clazz.getType()))
               .build());
     }
-    return clazz.getProgramClassInitializer();
   }
 
-  private void instrumentClassInitializer(ProgramMethod method) {
-    DexString descriptor;
+  private void instrumentMethod(ProgramMethod method) {
     DexMethod methodToInvoke;
+    DexMethod methodToPrint;
     SyntheticItems syntheticItems = appView.getSyntheticItems();
     if (syntheticItems.isSyntheticClass(method.getHolder())) {
       Collection<DexType> synthesizingContexts =
           syntheticItems.getSynthesizingContextTypes(method.getHolderType());
       assert synthesizingContexts.size() == 1;
-      descriptor = synthesizingContexts.iterator().next().getDescriptor();
+      DexType synthesizingContext = synthesizingContexts.iterator().next();
       methodToInvoke = references.addSyntheticMethod;
+      methodToPrint = method.getReference().withHolder(synthesizingContext, dexItemFactory);
     } else {
-      descriptor = method.getHolderType().getDescriptor();
       methodToInvoke = references.addNonSyntheticMethod;
+      methodToPrint = method.getReference();
     }
 
     IRCode code = method.buildIR(appView);
@@ -148,7 +147,8 @@ public class StartupInstrumentation {
     instructionIterator.positionBeforeNextInstructionThatMatches(not(Instruction::isArgument));
 
     Value descriptorValue =
-        instructionIterator.insertConstStringInstruction(appView, code, descriptor);
+        instructionIterator.insertConstStringInstruction(
+            appView, code, dexItemFactory.createString(methodToPrint.toSmaliString()));
     instructionIterator.add(
         InvokeStatic.builder()
             .setMethod(methodToInvoke)

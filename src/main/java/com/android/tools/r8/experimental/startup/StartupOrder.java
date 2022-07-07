@@ -5,6 +5,7 @@
 package com.android.tools.r8.experimental.startup;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
@@ -35,7 +36,7 @@ public abstract class StartupOrder {
 
   public abstract boolean contains(DexType type, SyntheticItems syntheticItems);
 
-  public abstract Collection<StartupClass<DexType>> getClasses();
+  public abstract Collection<StartupClass<DexType, DexMethod>> getClasses();
 
   public abstract boolean isEmpty();
 

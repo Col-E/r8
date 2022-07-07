@@ -6,6 +6,7 @@ package com.android.tools.r8.experimental.startup;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
@@ -25,16 +26,16 @@ import java.util.Set;
 
 public class NonEmptyStartupOrder extends StartupOrder {
 
-  private final LinkedHashSet<StartupClass<DexType>> startupClasses;
+  private final LinkedHashSet<StartupClass<DexType, DexMethod>> startupClasses;
 
   // Redundant sets to allow efficient querying without boxing.
   private final Set<DexType> nonSyntheticStartupClasses = Sets.newIdentityHashSet();
   private final Set<DexType> syntheticStartupClasses = Sets.newIdentityHashSet();
 
-  NonEmptyStartupOrder(LinkedHashSet<StartupClass<DexType>> startupClasses) {
+  NonEmptyStartupOrder(LinkedHashSet<StartupClass<DexType, DexMethod>> startupClasses) {
     assert !startupClasses.isEmpty();
     this.startupClasses = startupClasses;
-    for (StartupClass<DexType> startupClass : startupClasses) {
+    for (StartupClass<DexType, DexMethod> startupClass : startupClasses) {
       if (startupClass.isSynthetic()) {
         syntheticStartupClasses.add(startupClass.getReference());
       } else {
@@ -66,7 +67,7 @@ public class NonEmptyStartupOrder extends StartupOrder {
   }
 
   @Override
-  public Collection<StartupClass<DexType>> getClasses() {
+  public Collection<StartupClass<DexType, DexMethod>> getClasses() {
     return startupClasses;
   }
 
@@ -77,13 +78,13 @@ public class NonEmptyStartupOrder extends StartupOrder {
 
   @Override
   public StartupOrder rewrittenWithLens(GraphLens graphLens) {
-    LinkedHashSet<StartupClass<DexType>> rewrittenStartupClasses =
+    LinkedHashSet<StartupClass<DexType, DexMethod>> rewrittenStartupClasses =
         new LinkedHashSet<>(startupClasses.size());
-    for (StartupClass<DexType> startupClass : startupClasses) {
+    for (StartupClass<DexType, DexMethod> startupClass : startupClasses) {
       rewrittenStartupClasses.add(
-          StartupClass.<DexType>builder()
+          StartupClass.dexBuilder()
               .setFlags(startupClass.getFlags())
-              .setReference(graphLens.lookupType(startupClass.getReference()))
+              .setClassReference(graphLens.lookupType(startupClass.getReference()))
               .build());
     }
     return createNonEmpty(rewrittenStartupClasses);
@@ -91,7 +92,7 @@ public class NonEmptyStartupOrder extends StartupOrder {
 
   @Override
   public StartupOrder toStartupOrderForWriting(AppView<?> appView) {
-    LinkedHashSet<StartupClass<DexType>> rewrittenStartupClasses =
+    LinkedHashSet<StartupClass<DexType, DexMethod>> rewrittenStartupClasses =
         new LinkedHashSet<>(startupClasses.size());
     Map<DexType, List<DexProgramClass>> syntheticContextsToSyntheticClasses =
         new IdentityHashMap<>();
@@ -105,7 +106,7 @@ public class NonEmptyStartupOrder extends StartupOrder {
         }
       }
     }
-    for (StartupClass<DexType> startupClass : startupClasses) {
+    for (StartupClass<DexType, DexMethod> startupClass : startupClasses) {
       addStartupClass(
           startupClass, rewrittenStartupClasses, syntheticContextsToSyntheticClasses, appView);
     }
@@ -114,8 +115,8 @@ public class NonEmptyStartupOrder extends StartupOrder {
   }
 
   private static void addStartupClass(
-      StartupClass<DexType> startupClass,
-      LinkedHashSet<StartupClass<DexType>> rewrittenStartupClasses,
+      StartupClass<DexType, DexMethod> startupClass,
+      LinkedHashSet<StartupClass<DexType, DexMethod>> rewrittenStartupClasses,
       Map<DexType, List<DexProgramClass>> syntheticContextsToSyntheticClasses,
       AppView<?> appView) {
     if (startupClass.isSynthetic()) {
@@ -131,14 +132,15 @@ public class NonEmptyStartupOrder extends StartupOrder {
   }
 
   private static boolean addClass(
-      DexProgramClass clazz, LinkedHashSet<StartupClass<DexType>> rewrittenStartupClasses) {
+      DexProgramClass clazz,
+      LinkedHashSet<StartupClass<DexType, DexMethod>> rewrittenStartupClasses) {
     return rewrittenStartupClasses.add(
-        StartupClass.<DexType>builder().setReference(clazz.getType()).build());
+        StartupClass.dexBuilder().setClassReference(clazz.getType()).build());
   }
 
   private static void addClassAndParentClasses(
       DexType type,
-      LinkedHashSet<StartupClass<DexType>> rewrittenStartupClasses,
+      LinkedHashSet<StartupClass<DexType, DexMethod>> rewrittenStartupClasses,
       AppView<?> appView) {
     DexProgramClass definition = appView.app().programDefinitionFor(type);
     if (definition != null) {
@@ -148,7 +150,7 @@ public class NonEmptyStartupOrder extends StartupOrder {
 
   private static void addClassAndParentClasses(
       DexProgramClass clazz,
-      LinkedHashSet<StartupClass<DexType>> rewrittenStartupClasses,
+      LinkedHashSet<StartupClass<DexType, DexMethod>> rewrittenStartupClasses,
       AppView<?> appView) {
     if (addClass(clazz, rewrittenStartupClasses)) {
       addParentClasses(clazz, rewrittenStartupClasses, appView);
@@ -157,7 +159,7 @@ public class NonEmptyStartupOrder extends StartupOrder {
 
   private static void addParentClasses(
       DexProgramClass clazz,
-      LinkedHashSet<StartupClass<DexType>> rewrittenStartupClasses,
+      LinkedHashSet<StartupClass<DexType, DexMethod>> rewrittenStartupClasses,
       AppView<?> appView) {
     clazz.forEachImmediateSupertype(
         supertype -> addClassAndParentClasses(supertype, rewrittenStartupClasses, appView));
@@ -165,12 +167,12 @@ public class NonEmptyStartupOrder extends StartupOrder {
 
   @Override
   public StartupOrder withoutPrunedItems(PrunedItems prunedItems, SyntheticItems syntheticItems) {
-    LinkedHashSet<StartupClass<DexType>> rewrittenStartupClasses =
+    LinkedHashSet<StartupClass<DexType, DexMethod>> rewrittenStartupClasses =
         new LinkedHashSet<>(startupClasses.size());
     LazyBox<Set<DexType>> contextsOfLiveSynthetics =
         new LazyBox<>(
             () -> computeContextsOfLiveSynthetics(prunedItems.getPrunedApp(), syntheticItems));
-    for (StartupClass<DexType> startupClass : startupClasses) {
+    for (StartupClass<DexType, DexMethod> startupClass : startupClasses) {
       // Only prune non-synthetic classes, since the pruning of a class does not imply that all
       // classes synthesized from it have been pruned.
       if (startupClass.isSynthetic()) {
@@ -196,7 +198,8 @@ public class NonEmptyStartupOrder extends StartupOrder {
     return contextsOfLiveSynthetics;
   }
 
-  private StartupOrder createNonEmpty(LinkedHashSet<StartupClass<DexType>> startupClasses) {
+  private StartupOrder createNonEmpty(
+      LinkedHashSet<StartupClass<DexType, DexMethod>> startupClasses) {
     if (startupClasses.isEmpty()) {
       assert false;
       return empty();
