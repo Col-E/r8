@@ -2,7 +2,7 @@
   "configuration_format_version": 3,
   "group_id" : "com.tools.android",
   "artifact_id" : "desugar_jdk_libs",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "required_compilation_api_level": 26,
   "synthesized_library_classes_package_prefix": "j$.",
   "support_all_callbacks_from_library": true,
@@ -83,12 +83,14 @@
         "java.util.TimeZone#toZoneId": "java.util.DesugarTimeZone"
       },
       "custom_conversion": {
-        "java.time.ZonedDateTime": "java.time.TimeConversions",
-        "java.time.LocalDate": "java.time.TimeConversions",
         "java.time.Duration": "java.time.TimeConversions",
-        "java.time.ZoneId": "java.time.TimeConversions",
+        "java.time.Instant": "java.time.TimeConversions",
+        "java.time.LocalDate": "java.time.TimeConversions",
+        "java.time.LocalTime": "java.time.TimeConversions",
         "java.time.MonthDay": "java.time.TimeConversions",
-        "java.time.Instant": "java.time.TimeConversions"
+        "java.time.Period": "java.time.TimeConversions",
+        "java.time.ZoneId": "java.time.TimeConversions",
+        "java.time.ZonedDateTime": "java.time.TimeConversions"
       }
     },
     {
@@ -164,12 +166,14 @@
         "java.util.TimeZone#toZoneId": "java.util.DesugarTimeZone"
       },
       "custom_conversion": {
-        "java.time.ZonedDateTime": "java.time.TimeConversions",
-        "java.time.LocalDate": "java.time.TimeConversions",
         "java.time.Duration": "java.time.TimeConversions",
-        "java.time.ZoneId": "java.time.TimeConversions",
+        "java.time.Instant": "java.time.TimeConversions",
+        "java.time.LocalDate": "java.time.TimeConversions",
+        "java.time.LocalTime": "java.time.TimeConversions",
         "java.time.MonthDay": "java.time.TimeConversions",
-        "java.time.Instant": "java.time.TimeConversions"
+        "java.time.Period": "java.time.TimeConversions",
+        "java.time.ZoneId": "java.time.TimeConversions",
+        "java.time.ZonedDateTime": "java.time.TimeConversions"
       }
     },
     {

@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 import static org.junit.Assert.assertEquals;
@@ -14,11 +16,17 @@ import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
+import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
+import com.android.tools.r8.graph.GenericSignature.TypeSignature;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.WrapperDescriptor;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
@@ -31,6 +39,7 @@ import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -44,6 +53,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,25 +63,24 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
 
-  // Filter on types that do not need to be considered for wrapping.
-  private static boolean doesNotNeedWrapper(String type, Set<String> customConversions) {
-    return excludePackage(type)
-        || NOT_NEEDED_NOT_IN_DOCS.contains(type)
-        || FINAL_CLASSES.contains(type)
-        || customConversions.contains(type);
-  }
-
-  private static boolean excludePackage(String type) {
-    return type.startsWith("java.lang.")
-        || type.startsWith("java.nio.")
-        || type.startsWith("java.security.")
-        || type.startsWith("java.net.")
-        || type.startsWith("java.awt.")
-        || type.startsWith("java.util.concurrent.");
-  }
-
   // Types not picked up by the android.jar scan but for which wrappers are needed.
   private static final Set<String> ADDITIONAL_WRAPPERS = ImmutableSet.of();
+
+  private static final Set<String> GENERIC_NOT_NEEDED =
+      ImmutableSet.of("java.util.String", "java.util.Locale$LanguageRange");
+
+  // We need wrappers for only a subset of java.nio.channels. The whole package is marked as
+  // needing wrappers and this is the exclusion set.
+  private static final Set<String> NOT_NEEDED =
+      ImmutableSet.of(
+          "java.nio.channels.AsynchronousByteChannel",
+          "java.nio.channels.AsynchronousChannelGroup",
+          "java.nio.channels.AsynchronousServerSocketChannel",
+          "java.nio.channels.AsynchronousSocketChannel",
+          "java.nio.channels.MembershipKey",
+          "java.nio.channels.MulticastChannel",
+          "java.nio.channels.NetworkChannel",
+          "java.nio.channels.spi.AsynchronousChannelProvider");
 
   // Types not in API docs, referenced in android.jar and must be wrapped.
   private static final Set<String> NEEDED_BUT_NOT_IN_DOCS = ImmutableSet.of();
@@ -90,18 +99,43 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
           "java.util.Locale$FilteringMode",
           "java.util.SplittableRandom");
 
-  // List of referenced final classes (cannot be wrapper converted) with no custom conversions.
-  private static final Set<String> FINAL_CLASSES =
+  // TODO(b/238179854): Investigate how to fix these.
+  private static final Set<String> MISSING_GENERIC_TYPE_CONVERSION =
       ImmutableSet.of(
-          // TODO(b/159304624): Does this need custom conversion?
-          "java.time.Period");
+          "java.util.stream.Stream java.util.stream.Stream.flatMap(java.util.function.Function)",
+          "java.util.stream.DoubleStream"
+              + " java.util.stream.DoubleStream.flatMap(java.util.function.DoubleFunction)",
+          "java.util.stream.DoubleStream"
+              + " java.util.stream.Stream.flatMapToDouble(java.util.function.Function)",
+          "java.util.stream.IntStream"
+              + " java.util.stream.Stream.flatMapToInt(java.util.function.Function)",
+          "java.util.stream.IntStream"
+              + " java.util.stream.IntStream.flatMap(java.util.function.IntFunction)",
+          "java.util.stream.LongStream"
+              + " java.util.stream.Stream.flatMapToLong(java.util.function.Function)",
+          "java.util.stream.LongStream"
+              + " java.util.stream.LongStream.flatMap(java.util.function.LongFunction)");
+
+  private static final Set<String> MISSING_GENERIC_TYPE_CONVERSION_8 =
+      ImmutableSet.of("java.util.Set java.util.stream.Collector.characteristics()");
+
+  // TODO(b/238179854): Investigate how to fix these.
+  private static final Set<String> MISSING_GENERIC_TYPE_CONVERSION_PATH =
+      ImmutableSet.of(
+          "java.lang.Iterable java.nio.file.FileSystem.getFileStores()",
+          "java.lang.Iterable java.nio.file.FileSystem.getRootDirectories()",
+          "java.util.Iterator java.nio.file.Path.iterator()",
+          "java.nio.file.DirectoryStream"
+              + " java.nio.file.spi.FileSystemProvider.newDirectoryStream(java.nio.file.Path,"
+              + " java.nio.file.DirectoryStream$Filter)");
 
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
   @Parameters(name = "{0}, spec: {1}")
   public static List<Object[]> data() {
     // TODO(b/236356665): Support JDK11 desugared lib.
-    return buildParameters(getTestParameters().withNoneRuntime().build(), ImmutableList.of(JDK8));
+    return buildParameters(
+        getTestParameters().withNoneRuntime().build(), ImmutableList.of(JDK8, JDK11, JDK11_PATH));
   }
 
   public ExtractWrapperTypesTest(
@@ -112,13 +146,23 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
 
   // TODO: parameterize to check both api<=23 as well as 23<api<26 for which the spec differs.
   private final AndroidApiLevel minApi = AndroidApiLevel.B;
-  private final AndroidApiLevel targetApi = AndroidApiLevel.Q;
+  private final AndroidApiLevel targetApi = AndroidApiLevel.S;
+
+  private Set<String> getMissingGenericTypeConversions() {
+    HashSet<String> missing = new HashSet<>(MISSING_GENERIC_TYPE_CONVERSION);
+    if (libraryDesugaringSpecification == JDK8) {
+      missing.addAll(MISSING_GENERIC_TYPE_CONVERSION_8);
+    }
+    if (libraryDesugaringSpecification == JDK11_PATH) {
+      missing.addAll(MISSING_GENERIC_TYPE_CONVERSION_PATH);
+    }
+    return missing;
+  }
 
   @Test
   public void checkConsistency() {
     List<Set<String>> sets =
-        ImmutableList.of(
-            ADDITIONAL_WRAPPERS, NEEDED_BUT_NOT_IN_DOCS, NOT_NEEDED_NOT_IN_DOCS, FINAL_CLASSES);
+        ImmutableList.of(ADDITIONAL_WRAPPERS, NEEDED_BUT_NOT_IN_DOCS, NOT_NEEDED_NOT_IN_DOCS);
     for (Set<String> set1 : sets) {
       for (Set<String> set2 : sets) {
         if (set1 != set2) {
@@ -131,6 +175,26 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
         assertFalse(excludePackage(type));
       }
     }
+  }
+
+  // Filter on types that do not need to be considered for wrapping.
+  private boolean doesNotNeedWrapper(
+      String type, Set<String> customConversions, Set<String> maintainType) {
+    return excludePackage(type)
+        || NOT_NEEDED_NOT_IN_DOCS.contains(type)
+        || NOT_NEEDED.contains(type)
+        || customConversions.contains(type)
+        || maintainType.contains(type);
+  }
+
+  private boolean excludePackage(String type) {
+    return type.startsWith("java.lang.")
+        || type.startsWith("java.security.")
+        || type.startsWith("java.net.")
+        || type.startsWith("java.awt.")
+        || type.startsWith("java.util.concurrent.")
+        || (!libraryDesugaringSpecification.hasNioFileDesugaring(AndroidApiLevel.B)
+            && type.startsWith("java.nio."));
   }
 
   @Test
@@ -159,17 +223,45 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
         specification.getCustomConversions().keySet().stream()
             .map(DexType::toString)
             .collect(Collectors.toSet());
+    Set<String> maintainTypeInSet =
+        specification.getMaintainType().stream().map(DexType::toString).collect(Collectors.toSet());
     assertEquals(
         Collections.emptySet(), Sets.intersection(wrappersInSpec, customConversionsInSpec));
-    assertEquals(Collections.emptySet(), Sets.intersection(FINAL_CLASSES, customConversionsInSpec));
 
     CodeInspector nonDesugaredJar = new CodeInspector(ToolHelper.getAndroidJar(targetApi));
+    Set<DexEncodedMethod> genericDependencies = new HashSet<>();
     Map<ClassReference, Set<MethodReference>> directWrappers =
         getDirectlyReferencedWrapperTypes(
-            desugaredApiJar, preDesugarTypes, nonDesugaredJar, customConversionsInSpec);
+            desugaredApiJar,
+            preDesugarTypes,
+            nonDesugaredJar,
+            customConversionsInSpec,
+            maintainTypeInSet,
+            genericDependencies);
     Map<ClassReference, Set<ClassReference>> indirectWrappers =
         getIndirectlyReferencedWrapperTypes(
-            directWrappers, preDesugarTypes, nonDesugaredJar, customConversionsInSpec);
+            directWrappers,
+            preDesugarTypes,
+            nonDesugaredJar,
+            customConversionsInSpec,
+            maintainTypeInSet,
+            specification.getWrappers(),
+            genericDependencies);
+    {
+      Set<String> missingGenericDependency = new HashSet<>();
+      for (DexEncodedMethod genericDependency : genericDependencies) {
+        if (!specification
+            .getApiGenericConversion()
+            .containsKey(genericDependency.getReference())) {
+          missingGenericDependency.add(genericDependency.getReference().toString());
+        }
+      }
+      // TODO(b/236356665): There should be no missing conversion.
+      assertEquals(
+          "Missing generic type conversion:\n" + String.join("\n", missingGenericDependency),
+          getMissingGenericTypeConversions(),
+          missingGenericDependency);
+    }
 
     {
       Set<String> missingWrappers = getMissingWrappers(directWrappers, wrappersInSpec);
@@ -178,11 +270,17 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
           missingWrappers.isEmpty());
     }
 
+    // java.util.stream.Collector$Characteristics is required for api generic type conversion
+    // on JDK8, but that is not supported on legacy specification used for JDK8 and on old
+    // R8 compiler versions.
+    int expectedMissingWrappers = libraryDesugaringSpecification == JDK8 ? 1 : 0;
+
     {
       Set<String> missingWrappers = getMissingWrappers(indirectWrappers, wrappersInSpec);
-      assertTrue(
+      assertEquals(
           "Missing indirect wrappers:\n" + String.join("\n", missingWrappers),
-          missingWrappers.isEmpty());
+          expectedMissingWrappers,
+          missingWrappers.size());
     }
 
     Set<String> additionalWrappers = new TreeSet<>();
@@ -200,7 +298,7 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
 
     assertEquals(
         directWrappers.size() + indirectWrappers.size() + ADDITIONAL_WRAPPERS.size(),
-        wrappersInSpec.size());
+        wrappersInSpec.size() + expectedMissingWrappers);
   }
 
   private static <T> Set<String> getMissingWrappers(
@@ -219,7 +317,9 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
       CodeInspector desugaredApiJar,
       Set<ClassReference> preDesugarTypes,
       CodeInspector nonDesugaredJar,
-      Set<String> customConversions) {
+      Set<String> customConversions,
+      Set<String> maintainType,
+      Set<DexEncodedMethod> genericDependencies) {
     Map<ClassReference, Set<MethodReference>> directWrappers = new HashMap<>();
     nonDesugaredJar.forAllClasses(
         clazz -> {
@@ -228,7 +328,12 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
                 if (!method.isPublic() && !method.isProtected()) {
                   return;
                 }
-                if (desugaredApiJar.method(method.asMethodReference()).isPresent()) {
+                // We check the holder type to avoid dealing with methods on desugared types which
+                // are present in Android.jar and not in the desugared library, specifically on
+                // JDK 8 desugared library.
+                if (desugaredApiJar
+                    .clazz(method.getMethod().getHolderType().asClassReference())
+                    .isPresent()) {
                   return;
                 }
                 Consumer<ClassReference> adder =
@@ -236,41 +341,83 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
                         directWrappers
                             .computeIfAbsent(t, k -> new HashSet<>())
                             .add(method.asMethodReference());
-                MethodSignature signature = method.getFinalSignature().asMethodSignature();
-                addType(adder, signature.type, preDesugarTypes, customConversions);
-                for (String parameter : signature.parameters) {
-                  addType(adder, parameter, preDesugarTypes, customConversions);
-                }
+                forEachType(
+                    method,
+                    t -> addType(adder, t, preDesugarTypes, customConversions, maintainType),
+                    genericDependencies);
               });
         });
     return directWrappers;
+  }
+
+  private void forEachType(
+      FoundMethodSubject subject,
+      Function<String, Boolean> process,
+      Set<DexEncodedMethod> generics) {
+    MethodSignature signature = subject.getFinalSignature().asMethodSignature();
+    process.apply(signature.type);
+    for (String parameter : signature.parameters) {
+      process.apply(parameter);
+    }
+    MethodTypeSignature genericSignature = subject.getMethod().getGenericSignature();
+    if (genericSignature != null) {
+      TypeSignature[] typeSignatures = new TypeSignature[signature.parameters.length + 1];
+      for (int i = 0; i < signature.parameters.length; i++) {
+        typeSignatures[i] = genericSignature.getParameterTypeSignature(i);
+      }
+      typeSignatures[signature.parameters.length] = genericSignature.returnType().typeSignature();
+      for (TypeSignature typeSignature : typeSignatures) {
+        if ((typeSignature instanceof ClassTypeSignature)) {
+          for (FieldTypeSignature typeArgument :
+              ((ClassTypeSignature) typeSignature).typeArguments()) {
+            if (typeArgument instanceof ClassTypeSignature) {
+              String type = descriptorToJavaType(typeArgument.toString()).split("<")[0];
+              if (!GENERIC_NOT_NEEDED.contains(type)) {
+                boolean added = process.apply(type);
+                if (added) {
+                  generics.add(subject.getMethod());
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
   private Map<ClassReference, Set<ClassReference>> getIndirectlyReferencedWrapperTypes(
       Map<ClassReference, Set<MethodReference>> directWrappers,
       Set<ClassReference> existing,
       CodeInspector latest,
-      Set<String> customConversions) {
+      Set<String> customConversions,
+      Set<String> maintainType,
+      Map<DexType, WrapperDescriptor> wrapperDescriptorMap,
+      Set<DexEncodedMethod> genericDependencies) {
     Map<ClassReference, Set<ClassReference>> indirectWrappers = new HashMap<>();
     WorkList<ClassReference> worklist = WorkList.newEqualityWorkList(directWrappers.keySet());
     while (worklist.hasNext()) {
       ClassReference reference = worklist.next();
       ClassSubject clazz = latest.clazz(reference);
+      Consumer<ClassReference> adder =
+          t -> {
+            if (worklist.addIfNotSeen(t)) {
+              indirectWrappers.computeIfAbsent(t, k -> new HashSet<>()).add(reference);
+            }
+          };
       clazz.forAllVirtualMethods(
           method -> {
             assertTrue(method.toString(), method.isPublic() || method.isProtected());
-            MethodSignature signature = method.getFinalSignature().asMethodSignature();
-            Consumer<ClassReference> adder =
-                t -> {
-                  if (worklist.addIfNotSeen(t)) {
-                    indirectWrappers.computeIfAbsent(t, k -> new HashSet<>()).add(reference);
-                  }
-                };
-            addType(adder, signature.type, existing, customConversions);
-            for (String parameter : signature.parameters) {
-              addType(adder, parameter, existing, customConversions);
-            }
+            forEachType(
+                method,
+                t -> addType(adder, t, existing, customConversions, maintainType),
+                genericDependencies);
           });
+      WrapperDescriptor descriptor = wrapperDescriptorMap.get(clazz.getDexProgramClass().getType());
+      if (descriptor != null) {
+        for (DexType subwrapper : descriptor.getSubwrappers()) {
+          addType(adder, subwrapper.getTypeName(), existing, customConversions, maintainType);
+        }
+      }
     }
     return indirectWrappers;
   }
@@ -301,13 +448,14 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
             .resolve("desugared_apis_" + targetApi.getLevel() + "_" + minApi.getLevel() + ".jar"));
   }
 
-  private void addType(
+  private boolean addType(
       Consumer<ClassReference> additions,
       String type,
       Set<ClassReference> preDesugarTypes,
-      Set<String> customConversions) {
+      Set<String> customConversions,
+      Set<String> maintainType) {
     if (type.equals("void")) {
-      return;
+      return false;
     }
     TypeReference typeReference = Reference.typeFromTypeName(type);
     if (typeReference.isArray()) {
@@ -317,10 +465,14 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
       ClassReference clazz = typeReference.asClass();
       String clazzType = descriptorToJavaType(clazz.getDescriptor());
       if (clazzType.startsWith("java.")
-          && !doesNotNeedWrapper(clazzType, customConversions)
-          && !preDesugarTypes.contains(clazz)) {
+          && !doesNotNeedWrapper(clazzType, customConversions, maintainType)
+          // FileChannel is there since B but it needs wrapping due to recently added interfaces.
+          && (!preDesugarTypes.contains(clazz)
+              || clazzType.equals("java.nio.channels.FileChannel"))) {
         additions.accept(clazz);
+        return true;
       }
     }
+    return false;
   }
 }

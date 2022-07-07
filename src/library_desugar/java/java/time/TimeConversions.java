@@ -8,6 +8,34 @@ public class TimeConversions {
 
   private TimeConversions() {}
 
+  public static j$.time.Period convert(java.time.Period period) {
+    if (period == null) {
+      return null;
+    }
+    return j$.time.Period.of(period.getYears(), period.getMonths(), period.getDays());
+  }
+
+  public static java.time.Period convert(j$.time.Period period) {
+    if (period == null) {
+      return null;
+    }
+    return java.time.Period.of(period.getYears(), period.getMonths(), period.getDays());
+  }
+
+  public static j$.time.LocalTime convert(java.time.LocalTime localTime) {
+    if (localTime == null) {
+      return null;
+    }
+    return j$.time.LocalTime.ofNanoOfDay(localTime.toNanoOfDay());
+  }
+
+  public static java.time.LocalTime convert(j$.time.LocalTime localTime) {
+    if (localTime == null) {
+      return null;
+    }
+    return java.time.LocalTime.ofNanoOfDay(localTime.toNanoOfDay());
+  }
+
   public static j$.time.ZonedDateTime convert(java.time.ZonedDateTime dateTime) {
     if (dateTime == null) {
       return null;

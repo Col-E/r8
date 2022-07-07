@@ -40,7 +40,9 @@
         "java.time.Duration": "java.time.TimeConversions",
         "java.time.Instant": "java.time.TimeConversions",
         "java.time.LocalDate": "java.time.TimeConversions",
+        "java.time.LocalTime": "java.time.TimeConversions",
         "java.time.MonthDay": "java.time.TimeConversions",
+        "java.time.Period": "java.time.TimeConversions",
         "java.time.ZoneId": "java.time.TimeConversions",
         "java.time.ZonedDateTime": "java.time.TimeConversions"
       }
@@ -61,6 +63,7 @@
         "java.nio.file.": "j$.nio.file."
       },
       "dont_rewrite_prefix": [
+        "java.nio.channels.AsynchronousChannelGroup",
         "java.nio.file.AccessDeniedException",
         "java.nio.file.AtomicMoveNotSupportedException",
         "java.nio.file.ClosedDirectoryStreamException",
@@ -110,6 +113,7 @@
         "java.nio.channels.SeekableByteChannel java.nio.file.spi.FileSystemProvider#newByteChannel(java.nio.file.Path, java.util.Set, java.nio.file.attribute.FileAttribute[])" : [1, "java.util.Set java.nio.file.FileApiFlips#flipOpenOptionSet(java.util.Set)"],
         "java.nio.channels.FileChannel java.nio.file.spi.FileSystemProvider#newFileChannel(java.nio.file.Path, java.util.Set, java.nio.file.attribute.FileAttribute[])" : [1, "java.util.Set java.nio.file.FileApiFlips#flipOpenOptionSet(java.util.Set)"],
         "java.util.List java.nio.file.WatchKey#pollEvents()": [-1, "java.util.List java.nio.file.FileApiFlips#flipWatchEventList(java.util.List)"],
+        "boolean java.nio.file.FileStore#supportsFileAttributeView(java.lang.Class)": [0, "java.lang.Class java.nio.file.FileApiFlips#flipFileAttributeView(java.lang.Class)"],
         "java.nio.file.attribute.FileAttributeView java.nio.file.spi.FileSystemProvider#getFileAttributeView(java.nio.file.Path, java.lang.Class, java.nio.file.LinkOption[])": [1, "java.lang.Class java.nio.file.FileApiFlips#flipFileAttributeView(java.lang.Class)"],
         "java.nio.file.attribute.BasicFileAttributes java.nio.file.spi.FileSystemProvider#readAttributes(java.nio.file.Path, java.lang.Class, java.nio.file.LinkOption[])": [1, "java.lang.Class java.nio.file.FileApiFlips#flipFileAttributes(java.lang.Class)"],
         "java.util.Set java.nio.file.attribute.PosixFileAttributes#permissions()": [-1, "java.util.Set java.nio.file.FileApiFlips#flipPosixPermissionSet(java.util.Set)"],
@@ -117,7 +121,6 @@
         "java.util.Map java.nio.file.spi.FileSystemProvider#readAttributes(java.nio.file.Path, java.lang.String, java.nio.file.LinkOption[])" : [-1, "java.util.Map java.nio.file.FileApiFlips#flipMapWithMaybeFileTimeValues(java.util.Map)"]
       },
       "wrapper_conversion": [
-        "java.nio.channels.AsynchronousChannel",
         "java.nio.channels.CompletionHandler",
         "java.nio.file.Path",
         "java.nio.file.FileSystem",
@@ -130,7 +133,6 @@
         "java.nio.file.WatchEvent$Modifier",
         "java.nio.file.attribute.UserPrincipalLookupService",
         "java.nio.file.spi.FileSystemProvider",
-        "java.nio.file.spi.FileTypeDetector",
         "java.nio.file.AccessMode",
         "java.nio.file.OpenOption",
         "java.nio.file.StandardOpenOption",
@@ -232,7 +234,7 @@
         "java.util.stream.Stream java.io.BufferedReader#lines()": "java.io.DesugarBufferedReader",
         "java.util.Spliterator java.util.LinkedHashSet#spliterator()": "java.util.DesugarLinkedHashSet"
       },
-      "api_generic_conversion": {
+      "api_generic_types_conversion": {
         "java.util.Set java.util.stream.Collector#characteristics()" : [-1, "java.util.Set java.util.stream.StreamApiFlips#flipCharacteristicSet(java.util.Set)"]
       },
       "wrapper_conversion": [

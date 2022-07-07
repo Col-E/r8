@@ -267,7 +267,11 @@ public class LibraryDesugaringSpecification {
   }
 
   public boolean hasNioFileDesugaring(TestParameters parameters) {
-    return parameters.getApiLevel().getLevel() < descriptor.getNioFileDesugaring();
+    return hasNioFileDesugaring(parameters.getApiLevel());
+  }
+
+  public boolean hasNioFileDesugaring(AndroidApiLevel apiLevel) {
+    return apiLevel.getLevel() < descriptor.getNioFileDesugaring();
   }
 
   public boolean hasNioChannelDesugaring(TestParameters parameters) {
