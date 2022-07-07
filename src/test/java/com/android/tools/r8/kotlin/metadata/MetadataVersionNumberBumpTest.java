@@ -98,7 +98,7 @@ public class MetadataVersionNumberBumpTest extends KotlinMetadataTestBase {
     ZipUtils.iter(
         kotlinc.getKotlinStdlibJar().toString(),
         ((entry, input) -> {
-          if (!entry.getName().endsWith(".class")) {
+          if (!entry.getName().endsWith(".class") || entry.getName().contains("module-info")) {
             return;
           }
           final byte[] bytes = StreamUtils.streamToByteArrayClose(input);
