@@ -43,6 +43,7 @@ public class SyntheticNaming {
   public final SyntheticKind RETARGET_CLASS = generator.forFixedClass("RetargetClass");
   public final SyntheticKind RETARGET_INTERFACE = generator.forFixedClass("RetargetInterface");
   public final SyntheticKind WRAPPER = generator.forFixedClass("$Wrapper");
+  public final SyntheticKind VIVIFIED = generator.forFixedClass("");
   public final SyntheticKind VIVIFIED_WRAPPER = generator.forFixedClass("$VivifiedWrapper");
   public final SyntheticKind INIT_TYPE_ARGUMENT = generator.forFixedClass("-IA");
   public final SyntheticKind HORIZONTAL_INIT_TYPE_ARGUMENT_1 =

@@ -74,7 +74,7 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
         // TODO(134732760): Support Dalvik VMs, currently fails because libjavacrypto is required
         // and present only in ART runtimes.
         getTestParameters()
-            .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
+            .withDexRuntimesStartingFromIncluding(Version.V10_0_0)
             .withAllApiLevels()
             .build(),
         specs,

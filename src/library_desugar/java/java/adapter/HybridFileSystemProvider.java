@@ -17,17 +17,19 @@ import java.nio.file.spi.FileSystemProvider;
  * runtime environment.
  */
 public final class HybridFileSystemProvider {
+
   private static final FileSystemProvider INSTANCE = getFileSystemProvider();
   private static final FileSystem FILE_SYSTEM_INSTANCE =
       INSTANCE.getFileSystem(URI.create("file:///"));
 
   private static FileSystemProvider getFileSystemProvider() {
+    // Note: this fails on non Android devices.
     try {
       // On API 26 and above, FileSystems is present.
       Class.forName("java.nio.file.FileSystems");
       j$.nio.file.FileSystem fileSystem = FileSystems.getDefault();
       j$.nio.file.spi.FileSystemProvider provider = fileSystem.provider();
-      return j$.nio.file.spi.FileSystemProvider.wrap_convert(provider);
+      return j$.nio.file.spi.FileSystemProvider.inverted_wrap_convert(provider);
     } catch (ClassNotFoundException ignored) {
       // We reach this path is API < 26.
     }

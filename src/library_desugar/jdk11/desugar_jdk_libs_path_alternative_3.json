@@ -158,14 +158,9 @@
         "java.util.function.DoubleToLongFunction",
         "java.util.function.LongUnaryOperator",
         "java.util.stream.BaseStream",
-        "java.util.function.DoublePredicate"
+        "java.util.function.DoublePredicate",
+        "java.util.Spliterator"
       ],
-      "wrapper_conversion_excluding": {
-        "java.util.Spliterator": [
-          "boolean java.util.Spliterator#hasCharacteristics(int)",
-          "long java.util.Spliterator#getExactSizeIfKnown()"
-        ]
-      },
       "custom_conversion": {
         "java.util.DoubleSummaryStatistics": "java.util.DoubleSummaryStatisticsConversions",
         "java.util.IntSummaryStatistics": "java.util.IntSummaryStatisticsConversions",

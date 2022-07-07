@@ -33,6 +33,7 @@ import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.MethodCollection;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.ProgramOrClasspathDefinition;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.naming.NamingLens;
@@ -728,7 +729,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       DexString name,
       DexProto proto,
       SyntheticKindSelector kindSelector,
-      ProgramDefinition context,
+      ProgramOrClasspathDefinition context,
       AppView<?> appView,
       Consumer<SyntheticProgramClassBuilder> buildClassCallback,
       Consumer<SyntheticMethodBuilder> buildMethodCallback) {
@@ -747,7 +748,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       DexString name,
       DexProto proto,
       SyntheticKindSelector kindSelector,
-      ProgramDefinition context,
+      ProgramOrClasspathDefinition context,
       AppView<?> appView,
       Consumer<SyntheticProgramClassBuilder> buildClassCallback,
       Consumer<SyntheticMethodBuilder> buildMethodCallback,

@@ -145,7 +145,7 @@ public class MachineDesugaredLibrarySpecification {
     return rewritingFlags.isEmulatedInterfaceRewrittenType(type);
   }
 
-  public Map<DexType, List<DexMethod>> getWrappers() {
+  public Map<DexType, WrapperDescriptor> getWrappers() {
     return rewritingFlags.getWrappers();
   }
 

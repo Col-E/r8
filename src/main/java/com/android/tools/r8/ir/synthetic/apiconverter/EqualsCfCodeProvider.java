@@ -43,15 +43,23 @@ public class EqualsCfCodeProvider extends SyntheticCfCodeProvider {
   public CfCode generateCfCode() {
     // return wrapperField.equals(
     //     other instanceof WrapperType ? ((WrapperType) other).wrapperField : other);
+    DexType wrapperType = wrapperField.getHolderType();
+    FrameType[] locals = {
+      FrameType.initialized(wrapperType), FrameType.initialized(appView.dexItemFactory().objectType)
+    };
     CfLabel label1 = new CfLabel();
     CfLabel label2 = new CfLabel();
+    // this.wrapperField
     List<CfInstruction> instructions = new ArrayList<>();
     instructions.add(new CfLoad(ValueType.OBJECT, 0));
     instructions.add(new CfInstanceFieldRead(wrapperField));
+
+    // other instanceof WrapperType
     instructions.add(new CfLoad(ValueType.OBJECT, 1));
-    DexType wrapperType = wrapperField.getHolderType();
     instructions.add(new CfInstanceOf(wrapperType));
     instructions.add(new CfIf(If.Type.EQ, ValueType.INT, label1));
+
+    // ((WrapperType) other).wrapperField
     instructions.add(new CfLoad(ValueType.OBJECT, 1));
     instructions.add(new CfCheckCast(wrapperType));
     instructions.add(new CfInstanceFieldRead(wrapperField));
@@ -59,27 +67,21 @@ public class EqualsCfCodeProvider extends SyntheticCfCodeProvider {
     instructions.add(label1);
     instructions.add(
         new CfFrame(
-            new Int2ObjectAVLTreeMap<>(
-                new int[] {0, 1},
-                new FrameType[] {
-                  FrameType.initialized(wrapperType),
-                  FrameType.initialized(appView.dexItemFactory().objectType)
-                }),
-            new ArrayDeque<>(Arrays.asList(FrameType.initialized(wrapperType)))));
+            new Int2ObjectAVLTreeMap<>(new int[] {0, 1}, locals),
+            new ArrayDeque<>(Arrays.asList(FrameType.initialized(wrapperField.type)))));
+
+    // other
     instructions.add(new CfLoad(ValueType.OBJECT, 1));
     instructions.add(label2);
     instructions.add(
         new CfFrame(
-            new Int2ObjectAVLTreeMap<>(
-                new int[] {0, 1},
-                new FrameType[] {
-                  FrameType.initialized(wrapperType),
-                  FrameType.initialized(appView.dexItemFactory().objectType)
-                }),
+            new Int2ObjectAVLTreeMap<>(new int[] {0, 1}, locals),
             new ArrayDeque<>(
                 Arrays.asList(
-                    FrameType.initialized(wrapperType),
+                    FrameType.initialized(wrapperField.type),
                     FrameType.initialized(appView.dexItemFactory().objectType)))));
+
+    // equals.
     instructions.add(
         new CfInvoke(Opcodes.INVOKEVIRTUAL, appView.dexItemFactory().objectMembers.equals, false));
     instructions.add(new CfReturn(ValueType.INT));

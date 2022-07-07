@@ -132,6 +132,7 @@
         "java.nio.file.spi.FileSystemProvider",
         "java.nio.file.spi.FileTypeDetector",
         "java.nio.file.AccessMode",
+        "java.nio.file.OpenOption",
         "java.nio.file.StandardOpenOption",
         "java.nio.file.LinkOption",
         "java.nio.file.CopyOption",
@@ -145,6 +146,7 @@
         "java.nio.file.attribute.PosixFilePermission",
         "java.nio.file.attribute.BasicFileAttributes",
         "java.nio.file.attribute.PosixFileAttributes",
+        "java.nio.file.attribute.FileAttributeView",
         "java.nio.file.attribute.FileOwnerAttributeView",
         "java.nio.file.attribute.PosixFileAttributeView",
         "java.nio.file.attribute.BasicFileAttributeView"
@@ -157,10 +159,7 @@
         ]
       },
       "custom_conversion": {
-        "java.nio.file.OpenOption": "java.nio.file.OpenOptionConversions",
-        "java.nio.file.attribute.FileTime": "java.nio.file.attribute.FileAttributeConversions",
-        "java.nio.file.attribute.BasicFileAttributes": "java.nio.file.attribute.FileAttributeConversions",
-        "java.nio.file.attribute.FileAttributeView": "java.nio.file.attribute.FileAttributeConversions"
+        "java.nio.file.attribute.FileTime": "java.nio.file.attribute.FileAttributeConversions"
       }
     },
     {
@@ -241,6 +240,7 @@
         "java.util.PrimitiveIterator$OfDouble",
         "java.util.PrimitiveIterator$OfInt",
         "java.util.PrimitiveIterator$OfLong",
+        "java.util.Spliterator",
         "java.util.Spliterator$OfDouble",
         "java.util.Spliterator$OfInt",
         "java.util.Spliterator$OfLong",
@@ -254,10 +254,6 @@
         "java.util.stream.Stream"
       ],
       "wrapper_conversion_excluding": {
-        "java.util.Spliterator": [
-          "boolean java.util.Spliterator#hasCharacteristics(int)",
-          "long java.util.Spliterator#getExactSizeIfKnown()"
-        ],
         "java.nio.channels.FileChannel": [
           "long java.nio.channels.FileChannel#read(java.nio.ByteBuffer[])",
           "long java.nio.channels.FileChannel#write(java.nio.ByteBuffer[])",

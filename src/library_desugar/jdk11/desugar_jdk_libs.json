@@ -102,6 +102,7 @@
         "java.util.PrimitiveIterator$OfDouble",
         "java.util.PrimitiveIterator$OfInt",
         "java.util.PrimitiveIterator$OfLong",
+        "java.util.Spliterator",
         "java.util.Spliterator$OfDouble",
         "java.util.Spliterator$OfInt",
         "java.util.Spliterator$OfLong",
@@ -114,12 +115,6 @@
         "java.util.stream.LongStream",
         "java.util.stream.Stream"
       ],
-      "wrapper_conversion_excluding": {
-        "java.util.Spliterator": [
-          "boolean java.util.Spliterator#hasCharacteristics(int)",
-          "long java.util.Spliterator#getExactSizeIfKnown()"
-        ]
-      },
       "custom_conversion": {
         "java.util.DoubleSummaryStatistics": "java.util.DoubleSummaryStatisticsConversions",
         "java.util.IntSummaryStatistics": "java.util.IntSummaryStatisticsConversions",

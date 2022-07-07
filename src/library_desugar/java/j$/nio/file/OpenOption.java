@@ -4,4 +4,12 @@
 
 package j$.nio.file;
 
-public class OpenOption {}
+public class OpenOption {
+  public static java.nio.file.OpenOption wrap_convert(j$.nio.file.OpenOption option) {
+    return null;
+  }
+
+  public static j$.nio.file.OpenOption wrap_convert(java.nio.file.OpenOption option) {
+    return null;
+  }
+}
