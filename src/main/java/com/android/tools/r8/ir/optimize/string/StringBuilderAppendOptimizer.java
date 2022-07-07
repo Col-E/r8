@@ -33,7 +33,7 @@ import com.android.tools.r8.ir.optimize.string.StringBuilderNode.AppendNode;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.EscapeNode;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.ImplicitToStringNode;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.InitNode;
-import com.android.tools.r8.ir.optimize.string.StringBuilderNode.InitOrAppend;
+import com.android.tools.r8.ir.optimize.string.StringBuilderNode.InitOrAppendNode;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.LoopNode;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.NewInstanceNode;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.SplitReferenceNode;
@@ -273,7 +273,13 @@ public class StringBuilderAppendOptimizer {
               Value receiver = invoke.getReceiver();
               if (oracle.isInit(instruction)) {
                 InitNode initNode = createInitNode(instruction.asInvokeDirect());
-                initNode.setConstantArgument(oracle.getConstantArgument(instruction));
+                String constantArgument = oracle.getConstantArgument(instruction);
+                initNode.setConstantArgument(constantArgument);
+                if (constantArgument == null
+                    && oracle.isStringConstructor(instruction)
+                    && invoke.getFirstNonReceiverArgument().isNeverNull()) {
+                  initNode.setNonConstantArgument(invoke.getFirstNonReceiverArgument());
+                }
                 if (invoke.arguments().size() == 2) {
                   Value arg = invoke.getOperand(1);
                   if (oracle.hasStringBuilderType(arg)) {
@@ -288,9 +294,15 @@ public class StringBuilderAppendOptimizer {
                     escaped -> nodeConsumer.accept(escaped, createInspectionNode(instruction)));
               } else if (oracle.isAppend(instruction)) {
                 AppendNode appendNode = createAppendNode(instruction.asInvokeVirtual());
-                appendNode.setConstantArgument(oracle.getConstantArgument(instruction));
-                Value arg = invoke.getFirstNonReceiverArgument().getAliasedValue();
-                if (oracle.hasStringBuilderType(arg)) {
+                String constantArgument = oracle.getConstantArgument(instruction);
+                appendNode.setConstantArgument(constantArgument);
+                Value arg = invoke.getFirstNonReceiverArgument();
+                if (constantArgument == null
+                    && oracle.isAppendString(instruction)
+                    && arg.isNeverNull()) {
+                  appendNode.setNonConstantArgument(arg);
+                }
+                if (oracle.hasStringBuilderType(arg.getAliasedValue())) {
                   insertImplicitToStringNode(
                       arg, instruction, appendNode, escapeState, nodeConsumer);
                 }
@@ -341,7 +353,7 @@ public class StringBuilderAppendOptimizer {
           private void insertImplicitToStringNode(
               Value value,
               Instruction instruction,
-              InitOrAppend node,
+              InitOrAppendNode node,
               StringBuilderEscapeState escapeState,
               BiConsumer<Value, StringBuilderNode> nodeConsumer) {
             assert escapeState.isLiveStringBuilder(value);

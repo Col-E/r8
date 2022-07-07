@@ -7,6 +7,8 @@ package com.android.tools.r8.ir.optimize.string;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.ir.analysis.type.Nullability;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -102,28 +104,7 @@ public interface StringBuilderAction {
       Instruction previous = iterator.previous();
       InvokeMethodWithReceiver invoke = previous.asInvokeMethodWithReceiver();
       assert invoke != null;
-      // If the block has catch handlers, inserting a constant string in the same block as the
-      // append violates our block representation in DEX since constant string is throwing. If the
-      // append is in a block with catch handlers, we simply insert a new constant string in the
-      // entry block after all arguments.
-      Value value;
-      if (!invoke.getBlock().hasCatchHandlers()) {
-        value =
-            iterator.insertConstStringInstruction(
-                appView, code, appView.dexItemFactory().createString(replacement));
-      } else {
-        InstructionListIterator stringInsertIterator = code.entryBlock().listIterator(code);
-        while (stringInsertIterator.hasNext()) {
-          Instruction next = stringInsertIterator.next();
-          if (!next.isArgument()) {
-            stringInsertIterator.previous();
-            break;
-          }
-        }
-        value =
-            stringInsertIterator.insertConstStringInstruction(
-                appView, code, appView.dexItemFactory().createString(replacement));
-      }
+      Value value = insertStringConstantInstruction(appView, code, iterator, invoke, replacement);
       iterator.next();
       DexMethod invokedMethod = invoke.getInvokedMethod();
       if (invoke.isInvokeConstructor(appView.dexItemFactory())) {
@@ -151,16 +132,6 @@ public interface StringBuilderAction {
           || factory.stringBuilderMethods.isAppendStringMethod(method);
     }
 
-    private DexMethod getConstructorWithStringParameter(
-        DexMethod invokedMethod, DexItemFactory factory) {
-      if (invokedMethod.getHolderType() == factory.stringBufferType) {
-        return factory.stringBufferMethods.stringConstructor;
-      } else {
-        assert invokedMethod.getHolderType() == factory.stringBuilderType;
-        return factory.stringBuilderMethods.stringConstructor;
-      }
-    }
-
     private DexMethod getAppendWithStringParameter(
         DexMethod invokedMethod, DexItemFactory factory) {
       if (invokedMethod.getHolderType() == factory.stringBufferType) {
@@ -170,5 +141,129 @@ public interface StringBuilderAction {
         return factory.stringBuilderMethods.appendString;
       }
     }
+  }
+
+  class ReplaceByExistingString implements StringBuilderAction {
+
+    private final Value existingString;
+
+    public ReplaceByExistingString(Value existingString) {
+      assert existingString.isNeverNull();
+      this.existingString = existingString;
+    }
+
+    @Override
+    public void perform(
+        AppView<?> appView,
+        IRCode code,
+        InstructionListIterator iterator,
+        Instruction instruction,
+        StringBuilderOracle oracle) {
+      instruction.outValue().replaceUsers(existingString);
+      iterator.removeOrReplaceByDebugLocalRead();
+    }
+  }
+
+  class ReplaceByStringConcat implements StringBuilderAction {
+
+    private final Value first;
+    private final Value second;
+
+    private final String newConstant;
+
+    private ReplaceByStringConcat(Value first, Value second, String newConstant) {
+      assert first != null || newConstant != null;
+      assert second != null || newConstant != null;
+      this.first = first;
+      this.second = second;
+      this.newConstant = newConstant;
+    }
+
+    public static ReplaceByStringConcat replaceByValues(Value first, Value second) {
+      return new ReplaceByStringConcat(first, second, null);
+    }
+
+    public static ReplaceByStringConcat replaceByNewConstantConcatValue(
+        String newConstant, Value second) {
+      return new ReplaceByStringConcat(null, second, newConstant);
+    }
+
+    public static ReplaceByStringConcat replaceByValueConcatNewConstant(
+        Value first, String newConstant) {
+      return new ReplaceByStringConcat(first, null, newConstant);
+    }
+
+    @Override
+    public void perform(
+        AppView<?> appView,
+        IRCode code,
+        InstructionListIterator iterator,
+        Instruction instruction,
+        StringBuilderOracle oracle) {
+      Value constString = null;
+      if (newConstant != null) {
+        Instruction previous = iterator.previous();
+        constString =
+            insertStringConstantInstruction(appView, code, iterator, previous, newConstant);
+        iterator.next();
+      }
+      assert first != null || constString != null;
+      assert second != null || constString != null;
+      // To ensure that we do not fail narrowing when evaluating String.concat, we mark the type
+      // as maybe null.
+      Value newOutValue =
+          code.createValue(
+              TypeElement.stringClassType(appView, Nullability.maybeNull()),
+              instruction.getLocalInfo());
+      iterator.replaceCurrentInstruction(
+          InvokeVirtual.builder()
+              .setOutValue(newOutValue)
+              .setMethod(appView.dexItemFactory().stringMembers.concat)
+              .setArguments(
+                  ImmutableList.of(
+                      first != null ? first : constString, second != null ? second : constString))
+              .build());
+    }
+  }
+
+  static DexMethod getConstructorWithStringParameter(
+      DexMethod invokedMethod, DexItemFactory factory) {
+    if (invokedMethod.getHolderType() == factory.stringBufferType) {
+      return factory.stringBufferMethods.stringConstructor;
+    } else {
+      assert invokedMethod.getHolderType() == factory.stringBuilderType;
+      return factory.stringBuilderMethods.stringConstructor;
+    }
+  }
+
+  static Value insertStringConstantInstruction(
+      AppView<?> appView,
+      IRCode code,
+      InstructionListIterator iterator,
+      Instruction instruction,
+      String newString) {
+    // If the block has catch handlers, inserting a constant string in the same block as the
+    // append violates our block representation in DEX since constant string is throwing. If the
+    // append is in a block with catch handlers, we simply insert a new constant string in the
+    // entry block after all arguments.
+    Value value;
+    if (!instruction.getBlock().hasCatchHandlers()) {
+      value =
+          iterator.insertConstStringInstruction(
+              appView, code, appView.dexItemFactory().createString(newString));
+    } else {
+      InstructionListIterator stringInsertIterator = code.entryBlock().listIterator(code);
+      while (stringInsertIterator.hasNext()) {
+        Instruction next = stringInsertIterator.next();
+        if (!next.isArgument()) {
+          stringInsertIterator.previous();
+          break;
+        }
+      }
+      value =
+          stringInsertIterator.insertConstStringInstruction(
+              appView, code, appView.dexItemFactory().createString(newString));
+    }
+    return value;
   }
 }

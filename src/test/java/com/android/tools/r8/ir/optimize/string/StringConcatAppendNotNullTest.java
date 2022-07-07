@@ -7,12 +7,14 @@ package com.android.tools.r8.ir.optimize.string;
 import static com.android.tools.r8.ir.optimize.string.utils.StringBuilderCodeMatchers.countStringBuilderAppends;
 import static com.android.tools.r8.ir.optimize.string.utils.StringBuilderCodeMatchers.countStringBuilderInits;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.codeinspector.CodeMatchers;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -52,9 +54,9 @@ public class StringConcatAppendNotNullTest extends TestBase {
             inspect -> {
               MethodSubject methodSubject = inspect.clazz(Main.class).mainMethod();
               assertThat(methodSubject, isPresent());
-              // TODO(b/129200243): This should just be arg.toString()
-              assertEquals(1, countStringBuilderInits(methodSubject.asFoundMethodSubject()));
-              assertEquals(1, countStringBuilderAppends(methodSubject.asFoundMethodSubject()));
+              assertEquals(0, countStringBuilderInits(methodSubject.asFoundMethodSubject()));
+              assertEquals(0, countStringBuilderAppends(methodSubject.asFoundMethodSubject()));
+              assertThat(methodSubject, not(CodeMatchers.invokesMethodWithName("concat")));
             });
   }
 

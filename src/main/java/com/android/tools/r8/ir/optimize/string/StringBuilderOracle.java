@@ -43,6 +43,12 @@ interface StringBuilderOracle {
 
   boolean isInit(Instruction instruction);
 
+  boolean isAppendString(Instruction instruction);
+
+  boolean isStringConstructor(Instruction instruction);
+
+  boolean isConstructorInvokeSideEffectFree(Instruction instruction);
+
   class DefaultStringBuilderOracle implements StringBuilderOracle {
 
     private final DexItemFactory factory;
@@ -185,11 +191,11 @@ interface StringBuilderOracle {
       }
       DexMethod invokedMethod = instruction.asInvokeMethod().getInvokedMethod();
       if (factory.stringBuilderMethods.isAppendObjectOrCharSequenceMethod(invokedMethod)
-          || factory.stringBufferMethods.isAppendObjectOrCharSequenceMethod(invokedMethod)
-          || factory.stringBuilderMethods.charSequenceConstructor == invokedMethod
-          || factory.stringBufferMethods.charSequenceConstructor == invokedMethod) {
-        assert instruction.inValues().size() == 2;
+          || factory.stringBufferMethods.isAppendObjectOrCharSequenceMethod(invokedMethod)) {
         return !instruction.inValues().get(1).getType().isStringType(factory);
+      }
+      if (invokedMethod.isInstanceInitializer(factory)) {
+        return !isConstructorInvokeSideEffectFree(instruction);
       }
       if (factory.stringBuilderMethods.isAppendCharArrayMethod(invokedMethod)
           || factory.stringBufferMethods.isAppendCharArrayMethod(invokedMethod)) {
@@ -206,6 +212,42 @@ interface StringBuilderOracle {
       DexMethod invokedMethod = instruction.asInvokeMethod().getInvokedMethod();
       return factory.stringBuilderMethods.isConstructorMethod(invokedMethod)
           || factory.stringBufferMethods.isConstructorMethod(invokedMethod);
+    }
+
+    @Override
+    public boolean isAppendString(Instruction instruction) {
+      if (!instruction.isInvokeMethod()) {
+        return false;
+      }
+      DexMethod invokedMethod = instruction.asInvokeMethod().getInvokedMethod();
+      return factory.stringBuilderMethods.isAppendStringMethod(invokedMethod)
+          || factory.stringBufferMethods.isAppendStringMethod(invokedMethod);
+    }
+
+    @Override
+    public boolean isStringConstructor(Instruction instruction) {
+      if (!instruction.isInvokeMethod()) {
+        return false;
+      }
+      DexMethod invokedMethod = instruction.asInvokeMethod().getInvokedMethod();
+      return invokedMethod == factory.stringBuilderMethods.stringConstructor
+          || invokedMethod == factory.stringBufferMethods.stringConstructor;
+    }
+
+    @Override
+    public boolean isConstructorInvokeSideEffectFree(Instruction instruction) {
+      if (!instruction.isInvokeConstructor(factory)) {
+        return false;
+      }
+      DexMethod invokedMethod = instruction.asInvokeMethod().getInvokedMethod();
+      if (invokedMethod.getHolderType() == factory.stringBuilderType) {
+        return factory.stringBuilderMethods.constructorInvokeIsSideEffectFree(
+            invokedMethod, instruction.inValues());
+      } else {
+        assert invokedMethod.getHolderType() == factory.stringBufferType;
+        return factory.stringBufferMethods.constructorInvokeIsSideEffectFree(
+            invokedMethod, instruction.inValues());
+      }
     }
   }
 }
