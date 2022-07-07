@@ -9,18 +9,14 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.string.StringBuilderAction.AppendWithNewConstantString;
 import com.android.tools.r8.ir.optimize.string.StringBuilderAction.RemoveStringBuilderAction;
 import com.android.tools.r8.ir.optimize.string.StringBuilderAction.ReplaceByConstantString;
-import com.android.tools.r8.ir.optimize.string.StringBuilderAction.ReplaceByExistingString;
-import com.android.tools.r8.ir.optimize.string.StringBuilderAction.ReplaceByStringConcat;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.AppendNode;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.ImplicitToStringNode;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.InitNode;
-import com.android.tools.r8.ir.optimize.string.StringBuilderNode.InitOrAppendNode;
+import com.android.tools.r8.ir.optimize.string.StringBuilderNode.InitOrAppend;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.NewInstanceNode;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.StringBuilderInstruction;
 import com.android.tools.r8.ir.optimize.string.StringBuilderNode.ToStringNode;
 import com.android.tools.r8.utils.WorkList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,14 +67,6 @@ class StringBuilderNodeMuncher {
     public boolean isLooping(StringBuilderNode root) {
       return looping.contains(root);
     }
-
-    public boolean isEscaping(StringBuilderNode root) {
-      return escaping.contains(root);
-    }
-
-    public boolean isInspecting(StringBuilderNode root) {
-      return inspectingCapacity.contains(root);
-    }
   }
 
   private interface PeepholePattern {
@@ -105,32 +93,30 @@ class StringBuilderNodeMuncher {
     @Override
     public boolean optimize(
         StringBuilderNode root, StringBuilderNode currentNode, MunchingState munchingState) {
-      AppendNode appendNode = currentNode.asAppendNode();
-      if (appendNode == null || !appendNode.hasSinglePredecessor()) {
+      if (!currentNode.isAppendNode()) {
         return false;
       }
-      InitOrAppendNode previous = currentNode.getSinglePredecessor().asInitOrAppend();
-      if (previous == null || !previous.hasSingleSuccessor()) {
+      String currentConstantArgument = getConstantArgumentForNode(currentNode, munchingState);
+      if (currentConstantArgument == null || !currentNode.hasSinglePredecessor()) {
+        return false;
+      }
+      StringBuilderNode previous = currentNode.getSinglePredecessor();
+      String previousConstantArgument = getConstantArgumentForNode(previous, munchingState);
+      if (previousConstantArgument == null || !previous.hasSingleSuccessor()) {
         return false;
       }
       // The capacity changes based on the init call (on JVM it adds 16 to length of input).
       if (previous.isInitNode() && munchingState.inspectingCapacity.contains(root)) {
         return false;
       }
-      String currentConstantArgument = getConstantArgumentForNode(appendNode, munchingState);
-      if (currentConstantArgument == null) {
-        return false;
-      }
-      String previousConstantArgument = getConstantArgumentForNode(previous, munchingState);
-      if (previousConstantArgument == null) {
-        return false;
-      }
+      assert previous.isInitOrAppend();
       String newConstant = previousConstantArgument + currentConstantArgument;
-      previous.setConstantArgument(newConstant);
+      InitOrAppend initOrAppend = previous.asInitOrAppend();
+      initOrAppend.setConstantArgument(newConstant);
       munchingState.actions.put(
-          previous.getInstruction(), new AppendWithNewConstantString(newConstant));
+          initOrAppend.getInstruction(), new AppendWithNewConstantString(newConstant));
       munchingState.actions.put(
-          appendNode.getInstruction(), RemoveStringBuilderAction.getInstance());
+          currentNode.asAppendNode().getInstruction(), RemoveStringBuilderAction.getInstance());
       currentNode.removeNode();
       return true;
     }
@@ -140,13 +126,13 @@ class StringBuilderNodeMuncher {
    * This peephole will try to remove toString nodes and replace by a constant string:
    *
    * <pre>
-   * newInstance -> init("foo") -> toString() => newInstance -> init("foo") -> append("bar")
-   * actions: [toString() => ReplaceByConstantString("foo")]
+   * newInstance -> init("foo") -> append("bar") -> toString() =>
+   * newInstance -> init("foo") -> append("bar")
    * </pre>
    *
    * <p>If the node is an implicitToString, we update the append of another builder to have the new
-   * constant value directly. If not, we keep track of the outValue toString() being replaced by a
-   * constant by updating {@code MunchingState.optimizedStrings}
+   * constant value directly. If not, we keep track of the outValue toString() had is replaced by a
+   * constant, by updating {@code MunchingState.optimizedStrings}
    */
   private static class MunchToString implements PeepholePattern {
 
@@ -155,9 +141,6 @@ class StringBuilderNodeMuncher {
         StringBuilderNode originalRoot,
         StringBuilderNode currentNode,
         MunchingState munchingState) {
-      if (munchingState.isEscaping(originalRoot) || munchingState.isInspecting(originalRoot)) {
-        return false;
-      }
       if (!currentNode.isToStringNode() && !currentNode.isImplicitToStringNode()) {
         return false;
       }
@@ -165,127 +148,48 @@ class StringBuilderNodeMuncher {
       if (newInstanceNode == null || !newInstanceNode.hasSingleSuccessor()) {
         return false;
       }
-      InitNode init = newInstanceNode.getSingleSuccessor().asInitNode();
-      if (init == null || !init.hasSingleSuccessor()) {
+      StringBuilderNode init = newInstanceNode.getSingleSuccessor();
+      String rootConstantArgument = getConstantArgumentForNode(init, munchingState);
+      if (rootConstantArgument == null || !init.isInitNode()) {
         return false;
       }
-      if (!currentNode.hasSinglePredecessor() || currentNode.getSinglePredecessor() != init) {
-        return false;
-      }
-      String initConstantArgument = getConstantArgumentForNode(init, munchingState);
-      if (initConstantArgument == null) {
-        return false;
-      }
+      // This is either <init>(str) -> toString() or <init>(str) -> append(str) -> toString()
       // If the string builder dependency is directly given to another string builder, there is
       // no toString() but an append with this string builder as argument.
+      if (!currentNode.hasSinglePredecessor() || !init.hasSingleSuccessor()) {
+        return false;
+      }
+      String constantArgument = null;
+      if (currentNode.getSinglePredecessor() == init) {
+        constantArgument = rootConstantArgument;
+      } else {
+        StringBuilderNode expectedAppend = init.getSingleSuccessor();
+        StringBuilderNode expectedSameAppend = currentNode.getSinglePredecessor();
+        String appendConstantArgument = getConstantArgumentForNode(expectedAppend, munchingState);
+        if (expectedAppend == expectedSameAppend && appendConstantArgument != null) {
+          // TODO(b/190489514): See if this larger pattern is necessary.
+          assert false : "See why this larger pattern is necessary";
+          constantArgument = rootConstantArgument + appendConstantArgument;
+        }
+      }
+      if (constantArgument == null) {
+        return false;
+      }
       if (currentNode.isToStringNode()) {
         ToStringNode toStringNode = currentNode.asToStringNode();
         munchingState.actions.put(
-            toStringNode.getInstruction(), new ReplaceByConstantString(initConstantArgument));
+            toStringNode.getInstruction(), new ReplaceByConstantString(constantArgument));
         String oldValue =
             munchingState.optimizedStrings.put(
-                toStringNode.getInstruction().outValue(), initConstantArgument);
+                toStringNode.getInstruction().outValue(), constantArgument);
         assert oldValue == null;
       } else {
         assert currentNode.isImplicitToStringNode();
         ImplicitToStringNode implicitToStringNode = currentNode.asImplicitToStringNode();
-        InitOrAppendNode initOrAppend = implicitToStringNode.getInitOrAppend();
-        initOrAppend.setConstantArgument(initConstantArgument);
+        InitOrAppend initOrAppend = implicitToStringNode.getInitOrAppend();
+        initOrAppend.setConstantArgument(constantArgument);
         munchingState.actions.put(
-            initOrAppend.getInstruction(), new AppendWithNewConstantString(initConstantArgument));
-      }
-      munchingState.materializingInstructions.get(originalRoot).remove(currentNode);
-      currentNode.removeNode();
-      return true;
-    }
-  }
-
-  /**
-   * This peephole will try to remove toString nodes and replace by an invoke to String.concat:
-   *
-   * <pre>
-   * newInstance -> init(notNull(string)) -> append(notNull(otherString)) -> toString() =>
-   * newInstance -> init(notNull(string)) -> append(otherString)
-   * actions: [toString() => string.concat(otherString)]
-   * </pre>
-   *
-   * <p>This pattern only triggers when a constant munching of toString could happen.
-   */
-  private static class MunchToStringIntoStringConcat implements PeepholePattern {
-
-    @Override
-    public boolean optimize(
-        StringBuilderNode originalRoot,
-        StringBuilderNode currentNode,
-        MunchingState munchingState) {
-      if (munchingState.isEscaping(originalRoot) || munchingState.isInspecting(originalRoot)) {
-        return false;
-      }
-      // TODO(b/129200243): Handle implicit tostring nodes.
-      if (!currentNode.isToStringNode() || !currentNode.hasSinglePredecessor()) {
-        return false;
-      }
-      NewInstanceNode newInstanceNode = munchingState.getNewInstanceNode(originalRoot);
-      if (newInstanceNode == null || !newInstanceNode.hasSingleSuccessor()) {
-        return false;
-      }
-      InitOrAppendNode firstNode = newInstanceNode.getSingleSuccessor().asInitNode();
-      if (firstNode == null || !firstNode.hasSingleSuccessor()) {
-        return false;
-      }
-      if (firstNode.asInitNode().isConstructorInvokeSideEffectFree(munchingState.oracle)
-          && "".equals(firstNode.getConstantArgument())
-          && firstNode.hasSingleSuccessor()) {
-        firstNode = firstNode.getSingleSuccessor().asAppendNode();
-        if (firstNode == null
-            || !firstNode.hasSinglePredecessor()
-            || !firstNode.hasSingleSuccessor()) {
-          return false;
-        }
-      }
-      // We cannot String.concat or return the string safely when it is not constant and maybe null.
-      if (!firstNode.hasConstantOrNonConstantArgument()) {
-        return false;
-      }
-      List<InitOrAppendNode> initOrAppends = Lists.newArrayList(firstNode);
-      if (currentNode.getSinglePredecessor() != firstNode) {
-        AppendNode appendAfterFirstNode = firstNode.getSingleSuccessor().asAppendNode();
-        AppendNode appendBeforeToString = currentNode.getSinglePredecessor().asAppendNode();
-        if (appendAfterFirstNode == null
-            || appendAfterFirstNode != appendBeforeToString
-            || !appendAfterFirstNode.hasConstantOrNonConstantArgument()) {
-          return false;
-        }
-        initOrAppends.add(appendAfterFirstNode);
-      }
-      // Check that all values are not constant otherwise we can compute the constant value and
-      // replace all entirely.
-      if (Iterables.all(initOrAppends, InitOrAppendNode::hasConstantArgument)) {
-        return false;
-      }
-      // Replace with the string itself.
-      Instruction currentInstruction = currentNode.asToStringNode().getInstruction();
-      InitOrAppendNode first = initOrAppends.get(0);
-      if (initOrAppends.size() == 1) {
-        munchingState.actions.put(
-            currentInstruction, new ReplaceByExistingString(first.getNonConstantArgument()));
-      } else {
-        InitOrAppendNode second = initOrAppends.get(1);
-        ReplaceByStringConcat concatAction;
-        if (first.hasConstantArgument()) {
-          concatAction =
-              ReplaceByStringConcat.replaceByNewConstantConcatValue(
-                  first.getConstantArgument(), second.getNonConstantArgument());
-        } else if (second.hasConstantArgument()) {
-          concatAction =
-              ReplaceByStringConcat.replaceByValueConcatNewConstant(
-                  first.getNonConstantArgument(), second.getConstantArgument());
-        } else {
-          concatAction =
-              ReplaceByStringConcat.replaceByValues(
-                  first.getNonConstantArgument(), second.getNonConstantArgument());
-        }
-        munchingState.actions.put(currentInstruction, concatAction);
+            initOrAppend.getInstruction(), new AppendWithNewConstantString(constantArgument));
       }
       munchingState.materializingInstructions.get(originalRoot).remove(currentNode);
       currentNode.removeNode();
@@ -294,11 +198,21 @@ class StringBuilderNodeMuncher {
   }
 
   private static String getConstantArgumentForNode(
-      InitOrAppendNode node, MunchingState munchingState) {
-    if (node.hasConstantArgument()) {
-      return node.getConstantArgument();
+      StringBuilderNode node, MunchingState munchingState) {
+    if (node.isAppendNode()) {
+      AppendNode appendNode = node.asAppendNode();
+      if (appendNode.hasConstantArgument()) {
+        return appendNode.getConstantArgument();
+      }
+      return getOptimizedConstantArgument(appendNode, munchingState);
+    } else if (node.isInitNode()) {
+      InitNode initNode = node.asInitNode();
+      if (initNode.hasConstantArgument()) {
+        return initNode.getConstantArgument();
+      }
+      return getOptimizedConstantArgument(initNode, munchingState);
     }
-    return getOptimizedConstantArgument(node, munchingState);
+    return null;
   }
 
   private static String getOptimizedConstantArgument(
@@ -348,6 +262,7 @@ class StringBuilderNodeMuncher {
             removeNode = true;
           }
         } else if (currentNode.isInitNode()
+            && currentNode.asInitNode().hasConstantArgument()
             && currentNode.hasSinglePredecessor()
             && currentNode.getSinglePredecessor().isNewInstanceNode()
             && currentNode.getSuccessors().isEmpty()
@@ -397,12 +312,7 @@ class StringBuilderNodeMuncher {
   }
 
   private static final PeepholePattern[] peepholePatterns =
-      new PeepholePattern[] {
-        new MunchAppends(),
-        new MunchToString(),
-        new MunchToStringIntoStringConcat(),
-        new MunchNonMaterializing()
-      };
+      new PeepholePattern[] {new MunchAppends(), new MunchToString(), new MunchNonMaterializing()};
 
   static boolean optimize(
       StringBuilderNode root, StringBuilderNode currentNode, MunchingState munchingState) {

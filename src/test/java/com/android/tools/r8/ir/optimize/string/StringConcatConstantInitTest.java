@@ -13,7 +13,6 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.codeinspector.CodeMatchers;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,9 +52,9 @@ public class StringConcatConstantInitTest extends TestBase {
             inspect -> {
               MethodSubject methodSubject = inspect.clazz(Main.class).mainMethod();
               assertThat(methodSubject, isPresent());
-              assertEquals(0, countStringBuilderInits(methodSubject.asFoundMethodSubject()));
-              assertEquals(0, countStringBuilderAppends(methodSubject.asFoundMethodSubject()));
-              assertThat(methodSubject, CodeMatchers.invokesMethodWithName("concat"));
+              // TODO(b/129200243): Should be String.concat.
+              assertEquals(1, countStringBuilderInits(methodSubject.asFoundMethodSubject()));
+              assertEquals(1, countStringBuilderAppends(methodSubject.asFoundMethodSubject()));
             });
   }
 
@@ -64,7 +63,7 @@ public class StringConcatConstantInitTest extends TestBase {
     public static void main(String[] args) {
       String arg = System.currentTimeMillis() > 0 ? "o" : null;
       if (arg != null) {
-        // The optimization should join "ok" into init and then concat with arg.
+        // The optimization should join "ok" into init and then append with arg.
         System.out.println(new StringBuilder("o").append("k").append(arg).toString());
       }
     }

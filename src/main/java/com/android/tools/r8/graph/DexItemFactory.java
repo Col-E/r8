@@ -2118,7 +2118,7 @@ public class DexItemFactory {
     }
 
     public boolean isAppendCharSequenceMethod(DexMethod method) {
-      return method == appendCharSequence || method == appendSubCharSequence;
+      return method == appendCharSequence;
     }
 
     public boolean isAppendObjectOrCharSequenceMethod(DexMethod method) {
