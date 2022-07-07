@@ -137,7 +137,9 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     if (recordRewriter != null) {
       desugarings.add(recordRewriter);
     }
-    yieldingDesugarings.add(new UnrepresentableInDexInstructionRemover(appView));
+    if (appView.options().enableUnrepresentableInDexInstructionRemoval) {
+      yieldingDesugarings.add(new UnrepresentableInDexInstructionRemover(appView));
+    }
   }
 
   static NonEmptyCfInstructionDesugaringCollection createForCfToCfNonDesugar(AppView<?> appView) {
@@ -158,8 +160,10 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
         new NonEmptyCfInstructionDesugaringCollection(appView, noAndroidApiLevelCompute());
     desugaringCollection.desugarings.add(new InvokeSpecialToSelfDesugaring(appView));
     desugaringCollection.desugarings.add(new InvokeToPrivateRewriter());
-    desugaringCollection.yieldingDesugarings.add(
-        new UnrepresentableInDexInstructionRemover(appView));
+    if (appView.options().enableUnrepresentableInDexInstructionRemoval) {
+      desugaringCollection.yieldingDesugarings.add(
+          new UnrepresentableInDexInstructionRemover(appView));
+    }
     return desugaringCollection;
   }
 

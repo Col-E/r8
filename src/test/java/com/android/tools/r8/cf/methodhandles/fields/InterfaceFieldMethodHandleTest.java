@@ -76,6 +76,9 @@ public class InterfaceFieldMethodHandleTest extends TestBase {
         .addProgramClassFileData(getTransformedMain())
         .setMinApi(parameters.getApiLevel())
         .mapUnsupportedFeaturesToWarnings()
+        // TODO(b/238175192): remove again when resolved
+        .addOptionsModification(
+            options -> options.enableUnrepresentableInDexInstructionRemoval = true)
         .compileWithExpectedDiagnostics(this::checkDiagnostics)
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkResult);
@@ -91,6 +94,9 @@ public class InterfaceFieldMethodHandleTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .allowDiagnosticMessages()
         .mapUnsupportedFeaturesToWarnings()
+        // TODO(b/238175192): remove again when resolved
+        .addOptionsModification(
+            options -> options.enableUnrepresentableInDexInstructionRemoval = true)
         .compileWithExpectedDiagnostics(this::checkDiagnostics)
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkResult);

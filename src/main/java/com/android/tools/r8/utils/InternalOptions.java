@@ -397,6 +397,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // Boolean value indicating that byte code pass through may be enabled.
   public boolean enableCfByteCodePassThrough = false;
 
+  // TODO(b/238175192): remove again when resolved
+  public boolean enableUnrepresentableInDexInstructionRemoval = false;
+
   // Flag to control the representation of stateless lambdas.
   // See b/222081665 for context.
   public boolean createSingletonsForStatelessLambdas =

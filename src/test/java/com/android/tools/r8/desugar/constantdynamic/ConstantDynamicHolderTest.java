@@ -66,6 +66,9 @@ public class ConstantDynamicHolderTest extends TestBase {
                         || diagnostic instanceof ConstantDynamicDesugarDiagnostic)
                     ? DiagnosticsLevel.WARNING
                     : level)
+        // TODO(b/238175192): remove again when resolved
+        .addOptionsModification(
+            options -> options.enableUnrepresentableInDexInstructionRemoval = true)
         .compileWithExpectedDiagnostics(
             diagnostics ->
                 diagnostics.assertWarningsMatch(
@@ -105,6 +108,9 @@ public class ConstantDynamicHolderTest extends TestBase {
         .addKeepMainRule(Main.class)
         .allowDiagnosticWarningMessages()
         .mapUnsupportedFeaturesToWarnings()
+        // TODO(b/238175192): remove again when resolved
+        .addOptionsModification(
+            options -> options.enableUnrepresentableInDexInstructionRemoval = true)
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               if (parameters.isDexRuntime()) {

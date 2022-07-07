@@ -39,12 +39,13 @@ public class CompileGuavaWithUnrepresentableRewritingTest extends TestBase {
         CompilationFailedException.class,
         () -> {
           testForD8(Backend.DEX)
-              // DEPS contains all R8 dependencies, including guava, which extends the surface
-              // of UnrepresentableRewriting.
               .addProgramFiles(ToolHelper.DEPS)
               .setMinApi(AndroidApiLevel.B)
               .disableDesugaring()
               .mapUnsupportedFeaturesToWarnings()
+              // TODO(b/238175192): remove again when resolved
+              .addOptionsModification(
+                  options -> options.enableUnrepresentableInDexInstructionRemoval = true)
               .compileWithExpectedDiagnostics(
                   diagnostics ->
                       diagnostics
