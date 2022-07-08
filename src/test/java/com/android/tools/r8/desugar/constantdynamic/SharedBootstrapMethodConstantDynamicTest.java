@@ -90,9 +90,6 @@ public class SharedBootstrapMethodConstantDynamicTest extends TestBase {
                         || diagnostic instanceof UnsupportedFeatureDiagnostic)
                     ? DiagnosticsLevel.WARNING
                     : level)
-        // TODO(b/238175192): remove again when resolved
-        .addOptionsModification(
-            options -> options.enableUnrepresentableInDexInstructionRemoval = true)
         .compileWithExpectedDiagnostics(
             diagnostics ->
                 diagnostics
@@ -124,9 +121,6 @@ public class SharedBootstrapMethodConstantDynamicTest extends TestBase {
                         || diagnostic instanceof UnsupportedFeatureDiagnostic)
                     ? DiagnosticsLevel.WARNING
                     : level)
-        // TODO(b/238175192): remove again when resolved
-        .addOptionsModification(
-            options -> options.enableUnrepresentableInDexInstructionRemoval = true)
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               diagnostics.assertOnlyWarnings();
@@ -173,9 +167,6 @@ public class SharedBootstrapMethodConstantDynamicTest extends TestBase {
         .addKeepMainRule(MAIN_CLASS)
         .allowDiagnosticMessages()
         .mapUnsupportedFeaturesToWarnings()
-        // TODO(b/238175192): remove again when resolved
-        .addOptionsModification(
-            options -> options.enableUnrepresentableInDexInstructionRemoval = true)
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               diagnostics

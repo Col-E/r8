@@ -104,9 +104,6 @@ public class MethodHandleTestRunner extends TestBase {
         .addProgramClasses(getInputClasses())
         .addProgramClassFileData(getTransformedClasses())
         .mapUnsupportedFeaturesToWarnings()
-        // TODO(b/238175192): remove again when resolved
-        .addOptionsModification(
-            options -> options.enableUnrepresentableInDexInstructionRemoval = true)
         .compileWithExpectedDiagnostics(this::checkDiagnostics)
         .run(parameters.getRuntime(), CLASS.getName())
         .apply(this::checkResult);
@@ -120,10 +117,7 @@ public class MethodHandleTestRunner extends TestBase {
             .addProgramClasses(getInputClasses())
             .addProgramClassFileData(getTransformedClasses())
             .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
-            .addNoVerticalClassMergingAnnotations()
-            // TODO(b/238175192): remove again when resolved
-            .addOptionsModification(
-                options -> options.enableUnrepresentableInDexInstructionRemoval = true);
+            .addNoVerticalClassMergingAnnotations();
     if (minifyMode == MinifyMode.MINIFY) {
       builder
           .enableProguardTestOptions()

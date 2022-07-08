@@ -89,9 +89,6 @@ public class InvokeCustomRuntimeErrorTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .disableDesugaring()
         .mapUnsupportedFeaturesToWarnings()
-        // TODO(b/238175192): remove again when resolved
-        .addOptionsModification(
-            options -> options.enableUnrepresentableInDexInstructionRemoval = true)
         .compileWithExpectedDiagnostics(
             diagnostics ->
                 diagnostics
@@ -113,8 +110,6 @@ public class InvokeCustomRuntimeErrorTest extends TestBase {
         .addProgramClassFileData(getTransformedTestClass())
         .setMinApi(minApi)
         .mapUnsupportedFeaturesToWarnings()
-        .addOptionsModification(
-            options -> options.enableUnrepresentableInDexInstructionRemoval = true)
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               if (expectedSuccess) {

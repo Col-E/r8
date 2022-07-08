@@ -67,9 +67,6 @@ public class InvokeMethodHandleRuntimeErrorTest extends TestBase {
         .addProgramClassFileData(getInvokeCustomTransform())
         .setMinApi(parameters.getApiLevel())
         .mapUnsupportedFeaturesToWarnings()
-        // TODO(b/238175192): remove again when resolved
-        .addOptionsModification(
-            options -> options.enableUnrepresentableInDexInstructionRemoval = true)
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               if (hasCompileSupport()) {

@@ -71,9 +71,6 @@ public class InvokeDynamicVirtualDispatchToDefaultInterfaceMethodTest extends Te
         .addProgramClassFileData(getTransformedTestClass())
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(TestClass.class)
-        // TODO(b/238175192): remove again when resolved
-        .addOptionsModification(
-            options -> options.enableUnrepresentableInDexInstructionRemoval = true)
         .addKeepRules("-keepclassmembers class * { *** foo(...); }")
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);

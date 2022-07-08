@@ -46,9 +46,6 @@ public class CompileGuavaWithUnrepresentableRewritingTest extends TestBase {
               .setMinApi(AndroidApiLevel.B)
               .disableDesugaring()
               .mapUnsupportedFeaturesToWarnings()
-              // TODO(b/238175192): remove again when resolved
-              .addOptionsModification(
-                  options -> options.enableUnrepresentableInDexInstructionRemoval = true)
               .compileWithExpectedDiagnostics(
                   diagnostics ->
                       diagnostics
