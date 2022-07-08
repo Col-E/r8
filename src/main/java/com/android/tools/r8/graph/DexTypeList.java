@@ -104,6 +104,12 @@ public class DexTypeList extends DexItem implements Iterable<DexType>, Structura
     }
   }
 
+  public void forEachReverse(Consumer<? super DexType> consumer) {
+    for (int i = values.length - 1; i >= 0; i--) {
+      consumer.accept(values[i]);
+    }
+  }
+
   @Override
   public int hashCode() {
     return Arrays.hashCode(values);

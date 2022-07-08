@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.code.invokedynamic;
 
-import static org.hamcrest.CoreMatchers.containsString;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeTrue;
 
@@ -13,6 +13,8 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
+import com.android.tools.r8.errors.UnsupportedInvokeCustomDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,11 +36,12 @@ public class CompileGuavaWithUnrepresentableRewritingTest extends TestBase {
   @Test
   public void testD8DexNoDesugaring() throws Throwable {
     assumeTrue(ToolHelper.isTestingR8Lib());
-    // TODO(b/238175192): We should not generate invalid bytecode
     assertThrows(
         CompilationFailedException.class,
         () -> {
           testForD8(Backend.DEX)
+              // DEPS contains all R8 dependencies, including guava, which extends the surface
+              // of UnrepresentableRewriting.
               .addProgramFiles(ToolHelper.DEPS)
               .setMinApi(AndroidApiLevel.B)
               .disableDesugaring()
@@ -49,10 +52,9 @@ public class CompileGuavaWithUnrepresentableRewritingTest extends TestBase {
               .compileWithExpectedDiagnostics(
                   diagnostics ->
                       diagnostics
-                          .assertErrorMessageThatMatches(
-                              containsString("Expected stack type to be single width"))
-                          .assertWarningMessageThatMatches(
-                              containsString("Invalid stack map table at instruction")));
+                          .assertAllWarningsMatch(
+                              diagnosticType(UnsupportedInvokeCustomDiagnostic.class))
+                          .assertErrorThatMatches(diagnosticType(DexFileOverflowDiagnostic.class)));
         });
   }
 }
