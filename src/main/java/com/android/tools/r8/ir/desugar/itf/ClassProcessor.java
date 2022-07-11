@@ -723,6 +723,30 @@ final class ClassProcessor {
     assert resolutionResult.isSuccessfulMemberResolutionResult();
     LookupMethodTarget lookupMethodTarget =
         resolutionResult.lookupVirtualDispatchTarget(clazz, appInfo);
+    if (lookupMethodTarget == null) {
+      // This should not happen, but is does in b/237507594.
+      // We have no reproduction for the issue.
+      // We try to raise a warning here to help investigating:
+      // It could be an issue related to array#clone, or this can be due to a missing/invalid class.
+      assert false;
+      appView
+          .options()
+          .reporter
+          .warning(
+              "The class processor was not able to look-up the default method "
+                  + method
+                  + " in the class "
+                  + clazz
+                  + " (Single resolution: "
+                  + resolutionResult.isSingleResolution()
+                  + "; resolution pair: "
+                  + resolutionResult.getResolutionPair()
+                  + "). Please report this issue in the D8/R8 bug tracker at"
+                  + " https://issuetracker.google.com/issues/237507594.");
+      // To be able to resume compilation we add a NoSuchMethodErrorThrowingMethod.
+      addNoSuchMethodErrorThrowingMethod(method, clazz);
+      return;
+    }
     DexClassAndMethod virtualDispatchTarget = lookupMethodTarget.getTarget();
     assert virtualDispatchTarget != null;
 
