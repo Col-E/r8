@@ -534,6 +534,13 @@ public class JarClassFileReader<T extends DexClass> {
         return;
       }
       application.addRecordWitness(type, classKind);
+      if (classKind != ClassKind.PROGRAM) {
+        // Non program classes may just be headers, in which case instance fields and annotations
+        // may be partially stripped, leading to non matching record components and instance fields.
+        // Record desugaring does not need information beyond the record flag on non program class,
+        // so it's safe to compile even if there is a missmatch.
+        return;
+      }
       // TODO(b/169645628): Change this logic if we start stripping the record components.
       // Another approach would be to mark a bit in fields that are record components instead.
       String message = "Records are expected to have one record component per instance field.";

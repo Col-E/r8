@@ -14,6 +14,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.synthesis.globals.GlobalSyntheticsTestingConsumer;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.List;
@@ -34,19 +35,35 @@ public class RecordClasspathTest extends TestBase {
   private static final String EXPECTED_RESULT = StringUtils.lines("Hello");
 
   private final TestParameters parameters;
+  private final boolean stripClasspath;
 
-  public RecordClasspathTest(TestParameters parameters) {
+  public RecordClasspathTest(TestParameters parameters, boolean stripClasspath) {
     this.parameters = parameters;
+    this.stripClasspath = stripClasspath;
   }
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameterized.Parameters(name = "{0}, strip: {1}")
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters()
             .withCfRuntimesStartingFromIncluding(CfVm.JDK17)
             .withDexRuntimes()
             .withAllApiLevelsAlsoForCf()
-            .build());
+            .build(),
+        BooleanUtils.values());
+  }
+
+  private byte[][] getClasspathData() {
+    return stripClasspath ? stripFields(PROGRAM_DATA_1) : PROGRAM_DATA_1;
+  }
+
+  private byte[][] stripFields(byte[][] programData1) {
+    byte[][] bytes = new byte[programData1.length][];
+    for (int i = 0; i < programData1.length; i++) {
+      bytes[i] =
+          transformer(programData1[i], null).removeFields((a, b, c, d, e) -> true).transform();
+    }
+    return bytes;
   }
 
   @Test
@@ -54,13 +71,13 @@ public class RecordClasspathTest extends TestBase {
     if (parameters.isCfRuntime()) {
       testForJvm()
           .addProgramClasses(TestClass.class)
-          .addClasspathClassFileData(PROGRAM_DATA_1)
+          .addClasspathClassFileData(getClasspathData())
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutput(EXPECTED_RESULT);
     }
     testForD8(parameters.getBackend())
         .addProgramClasses(TestClass.class)
-        .addClasspathClassFileData(PROGRAM_DATA_1)
+        .addClasspathClassFileData(getClasspathData())
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::assertNoRecord)
@@ -74,7 +91,7 @@ public class RecordClasspathTest extends TestBase {
     Assume.assumeFalse(parameters.isCfRuntime());
     testForD8(parameters.getBackend())
         .addProgramClasses(TestClass.class)
-        .addClasspathClassFileData(PROGRAM_DATA_1)
+        .addClasspathClassFileData(getClasspathData())
         .setMinApi(parameters.getApiLevel())
         .setIntermediate(true)
         .setOutputMode(OutputMode.DexFilePerClassFile)
@@ -91,7 +108,7 @@ public class RecordClasspathTest extends TestBase {
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
             .addProgramClasses(TestClass.class)
-            .addClasspathClassFileData(PROGRAM_DATA_1)
+            .addClasspathClassFileData(getClasspathData())
             .setMinApi(parameters.getApiLevel())
             .addKeepMainRule(TestClass.class);
     if (parameters.isCfRuntime()) {
