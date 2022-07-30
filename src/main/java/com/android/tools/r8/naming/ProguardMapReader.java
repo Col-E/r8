@@ -510,7 +510,7 @@ public class ProguardMapReader implements AutoCloseable {
       skipWhitespace();
       String[] arguments;
       if (peekChar(0) == ')') {
-        arguments = new String[0];
+        arguments = StringUtils.EMPTY_ARRAY;
       } else {
         List<String> items = new ArrayList<>();
         items.add(parseType(true));
