@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Parses a Proguard mapping file and produces mappings from obfuscated class names to the original
@@ -462,15 +463,17 @@ public class ProguardMapReader implements AutoCloseable {
 
   // Cache for canonicalizing strings.
   // This saves 10% of heap space for large programs.
-  final HashMap<String, String> cache = new HashMap<>();
+  private final HashMap<String, String> identifierCache = new HashMap<>();
+
+  // Cache for canonicalizing signatures.
+  //
+  // Due to inlining, the same MethodSignature will come up many times in a ProguardMap.
+  // This happens to help a bit for FieldSignature too, so lump those in.
+  private final HashMap<Signature, Signature> signatureCache = new HashMap<>();
 
   private String substring(int start) {
     String result = line.substring(start, lineOffset);
-    if (cache.containsKey(result)) {
-      return cache.get(result);
-    }
-    cache.put(result, result);
-    return result;
+    return identifierCache.computeIfAbsent(result, Function.identity());
   }
 
   private String parseMethodName() {
@@ -528,7 +531,7 @@ public class ProguardMapReader implements AutoCloseable {
     } else {
       signature = new FieldSignature(name, type);
     }
-    return signature;
+    return signatureCache.computeIfAbsent(signature, Function.identity());
   }
 
   private void skipArrow() {
