@@ -461,6 +461,16 @@ public class ProguardMapReader implements AutoCloseable {
     }
   }
 
+  // Small direct-mapped cache for computing String.substring.
+  //
+  // Due to inlining, the same method names and parameter types will occur repeatedly on multiple
+  // lines.  String.substring ends up allocating a lot of garbage, so we use this cache to find
+  // String objects without having to allocate memory.
+  //
+  // "Direct-mapped" is inspired from computer architecture, where having a lookup policy in
+  // which entries can only ever map to one cache line is often faster than a fancy LRU cache.
+  private static final int SUBSTRING_CACHE_SIZE = 64;
+  private final String[] substringCache = new String[SUBSTRING_CACHE_SIZE];
   // Cache for canonicalizing strings.
   // This saves 10% of heap space for large programs.
   private final HashMap<String, String> identifierCache = new HashMap<>();
@@ -472,8 +482,21 @@ public class ProguardMapReader implements AutoCloseable {
   private final HashMap<Signature, Signature> signatureCache = new HashMap<>();
 
   private String substring(int start) {
+    int cacheIdx;
+    {
+      // Check if there was a recent String accessed which matches the substring.
+      int len = lineOffset - start;
+      cacheIdx = len % SUBSTRING_CACHE_SIZE;
+      String candidate = substringCache[cacheIdx];
+      if (candidate != null
+          && candidate.length() == len
+          && line.regionMatches(start, candidate, 0, len)) {
+        return candidate;
+      }
+    }
+
     String result = line.substring(start, lineOffset);
-    return identifierCache.computeIfAbsent(result, Function.identity());
+    return substringCache[cacheIdx] = identifierCache.computeIfAbsent(result, Function.identity());
   }
 
   private String parseMethodName() {
