@@ -35,6 +35,8 @@ import java.util.function.Predicate;
  */
 public class ClassNamingForNameMapper implements ClassNaming {
 
+  private static final List<MappingInformation> EMPTY_MAPPING_INFORMATION = Collections.emptyList();
+
   public static class Builder extends ClassNaming.Builder {
 
     private final String originalName;
@@ -43,7 +45,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
     private final Map<FieldSignature, MemberNaming> fieldMembers = Maps.newHashMap();
     private final Map<String, List<MappedRange>> mappedRangesByName = Maps.newHashMap();
     private final Map<String, List<MemberNaming>> mappedFieldNamingsByName = Maps.newHashMap();
-    private final List<MappingInformation> additionalMappingInfo = new ArrayList<>();
+    private List<MappingInformation> additionalMappingInfo = EMPTY_MAPPING_INFORMATION;
     private final BiConsumer<String, String> originalSourceFileConsumer;
 
     private Builder(
@@ -107,6 +109,9 @@ public class ClassNamingForNameMapper implements ClassNaming {
     @Override
     public void addMappingInformation(
         MappingInformation info, Consumer<MappingInformation> onProhibitedAddition) {
+      if (additionalMappingInfo == EMPTY_MAPPING_INFORMATION) {
+        additionalMappingInfo = new ArrayList<>();
+      }
       for (MappingInformation existing : additionalMappingInfo) {
         if (!existing.allowOther(info)) {
           onProhibitedAddition.accept(existing);
@@ -497,7 +502,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
      */
     private final int sequenceNumber = getNextSequenceNumber();
 
-    private List<MappingInformation> additionalMappingInfo = new ArrayList<>();
+    private List<MappingInformation> additionalMappingInfo = EMPTY_MAPPING_INFORMATION;
 
     private MappedRange(
         Range minifiedRange, MethodSignature signature, Range originalRange, String renamedName) {
@@ -509,6 +514,9 @@ public class ClassNamingForNameMapper implements ClassNaming {
 
     public void addMappingInformation(
         MappingInformation info, Consumer<MappingInformation> onProhibitedAddition) {
+      if (additionalMappingInfo == EMPTY_MAPPING_INFORMATION) {
+        additionalMappingInfo = new ArrayList<>();
+      }
       for (MappingInformation existing : additionalMappingInfo) {
         if (!existing.allowOther(info)) {
           onProhibitedAddition.accept(existing);
@@ -630,8 +638,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
     }
 
     public List<MappingInformation> getAdditionalMappingInfo() {
-      return additionalMappingInfo;
+      return Collections.unmodifiableList(additionalMappingInfo);
     }
   }
 }
-
