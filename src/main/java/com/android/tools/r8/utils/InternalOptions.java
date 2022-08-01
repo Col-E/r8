@@ -402,6 +402,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean createSingletonsForStatelessLambdas =
       System.getProperty("com.android.tools.r8.createSingletonsForStatelessLambdas") != null;
 
+  // Flag to allow record annotations in DEX. See b/231930852 for context.
+  public boolean emitRecordAnnotationsInDex =
+      System.getProperty("com.android.tools.r8.emitRecordAnnotationsInDex") != null;
+
   // Flag to allow nest annotations in DEX. See b/231930852 for context.
   public boolean emitNestAnnotationsInDex =
       System.getProperty("com.android.tools.r8.emitNestAnnotationsInDex") != null;
@@ -2145,7 +2149,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean canUseRecords() {
-    return hasFeaturePresentFrom(null);
+    return hasFeaturePresentFrom(null) || emitRecordAnnotationsInDex;
   }
 
   public boolean canUseSealedClasses() {
