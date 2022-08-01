@@ -250,8 +250,7 @@ public class GenerateLintFiles {
     Set<DexClass> classesWithAllMethodsSupported = Sets.newIdentityHashSet();
     Map<DexClass, List<DexEncodedMethod>> supportedMethods = new LinkedHashMap<>();
     for (DexProgramClass clazz : dexApplication.classes()) {
-      if (clazz.accessFlags.isPublic()
-          && desugaredLibrarySpecification.getRewriteType().containsKey(clazz.type)) {
+      if (clazz.accessFlags.isPublic() && desugaredLibrarySpecification.isSupported(clazz.type)) {
         DexProgramClass implementationClass =
             implementationApplication.programDefinitionFor(clazz.getType());
         if (implementationClass == null) {

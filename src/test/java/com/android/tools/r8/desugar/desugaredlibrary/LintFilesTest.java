@@ -37,6 +37,8 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
 
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
+  private List<String> lintContents;
+
   @Parameters(name = "{0}, spec: {1}")
   public static List<Object[]> data() {
     return buildParameters(getTestParameters().withNoneRuntime().build(), getJdk8Jdk11());
@@ -48,78 +50,105 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
     this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
+  private boolean supportsAllMethodsOf(String type) {
+    return lintContents.contains(type);
+  }
+
+  private boolean supportsMethodButNotAllMethodsInClass(String method) {
+    assert method.contains("#");
+    return !supportsAllMethodsOf(method.split("#")[0]) && lintContents.contains(method);
+  }
+
   private void checkFileContent(AndroidApiLevel minApiLevel, Path lintFile) throws Exception {
     // Just do some light probing in the generated lint files.
-    List<String> methods = FileUtils.readAllLines(lintFile);
+    lintContents = FileUtils.readAllLines(lintFile);
 
     // All methods supported on Optional*.
-    assertTrue(methods.contains("java/util/Optional"));
-    assertTrue(methods.contains("java/util/OptionalInt"));
-
-    // ConcurrentHashMap is fully supported on JDK 11.
-    assertEquals(
-        libraryDesugaringSpecification != JDK8,
-        methods.contains("java/util/concurrent/ConcurrentHashMap"));
+    assertTrue(supportsAllMethodsOf("java/util/Optional"));
+    assertTrue(supportsAllMethodsOf("java/util/OptionalInt"));
 
     // No parallel* methods pre L, and all stream methods supported from L.
     assertEquals(
         minApiLevel == AndroidApiLevel.L,
-        methods.contains("java/util/Collection#parallelStream()Ljava/util/stream/Stream;"));
+        supportsMethodButNotAllMethodsInClass(
+            "java/util/Collection#parallelStream()Ljava/util/stream/Stream;"));
     assertEquals(
-        minApiLevel == AndroidApiLevel.L, methods.contains("java/util/stream/DoubleStream"));
+        minApiLevel == AndroidApiLevel.L, supportsAllMethodsOf("java/util/stream/DoubleStream"));
     assertFalse(
-        methods.contains(
+        supportsMethodButNotAllMethodsInClass(
             "java/util/stream/DoubleStream#parallel()Ljava/util/stream/DoubleStream;"));
     assertFalse(
-        methods.contains("java/util/stream/DoubleStream#parallel()Ljava/util/stream/BaseStream;"));
+        supportsMethodButNotAllMethodsInClass(
+            "java/util/stream/DoubleStream#parallel()Ljava/util/stream/BaseStream;"));
     assertEquals(
         minApiLevel == AndroidApiLevel.B,
-        methods.contains(
+        supportsMethodButNotAllMethodsInClass(
             "java/util/stream/DoubleStream#allMatch(Ljava/util/function/DoublePredicate;)Z"));
-    assertEquals(minApiLevel == AndroidApiLevel.L, methods.contains("java/util/stream/IntStream"));
+    assertEquals(
+        minApiLevel == AndroidApiLevel.L, lintContents.contains("java/util/stream/IntStream"));
     assertFalse(
-        methods.contains("java/util/stream/IntStream#parallel()Ljava/util/stream/IntStream;"));
+        supportsMethodButNotAllMethodsInClass(
+            "java/util/stream/IntStream#parallel()Ljava/util/stream/IntStream;"));
     assertFalse(
-        methods.contains("java/util/stream/IntStream#parallel()Ljava/util/stream/BaseStream;"));
+        supportsMethodButNotAllMethodsInClass(
+            "java/util/stream/IntStream#parallel()Ljava/util/stream/BaseStream;"));
     assertEquals(
         minApiLevel == AndroidApiLevel.B,
-        methods.contains(
+        supportsMethodButNotAllMethodsInClass(
             "java/util/stream/IntStream#allMatch(Ljava/util/function/IntPredicate;)Z"));
 
-    if (libraryDesugaringSpecification != JDK8) {
-      // TODO(b/203382252): Investigate why the following assertions are not working on JDK 11.
-      return;
+    assertEquals(
+        libraryDesugaringSpecification != JDK8,
+        supportsAllMethodsOf("java/util/concurrent/ConcurrentHashMap"));
+
+    // Checks specific methods are supported or not in JDK8, all is supported in JDK11.
+    if (libraryDesugaringSpecification == JDK8) {
+      // Supported methods on ConcurrentHashMap.
+      assertTrue(
+          supportsMethodButNotAllMethodsInClass(
+              "java/util/concurrent/ConcurrentHashMap#getOrDefault(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"));
+
+      // Don't include constructors.
+      assertFalse(
+          supportsMethodButNotAllMethodsInClass(
+              "java/util/concurrent/ConcurrentHashMap#<init>()V"));
+
+      // Unsupported methods on ConcurrentHashMap.
+      assertFalse(
+          supportsMethodButNotAllMethodsInClass(
+              "java/util/concurrent/ConcurrentHashMap#reduce(JLjava/util/function/BiFunction;Ljava/util/function/BiFunction;)Ljava/lang/Object;"));
+      assertFalse(
+          supportsMethodButNotAllMethodsInClass(
+              "java/util/concurrent/ConcurrentHashMap#newKeySet()Ljava/util/concurrent/ConcurrentHashMap$KeySetView;"));
     }
 
-    // Supported methods on ConcurrentHashMap.
+    // Maintain type.
+    assertEquals(
+        libraryDesugaringSpecification != JDK8,
+        supportsAllMethodsOf("java/io/UncheckedIOException"));
+
+    // Retarget method.
     assertTrue(
-        methods.contains(
-            "java/util/concurrent/ConcurrentHashMap#getOrDefault(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"));
-
-    // Don't include constructors.
-    assertFalse(methods.contains("java/util/concurrent/ConcurrentHashMap#<init>()V"));
-
-    // Unsupported methods on ConcurrentHashMap.
-    assertFalse(
-        methods.contains(
-            "java/util/concurrent/ConcurrentHashMap#reduce(JLjava/util/function/BiFunction;Ljava/util/function/BiFunction;)Ljava/lang/Object;"));
-    assertFalse(
-        methods.contains(
-            "java/util/concurrent/ConcurrentHashMap#newKeySet()Ljava/util/concurrent/ConcurrentHashMap$KeySetView;"));
+        supportsMethodButNotAllMethodsInClass(
+            "java/util/Arrays#spliterator([I)Ljava/util/Spliterator$OfInt;"));
 
     // Emulated interface default method.
-    assertTrue(methods.contains("java/util/List#spliterator()Ljava/util/Spliterator;"));
+    assertTrue(
+        supportsMethodButNotAllMethodsInClass(
+            "java/util/List#spliterator()Ljava/util/Spliterator;"));
 
     // Emulated interface static method.
-    assertTrue(methods.contains("java/util/Map$Entry#comparingByValue()Ljava/util/Comparator;"));
+    assertTrue(
+        supportsMethodButNotAllMethodsInClass(
+            "java/util/Map$Entry#comparingByValue()Ljava/util/Comparator;"));
 
     // No no-default method from emulated interface.
-    assertFalse(methods.contains("java/util/List#size()I"));
+    assertFalse(supportsMethodButNotAllMethodsInClass("java/util/List#size()I"));
 
     // File should be sorted.
-    List<String> sorted = new ArrayList<>(methods);
+    List<String> sorted = new ArrayList<>(lintContents);
     sorted.sort(Comparator.naturalOrder());
-    assertEquals(methods, sorted);
+    assertEquals(lintContents, sorted);
   }
 
   @Test
