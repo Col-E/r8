@@ -95,6 +95,7 @@ import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Throw;
+import com.android.tools.r8.ir.code.UnusedArgument;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
@@ -3738,6 +3739,14 @@ public class CodeRewriter {
     iterator.add(new InvokeVirtual(printLn, null, ImmutableList.of(out, empty)));
   }
 
+  public static void replaceUnusedArgumentTrivialPhis(UnusedArgument unusedArgument) {
+    replaceTrivialPhis(unusedArgument.outValue());
+    for (Phi phiUser : unusedArgument.outValue().uniquePhiUsers()) {
+      phiUser.removeTrivialPhi();
+    }
+    assert !unusedArgument.outValue().hasPhiUsers();
+  }
+
   public static void ensureDirectStringNewToInit(IRCode code, DexItemFactory dexItemFactory) {
     for (Instruction instruction : code.instructions()) {
       if (instruction.isInvokeDirect()) {
@@ -3747,7 +3756,7 @@ public class CodeRewriter {
             && method.holder == dexItemFactory.stringType
             && invoke.getReceiver().isPhi()) {
           NewInstance newInstance = findNewInstance(invoke.getReceiver().asPhi());
-          replaceTrivialNewInstancePhis(newInstance.outValue());
+          replaceTrivialPhis(newInstance.outValue());
           if (invoke.getReceiver().isPhi()) {
             throw new CompilationError(
                 "Failed to remove trivial phis between new-instance and <init>");
@@ -3810,18 +3819,15 @@ public class CodeRewriter {
     }
   }
 
-  // If an <init> call takes place on a phi the code must contain an irreducible loop between the
-  // new-instance and the <init>. Assuming the code is verifiable, new-instance must flow to a
-  // unique <init>. Here we compute the set of strongly connected phis making use of the
-  // new-instance value and replace all trivial ones by the new-instance value.
+  // We compute the set of strongly connected phis making use of the out value and replace all
+  // trivial ones by the out value.
   // This is a simplified variant of the removeRedundantPhis algorithm in Section 3.2 of:
   // http://compilers.cs.uni-saarland.de/papers/bbhlmz13cc.pdf
-  private static void replaceTrivialNewInstancePhis(Value newInstanceValue) {
-    List<Set<Value>> components =
-        new SCC<Value>(Value::uniquePhiUsers).computeSCC(newInstanceValue);
+  private static void replaceTrivialPhis(Value outValue) {
+    List<Set<Value>> components = new SCC<Value>(Value::uniquePhiUsers).computeSCC(outValue);
     for (int i = components.size() - 1; i >= 0; i--) {
       Set<Value> component = components.get(i);
-      if (component.size() == 1 && component.iterator().next() == newInstanceValue) {
+      if (component.size() == 1 && component.iterator().next() == outValue) {
         continue;
       }
       Set<Phi> trivialPhis = Sets.newIdentityHashSet();
@@ -3829,7 +3835,7 @@ public class CodeRewriter {
         boolean isTrivial = true;
         Phi p = value.asPhi();
         for (Value op : p.getOperands()) {
-          if (op != newInstanceValue && !component.contains(op)) {
+          if (op != value && !component.contains(op)) {
             isTrivial = false;
             break;
           }
@@ -3842,7 +3848,7 @@ public class CodeRewriter {
         for (Value op : trivialPhi.getOperands()) {
           op.removePhiUser(trivialPhi);
         }
-        trivialPhi.replaceUsers(newInstanceValue);
+        trivialPhi.replaceUsers(outValue);
         trivialPhi.getBlock().removePhi(trivialPhi);
       }
     }

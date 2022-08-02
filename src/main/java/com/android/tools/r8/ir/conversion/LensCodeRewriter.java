@@ -103,6 +103,7 @@ import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.UnusedArgument;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.argumentpropagation.lenscoderewriter.NullCheckInserter;
@@ -223,6 +224,15 @@ public class LensCodeRewriter {
       assert graphLens.isEnumUnboxerLens();
       assert graphLens.getPrevious() == codeLens;
       affectedPhis.addAll(enumUnboxer.rewriteCode(code, methodProcessor, prototypeChanges));
+    }
+    if (!unusedArguments.isEmpty()) {
+      for (UnusedArgument unusedArgument : unusedArguments) {
+        if (unusedArgument.outValue().hasPhiUsers()) {
+          // See b/240282988: We can end up in situations where the second round of IR processing
+          // introduce phis for irreducible control flow, we need to resolve them.
+          CodeRewriter.replaceUnusedArgumentTrivialPhis(unusedArgument);
+        }
+      }
     }
     rewritePartialDefault(
         code, method, graphLens, codeLens, prototypeChanges, affectedPhis, unusedArguments);
