@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import java.util.Map;
 
-public class EmulatedInterfaceDescriptor {
+public class EmulatedInterfaceDescriptor implements SpecificationDescriptor {
   private final DexType rewrittenType;
   private final Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedMethods;
 
@@ -24,5 +24,11 @@ public class EmulatedInterfaceDescriptor {
 
   public Map<DexMethod, EmulatedDispatchMethodDescriptor> getEmulatedMethods() {
     return emulatedMethods;
+  }
+
+  @Override
+  public Object[] toJsonStruct(
+      MultiAPILevelMachineDesugaredLibrarySpecificationJsonExporter exporter) {
+    return exporter.exportEmulatedInterfaceDescriptor(this);
   }
 }

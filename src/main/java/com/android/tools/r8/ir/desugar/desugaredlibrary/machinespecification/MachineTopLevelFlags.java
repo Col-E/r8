@@ -67,4 +67,8 @@ public class MachineTopLevelFlags {
   public List<String> getExtraKeepRules() {
     return extraKeepRules;
   }
+
+  public String getExtraKeepRulesConcatenated() {
+    return String.join("\n", extraKeepRules);
+  }
 }

@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import java.util.List;
 
-public class WrapperDescriptor {
+public class WrapperDescriptor implements SpecificationDescriptor {
   private final List<DexMethod> methods;
   private final List<DexType> subwrappers;
   private final boolean nonPublicAccess;
@@ -30,5 +30,11 @@ public class WrapperDescriptor {
 
   public boolean hasNonPublicAccess() {
     return nonPublicAccess;
+  }
+
+  @Override
+  public Object[] toJsonStruct(
+      MultiAPILevelMachineDesugaredLibrarySpecificationJsonExporter exporter) {
+    return exporter.exportWrapperDescriptor(this);
   }
 }

@@ -16,7 +16,7 @@ import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
  * context to generate the holder type. The method may however differ (for example the method name
  * may be different).
  */
-public class DerivedMethod {
+public class DerivedMethod implements SpecificationDescriptor {
 
   private final DexMethod method;
   private final SyntheticKind holderKind;
@@ -48,5 +48,11 @@ public class DerivedMethod {
 
   public DexProto getProto() {
     return method.getProto();
+  }
+
+  @Override
+  public Object[] toJsonStruct(
+      MultiAPILevelMachineDesugaredLibrarySpecificationJsonExporter exporter) {
+    return exporter.exportDerivedMethod(this);
   }
 }

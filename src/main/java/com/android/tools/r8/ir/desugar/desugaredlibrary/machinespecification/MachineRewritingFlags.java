@@ -159,7 +159,7 @@ public class MachineRewritingFlags {
     return emulatedInterfaces;
   }
 
-  public Map<DexType, WrapperDescriptor> getWrappers() {
+  public LinkedHashMap<DexType, WrapperDescriptor> getWrappers() {
     return wrappers;
   }
 
