@@ -22,6 +22,8 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.Multi
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.MultiAPILevelHumanDesugaredLibrarySpecificationParser;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.MultiAPILevelLegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.MultiAPILevelLegacyDesugaredLibrarySpecificationParser;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MultiAPILevelMachineDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.HumanToMachineSpecificationConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.LegacyToHumanSpecificationConverter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.Box;
@@ -76,6 +78,12 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
             .parseMultiLevelConfiguration(StringResource.fromString(json.get(), Origin.unknown()));
 
     assertSpecEquals(humanSpec1, humanSpec2);
+
+    HumanToMachineSpecificationConverter converter2 =
+        new HumanToMachineSpecificationConverter(Timing.empty());
+    MultiAPILevelMachineDesugaredLibrarySpecification machineSpec1 =
+        converter2.convertAllAPILevels(humanSpec2, app);
+    System.out.println("x");
   }
 
   private void assertSpecEquals(

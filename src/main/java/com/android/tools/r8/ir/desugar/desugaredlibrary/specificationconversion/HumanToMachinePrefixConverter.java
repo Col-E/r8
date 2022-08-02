@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineRewritingFlags;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -34,12 +33,13 @@ public class HumanToMachinePrefixConverter {
   public HumanToMachinePrefixConverter(
       AppInfoWithClassHierarchy appInfo,
       MachineRewritingFlags.Builder builder,
-      HumanDesugaredLibrarySpecification humanSpec,
+      String synthesizedPrefix,
+      boolean libraryCompilation,
       HumanRewritingFlags rewritingFlags) {
     this.appInfo = appInfo;
     this.builder = builder;
-    this.synthesizedPrefix = humanSpec.getSynthesizedLibraryClassesPackagePrefix();
-    this.libraryCompilation = humanSpec.isLibraryCompilation();
+    this.synthesizedPrefix = synthesizedPrefix;
+    this.libraryCompilation = libraryCompilation;
     this.descriptorPrefix = convertRewritePrefix(rewritingFlags.getRewritePrefix());
     this.descriptorDontRewritePrefix = convertPrefixSet(rewritingFlags.getDontRewritePrefix());
     this.descriptorMaintainPrefix = convertPrefixSet(rewritingFlags.getMaintainPrefix());

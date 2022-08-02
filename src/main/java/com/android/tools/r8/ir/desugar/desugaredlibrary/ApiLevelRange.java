@@ -50,7 +50,7 @@ public class ApiLevelRange {
     }
     ApiLevelRange that = (ApiLevelRange) o;
     return apiLevelBelowOrEqual.equals(that.apiLevelBelowOrEqual)
-        && apiLevelGreaterOrEqual.equals(that.apiLevelGreaterOrEqual);
+        && Objects.equals(apiLevelGreaterOrEqual, that.apiLevelGreaterOrEqual);
   }
 
   @Override
