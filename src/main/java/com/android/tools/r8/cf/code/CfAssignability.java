@@ -145,17 +145,10 @@ public class CfAssignability {
 
   public AssignabilityResult isLocalsAssignable(
       Int2ObjectSortedMap<FrameType> sourceLocals, Int2ObjectSortedMap<FrameType> targetLocals) {
-    // TODO(b/229826687): The tail of locals could have top(s) at destination but still be valid.
     int localsLastKey = sourceLocals.isEmpty() ? -1 : sourceLocals.lastIntKey();
     int otherLocalsLastKey = targetLocals.isEmpty() ? -1 : targetLocals.lastIntKey();
-    if (localsLastKey < otherLocalsLastKey) {
-      return new FailedAssignabilityResult(
-          "Source locals "
-              + MapUtils.toString(sourceLocals)
-              + " have different local indices than "
-              + MapUtils.toString(targetLocals));
-    }
-    for (int i = 0; i < otherLocalsLastKey; i++) {
+    int maxKey = Math.max(localsLastKey, otherLocalsLastKey);
+    for (int i = 0; i <= maxKey; i++) {
       FrameType sourceType =
           sourceLocals.containsKey(i) ? sourceLocals.get(i) : FrameType.oneWord();
       FrameType destinationType =
@@ -164,21 +157,31 @@ public class CfAssignability {
         destinationType = FrameType.twoWord();
       }
       if (!isFrameTypeAssignable(sourceType, destinationType)) {
-        return new FailedAssignabilityResult(
-            "Could not assign '"
-                + MapUtils.toString(sourceLocals)
-                + "' to '"
-                + MapUtils.toString(targetLocals)
-                + "'. The local at index "
-                + i
-                + " with '"
-                + sourceType
-                + "' not being assignable to '"
-                + destinationType
-                + "'");
+        return reportFailedAssignabilityResult(
+            sourceLocals, targetLocals, sourceType, destinationType, i);
       }
     }
     return new SuccessfulAssignabilityResult();
+  }
+
+  private FailedAssignabilityResult reportFailedAssignabilityResult(
+      Int2ObjectSortedMap<FrameType> sourceLocals,
+      Int2ObjectSortedMap<FrameType> targetLocals,
+      FrameType sourceType,
+      FrameType destinationType,
+      int index) {
+    return new FailedAssignabilityResult(
+        "Could not assign '"
+            + MapUtils.toString(sourceLocals)
+            + "' to '"
+            + MapUtils.toString(targetLocals)
+            + "'. The local at index "
+            + index
+            + " with '"
+            + sourceType
+            + "' not being assignable to '"
+            + destinationType
+            + "'");
   }
 
   public AssignabilityResult isStackAssignable(
