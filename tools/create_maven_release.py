@@ -372,7 +372,7 @@ def generate_jar_with_desugar_configuration(
         jdk.GetJavaExecutable(),
         '-cp',
         utils.R8_JAR,
-        'com.android.tools.r8.GenerateLintFiles',
+        'com.android.tools.r8.ir.desugar.desugaredlibrary.lint.GenerateLintFiles',
         configuration,
         implementation,
         lint_dir]

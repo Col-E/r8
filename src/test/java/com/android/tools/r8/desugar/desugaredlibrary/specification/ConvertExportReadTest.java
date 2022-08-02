@@ -13,6 +13,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.ApiLevelRange;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanTopLevelFlags;
@@ -61,9 +62,10 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
                 options.dexItemFactory(), options.reporter)
             .parseMultiLevelConfiguration(StringResource.fromFile(legacySpec.getSpecification()));
 
+    DexApplication app = legacySpec.getAppForTesting(options, true);
+
     MultiAPILevelHumanDesugaredLibrarySpecification humanSpec1 =
-        converter.convertAllAPILevels(
-            spec, legacySpec.getDesugarJdkLibs(), legacySpec.getLibraryFiles(), options);
+        converter.convertAllAPILevels(spec, app);
 
     Box<String> json = new Box<>();
     MultiAPILevelHumanDesugaredLibrarySpecificationJsonExporter.export(

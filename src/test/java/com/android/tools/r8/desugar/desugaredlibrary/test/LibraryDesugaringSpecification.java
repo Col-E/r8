@@ -14,13 +14,21 @@ import com.android.tools.r8.L8TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 public class LibraryDesugaringSpecification {
 
@@ -256,6 +264,27 @@ public class LibraryDesugaringSpecification {
 
   public static List<LibraryDesugaringSpecification> getJdk8Jdk11() {
     return ImmutableList.of(JDK8, JDK11);
+  }
+
+  public DexApplication getAppForTesting(InternalOptions options, boolean libraryCompilation)
+      throws IOException {
+    AndroidApp.Builder builder = AndroidApp.builder();
+    if (libraryCompilation) {
+      builder.addProgramFiles(getDesugarJdkLibs());
+    }
+    AndroidApp inputApp = builder.addLibraryFiles(getLibraryFiles()).build();
+    return internalReadApp(inputApp, options);
+  }
+
+  private DexApplication internalReadApp(AndroidApp inputApp, InternalOptions options)
+      throws IOException {
+    ApplicationReader applicationReader = new ApplicationReader(inputApp, options, Timing.empty());
+    ExecutorService executorService = ThreadUtils.getExecutorService(options);
+    assert !options.ignoreJavaLibraryOverride;
+    options.ignoreJavaLibraryOverride = true;
+    DexApplication app = applicationReader.read(executorService);
+    options.ignoreJavaLibraryOverride = false;
+    return app;
   }
 
   public boolean hasEmulatedInterfaceDesugaring(TestParameters parameters) {

@@ -22,14 +22,10 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.Mac
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineRewritingFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineTopLevelFlags;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -42,18 +38,6 @@ public class HumanToMachineSpecificationConverter {
 
   public HumanToMachineSpecificationConverter(Timing timing) {
     this.timing = timing;
-  }
-
-  public MachineDesugaredLibrarySpecification convertForTesting(
-      HumanDesugaredLibrarySpecification humanSpec,
-      Collection<Path> desugaredJDKLib,
-      Collection<Path> androidLib,
-      InternalOptions options)
-      throws IOException {
-    DexApplication app =
-        AppForSpecConversion.readAppForTesting(
-            desugaredJDKLib, androidLib, options, humanSpec.isLibraryCompilation(), timing);
-    return convert(humanSpec, app);
   }
 
   public MachineDesugaredLibrarySpecification convert(

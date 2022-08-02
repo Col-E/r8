@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion;
 
-import com.android.tools.r8.StringConsumer;
-import com.android.tools.r8.StringResource;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
@@ -23,15 +21,12 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.Human
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanTopLevelFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.MultiAPILevelHumanDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.MultiAPILevelHumanDesugaredLibrarySpecificationJsonExporter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyRewritingFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyTopLevelFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.MultiAPILevelLegacyDesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.MultiAPILevelLegacyDesugaredLibrarySpecificationParser;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.Timing;
@@ -39,9 +34,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -60,32 +53,11 @@ public class LegacyToHumanSpecificationConverter {
     this.timing = timing;
   }
 
-  public void convertAllAPILevels(
-      StringResource inputSpecification,
-      Collection<Path> desugaredJDKLib,
-      Collection<Path> androidLib,
-      StringConsumer output)
-      throws IOException {
-    InternalOptions options = new InternalOptions();
-    MultiAPILevelLegacyDesugaredLibrarySpecification legacySpec =
-        new MultiAPILevelLegacyDesugaredLibrarySpecificationParser(
-                options.dexItemFactory(), options.reporter)
-            .parseMultiLevelConfiguration(inputSpecification);
-    MultiAPILevelHumanDesugaredLibrarySpecification humanSpec =
-        convertAllAPILevels(legacySpec, desugaredJDKLib, androidLib, options);
-    MultiAPILevelHumanDesugaredLibrarySpecificationJsonExporter.export(humanSpec, output);
-  }
-
   public MultiAPILevelHumanDesugaredLibrarySpecification convertAllAPILevels(
-      MultiAPILevelLegacyDesugaredLibrarySpecification legacySpec,
-      Collection<Path> desugaredJDKLib,
-      Collection<Path> androidLib,
-      InternalOptions options)
+      MultiAPILevelLegacyDesugaredLibrarySpecification legacySpec, DexApplication app)
       throws IOException {
     timing.begin("Legacy to human all API convert");
     Origin origin = legacySpec.getOrigin();
-    DexApplication app =
-        AppForSpecConversion.readAppForTesting(desugaredJDKLib, androidLib, options, true, timing);
 
     HumanTopLevelFlags humanTopLevelFlags = convertTopLevelFlags(legacySpec.getTopLevelFlags());
     Map<ApiLevelRange, HumanRewritingFlags> commonFlags =
@@ -102,21 +74,9 @@ public class LegacyToHumanSpecificationConverter {
         new MultiAPILevelHumanDesugaredLibrarySpecification(
             origin, humanTopLevelFlags, commonFlags, libraryFlags, programFlags);
     MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator.deduplicateFlags(
-        humanSpec, options.reporter);
+        humanSpec, app.options.reporter);
     timing.end();
     return humanSpec;
-  }
-
-  public HumanDesugaredLibrarySpecification convertForTesting(
-      LegacyDesugaredLibrarySpecification legacySpec,
-      Collection<Path> desugaredJDKLib,
-      Collection<Path> androidLib,
-      InternalOptions options)
-      throws IOException {
-    DexApplication app =
-        AppForSpecConversion.readAppForTesting(
-            desugaredJDKLib, androidLib, options, legacySpec.isLibraryCompilation(), timing);
-    return convert(legacySpec, app);
   }
 
   public HumanDesugaredLibrarySpecification convert(

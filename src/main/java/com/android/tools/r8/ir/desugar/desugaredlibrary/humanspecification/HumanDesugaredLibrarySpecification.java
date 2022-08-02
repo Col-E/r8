@@ -8,11 +8,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecific
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.HumanToMachineSpecificationConverter;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collection;
 import java.util.List;
 
 public class HumanDesugaredLibrarySpecification implements DesugaredLibrarySpecification {
@@ -94,16 +90,5 @@ public class HumanDesugaredLibrarySpecification implements DesugaredLibrarySpeci
   public MachineDesugaredLibrarySpecification toMachineSpecification(
       DexApplication app, Timing timing) {
     return new HumanToMachineSpecificationConverter(timing).convert(this, app);
-  }
-
-  @Override
-  public MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options,
-      Collection<Path> library,
-      Timing timing,
-      Collection<Path> desugaredJDKLib)
-      throws IOException {
-    return new HumanToMachineSpecificationConverter(timing)
-        .convertForTesting(this, desugaredJDKLib, library, options);
   }
 }

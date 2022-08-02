@@ -11,11 +11,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.GenerateLintFiles;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.GenerateLintFiles;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.WrapperDescriptor;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -210,11 +211,13 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
             null,
             false,
             minApi.getLevel());
+
+    DexApplication app =
+        libraryDesugaringSpecification.getAppForTesting(
+            new InternalOptions(factory, new Reporter()), spec.isLibraryCompilation());
     MachineDesugaredLibrarySpecification specification =
-        spec.toMachineSpecification(
-            new InternalOptions(factory, new Reporter()),
-            libraryDesugaringSpecification.getLibraryFiles(),
-            Timing.empty());
+        spec.toMachineSpecification(app, Timing.empty());
+
     Set<String> wrappersInSpec =
         specification.getWrappers().keySet().stream()
             .map(DexType::toString)

@@ -1,9 +1,11 @@
-// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8;
+package com.android.tools.r8.ir.desugar.desugaredlibrary.lint;
 
+import com.android.tools.r8.ClassFileConsumer;
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfInstruction;
@@ -47,10 +49,12 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -64,6 +68,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
@@ -104,9 +109,8 @@ public class GenerateLintFiles {
     DesugaredLibrarySpecification specification =
         readDesugaredLibraryConfiguration(desugarConfigurationPath);
     Path androidJarPath = getAndroidJarPath(specification.getRequiredCompilationApiLevel());
-    this.desugaredLibrarySpecification =
-        specification.toMachineSpecification(
-            options, ImmutableList.of(androidJarPath), Timing.empty());
+    DexApplication app = createApp(androidJarPath, options);
+    this.desugaredLibrarySpecification = specification.toMachineSpecification(app, Timing.empty());
 
     this.desugaredLibraryImplementation = desugarImplementationPath;
     this.outputDirectory = outputDirectory;
@@ -417,6 +421,19 @@ public class GenerateLintFiles {
           assert minApiLevel == AndroidApiLevel.B;
           return !parallelMethods.contains(method.getReference());
         });
+  }
+
+  private static DexApplication createApp(Path androidLib, InternalOptions options)
+      throws IOException {
+    AndroidApp.Builder builder = AndroidApp.builder();
+    AndroidApp inputApp = builder.addLibraryFiles(androidLib).build();
+    ApplicationReader applicationReader = new ApplicationReader(inputApp, options, Timing.empty());
+    ExecutorService executorService = ThreadUtils.getExecutorService(options);
+    assert !options.ignoreJavaLibraryOverride;
+    options.ignoreJavaLibraryOverride = true;
+    DexApplication app = applicationReader.read(executorService);
+    options.ignoreJavaLibraryOverride = false;
+    return app;
   }
 
   private static class StringBuilderWithIndent {

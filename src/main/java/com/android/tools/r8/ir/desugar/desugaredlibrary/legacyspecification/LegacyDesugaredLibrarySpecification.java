@@ -14,11 +14,8 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecific
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.LegacyToHumanSpecificationConverter;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -124,17 +121,5 @@ public class LegacyDesugaredLibrarySpecification implements DesugaredLibrarySpec
     return new LegacyToHumanSpecificationConverter(timing)
         .convert(this, app)
         .toMachineSpecification(app, timing);
-  }
-
-  @Override
-  public MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options,
-      Collection<Path> library,
-      Timing timing,
-      Collection<Path> desugaredJDKLib)
-      throws IOException {
-    return new LegacyToHumanSpecificationConverter(timing)
-        .convertForTesting(this, desugaredJDKLib, library, options)
-        .toMachineSpecification(options, library, timing, desugaredJDKLib);
   }
 }

@@ -7,11 +7,8 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collection;
 import java.util.List;
 
 public interface DesugaredLibrarySpecification {
@@ -38,17 +35,4 @@ public interface DesugaredLibrarySpecification {
 
   MachineDesugaredLibrarySpecification toMachineSpecification(DexApplication app, Timing timing)
       throws IOException;
-
-  MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options,
-      Collection<Path> library,
-      Timing timing,
-      Collection<Path> desugaredJDKLib)
-      throws IOException;
-
-  default MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options, Collection<Path> library, Timing timing) throws IOException {
-    assert !isLibraryCompilation();
-    return toMachineSpecification(options, library, timing, null);
-  }
 }
