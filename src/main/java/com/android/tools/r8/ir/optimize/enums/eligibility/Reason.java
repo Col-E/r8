@@ -127,13 +127,13 @@ public abstract class Reason {
     }
 
     public MissingInstanceFieldValueForEnumInstanceReason(
-        DexField enumField, DexField instanceField) {
+        DexField instanceField, DexField enumField) {
       this.enumField = enumField;
       this.ordinal = -1;
       this.instanceField = instanceField;
     }
 
-    public MissingInstanceFieldValueForEnumInstanceReason(int ordinal, DexField instanceField) {
+    public MissingInstanceFieldValueForEnumInstanceReason(DexField instanceField, int ordinal) {
       this.enumField = null;
       this.ordinal = ordinal;
       this.instanceField = instanceField;

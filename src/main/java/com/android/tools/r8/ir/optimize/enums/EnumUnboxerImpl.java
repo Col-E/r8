@@ -837,7 +837,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
           reportFailure(
               enumClass,
               new MissingInstanceFieldValueForEnumInstanceReason(
-                  staticField.getReference(), factory.enumMembers.ordinalField));
+                  factory.enumMembers.ordinalField, staticField.getReference()));
           return null;
         }
         int ordinal = optionalOrdinal.getAsInt();
@@ -942,7 +942,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       AbstractValue fieldValue = state.getAbstractFieldValue(encodedInstanceField);
       if (!fieldValue.isSingleValue()) {
         reportFailure(
-            enumClass, new MissingInstanceFieldValueForEnumInstanceReason(ordinal, instanceField));
+            enumClass, new MissingInstanceFieldValueForEnumInstanceReason(instanceField, ordinal));
         return EnumInstanceFieldUnknownData.getInstance();
       }
       if (!(fieldValue.isSingleNumberValue() || fieldValue.isSingleStringValue())) {
