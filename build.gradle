@@ -2,9 +2,10 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+
+import desugaredlibrary.CustomConversionAsmRewriterTask
 import dx.DexMergerTask
 import dx.DxTask
-import desugaredlibrary.CustomConversionAsmRewriterTask
 import net.ltgt.gradle.errorprone.CheckSeverity
 import org.gradle.internal.os.OperatingSystem
 import smali.SmaliTask
@@ -72,6 +73,14 @@ sourceSets {
         }
     }
     main11 {
+        java {
+            srcDirs = ['src/main/java']
+        }
+        resources {
+            srcDirs "third_party/api_database/api_database"
+        }
+    }
+    main17 {
         java {
             srcDirs = ['src/main/java']
         }
@@ -252,6 +261,25 @@ dependencies {
     main11Implementation group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
     main11Implementation group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
 
+    main17Implementation "net.sf.jopt-simple:jopt-simple:$joptSimpleVersion"
+    main17Implementation "com.google.code.gson:gson:$gsonVersion"
+    // Include all of guava when compiling the code, but exclude annotations that we don't
+    // need from the packaging.
+    main17CompileOnly("com.google.guava:guava:$guavaVersion")
+    main17Implementation("com.google.guava:guava:$guavaVersion", {
+        exclude group: 'com.google.errorprone'
+        exclude group: 'com.google.code.findbugs'
+        exclude group: 'com.google.j2objc'
+        exclude group: 'org.codehaus.mojo'
+    })
+    main17Implementation group: 'it.unimi.dsi', name: 'fastutil', version: fastutilVersion
+    main17Implementation "org.jetbrains.kotlinx:kotlinx-metadata-jvm:$kotlinExtMetadataJVMVersion"
+    main17Implementation group: 'org.ow2.asm', name: 'asm', version: asmVersion
+    main17Implementation group: 'org.ow2.asm', name: 'asm-commons', version: asmVersion
+    main17Implementation group: 'org.ow2.asm', name: 'asm-tree', version: asmVersion
+    main17Implementation group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
+    main17Implementation group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
+    
     examplesTestNGRunnerCompile group: 'org.testng', name: 'testng', version: testngVersion
 
     testCompile sourceSets.examples.output
@@ -630,6 +658,11 @@ setJdkCompilationWithCompatibility(
         JavaVersion.VERSION_11,
         false)
 setJdkCompilationWithCompatibility(
+        sourceSets.main17.compileJavaTaskName,
+        'jdk-17',
+        JavaVersion.VERSION_17,
+        false)
+setJdkCompilationWithCompatibility(
         sourceSets.examplesJava11.compileJavaTaskName,
         'jdk-11',
         JavaVersion.VERSION_11,
@@ -782,6 +815,11 @@ task repackageSources11(type: Jar) {
     archiveFileName = 'sources_main_11.jar'
 }
 
+task repackageSources17(type: Jar) {
+    from sourceSets.main17.output
+    archiveFileName = 'sources_main_17.jar'
+}
+
 def r8CreateTask(name, baseName, sources, includeLibraryLicenses, includeSwissArmyKnife) {
     return tasks.create("r8Create${name}", Jar) {
         entryCompression ZipEntryCompression.STORED
@@ -872,6 +910,20 @@ task r8WithDeps11 {
     outputs.files r8Task.outputs.files
 }
 
+task r8WithDeps17 {
+    dependsOn repackageSources17
+    dependsOn repackageDeps
+    inputs.files ([repackageSources17.outputs, repackageDeps.outputs])
+    def r8Task = r8CreateTask(
+            'WithDeps17',
+            'r8_with_deps_17.jar',
+            repackageSources17.outputs.files + repackageDeps.outputs.files,
+            true,
+            true)
+    dependsOn r8Task
+    outputs.files r8Task.outputs.files
+}
+
 task r8WithRelocatedDeps {
     def output = "${buildDir}/libs/r8_with_relocated_deps.jar"
     dependsOn r8RelocateTask(r8WithDeps, output)
@@ -883,6 +935,13 @@ task r8WithRelocatedDeps11 {
     def output = "${buildDir}/libs/r8_with_relocated_deps_11.jar"
     dependsOn r8RelocateTask(r8WithDeps11, output)
     inputs.files r8WithDeps11.outputs.files
+    outputs.file output
+}
+
+task r8WithRelocatedDeps17 {
+    def output = "${buildDir}/libs/r8_with_relocated_deps_17.jar"
+    dependsOn r8RelocateTask(r8WithDeps17, output)
+    inputs.files r8WithDeps17.outputs.files
     outputs.file output
 }
 

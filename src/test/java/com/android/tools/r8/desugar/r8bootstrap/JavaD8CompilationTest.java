@@ -1,8 +1,8 @@
-// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.desugar.nestaccesscontrol;
+package com.android.tools.r8.desugar.r8bootstrap;
 
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
@@ -12,7 +12,6 @@ import static junit.framework.TestCase.fail;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.references.Reference;
@@ -20,9 +19,12 @@ import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.List;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -32,15 +34,21 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 
 @RunWith(Parameterized.class)
-public class Java11D8CompilationTest extends TestBase {
+public class JavaD8CompilationTest extends TestBase {
 
-  public Java11D8CompilationTest(TestParameters parameters) {
+  private final Path r8WithRelocatedDeps;
+
+  public JavaD8CompilationTest(TestParameters parameters, Path r8WithRelocatedDeps) {
     parameters.assertNoneRuntime();
+    this.r8WithRelocatedDeps = r8WithRelocatedDeps;
   }
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withNoneRuntime().build();
+  @Parameters(name = "{0}, java: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withNoneRuntime().build(),
+        ImmutableList.of(
+            ToolHelper.R8_WITH_RELOCATED_DEPS_11_JAR, ToolHelper.R8_WITH_RELOCATED_DEPS_17_JAR));
   }
 
   private static void assertNoNests(CodeInspector inspector) {
@@ -50,22 +58,24 @@ public class Java11D8CompilationTest extends TestBase {
 
   @Test
   public void testR8CompiledWithD8() throws Exception {
+    Assume.assumeTrue(JavaBootstrapUtils.exists(r8WithRelocatedDeps));
     testForD8()
-        .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_11_JAR)
+        .addProgramFiles(r8WithRelocatedDeps)
         .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
         .compile()
-        .inspect(Java11D8CompilationTest::assertNoNests);
+        .inspect(JavaD8CompilationTest::assertNoNests);
   }
 
   @Test
   public void testR8CompiledWithD8ToCf() throws Exception {
+    Assume.assumeTrue(JavaBootstrapUtils.exists(r8WithRelocatedDeps));
     Path r8Desugared =
         testForD8(Backend.CF)
-            .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_11_JAR)
+            .addProgramFiles(r8WithRelocatedDeps)
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setMinApi(AndroidApiLevel.B)
             .compile()
-            .inspect(Java11D8CompilationTest::assertNoNests)
+            .inspect(JavaD8CompilationTest::assertNoNests)
             .writeToZip();
 
     // Check that the desugared classes has the expected class file versions and that no nest

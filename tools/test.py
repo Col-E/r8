@@ -359,10 +359,8 @@ def Main():
     gradle_args.append('-Ptesting-state-name=' + options.testing_state_name)
 
   # Build an R8 with dependencies for bootstrapping tests before adding test sources.
-  gradle_args.append('r8WithDeps')
-  gradle_args.append('r8WithDeps11')
   gradle_args.append('r8WithRelocatedDeps')
-  gradle_args.append('r8WithRelocatedDeps11')
+  gradle_args.append('r8WithRelocatedDeps17')
 
   # Add Gradle tasks
   gradle_args.append('cleanTest')

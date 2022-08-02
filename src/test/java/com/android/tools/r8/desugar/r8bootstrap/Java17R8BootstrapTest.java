@@ -1,12 +1,12 @@
-// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.desugar.nestaccesscontrol;
+package com.android.tools.r8.desugar.r8bootstrap;
 
+import static com.android.tools.r8.desugar.r8bootstrap.JavaBootstrapUtils.MAIN_KEEP;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertTrue;
 
 import com.android.tools.r8.Jdk11TestUtils;
 import com.android.tools.r8.TestBase;
@@ -15,8 +15,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.cf.bootstrap.BootstrapCurrentEqualityTest;
-import com.android.tools.r8.utils.InternalOptions.DesugarState;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -28,24 +26,23 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 /**
- * This test relies on a freshly built build/libs/r8_with_relocated_deps_11.jar.
+ * This test relies on a freshly built build/libs/r8_with_relocated_deps_17.jar.
  *
- * <p>The test compiles Hello/R8 with the same settings using R8 compiled with Java 11 (non shrunk),
+ * <p>The test compiles Hello/R8 with the same settings using R8 compiled with Java 17 (non shrunk),
  * and the same but shrunk with/without nest desugaring. All generated jars should be run correctly
  * and identical.
  */
 @RunWith(Parameterized.class)
-public class Java11R8BootstrapTest extends TestBase {
+public class Java17R8BootstrapTest extends TestBase {
 
-  private static final Path MAIN_KEEP = Paths.get("src/main/keep.txt");
   private static final String[] HELLO_KEEP = {
     "-keep class hello.Hello {  public static void main(...);}"
   };
 
-  private static Path r8Lib11NoDesugar;
-  private static Path r8Lib11Desugar;
+  private static Path r8Lib17NoDesugar;
+  private static Path r8Lib17Desugar;
 
-  public Java11R8BootstrapTest(TestParameters parameters) {
+  public Java17R8BootstrapTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -53,54 +50,39 @@ public class Java11R8BootstrapTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withCfRuntimesStartingFromIncluding(CfVm.JDK11).build();
+    return getTestParameters().withCfRuntimesStartingFromIncluding(CfVm.JDK17).build();
+  }
+
+  private static boolean supportsSealedClassesWhenGeneratingCf() {
+    // TODO(b/227160052): When this is true enable this test.
+    return false;
   }
 
   @BeforeClass
   public static void beforeAll() throws Exception {
-    r8Lib11NoDesugar = compileR8(false);
-    r8Lib11Desugar = compileR8(true);
+    if (!supportsSealedClassesWhenGeneratingCf()) {
+      return;
+    }
+    r8Lib17NoDesugar = compileR8(false);
+    r8Lib17Desugar = compileR8(true);
   }
 
   private static Path compileR8(boolean desugar) throws Exception {
-    // Shrink R8 11 with R8
-    return testForR8(TestBase.getStaticTemp(), Backend.CF)
-        .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_11_JAR)
-        .addLibraryFiles(Jdk11TestUtils.getJdk11LibraryFiles(getStaticTemp()))
-        .addKeepRuleFiles(MAIN_KEEP)
-        .applyIf(
-            desugar,
-            builder ->
-                builder.addOptionsModification(
-                    options -> {
-                      options.desugarState = DesugarState.ON;
-                    }))
-        .compile()
-        .inspect(inspector -> assertNests(inspector, desugar))
-        .writeToZip();
-  }
-
-  private static void assertNests(CodeInspector inspector, boolean desugar) {
-    if (desugar) {
-      assertTrue(
-          inspector.allClasses().stream().noneMatch(subj -> subj.getDexProgramClass().isInANest()));
-    } else {
-      assertTrue(
-          inspector.allClasses().stream().anyMatch(subj -> subj.getDexProgramClass().isInANest()));
-    }
+    return JavaBootstrapUtils.compileR8(
+        ToolHelper.R8_WITH_RELOCATED_DEPS_17_JAR,
+        Jdk11TestUtils.getJdk11LibraryFiles(getStaticTemp()),
+        desugar);
   }
 
   private Path[] jarsToCompare() {
-    return new Path[] {
-      ToolHelper.R8_WITH_RELOCATED_DEPS_11_JAR,
-      r8Lib11NoDesugar,
-      r8Lib11Desugar
-    };
+    return new Path[] {ToolHelper.R8_WITH_RELOCATED_DEPS_17_JAR, r8Lib17NoDesugar, r8Lib17Desugar};
   }
 
   @Test
   public void testHello() throws Exception {
     Assume.assumeTrue(!ToolHelper.isWindows());
+    Assume.assumeTrue(JavaBootstrapUtils.exists(ToolHelper.R8_WITH_RELOCATED_DEPS_17_JAR));
+    Assume.assumeTrue(supportsSealedClassesWhenGeneratingCf());
     Path prevGeneratedJar = null;
     String prevRunResult = null;
     for (Path jar : jarsToCompare()) {
@@ -131,7 +113,9 @@ public class Java11R8BootstrapTest extends TestBase {
   public void testR8() throws Exception {
     Assume.assumeTrue(!ToolHelper.isWindows());
     Assume.assumeTrue(parameters.isCfRuntime());
-    Assume.assumeTrue(CfVm.JDK11.lessThanOrEqual(parameters.getRuntime().asCf().getVm()));
+    Assume.assumeTrue(CfVm.JDK17.lessThanOrEqual(parameters.getRuntime().asCf().getVm()));
+    Assume.assumeTrue(JavaBootstrapUtils.exists(ToolHelper.R8_WITH_RELOCATED_DEPS_17_JAR));
+    Assume.assumeTrue(supportsSealedClassesWhenGeneratingCf());
     Path prevGeneratedJar = null;
     for (Path jar : jarsToCompare()) {
       Path generatedJar =
