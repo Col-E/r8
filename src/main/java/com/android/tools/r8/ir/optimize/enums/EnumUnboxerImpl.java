@@ -926,7 +926,14 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       Int2ReferenceMap<ObjectState> ordinalToObjectState) {
     DexEncodedField encodedInstanceField =
         appView.appInfo().resolveFieldOn(enumClass, instanceField).getResolvedField();
-    assert encodedInstanceField != null;
+    if (encodedInstanceField == null) {
+      // This seems to be happening in b/238911016 but we do not have a reproduction.
+      // If this assert fails, it would be nice to understand what is going on and potentially
+      // fix the code below to do something more appropriate than bailing out.
+      assert false;
+      reportFailure(enumClass, new MissingInstanceFieldValueForEnumInstanceReason(instanceField));
+      return EnumInstanceFieldUnknownData.getInstance();
+    }
     boolean canBeOrdinal = instanceField.type.isIntType();
     ImmutableInt2ReferenceSortedMap.Builder<AbstractValue> data =
         ImmutableInt2ReferenceSortedMap.builder();
