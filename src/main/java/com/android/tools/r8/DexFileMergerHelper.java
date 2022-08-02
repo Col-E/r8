@@ -4,27 +4,11 @@
 
 package com.android.tools.r8;
 
-import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
-import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationWriter;
-import com.android.tools.r8.dex.Marker;
-import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
-import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
-import com.android.tools.r8.utils.ThreadUtils;
-import com.android.tools.r8.utils.Timing;
-import java.io.IOException;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 
 public class DexFileMergerHelper {
 
@@ -57,56 +41,26 @@ public class DexFileMergerHelper {
     return aIndex <= bIndex ? a.get() : b.get();
   }
 
+  // NOTE: Don't change this signature! Reflectively accessed from bazel DexFileMerger.
   public static void run(
       D8Command command, Boolean minimalMainDex, Map<String, Integer> inputOrdering)
       throws CompilationFailedException {
     InternalOptions options = command.getInternalOptions();
+
+    // TODO(b/241063980): Move this to D8Command.Builder.setDisableDesugaring(true) in bazel.
+    options.desugarState = DesugarState.OFF;
+
+    // TODO(b/241063980): Is this configuration needed?
+    options.enableMainDexListCheck = false;
+
+    // TODO(b/241063980): Is this configuration needed?
+    options.minimalMainDex = minimalMainDex;
+
+    // TODO(b/241063980): Add API to configure this in D8Command.Builder.
     options.programClassConflictResolver =
         new DexFileMergerHelper(inputOrdering)::keepFirstProgramClassConflictResolver;
-    ExceptionUtils.withD8CompilationHandler(
-        options.reporter, () -> runInternal(command.getInputApp(), options, minimalMainDex));
-  }
 
-  private static void runInternal(
-      AndroidApp inputApp, InternalOptions options, Boolean minimalMainDex) throws IOException {
-    options.desugarState = DesugarState.OFF;
-    options.enableMainDexListCheck = false;
-    options.minimalMainDex = minimalMainDex;
-    assert !options.isMinifying();
-    options.inlinerOptions().enableInlining = false;
-    options.outline.enabled = false;
-
-    ExecutorService executor = ThreadUtils.getExecutorService(ThreadUtils.NOT_SPECIFIED);
-    try {
-      try {
-        Timing timing = new Timing("DexFileMerger");
-        ApplicationReader applicationReader = new ApplicationReader(inputApp, options, timing);
-        DexApplication app = applicationReader.read(null, executor);
-
-        AppView<AppInfo> appView =
-            AppView.createForD8(
-                AppInfo.createInitialAppInfo(
-                    app,
-                    GlobalSyntheticsStrategy.forNonSynthesizing(),
-                    applicationReader.readMainDexClasses(app)));
-
-        D8.optimize(appView, options, timing, executor);
-
-        List<Marker> markers = appView.dexItemFactory().extractMarkers();
-
-        assert !options.hasMethodsFilter();
-        ApplicationWriter writer = new ApplicationWriter(appView, markers);
-        writer.write(executor);
-        options.printWarnings();
-      } catch (ExecutionException e) {
-        throw unwrapExecutionException(e);
-      } finally {
-        inputApp.signalFinishedToProviders(options.reporter);
-        options.signalFinishedToConsumers();
-      }
-    } finally {
-      executor.shutdown();
-    }
+    D8.runForTesting(command.getInputApp(), options);
   }
 
   public static void runD8ForTesting(D8Command command, boolean dontCreateMarkerInD8)
