@@ -7,12 +7,10 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.DataResourceProvider;
-import com.android.tools.r8.dex.ApplicationReader.ProgramClassConflictResolver;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.synthesis.SyntheticDefinitionsProvider;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -265,13 +263,7 @@ public abstract class DexApplication implements DexDefinitionSupplier {
   }
 
   public static LazyLoadedDexApplication.Builder builder(InternalOptions options, Timing timing) {
-    return builder(
-        options, timing, ProgramClassCollection.defaultConflictResolver(options.reporter));
-  }
-
-  public static LazyLoadedDexApplication.Builder builder(
-      InternalOptions options, Timing timing, ProgramClassConflictResolver resolver) {
-    return new LazyLoadedDexApplication.Builder(resolver, options, timing);
+    return new LazyLoadedDexApplication.Builder(options, timing);
   }
 
   public DirectMappedDexApplication asDirect() {

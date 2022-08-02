@@ -61,17 +61,14 @@ public class DexFileMergerHelper {
       D8Command command, Boolean minimalMainDex, Map<String, Integer> inputOrdering)
       throws CompilationFailedException {
     InternalOptions options = command.getInternalOptions();
+    options.programClassConflictResolver =
+        new DexFileMergerHelper(inputOrdering)::keepFirstProgramClassConflictResolver;
     ExceptionUtils.withD8CompilationHandler(
-        options.reporter,
-        () -> runInternal(command.getInputApp(), options, minimalMainDex, inputOrdering));
+        options.reporter, () -> runInternal(command.getInputApp(), options, minimalMainDex));
   }
 
   private static void runInternal(
-      AndroidApp inputApp,
-      InternalOptions options,
-      Boolean minimalMainDex,
-      Map<String, Integer> inputOrdering)
-      throws IOException {
+      AndroidApp inputApp, InternalOptions options, Boolean minimalMainDex) throws IOException {
     options.desugarState = DesugarState.OFF;
     options.enableMainDexListCheck = false;
     options.minimalMainDex = minimalMainDex;
@@ -84,11 +81,7 @@ public class DexFileMergerHelper {
       try {
         Timing timing = new Timing("DexFileMerger");
         ApplicationReader applicationReader = new ApplicationReader(inputApp, options, timing);
-        DexApplication app =
-            applicationReader.read(
-                null,
-                executor,
-                new DexFileMergerHelper(inputOrdering)::keepFirstProgramClassConflictResolver);
+        DexApplication app = applicationReader.read(null, executor);
 
         AppView<AppInfo> appView =
             AppView.createForD8(

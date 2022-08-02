@@ -271,18 +271,15 @@ public class LazyLoadedDexApplication extends DexApplication {
 
     private ClasspathClassCollection classpathClasses;
     private LibraryClassCollection libraryClasses;
-    private final ProgramClassConflictResolver resolver;
 
-    Builder(ProgramClassConflictResolver resolver, InternalOptions options, Timing timing) {
+    Builder(InternalOptions options, Timing timing) {
       super(options, timing);
-      this.resolver = resolver;
       this.classpathClasses = ClasspathClassCollection.empty();
       this.libraryClasses = null;
     }
 
     private Builder(LazyLoadedDexApplication application) {
       super(application);
-      this.resolver = ProgramClassCollection.defaultConflictResolver(application.options.reporter);
       this.classpathClasses = application.classpathClasses;
       this.libraryClasses = application.libraryClasses;
     }
@@ -311,6 +308,10 @@ public class LazyLoadedDexApplication extends DexApplication {
 
     @Override
     public LazyLoadedDexApplication build() {
+      ProgramClassConflictResolver resolver =
+          options.programClassConflictResolver == null
+              ? ProgramClassCollection.defaultConflictResolver(options.reporter)
+              : options.programClassConflictResolver;
       return new LazyLoadedDexApplication(
           proguardMap,
           flags,

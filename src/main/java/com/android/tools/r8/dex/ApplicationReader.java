@@ -46,7 +46,6 @@ import com.android.tools.r8.utils.DumpInputFlags;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LibraryClassCollection;
 import com.android.tools.r8.utils.MainDexListParser;
-import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -98,46 +97,25 @@ public class ApplicationReader {
     }
   }
 
-  public final LazyLoadedDexApplication read(
-      ExecutorService executorService)
-      throws IOException {
-    return read(
-        inputApp.getProguardMapInputData(),
-        executorService,
-        ProgramClassCollection.defaultConflictResolver(options.reporter));
+  public final LazyLoadedDexApplication read(ExecutorService executorService) throws IOException {
+    return read(inputApp.getProguardMapInputData(), executorService);
   }
 
   public final LazyLoadedDexApplication readWithoutDumping(ExecutorService executorService)
       throws IOException {
-    return read(
-        inputApp.getProguardMapInputData(),
-        executorService,
-        ProgramClassCollection.defaultConflictResolver(options.reporter),
-        DumpInputFlags.noDump());
+    return read(inputApp.getProguardMapInputData(), executorService, DumpInputFlags.noDump());
   }
 
   public final LazyLoadedDexApplication read(
       StringResource proguardMap,
       ExecutorService executorService)
       throws IOException {
-    return read(
-        proguardMap,
-        executorService,
-        ProgramClassCollection.defaultConflictResolver(options.reporter));
+    return read(proguardMap, executorService, options.getDumpInputFlags());
   }
 
   public final LazyLoadedDexApplication read(
       StringResource proguardMap,
       ExecutorService executorService,
-      ProgramClassConflictResolver resolver)
-      throws IOException {
-    return read(proguardMap, executorService, resolver, options.getDumpInputFlags());
-  }
-
-  public final LazyLoadedDexApplication read(
-      StringResource proguardMap,
-      ExecutorService executorService,
-      ProgramClassConflictResolver resolver,
       DumpInputFlags dumpInputFlags)
       throws IOException {
     assert verifyMainDexOptionsCompatible(inputApp, options);
@@ -148,8 +126,7 @@ public class ApplicationReader {
     }
 
     timing.begin("DexApplication.read");
-    final LazyLoadedDexApplication.Builder builder =
-        DexApplication.builder(options, timing, resolver);
+    final LazyLoadedDexApplication.Builder builder = DexApplication.builder(options, timing);
     try {
       List<Future<?>> futures = new ArrayList<>();
       // Still preload some of the classes, primarily for two reasons:
