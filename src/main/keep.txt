@@ -24,7 +24,6 @@
 -keepattributes SourceFile, LineNumberTable, InnerClasses, EnclosingMethod, Exceptions, Signature, RuntimeInvisibleAnnotations
 
 -keepparameternames
--keeppackagenames com.android.tools.r8
 -repackageclasses com.android.tools.r8.internal
 
 # Compatibility command line program used by the Android Platform build.
