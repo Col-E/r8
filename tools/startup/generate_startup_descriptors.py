@@ -15,10 +15,12 @@ def extend_startup_descriptors(startup_descriptors, iteration, options):
       generate_startup_profile(options)
   if options.logcat:
     write_tmp_logcat(logcat, iteration, options)
-    current_startup_descriptors = get_r8_startup_descriptors_from_logcat(logcat)
+    current_startup_descriptors = get_r8_startup_descriptors_from_logcat(
+        logcat, options)
   else:
     write_tmp_profile(profile, iteration, options)
-    write_tmp_profile_classes_and_methods(profile_classes_and_methods, iteration, options)
+    write_tmp_profile_classes_and_methods(
+        profile_classes_and_methods, iteration, options)
     current_startup_descriptors = \
         transform_classes_and_methods_to_r8_startup_descriptors(
             profile_classes_and_methods, options)
@@ -52,7 +54,7 @@ def generate_startup_profile(options):
       # Clear logcat and start capturing logcat.
       adb_utils.clear_logcat(options.device_id)
       logcat_process = adb_utils.start_logcat(
-          options.device_id, format='raw', filter='r8:I *:S')
+          options.device_id, format='tag', filter='r8:I ActivityTaskManager:I *:S')
     else:
       # Clear existing profile data.
       adb_utils.clear_profile_data(options.app_id, options.device_id)
@@ -77,23 +79,86 @@ def generate_startup_profile(options):
 
     # Shutdown app.
     adb_utils.stop_app(options.app_id, options.device_id)
-    adb_utils.tear_down_after_interaction_with_device(
+    adb_utils.teardown_after_interaction_with_device(
         tear_down_options, options.device_id)
 
   return (logcat, profile, profile_classes_and_methods)
 
-def get_r8_startup_descriptors_from_logcat(logcat):
-  startup_descriptors = []
+def get_r8_startup_descriptors_from_logcat(logcat, options):
+  post_startup = False
+  startup_descriptors = {}
   for line in logcat:
-    if line == '--------- beginning of main':
+    line_elements = parse_logcat_line(line)
+    if line_elements is None:
       continue
-    if line == '--------- beginning of system':
-      continue
-    if not line.startswith('L') or not line.endswith(';'):
-      print('Unrecognized line in logcat: %s' % line)
-      continue
-    startup_descriptors.append(line)
+    (priority, tag, message) = line_elements
+    if tag == 'ActivityTaskManager':
+      if message.startswith('START') \
+          or message.startswith('Activity pause timeout for') \
+          or message.startswith('Activity top resumed state loss timeout for') \
+          or message.startswith('Force removing')
+          or message.startswith(
+              'Launch timeout has expired, giving up wake lock!'):
+        continue
+      elif message.startswith('Displayed %s/' % options.app_id):
+        print('Entering post startup: %s' % message)
+        post_startup = True
+        continue
+    elif tag == 'r8':
+      if is_startup_descriptor(message):
+        startup_descriptors[message] = {
+          'conditional_startup': False,
+          'post_startup': post_startup
+        }
+        continue
+    # Reaching here means we didn't expect this line.
+    report_unrecognized_logcat_line(line)
   return startup_descriptors
+
+def is_startup_descriptor(string):
+  # The descriptor should start with the holder (possibly prefixed with 'S').
+  if not any(string.startswith('%sL' % flags) for flags in ['', 'S']):
+    return False
+  # The descriptor should end with ';', a primitive type, or void.
+  if not string.endswith(';') \
+      and not any(string.endswith(c) for c in get_primitive_descriptors()) \
+      and not string.endswith('V'):
+    return False
+  return True
+
+def get_primitive_descriptors():
+  return ['Z', 'B', 'S', 'C', 'I', 'F', 'J', 'D']
+
+def parse_logcat_line(line):
+  if line == '--------- beginning of kernel':
+    return None
+  if line == '--------- beginning of main':
+    return None
+  if line == '--------- beginning of system':
+    return None
+
+  priority = None
+  tag = None
+
+  try:
+    priority_end = line.index('/')
+    priority = line[0:priority_end]
+    line = line[priority_end + 1:]
+  except ValueError:
+    return report_unrecognized_logcat_line(line)
+
+  try:
+    tag_end = line.index(':')
+    tag = line[0:tag_end].strip()
+    line = line[tag_end + 1 :]
+  except ValueError:
+    return report_unrecognized_logcat_line(line)
+
+  message = line.strip()
+  return (priority, tag, message)
+
+def report_unrecognized_logcat_line(line):
+  print('Unrecognized line in logcat: %s' % line)
 
 def transform_classes_and_methods_to_r8_startup_descriptors(
     classes_and_methods, options):
@@ -101,6 +166,9 @@ def transform_classes_and_methods_to_r8_startup_descriptors(
   for class_or_method in classes_and_methods:
     descriptor = class_or_method.get('descriptor')
     flags = class_or_method.get('flags')
+    if flags.get('conditional_startup') \
+        and not options.include_conditional_startup:
+      continue
     if flags.get('post_startup') \
         and not flags.get('startup') \
         and not options.include_post_startup:
@@ -110,7 +178,22 @@ def transform_classes_and_methods_to_r8_startup_descriptors(
 
 def add_r8_startup_descriptors(startup_descriptors, startup_descriptors_to_add):
   previous_number_of_startup_descriptors = len(startup_descriptors)
-  startup_descriptors.update(startup_descriptors_to_add)
+  if previous_number_of_startup_descriptors == 0:
+    for startup_descriptor, flags in startup_descriptors_to_add.items():
+      startup_descriptors[startup_descriptor] = flags.copy()
+  else:
+    for startup_descriptor, flags in startup_descriptors_to_add.items():
+      if startup_descriptor in startup_descriptors:
+        # Merge flags.
+        existing_flags = startup_descriptors[startup_descriptor]
+        assert not flags['conditional_startup']
+        if flags['post_startup']:
+          existing_flags['post_startup'] = True
+      else:
+        # Add new startup descriptor.
+        new_flags = flags.copy()
+        new_flags['conditional_startup'] = True
+        startup_descriptors[startup_descriptor] = new_flags
   new_number_of_startup_descriptors = len(startup_descriptors)
   return new_number_of_startup_descriptors \
       - previous_number_of_startup_descriptors
@@ -159,8 +242,20 @@ def write_tmp_profile_classes_and_methods(
       item_to_string)
 
 def write_tmp_startup_descriptors(startup_descriptors, iteration, options):
+  lines = [
+      startup_descriptor_to_string(startup_descriptor, flags)
+      for startup_descriptor, flags in startup_descriptors.items()]
   write_tmp_textual_artifact(
-      startup_descriptors, iteration, options, 'startup-descriptors.txt')
+      lines, iteration, options, 'startup-descriptors.txt')
+
+def startup_descriptor_to_string(startup_descriptor, flags):
+  result = ''
+  if flags['conditional_startup']:
+    pass # result += 'C'
+  if flags['post_startup']:
+    pass # result += 'P'
+  result += startup_descriptor
+  return result
 
 def parse_options(argv):
   result = argparse.ArgumentParser(
@@ -175,6 +270,11 @@ def parse_options(argv):
   result.add_argument('--device-pin',
                       help='Device pin code (e.g., 1234)')
   result.add_argument('--logcat',
+                      action='store_true',
+                      default=False)
+  result.add_argument('--include-conditional-startup',
+                      help='Include conditional startup classes and methods in '
+                           'the R8 startup descriptors',
                       action='store_true',
                       default=False)
   result.add_argument('--include-post-startup',
@@ -224,7 +324,7 @@ def main(argv):
   if options.apk:
     adb_utils.uninstall(options.app_id, options.device_id)
     adb_utils.install(options.apk, options.device_id)
-  startup_descriptors = set()
+  startup_descriptors = {}
   if options.until_stable:
     iteration = 0
     stable_iterations = 0
@@ -242,12 +342,12 @@ def main(argv):
       extend_startup_descriptors(startup_descriptors, iteration, options)
   if options.out is not None:
     with open(options.out, 'w') as f:
-      for startup_descriptor in startup_descriptors:
-        f.write(startup_descriptor)
+      for startup_descriptor, flags in startup_descriptors.items():
+        f.write(startup_descriptor_to_string(startup_descriptor, flags))
         f.write('\n')
   else:
-    for startup_descriptor in startup_descriptors:
-      print(startup_descriptor)
+    for startup_descriptor, flags in startup_descriptors.items():
+      print(startup_descriptor_to_string(startup_descriptor, flags))
 
 if __name__ == '__main__':
   sys.exit(main(sys.argv[1:]))
