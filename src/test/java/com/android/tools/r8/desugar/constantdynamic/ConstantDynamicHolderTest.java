@@ -104,7 +104,6 @@ public class ConstantDynamicHolderTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .allowDiagnosticWarningMessages()
-        .mapUnsupportedFeaturesToWarnings()
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               if (parameters.isDexRuntime()) {

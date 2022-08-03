@@ -88,7 +88,6 @@ public class InvokeCustomRuntimeErrorTest extends TestBase {
         .addProgramClassFileData(getTransformedTestClass())
         .setMinApi(parameters.getApiLevel())
         .disableDesugaring()
-        .mapUnsupportedFeaturesToWarnings()
         .compileWithExpectedDiagnostics(
             diagnostics ->
                 diagnostics
@@ -109,7 +108,6 @@ public class InvokeCustomRuntimeErrorTest extends TestBase {
         .addProgramClasses(I.class, A.class)
         .addProgramClassFileData(getTransformedTestClass())
         .setMinApi(minApi)
-        .mapUnsupportedFeaturesToWarnings()
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               if (expectedSuccess) {

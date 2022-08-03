@@ -66,7 +66,6 @@ public class InvokeMethodHandleRuntimeErrorTest extends TestBase {
         .addProgramClasses(Main.class, I.class, Super.class)
         .addProgramClassFileData(getInvokeCustomTransform())
         .setMinApi(parameters.getApiLevel())
-        .mapUnsupportedFeaturesToWarnings()
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               if (hasCompileSupport()) {

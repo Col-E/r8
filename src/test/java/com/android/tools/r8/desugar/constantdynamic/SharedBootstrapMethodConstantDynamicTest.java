@@ -166,7 +166,6 @@ public class SharedBootstrapMethodConstantDynamicTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(MAIN_CLASS)
         .allowDiagnosticMessages()
-        .mapUnsupportedFeaturesToWarnings()
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               diagnostics

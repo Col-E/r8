@@ -251,12 +251,6 @@ public abstract class TestBuilder<RR extends TestRunResult<RR>, T extends TestBu
     return self();
   }
 
-  public T mapUnsupportedFeaturesToWarnings() {
-    return setDiagnosticsLevelModifier(
-        (level, diagnostic) ->
-            diagnostic instanceof UnsupportedFeatureDiagnostic ? DiagnosticsLevel.WARNING : level);
-  }
-
   public T allowStdoutMessages() {
     // Default ignored.
     return self();

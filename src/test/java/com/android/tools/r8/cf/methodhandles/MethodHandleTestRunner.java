@@ -77,7 +77,6 @@ public class MethodHandleTestRunner extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(getInputClasses())
         .addProgramClassFileData(getTransformedClasses())
-        .mapUnsupportedFeaturesToWarnings()
         .compileWithExpectedDiagnostics(this::checkDiagnostics)
         .run(parameters.getRuntime(), CLASS.getName())
         .apply(this::checkResult);
@@ -105,7 +104,6 @@ public class MethodHandleTestRunner extends TestBase {
         .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
         .addKeepMainRule(MethodHandleTest.class)
         .allowDiagnosticMessages()
-        .mapUnsupportedFeaturesToWarnings()
         .compileWithExpectedDiagnostics(this::checkDiagnostics)
         .run(parameters.getRuntime(), CLASS.getCanonicalName())
         .apply(this::checkResult);

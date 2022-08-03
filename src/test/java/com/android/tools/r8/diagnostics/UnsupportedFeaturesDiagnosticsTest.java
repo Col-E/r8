@@ -68,7 +68,7 @@ public class UnsupportedFeaturesDiagnosticsTest extends TestBase {
     parameters.assertNoneRuntime();
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testInvokeLambdaMetafactory() throws Exception {
     testForD8()
         .addProgramClassesAndInnerClasses(LambdaMetafactoryTest.class)
@@ -77,8 +77,8 @@ public class UnsupportedFeaturesDiagnosticsTest extends TestBase {
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               diagnostics
-                  .assertOnlyErrors()
-                  .assertErrorsMatch(
+                  .assertOnlyWarnings()
+                  .assertWarningsMatch(
                       allOf(
                           matches("invoke-custom"),
                           diagnosticMessage(startsWith(AGP_INVOKE_CUSTOM))));

@@ -75,7 +75,6 @@ public class InvokeSpecialMethodHandleTest extends TestBase {
         .addProgramClasses(C.class, Main.class)
         .addProgramClassFileData(getTransformedD())
         .setMinApi(parameters.getApiLevel())
-        .mapUnsupportedFeaturesToWarnings()
         .compileWithExpectedDiagnostics(this::checkDiagnostics)
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkResult);
@@ -90,7 +89,6 @@ public class InvokeSpecialMethodHandleTest extends TestBase {
         .addProgramClassFileData(getTransformedD())
         .setMinApi(parameters.getApiLevel())
         .allowDiagnosticMessages()
-        .mapUnsupportedFeaturesToWarnings()
         .compileWithExpectedDiagnostics(this::checkDiagnostics)
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkResult);

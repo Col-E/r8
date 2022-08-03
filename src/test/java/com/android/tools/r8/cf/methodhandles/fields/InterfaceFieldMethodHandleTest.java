@@ -75,7 +75,6 @@ public class InterfaceFieldMethodHandleTest extends TestBase {
         .addProgramClasses(I.class)
         .addProgramClassFileData(getTransformedMain())
         .setMinApi(parameters.getApiLevel())
-        .mapUnsupportedFeaturesToWarnings()
         .compileWithExpectedDiagnostics(this::checkDiagnostics)
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkResult);
@@ -90,7 +89,6 @@ public class InterfaceFieldMethodHandleTest extends TestBase {
         .addProgramClassFileData(getTransformedMain())
         .setMinApi(parameters.getApiLevel())
         .allowDiagnosticMessages()
-        .mapUnsupportedFeaturesToWarnings()
         .compileWithExpectedDiagnostics(this::checkDiagnostics)
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkResult);

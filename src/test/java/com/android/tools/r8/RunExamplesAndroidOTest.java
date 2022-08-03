@@ -213,8 +213,7 @@ public abstract class RunExamplesAndroidOTest<
     abstract void build(Path inputFile, Path out, OutputMode mode) throws Throwable;
   }
 
-  private static List<String> minSdkErrorExpected =
-      ImmutableList.of("invokecustom-error-due-to-min-sdk");
+  private static List<String> minSdkErrorExpected = ImmutableList.of();
 
   private static Map<DexVm.Version, List<String>> failsOn;
 
@@ -359,14 +358,6 @@ public abstract class RunExamplesAndroidOTest<
   public void invokeCustom2() throws Throwable {
     test("invokecustom2", "invokecustom2", "InvokeCustom")
         .withMinApiLevel(AndroidApiLevel.O)
-        .withKeepAll()
-        .run();
-  }
-
-  @Test
-  public void invokeCustomErrorDueToMinSdk() throws Throwable {
-    test("invokecustom-error-due-to-min-sdk", "invokecustom", "InvokeCustom")
-        .withMinApiLevel(AndroidApiLevel.N_MR1)
         .withKeepAll()
         .run();
   }

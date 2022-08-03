@@ -72,7 +72,6 @@ public class ClassFieldMethodHandleTest extends TestBase {
         .addProgramClasses(C.class)
         .addProgramClassFileData(getTransformedMain())
         .setMinApi(parameters.getApiLevel())
-        .mapUnsupportedFeaturesToWarnings()
         .compileWithExpectedDiagnostics(this::checkDiagnostics)
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkResult);
@@ -87,7 +86,6 @@ public class ClassFieldMethodHandleTest extends TestBase {
         .addProgramClassFileData(getTransformedMain())
         .setMinApi(parameters.getApiLevel())
         .allowDiagnosticMessages()
-        .mapUnsupportedFeaturesToWarnings()
         .compileWithExpectedDiagnostics(this::checkDiagnostics)
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkResult);

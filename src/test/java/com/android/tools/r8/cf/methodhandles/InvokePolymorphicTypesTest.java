@@ -63,7 +63,6 @@ public class InvokePolymorphicTypesTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClasses(Data.class, TestClass.class)
         .setMinApi(parameters.getApiLevel())
-        .mapUnsupportedFeaturesToWarnings()
         .run(parameters.getRuntime(), TestClass.class)
         .applyIf(
             hasCompileSupport,
@@ -129,7 +128,6 @@ public class InvokePolymorphicTypesTest extends TestBase {
                     double.class,
                     String.class,
                     Object.class)))
-        .mapUnsupportedFeaturesToWarnings()
         .allowDiagnosticMessages()
         .run(parameters.getRuntime(), TestClass.class)
         .applyIf(

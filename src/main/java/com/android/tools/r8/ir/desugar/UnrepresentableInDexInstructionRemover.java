@@ -80,7 +80,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
             makeDiagnostic(context.getOrigin(), MethodPosition.create(context));
         assert (diagnostic.getSupportedApiLevel() == -1 && supportedApiLevel == null)
             || (diagnostic.getSupportedApiLevel() == supportedApiLevel.getLevel());
-        appView.reporter().error(diagnostic);
+        appView.reporter().warning(diagnostic);
       }
     }
 

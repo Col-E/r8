@@ -45,7 +45,6 @@ public class CompileGuavaWithUnrepresentableRewritingTest extends TestBase {
               .addProgramFiles(ToolHelper.DEPS)
               .setMinApi(AndroidApiLevel.B)
               .disableDesugaring()
-              .mapUnsupportedFeaturesToWarnings()
               .compileWithExpectedDiagnostics(
                   diagnostics ->
                       diagnostics
