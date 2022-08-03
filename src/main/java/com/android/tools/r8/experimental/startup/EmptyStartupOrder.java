@@ -23,7 +23,7 @@ public class EmptyStartupOrder extends StartupOrder {
   }
 
   @Override
-  public Collection<StartupClass<DexType, DexMethod>> getClasses() {
+  public Collection<StartupItem<DexType, DexMethod, ?>> getItems() {
     return Collections.emptyList();
   }
 

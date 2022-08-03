@@ -21,10 +21,10 @@ import java.util.function.Consumer;
 
 public class StartupConfiguration {
 
-  private final List<StartupClass<DexType, DexMethod>> startupClasses;
+  private final List<StartupItem<DexType, DexMethod, ?>> startupItems;
 
-  public StartupConfiguration(List<StartupClass<DexType, DexMethod>> startupClasses) {
-    this.startupClasses = startupClasses;
+  public StartupConfiguration(List<StartupItem<DexType, DexMethod, ?>> startupItems) {
+    this.startupItems = startupItems;
   }
 
   public static Builder builder() {
@@ -74,59 +74,43 @@ public class StartupConfiguration {
 
   public static StartupConfiguration createStartupConfigurationFromLines(
       DexItemFactory dexItemFactory, Reporter reporter, List<String> startupDescriptors) {
-    List<StartupClass<DexType, DexMethod>> startupClasses = new ArrayList<>();
+    List<StartupItem<DexType, DexMethod, ?>> startupItems = new ArrayList<>();
     StartupConfigurationParser.createDexParser(dexItemFactory)
         .parseLines(
             startupDescriptors,
-            startupClasses::add,
-            // TODO(b/238173796): Startup methods should be added as startup methods.
-            startupMethod ->
-                startupClasses.add(
-                    StartupClass.dexBuilder()
-                        .setClassReference(startupMethod.getReference().getHolderType())
-                        .setFlags(startupMethod.getFlags())
-                        .build()),
+            startupItems::add,
+            startupItems::add,
             error ->
                 reporter.warning(
                     new StringDiagnostic(
                         "Invalid descriptor for startup class or method: " + error)));
-    return new StartupConfiguration(startupClasses);
+    return new StartupConfiguration(startupItems);
   }
 
-  public boolean hasStartupClasses() {
-    return !startupClasses.isEmpty();
+  public boolean hasStartupItems() {
+    return !startupItems.isEmpty();
   }
 
-  public List<StartupClass<DexType, DexMethod>> getStartupClasses() {
-    return startupClasses;
+  public List<StartupItem<DexType, DexMethod, ?>> getStartupItems() {
+    return startupItems;
   }
 
   public static class Builder {
 
-    private final ImmutableList.Builder<StartupClass<DexType, DexMethod>> startupClassesBuilder =
+    private final ImmutableList.Builder<StartupItem<DexType, DexMethod, ?>> startupItemsBuilder =
         ImmutableList.builder();
 
     public Builder addStartupItem(StartupItem<DexType, DexMethod, ?> startupItem) {
-      if (startupItem.isStartupClass()) {
-        return addStartupClass(startupItem.asStartupClass());
-      } else {
-        assert startupItem.isStartupMethod();
-        return addStartupMethod(startupItem.asStartupMethod());
-      }
-    }
-
-    public Builder addStartupClass(StartupClass<DexType, DexMethod> startupClass) {
-      this.startupClassesBuilder.add(startupClass);
+      this.startupItemsBuilder.add(startupItem);
       return this;
     }
 
+    public Builder addStartupClass(StartupClass<DexType, DexMethod> startupClass) {
+      return addStartupItem(startupClass);
+    }
+
     public Builder addStartupMethod(StartupMethod<DexType, DexMethod> startupMethod) {
-      // TODO(b/238173796): Startup methods should be added as startup methods.
-      return addStartupClass(
-          StartupClass.dexBuilder()
-              .setFlags(startupMethod.getFlags())
-              .setClassReference(startupMethod.getReference().getHolderType())
-              .build());
+      return addStartupItem(startupMethod);
     }
 
     public Builder apply(Consumer<Builder> consumer) {
@@ -135,7 +119,7 @@ public class StartupConfiguration {
     }
 
     public StartupConfiguration build() {
-      return new StartupConfiguration(startupClassesBuilder.build());
+      return new StartupConfiguration(startupItemsBuilder.build());
     }
   }
 }

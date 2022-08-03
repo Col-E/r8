@@ -7,6 +7,7 @@ package com.android.tools.r8.experimental.startup;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public abstract class StartupItem<C, M, R> {
 
@@ -19,6 +20,13 @@ public abstract class StartupItem<C, M, R> {
     this.flags = flags;
     this.reference = reference;
   }
+
+  public abstract void accept(
+      Consumer<StartupClass<C, M>> classConsumer, Consumer<StartupMethod<C, M>> methodConsumer);
+
+  public abstract <T> T apply(
+      Function<StartupClass<C, M>, T> classFunction,
+      Function<StartupMethod<C, M>, T> methodFunction);
 
   public boolean isStartupClass() {
     return false;
@@ -115,6 +123,14 @@ public abstract class StartupItem<C, M, R> {
 
     public B setSynthetic() {
       this.flags |= FLAG_SYNTHETIC;
+      return self();
+    }
+
+    public B setSynthetic(boolean synthetic) {
+      if (synthetic) {
+        return setSynthetic();
+      }
+      assert (flags & FLAG_SYNTHETIC) == 0;
       return self();
     }
 

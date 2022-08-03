@@ -24,10 +24,10 @@ public abstract class StartupOrder {
     }
     StartupConfiguration startupConfiguration =
         options.getStartupOptions().getStartupConfiguration();
-    if (!startupConfiguration.hasStartupClasses()) {
+    if (!startupConfiguration.hasStartupItems()) {
       return empty();
     }
-    return new NonEmptyStartupOrder(new LinkedHashSet<>(startupConfiguration.getStartupClasses()));
+    return new NonEmptyStartupOrder(new LinkedHashSet<>(startupConfiguration.getStartupItems()));
   }
 
   public static StartupOrder empty() {
@@ -36,7 +36,7 @@ public abstract class StartupOrder {
 
   public abstract boolean contains(DexType type, SyntheticItems syntheticItems);
 
-  public abstract Collection<StartupClass<DexType, DexMethod>> getClasses();
+  public abstract Collection<StartupItem<DexType, DexMethod, ?>> getItems();
 
   public abstract boolean isEmpty();
 

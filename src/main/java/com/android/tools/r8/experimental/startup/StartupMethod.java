@@ -7,6 +7,8 @@ package com.android.tools.r8.experimental.startup;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class StartupMethod<C, M> extends StartupItem<C, M, M> {
 
@@ -16,6 +18,19 @@ public class StartupMethod<C, M> extends StartupItem<C, M, M> {
 
   public static Builder<ClassReference, MethodReference> referenceBuilder() {
     return new Builder<>();
+  }
+
+  @Override
+  public void accept(
+      Consumer<StartupClass<C, M>> classConsumer, Consumer<StartupMethod<C, M>> methodConsumer) {
+    methodConsumer.accept(this);
+  }
+
+  @Override
+  public <T> T apply(
+      Function<StartupClass<C, M>, T> classFunction,
+      Function<StartupMethod<C, M>, T> methodFunction) {
+    return methodFunction.apply(this);
   }
 
   @Override

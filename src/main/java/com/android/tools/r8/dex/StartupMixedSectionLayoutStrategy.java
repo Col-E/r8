@@ -6,6 +6,8 @@ package com.android.tools.r8.dex;
 
 import com.android.tools.r8.dex.FileWriter.MixedSectionOffsets;
 import com.android.tools.r8.experimental.startup.StartupClass;
+import com.android.tools.r8.experimental.startup.StartupItem;
+import com.android.tools.r8.experimental.startup.StartupMethod;
 import com.android.tools.r8.experimental.startup.StartupOrder;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
@@ -13,7 +15,6 @@ import com.android.tools.r8.graph.DexAnnotationDirectory;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexEncodedArray;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
@@ -22,6 +23,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.DexWritableCode;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
@@ -71,6 +73,7 @@ public class StartupMixedSectionLayoutStrategy extends DefaultMixedSectionLayout
     collectStartupItems(virtualFile);
   }
 
+  /** This adds all startup items to the startup layouts (i.e., the fields of this class). */
   private void collectStartupItems(VirtualFile virtualFile) {
     Map<DexType, DexProgramClass> virtualFileDefinitions =
         MapUtils.newIdentityHashMap(
@@ -79,11 +82,55 @@ public class StartupMixedSectionLayoutStrategy extends DefaultMixedSectionLayout
             virtualFile.classes().size());
     LensCodeRewriterUtils rewriter = new LensCodeRewriterUtils(appView, true);
     StartupIndexedItemCollection indexedItemCollection = new StartupIndexedItemCollection();
-    for (StartupClass<DexType, DexMethod> startupClass : startupOrderForWriting.getClasses()) {
-      assert !startupClass.isSynthetic();
-      DexProgramClass definition = virtualFileDefinitions.get(startupClass.getReference());
-      if (definition != null) {
-        definition.collectIndexedItems(appView, indexedItemCollection, rewriter);
+    for (StartupItem<DexType, DexMethod, ?> startupItem : startupOrderForWriting.getItems()) {
+      // All synthetic startup items should be removed after calling
+      // StartupOrder#toStartupOrderForWriting.
+      assert !startupItem.isSynthetic();
+      startupItem.accept(
+          startupClass ->
+              collectStartupItems(startupClass, indexedItemCollection, virtualFileDefinitions),
+          startupMethod ->
+              collectStartupItems(
+                  startupMethod, indexedItemCollection, virtualFileDefinitions, rewriter));
+    }
+  }
+
+  private void collectStartupItems(
+      StartupClass<DexType, DexMethod> startupClass,
+      StartupIndexedItemCollection indexedItemCollection,
+      Map<DexType, DexProgramClass> virtualFileDefinitions) {
+    DexProgramClass definition = virtualFileDefinitions.get(startupClass.getReference());
+    if (definition != null) {
+      // Note that this must not call definition.collectIndexedItems, since that would collect all
+      // items from the class, and not only the startup items.
+      indexedItemCollection.addClass(definition);
+
+      // Collect the descriptor of the current type.
+      definition.getType().collectIndexedItems(appView, indexedItemCollection);
+
+      // Collect the descriptors (strings) of the supertypes.
+      definition.forEachImmediateSupertype(
+          supertype -> supertype.collectIndexedItems(appView, indexedItemCollection));
+
+      // TODO(b/238173796): Consider collecting the source file, the annotations, the enclosing
+      //  method attribute, the inner class attribute, and the fields (i.e., annotations and static
+      //  values).
+    }
+  }
+
+  private void collectStartupItems(
+      StartupMethod<DexType, DexMethod> startupMethod,
+      StartupIndexedItemCollection indexedItemCollection,
+      Map<DexType, DexProgramClass> virtualFileDefinitions,
+      LensCodeRewriterUtils rewriter) {
+    DexMethod methodReference = startupMethod.getReference();
+    DexProgramClass holder = virtualFileDefinitions.get(methodReference.getHolderType());
+    ProgramMethod method = methodReference.lookupOnProgramClass(holder);
+    if (method != null) {
+      methodReference.collectIndexedItems(appView, indexedItemCollection);
+      if (indexedItemCollection.addCode(method)) {
+        DexWritableCode code = method.getDefinition().getCode().asDexWritableCode();
+        code.collectIndexedItems(appView, indexedItemCollection, method, rewriter);
       }
     }
   }
@@ -163,7 +210,6 @@ public class StartupMixedSectionLayoutStrategy extends DefaultMixedSectionLayout
         classDataLayout.add(clazz);
       }
       addTypeList(clazz.getInterfaces());
-      clazz.forEachProgramMethodMatching(DexEncodedMethod::hasCode, codeLayout::add);
       DexAnnotationDirectory annotationDirectory =
           mixedSectionOffsets.getAnnotationDirectoryForClass(clazz);
       if (annotationDirectory != null) {
@@ -176,6 +222,14 @@ public class StartupMixedSectionLayoutStrategy extends DefaultMixedSectionLayout
         encodedArrayLayout.add(staticFieldValues);
       }
       return true;
+    }
+
+    public boolean addCode(ProgramMethod method) {
+      if (method.getDefinition().hasCode()) {
+        codeLayout.add(method);
+        return true;
+      }
+      return false;
     }
 
     @Override
