@@ -75,8 +75,9 @@ public class RetracePartitionRoundTripTest extends RetraceApiTestBase {
     public void test() throws IOException {
       ProguardMapProducer proguardMapProducer = ProguardMapProducer.fromString(mapping);
       Map<String, byte[]> partitions = new HashMap<>();
+      DiagnosticsHandler diagnosticsHandler = new DiagnosticsHandler() {};
       MappingPartitionMetadata metadataData =
-          ProguardMapPartitioner.builder(new DiagnosticsHandler() {})
+          ProguardMapPartitioner.builder(diagnosticsHandler)
               .setProguardMapProducer(proguardMapProducer)
               .setPartitionConsumer(
                   partition -> partitions.put(partition.getKey(), partition.getPayload()))
@@ -98,7 +99,8 @@ public class RetracePartitionRoundTripTest extends RetraceApiTestBase {
                   })
               .build();
       assertEquals(0, prepareCounter);
-      Retracer retracer = Retracer.builder().setMappingSupplier(mappingSupplier).build();
+      mappingSupplier.registerClassUse(diagnosticsHandler, outlineRenamed);
+      Retracer retracer = mappingSupplier.createRetracer(diagnosticsHandler);
       List<RetraceFrameElement> outlineRetraced =
           retracer
               .retraceFrame(
@@ -130,6 +132,8 @@ public class RetracePartitionRoundTripTest extends RetraceApiTestBase {
       assertEquals(0, rewrittenReferences.size());
 
       // Retrace the outline position
+      mappingSupplier.registerClassUse(diagnosticsHandler, callsiteRenamed);
+      retracer = mappingSupplier.createRetracer(diagnosticsHandler);
       RetraceStackTraceContext context = retraceFrameElement.getRetraceStackTraceContext();
       List<RetraceFrameElement> retraceOutlineCallee =
           retracer

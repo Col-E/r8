@@ -6,12 +6,12 @@ package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.retrace.internal.MappingSupplierInternal;
+import java.util.Set;
 
 @Keep
-public abstract class MappingSupplier<T extends MappingSupplier<T>>
-    extends MappingSupplierInternal {
+public abstract class MappingSupplier<T extends MappingSupplier<T>> {
 
   /***
    * Register an allowed mapping lookup to allow for prefetching of resources.
@@ -22,4 +22,9 @@ public abstract class MappingSupplier<T extends MappingSupplier<T>>
       DiagnosticsHandler diagnosticsHandler, ClassReference classReference);
 
   public abstract void verifyMappingFileHash(DiagnosticsHandler diagnosticsHandler);
+
+  public abstract Set<MapVersionMappingInformation> getMapVersions(
+      DiagnosticsHandler diagnosticsHandler);
+
+  public abstract Retracer createRetracer(DiagnosticsHandler diagnosticsHandler);
 }

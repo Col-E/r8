@@ -59,15 +59,11 @@ public class RetraceApiRewriteFrameInlineNpeTest extends RetraceApiTestBase {
     @Test
     public void testFirstStackLineIsRemoved() {
       TestDiagnosticsHandler testDiagnosticsHandler = new TestDiagnosticsHandler();
-      ProguardMappingSupplier mappingProvider =
+      ProguardMappingSupplier mappingSupplier =
           ProguardMappingSupplier.builder()
               .setProguardMapProducer(ProguardMapProducer.fromString(mapping))
               .build();
-      Retracer retracer =
-          Retracer.builder()
-              .setMappingSupplier(mappingProvider)
-              .setDiagnosticsHandler(testDiagnosticsHandler)
-              .build();
+      Retracer retracer = mappingSupplier.createRetracer(testDiagnosticsHandler);
 
       List<RetraceThrownExceptionElement> npeRetraced =
           retracer.retraceThrownException(Reference.classFromDescriptor(npeDescriptor)).stream()

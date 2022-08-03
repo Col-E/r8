@@ -10,7 +10,6 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
-import com.android.tools.r8.retrace.internal.RetracerImpl;
 import java.util.OptionalInt;
 
 /** This is the main api interface for retrace. */
@@ -73,18 +72,12 @@ public interface Retracer {
   static Retracer createDefault(
       ProguardMapProducer proguardMapProducer, DiagnosticsHandler diagnosticsHandler) {
     try {
-      ProguardMappingSupplier mappingSupplier =
-          ProguardMappingSupplier.builder().setProguardMapProducer(proguardMapProducer).build();
-      return Retracer.builder()
-          .setMappingSupplier(mappingSupplier)
-          .setDiagnosticsHandler(diagnosticsHandler)
-          .build();
+      return ProguardMappingSupplier.builder()
+          .setProguardMapProducer(proguardMapProducer)
+          .build()
+          .createRetracer(diagnosticsHandler);
     } catch (Exception e) {
       throw new InvalidMappingFileException(e);
     }
-  }
-
-  static RetracerBuilder builder() {
-    return RetracerImpl.builder();
   }
 }

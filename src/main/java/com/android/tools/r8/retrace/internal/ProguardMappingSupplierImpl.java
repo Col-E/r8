@@ -6,7 +6,6 @@ package com.android.tools.r8.retrace.internal;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.LineReader;
 import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapChecker;
@@ -64,65 +63,6 @@ public class ProguardMappingSupplierImpl extends ProguardMappingSupplier {
   }
 
   @Override
-  Set<MapVersionMappingInformation> getMapVersions(DiagnosticsHandler diagnosticsHandler) {
-    return getClassNameMapper(diagnosticsHandler).getMapVersions();
-  }
-
-  @Override
-  ClassNamingForNameMapper getClassNaming(DiagnosticsHandler diagnosticsHandler, String typeName) {
-    if (!hasClassMappingFor(typeName)) {
-      pendingClassMappings.add(typeName);
-    }
-    return getClassNameMapper(diagnosticsHandler).getClassNaming(typeName);
-  }
-
-  @Override
-  String getSourceFileForClass(DiagnosticsHandler diagnosticsHandler, String typeName) {
-    return getClassNameMapper(diagnosticsHandler).getSourceFile(typeName);
-  }
-
-  private ClassNameMapper getClassNameMapper(DiagnosticsHandler diagnosticsHandler) {
-    if (proguardMapProducer == null) {
-      assert classNameMapper != null;
-      return classNameMapper;
-    }
-    if (classNameMapper != null && pendingClassMappings.isEmpty()) {
-      return classNameMapper;
-    }
-    try {
-      Predicate<String> buildForClass = loadAllDefinitions ? null : pendingClassMappings::contains;
-      boolean readPreambleAndSourceFile = classNameMapper == null;
-      LineReader reader =
-          proguardMapProducer.isFileBacked()
-              ? new ProguardMapReaderWithFilteringMappedBuffer(
-                  proguardMapProducer.getPath(), buildForClass, readPreambleAndSourceFile)
-              : new ProguardMapReaderWithFilteringInputBuffer(
-                  proguardMapProducer.get(), buildForClass, readPreambleAndSourceFile);
-      ClassNameMapper classNameMapper =
-          ClassNameMapper.mapperFromLineReaderWithFiltering(
-              reader, getMapVersion(), diagnosticsHandler, true, allowExperimental);
-      this.classNameMapper = classNameMapper.combine(this.classNameMapper);
-      builtClassMappings.addAll(pendingClassMappings);
-      pendingClassMappings.clear();
-      if (loadAllDefinitions) {
-        proguardMapProducer = null;
-      }
-    } catch (Exception e) {
-      throw new InvalidMappingFileException(e);
-    }
-    return classNameMapper;
-  }
-
-  private MapVersion getMapVersion() {
-    if (classNameMapper == null) {
-      return MapVersion.MAP_VERSION_NONE;
-    } else {
-      MapVersionMappingInformation mapVersion = classNameMapper.getFirstMapVersionInformation();
-      return mapVersion == null ? MapVersion.MAP_VERSION_UNKNOWN : mapVersion.getMapVersion();
-    }
-  }
-
-  @Override
   public ProguardMappingSupplier registerClassUse(
       DiagnosticsHandler diagnosticsHandler, ClassReference classReference) {
     if (!hasClassMappingFor(classReference.getTypeName())) {
@@ -147,6 +87,59 @@ public class ProguardMappingSupplierImpl extends ProguardMappingSupplier {
     } catch (IOException e) {
       diagnosticsHandler.error(new ExceptionDiagnostic(e));
       throw new RuntimeException(e);
+    }
+  }
+
+  @Override
+  public Set<MapVersionMappingInformation> getMapVersions(DiagnosticsHandler diagnosticsHandler) {
+    if (classNameMapper == null) {
+      createRetracer(diagnosticsHandler);
+    }
+    assert classNameMapper != null;
+    return classNameMapper.getMapVersions();
+  }
+
+  @Override
+  public RetracerImpl createRetracer(DiagnosticsHandler diagnosticsHandler) {
+    if (proguardMapProducer == null) {
+      assert classNameMapper != null;
+      return RetracerImpl.createInternal(
+          MappingSupplierInternalImpl.createInternal(classNameMapper), diagnosticsHandler);
+    }
+    if (classNameMapper == null || !pendingClassMappings.isEmpty()) {
+      try {
+        Predicate<String> buildForClass =
+            loadAllDefinitions ? null : pendingClassMappings::contains;
+        boolean readPreambleAndSourceFile = classNameMapper == null;
+        LineReader reader =
+            proguardMapProducer.isFileBacked()
+                ? new ProguardMapReaderWithFilteringMappedBuffer(
+                    proguardMapProducer.getPath(), buildForClass, readPreambleAndSourceFile)
+                : new ProguardMapReaderWithFilteringInputBuffer(
+                    proguardMapProducer.get(), buildForClass, readPreambleAndSourceFile);
+        classNameMapper =
+            ClassNameMapper.mapperFromLineReaderWithFiltering(
+                    reader, getMapVersion(), diagnosticsHandler, true, allowExperimental)
+                .combine(classNameMapper);
+        builtClassMappings.addAll(pendingClassMappings);
+        pendingClassMappings.clear();
+      } catch (Exception e) {
+        throw new InvalidMappingFileException(e);
+      }
+    }
+    if (loadAllDefinitions) {
+      proguardMapProducer = null;
+    }
+    return RetracerImpl.createInternal(
+        MappingSupplierInternalImpl.createInternal(classNameMapper), diagnosticsHandler);
+  }
+
+  private MapVersion getMapVersion() {
+    if (classNameMapper == null) {
+      return MapVersion.MAP_VERSION_NONE;
+    } else {
+      MapVersionMappingInformation mapVersion = classNameMapper.getFirstMapVersionInformation();
+      return mapVersion == null ? MapVersion.MAP_VERSION_UNKNOWN : mapVersion.getMapVersion();
     }
   }
 }

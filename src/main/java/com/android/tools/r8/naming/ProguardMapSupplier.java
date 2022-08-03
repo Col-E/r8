@@ -9,7 +9,6 @@ import com.android.tools.r8.MapIdProvider;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.utils.ChainableStringConsumer;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -121,7 +120,7 @@ public class ProguardMapSupplier {
     if (mapVersion.isGreaterThan(MapVersion.MAP_VERSION_NONE)) {
       builder
           .append("# ")
-          .append(new MapVersionMappingInformation(mapVersion, mapVersion.getName()).serialize())
+          .append(mapVersion.toMapVersionMappingInformation().serialize())
           .append("\n");
     }
     builder.append("# " + MARKER_KEY_PG_MAP_ID + ": " + id.getId() + "\n");

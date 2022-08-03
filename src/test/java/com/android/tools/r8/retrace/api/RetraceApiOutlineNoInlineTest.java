@@ -7,6 +7,7 @@ package com.android.tools.r8.retrace.api;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
@@ -61,11 +62,11 @@ public class RetraceApiOutlineNoInlineTest extends RetraceApiTestBase {
 
     @Test
     public void test() {
-      ProguardMappingSupplier mappingProvider =
+      ProguardMappingSupplier mappingSupplier =
           ProguardMappingSupplier.builder()
               .setProguardMapProducer(ProguardMapProducer.fromString(mapping))
               .build();
-      Retracer retracer = Retracer.builder().setMappingSupplier(mappingProvider).build();
+      Retracer retracer = mappingSupplier.createRetracer(new DiagnosticsHandler() {});
       List<RetraceFrameElement> outlineRetraced =
           retracer
               .retraceFrame(

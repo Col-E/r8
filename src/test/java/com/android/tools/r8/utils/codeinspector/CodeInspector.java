@@ -36,7 +36,8 @@ import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.Retracer;
-import com.android.tools.r8.retrace.internal.ProguardMappingSupplierImpl;
+import com.android.tools.r8.retrace.internal.MappingSupplierInternalImpl;
+import com.android.tools.r8.retrace.internal.RetracerImpl;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.BiMapContainer;
@@ -184,10 +185,9 @@ public class CodeInspector {
   public Retracer getRetracer() {
     if (lazyRetracer == null) {
       lazyRetracer =
-          Retracer.builder()
-              .setMappingSupplier(new ProguardMappingSupplierImpl(mapping))
-              .setDiagnosticsHandler(new TestDiagnosticMessagesImpl())
-              .build();
+          RetracerImpl.createInternal(
+              MappingSupplierInternalImpl.createInternal(mapping),
+              new TestDiagnosticMessagesImpl());
     }
     return lazyRetracer;
   }
@@ -548,11 +548,9 @@ public class CodeInspector {
   }
 
   public Retracer retrace() {
-    return Retracer.builder()
-        .setMappingSupplier(
-            new ProguardMappingSupplierImpl(
-                mapping == null ? ClassNameMapper.builder().build() : mapping))
-        .setDiagnosticsHandler(new TestDiagnosticMessagesImpl())
-        .build();
+    return RetracerImpl.createInternal(
+        MappingSupplierInternalImpl.createInternal(
+            mapping == null ? ClassNameMapper.builder().build() : mapping),
+        new TestDiagnosticMessagesImpl());
   }
 }

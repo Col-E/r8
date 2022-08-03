@@ -9,7 +9,6 @@ import static com.android.tools.r8.retrace.internal.RetraceUtils.firstNonWhiteSp
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.retrace.internal.ResultWithContextImpl;
-import com.android.tools.r8.retrace.internal.RetracerImpl;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -42,10 +41,7 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
    */
   public static StringRetrace create(RetraceOptions command) {
     return create(
-        RetracerImpl.builder()
-            .setMappingSupplier(command.getMappingSupplier())
-            .setDiagnosticsHandler(command.getDiagnosticsHandler())
-            .build(),
+        command.getMappingSupplier().createRetracer(command.getDiagnosticsHandler()),
         command.getDiagnosticsHandler(),
         command.getRegularExpression(),
         command.isVerbose());

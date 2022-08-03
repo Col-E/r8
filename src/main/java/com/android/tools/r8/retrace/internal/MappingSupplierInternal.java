@@ -4,17 +4,15 @@
 
 package com.android.tools.r8.retrace.internal;
 
-import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import java.util.Set;
 
 public abstract class MappingSupplierInternal {
 
-  abstract ClassNamingForNameMapper getClassNaming(
-      DiagnosticsHandler diagnosticsHandler, String typeName);
+  abstract ClassNamingForNameMapper getClassNaming(String typeName);
 
-  abstract String getSourceFileForClass(DiagnosticsHandler diagnosticsHandler, String typeName);
+  abstract String getSourceFileForClass(String typeName);
 
-  abstract Set<MapVersionMappingInformation> getMapVersions(DiagnosticsHandler diagnosticsHandler);
+  abstract Set<MapVersionMappingInformation> getMapVersions();
 }

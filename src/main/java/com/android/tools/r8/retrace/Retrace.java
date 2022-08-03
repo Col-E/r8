@@ -15,7 +15,6 @@ import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetraceCommand.Builder;
 import com.android.tools.r8.retrace.internal.ResultWithContextImpl;
 import com.android.tools.r8.retrace.internal.RetraceAbortException;
-import com.android.tools.r8.retrace.internal.RetracerImpl;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy;
 import com.android.tools.r8.retrace.internal.StackTraceRegularExpressionParser;
 import com.android.tools.r8.utils.Box;
@@ -319,28 +318,6 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
       DiagnosticsHandler diagnosticsHandler = options.getDiagnosticsHandler();
       StackTraceRegularExpressionParser stackTraceLineParser =
           new StackTraceRegularExpressionParser(options.getRegularExpression());
-      timing.begin("Read proguard map");
-      RetracerImpl retracer =
-          RetracerImpl.builder()
-              .setMappingSupplier(mappingSupplier)
-              .setDiagnosticsHandler(diagnosticsHandler)
-              .build();
-      retracer
-          .getMapVersions()
-          .forEach(
-              mapVersionInfo -> {
-                if (mapVersionInfo.getMapVersion().isUnknown()) {
-                  diagnosticsHandler.warning(
-                      RetraceUnknownMapVersionDiagnostic.create(mapVersionInfo.getValue()));
-                }
-              });
-      StringRetrace stringRetracer =
-          new StringRetrace(
-              stackTraceLineParser,
-              StackTraceElementProxyRetracer.createDefault(retracer),
-              diagnosticsHandler,
-              options.isVerbose());
-      timing.end();
       StackTraceSupplier stackTraceSupplier = command.getStacktraceSupplier();
       int lineNumber = 0;
       RetraceStackTraceContext context = RetraceStackTraceContext.empty();
@@ -375,6 +352,15 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
                     mappingSupplier, proxy.getFieldOrReturnType(), diagnosticsHandler);
               }
             });
+        timing.begin("Read proguard map");
+        StringRetrace stringRetracer =
+            new StringRetrace(
+                stackTraceLineParser,
+                StackTraceElementProxyRetracer.createDefault(
+                    mappingSupplier.createRetracer(diagnosticsHandler)),
+                diagnosticsHandler,
+                options.isVerbose());
+        timing.end();
         timing.begin("Retracing");
         ResultWithContext<String> result = stringRetracer.retraceParsed(parsedStackTrace, context);
         timing.end();
@@ -388,6 +374,15 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
       if (command.printTimes()) {
         timing.report();
       }
+      mappingSupplier
+          .getMapVersions(diagnosticsHandler)
+          .forEach(
+              mapVersionInfo -> {
+                if (mapVersionInfo.getMapVersion().isUnknown()) {
+                  diagnosticsHandler.warning(
+                      RetraceUnknownMapVersionDiagnostic.create(mapVersionInfo.getValue()));
+                }
+              });
     } catch (InvalidMappingFileException e) {
       command.getOptions().getDiagnosticsHandler().error(new ExceptionDiagnostic(e));
       throw e;

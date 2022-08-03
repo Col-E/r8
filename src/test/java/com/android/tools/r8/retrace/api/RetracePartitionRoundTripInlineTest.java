@@ -66,9 +66,10 @@ public class RetracePartitionRoundTripInlineTest extends RetraceApiTestBase {
     @Test
     public void test() throws IOException {
       ProguardMapProducer proguardMapProducer = ProguardMapProducer.fromString(mapping);
+      DiagnosticsHandler diagnosticsHandler = new DiagnosticsHandler() {};
       Map<String, byte[]> partitions = new HashMap<>();
       MappingPartitionMetadata metadataData =
-          ProguardMapPartitioner.builder(new DiagnosticsHandler() {})
+          ProguardMapPartitioner.builder(diagnosticsHandler)
               .setProguardMapProducer(proguardMapProducer)
               .setPartitionConsumer(
                   partition -> partitions.put(partition.getKey(), partition.getPayload()))
@@ -91,7 +92,8 @@ public class RetracePartitionRoundTripInlineTest extends RetraceApiTestBase {
                   })
               .build();
       assertEquals(0, prepareCounter);
-      Retracer retracer = Retracer.builder().setMappingSupplier(mappingSupplier).build();
+      mappingSupplier.registerClassUse(diagnosticsHandler, callerRenamed);
+      Retracer retracer = mappingSupplier.createRetracer(diagnosticsHandler);
       List<RetraceFrameElement> callerRetraced =
           retracer
               .retraceFrame(

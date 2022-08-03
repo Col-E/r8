@@ -4,6 +4,7 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.utils.structural.Ordered;
 
 @Keep
@@ -33,6 +34,10 @@ public enum MapVersion implements Ordered<MapVersion> {
       }
     }
     return null;
+  }
+
+  public MapVersionMappingInformation toMapVersionMappingInformation() {
+    return new MapVersionMappingInformation(this, this.getName());
   }
 
   public boolean isUnknown() {

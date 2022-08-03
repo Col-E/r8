@@ -8,12 +8,10 @@ import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.LineReader;
 import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.InvalidMappingFileException;
 import com.android.tools.r8.retrace.MappingPartitionFromKeySupplier;
 import com.android.tools.r8.retrace.PartitionMappingSupplier;
@@ -72,25 +70,33 @@ public class PartitionMappingSupplierImpl extends PartitionMappingSupplier {
   }
 
   @Override
-  Set<MapVersionMappingInformation> getMapVersions(DiagnosticsHandler diagnosticsHandler) {
+  public PartitionMappingSupplier registerClassUse(
+      DiagnosticsHandler diagnosticsHandler, ClassReference classReference) {
+    registerKeyUse(getMetadata(diagnosticsHandler).getKey(classReference));
+    return this;
+  }
+
+  private void registerKeyUse(String key) {
+    if (!builtKeys.contains(key) && pendingKeys.add(key)) {
+      registerPartitionCallback.register(key);
+    }
+  }
+
+  @Override
+  public void verifyMappingFileHash(DiagnosticsHandler diagnosticsHandler) {
+    String errorMessage = "Cannot verify map file hash for partitions";
+    diagnosticsHandler.error(new StringDiagnostic(errorMessage));
+    throw new RuntimeException(errorMessage);
+  }
+
+  @Override
+  public Set<MapVersionMappingInformation> getMapVersions(DiagnosticsHandler diagnosticsHandler) {
     return Collections.singleton(
-        new MapVersionMappingInformation(getMetadata(diagnosticsHandler).getMapVersion(), ""));
+        getMetadata(diagnosticsHandler).getMapVersion().toMapVersionMappingInformation());
   }
 
   @Override
-  ClassNamingForNameMapper getClassNaming(DiagnosticsHandler diagnosticsHandler, String typeName) {
-    registerClassUse(diagnosticsHandler, Reference.classFromTypeName(typeName));
-    return getClassNameMapper(diagnosticsHandler).getClassNaming(typeName);
-  }
-
-  @Override
-  String getSourceFileForClass(DiagnosticsHandler diagnosticsHandler, String typeName) {
-    // Getting source file should not trigger new fetches of partitions so we are not calling
-    // register here.
-    return getClassNameMapper(diagnosticsHandler).getSourceFile(typeName);
-  }
-
-  private ClassNameMapper getClassNameMapper(DiagnosticsHandler diagnosticsHandler) {
+  public RetracerImpl createRetracer(DiagnosticsHandler diagnosticsHandler) {
     MappingPartitionMetadataInternal metadata = getMetadata(diagnosticsHandler);
     if (!pendingKeys.isEmpty()) {
       prepare.prepare();
@@ -113,26 +119,7 @@ public class PartitionMappingSupplierImpl extends PartitionMappingSupplier {
     if (classNameMapper == null) {
       classNameMapper = ClassNameMapper.builder().build();
     }
-    return classNameMapper;
-  }
-
-  @Override
-  public PartitionMappingSupplier registerClassUse(
-      DiagnosticsHandler diagnosticsHandler, ClassReference classReference) {
-    registerKeyUse(getMetadata(diagnosticsHandler).getKey(classReference));
-    return this;
-  }
-
-  private void registerKeyUse(String key) {
-    if (!builtKeys.contains(key) && pendingKeys.add(key)) {
-      registerPartitionCallback.register(key);
-    }
-  }
-
-  @Override
-  public void verifyMappingFileHash(DiagnosticsHandler diagnosticsHandler) {
-    String errorMessage = "Cannot verify map file hash for partitions";
-    diagnosticsHandler.error(new StringDiagnostic(errorMessage));
-    throw new RuntimeException(errorMessage);
+    return RetracerImpl.createInternal(
+        MappingSupplierInternalImpl.createInternal(classNameMapper), diagnosticsHandler);
   }
 }

@@ -33,7 +33,7 @@ public class RetraceApiInferSourceFileTest extends RetraceApiTestBase {
 
   public static class ApiTest implements RetraceApiBinaryTest {
 
-    private final String mapping =
+    private static final String mapping =
         "some.Class -> a:\n"
             + "  1:3:int strawberry(int):99:101 -> s\n"
             + "  4:5:int mango(float):121:122 -> s";
