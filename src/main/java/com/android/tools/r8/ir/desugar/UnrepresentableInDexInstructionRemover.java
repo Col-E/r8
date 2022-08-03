@@ -219,10 +219,10 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
                   dexItemFactory) -> {
                 report(context);
                 Builder<CfInstruction> replacement = ImmutableList.builder();
+                pop(invoke.getMethod().getProto(), replacement);
                 if (!invoke.isInvokeStatic()) {
                   pop(dexItemFactory.objectType, replacement);
                 }
-                pop(invoke.getMethod().getProto(), replacement);
                 localStackAllocator.allocateLocalStack(1);
                 invokeThrowingStub(methodProcessingContext, eventConsumer, context, replacement);
                 pushReturnValue(invoke.getMethod().getReturnType(), replacement);

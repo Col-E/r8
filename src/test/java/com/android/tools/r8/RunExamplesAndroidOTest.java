@@ -214,8 +214,7 @@ public abstract class RunExamplesAndroidOTest<
   }
 
   private static List<String> minSdkErrorExpected =
-      ImmutableList.of(
-          "invokepolymorphic-error-due-to-min-sdk", "invokecustom-error-due-to-min-sdk");
+      ImmutableList.of("invokecustom-error-due-to-min-sdk");
 
   private static Map<DexVm.Version, List<String>> failsOn;
 
@@ -229,7 +228,6 @@ public abstract class RunExamplesAndroidOTest<
                 "paramnames",
                 "repeat_annotations_new_api",
                 // Dex version not supported
-                "invokepolymorphic",
                 "invokecustom",
                 "invokecustom2",
                 "DefaultMethodInAndroidJar25",
@@ -244,7 +242,6 @@ public abstract class RunExamplesAndroidOTest<
                 "paramnames",
                 "repeat_annotations_new_api",
                 // Dex version not supported
-                "invokepolymorphic",
                 "invokecustom",
                 "invokecustom2",
                 "DefaultMethodInAndroidJar25",
@@ -259,7 +256,6 @@ public abstract class RunExamplesAndroidOTest<
                 "paramnames",
                 "repeat_annotations_new_api",
                 // Dex version not supported
-                "invokepolymorphic",
                 "invokecustom",
                 "invokecustom2",
                 "DefaultMethodInAndroidJar25",
@@ -274,7 +270,6 @@ public abstract class RunExamplesAndroidOTest<
                 "paramnames",
                 "repeat_annotations_new_api",
                 // Dex version not supported
-                "invokepolymorphic",
                 "invokecustom",
                 "invokecustom2",
                 "DefaultMethodInAndroidJar25",
@@ -288,7 +283,6 @@ public abstract class RunExamplesAndroidOTest<
                 // API not supported
                 "paramnames",
                 // Dex version not supported
-                "invokepolymorphic",
                 "invokecustom",
                 "invokecustom2",
                 "testMissingInterfaceDesugared2AndroidO",
@@ -372,22 +366,6 @@ public abstract class RunExamplesAndroidOTest<
   @Test
   public void invokeCustomErrorDueToMinSdk() throws Throwable {
     test("invokecustom-error-due-to-min-sdk", "invokecustom", "InvokeCustom")
-        .withMinApiLevel(AndroidApiLevel.N_MR1)
-        .withKeepAll()
-        .run();
-  }
-
-  @Test
-  public void invokePolymorphic() throws Throwable {
-    test("invokepolymorphic", "invokepolymorphic", "InvokePolymorphic")
-        .withMinApiLevel(AndroidApiLevel.O)
-        .withKeepAll()
-        .run();
-  }
-
-  @Test
-  public void invokePolymorphicErrorDueToMinSdk() throws Throwable {
-    test("invokepolymorphic-error-due-to-min-sdk", "invokepolymorphic", "InvokePolymorphic")
         .withMinApiLevel(AndroidApiLevel.N_MR1)
         .withKeepAll()
         .run();

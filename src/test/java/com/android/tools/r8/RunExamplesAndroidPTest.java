@@ -176,8 +176,7 @@ public abstract class RunExamplesAndroidPTest<
   }
 
   private static List<String> minSdkErrorExpected =
-      ImmutableList.of(
-          "invokepolymorphic-error-due-to-min-sdk", "invokecustom-error-due-to-min-sdk");
+      ImmutableList.of("invokecustom-error-due-to-min-sdk");
 
   private static Map<DexVm.Version, List<String>> failsOn =
       ImmutableMap.<DexVm.Version, List<String>>builder()
