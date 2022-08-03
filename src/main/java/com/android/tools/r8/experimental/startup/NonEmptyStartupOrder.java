@@ -16,10 +16,8 @@ import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.LazyBox;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -131,30 +129,13 @@ public class NonEmptyStartupOrder extends StartupOrder {
     LinkedHashSet<StartupItem<DexType, DexMethod, ?>> rewrittenStartupItems =
         new LinkedHashSet<>(startupItems.size());
     Map<DexType, List<DexProgramClass>> syntheticContextsToSyntheticClasses =
-        computeSyntheticContextsToSyntheticClasses(appView);
+        appView.getSyntheticItems().computeSyntheticContextsToSyntheticClasses(appView);
     for (StartupItem<DexType, DexMethod, ?> startupItem : startupItems) {
       addStartupItem(
           startupItem, rewrittenStartupItems, syntheticContextsToSyntheticClasses, appView);
     }
     assert rewrittenStartupItems.stream().noneMatch(StartupItem::isSynthetic);
     return createNonEmpty(rewrittenStartupItems);
-  }
-
-  private Map<DexType, List<DexProgramClass>> computeSyntheticContextsToSyntheticClasses(
-      AppView<?> appView) {
-    Map<DexType, List<DexProgramClass>> syntheticContextsToSyntheticClasses =
-        new IdentityHashMap<>();
-    for (DexProgramClass clazz : appView.appInfo().classes()) {
-      if (appView.getSyntheticItems().isSyntheticClass(clazz)) {
-        for (DexType synthesizingContextType :
-            appView.getSyntheticItems().getSynthesizingContextTypes(clazz.getType())) {
-          syntheticContextsToSyntheticClasses
-              .computeIfAbsent(synthesizingContextType, ignoreKey -> new ArrayList<>())
-              .add(clazz);
-        }
-      }
-    }
-    return syntheticContextsToSyntheticClasses;
   }
 
   private static void addStartupItem(

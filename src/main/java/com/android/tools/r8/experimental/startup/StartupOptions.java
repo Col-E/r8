@@ -110,12 +110,17 @@ public class StartupOptions {
     return this;
   }
 
-  public boolean isStartupCompletenessCheckForTesting() {
+  public boolean isStartupCompletenessCheckForTestingEnabled() {
     return enableStartupCompletenessCheckForTesting;
   }
 
   public StartupOptions setEnableStartupCompletenessCheckForTesting() {
-    enableStartupCompletenessCheckForTesting = true;
+    return setEnableStartupCompletenessCheckForTesting(true);
+  }
+
+  public StartupOptions setEnableStartupCompletenessCheckForTesting(
+      boolean enableStartupCompletenessCheckForTesting) {
+    this.enableStartupCompletenessCheckForTesting = enableStartupCompletenessCheckForTesting;
     return this;
   }
 

@@ -48,13 +48,17 @@ public class StartupSyntheticPlacementTest extends TestBase {
   public boolean enableMinimalStartupDex;
 
   @Parameter(2)
+  public boolean enableStartupCompletenessCheck;
+
+  @Parameter(3)
   public boolean useLambda;
 
-  @Parameters(name = "{0}, minimal startup dex: {1}, use lambda: {2}")
+  @Parameters(name = "{0}, minimal startup dex: {1}, completeness check: {2}, use lambda: {3}")
   public static List<Object[]> data() {
     return buildParameters(
         // N so that java.util.function.Consumer is present.
         getTestParameters().withDexRuntimes().withApiLevel(AndroidApiLevel.N).build(),
+        BooleanUtils.values(),
         BooleanUtils.values(),
         BooleanUtils.values());
   }
@@ -80,7 +84,10 @@ public class StartupSyntheticPlacementTest extends TestBase {
         .addKeepClassAndMembersRules(A.class, B.class, C.class)
         .addOptionsModification(
             options -> {
-              options.getStartupOptions().setEnableMinimalStartupDex(enableMinimalStartupDex);
+              options
+                  .getStartupOptions()
+                  .setEnableMinimalStartupDex(enableMinimalStartupDex)
+                  .setEnableStartupCompletenessCheckForTesting(enableStartupCompletenessCheck);
               options
                   .getTestingOptions()
                   .setMixedSectionLayoutStrategyInspector(getMixedSectionLayoutInspector());
@@ -90,7 +97,10 @@ public class StartupSyntheticPlacementTest extends TestBase {
         .compile()
         .inspectMultiDex(this::inspectPrimaryDex, this::inspectSecondaryDex)
         .run(parameters.getRuntime(), Main.class, Boolean.toString(useLambda))
-        .assertSuccessWithOutputLines(getExpectedOutput());
+        .applyIf(
+            enableStartupCompletenessCheck && useLambda,
+            runResult -> runResult.assertFailureWithErrorThatThrows(NullPointerException.class),
+            runResult -> runResult.assertSuccessWithOutputLines(getExpectedOutput()));
   }
 
   private List<String> getExpectedOutput() {

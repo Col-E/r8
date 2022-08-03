@@ -488,6 +488,22 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return oracle.getSynthesizingContexts(clazz);
   }
 
+  public Map<DexType, List<DexProgramClass>> computeSyntheticContextsToSyntheticClasses(
+      AppView<?> appView) {
+    Map<DexType, List<DexProgramClass>> syntheticContextsToSyntheticClasses =
+        new IdentityHashMap<>();
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      if (isSyntheticClass(clazz)) {
+        for (DexType synthesizingContextType : getSynthesizingContextTypes(clazz.getType())) {
+          syntheticContextsToSyntheticClasses
+              .computeIfAbsent(synthesizingContextType, ignoreKey -> new ArrayList<>())
+              .add(clazz);
+        }
+      }
+    }
+    return syntheticContextsToSyntheticClasses;
+  }
+
   public interface SynthesizingContextOracle {
 
     Set<DexReference> getSynthesizingContexts(DexProgramClass clazz);

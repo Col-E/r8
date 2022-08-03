@@ -47,11 +47,15 @@ public class StartupSyntheticWithoutContextTest extends TestBase {
   @Parameter(1)
   public boolean enableMinimalStartupDex;
 
-  @Parameters(name = "{0}, minimal startup dex: {1}")
+  @Parameter(2)
+  public boolean enableStartupCompletenessCheck;
+
+  @Parameters(name = "{0}, minimal startup dex: {1}, completeness check: {2}")
   public static List<Object[]> data() {
     return buildParameters(
         // N so that java.util.function.Consumer is present.
         getTestParameters().withDexRuntimes().withApiLevel(AndroidApiLevel.N).build(),
+        BooleanUtils.values(),
         BooleanUtils.values());
   }
 
@@ -76,7 +80,10 @@ public class StartupSyntheticWithoutContextTest extends TestBase {
         .addKeepClassAndMembersRules(A.class, C.class)
         .addOptionsModification(
             options -> {
-              options.getStartupOptions().setEnableMinimalStartupDex(enableMinimalStartupDex);
+              options
+                  .getStartupOptions()
+                  .setEnableMinimalStartupDex(enableMinimalStartupDex)
+                  .setEnableStartupCompletenessCheckForTesting(enableStartupCompletenessCheck);
               options
                   .getTestingOptions()
                   .setMixedSectionLayoutStrategyInspector(getMixedSectionLayoutInspector());

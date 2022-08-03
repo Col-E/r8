@@ -22,6 +22,7 @@ import com.android.tools.r8.debuginfo.DebugRepresentation.DebugRepresentationPre
 import com.android.tools.r8.dex.FileWriter.ByteBufferResult;
 import com.android.tools.r8.dex.VirtualFile.FilePerInputClassDistributor;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.experimental.startup.StartupCompleteness;
 import com.android.tools.r8.features.FeatureSplitConfiguration.DataResourceProvidersAndConsumer;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
@@ -288,6 +289,8 @@ public class ApplicationWriter {
         setCallSiteContexts(executorService);
         timing.end();
       }
+
+      StartupCompleteness.run(appView);
 
       // Generate the dex file contents.
       timing.begin("Distribute");

@@ -12,12 +12,18 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.experimental.startup.StartupClass;
-import com.android.tools.r8.experimental.startup.StartupConfiguration;
+import com.android.tools.r8.experimental.startup.StartupItem;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.startup.StartupSyntheticPlacementTest.Main;
+import com.android.tools.r8.startup.utils.StartupTestingUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -40,6 +46,18 @@ public class MinimalStartupDexTest extends TestBase {
 
   @Test
   public void test() throws Exception {
+    List<StartupItem<ClassReference, MethodReference, ?>> startupList = new ArrayList<>();
+    testForD8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .apply(StartupTestingUtils.enableStartupInstrumentationUsingLogcat(parameters))
+        .release()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .addRunClasspathFiles(StartupTestingUtils.getAndroidUtilLog(temp))
+        .run(parameters.getRuntime(), Main.class)
+        .apply(StartupTestingUtils.removeStartupListFromStdout(startupList::add))
+        .assertSuccessWithOutputLines(getExpectedOutput());
+
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepClassAndMembersRules(Main.class)
@@ -48,25 +66,27 @@ public class MinimalStartupDexTest extends TestBase {
                 options
                     .getStartupOptions()
                     .setEnableMinimalStartupDex(true)
-                    .setEnableStartupCompletenessCheckForTesting()
-                    .setStartupConfiguration(
-                        StartupConfiguration.builder()
-                            .addStartupClass(
-                                StartupClass.dexBuilder()
-                                    .setClassReference(
-                                        toDexType(Main.class, options.dexItemFactory()))
-                                    .build())
-                            .addStartupClass(
-                                StartupClass.dexBuilder()
-                                    .setClassReference(
-                                        toDexType(AStartupClass.class, options.dexItemFactory()))
-                                    .build())
-                            .build()))
+                    .setEnableStartupCompletenessCheckForTesting())
         .enableInliningAnnotations()
+        .apply(testBuilder -> StartupTestingUtils.setStartupConfiguration(testBuilder, startupList))
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspectMultiDex(
             primaryDexInspector -> {
+              // Main should be in the primary dex.
+              ClassSubject mainClassSubject = primaryDexInspector.clazz(Main.class);
+              assertThat(mainClassSubject, isPresent());
+
+              MethodSubject mainMethodSubject = mainClassSubject.mainMethod();
+              assertThat(mainMethodSubject, isPresent());
+              assertTrue(
+                  mainMethodSubject.streamInstructions().noneMatch(InstructionSubject::isThrow));
+
+              MethodSubject onClickMethodSubject = mainClassSubject.uniqueMethodWithName("onClick");
+              assertThat(onClickMethodSubject, isPresent());
+              assertTrue(
+                  onClickMethodSubject.streamInstructions().anyMatch(InstructionSubject::isThrow));
+
               // StartupClass should be in the primary dex.
               ClassSubject startupClassSubject = primaryDexInspector.clazz(AStartupClass.class);
               assertThat(startupClassSubject, isPresent());
@@ -99,7 +119,11 @@ public class MinimalStartupDexTest extends TestBase {
                       .anyMatch(InstructionSubject::isThrow));
             })
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("foo");
+        .assertSuccessWithOutputLines(getExpectedOutput());
+  }
+
+  private List<String> getExpectedOutput() {
+    return ImmutableList.of("foo");
   }
 
   static class Main {

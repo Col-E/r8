@@ -15,7 +15,6 @@ import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -27,9 +26,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
-import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
-import com.android.tools.r8.graph.ThrowNullCode;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -48,7 +45,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceMaps;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import java.io.IOException;
@@ -1010,7 +1006,6 @@ public class VirtualFile {
 
     public void run() {
       addStartupClasses();
-      enableStartupCompletenessCheckForTesting();
       List<DexProgramClass> nonPackageClasses = addNonStartupClasses();
       addNonPackageClasses(cycler, nonPackageClasses);
     }
@@ -1054,31 +1049,6 @@ public class VirtualFile {
         cycler.clearFilesForDistribution();
       } else {
         cycler.restart();
-      }
-    }
-
-    /**
-     * Replaces the code of each method of a non-startup class by {@code throw null}. If the
-     * application fails on launch with this enabled this points to the startup configuration being
-     * incomplete.
-     */
-    private void enableStartupCompletenessCheckForTesting() {
-      if (!options.getStartupOptions().isStartupCompletenessCheckForTesting()) {
-        return;
-      }
-      for (DexProgramClass clazz : classPartioning.getNonStartupClasses()) {
-        clazz.forEachProgramMethodMatching(
-            DexEncodedMethod::hasCode,
-            method ->
-                method.getDefinition().setCode(ThrowNullCode.get(), Int2ReferenceMaps.emptyMap()));
-        if (!clazz.hasClassInitializer()) {
-          clazz.addDirectMethod(
-              DexEncodedMethod.syntheticBuilder()
-                  .setAccessFlags(MethodAccessFlags.createForClassInitializer())
-                  .setCode(ThrowNullCode.get())
-                  .setMethod(dexItemFactory.createClassInitializer(clazz.getType()))
-                  .build());
-        }
       }
     }
 
