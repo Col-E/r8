@@ -13,6 +13,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.experimental.startup.StartupClass;
 import com.android.tools.r8.experimental.startup.StartupItem;
 import com.android.tools.r8.experimental.startup.StartupMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -96,25 +97,25 @@ public class StartupSyntheticPlacementTest extends TestBase {
     return ImmutableList.of("A", "B", "C");
   }
 
-  private List<StartupMethod<ClassReference, MethodReference>> getExpectedStartupList()
+  private List<StartupItem<ClassReference, MethodReference, ?>> getExpectedStartupList()
       throws NoSuchMethodException {
-    ImmutableList.Builder<StartupMethod<ClassReference, MethodReference>> builder =
+    ImmutableList.Builder<StartupItem<ClassReference, MethodReference, ?>> builder =
         ImmutableList.builder();
     builder.add(
-        StartupMethod.referenceBuilder()
-            .setMethodReference(MethodReferenceUtils.classConstructor(Main.class))
+        StartupClass.referenceBuilder()
+            .setClassReference(Reference.classFromClass(Main.class))
             .build(),
         StartupMethod.referenceBuilder()
             .setMethodReference(MethodReferenceUtils.mainMethod(Main.class))
             .build(),
-        StartupMethod.referenceBuilder()
-            .setMethodReference(MethodReferenceUtils.classConstructor(A.class))
+        StartupClass.referenceBuilder()
+            .setClassReference(Reference.classFromClass(A.class))
             .build(),
         StartupMethod.referenceBuilder()
             .setMethodReference(Reference.methodFromMethod(A.class.getDeclaredMethod("a")))
             .build(),
-        StartupMethod.referenceBuilder()
-            .setMethodReference(MethodReferenceUtils.classConstructor(B.class))
+        StartupClass.referenceBuilder()
+            .setClassReference(Reference.classFromClass(B.class))
             .build(),
         StartupMethod.referenceBuilder()
             .setMethodReference(
@@ -122,21 +123,8 @@ public class StartupSyntheticPlacementTest extends TestBase {
             .build());
     if (useLambda) {
       builder.add(
-          StartupMethod.referenceBuilder()
-              .setMethodReference(MethodReferenceUtils.classConstructor(B.class))
-              .setSynthetic()
-              .build(),
-          StartupMethod.referenceBuilder()
-              .setMethodReference(MethodReferenceUtils.instanceConstructor(B.class))
-              .setSynthetic()
-              .build(),
-          StartupMethod.referenceBuilder()
-              .setMethodReference(
-                  Reference.method(
-                      Reference.classFromClass(B.class),
-                      "accept",
-                      ImmutableList.of(Reference.classFromClass(Object.class)),
-                      null))
+          StartupClass.referenceBuilder()
+              .setClassReference(Reference.classFromClass(B.class))
               .setSynthetic()
               .build(),
           StartupMethod.referenceBuilder()
@@ -145,8 +133,8 @@ public class StartupSyntheticPlacementTest extends TestBase {
               .build());
     }
     builder.add(
-        StartupMethod.referenceBuilder()
-            .setMethodReference(MethodReferenceUtils.classConstructor(C.class))
+        StartupClass.referenceBuilder()
+            .setClassReference(Reference.classFromClass(C.class))
             .build(),
         StartupMethod.referenceBuilder()
             .setMethodReference(Reference.methodFromMethod(C.class.getDeclaredMethod("c")))

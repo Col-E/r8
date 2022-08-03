@@ -10,11 +10,14 @@ import com.android.tools.r8.graph.DexType;
 
 public class StartupReferences {
 
+  final DexType instrumentationServerType;
   final DexType instrumentationServerImplType;
   final DexMethod addNonSyntheticMethod;
   final DexMethod addSyntheticMethod;
 
   StartupReferences(DexItemFactory dexItemFactory) {
+    instrumentationServerType =
+        dexItemFactory.createType("Lcom/android/tools/r8/startup/InstrumentationServer;");
     instrumentationServerImplType =
         dexItemFactory.createType("Lcom/android/tools/r8/startup/InstrumentationServerImpl;");
     addNonSyntheticMethod =

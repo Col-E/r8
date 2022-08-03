@@ -14,6 +14,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.experimental.startup.StartupClass;
 import com.android.tools.r8.experimental.startup.StartupItem;
 import com.android.tools.r8.experimental.startup.StartupMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -30,7 +31,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -93,46 +93,36 @@ public class StartupSyntheticWithoutContextTest extends TestBase {
     return ImmutableList.of("A", "B", "C");
   }
 
-  private List<StartupMethod<ClassReference, MethodReference>> getExpectedStartupList()
+  private List<StartupItem<ClassReference, MethodReference, ?>> getExpectedStartupList()
       throws NoSuchMethodException {
     return ImmutableList.of(
-        StartupMethod.referenceBuilder()
-            .setMethodReference(MethodReferenceUtils.classConstructor(Main.class))
+        StartupClass.referenceBuilder()
+            .setClassReference(Reference.classFromClass(Main.class))
             .build(),
         StartupMethod.referenceBuilder()
             .setMethodReference(MethodReferenceUtils.mainMethod(Main.class))
             .build(),
-        StartupMethod.referenceBuilder()
-            .setMethodReference(MethodReferenceUtils.classConstructor(A.class))
+        StartupClass.referenceBuilder()
+            .setClassReference(Reference.classFromClass(A.class))
             .build(),
         StartupMethod.referenceBuilder()
             .setMethodReference(Reference.methodFromMethod(A.class.getDeclaredMethod("a")))
             .build(),
-        StartupMethod.referenceBuilder()
-            .setMethodReference(MethodReferenceUtils.classConstructor(B.class))
+        StartupClass.referenceBuilder()
+            .setClassReference(Reference.classFromClass(B.class))
             .build(),
         StartupMethod.referenceBuilder()
             .setMethodReference(Reference.methodFromMethod(B.class.getDeclaredMethod("b")))
             .build(),
-        StartupMethod.referenceBuilder()
-            .setMethodReference(MethodReferenceUtils.classConstructor(B.class))
-            .setSynthetic()
-            .build(),
-        StartupMethod.referenceBuilder()
-            .setMethodReference(MethodReferenceUtils.instanceConstructor(B.class))
-            .setSynthetic()
-            .build(),
-        StartupMethod.referenceBuilder()
-            .setMethodReference(
-                Reference.method(
-                    Reference.classFromClass(B.class), "run", Collections.emptyList(), null))
+        StartupClass.referenceBuilder()
+            .setClassReference(Reference.classFromClass(B.class))
             .setSynthetic()
             .build(),
         StartupMethod.referenceBuilder()
             .setMethodReference(Reference.methodFromMethod(B.class.getDeclaredMethod("lambda$b$0")))
             .build(),
-        StartupMethod.referenceBuilder()
-            .setMethodReference(MethodReferenceUtils.classConstructor(C.class))
+        StartupClass.referenceBuilder()
+            .setClassReference(Reference.classFromClass(C.class))
             .build(),
         StartupMethod.referenceBuilder()
             .setMethodReference(Reference.methodFromMethod(C.class.getDeclaredMethod("c")))

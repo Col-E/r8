@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.experimental.startup;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.utils.PredicateUtils.not;
 
 import com.android.tools.r8.androidapi.ComputedApiLevel;
@@ -18,6 +19,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue.DexValueBoolean;
 import com.android.tools.r8.graph.DexValue.DexValueString;
@@ -32,9 +34,12 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.IRToDexFinalizer;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.startup.generated.InstrumentationServerFactory;
 import com.android.tools.r8.startup.generated.InstrumentationServerImplFactory;
 import com.android.tools.r8.synthesis.SyntheticItems;
+import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
@@ -48,15 +53,17 @@ public class StartupInstrumentation {
   private final AppView<AppInfo> appView;
   private final IRConverter converter;
   private final DexItemFactory dexItemFactory;
-  private final StartupOptions options;
+  private final InternalOptions options;
   private final StartupReferences references;
+  private final StartupOptions startupOptions;
 
   private StartupInstrumentation(AppView<AppInfo> appView) {
     this.appView = appView;
     this.converter = new IRConverter(appView, Timing.empty());
     this.dexItemFactory = appView.dexItemFactory();
-    this.options = appView.options().getStartupOptions();
+    this.options = appView.options();
     this.references = new StartupReferences(dexItemFactory);
+    this.startupOptions = options.getStartupOptions();
   }
 
   public static void run(AppView<AppInfo> appView, ExecutorService executorService)
@@ -74,6 +81,24 @@ public class StartupInstrumentation {
 
   private void injectStartupRuntimeLibrary(ExecutorService executorService)
       throws ExecutionException {
+    // Only inject the startup instrumentation server if it is not already in the app.
+    if (appView.definitionFor(references.instrumentationServerImplType) != null) {
+      return;
+    }
+
+    // If the startup options has a synthetic context for the startup instrumentation server, then
+    // only inject the runtime library if the synthetic context exists in program to avoid injecting
+    // the runtime library multiple times when there is separate compilation.
+    if (startupOptions.hasStartupInstrumentationServerSyntheticContext()) {
+      DexType syntheticContext =
+          dexItemFactory.createType(
+              DescriptorUtils.javaTypeToDescriptor(
+                  startupOptions.getStartupInstrumentationServerSyntheticContext()));
+      if (asProgramClassOrNull(appView.definitionFor(syntheticContext)) == null) {
+        return;
+      }
+    }
+
     List<DexProgramClass> extraProgramClasses = createStartupRuntimeLibraryClasses();
     converter.processClassesConcurrently(extraProgramClasses, executorService);
 
@@ -88,7 +113,7 @@ public class StartupInstrumentation {
   private List<DexProgramClass> createStartupRuntimeLibraryClasses() {
     DexProgramClass instrumentationServerImplClass =
         InstrumentationServerImplFactory.createClass(dexItemFactory);
-    if (options.hasStartupInstrumentationTag()) {
+    if (startupOptions.hasStartupInstrumentationTag()) {
       instrumentationServerImplClass
           .lookupUniqueStaticFieldWithName(dexItemFactory.createString("writeToLogcat"))
           .setStaticValue(DexValueBoolean.create(true));
@@ -96,7 +121,7 @@ public class StartupInstrumentation {
           .lookupUniqueStaticFieldWithName(dexItemFactory.createString("logcatTag"))
           .setStaticValue(
               new DexValueString(
-                  dexItemFactory.createString(options.getStartupInstrumentationTag())));
+                  dexItemFactory.createString(startupOptions.getStartupInstrumentationTag())));
     }
 
     return ImmutableList.of(
@@ -104,57 +129,93 @@ public class StartupInstrumentation {
   }
 
   private void instrumentClass(DexProgramClass clazz) {
-    ensureClassInitializer(clazz);
-    clazz.forEachProgramMethod(this::instrumentMethod);
-  }
-
-  private void ensureClassInitializer(DexProgramClass clazz) {
-    if (!clazz.hasClassInitializer()) {
-      ComputedApiLevel computedApiLevel =
-          appView.apiLevelCompute().computeInitialMinApiLevel(appView.options());
-      DexReturnVoid returnInstruction = new DexReturnVoid();
-      returnInstruction.setOffset(0);
-      clazz.addDirectMethod(
-          DexEncodedMethod.syntheticBuilder()
-              .setAccessFlags(MethodAccessFlags.createForClassInitializer())
-              .setApiLevelForCode(computedApiLevel)
-              .setApiLevelForDefinition(computedApiLevel)
-              .setClassFileVersion(CfVersion.V1_6)
-              .setCode(new DexCode(0, 0, 0, new DexInstruction[] {returnInstruction}))
-              .setMethod(dexItemFactory.createClassInitializer(clazz.getType()))
-              .build());
-    }
-  }
-
-  private void instrumentMethod(ProgramMethod method) {
-    DexMethod methodToInvoke;
-    DexMethod methodToPrint;
-    SyntheticItems syntheticItems = appView.getSyntheticItems();
-    if (syntheticItems.isSyntheticClass(method.getHolder())) {
-      Collection<DexType> synthesizingContexts =
-          syntheticItems.getSynthesizingContextTypes(method.getHolderType());
-      assert synthesizingContexts.size() == 1;
-      DexType synthesizingContext = synthesizingContexts.iterator().next();
-      methodToInvoke = references.addSyntheticMethod;
-      methodToPrint = method.getReference().withHolder(synthesizingContext, dexItemFactory);
-    } else {
-      methodToInvoke = references.addNonSyntheticMethod;
-      methodToPrint = method.getReference();
+    // Do not instrument the instrumentation server if it is already in the app.
+    if (clazz.getType() == references.instrumentationServerType
+        || clazz.getType() == references.instrumentationServerImplType) {
+      return;
     }
 
-    IRCode code = method.buildIR(appView);
+    boolean addedClassInitializer = ensureClassInitializer(clazz);
+    clazz.forEachProgramMethodMatching(
+        DexEncodedMethod::hasCode,
+        method ->
+            instrumentMethod(
+                method, method.getDefinition().isClassInitializer() && addedClassInitializer));
+  }
+
+  private boolean ensureClassInitializer(DexProgramClass clazz) {
+    if (clazz.hasClassInitializer()) {
+      return false;
+    }
+    ComputedApiLevel computedApiLevel =
+        appView.apiLevelCompute().computeInitialMinApiLevel(options);
+    DexReturnVoid returnInstruction = new DexReturnVoid();
+    returnInstruction.setOffset(0);
+    clazz.addDirectMethod(
+        DexEncodedMethod.syntheticBuilder()
+            .setAccessFlags(MethodAccessFlags.createForClassInitializer())
+            .setApiLevelForCode(computedApiLevel)
+            .setApiLevelForDefinition(computedApiLevel)
+            .setClassFileVersion(CfVersion.V1_6)
+            .setCode(new DexCode(0, 0, 0, new DexInstruction[] {returnInstruction}))
+            .setMethod(dexItemFactory.createClassInitializer(clazz.getType()))
+            .build());
+    return true;
+  }
+
+  private void instrumentMethod(ProgramMethod method, boolean skipMethodLogging) {
+    // Disable StringSwitch conversion to avoid having to run the StringSwitchRemover before
+    // finalizing the code.
+    MutableMethodConversionOptions conversionOptions =
+        new MutableMethodConversionOptions(options).disableStringSwitchConversion();
+    IRCode code = method.buildIR(appView, conversionOptions);
     InstructionListIterator instructionIterator = code.entryBlock().listIterator(code);
     instructionIterator.positionBeforeNextInstructionThatMatches(not(Instruction::isArgument));
 
-    Value descriptorValue =
-        instructionIterator.insertConstStringInstruction(
-            appView, code, dexItemFactory.createString(methodToPrint.toSmaliString()));
-    instructionIterator.add(
-        InvokeStatic.builder()
-            .setMethod(methodToInvoke)
-            .setSingleArgument(descriptorValue)
-            .setPosition(Position.syntheticNone())
-            .build());
+    // Insert invoke to record that the enclosing class is a startup class.
+    SyntheticItems syntheticItems = appView.getSyntheticItems();
+    boolean isSyntheticClass = syntheticItems.isSyntheticClass(method.getHolder());
+    if (method.getDefinition().isClassInitializer() && !isSyntheticClass) {
+      DexMethod methodToInvoke = references.addNonSyntheticMethod;
+      DexType classToPrint = method.getHolderType();
+      Value descriptorValue =
+          instructionIterator.insertConstStringInstruction(
+              appView, code, dexItemFactory.createString(classToPrint.toSmaliString()));
+      instructionIterator.add(
+          InvokeStatic.builder()
+              .setMethod(methodToInvoke)
+              .setSingleArgument(descriptorValue)
+              .setPosition(Position.syntheticNone())
+              .build());
+    }
+
+    // Insert invoke to record the execution of the current method.
+    if (!skipMethodLogging) {
+      DexMethod methodToInvoke;
+      DexReference referenceToPrint;
+      if (isSyntheticClass) {
+        Collection<DexType> synthesizingContexts =
+            syntheticItems.getSynthesizingContextTypes(method.getHolderType());
+        assert synthesizingContexts.size() == 1;
+        DexType synthesizingContext = synthesizingContexts.iterator().next();
+        methodToInvoke = references.addSyntheticMethod;
+        referenceToPrint = synthesizingContext;
+      } else {
+        methodToInvoke = references.addNonSyntheticMethod;
+        referenceToPrint = method.getReference();
+      }
+
+      Value descriptorValue =
+          instructionIterator.insertConstStringInstruction(
+              appView, code, dexItemFactory.createString(referenceToPrint.toSmaliString()));
+      instructionIterator.add(
+          InvokeStatic.builder()
+              .setMethod(methodToInvoke)
+              .setSingleArgument(descriptorValue)
+              .setPosition(Position.syntheticNone())
+              .build());
+    }
+
     DexCode instrumentedCode =
         new IRToDexFinalizer(appView, converter.deadCodeRemover)
             .finalizeCode(code, BytecodeMetadataProvider.empty(), Timing.empty());

@@ -35,8 +35,9 @@ public abstract class MethodConversionOptions {
       enablePeepholeOptimizations = false;
     }
 
-    public void disableStringSwitchConversion() {
+    public MutableMethodConversionOptions disableStringSwitchConversion() {
       enableStringSwitchConversion = false;
+      return this;
     }
 
     public MutableMethodConversionOptions setIsGeneratingClassFiles(

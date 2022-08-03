@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.experimental.startup.StartupClass;
 import com.android.tools.r8.experimental.startup.StartupItem;
 import com.android.tools.r8.experimental.startup.StartupMethod;
 import com.android.tools.r8.references.ClassReference;
@@ -74,17 +75,17 @@ public class StartupInstrumentationTest extends TestBase {
     return ImmutableList.of("foo");
   }
 
-  private List<StartupMethod<ClassReference, MethodReference>> getExpectedStartupList()
+  private List<StartupItem<ClassReference, MethodReference, ?>> getExpectedStartupList()
       throws NoSuchMethodException {
     return ImmutableList.of(
-        StartupMethod.referenceBuilder()
-            .setMethodReference(MethodReferenceUtils.classConstructor(Main.class))
+        StartupClass.referenceBuilder()
+            .setClassReference(Reference.classFromClass(Main.class))
             .build(),
         StartupMethod.referenceBuilder()
             .setMethodReference(MethodReferenceUtils.mainMethod(Main.class))
             .build(),
-        StartupMethod.referenceBuilder()
-            .setMethodReference(MethodReferenceUtils.classConstructor(AStartupClass.class))
+        StartupClass.referenceBuilder()
+            .setClassReference(Reference.classFromClass(AStartupClass.class))
             .build(),
         StartupMethod.referenceBuilder()
             .setMethodReference(
