@@ -11,7 +11,7 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.naming.mappinginformation.MappingInformationDiagnostics;
-import com.android.tools.r8.position.TextPosition;
+import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.IdentifierUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -426,8 +426,37 @@ public class ProguardMapReader implements AutoCloseable {
     }
   }
 
-  private TextPosition getPosition() {
-    return new TextPosition(0, lineNo, 1);
+  private Position getPosition() {
+    return new LinePosition(lineNo);
+  }
+
+  private static final class LinePosition implements Position {
+    private final int lineNo;
+
+    LinePosition(int lineNo) {
+      this.lineNo = lineNo;
+    }
+
+    @Override
+    public String getDescription() {
+      return "line " + lineNo;
+    }
+
+    @Override
+    public int hashCode() {
+      return lineNo;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (o == this) {
+        return true;
+      }
+      if (o instanceof LinePosition) {
+        return lineNo == ((LinePosition) o).lineNo;
+      }
+      return false;
+    }
   }
 
   // Parsing of components
