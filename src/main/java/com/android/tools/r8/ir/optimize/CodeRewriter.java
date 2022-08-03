@@ -3835,7 +3835,7 @@ public class CodeRewriter {
         boolean isTrivial = true;
         Phi p = value.asPhi();
         for (Value op : p.getOperands()) {
-          if (op != value && !component.contains(op)) {
+          if (op != outValue && !component.contains(op)) {
             isTrivial = false;
             break;
           }
