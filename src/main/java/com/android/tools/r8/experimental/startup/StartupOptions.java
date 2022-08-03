@@ -49,6 +49,13 @@ public class StartupOptions {
       parseSystemPropertyForDevelopmentOrDefault("com.android.tools.r8.startup.instrument", false);
 
   /**
+   * When enabled, the layout of the primary dex file will be generated using the startup list,
+   * using {@link com.android.tools.r8.dex.StartupMixedSectionLayoutStrategy}.
+   */
+  private boolean enableStartupLayoutOptimizations =
+      parseSystemPropertyForDevelopmentOrDefault("com.android.tools.r8.startup.layout", true);
+
+  /**
    * Specifies the synthetic context of the startup runtime library. When this is set, the startup
    * runtime library will only be injected into the app when the synthetic context is in the
    * program. This can be used to avoid that the startup runtime library is injected multiple times
@@ -122,6 +129,10 @@ public class StartupOptions {
   public StartupOptions setEnableStartupInstrumentation() {
     enableStartupInstrumentation = true;
     return this;
+  }
+
+  public boolean isStartupLayoutOptimizationsEnabled() {
+    return enableStartupLayoutOptimizations;
   }
 
   public boolean isStartupCompletenessCheckForTestingEnabled() {
