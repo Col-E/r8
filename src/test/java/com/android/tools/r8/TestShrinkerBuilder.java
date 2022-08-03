@@ -105,6 +105,10 @@ public abstract class TestShrinkerBuilder<
     return addKeepRules(Arrays.asList(rules));
   }
 
+  public T addDontObfuscate() {
+    return addKeepRules("-dontobfuscate");
+  }
+
   public T addDontObfuscate(Class<?> clazz) {
     return addKeepRules(
         "-keep,allowaccessmodification,allowannotationremoval,allowoptimization,allowshrinking"
