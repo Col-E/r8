@@ -10,7 +10,6 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
-import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.Reporter;
@@ -58,7 +57,7 @@ public class SeedMapperTests extends TestBase {
       assertEquals(
           String.format(ProguardMapError.DUPLICATE_SOURCE_MESSAGE, "A.B.C"),
           diagnostic.getDiagnosticMessage());
-      assertEquals(2, ((TextPosition) diagnostic.getPosition()).getLine());
+      assertEquals("line 2", diagnostic.getPosition().getDescription());
     }
   }
 
@@ -81,7 +80,7 @@ public class SeedMapperTests extends TestBase {
       assertEquals(
           String.format(ProguardMapError.DUPLICATE_SOURCE_MESSAGE, "int aaaa(B)"),
           diagnostic.getDiagnosticMessage());
-      assertEquals(3, ((TextPosition) diagnostic.getPosition()).getLine());
+      assertEquals("line 3", diagnostic.getPosition().getDescription());
     }
   }
 
@@ -104,7 +103,7 @@ public class SeedMapperTests extends TestBase {
       assertEquals(
           String.format(ProguardMapError.DUPLICATE_SOURCE_MESSAGE, "int aaaa"),
           diagnostic.getDiagnosticMessage());
-      assertEquals(3, ((TextPosition) diagnostic.getPosition()).getLine());
+      assertEquals("line 3", diagnostic.getPosition().getDescription());
     }
   }
 
@@ -122,7 +121,7 @@ public class SeedMapperTests extends TestBase {
       assertEquals(
           String.format(ProguardMapError.DUPLICATE_TARGET_MESSAGE, "A.B.D", "A.B.C", "a"),
           diagnostic.getDiagnosticMessage());
-      assertEquals(2, ((TextPosition) diagnostic.getPosition()).getLine());
+      assertEquals("line 2", diagnostic.getPosition().getDescription());
     }
   }
 
@@ -161,7 +160,7 @@ public class SeedMapperTests extends TestBase {
       assertEquals(
           String.format(ProguardMapError.DUPLICATE_TARGET_MESSAGE, "int bar(A)", "int foo(A)", "a"),
           diagnostic.getDiagnosticMessage());
-      assertEquals(2, ((TextPosition) diagnostic.getPosition()).getLine());
+      assertEquals("line 2", diagnostic.getPosition().getDescription());
     }
   }
 
