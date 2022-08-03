@@ -11,6 +11,7 @@ public class ProguardMappingSupplierBuilderImpl extends ProguardMappingSupplier.
 
   private ProguardMapProducer proguardMapProducer;
   private boolean allowExperimental = false;
+  private boolean loadAllDefinitions = true;
 
   @Override
   public ProguardMappingSupplier.Builder self() {
@@ -31,7 +32,14 @@ public class ProguardMappingSupplierBuilderImpl extends ProguardMappingSupplier.
   }
 
   @Override
+  public ProguardMappingSupplier.Builder setLoadAllDefinitions(boolean loadAllDefinitions) {
+    this.loadAllDefinitions = loadAllDefinitions;
+    return self();
+  }
+
+  @Override
   public ProguardMappingSupplier build() {
-    return new ProguardMappingSupplierImpl(proguardMapProducer, allowExperimental);
+    return new ProguardMappingSupplierImpl(
+        proguardMapProducer, allowExperimental, loadAllDefinitions);
   }
 }

@@ -132,7 +132,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
     return builder;
   }
 
-  private static MappingSupplier getMappingSupplier(
+  private static MappingSupplier<?> getMappingSupplier(
       String mappingPath, DiagnosticsHandler diagnosticsHandler) {
     Path path = Paths.get(mappingPath);
     if (!Files.exists(path)) {
@@ -145,6 +145,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
     return ProguardMappingSupplier.builder()
         .setProguardMapProducer(ProguardMapProducer.fromPath(Paths.get(mappingPath)))
         .setAllowExperimental(allowExperimentalMapVersion)
+        .setLoadAllDefinitions(false)
         .build();
   }
 

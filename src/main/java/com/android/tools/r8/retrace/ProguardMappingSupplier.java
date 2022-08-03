@@ -19,5 +19,7 @@ public abstract class ProguardMappingSupplier extends MappingSupplier<ProguardMa
       extends MappingSupplierBuilder<ProguardMappingSupplier, Builder> {
 
     public abstract Builder setProguardMapProducer(ProguardMapProducer proguardMapProducer);
+
+    public abstract Builder setLoadAllDefinitions(boolean loadAllDefinitions);
   }
 }

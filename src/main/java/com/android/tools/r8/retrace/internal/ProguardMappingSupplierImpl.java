@@ -35,28 +35,32 @@ import java.util.function.Predicate;
  */
 public class ProguardMappingSupplierImpl extends ProguardMappingSupplier {
 
-  private final ProguardMapProducer proguardMapProducer;
+  private ProguardMapProducer proguardMapProducer;
   private final boolean allowExperimental;
+  private final boolean loadAllDefinitions;
 
   private ClassNameMapper classNameMapper;
   private final Set<String> pendingClassMappings = new HashSet<>();
-  private final Set<String> builtClassMappings;
+  private final Set<String> builtClassMappings = new HashSet<>();
 
   public ProguardMappingSupplierImpl(ClassNameMapper classNameMapper) {
     this.classNameMapper = classNameMapper;
     this.proguardMapProducer = null;
     this.allowExperimental = true;
-    builtClassMappings = null;
+    this.loadAllDefinitions = true;
   }
 
-  ProguardMappingSupplierImpl(ProguardMapProducer proguardMapProducer, boolean allowExperimental) {
+  ProguardMappingSupplierImpl(
+      ProguardMapProducer proguardMapProducer,
+      boolean allowExperimental,
+      boolean loadAllDefinitions) {
     this.proguardMapProducer = proguardMapProducer;
     this.allowExperimental = allowExperimental;
-    builtClassMappings = proguardMapProducer.isFileBacked() ? new HashSet<>() : null;
+    this.loadAllDefinitions = loadAllDefinitions;
   }
 
   private boolean hasClassMappingFor(String typeName) {
-    return builtClassMappings == null || builtClassMappings.contains(typeName);
+    return loadAllDefinitions || builtClassMappings.contains(typeName);
   }
 
   @Override
@@ -78,15 +82,15 @@ public class ProguardMappingSupplierImpl extends ProguardMappingSupplier {
   }
 
   private ClassNameMapper getClassNameMapper(DiagnosticsHandler diagnosticsHandler) {
+    if (proguardMapProducer == null) {
+      assert classNameMapper != null;
+      return classNameMapper;
+    }
     if (classNameMapper != null && pendingClassMappings.isEmpty()) {
       return classNameMapper;
     }
-    if (classNameMapper != null && !proguardMapProducer.isFileBacked()) {
-      throw new RuntimeException("Cannot re-open a proguard map producer that is not file backed");
-    }
     try {
-      Predicate<String> buildForClass =
-          builtClassMappings == null ? null : pendingClassMappings::contains;
+      Predicate<String> buildForClass = loadAllDefinitions ? null : pendingClassMappings::contains;
       boolean readPreambleAndSourceFile = classNameMapper == null;
       LineReader reader =
           proguardMapProducer.isFileBacked()
@@ -98,10 +102,11 @@ public class ProguardMappingSupplierImpl extends ProguardMappingSupplier {
           ClassNameMapper.mapperFromLineReaderWithFiltering(
               reader, getMapVersion(), diagnosticsHandler, true, allowExperimental);
       this.classNameMapper = classNameMapper.combine(this.classNameMapper);
-      if (builtClassMappings != null) {
-        builtClassMappings.addAll(pendingClassMappings);
-      }
+      builtClassMappings.addAll(pendingClassMappings);
       pendingClassMappings.clear();
+      if (loadAllDefinitions) {
+        proguardMapProducer = null;
+      }
     } catch (Exception e) {
       throw new InvalidMappingFileException(e);
     }

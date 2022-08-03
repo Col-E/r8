@@ -426,9 +426,10 @@ public class RetraceTests extends TestBase {
   }
 
   @Test
-  public void testMultipleMapVersionWarningStackTrace() throws Exception {
+  public void testMultipleMapVersionWarningStackTraceNoStreaming() throws Exception {
     // TODO(b/204289928): Internalize the diagnostics checking.
     assumeFalse(external);
+    assumeFalse(stream);
     runRetraceTest(new MultipleMapVersionsWarningStackTrace())
         .assertOnlyWarnings()
         .assertAllWarningsMatch(
@@ -437,6 +438,19 @@ public class RetraceTests extends TestBase {
         .assertWarningsMatch(
             DiagnosticsMatcher.diagnosticMessage(containsString("98.0")),
             DiagnosticsMatcher.diagnosticMessage(containsString("99.0")));
+  }
+
+  @Test
+  public void testMultipleMapVersionWarningStackTraceStreaming() throws Exception {
+    // TODO(b/204289928): Internalize the diagnostics checking.
+    assumeFalse(external);
+    assumeTrue(stream);
+    runRetraceTest(new MultipleMapVersionsWarningStackTrace())
+        .assertOnlyWarnings()
+        .assertAllWarningsMatch(
+            DiagnosticsMatcher.diagnosticType(RetraceUnknownMapVersionDiagnostic.class))
+        .assertWarningsCount(1)
+        .assertWarningsMatch(DiagnosticsMatcher.diagnosticMessage(containsString("98.0")));
   }
 
   private void inspectRetraceTest(
@@ -508,6 +522,7 @@ public class RetraceTests extends TestBase {
                   ProguardMappingSupplier.builder()
                       .setProguardMapProducer(
                           ProguardMapProducer.fromString(stackTraceForTest.mapping()))
+                      .setLoadAllDefinitions(!stream)
                       .setAllowExperimental(allowExperimentalMapping)
                       .build())
               .setRetracedStackTraceConsumer(
