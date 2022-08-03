@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
 import com.android.tools.r8.graph.DexMethod;
+import java.util.Objects;
 
 public class CustomConversionDescriptor implements SpecificationDescriptor {
   private final DexMethod to;
@@ -29,5 +30,22 @@ public class CustomConversionDescriptor implements SpecificationDescriptor {
   public Object[] toJsonStruct(
       MultiAPILevelMachineDesugaredLibrarySpecificationJsonExporter exporter) {
     return exporter.exportCustomConversionDescriptor(this);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof CustomConversionDescriptor)) {
+      return false;
+    }
+    CustomConversionDescriptor that = (CustomConversionDescriptor) o;
+    return to == that.to && from == that.from;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(to, from);
   }
 }

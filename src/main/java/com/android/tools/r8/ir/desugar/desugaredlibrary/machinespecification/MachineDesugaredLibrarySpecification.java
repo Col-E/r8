@@ -4,20 +4,24 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.SemanticVersion;
+import com.android.tools.r8.utils.Timing;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
-public class MachineDesugaredLibrarySpecification {
+public class MachineDesugaredLibrarySpecification implements DesugaredLibrarySpecification {
 
   private final boolean libraryCompilation;
   private final MachineTopLevelFlags topLevelFlags;
@@ -58,6 +62,14 @@ public class MachineDesugaredLibrarySpecification {
 
   public boolean isLibraryCompilation() {
     return libraryCompilation;
+  }
+
+  public MachineTopLevelFlags getTopLevelFlags() {
+    return topLevelFlags;
+  }
+
+  public MachineRewritingFlags getRewritingFlags() {
+    return rewritingFlags;
   }
 
   public AndroidApiLevel getRequiredCompilationAPILevel() {
@@ -206,6 +218,12 @@ public class MachineDesugaredLibrarySpecification {
 
   public AndroidApiLevel getRequiredCompilationApiLevel() {
     return topLevelFlags.getRequiredCompilationAPILevel();
+  }
+
+  @Override
+  public MachineDesugaredLibrarySpecification toMachineSpecification(
+      DexApplication app, Timing timing) throws IOException {
+    return this;
   }
 
   public boolean requiresTypeRewriting() {

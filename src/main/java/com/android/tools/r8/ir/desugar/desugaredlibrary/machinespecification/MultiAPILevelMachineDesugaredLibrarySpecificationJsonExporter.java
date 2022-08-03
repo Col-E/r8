@@ -57,7 +57,8 @@ public class MultiAPILevelMachineDesugaredLibrarySpecificationJsonExporter {
 
   private final DexItemFactory factory;
   private final Map<String, String> packageMap = new TreeMap<>();
-  private static final String chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  private static final String chars =
+      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789æÆøØ";
   private int next = 0;
 
   public MultiAPILevelMachineDesugaredLibrarySpecificationJsonExporter(DexItemFactory factory) {
@@ -148,7 +149,7 @@ public class MultiAPILevelMachineDesugaredLibrarySpecificationJsonExporter {
       String key, Map<? extends DexItem, DexMethod[]> map, Map<String, Object> toJson) {
     if (!map.isEmpty()) {
       TreeMap<String, Object> stringMap = new TreeMap<>();
-      map.forEach((k, v) -> stringMap.put(toString(k), methodArraytoJsonStruct(v)));
+      map.forEach((k, v) -> stringMap.put(toString(k), methodArrayToJsonStruct(v)));
       toJson.put(key, stringMap);
     }
   }
@@ -229,10 +230,10 @@ public class MultiAPILevelMachineDesugaredLibrarySpecificationJsonExporter {
     return stringCol;
   }
 
-  private String[] methodArraytoJsonStruct(DexMethod[] methodArray) {
+  private String[] methodArrayToJsonStruct(DexMethod[] methodArray) {
     String[] strings = new String[methodArray.length];
     for (int i = 0; i < methodArray.length; i++) {
-      strings[i] = toString(methodArray[i]);
+      strings[i] = methodArray[i] == null ? "" : toString(methodArray[i]);
     }
     return strings;
   }

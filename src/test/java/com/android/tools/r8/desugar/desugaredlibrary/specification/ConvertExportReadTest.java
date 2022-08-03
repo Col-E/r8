@@ -4,7 +4,9 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.specification;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.StringResource;
@@ -15,6 +17,8 @@ import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.ApiLevelRange;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanTopLevelFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.MultiAPILevelHumanDesugaredLibrarySpecification;
@@ -22,11 +26,17 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.Multi
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.MultiAPILevelHumanDesugaredLibrarySpecificationParser;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.MultiAPILevelLegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.MultiAPILevelLegacyDesugaredLibrarySpecificationParser;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecificationParser;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineRewritingFlags;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineTopLevelFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MultiAPILevelMachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MultiAPILevelMachineDesugaredLibrarySpecificationJsonExporter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.HumanToMachineSpecificationConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.LegacyToHumanSpecificationConverter;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.synthesis.SyntheticNaming;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
@@ -50,7 +60,7 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
   }
 
   @Test
-  public void testMultiLevel() throws IOException {
+  public void testMultiLevelLegacy() throws IOException {
     Assume.assumeTrue(ToolHelper.isLocalDevelopment());
 
     LibraryDesugaringSpecification legacySpec = LibraryDesugaringSpecification.JDK8;
@@ -87,6 +97,67 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
         converter2.convertAllAPILevels(humanSpec2, app);
     MultiAPILevelMachineDesugaredLibrarySpecificationJsonExporter.export(
         machineSpec1, (string, handler) -> json2.set(string), options.dexItemFactory());
+
+    MachineDesugaredLibrarySpecification machineSpecParsed =
+        new MachineDesugaredLibrarySpecificationParser(
+                options.dexItemFactory(),
+                options.reporter,
+                true,
+                AndroidApiLevel.B.getLevel(),
+                new SyntheticNaming())
+            .parse(StringResource.fromString(json2.get(), Origin.unknown()));
+    assertFalse(machineSpecParsed.getRewriteType().isEmpty());
+  }
+
+  @Test
+  public void testSingleLevel() throws IOException {
+    Assume.assumeTrue(ToolHelper.isLocalDevelopment());
+
+    LibraryDesugaringSpecification humanSpec = LibraryDesugaringSpecification.JDK11_PATH;
+
+    InternalOptions options = new InternalOptions();
+
+    DexApplication app = humanSpec.getAppForTesting(options, true);
+
+    MultiAPILevelHumanDesugaredLibrarySpecification humanSpec2 =
+        new MultiAPILevelHumanDesugaredLibrarySpecificationParser(
+                options.dexItemFactory(), options.reporter)
+            .parseMultiLevelConfiguration(StringResource.fromFile(humanSpec.getSpecification()));
+
+    Box<String> json2 = new Box<>();
+    HumanToMachineSpecificationConverter converter2 =
+        new HumanToMachineSpecificationConverter(Timing.empty());
+    MultiAPILevelMachineDesugaredLibrarySpecification machineSpec1 =
+        converter2.convertAllAPILevels(humanSpec2, app);
+    MultiAPILevelMachineDesugaredLibrarySpecificationJsonExporter.export(
+        machineSpec1, (string, handler) -> json2.set(string), options.dexItemFactory());
+
+    for (AndroidApiLevel api :
+        new AndroidApiLevel[] {AndroidApiLevel.B, AndroidApiLevel.N, AndroidApiLevel.O}) {
+      MachineDesugaredLibrarySpecification machineSpecParsed =
+          new MachineDesugaredLibrarySpecificationParser(
+                  options.dexItemFactory(),
+                  options.reporter,
+                  true,
+                  api.getLevel(),
+                  new SyntheticNaming())
+              .parse(StringResource.fromString(json2.get(), Origin.unknown()));
+
+      HumanDesugaredLibrarySpecification humanSpecB =
+          new HumanDesugaredLibrarySpecificationParser(
+                  options.dexItemFactory(), options.reporter, true, api.getLevel())
+              .parse(StringResource.fromFile(humanSpec.getSpecification()));
+      MachineDesugaredLibrarySpecification machineSpecConverted =
+          humanSpecB.toMachineSpecification(app, Timing.empty());
+
+      assertSpecEquals(machineSpecConverted, machineSpecParsed);
+    }
+  }
+
+  private void assertSpecEquals(
+      MachineDesugaredLibrarySpecification spec1, MachineDesugaredLibrarySpecification spec2) {
+    assertTopLevelFlagsEquals(spec1.getTopLevelFlags(), spec2.getTopLevelFlags());
+    assertFlagsEquals(spec1.getRewritingFlags(), spec2.getRewritingFlags());
   }
 
   private void assertSpecEquals(
@@ -106,6 +177,46 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
       assertTrue(commonFlags2.containsKey(range));
       assertFlagsEquals(commonFlags1.get(range), commonFlags2.get(range));
     }
+  }
+
+  private void assertFlagsEquals(
+      MachineRewritingFlags rewritingFlags1, MachineRewritingFlags rewritingFlags2) {
+    assertEquals(rewritingFlags1.getRewriteType(), rewritingFlags2.getRewriteType());
+    assertEquals(rewritingFlags1.getMaintainType(), rewritingFlags2.getMaintainType());
+    assertEquals(
+        rewritingFlags1.getRewriteDerivedTypeOnly(), rewritingFlags2.getRewriteDerivedTypeOnly());
+    assertEquals(
+        rewritingFlags1.getStaticFieldRetarget(), rewritingFlags2.getStaticFieldRetarget());
+    assertEquals(rewritingFlags1.getCovariantRetarget(), rewritingFlags2.getCovariantRetarget());
+    assertEquals(rewritingFlags1.getStaticRetarget(), rewritingFlags2.getStaticRetarget());
+    assertEquals(
+        rewritingFlags1.getNonEmulatedVirtualRetarget(),
+        rewritingFlags2.getNonEmulatedVirtualRetarget());
+    assertEquals(
+        rewritingFlags1.getEmulatedVirtualRetarget(), rewritingFlags2.getEmulatedVirtualRetarget());
+    assertEquals(
+        rewritingFlags1.getEmulatedVirtualRetargetThroughEmulatedInterface(),
+        rewritingFlags2.getEmulatedVirtualRetargetThroughEmulatedInterface());
+    assertEquals(
+        rewritingFlags1.getApiGenericConversion().keySet(),
+        rewritingFlags2.getApiGenericConversion().keySet());
+    rewritingFlags1
+        .getApiGenericConversion()
+        .keySet()
+        .forEach(
+            k ->
+                assertArrayEquals(
+                    rewritingFlags1.getApiGenericConversion().get(k),
+                    rewritingFlags2.getApiGenericConversion().get(k)));
+    assertEquals(
+        rewritingFlags1.getEmulatedInterfaces().keySet(),
+        rewritingFlags2.getEmulatedInterfaces().keySet());
+    assertEquals(rewritingFlags1.getWrappers().keySet(), rewritingFlags2.getWrappers().keySet());
+    assertEquals(rewritingFlags1.getLegacyBackport(), rewritingFlags2.getLegacyBackport());
+    assertEquals(rewritingFlags1.getDontRetarget(), rewritingFlags2.getDontRetarget());
+    assertEquals(rewritingFlags1.getCustomConversions(), rewritingFlags2.getCustomConversions());
+    assertEquals(rewritingFlags1.getAmendLibraryMethod(), rewritingFlags2.getAmendLibraryMethod());
+    assertEquals(rewritingFlags1.getAmendLibraryField(), rewritingFlags2.getAmendLibraryField());
   }
 
   private void assertFlagsEquals(
@@ -133,6 +244,20 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
 
     assertEquals(
         humanRewritingFlags1.getAmendLibraryMethod(), humanRewritingFlags2.getAmendLibraryMethod());
+  }
+
+  private void assertTopLevelFlagsEquals(
+      MachineTopLevelFlags topLevelFlags1, MachineTopLevelFlags topLevelFlags2) {
+    String kr1 = String.join("\n", topLevelFlags1.getExtraKeepRules());
+    String kr2 = String.join("\n", topLevelFlags2.getExtraKeepRules());
+    assertEquals(kr1, kr2);
+    assertEquals(topLevelFlags1.getIdentifier(), topLevelFlags2.getIdentifier());
+    assertEquals(
+        topLevelFlags1.getRequiredCompilationAPILevel().getLevel(),
+        topLevelFlags2.getRequiredCompilationAPILevel().getLevel());
+    assertEquals(
+        topLevelFlags1.getSynthesizedLibraryClassesPackagePrefix(),
+        topLevelFlags2.getSynthesizedLibraryClassesPackagePrefix());
   }
 
   private void assertTopLevelFlagsEquals(
