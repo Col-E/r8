@@ -44,7 +44,7 @@ public class MachineTopLevelFlags {
     this.extraKeepRules = extraKeepRules;
   }
 
-  public AndroidApiLevel getRequiredCompilationAPILevel() {
+  public AndroidApiLevel getRequiredCompilationApiLevel() {
     return requiredCompilationAPILevel;
   }
 

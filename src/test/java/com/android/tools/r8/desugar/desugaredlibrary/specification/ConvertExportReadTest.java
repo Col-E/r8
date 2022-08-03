@@ -253,8 +253,8 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
     assertEquals(kr1, kr2);
     assertEquals(topLevelFlags1.getIdentifier(), topLevelFlags2.getIdentifier());
     assertEquals(
-        topLevelFlags1.getRequiredCompilationAPILevel().getLevel(),
-        topLevelFlags2.getRequiredCompilationAPILevel().getLevel());
+        topLevelFlags1.getRequiredCompilationApiLevel().getLevel(),
+        topLevelFlags2.getRequiredCompilationApiLevel().getLevel());
     assertEquals(
         topLevelFlags1.getSynthesizedLibraryClassesPackagePrefix(),
         topLevelFlags2.getSynthesizedLibraryClassesPackagePrefix());

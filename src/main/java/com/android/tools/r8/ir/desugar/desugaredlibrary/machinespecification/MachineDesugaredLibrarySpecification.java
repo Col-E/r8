@@ -56,10 +56,12 @@ public class MachineDesugaredLibrarySpecification implements DesugaredLibrarySpe
     this.rewritingFlags = rewritingFlags;
   }
 
+  @Override
   public boolean isEmpty() {
     return rewritingFlags.isEmpty();
   }
 
+  @Override
   public boolean isLibraryCompilation() {
     return libraryCompilation;
   }
@@ -72,10 +74,12 @@ public class MachineDesugaredLibrarySpecification implements DesugaredLibrarySpe
     return rewritingFlags;
   }
 
-  public AndroidApiLevel getRequiredCompilationAPILevel() {
-    return topLevelFlags.getRequiredCompilationAPILevel();
+  @Override
+  public AndroidApiLevel getRequiredCompilationApiLevel() {
+    return topLevelFlags.getRequiredCompilationApiLevel();
   }
 
+  @Override
   public String getSynthesizedLibraryClassesPackagePrefix() {
     return topLevelFlags.getSynthesizedLibraryClassesPackagePrefix();
   }
@@ -84,6 +88,7 @@ public class MachineDesugaredLibrarySpecification implements DesugaredLibrarySpe
     return topLevelFlags.getIdentifier();
   }
 
+  @Override
   public String getJsonSource() {
     return topLevelFlags.getJsonSource();
   }
@@ -92,6 +97,7 @@ public class MachineDesugaredLibrarySpecification implements DesugaredLibrarySpe
     return topLevelFlags.supportAllCallbacksFromLibrary();
   }
 
+  @Override
   public List<String> getExtraKeepRules() {
     return topLevelFlags.getExtraKeepRules();
   }
@@ -214,10 +220,6 @@ public class MachineDesugaredLibrarySpecification implements DesugaredLibrarySpe
       }
     }
     return false;
-  }
-
-  public AndroidApiLevel getRequiredCompilationApiLevel() {
-    return topLevelFlags.getRequiredCompilationAPILevel();
   }
 
   @Override

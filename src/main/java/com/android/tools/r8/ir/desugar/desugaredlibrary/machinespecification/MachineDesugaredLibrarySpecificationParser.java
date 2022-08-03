@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
+import static com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser.CONFIGURATION_FORMAT_VERSION_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineSpecificationJsonPool.AMEND_LIBRARY_FIELD_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineSpecificationJsonPool.AMEND_LIBRARY_METHOD_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineSpecificationJsonPool.API_GENERIC_TYPES_CONVERSION_KEY;
@@ -61,6 +62,9 @@ import java.util.List;
 import java.util.Map;
 
 public class MachineDesugaredLibrarySpecificationParser {
+
+  private static final int MIN_SUPPORTED_VERSION = 200;
+  private static final int MAX_SUPPORTED_VERSION = 200;
 
   private static final String ERROR_MESSAGE_PREFIX = "Invalid desugared library specification: ";
 
@@ -127,6 +131,19 @@ public class MachineDesugaredLibrarySpecificationParser {
       Origin origin, String jsonConfigString, JsonObject jsonConfig) {
     this.origin = origin;
     this.jsonConfig = jsonConfig;
+    int machineVersion = required(jsonConfig, CONFIGURATION_FORMAT_VERSION_KEY).getAsInt();
+    if (machineVersion < MIN_SUPPORTED_VERSION || machineVersion > MAX_SUPPORTED_VERSION) {
+      throw reporter.fatalError(
+          new StringDiagnostic(
+              "Unsupported machine version number "
+                  + machineVersion
+                  + " not in ["
+                  + MIN_SUPPORTED_VERSION
+                  + ","
+                  + MAX_SUPPORTED_VERSION
+                  + "]",
+              origin));
+    }
     MachineTopLevelFlags topLevelFlags = parseTopLevelFlags(jsonConfigString);
     parsePackageMap();
     MachineRewritingFlags rewritingFlags = parseRewritingFlags();

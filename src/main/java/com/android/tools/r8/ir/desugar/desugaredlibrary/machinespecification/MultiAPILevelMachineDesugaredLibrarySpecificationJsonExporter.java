@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
+import static com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser.CONFIGURATION_FORMAT_VERSION_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineSpecificationJsonPool.AMEND_LIBRARY_FIELD_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineSpecificationJsonPool.AMEND_LIBRARY_METHOD_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineSpecificationJsonPool.API_GENERIC_TYPES_CONVERSION_KEY;
@@ -55,6 +56,8 @@ import java.util.TreeMap;
 
 public class MultiAPILevelMachineDesugaredLibrarySpecificationJsonExporter {
 
+  private static final int MACHINE_VERSION_NUMBER = 200;
+
   private final DexItemFactory factory;
   private final Map<String, String> packageMap = new TreeMap<>();
   private static final String chars =
@@ -78,7 +81,7 @@ public class MultiAPILevelMachineDesugaredLibrarySpecificationJsonExporter {
     HashMap<String, Object> toJson = new LinkedHashMap<>();
 
     exportTopLevelFlags(machineSpec.getTopLevelFlags(), toJson);
-    // TODO(): export format version for compat internal to R8.
+    toJson.put(CONFIGURATION_FORMAT_VERSION_KEY, MACHINE_VERSION_NUMBER);
 
     toJson.put(COMMON_FLAGS_KEY, rewritingFlagsToString(machineSpec.getCommonFlags()));
     toJson.put(PROGRAM_FLAGS_KEY, rewritingFlagsToString(machineSpec.getProgramFlags()));
@@ -95,7 +98,7 @@ public class MultiAPILevelMachineDesugaredLibrarySpecificationJsonExporter {
     toJson.put(IDENTIFIER_KEY, topLevelFlags.getIdentifier());
     toJson.put(
         REQUIRED_COMPILATION_API_LEVEL_KEY,
-        topLevelFlags.getRequiredCompilationAPILevel().getLevel());
+        topLevelFlags.getRequiredCompilationApiLevel().getLevel());
     toJson.put(
         SYNTHESIZED_LIBRARY_CLASSES_PACKAGE_PREFIX_KEY,
         topLevelFlags.getSynthesizedLibraryClassesPackagePrefix());
