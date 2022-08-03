@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.experimental.startup.StartupOrder;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.synthesis.SyntheticItems;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
 
 /**
@@ -24,6 +25,7 @@ public class AccessControl {
         clazz,
         context,
         appView.appInfo().getClassToFeatureSplitMap(),
+        appView.options(),
         appView.appInfo().getStartupOrder(),
         appView.getSyntheticItems());
   }
@@ -32,6 +34,7 @@ public class AccessControl {
       DexClass clazz,
       Definition context,
       ClassToFeatureSplitMap classToFeatureSplitMap,
+      InternalOptions options,
       StartupOrder startupOrder,
       SyntheticItems syntheticItems) {
     if (!clazz.isPublic() && !clazz.getType().isSamePackage(context.getContextType())) {
@@ -40,7 +43,11 @@ public class AccessControl {
     if (clazz.isProgramClass()
         && context.isProgramDefinition()
         && !classToFeatureSplitMap.isInBaseOrSameFeatureAs(
-            clazz.asProgramClass(), context.asProgramDefinition(), startupOrder, syntheticItems)) {
+            clazz.asProgramClass(),
+            context.asProgramDefinition(),
+            options,
+            startupOrder,
+            syntheticItems)) {
       return OptionalBool.UNKNOWN;
     }
     return OptionalBool.TRUE;
@@ -78,6 +85,7 @@ public class AccessControl {
             initialResolutionHolder,
             context,
             appInfo.getClassToFeatureSplitMap(),
+            appInfo.options(),
             appInfo.getStartupOrder(),
             appInfo.getSyntheticItems());
     if (classAccessibility.isFalse()) {

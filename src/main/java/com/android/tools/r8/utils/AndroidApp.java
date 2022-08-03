@@ -37,7 +37,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.startup.StartupOrder;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
@@ -466,7 +465,7 @@ public class AndroidApp {
     return programResourcesMainDescriptor.get(resource);
   }
 
-  public void dump(Path output, DumpOptions options, Reporter reporter, DexItemFactory factory) {
+  public void dump(Path output, DumpOptions dumpOptions, InternalOptions options) {
     int nextDexIndex = 0;
     OpenOption[] openOptions =
         new OpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING};
@@ -476,26 +475,26 @@ public class AndroidApp {
       writeToZipStream(
           out,
           dumpBuildPropertiesFileName,
-          options.getBuildPropertiesFileContent().getBytes(),
+          dumpOptions.getBuildPropertiesFileContent().getBytes(),
           ZipEntry.DEFLATED);
-      if (options.getDesugaredLibraryJsonSource() != null) {
+      if (dumpOptions.getDesugaredLibraryJsonSource() != null) {
         writeToZipStream(
             out,
             dumpDesugaredLibraryFileName,
-            options.getDesugaredLibraryJsonSource().getBytes(),
+            dumpOptions.getDesugaredLibraryJsonSource().getBytes(),
             ZipEntry.DEFLATED);
-        if (options.dumpInputToFile()) {
-          reporter.warning(
+        if (dumpOptions.dumpInputToFile()) {
+          options.reporter.warning(
               "Dumping a compilation with desugared library on a file may prevent reproduction,"
                   + " use dumpInputToDirectory property instead.");
         }
       }
-      if (options.getParsedProguardConfiguration() != null) {
-        String proguardConfig = options.getParsedProguardConfiguration();
+      if (dumpOptions.getParsedProguardConfiguration() != null) {
+        String proguardConfig = dumpOptions.getParsedProguardConfiguration();
         writeToZipStream(out, dumpConfigFileName, proguardConfig.getBytes(), ZipEntry.DEFLATED);
       }
       if (proguardMapInputData != null) {
-        reporter.warning(
+        options.reporter.warning(
             "Dumping proguard map input data may have side effects due to I/O on Paths.");
         writeToZipStream(
             out,
@@ -506,7 +505,7 @@ public class AndroidApp {
       if (hasMainDexList()) {
         List<String> mainDexList = new ArrayList<>();
         if (hasMainDexListResources()) {
-          reporter.warning(
+          options.reporter.warning(
               "Dumping main dex list resources may have side effects due to I/O on Paths.");
           for (StringResource mainDexListResource : getMainDexListResources()) {
             mainDexList.add(mainDexListResource.getString());
@@ -518,25 +517,24 @@ public class AndroidApp {
         String join = StringUtils.join("\n", mainDexList);
         writeToZipStream(out, dumpMainDexListResourceFileName, join.getBytes(), ZipEntry.DEFLATED);
       }
-      if (options.hasMainDexKeepRules()) {
+      if (dumpOptions.hasMainDexKeepRules()) {
         writeToZipStream(
             out,
             dumpMainDexRulesResourceFileName,
-            StringUtils.joinLines(options.getMainDexKeepRules()).getBytes(),
+            StringUtils.joinLines(dumpOptions.getMainDexKeepRules()).getBytes(),
             ZipEntry.DEFLATED);
       }
       nextDexIndex =
           dumpProgramResources(
               dumpProgramFileName,
-              options.getFeatureSplitConfiguration(),
+              dumpOptions.getFeatureSplitConfiguration(),
               nextDexIndex,
               out,
-              reporter,
-              factory);
+              options);
       nextDexIndex = dumpClasspathResources(nextDexIndex, out);
       nextDexIndex = dumpLibraryResources(nextDexIndex, out);
     } catch (IOException | ResourceException e) {
-      throw reporter.fatalError(new ExceptionDiagnostic(e));
+      throw options.reporter.fatalError(new ExceptionDiagnostic(e));
     }
   }
 
@@ -584,10 +582,8 @@ public class AndroidApp {
       FeatureSplitConfiguration featureSplitConfiguration,
       int nextDexIndex,
       ZipOutputStream out,
-      Reporter reporter,
-      DexItemFactory dexItemFactory)
+      InternalOptions options)
       throws IOException, ResourceException {
-
     Map<FeatureSplit, String> featureSplitArchiveNames =
         dumpFeatureSplitFileNames(featureSplitConfiguration);
     Map<FeatureSplit, ByteArrayOutputStream> featureSplitArchiveByteStreams =
@@ -596,7 +592,7 @@ public class AndroidApp {
     try {
       ClassToFeatureSplitMap classToFeatureSplitMap =
           ClassToFeatureSplitMap.createInitialClassToFeatureSplitMap(
-              dexItemFactory, featureSplitConfiguration, reporter);
+              options.dexItemFactory(), featureSplitConfiguration, options.reporter);
       if (featureSplitConfiguration != null) {
         for (FeatureSplit featureSplit : featureSplitConfiguration.getFeatureSplits()) {
           ByteArrayOutputStream archiveByteStream = new ByteArrayOutputStream();
@@ -624,11 +620,11 @@ public class AndroidApp {
                       nextDexIndex,
                       classDescriptor -> {
                         if (featureSplitConfiguration != null) {
-                          DexType type = dexItemFactory.createType(classDescriptor);
+                          DexType type = options.dexItemFactory().createType(classDescriptor);
                           SyntheticItems syntheticItems = null;
                           FeatureSplit featureSplit =
                               classToFeatureSplitMap.getFeatureSplit(
-                                  type, StartupOrder.empty(), syntheticItems);
+                                  type, options, StartupOrder.empty(), syntheticItems);
                           if (featureSplit != null && !featureSplit.isBase()) {
                             return featureSplitArchiveOutputStreams.get(featureSplit);
                           }

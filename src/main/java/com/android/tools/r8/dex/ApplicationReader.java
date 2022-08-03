@@ -166,7 +166,7 @@ public class ApplicationReader {
     }
     Path dumpOutput = dumpInputFlags.getDumpPath();
     timing.begin("ApplicationReader.dump");
-    inputApp.dump(dumpOutput, dumpOptions, options.reporter, options.dexItemFactory());
+    inputApp.dump(dumpOutput, dumpOptions, options);
     timing.end();
     Diagnostic message = new StringDiagnostic("Dumped compilation inputs to: " + dumpOutput);
     if (dumpInputFlags.shouldFailCompilation()) {

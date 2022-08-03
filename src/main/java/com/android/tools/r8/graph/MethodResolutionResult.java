@@ -1272,6 +1272,7 @@ public abstract class MethodResolutionResult
                                       clazz,
                                       context,
                                       appInfo.getClassToFeatureSplitMap(),
+                                      appInfo.options(),
                                       appInfo.getStartupOrder(),
                                       appInfo.getSyntheticItems())
                                   .isPossiblyFalse())),

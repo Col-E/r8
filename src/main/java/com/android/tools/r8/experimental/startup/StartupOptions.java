@@ -18,6 +18,16 @@ public class StartupOptions {
           "com.android.tools.r8.startup.minimalstartupdex", false);
 
   /**
+   * When enabled, optimizations crossing the startup/non-startup boundary will be allowed.
+   *
+   * <p>The disabling of this may help to avoid that more code may be loaded during startup as a
+   * result of optimizations such as inlining and class merging.
+   */
+  private boolean enableStartupBoundaryOptimizations =
+      parseSystemPropertyForDevelopmentOrDefault(
+          "com.android.tools.r8.startup.boundaryoptimizations", false);
+
+  /**
    * When enabled, each method that is not classified as a startup method at the end of compilation
    * will be changed to have a throwing method body.
    *
@@ -99,6 +109,10 @@ public class StartupOptions {
   public StartupOptions setEnableMinimalStartupDex(boolean enableMinimalStartupDex) {
     this.enableMinimalStartupDex = enableMinimalStartupDex;
     return this;
+  }
+
+  public boolean isStartupBoundaryOptimizationsEnabled() {
+    return enableStartupBoundaryOptimizations;
   }
 
   public boolean isStartupInstrumentationEnabled() {
