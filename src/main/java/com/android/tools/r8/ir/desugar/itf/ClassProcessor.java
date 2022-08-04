@@ -49,6 +49,7 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
@@ -654,6 +655,27 @@ final class ClassProcessor {
       DexClass resolvedHolder = resolutionResult.asSingleResolution().getResolvedHolder();
       if (!resolvedHolder.isLibraryClass()
           && !emulatedInterfaceInfo.contains(resolvedHolder.type)) {
+        return true;
+      }
+      // If the method overrides an abstract method which does not match the criteria, then
+      // forwarding methods are required so the invokes on the top level holder can resolve at
+      // runtime. See b/202188674.
+      if (overridesAbstractNonLibraryInterfaceMethod(
+          clazz, signature.get(), emulatedInterfaceInfo)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean overridesAbstractNonLibraryInterfaceMethod(
+      DexClass clazz, DexMethod dexMethod, EmulatedInterfaceInfo emulatedInterfaceInfo) {
+    List<Entry<DexClass, DexEncodedMethod>> abstractInterfaceMethods =
+        appView.appInfoForDesugaring().getAbstractInterfaceMethods(clazz, dexMethod);
+    for (Entry<DexClass, DexEncodedMethod> classAndMethod : abstractInterfaceMethods) {
+      DexClass foundMethodClass = classAndMethod.getKey();
+      if (!foundMethodClass.isLibraryClass()
+          && !emulatedInterfaceInfo.contains(foundMethodClass.type)) {
         return true;
       }
     }

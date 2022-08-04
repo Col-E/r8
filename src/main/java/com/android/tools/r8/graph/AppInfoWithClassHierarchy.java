@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -554,6 +555,16 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   public DexClassAndMethod lookupMaximallySpecificMethod(DexClass clazz, DexMethod method) {
     return MethodResolution.createLegacy(this::definitionFor, dexItemFactory())
         .lookupMaximallySpecificTarget(clazz, method);
+  }
+
+  /**
+   * Helper methods used for emulated interface resolution (not in JVM specifications). Answers the
+   * abstract interface methods that the resolution could but does not necessarily resolve into.
+   */
+  public List<Entry<DexClass, DexEncodedMethod>> getAbstractInterfaceMethods(
+      DexClass clazz, DexMethod method) {
+    return MethodResolution.createLegacy(this::definitionFor, dexItemFactory())
+        .getAbstractInterfaceMethods(clazz, method);
   }
 
   MethodResolutionResult resolveMaximallySpecificTarget(DexClass clazz, DexMethod method) {

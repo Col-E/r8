@@ -241,6 +241,12 @@ public class MethodResolution {
     return resolveMaximallySpecificTargetHelper(clazz, method).lookup();
   }
 
+  // Non-private method used for emulated interface only.
+  List<Entry<DexClass, DexEncodedMethod>> getAbstractInterfaceMethods(
+      DexClass clazz, DexMethod method) {
+    return resolveMaximallySpecificTargetHelper(clazz, method).getAbstractMethods();
+  }
+
   private MaximallySpecificMethodsBuilder resolveMaximallySpecificTargetHelper(
       DexClass clazz, DexMethod method) {
     MaximallySpecificMethodsBuilder builder =
@@ -704,6 +710,28 @@ public class MethodResolution {
         }
       }
       return nonAbstractMethods;
+    }
+
+    List<Entry<DexClass, DexEncodedMethod>> getAbstractMethods() {
+      List<Entry<DexClass, DexEncodedMethod>> abstractMethods = new ArrayList<>();
+      addAbstractMethods(abstractMethods, maximallySpecificMethodsOnCompletePaths);
+      addAbstractMethods(abstractMethods, maximallySpecificMethodsOnIncompletePaths);
+      return abstractMethods;
+    }
+
+    private void addAbstractMethods(
+        List<Entry<DexClass, DexEncodedMethod>> abstractMethods,
+        Map<DexClass, DexEncodedMethod> candidates) {
+      for (Entry<DexClass, DexEncodedMethod> entry : candidates.entrySet()) {
+        DexEncodedMethod method = entry.getValue();
+        if (method == null) {
+          // Ignore shadowed candidates.
+          continue;
+        }
+        if (method.isAbstract()) {
+          abstractMethods.add(entry);
+        }
+      }
     }
 
     private static SingleResolutionResult<?> singleResultHelper(
