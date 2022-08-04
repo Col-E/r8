@@ -62,11 +62,4 @@ public class DexFileMergerHelper {
 
     D8.runForTesting(command.getInputApp(), options);
   }
-
-  public static void runD8ForTesting(D8Command command, boolean dontCreateMarkerInD8)
-      throws CompilationFailedException {
-    InternalOptions options = command.getInternalOptions();
-    options.testing.dontCreateMarkerInD8 = dontCreateMarkerInD8;
-    D8.runForTesting(command.getInputApp(), options);
-  }
 }
