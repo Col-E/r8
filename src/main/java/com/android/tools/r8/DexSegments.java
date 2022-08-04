@@ -97,9 +97,17 @@ public class DexSegments {
     System.out.println("Segments in dex application (name: size / items):");
     // This output is parsed by tools/test_framework.py. Check the parsing there when updating.
     result.forEach(
-        (key, value) ->
-            System.out.println(
-                " - " + DexSection.typeName(key) + ": " + value.size + " / " + value.items));
+        (key, value) -> {
+          System.out.print(
+              " - " + DexSection.typeName(key) + ": " + value.size + " / " + value.items);
+          if (key == Constants.TYPE_TYPE_LIST) {
+            // Type items header is just a uint, and each element is a ushort. see
+            // https://source.android.com/devices/tech/dalvik/dex-format#type-list.
+            int typeItemsSize = (value.size - value.items * 4);
+            System.out.print(" (TypeItems: " + typeItemsSize + " / " + (typeItemsSize / 2) + ")");
+          }
+          System.out.println();
+        });
   }
 
   public static Map<Integer, SegmentInfo> run(Command command)
