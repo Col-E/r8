@@ -9,12 +9,10 @@ import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugari
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -29,7 +27,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -37,25 +34,6 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class HelloWorldCompiledOnArtTest extends DesugaredLibraryTestBase {
-
-  // TODO(b/142621961): Create an abstraction to easily run tests on External DexR8.
-  // Manage pathMock in the abstraction.
-  private static Path pathMock;
-
-  @BeforeClass
-  public static void compilePathBackport() throws Exception {
-    assumeTrue("JDK8 is not checked-in on Windows", !ToolHelper.isWindows());
-    pathMock = getStaticTemp().newFolder("PathMock").toPath();
-    javac(TestRuntime.getCheckedInJdk8(), getStaticTemp())
-        .setOutputPath(pathMock)
-        .addSourceFiles(
-            getAllFilesWithSuffixInDirectory(Paths.get("src/test/r8OnArtBackport"), "java"))
-        .compile();
-  }
-
-  public static Path[] getPathBackport() throws Exception {
-    return getAllFilesWithSuffixInDirectory(pathMock, "class");
-  }
 
   private final TestParameters parameters;
   private final CompilationSpecification compilationSpecification;
@@ -65,7 +43,7 @@ public class HelloWorldCompiledOnArtTest extends DesugaredLibraryTestBase {
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters()
-            .withDexRuntimesStartingFromIncluding(Version.V7_0_0)
+            .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
             .withApiLevelsStartingAtIncluding(AndroidApiLevel.L)
             .build(),
         ImmutableList.of(JDK11_PATH),
@@ -132,14 +110,11 @@ public class HelloWorldCompiledOnArtTest extends DesugaredLibraryTestBase {
   }
 
   private DesugaredLibraryTestCompileResult<?> compileR8ToDexWithD8() throws Exception {
-    Path[] pathBackport = getPathBackport();
+    assert parameters.getApiLevel().getLevel() >= AndroidApiLevel.O.getLevel()
+        || libraryDesugaringSpecification.hasNioFileDesugaring(parameters);
     return testForDesugaredLibrary(
             parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
-        .applyIf(
-            parameters.getApiLevel().getLevel() < AndroidApiLevel.O.getLevel()
-                && !libraryDesugaringSpecification.hasNioFileDesugaring(parameters),
-            b -> b.addProgramFiles(pathBackport))
         .addOptionsModification(
             options -> {
               options.testing.enableD8ResourcesPassThrough = true;
