@@ -56,6 +56,7 @@ public class RelocatorTest extends TestBase {
   }
 
   public RelocatorTest(TestParameters parameters, boolean external) {
+    parameters.assertNoneRuntime();
     this.external = external;
   }
 
@@ -275,15 +276,15 @@ public class RelocatorTest extends TestBase {
   }
 
   @Test
-  public void testNest() throws IOException, CompilationFailedException, ExecutionException {
+  public void testNest() throws IOException, CompilationFailedException {
     String originalPrefix = "com.android.tools.r8";
     String newPrefix = "com.android.tools.r8";
     Path output = temp.newFile("output.jar").toPath();
     Map<String, String> mapping = new HashMap<>();
     mapping.put(originalPrefix, newPrefix);
-    runRelocator(ToolHelper.R8_WITH_DEPS_11_JAR, mapping, output);
+    runRelocator(ToolHelper.R8_WITH_DEPS_17_JAR, mapping, output);
     // Assert that all classes are the same, have the same methods and nest info.
-    CodeInspector originalInspector = new CodeInspector(ToolHelper.R8_WITH_DEPS_11_JAR);
+    CodeInspector originalInspector = new CodeInspector(ToolHelper.R8_WITH_DEPS_17_JAR);
     CodeInspector relocatedInspector = new CodeInspector(output);
     for (FoundClassSubject originalSubject : originalInspector.allClasses()) {
       ClassSubject relocatedSubject = relocatedInspector.clazz(originalSubject.getFinalName());
