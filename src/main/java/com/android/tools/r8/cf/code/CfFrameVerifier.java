@@ -107,15 +107,17 @@ public class CfFrameVerifier {
     for (int i = 0; i < code.getInstructions().size(); i++) {
       CfInstruction instruction = code.getInstruction(i);
       assert !state.isError();
-      // Check the exceptional edge prior to evaluating the instruction. The local state is stable
-      // at this point as store operations are not throwing and the current stack does not
-      // affect the exceptional transfer (the exception edge is always a singleton stack).
-      if (instruction.canThrow()) {
-        assert !instruction.isStore();
-        state = checkExceptionEdges(state, labelToFrameMap);
-      }
       if (instruction.isLabel()) {
         updateActiveCatchHandlers(instruction.asLabel());
+      } else {
+        // The ExceptionStackFrame is defined as the current frame having an empty operand stack.
+        // All instructions, not only throwing instructions, check the exception frame to be
+        // assignable to all exception edges.
+        // https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.10.1.9
+        if (appView.options().enableCheckAllInstructionsDuringStackMapVerification
+            || instruction.canThrow()) {
+          state = checkExceptionEdges(state, labelToFrameMap);
+        }
       }
       eventConsumer.acceptInstructionState(instruction, state);
       state = instruction.evaluate(state, appView, config);

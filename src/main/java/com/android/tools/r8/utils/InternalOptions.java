@@ -375,6 +375,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean enableRedundantConstNumberOptimization = false;
   public boolean enableLoopUnrolling = true;
 
+  // TODO(b/237567012): Remove when resolved.
+  public boolean enableCheckAllInstructionsDuringStackMapVerification = false;
+
   public String synthesizedClassPrefix = "";
 
   // Number of threads to use while processing the dex files.
