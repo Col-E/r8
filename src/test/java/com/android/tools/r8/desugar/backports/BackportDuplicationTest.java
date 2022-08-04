@@ -13,6 +13,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
@@ -204,7 +205,7 @@ public class BackportDuplicationTest extends TestBase {
 
   @Test
   public void testPerFileIntermediate() throws Exception {
-    ProcessResult result = runDoublePerFileCompilation(true);
+    ProcessResult result = runDoublePerFileCompilation(Backend.CF, true);
     assertEquals(result.toString(), 0, result.exitCode);
     assertEquals(EXPECTED, result.stdout);
   }
@@ -212,7 +213,7 @@ public class BackportDuplicationTest extends TestBase {
   @Test
   public void testPerFileNonIntermediate() throws Exception {
     try {
-      runDoublePerFileCompilation(false);
+      runDoublePerFileCompilation(Backend.CF, false);
       fail("Should expect the compilation to fail.");
     } catch (CompilationFailedException e) {
       assertThat(
@@ -221,26 +222,60 @@ public class BackportDuplicationTest extends TestBase {
     }
   }
 
-  public ProcessResult runDoublePerFileCompilation(boolean intermediate) throws Exception {
+  @Test
+  public void testPerFileNonIntermediateDex() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    try {
+      runDoublePerFileCompilation(Backend.DEX, false);
+      fail("Should expect the compilation to fail.");
+    } catch (CompilationFailedException e) {
+      assertThat(
+          e.getCause().getMessage(),
+          containsString("Attempt at compiling intermediate artifact without its context"));
+    }
+  }
+
+  public ProcessResult runDoublePerFileCompilation(Backend firstRoundOutput, boolean intermediate)
+      throws Exception {
     List<byte[]> outputsRoundOne = new ArrayList<>();
-    testForD8(Backend.CF)
+    testForD8(firstRoundOutput)
         .addProgramClasses(CLASSES)
         .setMinApi(parameters.getApiLevel())
         .setIntermediate(true /* First round is always intermediate. */)
         .setProgramConsumer(
-            new ClassFileConsumer.ForwardingConsumer(null) {
-              @Override
-              public void accept(ByteDataView data, String descriptor, DiagnosticsHandler handler) {
-                outputsRoundOne.add(data.copyByteData());
-              }
-            })
+            firstRoundOutput.isCf()
+                ? new ClassFileConsumer.ForwardingConsumer(null) {
+                  @Override
+                  public void accept(
+                      ByteDataView data, String descriptor, DiagnosticsHandler handler) {
+                    outputsRoundOne.add(data.copyByteData());
+                  }
+                }
+                : new DexFilePerClassFileConsumer.ForwardingConsumer(null) {
+                  @Override
+                  public void accept(
+                      String primaryClassDescriptor,
+                      ByteDataView data,
+                      Set<String> descriptors,
+                      DiagnosticsHandler handler) {
+                    outputsRoundOne.add(data.copyByteData());
+                  }
+
+                  @Override
+                  public boolean combineSyntheticClassesWithPrimaryClass() {
+                    return false;
+                  }
+                })
         .compile();
 
     List<Path> outputsRoundTwo = new ArrayList<>();
     for (byte[] bytes : outputsRoundOne) {
       outputsRoundTwo.add(
           testForD8(parameters.getBackend())
-              .addProgramClassFileData(bytes)
+              .applyIf(
+                  firstRoundOutput.isCf(),
+                  b -> b.addProgramClassFileData(bytes),
+                  b -> b.addProgramDexFileData(bytes))
               .setMinApi(parameters.getApiLevel())
               .setIntermediate(intermediate)
               .compile()

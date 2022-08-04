@@ -47,6 +47,9 @@ public class DexFileMergerHelper {
       throws CompilationFailedException {
     InternalOptions options = command.getInternalOptions();
 
+    // TODO(b/241351268): Don't compile in intermediate mode as the output is a final "shard".
+    options.intermediate = true;
+
     // TODO(b/241063980): Move this to D8Command.Builder.setDisableDesugaring(true) in bazel.
     options.desugarState = DesugarState.OFF;
 
