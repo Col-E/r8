@@ -309,16 +309,6 @@
       }
     },
     {
-      "api_level_below_or_equal": 25,
-      "rewrite_prefix": {
-        "java.io.DesugarFile": "j$.io.DesugarFile",
-        "java.nio.file.": "j$.nio.file."
-      },
-      "retarget_method_with_emulated_dispatch": {
-        "java.nio.file.Path java.io.File#toPath()": "java.io.DesugarFile"
-      }
-    },
-    {
       "api_level_below_or_equal": 23,
       "retarget_method": {
         "int java.util.concurrent.atomic.AtomicInteger#accumulateAndGet(int, java.util.function.IntBinaryOperator)": "java.util.concurrent.atomic.DesugarAtomicInteger",

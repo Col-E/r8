@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.LibraryValidator;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.SemanticVersion;
 import com.android.tools.r8.utils.Timing;
@@ -225,6 +226,7 @@ public class MachineDesugaredLibrarySpecification implements DesugaredLibrarySpe
   @Override
   public MachineDesugaredLibrarySpecification toMachineSpecification(
       DexApplication app, Timing timing) throws IOException {
+    LibraryValidator.validate(app, libraryCompilation, getRequiredCompilationApiLevel());
     return this;
   }
 
