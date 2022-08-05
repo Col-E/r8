@@ -22,12 +22,21 @@ import java.util.Map;
 public class DexSegments {
   public static class Command extends BaseCommand {
 
+    private final boolean csv;
+
     public static class Builder
         extends BaseCommand.Builder<Command, Builder> {
+
+      private boolean csv = false;
 
       @Override
       Command.Builder self() {
         return this;
+      }
+
+      private Builder setCsv(boolean csv) {
+        this.csv = csv;
+        return self();
       }
 
       @Override
@@ -36,7 +45,7 @@ public class DexSegments {
         if (isPrintHelp()) {
           return new Command(isPrintHelp());
         }
-        return new Command(getAppBuilder().build());
+        return new Command(getAppBuilder().build(), csv);
       }
     }
 
@@ -63,6 +72,8 @@ public class DexSegments {
           continue;
         } else if (arg.equals("--help")) {
           builder.setPrintHelp(true);
+        } else if (arg.equals("--csv")) {
+          builder.setCsv(true);
         } else {
           if (arg.startsWith("--")) {
             builder.getReporter().error(new StringDiagnostic("Unknown option: " + arg,
@@ -73,12 +84,14 @@ public class DexSegments {
       }
     }
 
-    private Command(AndroidApp inputApp) {
+    private Command(AndroidApp inputApp, boolean csv) {
       super(inputApp);
+      this.csv = csv;
     }
 
     private Command(boolean printHelp) {
       super(printHelp, false);
+      this.csv = false;
     }
 
     @Override
@@ -90,24 +103,41 @@ public class DexSegments {
   public static void main(String[] args)
       throws IOException, CompilationFailedException, ResourceException {
     Command.Builder builder = Command.parse(args);
-    Map<Integer, SegmentInfo> result = run(builder.build());
+    Command cmd = builder.build();
+    Map<Integer, SegmentInfo> result = run(cmd);
     if (result == null) {
       return;
     }
-    System.out.println("Segments in dex application (name: size / items):");
-    // This output is parsed by tools/test_framework.py. Check the parsing there when updating.
-    result.forEach(
-        (key, value) -> {
-          System.out.print(
-              " - " + DexSection.typeName(key) + ": " + value.size + " / " + value.items);
-          if (key == Constants.TYPE_TYPE_LIST) {
-            // Type items header is just a uint, and each element is a ushort. see
-            // https://source.android.com/devices/tech/dalvik/dex-format#type-list.
-            int typeItemsSize = (value.size - value.items * 4);
-            System.out.print(" (TypeItems: " + typeItemsSize + " / " + (typeItemsSize / 2) + ")");
-          }
-          System.out.println();
-        });
+    if (cmd.csv) {
+      System.out.println("\"Name\",\"Size\",\"Items\"");
+      result.forEach(
+          (key, value) -> {
+            System.out.println(
+                "\"" + DexSection.typeName(key) + "\", " + value.size + ", " + value.items);
+            if (key == Constants.TYPE_TYPE_LIST) {
+              // Type items header is just a uint, and each element is a ushort. see
+              // https://source.android.com/devices/tech/dalvik/dex-format#type-list.
+              int typeItemsSize = (value.size - value.items * 4);
+              System.out.println(
+                  "\"TypeItems\", " + typeItemsSize + ", " + (typeItemsSize / 2) + "");
+            }
+          });
+    } else {
+      System.out.println("Segments in dex application (name: size / items):");
+      // This output is parsed by tools/test_framework.py. Check the parsing there when updating.
+      result.forEach(
+          (key, value) -> {
+            System.out.print(
+                " - " + DexSection.typeName(key) + ": " + value.size + " / " + value.items);
+            if (key == Constants.TYPE_TYPE_LIST) {
+              // Type items header is just a uint, and each element is a ushort. see
+              // https://source.android.com/devices/tech/dalvik/dex-format#type-list.
+              int typeItemsSize = (value.size - value.items * 4);
+              System.out.print(" (TypeItems: " + typeItemsSize + " / " + (typeItemsSize / 2) + ")");
+            }
+            System.out.println();
+          });
+    }
   }
 
   public static Map<Integer, SegmentInfo> run(Command command)
