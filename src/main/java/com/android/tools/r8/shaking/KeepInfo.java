@@ -22,6 +22,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
   private final boolean allowAnnotationRemoval;
   private final boolean allowMinification;
   private final boolean allowOptimization;
+  private final boolean allowRepackaging;
   private final boolean allowShrinking;
   private final boolean allowSignatureRemoval;
   private final boolean checkDiscarded;
@@ -32,6 +33,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       boolean allowAnnotationRemoval,
       boolean allowMinification,
       boolean allowOptimization,
+      boolean allowRepackaging,
       boolean allowShrinking,
       boolean allowSignatureRemoval,
       boolean checkDiscarded,
@@ -40,6 +42,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
     this.allowAnnotationRemoval = allowAnnotationRemoval;
     this.allowMinification = allowMinification;
     this.allowOptimization = allowOptimization;
+    this.allowRepackaging = allowRepackaging;
     this.allowShrinking = allowShrinking;
     this.allowSignatureRemoval = allowSignatureRemoval;
     this.checkDiscarded = checkDiscarded;
@@ -52,6 +55,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
         builder.isAnnotationRemovalAllowed(),
         builder.isMinificationAllowed(),
         builder.isOptimizationAllowed(),
+        builder.isRepackagingAllowed(),
         builder.isShrinkingAllowed(),
         builder.isSignatureRemovalAllowed(),
         builder.isCheckDiscardedEnabled(),
@@ -168,6 +172,10 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
   public abstract boolean isRepackagingAllowed(
       ProgramDefinition definition, GlobalKeepInfoConfiguration configuration);
 
+  boolean internalIsRepackagingAllowed() {
+    return allowRepackaging;
+  }
+
   boolean internalIsAccessModificationRequiredForRepackaging() {
     return requireAccessModificationForRepackaging;
   }
@@ -234,6 +242,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
         && (allowAnnotationRemoval || !other.internalIsAnnotationRemovalAllowed())
         && (allowMinification || !other.internalIsMinificationAllowed())
         && (allowOptimization || !other.internalIsOptimizationAllowed())
+        && (allowRepackaging || !other.internalIsRepackagingAllowed())
         && (allowShrinking || !other.internalIsShrinkingAllowed())
         && (allowSignatureRemoval || !other.internalIsSignatureRemovalAllowed())
         && (!checkDiscarded || other.internalIsCheckDiscardedEnabled());
@@ -256,6 +265,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
     private boolean allowAccessModification;
     private boolean allowAnnotationRemoval;
     private boolean allowMinification;
+    private boolean allowRepackaging;
     private boolean allowOptimization;
     private boolean allowShrinking;
     private boolean allowSignatureRemoval;
@@ -272,6 +282,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       allowAnnotationRemoval = original.internalIsAnnotationRemovalAllowed();
       allowMinification = original.internalIsMinificationAllowed();
       allowOptimization = original.internalIsOptimizationAllowed();
+      allowRepackaging = original.internalIsRepackagingAllowed();
       allowShrinking = original.internalIsShrinkingAllowed();
       allowSignatureRemoval = original.internalIsSignatureRemovalAllowed();
       checkDiscarded = original.internalIsCheckDiscardedEnabled();
@@ -284,6 +295,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       disallowAnnotationRemoval();
       disallowMinification();
       disallowOptimization();
+      disallowRepackaging();
       disallowShrinking();
       disallowSignatureRemoval();
       unsetCheckDiscarded();
@@ -296,6 +308,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       allowAnnotationRemoval();
       allowMinification();
       allowOptimization();
+      allowRepackaging();
       allowShrinking();
       allowSignatureRemoval();
       unsetCheckDiscarded();
@@ -323,6 +336,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
           && isAnnotationRemovalAllowed() == other.internalIsAnnotationRemovalAllowed()
           && isMinificationAllowed() == other.internalIsMinificationAllowed()
           && isOptimizationAllowed() == other.internalIsOptimizationAllowed()
+          && isRepackagingAllowed() == other.internalIsRepackagingAllowed()
           && isShrinkingAllowed() == other.internalIsShrinkingAllowed()
           && isSignatureRemovalAllowed() == other.internalIsSignatureRemovalAllowed()
           && isCheckDiscardedEnabled() == other.internalIsCheckDiscardedEnabled()
@@ -354,6 +368,10 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       return allowOptimization;
     }
 
+    public boolean isRepackagingAllowed() {
+      return allowRepackaging;
+    }
+
     public boolean isShrinkingAllowed() {
       return allowShrinking;
     }
@@ -373,6 +391,19 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     public B disallowMinification() {
       return setAllowMinification(false);
+    }
+
+    public B setAllowRepackaging(boolean allowRepackaging) {
+      this.allowRepackaging = allowRepackaging;
+      return self();
+    }
+
+    public B allowRepackaging() {
+      return setAllowRepackaging(true);
+    }
+
+    public B disallowRepackaging() {
+      return setAllowRepackaging(false);
     }
 
     public B setAllowOptimization(boolean allowOptimization) {
@@ -577,6 +608,11 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       return self();
     }
 
+    public J disallowRepackaging() {
+      builder.disallowRepackaging();
+      return self();
+    }
+
     public J disallowOptimization() {
       builder.disallowOptimization();
       return self();
@@ -608,6 +644,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       applyIf(!builder.isAnnotationRemovalAllowed(), Joiner::disallowAnnotationRemoval);
       applyIf(!builder.isMinificationAllowed(), Joiner::disallowMinification);
       applyIf(!builder.isOptimizationAllowed(), Joiner::disallowOptimization);
+      applyIf(!builder.isRepackagingAllowed(), Joiner::disallowRepackaging);
       applyIf(!builder.isShrinkingAllowed(), Joiner::disallowShrinking);
       applyIf(!builder.isSignatureRemovalAllowed(), Joiner::disallowSignatureRemoval);
       applyIf(builder.isCheckDiscardedEnabled(), Joiner::setCheckDiscarded);

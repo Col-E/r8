@@ -7,7 +7,7 @@ package com.android.tools.r8.repackage;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
@@ -18,11 +18,11 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class RepackageClassWithKeepPackageNameOnTargetTest extends RepackageTestBase {
+public class RepackageClassesWithDontObfuscateTest extends RepackageTestBase {
 
   private static final String DESTINATION_PACKAGE = "other.package";
 
-  public RepackageClassWithKeepPackageNameOnTargetTest(
+  public RepackageClassesWithDontObfuscateTest(
       String flattenPackageHierarchyOrRepackageClasses, TestParameters parameters) {
     super(flattenPackageHierarchyOrRepackageClasses, parameters);
   }
@@ -34,29 +34,26 @@ public class RepackageClassWithKeepPackageNameOnTargetTest extends RepackageTest
 
   @Test
   public void testR8() throws Exception {
-    // TODO(b/241220445): Should be able to relocate when having -dontobfuscate in some way to
-    //  support mainline.
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .apply(this::configureRepackaging)
+        .addDontObfuscate()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Foo::foo()")
         .inspect(
             inspector -> {
               ClassSubject clazz = inspector.clazz(Foo.class);
               assertThat(clazz, isPresent());
-              assertThat(clazz.getFinalName(), startsWith(DESTINATION_PACKAGE));
+              assertThat(clazz.getFinalName(), startsWith(DESTINATION_PACKAGE + "."));
               String relocatedPackageSuffix =
                   DescriptorUtils.getPackageBinaryNameFromJavaType(
                       clazz.getFinalName().substring(DESTINATION_PACKAGE.length() + 1));
               String originalPackage =
                   DescriptorUtils.getPackageBinaryNameFromJavaType(clazz.getOriginalName());
-              // TODO(b/241220445): Have a configuration where the suffix is identicial to the
-              // original.
-              assertNotEquals(relocatedPackageSuffix, originalPackage);
+              assertEquals(relocatedPackageSuffix, originalPackage);
             });
   }
 

@@ -1133,7 +1133,8 @@ public class RootSetUtils {
       if (appView.options().isMinificationEnabled() && !modifiers.allowsObfuscation) {
         dependentMinimumKeepInfo
             .getOrCreateMinimumKeepInfoFor(preconditionEvent, clazz.getReference())
-            .disallowMinification();
+            .disallowMinification()
+            .disallowRepackaging();
       }
     }
 
@@ -1635,7 +1636,15 @@ public class RootSetUtils {
       if (appView.options().isMinificationEnabled() && !modifiers.allowsObfuscation) {
         dependentMinimumKeepInfo
             .getOrCreateMinimumKeepInfoFor(preconditionEvent, item.getReference())
-            .disallowMinification();
+            .disallowMinification()
+            .disallowRepackaging();
+        context.markAsUsed();
+      }
+
+      if (appView.options().isRepackagingEnabled() && !modifiers.allowsObfuscation) {
+        dependentMinimumKeepInfo
+            .getOrCreateMinimumKeepInfoFor(preconditionEvent, item.getReference())
+            .disallowRepackaging();
         context.markAsUsed();
       }
 
@@ -1971,7 +1980,8 @@ public class RootSetUtils {
     void shouldNotBeMinified(ProgramDefinition definition) {
       getDependentMinimumKeepInfo()
           .getOrCreateUnconditionalMinimumKeepInfoFor(definition.getReference())
-          .disallowMinification();
+          .disallowMinification()
+          .disallowRepackaging();
     }
 
     public boolean verifyKeptFieldsAreAccessedAndLive(AppView<AppInfoWithLiveness> appView) {

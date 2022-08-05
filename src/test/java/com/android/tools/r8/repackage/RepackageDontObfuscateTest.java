@@ -7,11 +7,14 @@ package com.android.tools.r8.repackage;
 import static com.android.tools.r8.shaking.ProguardConfigurationParser.FLATTEN_PACKAGE_HIERARCHY;
 import static com.android.tools.r8.shaking.ProguardConfigurationParser.REPACKAGE_CLASSES;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.ProguardVersion;
+import com.android.tools.r8.R8TestBuilder;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.google.common.collect.ImmutableList;
@@ -70,15 +73,23 @@ public class RepackageDontObfuscateTest extends RepackageTestBase {
   }
 
   @Test
-  public void testR8() throws Exception {
-    testForR8(parameters.getBackend())
-        .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
-        .addKeepMainRule(Main.class)
-        .enableInliningAnnotations()
-        .apply(this::configureRepackaging)
-        .noMinification()
-        .compile()
+  public void testR8Full() throws Exception {
+    setup(testForR8(parameters.getBackend()))
+        .inspect(
+            inspector -> {
+              ClassSubject aClass = inspector.clazz(A.class);
+              assertThat(aClass, isPresentAndRenamed());
+            })
+        .run(
+            parameters.getRuntime(),
+            Main.class,
+            getRepackagePackage() + "." + A.class.getTypeName())
+        .assertSuccessWithOutputLines(EXPECTED);
+  }
+
+  @Test
+  public void testR8Compat() throws Exception {
+    setup(testForR8Compat(parameters.getBackend()))
         .inspect(
             inspector -> {
               ClassSubject aClass = inspector.clazz(A.class);
@@ -86,6 +97,17 @@ public class RepackageDontObfuscateTest extends RepackageTestBase {
             })
         .run(parameters.getRuntime(), Main.class, A.class.getTypeName())
         .assertSuccessWithOutputLines(EXPECTED);
+  }
+
+  private R8TestCompileResult setup(R8TestBuilder<?> r8TestBuilder) throws Exception {
+    return r8TestBuilder
+        .addInnerClasses(getClass())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Main.class)
+        .enableInliningAnnotations()
+        .apply(this::configureRepackaging)
+        .noMinification()
+        .compile();
   }
 
   public static class A {

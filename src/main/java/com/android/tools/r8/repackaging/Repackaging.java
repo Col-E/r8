@@ -347,7 +347,16 @@ public class Repackaging {
           DescriptorUtils.getBinaryNameFromJavaType(proguardConfiguration.getPackagePrefix());
       PackageObfuscationMode packageObfuscationMode =
           proguardConfiguration.getPackageObfuscationMode();
-      if (packageObfuscationMode.isRepackageClasses()) {
+      if (!appView.options().isMinifying()) {
+        // Preserve full package name under destination package when not minifying
+        // (no matter which package obfuscation mode is used).
+        if (newPackageDescriptor.isEmpty()
+            || proguardConfiguration.getKeepPackageNamesPatterns().matches(pkg)
+            || mayHavePinnedPackagePrivateOrProtectedItem(pkg)) {
+          return pkg.getPackageDescriptor();
+        }
+        return newPackageDescriptor + DESCRIPTOR_PACKAGE_SEPARATOR + pkg.getPackageDescriptor();
+      } else if (packageObfuscationMode.isRepackageClasses()) {
         return newPackageDescriptor;
       } else if (packageObfuscationMode.isMinification()) {
         // Always keep top-level classes since their packages can never be minified.

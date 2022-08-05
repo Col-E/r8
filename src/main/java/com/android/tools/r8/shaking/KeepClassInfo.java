@@ -61,7 +61,7 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
   public boolean isRepackagingAllowed(
       ProgramDefinition definition, GlobalKeepInfoConfiguration configuration) {
     return configuration.isRepackagingEnabled()
-        && internalIsMinificationAllowed()
+        && internalIsRepackagingAllowed()
         && (definition.getAccessFlags().isPublic()
             || !internalIsAccessModificationRequiredForRepackaging());
   }
