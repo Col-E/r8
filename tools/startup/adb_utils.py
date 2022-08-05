@@ -340,6 +340,10 @@ def uninstall(app_id, device_id=None):
   stderr = process_result.stderr.decode('utf-8')
   if process_result.returncode == 0:
     assert 'Success' in stdout
+  elif stdout.startswith('cmd: Failure calling service package: Broken pipe'):
+    assert app_id == 'com.google.android.youtube'
+    print('Waiting after broken pipe')
+    time.sleep(15)
   else:
     expected_error = (
         'java.lang.IllegalArgumentException: Unknown package: %s' % app_id)
