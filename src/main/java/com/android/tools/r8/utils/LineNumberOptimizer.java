@@ -57,6 +57,9 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.naming.PositionRangeAllocator;
+import com.android.tools.r8.naming.PositionRangeAllocator.CardinalPositionRangeAllocator;
+import com.android.tools.r8.naming.PositionRangeAllocator.NonCardinalPositionRangeAllocator;
 import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapId;
 import com.android.tools.r8.naming.Range;
@@ -509,6 +512,11 @@ public class LineNumberOptimizer {
             ? new NativePcSupport()
             : new Pc2PcMappingSupport(appView.options().allowDiscardingResidualDebugInfo());
 
+    CardinalPositionRangeAllocator cardinalRangeCache =
+        PositionRangeAllocator.createCardinalPositionRangeAllocator();
+    NonCardinalPositionRangeAllocator nonCardinalRangeCache =
+        PositionRangeAllocator.createNonCardinalPositionRangeAllocator();
+
     // Collect which files contain which classes that need to have their line numbers optimized.
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       boolean isSyntheticClass = appView.getSyntheticItems().isSyntheticClass(clazz);
@@ -718,10 +726,11 @@ public class LineNumberOptimizer {
                 && definition.getCode().asDexCode().getDebugInfo()
                     == DexDebugInfoForSingleLineMethod.getInstance()) {
               assert firstPosition.originalLine == lastPosition.originalLine;
-              obfuscatedRange = new Range(0, MAX_LINE_NUMBER);
+              obfuscatedRange = nonCardinalRangeCache.get(0, MAX_LINE_NUMBER);
             } else {
               obfuscatedRange =
-                  new Range(firstPosition.obfuscatedLine, lastPosition.obfuscatedLine);
+                  nonCardinalRangeCache.get(
+                      firstPosition.obfuscatedLine, lastPosition.obfuscatedLine);
             }
             ClassNaming.Builder classNamingBuilder = onDemandClassNamingBuilder.computeIfAbsent();
             MappedRange lastMappedRange =
@@ -732,9 +741,11 @@ public class LineNumberOptimizer {
                     firstPosition.method,
                     obfuscatedName,
                     obfuscatedRange,
-                    new Range(firstPosition.originalLine, lastPosition.originalLine),
+                    nonCardinalRangeCache.get(
+                        firstPosition.originalLine, lastPosition.originalLine),
                     firstPosition.caller,
-                    prunedInlinedClasses);
+                    prunedInlinedClasses,
+                    cardinalRangeCache);
             for (MappingInformation info : methodMappingInfo) {
               lastMappedRange.addMappingInformation(info, Unreachable::raise);
             }
@@ -758,10 +769,12 @@ public class LineNumberOptimizer {
                         classNamingBuilder,
                         position.getMethod(),
                         obfuscatedName,
-                        new Range(placeHolderLineToBeFixed, placeHolderLineToBeFixed),
-                        new Range(position.getLine(), position.getLine()),
+                        nonCardinalRangeCache.get(
+                            placeHolderLineToBeFixed, placeHolderLineToBeFixed),
+                        nonCardinalRangeCache.get(position.getLine(), position.getLine()),
                         position.getCallerPosition(),
-                        prunedInlinedClasses);
+                        prunedInlinedClasses,
+                        cardinalRangeCache);
                   });
               outlinesToFix
                   .computeIfAbsent(
@@ -838,7 +851,8 @@ public class LineNumberOptimizer {
       Range obfuscatedRange,
       Range originalLine,
       Position caller,
-      Map<DexType, String> prunedInlineHolder) {
+      Map<DexType, String> prunedInlineHolder,
+      CardinalPositionRangeAllocator cardinalRangeCache) {
     MappedRange lastMappedRange =
         classNamingBuilder.addMappedRange(
             obfuscatedRange,
@@ -859,7 +873,8 @@ public class LineNumberOptimizer {
           classNamingBuilder.addMappedRange(
               obfuscatedRange,
               getOriginalMethodSignature.apply(caller.getMethod()),
-              new Range(Math.max(caller.getLine(), 0)), // Prevent against "no-position".
+              cardinalRangeCache.get(
+                  Math.max(caller.getLine(), 0)), // Prevent against "no-position".
               obfuscatedName);
       if (caller.isRemoveInnerFramesIfThrowingNpe()) {
         lastMappedRange.addMappingInformation(

@@ -8,6 +8,8 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
+import com.android.tools.r8.naming.PositionRangeAllocator.CardinalPositionRangeAllocator;
+import com.android.tools.r8.naming.PositionRangeAllocator.NonCardinalPositionRangeAllocator;
 import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.naming.mappinginformation.MappingInformationDiagnostics;
@@ -67,6 +69,11 @@ public class ProguardMapReader implements AutoCloseable {
   private final DiagnosticsHandler diagnosticsHandler;
   private final boolean allowEmptyMappedRanges;
   private final boolean allowExperimentalMapping;
+
+  private final CardinalPositionRangeAllocator cardinalRangeCache =
+      PositionRangeAllocator.createCardinalPositionRangeAllocator();
+  private final NonCardinalPositionRangeAllocator nonCardinalRangeCache =
+      PositionRangeAllocator.createNonCardinalPositionRangeAllocator();
 
   @Override
   public void close() throws IOException {
@@ -623,12 +630,12 @@ public class ProguardMapReader implements AutoCloseable {
     int from = parseNumber();
     skipWhitespace();
     if (peekChar(0) != ':') {
-      return new Range(from);
+      return cardinalRangeCache.get(from);
     }
     expect(':');
     skipWhitespace();
     int to = parseNumber();
-    return new Range(from, to);
+    return nonCardinalRangeCache.get(from, to);
   }
 
   private int parseNumber() {
