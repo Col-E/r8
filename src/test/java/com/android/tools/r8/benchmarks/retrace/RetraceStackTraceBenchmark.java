@@ -75,6 +75,7 @@ public class RetraceStackTraceBenchmark extends BenchmarkBase {
                                   .setProguardMapProducer(
                                       ProguardMapProducer.fromPath(
                                           dependencyRoot.resolve("r8lib.jar.map")))
+                                  .setLoadAllDefinitions(false)
                                   .build())
                           .setStackTrace(stackTrace)
                           .setRetracedStackTraceConsumer(retraced::addAll)
