@@ -73,4 +73,8 @@ public class EnumUnboxingTestBase extends TestBase {
   protected static EnumKeepRules[] getAllEnumKeepRules() {
     return EnumKeepRules.values();
   }
+
+  protected static EnumKeepRules[] getStudioEnumKeepRules() {
+    return new EnumKeepRules[] {EnumKeepRules.STUDIO};
+  }
 }
