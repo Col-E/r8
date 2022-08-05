@@ -25,13 +25,14 @@ def extend_startup_descriptors(startup_descriptors, iteration, options):
         transform_classes_and_methods_to_r8_startup_descriptors(
             profile_classes_and_methods, options)
   write_tmp_startup_descriptors(current_startup_descriptors, iteration, options)
-  number_of_new_startup_descriptors = add_r8_startup_descriptors(
+  new_startup_descriptors = add_r8_startup_descriptors(
       startup_descriptors, current_startup_descriptors)
+  number_of_new_startup_descriptors = len(new_startup_descriptors) - len(startup_descriptors)
   if options.out is not None:
     print(
         'Found %i new startup descriptors in iteration %i'
             % (number_of_new_startup_descriptors, iteration + 1))
-  return number_of_new_startup_descriptors
+  return new_startup_descriptors
 
 def generate_startup_profile(options):
   logcat = None
@@ -96,7 +97,7 @@ def get_r8_startup_descriptors_from_logcat(logcat, options):
       if message.startswith('START') \
           or message.startswith('Activity pause timeout for') \
           or message.startswith('Activity top resumed state loss timeout for') \
-          or message.startswith('Force removing')
+          or message.startswith('Force removing') \
           or message.startswith(
               'Launch timeout has expired, giving up wake lock!'):
         continue
@@ -166,37 +167,61 @@ def transform_classes_and_methods_to_r8_startup_descriptors(
   for class_or_method in classes_and_methods:
     descriptor = class_or_method.get('descriptor')
     flags = class_or_method.get('flags')
-    if flags.get('conditional_startup') \
-        and not options.include_conditional_startup:
-      continue
-    if flags.get('post_startup') \
-        and not flags.get('startup') \
-        and not options.include_post_startup:
-      continue
-    startup_descriptors.append(descriptor)
+    if should_include_startup_descriptor(descriptor, flags, options):
+      startup_descriptors.append(descriptor)
   return startup_descriptors
 
-def add_r8_startup_descriptors(startup_descriptors, startup_descriptors_to_add):
-  previous_number_of_startup_descriptors = len(startup_descriptors)
-  if previous_number_of_startup_descriptors == 0:
+def add_r8_startup_descriptors(old_startup_descriptors, startup_descriptors_to_add):
+  new_startup_descriptors = {}
+  if len(old_startup_descriptors) == 0:
     for startup_descriptor, flags in startup_descriptors_to_add.items():
-      startup_descriptors[startup_descriptor] = flags.copy()
+      new_startup_descriptors[startup_descriptor] = flags.copy()
   else:
+    # Merge the new startup descriptors with the old descriptors in a way so
+    # that new startup descriptors are added next to the startup descriptors
+    # they are close to in the newly generated list of startup descriptors.
+    startup_descriptors_to_add_after_key = {}
+    startup_descriptors_to_add_in_the_end = {}
+    closest_seen_startup_descriptor = None
     for startup_descriptor, flags in startup_descriptors_to_add.items():
-      if startup_descriptor in startup_descriptors:
-        # Merge flags.
-        existing_flags = startup_descriptors[startup_descriptor]
-        assert not flags['conditional_startup']
-        if flags['post_startup']:
-          existing_flags['post_startup'] = True
+      if startup_descriptor in old_startup_descriptors:
+        closest_seen_startup_descriptor = startup_descriptor
       else:
-        # Add new startup descriptor.
-        new_flags = flags.copy()
-        new_flags['conditional_startup'] = True
-        startup_descriptors[startup_descriptor] = new_flags
-  new_number_of_startup_descriptors = len(startup_descriptors)
-  return new_number_of_startup_descriptors \
-      - previous_number_of_startup_descriptors
+        if closest_seen_startup_descriptor is None:
+          # Insert this new startup descriptor in the end of the result.
+          startup_descriptors_to_add_in_the_end[startup_descriptor] = flags
+        else:
+          # Record that this should be inserted after
+          # closest_seen_startup_descriptor.
+          pending_startup_descriptors = \
+              startup_descriptors_to_add_after_key.setdefault(
+                  closest_seen_startup_descriptor, {})
+          pending_startup_descriptors[startup_descriptor] = flags
+    for startup_descriptor, flags in old_startup_descriptors.items():
+      # Merge flags if this also exists in startup_descriptors_to_add.
+      if startup_descriptor in startup_descriptors_to_add:
+        merged_flags = flags.copy()
+        other_flags = startup_descriptors_to_add[startup_descriptor]
+        assert not other_flags['conditional_startup']
+        if other_flags['post_startup']:
+          merged_flags['post_startup'] = True
+        new_startup_descriptors[startup_descriptor] = merged_flags
+      else:
+        new_startup_descriptors[startup_descriptor] = flags.copy()
+      # Flush startup descriptors that followed this item in the new trace.
+      if startup_descriptor in startup_descriptors_to_add_after_key:
+        pending_startup_descriptors = \
+            startup_descriptors_to_add_after_key[startup_descriptor]
+        for pending_startup_descriptor, pending_flags \
+            in pending_startup_descriptors.items():
+          new_startup_descriptors[pending_startup_descriptor] = \
+              pending_flags.copy()
+    # Insert remaining new startup descriptors in the end.
+    for startup_descriptor, flags \
+        in startup_descriptors_to_add_in_the_end.items():
+      assert startup_descriptor not in new_startup_descriptors
+      new_startup_descriptors[startup_descriptor] = flags.copy()
+  return new_startup_descriptors
 
 def write_tmp_binary_artifact(artifact, iteration, options, name):
   if not options.tmp_dir:
@@ -256,6 +281,16 @@ def startup_descriptor_to_string(startup_descriptor, flags):
     pass # result += 'P'
   result += startup_descriptor
   return result
+
+def should_include_startup_descriptor(descriptor, flags, options):
+  if flags.get('conditional_startup') \
+      and not options.include_conditional_startup:
+    return False
+  if flags.get('post_startup') \
+      and not flags.get('startup') \
+      and not options.include_post_startup:
+    return False
+  return True
 
 def parse_options(argv):
   result = argparse.ArgumentParser(
@@ -329,7 +364,9 @@ def main(argv):
     iteration = 0
     stable_iterations = 0
     while True:
-      diff = extend_startup_descriptors(startup_descriptors, iteration, options)
+      old_startup_descriptors = startup_descriptors
+      startup_descriptors = extend_startup_descriptors(old_startup_descriptors, iteration, options)
+      diff = len(startup_descriptors) - len(old_startup_descriptors)
       if diff == 0:
         stable_iterations = stable_iterations + 1
         if stable_iterations == options.until_stable_iterations:
@@ -339,15 +376,17 @@ def main(argv):
       iteration = iteration + 1
   else:
     for iteration in range(options.iterations):
-      extend_startup_descriptors(startup_descriptors, iteration, options)
+      startup_descriptors = extend_startup_descriptors(startup_descriptors, iteration, options)
   if options.out is not None:
     with open(options.out, 'w') as f:
       for startup_descriptor, flags in startup_descriptors.items():
-        f.write(startup_descriptor_to_string(startup_descriptor, flags))
-        f.write('\n')
+        if should_include_startup_descriptor(startup_descriptor, flags, options):
+          f.write(startup_descriptor_to_string(startup_descriptor, flags))
+          f.write('\n')
   else:
     for startup_descriptor, flags in startup_descriptors.items():
-      print(startup_descriptor_to_string(startup_descriptor, flags))
+      if should_include_startup_descriptor(startup_descriptor, flags, options):
+        print(startup_descriptor_to_string(startup_descriptor, flags))
 
 if __name__ == '__main__':
   sys.exit(main(sys.argv[1:]))

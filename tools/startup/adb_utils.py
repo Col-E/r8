@@ -254,9 +254,12 @@ def launch_activity(
     args.append('-W')
   cmd = create_adb_cmd(args, device_id)
   stdout = subprocess.check_output(cmd).decode('utf-8').strip()
-  expected_stdout = (
-      'Starting: Intent { cmp=%s/.%s }' % (app_id, activity[len(app_id)+1:]))
-  assert stdout.startswith(expected_stdout), 'was %s' % stdout
+  if activity.startswith(app_id):
+    expected_stdout = (
+        'Starting: Intent { cmp=%s/.%s }' % (app_id, activity[len(app_id)+1:]))
+  else:
+    expected_stdout = 'Starting: Intent { cmp=%s/%s }' % (app_id, activity)
+  assert stdout.startswith(expected_stdout), 'was %s, expected %s' % (stdout, expected_stdout)
   lines = stdout.splitlines()
   result = {}
   for line in lines:
@@ -341,7 +344,8 @@ def uninstall(app_id, device_id=None):
     expected_error = (
         'java.lang.IllegalArgumentException: Unknown package: %s' % app_id)
     assert 'Failure [DELETE_FAILED_INTERNAL_ERROR]' in stdout \
-        or expected_error in stderr
+        or expected_error in stderr, \
+        'stdout: %s, stderr: %s' % (stdout, stderr)
 
 def unlock(device_id=None, device_pin=None):
   ensure_screen_on(device_id)
