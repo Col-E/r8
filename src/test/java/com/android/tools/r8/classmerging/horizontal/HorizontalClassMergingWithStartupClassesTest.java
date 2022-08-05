@@ -10,6 +10,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.experimental.startup.StartupClass;
 import com.android.tools.r8.experimental.startup.StartupConfiguration;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
@@ -26,14 +27,18 @@ public class HorizontalClassMergingWithStartupClassesTest extends TestBase {
   public TestParameters parameters;
 
   @Parameter(1)
-  public List<Class<?>> startupClasses;
+  public boolean includeStartupClasses;
 
-  @Parameters(name = "{0}, startup classes: {1}")
+  @Parameters(name = "{0}, include startup classes: {1}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(),
-        ImmutableList.of(
-            Collections.emptyList(), ImmutableList.of(StartupA.class, StartupB.class)));
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
+  }
+
+  private List<Class<?>> getStartupClasses() {
+    return includeStartupClasses
+        ? Collections.emptyList()
+        : ImmutableList.of(StartupA.class, StartupB.class);
   }
 
   @Test
@@ -50,20 +55,21 @@ public class HorizontalClassMergingWithStartupClassesTest extends TestBase {
                       StartupConfiguration.builder()
                           .apply(
                               builder ->
-                                  startupClasses.forEach(
-                                      startupClass ->
-                                          builder.addStartupClass(
-                                              StartupClass.dexBuilder()
-                                                  .setClassReference(
-                                                      toDexType(startupClass, dexItemFactory))
-                                                  .build())))
+                                  getStartupClasses()
+                                      .forEach(
+                                          startupClass ->
+                                              builder.addStartupClass(
+                                                  StartupClass.dexBuilder()
+                                                      .setClassReference(
+                                                          toDexType(startupClass, dexItemFactory))
+                                                      .build())))
                           .build());
             })
         .addHorizontallyMergedClassesInspector(
             inspector ->
                 inspector
                     .applyIf(
-                        startupClasses.isEmpty(),
+                        getStartupClasses().isEmpty(),
                         i ->
                             i.assertIsCompleteMergeGroup(
                                 StartupA.class,
