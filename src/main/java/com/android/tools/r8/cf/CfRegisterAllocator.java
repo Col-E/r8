@@ -284,6 +284,9 @@ public class CfRegisterAllocator implements RegisterAllocator {
   }
 
   private void freeRegistersForIntervals(LiveIntervals intervals) {
+    if (options().testing.neverReuseCfLocalRegisters) {
+      return;
+    }
     int register = intervals.getRegister();
     freeRegisters.add(register);
     if (intervals.getType().isWide()) {

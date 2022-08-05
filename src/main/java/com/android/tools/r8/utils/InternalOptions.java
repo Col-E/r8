@@ -1769,6 +1769,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public static class TestingOptions {
 
+    public boolean neverReuseCfLocalRegisters = false;
     private boolean hasReadCheckDeterminism = false;
     private DeterminismChecker determinismChecker = null;
 
