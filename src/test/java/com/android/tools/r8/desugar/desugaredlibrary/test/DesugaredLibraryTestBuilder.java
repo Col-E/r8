@@ -5,6 +5,7 @@
 package com.android.tools.r8.desugar.desugaredlibrary.test;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.L8TestBuilder;
@@ -161,6 +162,11 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   public DesugaredLibraryTestBuilder<T> addProgramClassFileData(
       Collection<byte[]> programClassFileData) {
     builder.addProgramClassFileData(programClassFileData);
+    return this;
+  }
+
+  public DesugaredLibraryTestBuilder<T> setMode(CompilationMode mode) {
+    builder.setMode(mode);
     return this;
   }
 
