@@ -204,9 +204,15 @@ public class LoadStoreHelper {
     }
     add(store, storeBlock, instruction.getPosition(), it);
     if (hasCatchHandlers && !instruction.instructionTypeCanThrow()) {
-      it.split(this.code, this.blockIterator);
-      this.blockIterator.previous();
+      splitAfterStoredOutValue(it);
     }
+  }
+
+  // DebugLocalWrite encodes a store and it needs to consistently split out the catch range after
+  // its store.
+  public void splitAfterStoredOutValue(InstructionListIterator it) {
+    it.split(this.code, this.blockIterator);
+    this.blockIterator.previous();
   }
 
   public void popOutType(DexType type, Instruction instruction, InstructionListIterator it) {

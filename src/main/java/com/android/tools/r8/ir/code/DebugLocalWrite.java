@@ -65,6 +65,10 @@ public class DebugLocalWrite extends Move {
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
     helper.loadInValues(this, it);
     // A local-write does not have an outgoing stack value, but in writes directly to the local.
+    assert !instructionTypeCanThrow();
+    if (getBlock().hasCatchHandlers()) {
+      helper.splitAfterStoredOutValue(it);
+    }
   }
 
   @Override
