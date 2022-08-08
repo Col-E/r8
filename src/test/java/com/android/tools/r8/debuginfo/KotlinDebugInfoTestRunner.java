@@ -85,7 +85,7 @@ public class KotlinDebugInfoTestRunner extends TestBase {
         .addOptionsModification(options -> options.invalidDebugInfoFatal = true)
         .apply(configuration)
         .debug()
-        .noMinification()
+        .addDontObfuscate()
         .noTreeShaking()
         .compile()
         .run(parameters.getRuntime(), className)

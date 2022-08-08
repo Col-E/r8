@@ -53,7 +53,7 @@ public class DebugInfoTestRunner extends TestBase {
     return testForR8(backend)
         .debug()
         .noTreeShaking()
-        .noMinification()
+        .addDontObfuscate()
         .addOptionsModification(o -> o.invalidDebugInfoFatal = true);
   }
 }

@@ -127,7 +127,7 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
 
     testForR8(parameters.getBackend())
         .noTreeShaking()
-        .noMinification()
+        .addDontObfuscate()
         .addProgramClasses(PROGRAM_CLASSES)
         .addApplyMapping(libraryResult.getProguardMap())
         .addClasspathClasses(CLASSPATH_CLASSES)
@@ -160,7 +160,7 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
 
     testForR8(parameters.getBackend())
         .noTreeShaking()
-        .noMinification()
+        .addDontObfuscate()
         .addProgramClasses(PROGRAM_CLASSES)
         .addApplyMapping(libraryResult.getProguardMap())
         .addClasspathClasses(CLASSPATH_CLASSES)

@@ -90,7 +90,7 @@ public class Regress78493232_WithPhi extends AsmTestBase {
             .addProgramClassFileData(CLASS_BYTES)
             .allowDiagnosticWarningMessages()
             .treeShaking(treeShake)
-            .noMinification()
+            .addDontObfuscate()
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(options -> options.testing.readInputStackMaps = false)
             .addKeepMainRule(MAIN)

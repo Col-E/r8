@@ -41,7 +41,7 @@ public class InnerClassesSimpleTest extends TestBase {
             .addKeepMainRule(Main.class)
             .addKeepPackageNamesRule(getClass().getPackage())
             .noTreeShaking()
-            .applyIf(!minify, TestShrinkerBuilder::noMinification)
+            .applyIf(!minify, TestShrinkerBuilder::addDontObfuscate)
             .compile()
             .writeToZip();
     testForR8(parameters.getBackend())

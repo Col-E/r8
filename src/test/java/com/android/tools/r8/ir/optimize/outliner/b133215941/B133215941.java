@@ -70,7 +70,7 @@ public class B133215941 extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepClassAndMembersRules(ClassWithStaticMethod.class)
         .setMinApi(parameters.getApiLevel())
-        .noMinification()
+        .addDontObfuscate()
         .addOptionsModification(options -> options.outline.threshold = 2)
         .compile()
         .inspect(this::validateOutlining)

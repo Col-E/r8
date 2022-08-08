@@ -65,7 +65,7 @@ public class GetClassLdcClassTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         // We cannot keep class Runner, as that prohibits getClass optimization.
         // Instead disable minification and inlining of the Runner class and method.
-        .noMinification()
+        .addDontObfuscate()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .run(parameters.getRuntime(), TestClass.class)
@@ -90,7 +90,7 @@ public class GetClassLdcClassTest extends TestBase {
             .addKeepMainRule(TestClass.class)
             // We cannot keep class Runner, as that prohibits getClass optimization.
             // Instead disable minification and inlining of the Runner class and method.
-            .noMinification()
+            .addDontObfuscate()
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
             .run(parameters.getRuntime(), TestClass.class);

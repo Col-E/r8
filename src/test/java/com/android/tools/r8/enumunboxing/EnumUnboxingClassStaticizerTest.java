@@ -51,7 +51,7 @@ public class EnumUnboxingClassStaticizerTest extends EnumUnboxingTestBase {
                     .assertNoOtherClassesMerged())
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .noMinification() // For assertions.
+        .addDontObfuscate() // For assertions.
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .setMinApi(parameters.getApiLevel())
         .compile()

@@ -75,7 +75,7 @@ public class MemberValuePropagationTest extends TestBase {
     return testForR8(backend)
         .addProgramFiles(EXAMPLE_JAR)
         .addKeepRuleFiles(proguardConfig)
-        .noMinification()
+        .addDontObfuscate()
         .addOptionsModification(o -> o.enableClassInlining = false)
         .compile()
         .inspector();

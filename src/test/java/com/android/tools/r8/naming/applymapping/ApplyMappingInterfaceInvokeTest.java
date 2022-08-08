@@ -73,7 +73,7 @@ public class ApplyMappingInterfaceInvokeTest extends TestBase {
     testForR8(parameters.getBackend())
         .addClasspathClasses(classPathClasses)
         .addProgramClasses(TestApp.class)
-        .noMinification()
+        .addDontObfuscate()
         .noTreeShaking()
         .addApplyMapping(libraryResult.getProguardMap())
         .setMinApi(parameters.getApiLevel())

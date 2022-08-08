@@ -43,7 +43,7 @@ public class FunctionTest extends TestBase {
     testForR8(parameters.getBackend())
         .addKeepMainRule(TestClass.class)
         .noTreeShaking()
-        .noMinification()
+        .addDontObfuscate()
         .enableInliningAnnotations()
         .addInnerClasses(FunctionTest.class)
         .run(parameters.getRuntime(), TestClass.class)

@@ -49,7 +49,7 @@ public class SwitchEnumUnboxingTest extends EnumUnboxingTestBase {
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(ENUM_CLASS))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .noMinification() // For assertions.
+        .addDontObfuscate() // For assertions.
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .setMinApi(parameters.getApiLevel())
         .compile()

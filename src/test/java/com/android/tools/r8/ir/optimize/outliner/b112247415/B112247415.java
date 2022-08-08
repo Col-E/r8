@@ -82,7 +82,7 @@ public class B112247415 extends TestBase {
 
     CodeInspector inspector =
         testForR8(parameters.getBackend())
-            .noMinification()
+            .addDontObfuscate()
             .setMinApi(parameters.getApiLevel())
             .addProgramClassesAndInnerClasses(TestClass.class)
             .addKeepMainRule(TestClass.class)

@@ -36,7 +36,7 @@ public class LogArgumentsTest extends TestBase {
             .addOptionsModification(
                 options -> options.logArgumentsFilter = ImmutableList.of(qualifiedMethodName))
             .assumeAllMethodsMayHaveSideEffects()
-            .noMinification()
+            .addDontObfuscate()
             .noTreeShaking()
             .run(TestStatic.class)
             .getStdOut();
@@ -57,7 +57,7 @@ public class LogArgumentsTest extends TestBase {
             .addOptionsModification(
                 options -> options.logArgumentsFilter = ImmutableList.of(qualifiedMethodName))
             .assumeAllMethodsMayHaveSideEffects()
-            .noMinification()
+            .addDontObfuscate()
             .noTreeShaking()
             .run(TestInstance.class)
             .getStdOut();

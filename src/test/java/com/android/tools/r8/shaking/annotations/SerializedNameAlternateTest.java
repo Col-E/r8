@@ -91,7 +91,7 @@ public class SerializedNameAlternateTest extends TestBase {
                 "  @" + SerializedName.class.getTypeName() + " <fields>;",
                 "}")
             .setMinApi(parameters.getApiLevel())
-            .noMinification()
+            .addDontObfuscate()
             .run(parameters.getRuntime(), Main.class);
     checkRunResult(result);
   }
@@ -107,7 +107,7 @@ public class SerializedNameAlternateTest extends TestBase {
             .addKeepMainRule(Main.class)
             .addKeepClassRules(Foo.class)
             .addKeepClassRules(SerializedName.class)
-            .noMinification()
+            .addDontObfuscate()
             .addKeepRules("-dontwarn")
             .run(parameters.getRuntime(), Main.class);
     checkRunResult(result);

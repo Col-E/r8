@@ -114,7 +114,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
             .addProgramClasses(CLASSES)
             .addKeepMainRule(MAIN_CLASS)
             .addInliningAnnotations()
-            .noMinification()
+            .addDontObfuscate()
             .compile());
   }
 
@@ -143,7 +143,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
           RR extends TestRunResult<RR>,
           T extends TestShrinkerBuilder<C, B, CR, RR, T>>
       T buildWithMembersRule(TestShrinkerBuilder<C, B, CR, RR, T> builder) {
-    return buildWithMembersRuleEnableMinification(builder).noMinification();
+    return buildWithMembersRuleEnableMinification(builder).addDontObfuscate();
   }
 
   private <CR extends TestCompileResult<CR, RR>, RR extends TestRunResult<RR>>
@@ -211,7 +211,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
         .addKeepMainRule(MAIN_CLASS)
         .addKeepRules("-keepclassmembers " + KEEP_RULE_NON_STATIC)
         .addInliningAnnotations()
-        .noMinification();
+        .addDontObfuscate();
   }
 
   @Test
@@ -315,7 +315,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
             .addProgramClasses(CLASSES)
             .addKeepMainRule(MAIN_CLASS)
             .addInliningAnnotations()
-            .noMinification()
+            .addDontObfuscate()
             .addKeepRules("-keepclassmembers class " + Bar.class.getTypeName())
             .compile());
   }
@@ -344,7 +344,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
           RR extends TestRunResult<RR>,
           T extends TestShrinkerBuilder<C, B, CR, RR, T>>
       T buildWithMemberNamesRule(TestShrinkerBuilder<C, B, CR, RR, T> builder) {
-    return buildWithMemberNamesRuleEnableMinification(builder).noMinification();
+    return buildWithMemberNamesRuleEnableMinification(builder).addDontObfuscate();
   }
 
   private <CR extends TestCompileResult<CR, RR>, RR extends TestRunResult<RR>>

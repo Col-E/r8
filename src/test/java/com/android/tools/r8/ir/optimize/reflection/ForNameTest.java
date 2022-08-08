@@ -145,7 +145,7 @@ public class ForNameTest extends ReflectionOptimizerTestBase {
             .addKeepMainRule(MAIN)
             .addKeepAllClassesRule()
             .addKeepAttributes("EnclosingMethod", "InnerClasses")
-            .noMinification()
+            .addDontObfuscate()
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN);
     test(result, 4, 0);
@@ -157,7 +157,7 @@ public class ForNameTest extends ReflectionOptimizerTestBase {
             .addKeepMainRule(MAIN)
             .addKeepAllClassesRule()
             .addKeepAttributes("EnclosingMethod", "InnerClasses")
-            .noMinification()
+            .addDontObfuscate()
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);

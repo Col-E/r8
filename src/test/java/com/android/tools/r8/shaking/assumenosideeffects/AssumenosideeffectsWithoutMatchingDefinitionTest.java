@@ -114,7 +114,7 @@ public class AssumenosideeffectsWithoutMatchingDefinitionTest extends TestBase {
         .addProgramClasses(MAIN)
         .addKeepMainRule(MAIN)
         .addKeepRules(config.getKeepRule())
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getRuntime())
         .compile()
         .addRunClasspathFiles(parameters.isDexRuntime() ? libDexPath : libJarPath)

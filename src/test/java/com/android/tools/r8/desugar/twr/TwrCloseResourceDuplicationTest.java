@@ -124,7 +124,7 @@ public class TwrCloseResourceDuplicationTest extends TestBase {
             parameters.getApiLevel().isLessThan(apiLevelWithTwrCloseResourceSupport()),
             builder -> builder.addDontWarn("java.lang.AutoCloseable"))
         .setMinApi(parameters.getApiLevel())
-        .noMinification()
+        .addDontObfuscate()
         .run(parameters.getRuntime(), MAIN.typeName(), getZipFile())
         .assertSuccessWithOutput(EXPECTED)
         .inspect(

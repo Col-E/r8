@@ -60,7 +60,7 @@ public class OutlinesWithPrimitiveArrayTypeArguments extends TestBase {
         .addInnerClasses(OutlinesWithPrimitiveArrayTypeArguments.class)
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getRuntime())
-        .noMinification()
+        .addDontObfuscate()
         .addOptionsModification(
             options -> {
               options.outline.threshold = 2;

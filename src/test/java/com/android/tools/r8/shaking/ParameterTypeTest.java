@@ -314,7 +314,7 @@ public class ParameterTypeTest extends TestBase {
               options.inlinerOptions().enableInlining = false;
               options.callSiteOptimizationOptions().setEnabled(enableArgumentPropagation);
             })
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(

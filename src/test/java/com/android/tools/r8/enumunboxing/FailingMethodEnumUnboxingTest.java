@@ -65,7 +65,7 @@ public class FailingMethodEnumUnboxingTest extends EnumUnboxingTestBase {
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
             // TODO(b/173398086): uniqueMethodWithName() does not work with signature changes.
-            .noMinification()
+            .addDontObfuscate()
             .setMinApi(parameters.getApiLevel())
             .compile()
             .inspect(this::assertEnumsAsExpected);

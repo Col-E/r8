@@ -66,7 +66,7 @@ public class NonNullParamTest extends TestBase {
         .addKeepMainRule(mainClass)
         .addKeepRules(ImmutableList.of("-keepattributes InnerClasses,Signature,EnclosingMethod"))
         // All tests are checking if invocations to certain null-check utils are gone.
-        .noMinification()
+        .addDontObfuscate()
         .addOptionsModification(
             options -> {
               // Need to increase a little bit to inline System.out.println

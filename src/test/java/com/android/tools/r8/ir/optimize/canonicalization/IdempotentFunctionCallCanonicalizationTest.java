@@ -242,7 +242,7 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
             .addProgramClasses(MAIN)
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
-            .noMinification()
+            .addDontObfuscate()
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);

@@ -55,7 +55,7 @@ public class MainDexListCheckDiscard extends TestBase {
         .addMainDexRules(keepMainProguardConfiguration(HelloWorldMain.class))
         .addMainDexRules(checkDiscardRule)
         .noTreeShaking()
-        .noMinification()
+        .addDontObfuscate()
         .compile();
   }
 

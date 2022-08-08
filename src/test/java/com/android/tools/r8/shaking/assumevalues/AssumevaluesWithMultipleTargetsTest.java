@@ -159,7 +159,7 @@ public class AssumevaluesWithMultipleTargetsTest extends TestBase {
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules(config.getKeepRule())
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(TestConfig.OUTPUT_WITH_FULL_REPLACEMENT)

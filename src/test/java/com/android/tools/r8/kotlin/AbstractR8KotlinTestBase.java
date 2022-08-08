@@ -262,7 +262,7 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
         .allowAccessModification(allowAccessModification)
         .allowDiagnosticWarningMessages()
         .enableProguardTestOptions()
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(testParameters.getApiLevel())
         .apply(configuration)
         .compile()

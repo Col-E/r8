@@ -34,7 +34,7 @@ public class SwitchMapWithEnumDependencyTest extends TestBase {
         testForR8(parameters.getBackend())
             .addInnerClasses(SwitchMapWithEnumDependencyTest.class)
             .addKeepMainRule(TestClass.class)
-            .noMinification()
+            .addDontObfuscate()
             .enableInliningAnnotations()
             .setMinApi(parameters.getApiLevel())
             .compile();

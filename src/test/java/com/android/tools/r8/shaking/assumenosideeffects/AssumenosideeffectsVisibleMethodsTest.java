@@ -156,7 +156,7 @@ public class AssumenosideeffectsVisibleMethodsTest extends TestBase {
         .addProgramClasses(ProgramBase.class, ProgramSub.class, MAIN)
         .addKeepMainRule(MAIN)
         .addKeepRules(config.getKeepRule())
-        .noMinification()
+        .addDontObfuscate()
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()

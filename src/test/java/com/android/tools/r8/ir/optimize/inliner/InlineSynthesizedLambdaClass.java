@@ -41,7 +41,7 @@ public class InlineSynthesizedLambdaClass extends TestBase {
             .addProgramClassesAndInnerClasses(Lambda.class)
             .addKeepMainRule(Lambda.class)
             .allowAccessModification()
-            .noMinification()
+            .addDontObfuscate()
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), Lambda.class)
             .assertSuccessWithOutput(javaOutput)

@@ -282,7 +282,7 @@ public class ServiceLoaderRewritingTest extends TestBase {
             .addKeepMainRule(EscapingRunner.class)
             .enableInliningAnnotations()
             .setMinApi(parameters.getApiLevel())
-            .noMinification()
+            .addDontObfuscate()
             .addDataEntryResources(
                 DataEntryResource.fromBytes(
                     StringUtils.lines(ServiceImpl.class.getTypeName()).getBytes(),

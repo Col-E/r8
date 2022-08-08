@@ -51,7 +51,7 @@ public class DefaultMethodsTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(TestClass.class)
         .addKeepRules(additionalKeepRules)
-        .noMinification()
+        .addDontObfuscate()
         .compile()
         .inspect(inspection);
   }

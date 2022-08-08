@@ -81,6 +81,7 @@ public abstract class TestShrinkerBuilder<
     return self();
   }
 
+  @Deprecated
   public T noMinification() {
     return minification(false);
   }

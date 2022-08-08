@@ -71,7 +71,7 @@ public class InstanceFieldsEnumUnboxingTest extends EnumUnboxingTestBase {
                             FailureBoxedInnerEnumField.EnumField.class,
                             FailureUnboxedEnumField.EnumField.class,
                             FailureTooManyUsedFields.EnumField.class))
-            .noMinification()
+            .addDontObfuscate()
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
             .addKeepRules(enumKeepRules.getKeepRules())

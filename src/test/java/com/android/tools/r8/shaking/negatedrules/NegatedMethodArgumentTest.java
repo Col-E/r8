@@ -76,7 +76,7 @@ public class NegatedMethodArgumentTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-keep class * { void setX(!%); }")
         .addKeepRules("-dontwarn **.NegatedMethodArgumentTest")
-        .noMinification()
+        .addDontObfuscate()
         .run(parameters.getRuntime(), TestClass.class)
         .inspect(
             inspector -> {
@@ -94,7 +94,7 @@ public class NegatedMethodArgumentTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-keep class * { void setX(!**.*P1); }")
         .addKeepRules("-dontwarn **.NegatedMethodArgumentTest")
-        .noMinification()
+        .addDontObfuscate()
         .run(parameters.getRuntime(), TestClass.class)
         .inspect(
             inspector -> {

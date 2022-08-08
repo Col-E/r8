@@ -56,7 +56,7 @@ public class MemberRebindingRemoveInterfaceBridgeWithSubTypeTest extends TestBas
         .enableNoVerticalClassMergingAnnotations()
         .addHorizontallyMergedClassesInspector(
             HorizontallyMergedClassesInspector::assertNoClassesMerged)
-        .noMinification()
+        .addDontObfuscate()
         .run(parameters.getRuntime(), newMainTypeName)
         .assertSuccessWithOutputLines("B::foo")
         .inspect(

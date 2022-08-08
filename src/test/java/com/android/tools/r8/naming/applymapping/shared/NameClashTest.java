@@ -139,7 +139,7 @@ public class NameClashTest extends TestBase {
         .addKeepMainRule(MAIN)
         .addKeepRules("-applymapping " + mappingFile)
         .noTreeShaking()
-        .noMinification()
+        .addDontObfuscate()
         .compile()
         .run(MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);

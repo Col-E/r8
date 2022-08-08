@@ -109,7 +109,7 @@ public class ConfigurationDebuggingTest extends TestBase {
             .addProgramClasses(BaseClass.class, UninstantiatedClass.class, TestClass.class)
             .addKeepRules("-addconfigurationdebugging")
             .addKeepRules("-keep class **.TestClass { <init>(); }")
-            .noMinification()
+            .addDontObfuscate()
             .setMinApi(parameters.getApiLevel())
             .compile()
             .inspect(this::inspect)

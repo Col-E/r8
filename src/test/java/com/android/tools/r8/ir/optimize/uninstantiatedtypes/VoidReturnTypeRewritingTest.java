@@ -61,7 +61,7 @@ public class VoidReturnTypeRewritingTest extends TestBase {
             .enableNoVerticalClassMergingAnnotations()
             .enableNoHorizontalClassMergingAnnotations()
             .addOptionsModification(options -> options.enableClassInlining = false)
-            .noMinification()
+            .addDontObfuscate()
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expected)

@@ -51,7 +51,7 @@ public class KStyleKotlinLambdaMergingWithEnumUnboxingTest extends TestBase {
         .allowDiagnosticWarningMessages()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))

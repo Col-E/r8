@@ -78,7 +78,7 @@ public class DeadArrayLengthTest extends TestBase {
         .addKeepMainRule(MAIN)
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)

@@ -152,7 +152,7 @@ public class SimpleRecordTest extends TestBase {
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA)
-            .noMinification()
+            .addDontObfuscate()
             .setMinApi(parameters.getApiLevel())
             .addKeepMainRule(MAIN_TYPE);
     if (parameters.isCfRuntime()) {

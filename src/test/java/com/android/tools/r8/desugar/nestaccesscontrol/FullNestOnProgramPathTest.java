@@ -106,7 +106,7 @@ public class FullNestOnProgramPathTest extends TestBase {
     for (String nestID : NEST_IDS) {
       testForR8(parameters.getBackend())
           .noTreeShaking()
-          .noMinification()
+          .addDontObfuscate()
           .addKeepAllAttributes()
           .setMinApi(parameters.getApiLevel())
           .addProgramFiles(classesOfNest(nestID))
@@ -149,7 +149,7 @@ public class FullNestOnProgramPathTest extends TestBase {
     return testForR8(getStaticTemp(), backend)
         .apply(configuration)
         .noTreeShaking()
-        .noMinification()
+        .addDontObfuscate()
         .addKeepAllAttributes()
         .addOptionsModification(options -> options.enableNestReduction = false)
         .addProgramFiles(JAR)

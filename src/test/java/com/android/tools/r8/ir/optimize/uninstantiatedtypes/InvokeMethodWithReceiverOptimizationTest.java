@@ -68,7 +68,7 @@ public class InvokeMethodWithReceiverOptimizationTest extends TestBase {
                     options.callSiteOptimizationOptions().setEnabled(enableArgumentPropagation))
             // TODO(b/120764902): The calls to getOriginalName() below does not work in presence of
             //  argument removal.
-            .noMinification()
+            .addDontObfuscate()
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expected)

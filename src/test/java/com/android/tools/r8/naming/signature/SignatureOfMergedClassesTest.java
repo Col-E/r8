@@ -61,7 +61,7 @@ public class SignatureOfMergedClassesTest extends TestBase {
         .addKeepClassRules(InterfaceToKeep.class, ImplI.class, K.class)
         .addKeepAttributes("Signature, InnerClasses, EnclosingMethod, *Annotation*")
         .setMinApi(parameters.getApiLevel())
-        .noMinification()
+        .addDontObfuscate()
         .addOptionsModification(
             internalOptions -> {
               internalOptions.enableUnusedInterfaceRemoval = false;
@@ -92,7 +92,7 @@ public class SignatureOfMergedClassesTest extends TestBase {
         .addKeepClassRules(InterfaceToKeep.class)
         .addKeepAttributes("Signature, InnerClasses, EnclosingMethod, *Annotation*")
         .setMinApi(parameters.getApiLevel())
-        .noMinification()
+        .addDontObfuscate()
         .addOptionsModification(
             internalOptions -> {
               internalOptions.enableUnusedInterfaceRemoval = false;

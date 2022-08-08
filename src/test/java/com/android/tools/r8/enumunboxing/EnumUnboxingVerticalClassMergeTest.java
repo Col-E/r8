@@ -43,7 +43,7 @@ public class EnumUnboxingVerticalClassMergeTest extends EnumUnboxingTestBase {
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(UnboxableEnum.class))
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .noMinification() // For assertions.
+        .addDontObfuscate() // For assertions.
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .setMinApi(parameters.getApiLevel())
         .compile()

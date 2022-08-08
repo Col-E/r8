@@ -78,7 +78,7 @@ public class PrimitiveTypesTest extends TestBase {
         .addProgramClasses(MyStringBuilder.class)
         .addKeepMainRule(testClass)
         .setMinApi(parameters.getApiLevel())
-        .noMinification()
+        .addDontObfuscate()
         .addOptionsModification(
             options -> {
               options.outline.threshold = 2;

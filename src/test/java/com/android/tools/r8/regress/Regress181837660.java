@@ -98,7 +98,7 @@ public class Regress181837660 extends SplitterTestBase {
     testBuilder
         // Link against android.jar that contains ReflectiveOperationException.
         .addLibraryFiles(parameters.getDefaultAndroidJarAbove(AndroidApiLevel.K))
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel());
   }
 

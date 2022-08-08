@@ -68,7 +68,7 @@ public class MissingClassThrowingTest extends TestBase {
                 .addProgramClasses(Program.class)
                 .addKeepAllClassesRule()
                 .addKeepAllAttributes()
-                .noMinification()
+                .addDontObfuscate()
                 .noTreeShaking()
                 .enableInliningAnnotations()
                 .enableNoHorizontalClassMergingAnnotations()

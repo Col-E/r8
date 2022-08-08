@@ -86,7 +86,7 @@ public class MainDexListWhyAreYouKeeping extends TestBase {
     R8FullTestBuilder builder =
         testForR8(Backend.DEX)
             .noTreeShaking()
-            .noMinification()
+            .addDontObfuscate()
             .setMinApi(AndroidApiLevel.K)
             .addProgramClasses(CLASSES)
             .addMainDexRules(keepMainProguardConfiguration(HelloWorldMain.class))

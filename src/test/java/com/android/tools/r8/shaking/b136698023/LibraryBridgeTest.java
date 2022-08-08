@@ -101,7 +101,7 @@ public class LibraryBridgeTest extends TestBase {
         .addProgramClasses(ICloneable.class, BaseOrdinaryClone.class, MainWithOrdinaryClone.class)
         .addKeepClassAndMembersRules(ICloneable.class)
         .addKeepMainRule(MainWithOrdinaryClone.class)
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MainWithOrdinaryClone.class)
         .assertSuccessWithOutputThatMatches(containsString(BaseOrdinaryClone.class.getTypeName()));
@@ -114,7 +114,7 @@ public class LibraryBridgeTest extends TestBase {
         .addProgramClasses(XCloneable.class, Model.class, Main.class, Base.class)
         .addKeepClassAndMembersRules(XCloneable.class, Base.class)
         .addKeepMainRule(Main.class)
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputThatMatches(containsString(Model.class.getTypeName()));
@@ -127,7 +127,7 @@ public class LibraryBridgeTest extends TestBase {
         .addProgramClasses(XCloneable.class, ModelImpl.class, MainImpl.class, Base.class)
         .addKeepClassAndMembersRules(XCloneable.class, Base.class)
         .addKeepMainRule(MainImpl.class)
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MainImpl.class)
         .assertSuccessWithOutputThatMatches(containsString(Model.class.getTypeName()));
@@ -149,7 +149,7 @@ public class LibraryBridgeTest extends TestBase {
         .addKeepClassAndMembersRules(XCloneable.class)
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
-        .noMinification()
+        .addDontObfuscate()
         .compile()
         .addRunClasspathFiles(library.writeToZip())
         .run(parameters.getRuntime(), Main.class)

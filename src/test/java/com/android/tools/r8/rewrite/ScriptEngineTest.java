@@ -84,7 +84,7 @@ public class ScriptEngineTest extends ScriptEngineTestBase {
               }
             })
         // TODO(b/136633154): This should work both with and without -dontobfuscate.
-        .noMinification()
+        .addDontObfuscate()
         // TODO(b/136633154): This should work both with and without -dontshrink.
         .noTreeShaking()
         .compile()

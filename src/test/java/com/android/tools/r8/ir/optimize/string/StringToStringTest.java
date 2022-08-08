@@ -109,7 +109,7 @@ public class StringToStringTest extends TestBase {
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
             .setMinApi(parameters.getRuntime())
-            .noMinification()
+            .addDontObfuscate()
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 0);

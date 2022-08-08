@@ -55,7 +55,7 @@ public class R8SplitterInlineToFeature extends SplitterTestBase {
                 // Link against android.jar that contains ReflectiveOperationException.
                 .addLibraryFiles(parameters.getDefaultAndroidJarAbove(AndroidApiLevel.K))
                 .enableNoVerticalClassMergingAnnotations()
-                .noMinification();
+                .addDontObfuscate();
     ThrowableConsumer<R8TestCompileResult> ensureInlined =
         r8TestCompileResult -> {
           // Ensure that isEarly from BaseUtilClass is inlined into the feature

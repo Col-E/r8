@@ -40,7 +40,7 @@ public class LambdaEnumUnboxingEmptyEnumObjectTest extends EnumUnboxingTestBase 
         .addKeepMainRule(Main.class)
         .addKeepRules(enumKeepRules.getKeepRules())
         .enableNeverClassInliningAnnotations()
-        .noMinification()
+        .addDontObfuscate()
         .enableNoVerticalClassMergingAnnotations()
         .enableInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))

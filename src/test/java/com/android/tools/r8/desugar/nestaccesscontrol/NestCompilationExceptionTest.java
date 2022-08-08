@@ -92,7 +92,7 @@ public class NestCompilationExceptionTest extends TestBase {
     } else {
       return testForR8(parameters.getBackend())
           .noTreeShaking()
-          .noMinification()
+          .addDontObfuscate()
           .addKeepAllAttributes()
           .setMinApi(parameters.getApiLevel())
           .addProgramFiles(matchingClasses)

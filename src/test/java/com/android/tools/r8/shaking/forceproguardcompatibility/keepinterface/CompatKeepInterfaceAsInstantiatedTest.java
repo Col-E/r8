@@ -130,7 +130,7 @@ public class CompatKeepInterfaceAsInstantiatedTest extends TestBase {
         .applyIf(
             builder.isProguardTestBuilder(),
             b -> b.addDontWarn(CompatKeepInterfaceAsInstantiatedTest.class))
-        .noMinification()
+        .addDontObfuscate()
         .addProgramClasses(main, Foo.class)
         .addKeepMainRule(main)
         .compile()

@@ -11,7 +11,6 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.debug.LambdaOuterContextTest.Converter;
 import com.android.tools.r8.utils.StringUtils;
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class LambdaOuterContextTestRunner extends DebugTestBase {
@@ -40,7 +39,7 @@ public class LambdaOuterContextTestRunner extends DebugTestBase {
         testForR8(Backend.CF)
             .addProgramClassesAndInnerClasses(CLASS)
             .debug()
-            .noMinification()
+            .addDontObfuscate()
             .noTreeShaking()
             .compile();
     compileResult.run(CLASS).assertSuccessWithOutput(EXPECTED);

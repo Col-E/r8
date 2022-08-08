@@ -59,7 +59,7 @@ public class VirtualMethodsAccessibilityErrorEnumUnboxingTest extends EnumUnboxi
                 })
             .transform();
     testForR8(parameters.getBackend())
-        .noMinification()
+        .addDontObfuscate()
         .addProgramClasses(MyEnum.class)
         .addProgramClassFileData(testClassData)
         .addKeepMainRule(TestClass.class)

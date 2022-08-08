@@ -57,12 +57,13 @@ public class DefaultLambdaWithInvokeInterfaceTestRunner extends DebugTestBase {
 
   @Test
   public void testR8Cf() throws Throwable {
-    R8TestCompileResult compileResult = testForR8(Backend.CF)
-        .addProgramClassesAndInnerClasses(CLASS)
-        .noMinification()
-        .noTreeShaking()
-        .debug()
-        .compile();
+    R8TestCompileResult compileResult =
+        testForR8(Backend.CF)
+            .addProgramClassesAndInnerClasses(CLASS)
+            .addDontObfuscate()
+            .noTreeShaking()
+            .debug()
+            .compile();
     compileResult
         // TODO(b/123506120): Add .assertNoMessages()
         .run(CLASS)

@@ -101,7 +101,7 @@ public class VerticalClassMergerTest extends TestBase {
             .addProgramFiles(EXAMPLE_JAR)
             .addKeepRuleFiles(proguardConfig)
             .enableProguardTestOptions()
-            .noMinification()
+            .addDontObfuscate()
             .addOptionsModification(optionsConsumer)
             .setMinApi(parameters.getApiLevel())
             .compile()
@@ -1183,7 +1183,7 @@ public class VerticalClassMergerTest extends TestBase {
                     appBuilder.addProgramResourceProvider(provider);
                   }
                 })
-            .noMinification()
+            .addDontObfuscate()
             .enableProguardTestOptions()
             .setMinApi(parameters.getApiLevel())
             .compile();

@@ -81,7 +81,7 @@ public class InvokeStaticOnInterfaceTest extends TestBase {
             .enableInliningAnnotations()
             .enableNoVerticalClassMergingAnnotations()
             .addOptionsModification(o -> o.testing.allowInvokeErrors = true)
-            .noMinification()
+            .addDontObfuscate()
             .addKeepMainRule(Main.class)
             .run(parameters.getRuntime(), Main.class);
     if (parameters.getRuntime().asCf().isNewerThan(CfVm.JDK8)) {

@@ -42,7 +42,7 @@ public class MainDexListMergeInRootTest extends TestBase {
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .enableInliningAnnotations()
-        .noMinification()
+        .addDontObfuscate()
         .addMainDexRules(
             "-keep class " + Main.class.getTypeName() + " { public static void main(***); }")
         .addOptionsModification(

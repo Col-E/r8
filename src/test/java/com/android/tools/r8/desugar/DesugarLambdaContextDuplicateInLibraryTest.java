@@ -48,7 +48,7 @@ public class DesugarLambdaContextDuplicateInLibraryTest extends TestBase {
   @Test
   public void testOnlyProgram() throws Exception {
     testForR8(parameters.getBackend())
-        .noMinification()
+        .addDontObfuscate()
         .addProgramClasses(PROGRAM)
         .addProgramClasses(LIBRARY)
         .addKeepMainRule(MAIN)
@@ -73,7 +73,7 @@ public class DesugarLambdaContextDuplicateInLibraryTest extends TestBase {
   @Test
   public void testDuplicate() throws Exception {
     testForR8(parameters.getBackend())
-        .noMinification() // Don't minify so the name collision will happen.
+        .addDontObfuscate() // Don't minify so the name collision will happen.
         .addProgramClasses(PROGRAM)
         .addProgramClasses(LIBRARY)
         .addLibraryClasses(LIBRARY)

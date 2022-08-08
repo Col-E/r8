@@ -39,7 +39,7 @@ public class AlwaysNullGetItemTestRunner extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClassesAndInnerClasses(CLASS)
         .debug()
-        .noMinification()
+        .addDontObfuscate()
         .noTreeShaking()
         .setMinApi(parameters.getApiLevel())
         .compile()

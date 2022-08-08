@@ -50,7 +50,7 @@ public class ClassInlinerSimplePairBuilderWithMultipleBuildsTest extends ClassIn
         .addInnerClasses(ClassInlinerSimplePairBuilderWithMultipleBuildsTest.class)
         .addKeepMainRule(TestClass.class)
         .enableAlwaysInliningAnnotations()
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)

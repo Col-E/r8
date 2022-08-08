@@ -40,7 +40,7 @@ public class LoadInvokeLoadOptimizationTestRunner extends DebugTestBase {
           temp ->
               testForR8(temp, backend)
                   .noTreeShaking()
-                  .noMinification()
+                  .addDontObfuscate()
                   .addKeepRules("-keepattributes SourceFile,LineNumberTable")
                   .addProgramClasses(CLASS)
                   .setMinApi(minApi)

@@ -61,7 +61,7 @@ public class OutlinesWithClassArrayTypeArguments extends TestBase {
         .addInnerClasses(OutlinesWithClassArrayTypeArguments.class)
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getApiLevel())
-        .noMinification()
+        .addDontObfuscate()
         .addOptionsModification(
             options -> {
               options.outline.threshold = 2;

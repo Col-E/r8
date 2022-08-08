@@ -135,7 +135,7 @@ public class ApplyMappingAfterVerticalMergingMethodTest extends TestBase {
       throws CompilationFailedException {
     return testForR8(staticTemp, backend)
         .noTreeShaking()
-        .noMinification()
+        .addDontObfuscate()
         .addProgramClasses(PROGRAM_CLASSES)
         .addApplyMapping(proguardMap)
         .addLibraryClasses(LIBRARY_CLASSES)

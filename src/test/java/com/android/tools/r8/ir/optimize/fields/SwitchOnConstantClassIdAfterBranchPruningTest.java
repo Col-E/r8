@@ -46,7 +46,7 @@ public class SwitchOnConstantClassIdAfterBranchPruningTest extends TestBase {
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .noMinification()
+        .addDontObfuscate()
         .compile()
         .inspect(
             inspector -> {

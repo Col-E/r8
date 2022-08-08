@@ -95,7 +95,7 @@ public class InterfaceDefaultMethodKeptTest extends TestBase {
             .setMinApi(parameters.getApiLevel())
             .addKeepMethodRules(A.class, "void <init>()", "void foo()")
             .addKeepMethodRules(B.class, "void <init>()", "void foo()")
-            .noMinification()
+            .addDontObfuscate()
             .compile()
             .inspect(
                 codeInspector -> {

@@ -190,7 +190,7 @@ public class RemoveAssertionsTest extends TestBase {
         .addKeepMainRule(ClassWithAssertions.class)
         .addOptionsModification(o -> o.inlinerOptions().enableInlining = false)
         .allowAccessModification()
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(minApi)
         .compile();
   }
@@ -202,7 +202,7 @@ public class RemoveAssertionsTest extends TestBase {
         .addProgramClasses(ClassWithAssertions.class)
         .debug()
         .noTreeShaking()
-        .noMinification()
+        .addDontObfuscate()
         .addAssertionsConfiguration(transformation)
         .compile();
   }
@@ -226,7 +226,7 @@ public class RemoveAssertionsTest extends TestBase {
         .setMinApi(AndroidApiLevel.B)
         .debug()
         .noTreeShaking()
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(minApi)
         .compile();
   }
@@ -355,7 +355,7 @@ public class RemoveAssertionsTest extends TestBase {
             .debug()
             .setMinApi(minApi)
             .noTreeShaking()
-            .noMinification()
+            .addDontObfuscate()
             .compile()
             .writeToZip();
 

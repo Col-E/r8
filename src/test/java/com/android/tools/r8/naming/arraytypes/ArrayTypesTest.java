@@ -102,7 +102,7 @@ public class ArrayTypesTest extends TestBase {
         .addProgramClassFileData(generateTestClass())
         .addKeepMainRule(Main.class)
         .addKeepRules("-applymapping " + mappingFile.toAbsolutePath())
-        .noMinification()
+        .addDontObfuscate()
         .noTreeShaking()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)

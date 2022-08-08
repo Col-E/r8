@@ -157,7 +157,7 @@ public class ApplyMappingVirtualInvokeTest extends TestBase {
     libraryCompileResult.writeToZip(outPath);
     testForR8(parameters.getBackend())
         .noTreeShaking()
-        .noMinification()
+        .addDontObfuscate()
         .addProgramClasses(PROGRAM_CLASSES)
         .addApplyMapping(libraryCompileResult.getProguardMap())
         .addClasspathClasses(LIBRARY_CLASSES)

@@ -52,7 +52,7 @@ public class LineNumberOptimizationTest extends DebugTestBase {
             .setMinApi(parameters.getApiLevel())
             .setMode(dontOptimizeByEnablingDebug ? CompilationMode.DEBUG : CompilationMode.RELEASE)
             .noTreeShaking()
-            .noMinification()
+            .addDontObfuscate()
             .addKeepAttributeSourceFile()
             .addKeepAttributeLineNumberTable()
             .addOptionsModification(

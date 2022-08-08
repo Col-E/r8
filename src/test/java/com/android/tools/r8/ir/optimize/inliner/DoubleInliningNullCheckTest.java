@@ -36,7 +36,7 @@ public class DoubleInliningNullCheckTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(DoubleInliningNullCheckTest.class)
         .addKeepMainRule(TestClass.class)
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("true")

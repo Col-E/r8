@@ -42,7 +42,7 @@ public class StaticizerSyntheticUseTest extends TestBase {
         .addProgramClasses(Singleton.class, Main.class, Sam.class, A.class)
         .addKeepClassAndMembersRules(Main.class)
         .setMinApi(parameters.getApiLevel())
-        .noMinification()
+        .addDontObfuscate()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .run(parameters.getRuntime(), Main.class)

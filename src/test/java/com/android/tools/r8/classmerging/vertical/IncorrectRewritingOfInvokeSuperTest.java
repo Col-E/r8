@@ -35,7 +35,7 @@ public class IncorrectRewritingOfInvokeSuperTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(options -> options.enableUnusedInterfaceRemoval = false)
         .enableInliningAnnotations()
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccess();

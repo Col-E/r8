@@ -31,7 +31,7 @@ public class TreeFixerInterfaceFixedCollisionTest extends HorizontalClassMerging
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .noMinification()
+        .addDontObfuscate()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()

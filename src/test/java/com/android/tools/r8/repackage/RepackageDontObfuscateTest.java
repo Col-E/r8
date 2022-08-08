@@ -61,7 +61,7 @@ public class RepackageDontObfuscateTest extends RepackageTestBase {
         .apply(this::configureRepackaging)
         .addInliningAnnotations()
         .addDontWarn(RepackageDontObfuscateTest.class)
-        .noMinification()
+        .addDontObfuscate()
         .compile()
         .inspect(
             inspector -> {
@@ -106,7 +106,7 @@ public class RepackageDontObfuscateTest extends RepackageTestBase {
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .apply(this::configureRepackaging)
-        .noMinification()
+        .addDontObfuscate()
         .compile();
   }
 

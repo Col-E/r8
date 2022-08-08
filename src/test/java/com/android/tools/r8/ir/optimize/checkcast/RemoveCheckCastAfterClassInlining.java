@@ -45,7 +45,7 @@ public class RemoveCheckCastAfterClassInlining extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClassesAndInnerClasses(Lambda.class)
             .addKeepMainRule(Lambda.class)
-            .noMinification()
+            .addDontObfuscate()
             .setMinApi(parameters.getRuntime())
             .compile()
             .inspector();

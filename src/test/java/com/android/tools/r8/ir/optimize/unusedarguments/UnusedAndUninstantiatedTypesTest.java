@@ -38,7 +38,7 @@ public class UnusedAndUninstantiatedTypesTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(UnusedAndUninstantiatedTypesTest.class)
         .addKeepMainRule(Main.class)
-        .noMinification()
+        .addDontObfuscate()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())

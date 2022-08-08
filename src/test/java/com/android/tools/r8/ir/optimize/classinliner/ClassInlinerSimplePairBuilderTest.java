@@ -61,7 +61,7 @@ public class ClassInlinerSimplePairBuilderTest extends ClassInlinerTestBase {
         .enableAlwaysInliningAnnotations()
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)

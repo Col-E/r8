@@ -80,7 +80,7 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
           .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
           .addKeepMainRule(MAIN)
           .addKeepRules(KEEP_RULES)
-          .noMinification()
+          .addDontObfuscate()
           .addOptionsModification(optionsModifier)
           .compile();
       fail("Expect to fail");
@@ -97,7 +97,7 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
         .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
         .addKeepMainRule(MAIN)
         .addKeepRules(KEEP_RULES)
-        .noMinification()
+        .addDontObfuscate()
         .addOptionsModification(optionsModifier)
         .compile()
         .assertNoMessages();

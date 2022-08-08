@@ -53,7 +53,7 @@ public class CheckCastDebugTestRunner extends DebugTestBase {
             .addOptionsModification(options -> options.enableVerticalClassMerging = false)
             .debug()
             .enableInliningAnnotations()
-            .noMinification()
+            .addDontObfuscate()
             .setMinApi(parameters.getRuntime())
             .compile()
             .writeToZip(this::setR8Out)

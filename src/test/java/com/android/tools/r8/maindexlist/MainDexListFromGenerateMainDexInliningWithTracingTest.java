@@ -85,7 +85,7 @@ public class MainDexListFromGenerateMainDexInliningWithTracingTest extends TestB
             .collectMainDexClasses()
             .enableInliningAnnotations()
             .enableNoHorizontalClassMergingAnnotations()
-            .noMinification()
+            .addDontObfuscate()
             .setMinApi(parameters.getApiLevel())
             .allowDiagnosticMessages()
             .compileWithExpectedDiagnostics(

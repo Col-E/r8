@@ -75,7 +75,7 @@ public class OutlinesWithInterfaceArrayTypeArguments extends TestBase {
         .addKeepClassAndMembersRules(ClassImplementingIface.class)
         .addKeepClassAndMembersRules(OtherClassImplementingIface.class)
         .setMinApi(parameters.getApiLevel())
-        .noMinification()
+        .addDontObfuscate()
         .addOptionsModification(
             options -> {
               options.outline.threshold = 2;

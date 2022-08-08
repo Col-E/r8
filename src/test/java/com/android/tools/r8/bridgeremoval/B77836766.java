@@ -147,7 +147,7 @@ public class B77836766 extends TestBase {
         .addOptionsModification(this::configure)
         .enableConstantArgumentAnnotations()
         .noHorizontalClassMerging(cls2Class.name)
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
@@ -280,7 +280,7 @@ public class B77836766 extends TestBase {
         .addOptionsModification(this::configure)
         .enableConstantArgumentAnnotations()
         .noHorizontalClassMerging(derivedIntegerClass.name)
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
@@ -392,7 +392,7 @@ public class B77836766 extends TestBase {
         .addKeepMainRule(mainClass.name)
         .addOptionsModification(this::configure)
         .enableConstantArgumentAnnotations()
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
@@ -481,7 +481,7 @@ public class B77836766 extends TestBase {
         .addKeepMainRule(mainClass.name)
         .addOptionsModification(this::configure)
         .enableConstantArgumentAnnotations()
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(

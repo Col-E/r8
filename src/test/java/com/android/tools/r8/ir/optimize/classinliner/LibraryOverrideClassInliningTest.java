@@ -89,7 +89,7 @@ public class LibraryOverrideClassInliningTest extends TestBase {
     CodeInspector inspector =
         testForR8(parameters.getBackend())
             .enableInliningAnnotations()
-            .noMinification()
+            .addDontObfuscate()
             .addProgramClasses(
                 Main.class, SimpleLibraryOverride.class, NonSimpleLibraryOverride.class)
             .addKeepMainRule(Main.class)

@@ -46,7 +46,7 @@ public class InterfaceInitializedByImplementationTest extends TestBase {
         .enableInliningAnnotations()
         .enableNoMethodStaticizingAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .noMinification()
+        .addDontObfuscate()
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

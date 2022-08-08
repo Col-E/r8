@@ -27,7 +27,7 @@ public class ConstStringWithMonitorTest extends TestBase {
   public void regress() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(ConstStringWithMonitorTest.class)
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .allowAccessModification()
         .addKeepMainRule(TestClass.class)

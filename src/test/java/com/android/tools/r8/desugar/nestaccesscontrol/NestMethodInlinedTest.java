@@ -55,7 +55,7 @@ public class NestMethodInlinedTest extends TestBase {
     List<Path> toCompile = classesMatching("NestPvtMethodCallInlined");
     testForR8(parameters.getBackend())
         .addKeepMainRule(getMainClass("pvtCallInlined"))
-        .noMinification()
+        .addDontObfuscate()
         .addOptionsModification(
             options -> {
               options.enableClassInlining = false;

@@ -101,7 +101,7 @@ public class SyntheticDistributionTest extends SplitterTestBase {
                 BaseSuperClass.class.getDeclaredMethod(
                     "keptApplyLambda", MyFunction.class, String.class)))
         .enableInliningAnnotations()
-        .noMinification()
+        .addDontObfuscate()
         // BaseDexClassLoader was introduced at api level 14.
         .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .setMinApi(parameters.getApiLevel());

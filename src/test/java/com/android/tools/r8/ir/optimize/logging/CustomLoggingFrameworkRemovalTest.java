@@ -55,7 +55,7 @@ public class CustomLoggingFrameworkRemovalTest extends TestBase {
         .enableAssumeNoSideEffectsAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .noMinification()
+        .addDontObfuscate()
         .compile()
         .inspect(
             inspector -> {

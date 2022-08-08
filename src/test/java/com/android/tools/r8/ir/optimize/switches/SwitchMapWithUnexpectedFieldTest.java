@@ -54,7 +54,7 @@ public class SwitchMapWithUnexpectedFieldTest extends TestBase {
                 .setClassDescriptor(descriptor(CompleteEnum.class))
                 .transform())
         .addKeepMainRule(TestClass.class)
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)

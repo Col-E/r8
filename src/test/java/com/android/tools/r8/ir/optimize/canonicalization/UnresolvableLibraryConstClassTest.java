@@ -112,7 +112,7 @@ public class UnresolvableLibraryConstClassTest extends TestBase {
         .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
         .addProgramClasses(ProgramClass1.class, ProgramClass2.class, ProgramSubClass.class, MAIN)
         .addKeepMainRule(MAIN)
-        .noMinification()
+        .addDontObfuscate()
         .enableNoVerticalClassMergingAnnotations()
         .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
         .setMinApi(parameters.getRuntime())

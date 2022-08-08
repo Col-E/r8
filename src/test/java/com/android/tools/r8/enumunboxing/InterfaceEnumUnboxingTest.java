@@ -65,7 +65,7 @@ public class InterfaceEnumUnboxingTest extends EnumUnboxingTestBase {
                         .assertUnboxedIf(
                             !parameters.canUseDefaultAndStaticInterfaceMethods(),
                             FailureDefaultMethodUsed.EnumInterface.class))
-            .noMinification()
+            .addDontObfuscate()
             .enableNoVerticalClassMergingAnnotations()
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()

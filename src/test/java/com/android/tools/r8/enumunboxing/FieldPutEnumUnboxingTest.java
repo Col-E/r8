@@ -53,7 +53,7 @@ public class FieldPutEnumUnboxingTest extends EnumUnboxingTestBase {
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
             .setMinApi(parameters.getApiLevel())
-            .noMinification()
+            .addDontObfuscate()
             .compile()
             .inspect(
                 i -> {

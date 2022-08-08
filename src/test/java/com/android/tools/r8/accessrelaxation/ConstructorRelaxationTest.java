@@ -189,7 +189,7 @@ public final class ConstructorRelaxationTest extends AccessRelaxationTestBase {
                   o.inlinerOptions().enableInlining = false;
                   o.enableVerticalClassMerging = false;
                 })
-            .noMinification()
+            .addDontObfuscate()
             .addKeepMainRule(mainClass)
             .allowAccessModification()
             .setMinApi(parameters.getRuntime())

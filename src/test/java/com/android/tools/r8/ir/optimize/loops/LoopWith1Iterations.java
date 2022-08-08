@@ -34,7 +34,7 @@ public class LoopWith1Iterations extends TestBase {
         .addProgramClasses(Main.class)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
-        .noMinification()
+        .addDontObfuscate()
         .compile()
         .inspect(this::assertLoopRemoved)
         .run(parameters.getRuntime(), Main.class)

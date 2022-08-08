@@ -65,7 +65,7 @@ public class ApiModelNoVerticalMergingSubReferenceApiTest extends TestBase {
                 inspector.assertNoClassesMerged();
               }
             })
-        .noMinification()
+        .addDontObfuscate()
         .compile()
         .inspect(
             inspector -> {

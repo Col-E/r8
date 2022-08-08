@@ -12,8 +12,6 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ir.optimize.membervaluepropagation.fields.FieldTypeStrengtheningTest.A;
-import com.android.tools.r8.ir.optimize.membervaluepropagation.fields.FieldTypeStrengtheningTest.Main;
 import com.android.tools.r8.transformers.ClassFileTransformer.FieldPredicate;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
@@ -44,7 +42,7 @@ public class FieldTypeStrengtheningCollisionTest extends TestBase {
         .addKeepRules(
             "-keep class " + Main.class.getTypeName() + " { " + A.class.getTypeName() + " f; }")
         .enableInliningAnnotations()
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(

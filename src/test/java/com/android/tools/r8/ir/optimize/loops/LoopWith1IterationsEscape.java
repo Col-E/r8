@@ -33,7 +33,7 @@ public class LoopWith1IterationsEscape extends TestBase {
         .addProgramClasses(Main.class)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
-        .noMinification()
+        .addDontObfuscate()
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("end 0", "iteration", "end 1");

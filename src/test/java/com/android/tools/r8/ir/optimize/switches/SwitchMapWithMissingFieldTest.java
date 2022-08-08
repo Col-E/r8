@@ -48,7 +48,7 @@ public class SwitchMapWithMissingFieldTest extends TestBase {
                 .setClassDescriptor(descriptor(IncompleteEnum.class))
                 .transform())
         .addKeepMainRule(TestClass.class)
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)

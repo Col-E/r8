@@ -72,7 +72,7 @@ public class ProgramAndLibraryDefinitionTest extends TestBase {
             .addDontWarn(A.class, B.class)
             .addKeepMainRule(Main.class)
             .addOptionsModification(options -> options.loadAllClassDefinitions = true)
-            .noMinification()
+            .addDontObfuscate()
             .allowUnusedDontWarnPatterns();
     byte[] libraryA = getAFromClassTestParam(this.aInLibrary);
     addIfNotNull(libraryA, testBuilder::addLibraryClassFileData);

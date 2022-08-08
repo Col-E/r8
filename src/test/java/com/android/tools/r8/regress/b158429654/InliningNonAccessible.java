@@ -32,7 +32,7 @@ public class InliningNonAccessible extends TestBase {
         .addProgramClasses(OuterAbstract.class, OuterImpl.class, InnerClass.class)
         .addProgramClasses(Main.class)
         .addKeepMainRule(Main.class)
-        .noMinification()
+        .addDontObfuscate()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("42");
   }

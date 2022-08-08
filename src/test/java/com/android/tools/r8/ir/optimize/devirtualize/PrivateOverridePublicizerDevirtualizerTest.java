@@ -53,7 +53,7 @@ public class PrivateOverridePublicizerDevirtualizerTest extends TestBase {
         .enableNeverClassInliningAnnotations()
         .addKeepMainRule(Main.class)
         .allowAccessModification()
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(

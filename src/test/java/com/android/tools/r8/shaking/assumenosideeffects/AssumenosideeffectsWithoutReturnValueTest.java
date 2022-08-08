@@ -73,7 +73,7 @@ public class AssumenosideeffectsWithoutReturnValueTest extends TestBase {
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules(config.getKeepRules())
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::verifyDebugMethodIsRemoved)

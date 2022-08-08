@@ -104,7 +104,7 @@ public abstract class MergedTypeBaseTest extends TestBase {
             getConditionForProguardIfRule(),
             "-keep class " + Unused.class.getTypeName(),
             getAdditionalKeepRules())
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .apply(this::configure)
         .run(parameters.getRuntime(), getTestClass())

@@ -64,7 +64,7 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
 
   @Test
   public void testAsIs() throws Exception {
-    test(builder -> builder.noMinification().addDontOptimize().noTreeShaking());
+    test(builder -> builder.addDontObfuscate().addDontOptimize().noTreeShaking());
   }
 
   @Test
@@ -74,7 +74,7 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
 
   @Test
   public void testDontShrinkAndDontObfuscate() throws Exception {
-    test(builder -> builder.noMinification().noTreeShaking());
+    test(builder -> builder.addDontObfuscate().noTreeShaking());
   }
 
   @Test
@@ -98,7 +98,7 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
 
   @Test
   public void testDontObfuscate() throws Exception {
-    test(TestShrinkerBuilder::noMinification);
+    test(TestShrinkerBuilder::addDontObfuscate);
   }
 
 }

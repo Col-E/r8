@@ -50,7 +50,7 @@ public class StringBuildersAfterAssumenosideeffectsTest extends TestBase {
             "-assumenosideeffects class * implements " + TestLogger.class.getTypeName() + " {",
             "  void info(...);",
             "}")
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED)

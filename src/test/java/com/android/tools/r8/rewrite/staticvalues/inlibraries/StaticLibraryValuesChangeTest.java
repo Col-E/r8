@@ -83,11 +83,12 @@ public class StaticLibraryValuesChangeTest extends TestBase {
         .addProgramClasses(TestMain.class)
         .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
         // Compile TestMain with R8 using the second version of LibraryClass as library.
-        .addLibraryProvider(PreloadedClassFileProvider.fromClassData(
-            DescriptorUtils.javaTypeToDescriptor(LibraryClass.class.getName()),
-            compileTimeLibrary.buildClasses().get(0)))
+        .addLibraryProvider(
+            PreloadedClassFileProvider.fromClassData(
+                DescriptorUtils.javaTypeToDescriptor(LibraryClass.class.getName()),
+                compileTimeLibrary.buildClasses().get(0)))
         .noTreeShaking()
-        .noMinification()
+        .addDontObfuscate()
         .compile()
         // Merge the compiled TestMain with the runtime version of LibraryClass.
         .addRunClasspathFiles(lib)

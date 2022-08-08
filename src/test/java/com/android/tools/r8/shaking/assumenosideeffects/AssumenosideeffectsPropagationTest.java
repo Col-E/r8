@@ -153,7 +153,7 @@ public class AssumenosideeffectsPropagationTest extends TestBase {
             options ->
                 options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(config.expectedOutput(enableHorizontalClassMerging));

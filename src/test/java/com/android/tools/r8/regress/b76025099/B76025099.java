@@ -62,7 +62,7 @@ public class B76025099 extends TestBase {
         testForProguard()
             .addProgramFiles(ToolHelper.getClassFilesForTestPackage(Main.class.getPackage()))
             .addKeepMainRule(Main.class)
-            .noMinification()
+            .addDontObfuscate()
             .compile();
 
     if (parameters.isDexRuntime()) {
@@ -86,7 +86,7 @@ public class B76025099 extends TestBase {
         .addProgramFiles(ToolHelper.getClassFilesForTestPackage(Main.class.getPackage()))
         .addKeepMainRule(Main.class)
         .enableNoVerticalClassMergingAnnotations()
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verifyFieldAccess)

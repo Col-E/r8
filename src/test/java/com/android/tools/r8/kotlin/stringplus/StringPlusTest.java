@@ -85,7 +85,7 @@ public class StringPlusTest extends KotlinTestBase {
         .allowDiagnosticWarningMessages()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep class " + MAIN + "{ void keepFor*(...); }")
-        .noMinification()
+        .addDontObfuscate()
         .compile()
         .inspect(
             inspector -> {

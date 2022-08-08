@@ -214,7 +214,7 @@ public class ConstClassCanonicalizationTest extends TestBase {
             .addProgramClassesAndInnerClasses(MAIN)
             .addKeepMainRule(MAIN)
             .addKeepAttributeInnerClassesAndEnclosingMethod()
-            .noMinification()
+            .addDontObfuscate()
             .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN)

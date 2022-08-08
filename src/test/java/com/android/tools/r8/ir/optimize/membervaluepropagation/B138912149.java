@@ -37,16 +37,18 @@ public class B138912149 extends TestBase {
         .addInnerClasses(B138912149.class)
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getRuntime())
-        .noMinification()
+        .addDontObfuscate()
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("The end")
-        .inspect(codeInspector -> {
-          // All <clinit>s are simplified and shrunk.
-          codeInspector.forAllClasses(classSubject -> {
-            assertThat(classSubject.clinit(), not(isPresent()));
-          });
-        });
+        .inspect(
+            codeInspector -> {
+              // All <clinit>s are simplified and shrunk.
+              codeInspector.forAllClasses(
+                  classSubject -> {
+                    assertThat(classSubject.clinit(), not(isPresent()));
+                  });
+            });
   }
 
   @Test

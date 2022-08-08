@@ -48,7 +48,7 @@ public class DexSplitterInlineRegression extends SplitterTestBase {
                 // Link against android.jar that contains ReflectiveOperationException.
                 .addLibraryFiles(parameters.getDefaultAndroidJarAbove(AndroidApiLevel.K))
                 .enableNoVerticalClassMergingAnnotations()
-                .noMinification();
+                .addDontObfuscate();
     ProcessResult processResult =
         testR8Splitter(
             parameters,

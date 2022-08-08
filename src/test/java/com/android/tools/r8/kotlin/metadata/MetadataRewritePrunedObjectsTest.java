@@ -81,7 +81,7 @@ public class MetadataRewritePrunedObjectsTest extends KotlinMetadataTestBase {
             .addKeepClassAndMembersRules(PKG_LIB + ".SubUser")
             .addKeepRuntimeVisibleAnnotations()
             .enableProguardTestOptions()
-            .noMinification()
+            .addDontObfuscate()
             .compile()
             .inspect(this::checkPruned)
             .writeToZip();

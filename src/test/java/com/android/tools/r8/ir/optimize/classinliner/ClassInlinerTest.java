@@ -99,7 +99,7 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
                         .assertMergedInto(CycleReferenceBA.class, Iface1Impl.class)
                         .assertMergedInto(Iface2Impl.class, Iface1Impl.class))
             .allowAccessModification()
-            .noMinification()
+            .addDontObfuscate()
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), main)
             .assertSuccessWithOutput(javaOutput);
@@ -212,7 +212,7 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
             .addKeepMainRule(main)
             .addKeepAttributes("LineNumberTable")
             .allowAccessModification()
-            .noMinification()
+            .addDontObfuscate()
             .run(main)
             .assertSuccessWithOutput(javaOutput);
 
@@ -254,7 +254,7 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
                   o.classInlinerOptions().classInliningInstructionAllowance = 1000;
                 })
             .allowAccessModification()
-            .noMinification()
+            .addDontObfuscate()
             .run(main)
             .assertSuccessWithOutput(javaOutput);
 
@@ -306,7 +306,7 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
             .addKeepAttributes("LineNumberTable")
             .allowAccessModification()
             .enableInliningAnnotations()
-            .noMinification()
+            .addDontObfuscate()
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), main)
             .assertSuccessWithOutput(javaOutput);

@@ -41,7 +41,7 @@ public class StringBuilderStoredToDeadFieldTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(StringBuilderStoredToDeadFieldTest.class)
         .addKeepMainRule(MAIN)
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccess()

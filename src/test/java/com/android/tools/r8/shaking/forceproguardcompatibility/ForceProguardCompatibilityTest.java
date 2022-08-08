@@ -82,7 +82,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
       throws Exception {
     CodeInspector inspector =
         testForR8Compat(parameters.getBackend(), forceProguardCompatibility)
-            .noMinification()
+            .addDontObfuscate()
             .allowAccessModification()
             .addProgramClasses(mainClass, mentionedClass)
             .addKeepMainRule(mainClass)

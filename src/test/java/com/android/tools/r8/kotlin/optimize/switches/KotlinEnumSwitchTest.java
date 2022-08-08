@@ -60,7 +60,7 @@ public class KotlinEnumSwitchTest extends KotlinTestBase {
               options.enableEnumSwitchMapRemoval = enableSwitchMapRemoval;
             })
         .setMinApi(parameters.getApiLevel())
-        .noMinification()
+        .addDontObfuscate()
         .allowDiagnosticWarningMessages()
         .compile()
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))

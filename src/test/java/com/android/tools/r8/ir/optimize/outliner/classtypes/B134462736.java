@@ -69,7 +69,7 @@ public class B134462736 extends TestBase {
         .enableConstantArgumentAnnotations()
         .enableNoMethodStaticizingAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .noMinification()
+        .addDontObfuscate()
         .addOptionsModification(
             options -> {
               options.outline.threshold = 2;

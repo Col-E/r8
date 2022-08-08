@@ -49,7 +49,7 @@ public class DefinitelyNullTest extends TestBase {
     }
     testForR8(parameters.getBackend())
         // Disable minification so that A still refers to A given on the classpath below.
-        .noMinification()
+        .addDontObfuscate()
         .addProgramClasses(TestClass.class, A.class)
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getApiLevel())

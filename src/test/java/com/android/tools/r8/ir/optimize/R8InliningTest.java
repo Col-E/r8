@@ -137,7 +137,7 @@ public class R8InliningTest extends TestBase {
             })
         .allowAccessModification(allowAccessModification)
         .enableProguardTestOptions()
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .applyIf(

@@ -52,7 +52,7 @@ public class B141942381 extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepAttributes("Signatures")
         .enableNeverClassInliningAnnotations()
-        .noMinification()
+        .addDontObfuscate()
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

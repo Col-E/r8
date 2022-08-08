@@ -46,7 +46,7 @@ public class StaticClassMergerVisibilityTest extends TestBase {
                     .assertMergedInto(C.class, D.class))
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .noMinification()
+        .addDontObfuscate()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A.print()", "B.print()", "C.print()", "D.print()")
         .inspect(

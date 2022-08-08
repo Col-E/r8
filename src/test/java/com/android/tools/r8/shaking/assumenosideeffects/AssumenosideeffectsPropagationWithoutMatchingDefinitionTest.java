@@ -52,7 +52,7 @@ public class AssumenosideeffectsPropagationWithoutMatchingDefinitionTest extends
             "-assumenosideeffects class * implements " + LoggerInterface.class.getTypeName() + " {",
             "  *** debug(...);",
             "}")
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(OUTPUT_WITHOUT_LOGGING)

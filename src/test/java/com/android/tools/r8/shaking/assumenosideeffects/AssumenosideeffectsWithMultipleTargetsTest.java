@@ -98,7 +98,7 @@ public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules(config.getKeepRule())
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(TestConfig.OUTPUT_WITHOUT_INFO)

@@ -16,7 +16,7 @@ public class BasicBlockMuncherQuadraticTest extends TestBase {
     testForR8(Backend.CF)
         .addKeepMainRule(MethodHolder.class)
         .addInnerClasses(BasicBlockMuncherQuadraticTest.class)
-        .noMinification()
+        .addDontObfuscate()
         .addOptionsModification(options -> options.testing.basicBlockMuncherIterationLimit = 50000)
         .compile();
   }

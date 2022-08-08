@@ -103,7 +103,7 @@ public class DefaultLambdaWithSelfReferenceTestRunner extends DebugTestBase {
         testForR8(parameters.getBackend())
             .addProgramClassesAndInnerClasses(CLASS)
             .setMinApi(parameters.getApiLevel())
-            .noMinification()
+            .addDontObfuscate()
             .noTreeShaking()
             .addKeepAllAttributes()
             .debug()

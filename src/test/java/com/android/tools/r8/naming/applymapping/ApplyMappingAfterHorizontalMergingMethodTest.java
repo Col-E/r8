@@ -110,7 +110,7 @@ public class ApplyMappingAfterHorizontalMergingMethodTest extends TestBase {
 
     testForR8(backend)
         .noTreeShaking()
-        .noMinification()
+        .addDontObfuscate()
         .addProgramClasses(PROGRAM_CLASSES)
         .addApplyMapping(libraryResult.getProguardMap())
         .addLibraryClasses(LIBRARY_CLASSES)

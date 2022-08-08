@@ -58,7 +58,7 @@ public class PrintSeedsWithDeserializeLambdaMethodTest extends TestBase {
             options -> options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
         .addPrintSeeds()
         .allowStdoutMessages()
-        .noMinification()
+        .addDontObfuscate()
         .noTreeShaking()
         .run(parameters.getRuntime(), getMainClass())
         .assertSuccessWithOutput(EXPECTED)

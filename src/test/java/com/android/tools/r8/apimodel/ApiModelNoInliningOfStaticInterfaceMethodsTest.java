@@ -52,7 +52,7 @@ public class ApiModelNoInliningOfStaticInterfaceMethodsTest extends TestBase {
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         // We are testing that we do not inline/merge higher api-levels
         .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
-        .noMinification()
+        .addDontObfuscate()
         .enableInliningAnnotations()
         .compile()
         .inspect(

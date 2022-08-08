@@ -100,7 +100,7 @@ public class MainDexListOutputTest extends TestBase {
     testForR8(Backend.DEX)
         .addProgramClasses(HelloWorldMain.class)
         .noTreeShaking()
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(AndroidApiLevel.K)
         .addMainDexRuleFiles(mainDexRules)
         .setMainDexListConsumer(new FileConsumer(mainDexListOutput))

@@ -61,7 +61,7 @@ public class KotlinIntrinsicsInlineChainTest extends KotlinTestBase {
         .allowAccessModification(allowAccessModification)
         .allowDiagnosticWarningMessages()
         .setMinApi(parameters.getApiLevel())
-        .noMinification()
+        .addDontObfuscate()
         .compile()
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .run(parameters.getRuntime(), MAIN, "foobar")

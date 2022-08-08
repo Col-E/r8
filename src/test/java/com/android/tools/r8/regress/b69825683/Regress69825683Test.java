@@ -55,7 +55,7 @@ public class Regress69825683Test extends TestBase {
                 "  synthetic void <init>(...);",
                 "}")
             .addOptionsModification(options -> options.enableClassInlining = false)
-            .noMinification()
+            .addDontObfuscate()
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), outer)
             // Run code to check that the constructor with synthetic class as argument is present.
@@ -82,7 +82,7 @@ public class Regress69825683Test extends TestBase {
                 "-assumemayhavesideeffects class " + clazz.getName() + " {",
                 "  void <init>(...);",
                 "}")
-            .noMinification()
+            .addDontObfuscate()
             .addOptionsModification(o -> o.enableClassInlining = false)
             .setMinApi(parameters.getApiLevel())
             // Run code to check that the constructor with synthetic class as argument is present.

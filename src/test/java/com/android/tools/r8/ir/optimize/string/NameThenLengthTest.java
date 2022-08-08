@@ -168,7 +168,7 @@ public class NameThenLengthTest extends TestBase {
             .addProgramClasses(MAIN)
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
-            .noMinification()
+            .addDontObfuscate()
             .addOptionsModification(this::configure)
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN)

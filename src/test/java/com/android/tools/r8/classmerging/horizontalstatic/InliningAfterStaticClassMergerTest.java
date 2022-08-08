@@ -86,7 +86,7 @@ public class InliningAfterStaticClassMergerTest extends TestBase {
             .addOptionsModification(
                 options -> options.libraryInterfacesMayHaveStaticInitialization = true)
             .enableMemberValuePropagationAnnotations()
-            .noMinification()
+            .addDontObfuscate()
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expected)

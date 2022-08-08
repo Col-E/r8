@@ -42,7 +42,7 @@ public class GetClassBaseAndSubTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .noMinification()
+        .addDontObfuscate()
         .addInnerClasses(GetClassBaseAndSubTest.class)
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getApiLevel())

@@ -282,7 +282,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   }
 
   public DesugaredLibraryTestBuilder<T> noMinification() {
-    withR8TestBuilder(R8TestBuilder::noMinification);
+    withR8TestBuilder(R8TestBuilder::addDontObfuscate);
     return this;
   }
 

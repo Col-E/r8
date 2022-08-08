@@ -43,7 +43,7 @@ public class InlineDefaultInterfaceMethodTest extends TestBase {
             .setMinApi(parameters.getApiLevel())
             .enableNeverClassInliningAnnotations()
             .enableNoVerticalClassMergingAnnotations()
-            .noMinification()
+            .addDontObfuscate()
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();

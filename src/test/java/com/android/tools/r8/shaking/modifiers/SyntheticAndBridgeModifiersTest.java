@@ -27,28 +27,30 @@ public class SyntheticAndBridgeModifiersTest extends TestBase {
     testForProguard()
         .addProgramClasses(CLASSES)
         .addKeepRules(keepRules)
-        .noMinification()
+        .addDontObfuscate()
         .compile()
         .disassemble()
-        .inspect(inspector -> {
-          ClassSubject clazz =
-              inspector.clazz(SyntheticAndBridgeModifiersTestClass.TestClass.class);
-          assertThat(clazz, isPresent());
-          classConsumer.accept(clazz);
-        });
+        .inspect(
+            inspector -> {
+              ClassSubject clazz =
+                  inspector.clazz(SyntheticAndBridgeModifiersTestClass.TestClass.class);
+              assertThat(clazz, isPresent());
+              classConsumer.accept(clazz);
+            });
 
     testForR8(Backend.DEX)
         .addProgramClasses(CLASSES)
         .addKeepRules(keepRules)
-        .noMinification()
+        .addDontObfuscate()
         .compile()
         .disassemble()
-        .inspect(inspector -> {
-          ClassSubject clazz =
-              inspector.clazz(SyntheticAndBridgeModifiersTestClass.TestClass.class);
-          assertThat(clazz, isPresent());
-          classConsumer.accept(clazz);
-        });
+        .inspect(
+            inspector -> {
+              ClassSubject clazz =
+                  inspector.clazz(SyntheticAndBridgeModifiersTestClass.TestClass.class);
+              assertThat(clazz, isPresent());
+              classConsumer.accept(clazz);
+            });
   }
 
   private long methodsWithNameStartingWith(ClassSubject clazz, String prefix) {

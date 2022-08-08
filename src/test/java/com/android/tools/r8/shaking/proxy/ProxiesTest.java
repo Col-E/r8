@@ -67,7 +67,7 @@ public class ProxiesTest extends TestBase {
               o.enableDevirtualization = false;
             })
         .enableAlwaysInliningAnnotations()
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(inspection)

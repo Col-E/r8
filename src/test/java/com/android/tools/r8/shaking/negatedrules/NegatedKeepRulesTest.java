@@ -333,7 +333,7 @@ public class NegatedKeepRulesTest extends TestBase {
     return testBuilder
         .addProgramClasses(A.class, B.class, C.class, D.class, FooBar.class, BarBar.class)
         .setMinApi(AndroidApiLevel.B)
-        .noMinification()
+        .addDontObfuscate()
         .compile();
   }
 

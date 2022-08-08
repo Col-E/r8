@@ -86,7 +86,7 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
             .enableMemberValuePropagationAnnotations()
             .enableUnusedArgumentAnnotations(!enableUnusedArgumentRemoval)
             .addKeepMainRule(mainClass)
-            .noMinification()
+            .addDontObfuscate()
             .addKeepRules(
                 // Note: we use '-checkdiscard' to indirectly check that the access relaxation is
                 // done which leads to inlining of all pB*** methods so they are removed. Without
@@ -172,7 +172,7 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
             .enableInliningAnnotations()
             .enableMemberValuePropagationAnnotations()
             .enableNoHorizontalClassMergingAnnotations()
-            .noMinification()
+            .addDontObfuscate()
             .addKeepRules(
                 "-checkdiscard class " + Base.class.getCanonicalName() + "{",
                 "  *** p*();",

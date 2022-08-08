@@ -114,7 +114,7 @@ public class DefaultLambdaWithUnderscoreThisTestRunner extends DebugTestBase {
         testForR8(parameters.getBackend())
             .addProgramClassesAndInnerClasses(CLASS)
             .addKeepAllClassesRule()
-            .noMinification()
+            .addDontObfuscate()
             .setMode(CompilationMode.DEBUG)
             .addOptionsModification(
                 internalOptions -> {

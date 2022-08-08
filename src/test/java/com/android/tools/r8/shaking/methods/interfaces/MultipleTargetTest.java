@@ -54,7 +54,7 @@ public class MultipleTargetTest extends TestBase {
             .addProgramClasses(Top.class, Left.class, Right.class, Bottom.class)
             .setMinApi(parameters.getApiLevel())
             .addKeepMethodRules(Bottom.class, "java.lang.String name()")
-            .noMinification()
+            .addDontObfuscate()
             .compile();
     // TODO(b/144269679): We should be able to compile and run this.
     testForR8(parameters.getBackend())

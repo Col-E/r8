@@ -47,7 +47,7 @@ public class ClassInlinerBuilderWithControlFlowTest extends ClassInlinerTestBase
     testForR8(parameters.getBackend())
         .addInnerClasses(ClassInlinerBuilderWithControlFlowTest.class)
         .addKeepMainRule(TestClass.class)
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)

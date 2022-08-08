@@ -26,7 +26,7 @@ public class PinnedClassMemberReferenceTest extends HorizontalClassMergingTestBa
     return testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .noMinification()
+        .addDontObfuscate()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel());

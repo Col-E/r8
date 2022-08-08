@@ -174,7 +174,7 @@ public class MainDexWithSynthesizedClassesTest extends TestBase {
             .addOptionsModification(o -> o.minimalMainDex = true)
             .addMainDexListClasses(TestClass.class)
             .addMainDexListFiles(mainDexFile)
-            .noMinification()
+            .addDontObfuscate()
             .noTreeShaking()
             .allowDiagnosticWarningMessages()
             .compileWithExpectedDiagnostics(

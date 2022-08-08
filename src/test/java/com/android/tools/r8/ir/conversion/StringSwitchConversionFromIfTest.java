@@ -55,7 +55,7 @@ public class StringSwitchConversionFromIfTest extends TestBase {
         .enableInliningAnnotations()
         // TODO(b/135560746): Add support for treating the keys of a string-switch instruction as an
         //  identifier name string.
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(

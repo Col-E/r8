@@ -41,7 +41,7 @@ public class NestMemberPropagatedTest extends TestBase {
     List<Path> toCompile = classesMatching("NestPvtFieldPropagated");
     testForR8(parameters.getBackend())
         .addKeepMainRule(getMainClass("memberPropagated"))
-        .noMinification()
+        .addDontObfuscate()
         .addOptionsModification(
             options -> {
               options.enableClassInlining = false;

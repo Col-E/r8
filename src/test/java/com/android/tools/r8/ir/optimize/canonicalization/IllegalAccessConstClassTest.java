@@ -86,12 +86,11 @@ public class IllegalAccessConstClassTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClassFileData(
-            IllegalAccessConstClassTestDump.PackagePrivateClassDump.dump())
+        .addProgramClassFileData(IllegalAccessConstClassTestDump.PackagePrivateClassDump.dump())
         .addProgramClassFileData(
             IllegalAccessConstClassTestDump.FakePackagePrivateClassConsumerDump.dump())
         .addKeepMainRule(MAIN)
-        .noMinification()
+        .addDontObfuscate()
         .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
         .setMinApi(parameters.getRuntime())
         .compile()

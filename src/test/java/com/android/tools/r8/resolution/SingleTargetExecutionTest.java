@@ -69,7 +69,7 @@ public class SingleTargetExecutionTest extends AsmTestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .noMinification()
+        .addDontObfuscate()
         .addProgramClasses(CLASSES)
         .addProgramClassFileData(ASM_CLASSES)
         .addKeepMainRule(Main.class)

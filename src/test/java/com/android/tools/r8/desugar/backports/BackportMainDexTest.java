@@ -238,7 +238,7 @@ public class BackportMainDexTest extends TestBase {
     MainDexConsumer mainDexConsumer = parameters.isDexRuntime() ? new MainDexConsumer() : null;
     testForR8(parameters.getBackend())
         .debug() // Use debug mode to force a minimal main dex.
-        .noMinification() // Disable minification so we can inspect the synthetic names.
+        .addDontObfuscate() // Disable minification so we can inspect the synthetic names.
         .applyIf(mainDexConsumer != null, b -> b.setProgramConsumer(mainDexConsumer))
         .addProgramClasses(CLASSES)
         .addKeepMainRule(TestClass.class)

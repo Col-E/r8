@@ -72,7 +72,7 @@ public class DefaultInterfaceMethodsTest extends TestBase {
             .addKeepMethodRules(J.class, "void foo()")
             .addOptionsModification(
                 internalOptions -> internalOptions.enableVerticalClassMerging = false)
-            .noMinification()
+            .addDontObfuscate()
             .compile();
     // TODO(b/144269679): We should be able to compile and run this.
     testForR8(parameters.getBackend())

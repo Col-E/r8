@@ -51,7 +51,7 @@ public class OutlinesWithNonNullTest extends TestBase {
         .addKeepMainRule(TestClassWithNonNullOnOneSide.class)
         .setMinApi(parameters.getApiLevel())
         .allowAccessModification()
-        .noMinification()
+        .addDontObfuscate()
         .addOptionsModification(
             options -> {
               options.outline.threshold = 2;
@@ -72,7 +72,7 @@ public class OutlinesWithNonNullTest extends TestBase {
         .addKeepMainRule(TestClassWithNonNullOnBothSides.class)
         .setMinApi(parameters.getApiLevel())
         .allowAccessModification()
-        .noMinification()
+        .addDontObfuscate()
         .addOptionsModification(
             options -> {
               options.outline.threshold = 2;

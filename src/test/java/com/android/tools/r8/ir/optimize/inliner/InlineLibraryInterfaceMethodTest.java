@@ -46,7 +46,7 @@ public class InlineLibraryInterfaceMethodTest extends TestBase {
         .addInnerClasses(InlineLibraryInterfaceMethodTest.class)
         .addKeepMainRule(TestClass.class)
         .setMinApi(testRuntime)
-        .noMinification()
+        .addDontObfuscate()
         .run(testRuntime, TestClass.class)
         .assertSuccess()
         .inspect(

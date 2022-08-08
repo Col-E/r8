@@ -44,7 +44,7 @@ public class NestConstructorRemovedArgTest extends TestBase {
     String nestID = "constructors";
     testForR8(parameters.getBackend())
         .addKeepMainRule(getMainClass(nestID))
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(options -> options.enableClassInlining = false)
         .addProgramFiles(classesOfNest(nestID))
@@ -60,7 +60,7 @@ public class NestConstructorRemovedArgTest extends TestBase {
     testForR8(parameters.getBackend())
         .noTreeShaking()
         .addKeepMainRule(getMainClass(nestID))
-        .noMinification()
+        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(options -> options.enableClassInlining = false)
         .addProgramFiles(classesOfNest(nestID))

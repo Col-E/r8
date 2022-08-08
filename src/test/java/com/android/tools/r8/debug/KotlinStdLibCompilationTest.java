@@ -57,7 +57,7 @@ public class KotlinStdLibCompilationTest extends TestBase {
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.LATEST))
         .addKeepAllAttributes()
         .allowDiagnosticWarningMessages()
-        .noMinification()
+        .addDontObfuscate()
         .noTreeShaking()
         .setMode(CompilationMode.DEBUG)
         .setMinApi(parameters.getApiLevel())
