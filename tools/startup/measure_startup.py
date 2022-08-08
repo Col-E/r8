@@ -55,7 +55,7 @@ def run_all(apk, options, tmp_dir):
     out_dir = os.path.join(options.out_dir, str(iteration))
     teardown_options = setup_for_run(apk, out_dir, options)
     data = run(out_dir, options, tmp_dir)
-    teardown_for_run(options, teardown_options)
+    teardown_for_run(out_dir, options, teardown_options)
     add_data(data_total, data)
     print('Result:')
     print(data)
@@ -119,8 +119,12 @@ def setup_for_run(apk, out_dir, options):
   adb_utils.drop_caches(options.device_id)
   return teardown_options
 
-def teardown_for_run(options, teardown_options):
+def teardown_for_run(out_dir, options, teardown_options):
   assert adb_utils.get_screen_state(options.device_id).is_on_and_unlocked()
+
+  if options.capture_screen:
+    target = os.path.join(out_dir, 'screen.png')
+    adb_utils.capture_screen(target, options.device_id)
 
   if options.cooldown > 0:
     adb_utils.teardown_after_interaction_with_device(
@@ -248,6 +252,10 @@ def parse_options(argv):
   result.add_argument('--apk',
                       help='Path to the APK',
                       required=True)
+  result.add_argument('--capture-screen',
+                      help='Take a screenshot after each test',
+                      default=False,
+                      action='store_true')
   result.add_argument('--cooldown',
                       help='Seconds to wait before running each iteration',
                       default=0,

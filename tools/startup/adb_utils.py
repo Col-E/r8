@@ -56,6 +56,13 @@ def broadcast(action, component, device_id=None):
   cmd = create_adb_cmd('shell am broadcast -a %s %s' % (action, component), device_id)
   return subprocess.check_output(cmd).decode('utf-8').strip().splitlines()
 
+def capture_screen(target, device_id=None):
+  print('Taking screenshot to %s' % target)
+  tmp = '/sdcard/screencap.png'
+  cmd = create_adb_cmd('shell screencap -p %s' % tmp, device_id)
+  subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
+  pull(tmp, target, device_id)
+
 def create_adb_cmd(arguments, device_id=None):
   assert isinstance(arguments, list) or isinstance(arguments, str)
   cmd = ['adb']
@@ -135,8 +142,7 @@ def get_profile_data(app_id, device_id=None):
   with utils.TempDir() as temp:
     source = get_profile_path(app_id)
     target = os.path.join(temp, 'primary.prof')
-    cmd = create_adb_cmd('pull %s %s' % (source, target), device_id)
-    subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
+    pull(source, target, device_id)
     with open(target, 'rb') as f:
       return f.read()
 
@@ -288,6 +294,10 @@ def prepare_for_interaction_with_device(device_id=None, device_pin=None):
   }
   return teardown_options
 
+def pull(source, target, device_id=None):
+  cmd = create_adb_cmd('pull %s %s' % (source, target), device_id)
+  subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
+
 def root(device_id=None):
   cmd = create_adb_cmd('root', device_id)
   subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
@@ -364,6 +374,8 @@ def unlock(device_id=None, device_pin=None):
 
 def parse_options(argv):
   result = argparse.ArgumentParser(description='Run adb utils.')
+  result.add_argument('--capture-screen',
+                      help='Capture screen to given file')
   result.add_argument('--device-id',
                       help='Device id (e.g., emulator-5554).')
   result.add_argument('--device-pin',
@@ -385,6 +397,8 @@ def parse_options(argv):
 
 def main(argv):
   (options, args) = parse_options(argv)
+  if options.capture_screen:
+    capture_screen(options.capture_screen, options.device_id)
   if options.ensure_screen_off:
     ensure_screen_off(options.device_id)
   elif options.get_screen_state:
