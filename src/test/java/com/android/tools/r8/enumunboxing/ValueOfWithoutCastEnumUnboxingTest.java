@@ -7,7 +7,6 @@ package com.android.tools.r8.enumunboxing;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.codeinspector.AssertUtils;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,20 +37,17 @@ public class ValueOfWithoutCastEnumUnboxingTest extends EnumUnboxingTestBase {
 
   @Test
   public void testEnumUnboxing() throws Exception {
-    AssertUtils.assertFailsCompilationIf(
-        parameters.isCfRuntime(),
-        () ->
-            testForR8(parameters.getBackend())
-                .addInnerClasses(getClass())
-                .addKeepClassAndMembersRules(Main.class)
-                .addKeepRules(enumKeepRules.getKeepRules())
-                .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(MyEnum.class))
-                .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-                .enableInliningAnnotations()
-                .setMinApi(parameters.getApiLevel())
-                .compile()
-                .run(parameters.getRuntime(), Main.class)
-                .assertFailureWithErrorThatThrows(VerifyError.class));
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addKeepClassAndMembersRules(Main.class)
+        .addKeepRules(enumKeepRules.getKeepRules())
+        .addEnumUnboxingInspector(inspector -> inspector.assertNotUnboxed(MyEnum.class))
+        .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
+        .enableInliningAnnotations()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("A");
   }
 
   static class Main {

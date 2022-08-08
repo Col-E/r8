@@ -489,7 +489,8 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     }
 
     if (user.isInvokeStatic()) {
-      DexClassAndMethod singleTarget = user.asInvokeStatic().lookupSingleTarget(appView, context);
+      InvokeStatic invoke = user.asInvokeStatic();
+      DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, context);
       if (singleTarget == null) {
         return false;
       }
@@ -498,6 +499,33 @@ public class EnumUnboxerImpl extends EnumUnboxer {
         // in the valueOf utility method.
         addRequiredNameData(enumClass);
         markMethodDependsOnLibraryModelisation(context);
+        // The out-value must be cast before it is used, or an assume instruction must strengthen
+        // its dynamic type, so that the out-value is analyzed by the enum unboxing analysis.
+        if (invoke.hasOutValue()) {
+          if (invoke.outValue().hasPhiUsers()) {
+            return false;
+          }
+          for (Instruction enumUser : invoke.outValue().uniqueUsers()) {
+            if (enumUser.isAssumeWithDynamicTypeAssumption()) {
+              Assume assume = enumUser.asAssume();
+              if (assume
+                  .getDynamicTypeAssumption()
+                  .getDynamicType()
+                  .getDynamicUpperBoundType()
+                  .equalUpToNullability(enumClass.getType().toTypeElement(appView))) {
+                // OK.
+                continue;
+              }
+            } else if (enumUser.isCheckCast()) {
+              CheckCast checkCast = enumUser.asCheckCast();
+              if (checkCast.getType() == enumClass.getType()) {
+                // OK.
+                continue;
+              }
+            }
+            return false;
+          }
+        }
         return true;
       }
       if (singleTarget.getReference()
