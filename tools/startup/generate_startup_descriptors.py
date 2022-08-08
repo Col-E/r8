@@ -10,9 +10,15 @@ import os
 import sys
 import time
 
-def extend_startup_descriptors(startup_descriptors, iteration, options):
+class Device:
+
+  def __init__(self, device_id, device_pin):
+    self.device_id = device_id
+    self.device_pin = device_pin
+
+def extend_startup_descriptors(startup_descriptors, iteration, device, options):
   (logcat, profile, profile_classes_and_methods) = \
-      generate_startup_profile(options)
+      generate_startup_profile(device, options)
   if options.logcat:
     write_tmp_logcat(logcat, iteration, options)
     current_startup_descriptors = get_r8_startup_descriptors_from_logcat(
@@ -34,35 +40,35 @@ def extend_startup_descriptors(startup_descriptors, iteration, options):
             % (number_of_new_startup_descriptors, iteration + 1))
   return new_startup_descriptors
 
-def generate_startup_profile(options):
+def generate_startup_profile(device, options):
   logcat = None
   profile = None
   profile_classes_and_methods = None
   if options.use_existing_profile:
     # Verify presence of profile.
-    adb_utils.check_app_has_profile_data(options.app_id, options.device_id)
-    profile = adb_utils.get_profile_data(options.app_id, options.device_id)
+    adb_utils.check_app_has_profile_data(options.app_id, device.device_id)
+    profile = adb_utils.get_profile_data(options.app_id, device.device_id)
     profile_classes_and_methods = \
         adb_utils.get_classes_and_methods_from_app_profile(
-            options.app_id, options.device_id)
+            options.app_id, device.device_id)
   else:
     # Unlock device.
     tear_down_options = adb_utils.prepare_for_interaction_with_device(
-        options.device_id, options.device_pin)
+        device.device_id, device.device_pin)
 
     logcat_process = None
     if options.logcat:
       # Clear logcat and start capturing logcat.
-      adb_utils.clear_logcat(options.device_id)
+      adb_utils.clear_logcat(device.device_id)
       logcat_process = adb_utils.start_logcat(
-          options.device_id, format='tag', filter='r8:I ActivityTaskManager:I *:S')
+          device.device_id, format='tag', filter='r8:I ActivityTaskManager:I *:S')
     else:
       # Clear existing profile data.
-      adb_utils.clear_profile_data(options.app_id, options.device_id)
+      adb_utils.clear_profile_data(options.app_id, device.device_id)
 
     # Launch activity to generate startup profile on device.
     adb_utils.launch_activity(
-        options.app_id, options.main_activity, options.device_id)
+        options.app_id, options.main_activity, device.device_id)
 
     # Wait for activity startup.
     time.sleep(options.startup_duration)
@@ -72,16 +78,16 @@ def generate_startup_profile(options):
       logcat = adb_utils.stop_logcat(logcat_process)
     else:
       # Capture startup profile.
-      adb_utils.capture_app_profile_data(options.app_id, options.device_id)
-      profile = adb_utils.get_profile_data(options.app_id, options.device_id)
+      adb_utils.capture_app_profile_data(options.app_id, device.device_id)
+      profile = adb_utils.get_profile_data(options.app_id, device.device_id)
       profile_classes_and_methods = \
           adb_utils.get_classes_and_methods_from_app_profile(
-              options.app_id, options.device_id)
+              options.app_id, device.device_id)
 
     # Shutdown app.
-    adb_utils.stop_app(options.app_id, options.device_id)
+    adb_utils.stop_app(options.app_id, device.device_id)
     adb_utils.teardown_after_interaction_with_device(
-        tear_down_options, options.device_id)
+        tear_down_options, device.device_id)
 
   return (logcat, profile, profile_classes_and_methods)
 
@@ -301,9 +307,11 @@ def parse_options(argv):
                       help='The application ID of interest',
                       required=True)
   result.add_argument('--device-id',
-                      help='Device id (e.g., emulator-5554).')
+                      help='Device id (e.g., emulator-5554).',
+                      action='append')
   result.add_argument('--device-pin',
-                      help='Device pin code (e.g., 1234)')
+                      help='Device pin code (e.g., 1234)',
+                      action='append')
   result.add_argument('--logcat',
                       action='store_true',
                       default=False)
@@ -348,24 +356,42 @@ def parse_options(argv):
                       action='store_true',
                       default=False)
   options, args = result.parse_known_args(argv)
+
+  # Read the device pins.
+  device_pins = options.device_pin or []
+  del options.device_pin
+
+  # Convert the device ids and pins into a list of devices.
+  options.devices = []
+  if options.device_id is None:
+    # Assume a single device is attached.
+    options.devices.append(
+        Device(None, device_pins[0] if len(device_pins) > 0 else None))
+  else:
+    for i in range(len(options.device_id)):
+      device_id = options.device_id[i]
+      device_pin = device_pins[i] if i < len(device_pins) else None
+      options.devices.append(Device(device_id, device_pin))
+  del options.device_id
+
   assert options.main_activity is not None or options.use_existing_profile, \
       'Argument --main-activity is required except when running with ' \
       '--use-existing-profile.'
+
   return options, args
 
-def main(argv):
-  (options, args) = parse_options(argv)
-  adb_utils.root(options.device_id)
+def run_on_device(device, options, startup_descriptors):
+  adb_utils.root(device.device_id)
   if options.apk:
-    adb_utils.uninstall(options.app_id, options.device_id)
-    adb_utils.install(options.apk, options.device_id)
-  startup_descriptors = {}
+    adb_utils.uninstall(options.app_id, device.device_id)
+    adb_utils.install(options.apk, device.device_id)
   if options.until_stable:
     iteration = 0
     stable_iterations = 0
     while True:
       old_startup_descriptors = startup_descriptors
-      startup_descriptors = extend_startup_descriptors(old_startup_descriptors, iteration, options)
+      startup_descriptors = extend_startup_descriptors(
+          old_startup_descriptors, iteration, device, options)
       diff = len(startup_descriptors) - len(old_startup_descriptors)
       if diff == 0:
         stable_iterations = stable_iterations + 1
@@ -376,7 +402,15 @@ def main(argv):
       iteration = iteration + 1
   else:
     for iteration in range(options.iterations):
-      startup_descriptors = extend_startup_descriptors(startup_descriptors, iteration, options)
+      startup_descriptors = extend_startup_descriptors(
+          startup_descriptors, iteration, device, options)
+  return startup_descriptors
+
+def main(argv):
+  (options, args) = parse_options(argv)
+  startup_descriptors = {}
+  for device in options.devices:
+    startup_descriptors = run_on_device(device, options, startup_descriptors)
   if options.out is not None:
     with open(options.out, 'w') as f:
       for startup_descriptor, flags in startup_descriptors.items():
