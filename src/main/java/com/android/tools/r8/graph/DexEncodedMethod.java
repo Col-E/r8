@@ -189,6 +189,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return accessFlags;
   }
 
+  public int getArgumentIndexFromParameterIndex(int parameterIndex) {
+    return parameterIndex + getFirstNonReceiverArgumentIndex();
+  }
+
   public DexType getArgumentType(int argumentIndex) {
     return getReference().getArgumentType(argumentIndex, isStatic());
   }
@@ -322,6 +326,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public DexTypeList getParameters() {
     return getReference().getParameters();
+  }
+
+  public int getParameterIndexFromArgumentIndex(int argumentIndex) {
+    assert argumentIndex >= getFirstNonReceiverArgumentIndex();
+    return argumentIndex - getFirstNonReceiverArgumentIndex();
   }
 
   public DexType getReturnType() {

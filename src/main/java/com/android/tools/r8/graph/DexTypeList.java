@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.PredicateUtils.not;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.utils.ArrayUtils;
+import com.android.tools.r8.utils.IntObjConsumer;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
@@ -101,6 +102,13 @@ public class DexTypeList extends DexItem implements Iterable<DexType>, Structura
   public void forEach(Consumer<? super DexType> consumer) {
     for (DexType value : values) {
       consumer.accept(value);
+    }
+  }
+
+  public void forEach(IntObjConsumer<DexType> consumer) {
+    for (int parameterIndex = 0; parameterIndex < values.length; parameterIndex++) {
+      DexType parameter = values[parameterIndex];
+      consumer.accept(parameterIndex, parameter);
     }
   }
 
