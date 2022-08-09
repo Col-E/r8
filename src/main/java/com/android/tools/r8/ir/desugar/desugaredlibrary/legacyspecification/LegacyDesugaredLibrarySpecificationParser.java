@@ -8,6 +8,7 @@ import static com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryS
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser.isHumanSpecification;
 
 import com.android.tools.r8.StringResource;
+import com.android.tools.r8.errors.UnsupportedDesugaredLibraryConfigurationVersionDiagnostic;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.TopLevelFlagsBuilder;
 import com.android.tools.r8.origin.Origin;
@@ -172,11 +173,7 @@ public class LegacyDesugaredLibrarySpecificationParser {
     int formatVersion = formatVersionElement.getAsInt();
     if (formatVersion > MAX_SUPPORTED_VERSION) {
       throw reporter.fatalError(
-          new StringDiagnostic(
-              "Unsupported desugared library configuration version, please upgrade the D8/R8"
-                  + " compiler."
-                  + " See https://developer.android.com/studio/build/library-desugaring-versions.",
-              origin));
+          new UnsupportedDesugaredLibraryConfigurationVersionDiagnostic(origin));
     }
 
     String version = required(jsonConfig, VERSION_KEY).getAsString();

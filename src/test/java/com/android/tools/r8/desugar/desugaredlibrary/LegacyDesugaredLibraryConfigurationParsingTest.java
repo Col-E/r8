@@ -5,6 +5,7 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticOrigin;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.RELEASED_1_1_5;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -17,6 +18,7 @@ import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.android.tools.r8.errors.UnsupportedDesugaredLibraryConfigurationVersionDiagnostic;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
@@ -190,7 +192,14 @@ public class LegacyDesugaredLibraryConfigurationParsingTest extends DesugaredLib
         diagnostics ->
             diagnostics.assertErrorsMatch(
                 allOf(
+                    diagnosticType(UnsupportedDesugaredLibraryConfigurationVersionDiagnostic.class),
                     diagnosticMessage(containsString("upgrade the D8/R8 compiler")),
+                    diagnosticMessage(
+                        containsString(
+                            "https://developer.android.com/studio/build/library-desugaring-versions")),
+                    diagnosticMessage(
+                        containsString(
+                            "https://developer.android.com/studio/build/library-desugaring")),
                     diagnosticOrigin(origin))));
   }
 
