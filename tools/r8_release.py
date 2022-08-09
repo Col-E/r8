@@ -389,9 +389,9 @@ def prepare_google3(args):
         result = re.search(version_match_regexp, line)
         if result:
           match_count = match_count + 1
-      if match_count != 3:
+      if match_count != 4:
         print(("Could not find the previous -dev release string to replace in " +
-            "METADATA. Expected to find is mentioned 3 times. Please update %s " +
+            "METADATA. Expected to find is mentioned 4 times. Please update %s " +
             "manually and run again with options --google3 " +
             "--use-existing-work-branch.") % metadata_path)
         sys.exit(1)
