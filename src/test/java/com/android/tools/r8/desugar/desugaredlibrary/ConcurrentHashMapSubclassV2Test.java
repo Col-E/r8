@@ -12,8 +12,8 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import org.junit.Assume;
@@ -52,34 +52,40 @@ public class ConcurrentHashMapSubclassV2Test extends DesugaredLibraryTestBase {
     this.compilationMode = compilationMode;
   }
 
-  @Test
-  public void test() throws Exception {
-    Assume.assumeFalse(
-        "b/237701688", compilationMode.isDebug() && compilationSpecification == R8_L8SHRINK);
-    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
-        .addInnerClasses(getClass())
-        .setMode(compilationMode)
-        .addKeepMainRule(Executor.class)
-        .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+  private boolean isDefinedOnBootClasspath() {
+    return parameters
+        .getRuntime()
+        .asDex()
+        .getMinApiLevel()
+        .isGreaterThanOrEqualTo(AndroidApiLevel.N);
   }
 
-  @SuppressWarnings("unchecked")
+  @Test
+  public void test() throws Throwable {
+    Assume.assumeTrue("b/237701688", compilationSpecification == R8_L8SHRINK);
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Executor.class)
+        .setMode(compilationMode)
+        .addOptionsModification(
+            options -> {
+              // Devirtualizing is correcting the invalid member-rebinding.
+              if (compilationMode.isRelease()) {
+                options.enableDevirtualization = false;
+              }
+            })
+        .run(parameters.getRuntime(), Executor.class)
+        .assertFailureWithErrorThatThrowsIf(!isDefinedOnBootClasspath(), NoSuchMethodError.class)
+        .assertSuccessWithOutputIf(isDefinedOnBootClasspath(), EXPECTED_RESULT);
+  }
+
   static class Executor {
     public static void main(String[] args) {
-      StringListConcurrentHashMap<String> map = new StringListConcurrentHashMap<>();
-      map.putKeyAndArray("foo");
+      StringListConcurrentHashMap map = new StringListConcurrentHashMap();
+      map.putIfAbsent("foo", "bar");
       System.out.println(map.keys().nextElement());
     }
   }
 
-  static class StringListConcurrentHashMap<K> extends ConcurrentHashMap<K, List<String>> {
-    StringListConcurrentHashMap() {
-      super();
-    }
-
-    void putKeyAndArray(K key) {
-      this.putIfAbsent(key, new ArrayList<>());
-    }
-  }
+  static class StringListConcurrentHashMap extends ConcurrentHashMap<String, String> {}
 }
