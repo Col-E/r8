@@ -2045,23 +2045,6 @@ public class CodeRewriter {
       // Locate the closest dominator block for all user blocks.
       DominatorTree dominatorTree = dominatorTreeMemoization.computeIfAbsent();
       BasicBlock dominator = dominatorTree.closestDominator(userBlocks);
-      // If the closest dominator block is a block that uses the constant for a phi the constant
-      // needs to go in the immediate dominator block so that it is available for phi moves.
-      for (Phi phi : instruction.outValue().uniquePhiUsers()) {
-        if (phi.getBlock() == dominator) {
-          if (instruction.outValue().numberOfAllUsers() == 1 &&
-              phi.usesValueOneTime(instruction.outValue())) {
-            // Out value is used only one time, move the constant directly to the corresponding
-            // branch rather than into the dominator to avoid to generate a const on paths which
-            // does not required it.
-            int predIndex = phi.getOperands().indexOf(instruction.outValue());
-            dominator = dominator.getPredecessors().get(predIndex);
-          } else {
-            dominator = dominatorTree.immediateDominator(dominator);
-          }
-          break;
-        }
-      }
 
       if (instruction.instructionTypeCanThrow()) {
         if (block.hasCatchHandlers() || dominator.hasCatchHandlers()) {
