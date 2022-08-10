@@ -38,6 +38,7 @@ import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.InstanceGet;
+import com.android.tools.r8.ir.code.InstanceOf;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -589,6 +590,15 @@ final class InlineCandidateProcessor {
   private void removeMiscUsages(IRCode code, Set<Value> affectedValues) {
     boolean needToRemoveUnreachableBlocks = false;
     for (Instruction user : eligibleInstance.uniqueUsers()) {
+      if (user.isInstanceOf()) {
+        InstanceOf instanceOf = user.asInstanceOf();
+        InstructionListIterator instructionIterator =
+            user.getBlock().listIterator(code, instanceOf);
+        instructionIterator.replaceCurrentInstructionWithConstBoolean(
+            code, appView.appInfo().isSubtype(eligibleClass.getType(), instanceOf.type()));
+        continue;
+      }
+
       if (user.isInvokeMethod()) {
         InvokeMethod invoke = user.asInvokeMethod();
 
