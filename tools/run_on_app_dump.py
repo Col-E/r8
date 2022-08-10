@@ -54,6 +54,7 @@ class App(object):
       'skip_recompilation': False,
       'compiler_properties': [],
       'internal': False,
+      'golem_duration': None,
     }
     # This below does not work in python3
     defaults.update(fields.items())
@@ -362,6 +363,7 @@ APPS = [
     'url': 'https://github.com/android/compose-samples',
     'revision': '779cf9e187b8ee2c6b620b2abb4524719b3f10f8',
     'folder': 'android/compose-samples/crane',
+    'golem_duration': 240
   }),
   # TODO(b/173167253): Check if monkey testing works.
   App({
@@ -1062,6 +1064,13 @@ def print_golem_config(options):
       print_indented(
           'StandardBenchmark(name, [Metric.RunTimeRaw, Metric.CodeSize]);',
           indentation + 4)
+      if app.golem_duration != None:
+        print_indented(
+            'final timeout = const Duration(seconds: %s);' % app.golem_duration,
+            indentation)
+        print_indented(
+            'ExecutionManagement.addTimeoutConstraint'
+            '(timeout, benchmark: benchmark);', indentation)
       app_gz = os.path.join(utils.OPENSOURCE_DUMPS_DIR, app.folder + '.tar.gz')
       name = 'appResource'
       add_golem_resource(indentation, app_gz, name)
