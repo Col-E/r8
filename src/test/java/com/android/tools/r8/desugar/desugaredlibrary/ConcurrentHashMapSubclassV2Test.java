@@ -75,8 +75,7 @@ public class ConcurrentHashMapSubclassV2Test extends DesugaredLibraryTestBase {
               }
             })
         .run(parameters.getRuntime(), Executor.class)
-        .assertFailureWithErrorThatThrowsIf(!isDefinedOnBootClasspath(), NoSuchMethodError.class)
-        .assertSuccessWithOutputIf(isDefinedOnBootClasspath(), EXPECTED_RESULT);
+        .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
   static class Executor {

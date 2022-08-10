@@ -197,11 +197,7 @@ public class MachineDesugaredLibrarySpecification implements DesugaredLibrarySpe
   }
 
   public boolean isSupported(DexReference reference) {
-    // Support through type rewriting.
-    if (getRewriteType().containsKey(reference.getContextType())) {
-      return true;
-    }
-    if (getMaintainType().contains(reference.getContextType())) {
+    if (isContextTypeMaintainedOrRewritten(reference)) {
       return true;
     }
     if (!reference.isDexMethod()) {
@@ -221,6 +217,12 @@ public class MachineDesugaredLibrarySpecification implements DesugaredLibrarySpe
       }
     }
     return false;
+  }
+
+  public boolean isContextTypeMaintainedOrRewritten(DexReference reference) {
+    // Support through type rewriting.
+    return getRewriteType().containsKey(reference.getContextType())
+        || getMaintainType().contains(reference.getContextType());
   }
 
   @Override

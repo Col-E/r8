@@ -76,7 +76,10 @@ public class AndroidApiReferenceLevelCache {
     if (reference.getContextType() == factory.objectType) {
       return appView.computedMinApiLevel();
     }
-    if (appView.options().machineDesugaredLibrarySpecification.isSupported(reference)) {
+    if (appView
+        .options()
+        .machineDesugaredLibrarySpecification
+        .isContextTypeMaintainedOrRewritten(reference)) {
       // If we end up desugaring the reference, the library classes is bridged by j$ which is part
       // of the program.
       return appView.computedMinApiLevel();
