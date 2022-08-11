@@ -302,10 +302,14 @@ def parse_options(argv):
   result = argparse.ArgumentParser(
       description='Generate a perfetto trace file.')
   result.add_argument('--apk',
-                      help='Path to the APK')
+                      help='Path to the .apk')
+  result.add_argument('--apks',
+                      help='Path to the .apks')
   result.add_argument('--app-id',
                       help='The application ID of interest',
                       required=True)
+  result.add_argument('--bundle',
+                      help='Path to the .aab')
   result.add_argument('--device-id',
                       help='Device id (e.g., emulator-5554).',
                       action='append')
@@ -374,6 +378,10 @@ def parse_options(argv):
       options.devices.append(Device(device_id, device_pin))
   del options.device_id
 
+  paths = [
+      path for path in [options.apk, options.apks, options.bundle]
+      if path is not None]
+  assert len(paths) <= 1, 'Expected at most one .apk, .apks, or .aab file.'
   assert options.main_activity is not None or options.use_existing_profile, \
       'Argument --main-activity is required except when running with ' \
       '--use-existing-profile.'
@@ -385,6 +393,12 @@ def run_on_device(device, options, startup_descriptors):
   if options.apk:
     adb_utils.uninstall(options.app_id, device.device_id)
     adb_utils.install(options.apk, device.device_id)
+  elif options.apks:
+    adb_utils.uninstall(options.app_id, device.device_id)
+    adb_utils.install_apks(options.apks, device.device_id)
+  elif options.bundle:
+    adb_utils.uninstall(options.app_id, device.device_id)
+    adb_utils.install_bundle(options.bundle, device.device_id)
   if options.until_stable:
     iteration = 0
     stable_iterations = 0

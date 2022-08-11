@@ -56,6 +56,15 @@ def broadcast(action, component, device_id=None):
   cmd = create_adb_cmd('shell am broadcast -a %s %s' % (action, component), device_id)
   return subprocess.check_output(cmd).decode('utf-8').strip().splitlines()
 
+def build_apks_from_bundle(bundle, output):
+  print('Building %s' % bundle)
+  cmd = [
+      'java', '-jar', utils.BUNDLETOOL_JAR,
+      'build-apks',
+      '--bundle=%s' % bundle,
+      '--output=%s' % output]
+  subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
+
 def capture_screen(target, device_id=None):
   print('Taking screenshot to %s' % target)
   tmp = '/sdcard/screencap.png'
@@ -234,6 +243,23 @@ def install(apk, device_id=None):
   cmd = create_adb_cmd('install %s' % apk, device_id)
   stdout = subprocess.check_output(cmd).decode('utf-8')
   assert 'Success' in stdout
+
+def install_apks(apks, device_id=None):
+  print('Installing %s' % apks)
+  cmd = [
+      'java', '-jar', utils.BUNDLETOOL_JAR,
+      'install-apks',
+      '--apks=%s' % apks]
+  if device_id is not None:
+    cmd.append('--device-id=%s' % device_id)
+  subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
+
+def install_bundle(bundle, device_id=None):
+  print('Installing %s' % bundle)
+  with utils.TempDir() as temp:
+    apks = os.path.join(temp, 'Bundle.apks')
+    build_apks_from_bundle(bundle, apks)
+    install_apks(apks, device_id)
 
 def install_profile(app_id, device_id=None):
   # This assumes that the profileinstaller library has been added to the app,
