@@ -219,7 +219,7 @@ def get_classes_and_methods_from_app_profile(app_id, device_id=None):
         % (profile_path, apk_path, apk_path), device_id)
   stdout = subprocess.check_output(cmd).decode('utf-8').strip()
   lines = stdout.splitlines()
-  classes_and_methods = []
+  classes_and_methods = {}
   flags_to_name = { 'H': 'hot', 'S': 'startup', 'P': 'post_startup' }
   for line in lines:
     flags = { 'hot': False, 'startup': False, 'post_startup': False }
@@ -229,7 +229,8 @@ def get_classes_and_methods_from_app_profile(app_id, device_id=None):
       flags[flag_name] = True
       line = line[1:]
     assert line.startswith('L')
-    classes_and_methods.append({ 'descriptor': line, 'flags': flags })
+    descriptor = line
+    classes_and_methods[descriptor] = flags
   return classes_and_methods
 
 def get_screen_off_timeout(device_id=None):

@@ -29,7 +29,7 @@ def extend_startup_descriptors(startup_descriptors, iteration, device, options):
         profile_classes_and_methods, iteration, options)
     current_startup_descriptors = \
         transform_classes_and_methods_to_r8_startup_descriptors(
-            profile_classes_and_methods, options)
+            profile_classes_and_methods)
   write_tmp_startup_descriptors(current_startup_descriptors, iteration, options)
   new_startup_descriptors = add_r8_startup_descriptors(
       startup_descriptors, current_startup_descriptors)
@@ -168,13 +168,13 @@ def report_unrecognized_logcat_line(line):
   print('Unrecognized line in logcat: %s' % line)
 
 def transform_classes_and_methods_to_r8_startup_descriptors(
-    classes_and_methods, options):
-  startup_descriptors = []
-  for class_or_method in classes_and_methods:
-    descriptor = class_or_method.get('descriptor')
-    flags = class_or_method.get('flags')
-    if should_include_startup_descriptor(descriptor, flags, options):
-      startup_descriptors.append(descriptor)
+    classes_and_methods):
+  startup_descriptors = {}
+  for startup_descriptor, flags in classes_and_methods.items():
+    startup_descriptors[startup_descriptor] = {
+      'conditional_startup': False,
+      'post_startup': flags['post_startup']
+    }
   return startup_descriptors
 
 def add_r8_startup_descriptors(old_startup_descriptors, startup_descriptors_to_add):
@@ -258,15 +258,14 @@ def write_tmp_profile(profile, iteration, options):
 def write_tmp_profile_classes_and_methods(
     profile_classes_and_methods, iteration, options):
   def item_to_string(item):
-    descriptor = item.get('descriptor')
-    flags = item.get('flags')
+    (descriptor, flags) = item
     return '%s%s%s%s' % (
         'H' if flags.get('hot') else '',
         'S' if flags.get('startup') else '',
         'P' if flags.get('post_startup') else '',
         descriptor)
   write_tmp_textual_artifact(
-      profile_classes_and_methods,
+      profile_classes_and_methods.items(),
       iteration,
       options,
       'profile.txt',
