@@ -4,6 +4,7 @@
 package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_7_0;
 
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
@@ -56,6 +57,8 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
         .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
         .allowUnusedDontWarnKotlinReflectJvmInternal(kotlinc.isNot(KOTLINC_1_3_72))
         .allowUnusedProguardConfigurationRules(kotlinc.isNot(KOTLINC_1_3_72))
+        .allowUnusedDontWarnJavaLangClassValue(
+            kotlinc.getCompilerVersion().isGreaterThan(KOTLINC_1_7_0))
         .apply(testBuilderConsumer)
         .compile()
         .apply(compileResultBuilder)

@@ -346,6 +346,19 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return self();
   }
 
+  public T allowUnusedDontWarnJavaLangClassValue() {
+    addOptionsModification(
+        options -> options.testing.allowedUnusedDontWarnPatterns.add("java.lang.ClassValue"));
+    return self();
+  }
+
+  public T allowUnusedDontWarnJavaLangClassValue(boolean condition) {
+    if (condition) {
+      allowUnusedDontWarnJavaLangClassValue();
+    }
+    return self();
+  }
+
   public T allowUnusedDontWarnPatterns() {
     return addOptionsModification(options -> options.testing.allowUnusedDontWarnRules = true);
   }

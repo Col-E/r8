@@ -4,6 +4,7 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_7_0;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
@@ -57,6 +58,8 @@ public class MetadataStripTest extends KotlinMetadataTestBase {
             .allowDiagnosticWarningMessages()
             .setMinApi(parameters.getApiLevel())
             .allowUnusedDontWarnKotlinReflectJvmInternal(kotlinc.isNot(KOTLINC_1_3_72))
+            .allowUnusedDontWarnJavaLangClassValue(
+                kotlinc.getCompilerVersion().isGreaterThan(KOTLINC_1_7_0))
             .compile()
             .assertNoErrorMessages()
             .apply(KotlinMetadataTestBase::verifyExpectedWarningsFromKotlinReflectAndStdLib)

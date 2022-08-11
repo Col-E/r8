@@ -100,6 +100,12 @@ public class ReflectiveConstructionWithInlineClassTest extends KotlinTestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(MAIN_CLASS)
         .addKeepClassAndMembersRules(PKG + ".Data")
+        // TODO(b/242158616): Figure out why this is necessary.
+        .applyIf(
+            kotlinc.getCompilerVersion().isGreaterThan(KotlinCompilerVersion.KOTLINC_1_7_0),
+            b ->
+                b.addKeepClassAndMembersRules(
+                    "kotlin.reflect.jvm.internal.ClassValueCache$initClassValue$1"))
         .addKeepEnumsRule()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .allowDiagnosticMessages()
