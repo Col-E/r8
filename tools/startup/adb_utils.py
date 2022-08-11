@@ -14,6 +14,7 @@ from enum import Enum
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import profile_utils
 import utils
 
 DEVNULL=subprocess.DEVNULL
@@ -199,39 +200,13 @@ def get_screen_state(device_id=None):
 def get_classes_and_methods_from_app_profile(app_id, device_id=None):
   apk_path = get_apk_path(app_id, device_id)
   profile_path = get_profile_path(app_id)
-
-  # Generates a list of class and method descriptors, prefixed with one or more
-  # flags 'H' (hot), 'S' (startup), 'P' (post startup).
-  #
-  # Example:
-  #
-  # HSPLandroidx/compose/runtime/ComposerImpl;->updateValue(Ljava/lang/Object;)V
-  # HSPLandroidx/compose/runtime/ComposerImpl;->updatedNodeCount(I)I
-  # HLandroidx/compose/runtime/ComposerImpl;->validateNodeExpected()V
-  # PLandroidx/compose/runtime/CompositionImpl;->applyChanges()V
-  # HLandroidx/compose/runtime/ComposerKt;->findLocation(Ljava/util/List;I)I
-  # Landroidx/compose/runtime/ComposerImpl;
-  #
-  # See also https://developer.android.com/studio/profile/baselineprofiles.
   cmd = create_adb_cmd(
     'shell profman --dump-classes-and-methods'
     ' --profile-file=%s --apk=%s --dex-location=%s'
         % (profile_path, apk_path, apk_path), device_id)
   stdout = subprocess.check_output(cmd).decode('utf-8').strip()
   lines = stdout.splitlines()
-  classes_and_methods = {}
-  flags_to_name = { 'H': 'hot', 'S': 'startup', 'P': 'post_startup' }
-  for line in lines:
-    flags = { 'hot': False, 'startup': False, 'post_startup': False }
-    while line[0] in flags_to_name:
-      flag_abbreviation = line[0]
-      flag_name = flags_to_name.get(flag_abbreviation)
-      flags[flag_name] = True
-      line = line[1:]
-    assert line.startswith('L')
-    descriptor = line
-    classes_and_methods[descriptor] = flags
-  return classes_and_methods
+  return profile_utils.parse_art_profile(lines)
 
 def get_screen_off_timeout(device_id=None):
   cmd = create_adb_cmd(

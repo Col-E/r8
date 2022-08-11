@@ -4,6 +4,7 @@
 # BSD-style license that can be found in the LICENSE file.
 
 import adb_utils
+import profile_utils
 
 import argparse
 import os
@@ -28,12 +29,13 @@ def extend_startup_descriptors(startup_descriptors, iteration, device, options):
     write_tmp_profile_classes_and_methods(
         profile_classes_and_methods, iteration, options)
     current_startup_descriptors = \
-        transform_classes_and_methods_to_r8_startup_descriptors(
+        profile_utils.transform_art_profile_to_r8_startup_list(
             profile_classes_and_methods)
   write_tmp_startup_descriptors(current_startup_descriptors, iteration, options)
   new_startup_descriptors = add_r8_startup_descriptors(
       startup_descriptors, current_startup_descriptors)
-  number_of_new_startup_descriptors = len(new_startup_descriptors) - len(startup_descriptors)
+  number_of_new_startup_descriptors = \
+      len(new_startup_descriptors) - len(startup_descriptors)
   if options.out is not None:
     print(
         'Found %i new startup descriptors in iteration %i'
@@ -166,16 +168,6 @@ def parse_logcat_line(line):
 
 def report_unrecognized_logcat_line(line):
   print('Unrecognized line in logcat: %s' % line)
-
-def transform_classes_and_methods_to_r8_startup_descriptors(
-    classes_and_methods):
-  startup_descriptors = {}
-  for startup_descriptor, flags in classes_and_methods.items():
-    startup_descriptors[startup_descriptor] = {
-      'conditional_startup': False,
-      'post_startup': flags['post_startup']
-    }
-  return startup_descriptors
 
 def add_r8_startup_descriptors(old_startup_descriptors, startup_descriptors_to_add):
   new_startup_descriptors = {}
