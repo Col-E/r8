@@ -2052,8 +2052,13 @@ public class TestBase {
           String[] lines1 = m1.getCode().toString().split("\n");
           String[] lines2 = m2.getCode().toString().split("\n");
           if (lines1.length != lines2.length) {
-            sb.append("Different number of lines.");
-            sb.append("\n");
+            sb.append("Different number of lines: ")
+                .append(lines1.length)
+                .append(" and ")
+                .append(lines2.length)
+                .append(".")
+                .append("\n");
+            printDiffForDifferentLineNumber(sb, lines1, lines2);
           } else {
             for (int i = 0; i < lines1.length; i++) {
               if (!lines1[i].equals(lines2[i])) {
@@ -2067,6 +2072,38 @@ public class TestBase {
           }
         });
     return sb.toString();
+  }
+
+  // Identify the initial common lines and print the first 7 lines after the first difference.
+  private static void printDiffForDifferentLineNumber(
+      StringBuilder sb, String[] lines1, String[] lines2) {
+    int maxPrint = 7;
+    int i;
+    for (i = 0; i < lines1.length && i < lines2.length; i++) {
+      if (!lines1[i].equals(lines2[i])) {
+        break;
+      }
+    }
+    sb.append("Method 1:").append("\n");
+    printExtraLines(i, lines1, maxPrint, sb);
+    sb.append("Method 2:").append("\n");
+    printExtraLines(i, lines2, maxPrint, sb);
+  }
+
+  private static void printExtraLines(int i, String[] lines1, int maxPrint, StringBuilder sb) {
+    if (i < lines1.length) {
+      int j;
+      for (j = i; j < lines1.length && j < (i + maxPrint); j++) {
+        sb.append(lines1[i]);
+        sb.append("\n");
+      }
+      if (j != lines1.length) {
+        sb.append("...");
+        sb.append("\n");
+      }
+    } else {
+      sb.append("No difference in method.").append("\n");
+    }
   }
 
   public static boolean filesAreEqual(Path file1, Path file2) throws IOException {
