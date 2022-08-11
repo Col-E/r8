@@ -352,6 +352,7 @@ def cloudDependencies = [
                 "api_database/api_database",
                 "api-outlining/simple-app-dump",
                 "binary_compatibility_tests/compiler_api_tests",
+                "bundletool/bundletool-1.11.0",
                 "core-lambda-stubs",
                 "dagger/2.41",
                 "dart-sdk",
