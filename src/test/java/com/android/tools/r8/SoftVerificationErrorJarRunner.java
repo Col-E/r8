@@ -64,8 +64,8 @@ public class SoftVerificationErrorJarRunner extends TestBase {
     File filteredProgramFolder = temp.newFolder();
     BooleanBox seenTestRunner = new BooleanBox();
     ZipUtils.unzip(
-        tempFolder.resolve("program.jar").toFile().toString(),
-        filteredProgramFolder,
+        tempFolder.resolve("program.jar"),
+        filteredProgramFolder.toPath(),
         zipEntry -> {
           if (zipEntry.getName().equals("com/example/softverificationsample/TestRunner.class")) {
             seenTestRunner.set();

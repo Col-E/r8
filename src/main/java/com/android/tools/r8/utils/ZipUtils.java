@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -162,35 +163,39 @@ public class ZipUtils {
   }
 
   public static List<Path> unzip(Path zipFile, Path outDirectory) throws IOException {
-    return unzip(zipFile.toString(), outDirectory.toFile(), (entry) -> true).stream()
-        .map(File::toPath)
-        .collect(Collectors.toList());
+    return unzip(zipFile, outDirectory, (entry) -> true, Function.identity());
   }
 
   public static List<File> unzip(String zipFile, File outDirectory) throws IOException {
-    return unzip(zipFile, outDirectory, (entry) -> true);
+    return unzip(Paths.get(zipFile), outDirectory.toPath(), (entry) -> true, Path::toFile);
   }
 
-  public static List<File> unzip(String zipFile, File outDirectory, Predicate<ZipEntry> filter)
+  public static List<Path> unzip(Path zipFile, Path outDirectory, Predicate<ZipEntry> filter)
       throws IOException {
-    final Path outDirectoryPath = outDirectory.toPath();
-    final List<File> outFiles = new ArrayList<>();
-      iter(zipFile, (entry, input) -> {
-        String name = entry.getName();
-        if (!entry.isDirectory() && filter.test(entry)) {
-          if (name.contains("..")) {
-            // Protect against malicious archives.
-            throw new CompilationError("Invalid entry name \"" + name + "\"");
+    return unzip(zipFile, outDirectory, filter, Function.identity());
+  }
+
+  public static <T> List<T> unzip(
+      Path zipFile, Path outDirectory, Predicate<ZipEntry> filter, Function<Path, T> map)
+      throws IOException {
+    final List<T> outFiles = new ArrayList<>();
+    iter(
+        zipFile,
+        (entry, input) -> {
+          String name = entry.getName();
+          if (!entry.isDirectory() && filter.test(entry)) {
+            if (name.contains("..")) {
+              // Protect against malicious archives.
+              throw new CompilationError("Invalid entry name \"" + name + "\"");
+            }
+            Path outPath = outDirectory.resolve(name);
+            outPath.toFile().getParentFile().mkdirs();
+            try (OutputStream output = new FileOutputStream(outPath.toFile())) {
+              ByteStreams.copy(input, output);
+            }
+            outFiles.add(map.apply(outPath));
           }
-          Path outPath = outDirectoryPath.resolve(name);
-          File outFile = outPath.toFile();
-          outFile.getParentFile().mkdirs();
-          try (OutputStream output = new FileOutputStream(outFile)) {
-            ByteStreams.copy(input, output);
-          }
-          outFiles.add(outFile);
-        }
-      });
+        });
     return outFiles;
   }
 
