@@ -1586,6 +1586,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       enableInterfaceMerging = true;
     }
 
+    public void setEnableInterfaceMerging(boolean enableInterfaceMerging) {
+      this.enableInterfaceMerging = enableInterfaceMerging;
+    }
+
     public void setEnableInterfaceMergingInInitial() {
       enableInterfaceMergingInInitial = true;
     }

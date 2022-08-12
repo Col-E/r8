@@ -122,6 +122,12 @@ public class StartupOptions {
     return enableStartupBoundaryOptimizations;
   }
 
+  public StartupOptions setEnableStartupBoundaryOptimizations(
+      boolean enableStartupBoundaryOptimizations) {
+    this.enableStartupBoundaryOptimizations = enableStartupBoundaryOptimizations;
+    return this;
+  }
+
   public boolean isStartupInstrumentationEnabled() {
     return enableStartupInstrumentation;
   }

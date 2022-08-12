@@ -29,6 +29,7 @@ public abstract class YouTubeCompilationTestBase extends CompilationTestBase {
   static final String DEPLOY_JAR = "YouTubeRelease_deploy.jar";
   static final String PG_MAP = "YouTubeRelease_proguard.map";
   static final String PG_CONF = "YouTubeRelease_proguard.config";
+  static final String PG_CONF_EXTRA = "YouTubeRelease_proguard_extra.config";
   static final String PG_PROTO_CONF = "YouTubeRelease_proto_safety.pgconf";
   static final String PG_MISSING_CLASSES_CONF = "YouTubeRelease_proguard_missing_classes.config";
 
@@ -61,17 +62,24 @@ public abstract class YouTubeCompilationTestBase extends CompilationTestBase {
     return path;
   }
 
+  protected Path getD8DesugaredLibraryJDKLibs() {
+    Path path = Paths.get(base, "desugar_jdk_libs/d8_desugared_jdk_libs.jar");
+    assertTrue(path.toFile().exists());
+    return path;
+  }
+
   protected Path getDesugaredLibraryJDKLibsConfiguration() {
     Path path = Paths.get(base, "desugar_jdk_libs/desugar_jdk_libs_configuration.jar");
     assertTrue(path.toFile().exists());
     return path;
   }
 
-  protected List<Path> getDesugaredLibraryKeepRuleFiles() {
+  protected List<Path> getDesugaredLibraryKeepRuleFiles(Path generatedKeepRules) {
     ImmutableList<Path> keepRuleFiles =
         ImmutableList.of(
             Paths.get(base, "desugar_jdk_libs/base.pgcfg"),
-            Paths.get(base, "desugar_jdk_libs/minify_desugar_jdk_libs.pgcfg"));
+            Paths.get(base, "desugar_jdk_libs/minify_desugar_jdk_libs.pgcfg"),
+            generatedKeepRules);
     assertTrue(keepRuleFiles.stream().allMatch(keepRuleFile -> keepRuleFile.toFile().exists()));
     return keepRuleFiles;
   }
@@ -80,7 +88,7 @@ public abstract class YouTubeCompilationTestBase extends CompilationTestBase {
     ImmutableList.Builder<Path> builder = ImmutableList.builder();
     builder.add(Paths.get(base).resolve(PG_CONF));
     builder.add(Paths.get(ToolHelper.PROGUARD_SETTINGS_FOR_INTERNAL_APPS).resolve(PG_CONF));
-    for (String name : new String[] {PG_PROTO_CONF, PG_MISSING_CLASSES_CONF}) {
+    for (String name : new String[] {PG_CONF_EXTRA, PG_PROTO_CONF, PG_MISSING_CLASSES_CONF}) {
       Path config = Paths.get(base).resolve(name);
       if (config.toFile().exists()) {
         builder.add(config);
