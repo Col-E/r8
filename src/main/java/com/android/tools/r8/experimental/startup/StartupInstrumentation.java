@@ -216,6 +216,8 @@ public class StartupInstrumentation {
               .build());
     }
 
+    converter.deadCodeRemover.run(code, Timing.empty());
+
     DexCode instrumentedCode =
         new IRToDexFinalizer(appView, converter.deadCodeRemover)
             .finalizeCode(code, BytecodeMetadataProvider.empty(), Timing.empty());
