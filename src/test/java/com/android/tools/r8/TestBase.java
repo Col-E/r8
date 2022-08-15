@@ -2094,7 +2094,7 @@ public class TestBase {
     if (i < lines1.length) {
       int j;
       for (j = i; j < lines1.length && j < (i + maxPrint); j++) {
-        sb.append(lines1[i]);
+        sb.append(lines1[j]);
         sb.append("\n");
       }
       if (j != lines1.length) {

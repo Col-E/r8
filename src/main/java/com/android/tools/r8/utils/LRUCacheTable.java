@@ -51,6 +51,14 @@ public class LRUCacheTable<R, C, V> extends LinkedHashMap<R, Map<C, V>> {
     return getOrDefault(rowKey, ImmutableMap.of()).containsKey(columnKey);
   }
 
+  // TODO(b/242286733): Temporary bug mitigation, This class includes concurrent read/writes
+  //  leading to NullPointerException at runtime on some VMs/devices.
+  @Override
+  public Map<C, V> getOrDefault(Object key, Map<C, V> defaultValue) {
+    Map<C, V> cvMap = super.get(key);
+    return cvMap == null ? defaultValue : cvMap;
+  }
+
   public V get(R rowKey, C columnKey) {
     return getOrDefault(rowKey, ImmutableMap.of()).get(columnKey);
   }

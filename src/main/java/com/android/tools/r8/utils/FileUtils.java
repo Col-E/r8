@@ -216,6 +216,8 @@ public class FileUtils {
     // own Input/OutputStream, but an external one which one can define on a different Charset than
     // default. We do not support this at the moment since R8 on dex is used only in tests, and
     // UTF_8 is the default charset used in tests.
-    throw new RuntimeException("R8 can run on dex only with UTF_8 as the default charset.");
+    throw new RuntimeException(
+        "R8 can run on dex only with UTF_8 as the default charset, but the charset used is "
+            + Charset.defaultCharset());
   }
 }

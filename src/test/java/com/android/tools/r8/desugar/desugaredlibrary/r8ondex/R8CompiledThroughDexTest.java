@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.r8ondex;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
 import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -13,14 +15,16 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.R8Command.Builder;
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DeterminismChecker;
 import com.android.tools.r8.utils.Pair;
@@ -38,25 +42,36 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-// TODO(b/142621961): Parametrize at least L and P instead of just P.
 @RunWith(Parameterized.class)
 public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
 
-  private static final boolean minify = false;
-
   private final TestParameters parameters;
+  private final CompilationSpecification compilationSpecification;
+  private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
+  @Parameters(name = "{0}, spec: {1}, {2}")
+  public static List<Object[]> data() {
     // We only run this test with ART 8 and with full desugaring to avoid the large runtime on ART.
-    return getTestParameters()
-        .withDexRuntime(Version.V8_1_0)
-        .withApiLevel(AndroidApiLevel.B)
-        .build();
+    return buildParameters(
+        getTestParameters()
+            // Android 5 and 6 do not seem to work with more than 512 Mb of RAM.
+            .withDexRuntime(Version.V7_0_0)
+            // TODO(b/241748003): Broken strictly below 19 due to charset issue.
+            // TODO(b/242286733): Broken strictly below 26 due to LinkedHashMap issue.
+            //  The LinkedHashMap issue is mitigated on 24-25.
+            .withApiLevel(AndroidApiLevel.N)
+            .build(),
+        ImmutableList.of(JDK11_PATH),
+        ImmutableList.of(D8_L8DEBUG));
   }
 
-  public R8CompiledThroughDexTest(TestParameters parameters) {
+  public R8CompiledThroughDexTest(
+      TestParameters parameters,
+      LibraryDesugaringSpecification libraryDesugaringSpecification,
+      CompilationSpecification compilationSpecification) {
     this.parameters = parameters;
+    this.compilationSpecification = compilationSpecification;
+    this.libraryDesugaringSpecification = libraryDesugaringSpecification;
   }
 
   private static String commandLinePathFor(String string) {
@@ -84,13 +99,21 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
     arguments.add("--min-api").add(Integer.toString(parameters.getApiLevel().getLevel()));
     buildup.add(b -> b.setMinApiLevel(parameters.getApiLevel().getLevel()));
 
-    arguments.add("--lib").add(commandLinePathFor(ToolHelper.JAVA_8_RUNTIME));
-    buildup.add(b -> b.addLibraryFiles(ToolHelper.getJava8RuntimeJar()));
+    arguments.add("--lib").add(commandLinePathFor(ToolHelper.getAndroidJar(AndroidApiLevel.R)));
+    buildup.add(b -> b.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.R)));
 
     arguments.add("--pg-conf").add(commandLinePathFor(R8_KEEP));
     buildup.add(b -> b.addProguardConfigurationFiles(Paths.get(R8_KEEP)));
 
-    if (!minify) {
+    arguments
+        .add("--desugared-lib")
+        .add(commandLinePathFor(libraryDesugaringSpecification.getSpecification()));
+    buildup.add(
+        b ->
+            b.addDesugaredLibraryConfiguration(
+                StringResource.fromFile(libraryDesugaringSpecification.getSpecification())));
+
+    if (!compilationSpecification.isProgramShrink()) {
       arguments.add("--no-minification");
       buildup.add(b -> b.setDisableMinification(true));
     }
@@ -167,7 +190,10 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
       Path outputThroughDex = outputFolder.resolve("outThroughDex.zip");
       ProcessResult artProcessResult =
           ToolHelper.runArtRaw(
-              Collections.singletonList(commandLinePathFor(outputThroughCf)),
+              ImmutableList.of(
+                  commandLinePathFor(outputThroughCf),
+                  commandLinePathFor(
+                      getNonShrunkDesugaredLib(parameters, libraryDesugaringSpecification))),
               R8.class.getTypeName(),
               builder -> builder.appendArtOption("--64").appendArtOption("-Xmx512m"),
               parameters.getRuntime().asDex().getVm(),
@@ -183,9 +209,10 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
         System.out.println(artProcessResult);
       }
       assertEquals(0, artProcessResult.exitCode);
-      assertTrue(
+      assertProgramsEqual(
           "The output of R8/JVM in-process and R8/ART external differ.",
-          TestBase.filesAreEqual(outputThroughCf, outputThroughDex));
+          outputThroughCf,
+          outputThroughDex);
     }
   }
 
