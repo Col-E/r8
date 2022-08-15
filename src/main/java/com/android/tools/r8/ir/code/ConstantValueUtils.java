@@ -13,11 +13,12 @@ public class ConstantValueUtils {
 
   /**
    * If the given value is a constant class, then returns the corresponding {@link DexType}.
-   * Otherwise returns null.
+   * Otherwise returns null. This should only be used for tracing.
    */
-  public static DexType getDexTypeRepresentedByValue(
+  public static DexType getDexTypeRepresentedByValueForTracing(
       Value value, DexDefinitionSupplier definitions) {
-    Value alias = value.getAliasedValue();
+    Value alias =
+        value.getAliasedValue(IgnoreDebugLocalWriteAliasedValueConfiguration.getInstance());
     if (alias.isPhi()) {
       return null;
     }

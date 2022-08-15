@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.regress;
 
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -29,22 +28,19 @@ public class Regress241478253 extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    R8TestRunResult r8Release =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(Foo.class, Bar.class)
-            .addKeepMainRule(Foo.class)
-            .setMinApi(parameters.getApiLevel())
-            .run(parameters.getRuntime(), Foo.class)
-            .assertSuccessWithOutputLines(EXPECTED);
-    R8TestRunResult r8Debug =
-        testForR8(parameters.getBackend())
-            .debug()
-            .addProgramClasses(Foo.class, Bar.class)
-            .addKeepMainRule(Foo.class)
-            .setMinApi(parameters.getApiLevel())
-            .run(parameters.getRuntime(), Foo.class)
-            // TODO(b/241478253): Should succeed
-            .assertFailureWithErrorThatThrows(NoSuchMethodException.class);
+    testForR8(parameters.getBackend())
+        .addProgramClasses(Foo.class, Bar.class)
+        .addKeepMainRule(Foo.class)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), Foo.class)
+        .assertSuccessWithOutputLines(EXPECTED);
+    testForR8(parameters.getBackend())
+        .debug()
+        .addProgramClasses(Foo.class, Bar.class)
+        .addKeepMainRule(Foo.class)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), Foo.class)
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   public static class Foo {

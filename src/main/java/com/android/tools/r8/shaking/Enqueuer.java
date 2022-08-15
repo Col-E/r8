@@ -4981,7 +4981,7 @@ public class Enqueuer {
     }
 
     DexType instantiatedType =
-        ConstantValueUtils.getDexTypeRepresentedByValue(
+        ConstantValueUtils.getDexTypeRepresentedByValueForTracing(
             invoke.asInvokeVirtual().getReceiver(), appView);
     if (instantiatedType == null || !instantiatedType.isClassType()) {
       // Give up, we can't tell which class is being instantiated, or the type is not a class type.
@@ -5027,7 +5027,7 @@ public class Enqueuer {
     }
 
     DexType instantiatedType =
-        ConstantValueUtils.getDexTypeRepresentedByValue(
+        ConstantValueUtils.getDexTypeRepresentedByValueForTracing(
             constructorDefinition.getReceiver(), appView);
     if (instantiatedType == null || !instantiatedType.isClassType()) {
       // Give up, we can't tell which constructor is being invoked, or the type is not a class type.
@@ -5076,7 +5076,8 @@ public class Enqueuer {
           }
 
           DexType type =
-              ConstantValueUtils.getDexTypeRepresentedByValue(arrayPutInstruction.value(), appView);
+              ConstantValueUtils.getDexTypeRepresentedByValueForTracing(
+                  arrayPutInstruction.value(), appView);
           if (type == null) {
             return;
           }
@@ -5131,7 +5132,8 @@ public class Enqueuer {
       }
 
       ArrayPut arrayPut = user.asArrayPut();
-      DexType type = ConstantValueUtils.getDexTypeRepresentedByValue(arrayPut.value(), appView);
+      DexType type =
+          ConstantValueUtils.getDexTypeRepresentedByValueForTracing(arrayPut.value(), appView);
       if (type == null || !type.isClassType()) {
         continue;
       }
