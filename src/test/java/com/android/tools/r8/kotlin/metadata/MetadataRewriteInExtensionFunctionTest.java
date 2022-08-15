@@ -12,10 +12,12 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRena
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -177,6 +179,43 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".extension_function_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
+  }
+
+  @Test
+  public void testMetadataInExtensionFunction_renamedKotlinSources() throws Exception {
+    assumeTrue(kotlinc.getCompilerVersion().isGreaterThanOrEqualTo(KOTLINC_1_4_20));
+    Box<String> renamedKtHolder = new Box<>();
+    Path libJar =
+        testForR8(parameters.getBackend())
+            .addClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
+            .addProgramFiles(extLibJarMap.getForConfiguration(kotlinc, targetVersion))
+            // Keep the B class and its interface (which has the doStuff method).
+            .addKeepRules("-keep class **.B")
+            .addKeepRules("-keep class **.I { <methods>; }")
+            // Keep Super, but allow minification.
+            .addKeepRules("-keep,allowobfuscation class **.Super")
+            // Keep the BKt extension function which requires metadata
+            // to be called with Kotlin syntax from other kotlin code.
+            .addKeepRules("-keep,allowobfuscation class **.BKt { <methods>; }")
+            .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
+            .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
+            .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
+            .compile()
+            .inspect(
+                inspector -> {
+                  ClassSubject clazz = inspector.clazz(PKG + ".extension_function_lib.BKt");
+                  assertThat(clazz, isPresentAndRenamed());
+                  renamedKtHolder.set(clazz.getFinalName());
+                })
+            .writeToZip();
+
+    kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
+        .addClasspathFiles(libJar)
+        .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/extension_function_app", "main"))
+        .setOutputPath(temp.newFolder().toPath())
+        // TODO(b/242289529): Expect that we can compile without errors.
+        .compile(true);
   }
 
   private void inspectRenamed(CodeInspector inspector) {
