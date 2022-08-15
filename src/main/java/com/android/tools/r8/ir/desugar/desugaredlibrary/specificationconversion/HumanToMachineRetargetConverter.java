@@ -40,7 +40,7 @@ public class HumanToMachineRetargetConverter {
       BiConsumer<String, Set<? extends DexReference>> warnConsumer) {
     rewritingFlags
         .getRetargetStaticField()
-        .forEach((field, type) -> convertRetargetField(builder, field, type));
+        .forEach((field, rewrittenField) -> convertRetargetField(builder, field, rewrittenField));
     rewritingFlags
         .getCovariantRetarget()
         .forEach((method, type) -> convertCovariantRetarget(builder, method, type));
@@ -56,15 +56,14 @@ public class HumanToMachineRetargetConverter {
   }
 
   private void convertRetargetField(
-      MachineRewritingFlags.Builder builder, DexField field, DexType type) {
+      MachineRewritingFlags.Builder builder, DexField field, DexField rewrittenField) {
     DexClass holder = appInfo.definitionFor(field.holder);
     DexEncodedField foundField = holder.lookupField(field);
     if (foundField == null) {
       missingReferences.add(field);
       return;
     }
-    builder.putStaticFieldRetarget(
-        field, appInfo.dexItemFactory().createField(type, field.type, field.name));
+    builder.putStaticFieldRetarget(field, rewrittenField);
   }
 
   private void convertRetargetMethodEmulatedDispatch(

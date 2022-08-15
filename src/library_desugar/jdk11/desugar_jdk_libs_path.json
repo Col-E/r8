@@ -437,6 +437,14 @@
           "j$.util.Optional": "java.util.Optional"
         }
       }
+    },
+    {
+      "api_level_below_or_equal": 18,
+      "retarget_static_field": {
+        "sun.nio.cs.US_ASCII sun.nio.cs.US_ASCII#INSTANCE": "java.nio.charset.Charset java.nio.charset.StandardCharsets#US_ASCII",
+        "sun.nio.cs.ISO_8859_1 sun.nio.cs.ISO_8859_1#INSTANCE": "java.nio.charset.Charset java.nio.charset.StandardCharsets#ISO_8859_1",
+        "sun.nio.cs.UTF_8 sun.nio.cs.UTF_8#INSTANCE": "java.nio.charset.Charset java.nio.charset.StandardCharsets#UTF_8"
+      }
     }
   ],
   "shrinker_config": [

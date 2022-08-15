@@ -17,7 +17,10 @@ import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,7 +36,7 @@ public class StandardCharsetTest extends DesugaredLibraryTestBase {
   private final CompilationSpecification compilationSpecification;
 
   private static final String EXPECTED_RESULT =
-      StringUtils.lines("%E3%81%8B", "%82%A0%82%A9%97%43%24%E3%81%8B", "true");
+      StringUtils.lines("%E3%81%8B", "%82%A0%82%A9%97%43%24%E3%81%8B", "true", "true", "written");
 
   @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
@@ -53,11 +56,11 @@ public class StandardCharsetTest extends DesugaredLibraryTestBase {
   }
 
   @Test
-  public void test() throws Exception {
+  public void test() throws Throwable {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClassFileData(getProgramClassFileData())
         .addKeepMainRule(TestClass.class)
-        .run(parameters.getRuntime(), TestClass.class)
+        .run(parameters.getRuntime(), TestClass.class, temp.newFile().toString())
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
@@ -95,6 +98,17 @@ public class StandardCharsetTest extends DesugaredLibraryTestBase {
               + encode("$", "Shift_JIS")
               + encode("か", StandardCharsets.UTF_8));
       System.out.println(Character.isBmpCodePoint('か'));
+
+      System.out.println(Charset.defaultCharset() == StandardCharsets.UTF_8);
+
+      // The following Files methods internally uses UTF_8 references.
+      String path = args[0];
+      try {
+        Files.write(Paths.get(path), Collections.singleton("written"));
+        System.out.println(Files.readAllLines(Paths.get(path)).get(0));
+      } catch (IOException e) {
+        System.out.println("IOException");
+      }
     }
 
     // Replaced in the transformer by JDK 11 URLEncoder#encode.

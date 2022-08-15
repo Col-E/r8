@@ -89,7 +89,7 @@ public class LocalDateEpochTest extends DesugaredLibraryTestBase {
     DexField src = options.dexItemFactory().createField(date, date, epoch);
     HumanRewritingFlags rewritingFlags =
         HumanRewritingFlags.builder(options.reporter, Origin.unknown())
-            .retargetStaticField(src, desugarDate)
+            .retargetStaticField(src, src.withHolder(desugarDate, options.dexItemFactory()))
             .amendLibraryField(
                 src,
                 FieldAccessFlags.fromSharedAccessFlags(

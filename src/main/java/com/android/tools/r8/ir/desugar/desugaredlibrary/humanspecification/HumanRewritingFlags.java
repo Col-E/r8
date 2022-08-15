@@ -30,7 +30,7 @@ public class HumanRewritingFlags {
   private final Set<String> maintainPrefix;
   private final Map<String, Map<String, String>> rewriteDerivedPrefix;
   private final Map<DexType, DexType> emulatedInterfaces;
-  private final Map<DexField, DexType> retargetStaticField;
+  private final Map<DexField, DexField> retargetStaticField;
   private final Map<DexMethod, DexType> covariantRetarget;
   private final Map<DexMethod, DexType> retargetMethod;
   private final Map<DexMethod, DexType> retargetMethodEmulatedDispatch;
@@ -49,7 +49,7 @@ public class HumanRewritingFlags {
       Set<String> maintainPrefix,
       Map<String, Map<String, String>> rewriteDerivedPrefix,
       Map<DexType, DexType> emulateLibraryInterface,
-      Map<DexField, DexType> retargetStaticField,
+      Map<DexField, DexField> retargetStaticField,
       Map<DexMethod, DexType> covariantRetarget,
       Map<DexMethod, DexType> retargetMethod,
       Map<DexMethod, DexType> retargetMethodEmulatedDispatch,
@@ -148,7 +148,7 @@ public class HumanRewritingFlags {
     return emulatedInterfaces;
   }
 
-  public Map<DexField, DexType> getRetargetStaticField() {
+  public Map<DexField, DexField> getRetargetStaticField() {
     return retargetStaticField;
   }
 
@@ -217,7 +217,7 @@ public class HumanRewritingFlags {
     private final Set<String> maintainPrefix;
     private final Map<String, Map<String, String>> rewriteDerivedPrefix;
     private final Map<DexType, DexType> emulatedInterfaces;
-    private final Map<DexField, DexType> retargetStaticField;
+    private final Map<DexField, DexField> retargetStaticField;
     private final Map<DexMethod, DexType> covariantRetarget;
     private final Map<DexMethod, DexType> retargetMethod;
     private final Map<DexMethod, DexType> retargetMethodEmulatedDispatch;
@@ -261,7 +261,7 @@ public class HumanRewritingFlags {
         Set<String> maintainPrefix,
         Map<String, Map<String, String>> rewriteDerivedPrefix,
         Map<DexType, DexType> emulateLibraryInterface,
-        Map<DexField, DexType> retargetStaticField,
+        Map<DexField, DexField> retargetStaticField,
         Map<DexMethod, DexType> covariantRetarget,
         Map<DexMethod, DexType> retargetMethod,
         Map<DexMethod, DexType> retargetMethodEmulatedDispatch,
@@ -388,11 +388,11 @@ public class HumanRewritingFlags {
       return this;
     }
 
-    public Builder retargetStaticField(DexField key, DexType rewrittenType) {
+    public Builder retargetStaticField(DexField key, DexField value) {
       put(
           retargetStaticField,
           key,
-          rewrittenType,
+          value,
           HumanDesugaredLibrarySpecificationParser.RETARGET_STATIC_FIELD_KEY);
       return this;
     }

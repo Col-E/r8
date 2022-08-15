@@ -75,7 +75,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
       MethodProcessingContext methodProcessingContext,
       CfInstructionDesugaringCollection desugaringCollection,
       DexItemFactory dexItemFactory) {
-    if (instruction.isFieldInstruction() && needsDesugaring(instruction, context)) {
+    if (instruction.isStaticFieldGet() && needsDesugaring(instruction, context)) {
       return desugarFieldInstruction(instruction.asFieldInstruction(), context);
     } else if (instruction.isInvoke() && needsDesugaring(instruction, context)) {
       return desugarInvoke(instruction.asInvoke(), eventConsumer, context, methodProcessingContext);
@@ -87,7 +87,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
       CfFieldInstruction fieldInstruction, ProgramMethod context) {
     DexField fieldRetarget = fieldRetarget(fieldInstruction, context);
     assert fieldRetarget != null;
-    assert fieldInstruction.isStaticFieldGet() || fieldInstruction.isStaticFieldPut();
+    assert fieldInstruction.isStaticFieldGet();
     return Collections.singletonList(fieldInstruction.createWithField(fieldRetarget));
   }
 
@@ -106,7 +106,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
 
   @Override
   public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    if (instruction.isFieldInstruction()) {
+    if (instruction.isStaticFieldGet()) {
       return fieldRetarget(instruction.asFieldInstruction(), context) != null;
     } else if (instruction.isInvoke()) {
       return computeNewInvokeTarget(instruction.asInvoke(), context).hasNewInvokeTarget();

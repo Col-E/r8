@@ -290,8 +290,7 @@ public class HumanDesugaredLibrarySpecificationParser {
       for (Map.Entry<String, JsonElement> retarget :
           jsonFlagSet.get(RETARGET_STATIC_FIELD_KEY).getAsJsonObject().entrySet()) {
         builder.retargetStaticField(
-            parseField(retarget.getKey()),
-            stringDescriptorToDexType(retarget.getValue().getAsString()));
+            parseField(retarget.getKey()), parseField(retarget.getValue().getAsString()));
       }
     }
     if (jsonFlagSet.has(RETARGET_METHOD_KEY)) {
