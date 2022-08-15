@@ -6,9 +6,10 @@ package com.android.tools.r8.utils;
 
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Consumer;
 
 /**
- * Implementation of a discrete segment tree where intervals are specified by their start end and
+ * Implementation of a discrete segment tree where intervals are specified by their start and end
  * point. Both points are considered part of the interval.
  */
 public class SegmentTree<V> {
@@ -78,5 +79,22 @@ public class SegmentTree<V> {
 
   public int size() {
     return size;
+  }
+
+  public void removeSegment(int start) {
+    if (internalTree.remove(start) != null) {
+      size = size - 1;
+    }
+  }
+
+  public void visitSegments(Consumer<V> consumer) {
+    internalTree
+        .values()
+        .forEach(
+            segment -> {
+              if (segment != null) {
+                consumer.accept(segment);
+              }
+            });
   }
 }

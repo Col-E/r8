@@ -162,6 +162,10 @@ public class MemberNaming {
       }
     }
 
+    public String getName() {
+      return name;
+    }
+
     enum SignatureKind {
       METHOD,
       FIELD

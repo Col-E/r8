@@ -504,7 +504,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
 
     private List<MappingInformation> additionalMappingInfo = EMPTY_MAPPING_INFORMATION;
 
-    private MappedRange(
+    MappedRange(
         Range minifiedRange, MethodSignature signature, Range originalRange, String renamedName) {
       this.minifiedRange = minifiedRange;
       this.signature = signature;
