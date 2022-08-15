@@ -56,13 +56,15 @@ def broadcast(action, component, device_id=None):
   cmd = create_adb_cmd('shell am broadcast -a %s %s' % (action, component), device_id)
   return subprocess.check_output(cmd).decode('utf-8').strip().splitlines()
 
-def build_apks_from_bundle(bundle, output):
+def build_apks_from_bundle(bundle, output, overwrite=False):
   print('Building %s' % bundle)
   cmd = [
       'java', '-jar', utils.BUNDLETOOL_JAR,
       'build-apks',
       '--bundle=%s' % bundle,
       '--output=%s' % output]
+  if overwrite:
+    cmd.append('--overwrite')
   subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
 
 def capture_screen(target, device_id=None):
