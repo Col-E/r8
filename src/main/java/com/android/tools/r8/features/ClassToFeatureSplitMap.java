@@ -164,7 +164,6 @@ public class ClassToFeatureSplitMap {
     FeatureSplit feature;
     boolean isSynthetic = syntheticItems.isSyntheticClass(type);
     if (isSynthetic) {
-      assert !classToFeatureSplitMap.containsKey(type);
       if (syntheticItems.isSyntheticOfKind(type, k -> k.ENUM_UNBOXING_SHARED_UTILITY_CLASS)) {
         // Use the startup base if there is one, such that we don't merge non-startup classes with
         // the shared utility class in case it is used during startup. The use of base startup
@@ -176,6 +175,9 @@ public class ClassToFeatureSplitMap {
             : FeatureSplit.BASE_STARTUP;
       }
       feature = syntheticItems.getContextualFeatureSplitOrDefault(type, FeatureSplit.BASE);
+      // Verify the synthetic is not in the class to feature split map or the synthetic has the same
+      // feature split as its context.
+      assert classToFeatureSplitMap.getOrDefault(type, feature) == feature;
     } else {
       feature = classToFeatureSplitMap.getOrDefault(type, FeatureSplit.BASE);
     }
