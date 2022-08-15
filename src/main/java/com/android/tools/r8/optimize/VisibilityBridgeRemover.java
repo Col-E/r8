@@ -78,13 +78,16 @@ public class VisibilityBridgeRemover {
   }
 
   private boolean isTargetingSuperMethod(ProgramMethod method, InvokeKind kind, DexMethod target) {
+    if (kind == InvokeKind.ILLEGAL) {
+      return false;
+    }
     if (kind == InvokeKind.SUPER) {
       return true;
     }
     if (kind == InvokeKind.STATIC) {
       return appView.appInfo().isStrictSubtypeOf(method.getHolderType(), target.holder);
     }
-    assert false : "Unexpected invoke-kind for visibility bridge";
+    assert false : "Unexpected invoke-kind for visibility bridge: " + kind;
     return false;
   }
 
