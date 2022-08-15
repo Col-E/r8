@@ -299,6 +299,7 @@ public class Timing {
               Node mergeTarget =
                   item.mergeTarget.children.computeIfAbsent(title, t -> new Node(t, trackMemory));
               mergeTarget.duration += child.duration;
+              mergeTarget.endMemory = child.endMemory;
               if (!child.children.isEmpty()) {
                 worklist.addLast(new Item(mergeTarget, child));
               }
@@ -308,6 +309,7 @@ public class Timing {
 
     public void end() {
       assert !parent.children.containsKey(merged.title);
+      merged.end();
       parent.children.put(merged.title, merged);
     }
   }
