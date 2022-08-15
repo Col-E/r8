@@ -9,7 +9,7 @@ import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.Version;
-import com.android.tools.r8.origin.ArchiveEntryOrigin;
+import com.android.tools.r8.origin.Origin;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -24,6 +24,21 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 public class InternalGlobalSyntheticsProgramProvider implements ProgramResourceProvider {
+
+  public class GlobalsEntryOrigin extends Origin {
+
+    private final String entryName;
+
+    public GlobalsEntryOrigin(String entryName, Origin parent) {
+      super(parent);
+      this.entryName = entryName;
+    }
+
+    @Override
+    public String part() {
+      return "global(" + entryName + ")";
+    }
+  }
 
   private final List<GlobalSyntheticsResourceProvider> providers;
   private List<ProgramResource> resources = null;
@@ -69,7 +84,7 @@ public class InternalGlobalSyntheticsProgramProvider implements ProgramResourceP
                       + Version.getVersionString());
             }
           } else if (name.endsWith(FileUtils.GLOBAL_SYNTHETIC_EXTENSION) && seen.add(name)) {
-            ArchiveEntryOrigin origin = new ArchiveEntryOrigin(name, provider.getOrigin());
+            GlobalsEntryOrigin origin = new GlobalsEntryOrigin(name, provider.getOrigin());
             String descriptor = guessTypeDescriptor(name);
             byte[] bytes = ByteStreams.toByteArray(stream);
             Set<String> descriptors = Collections.singleton(descriptor);
