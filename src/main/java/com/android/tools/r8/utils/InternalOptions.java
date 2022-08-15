@@ -1789,6 +1789,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     private boolean hasReadCheckDeterminism = false;
     private DeterminismChecker determinismChecker = null;
 
+    // Testing options to analyse locality of items in DEX files when they are generated.
+    public boolean calculateItemUseCountInDex = false;
+    public boolean calculateItemUseCountInDexDumpSingleUseStrings = false;
+
     private DeterminismChecker getDeterminismChecker() {
       // Lazily read the env-var so that it can be set after options init.
       if (determinismChecker == null && !hasReadCheckDeterminism) {
