@@ -41,11 +41,17 @@ public class TestRunner {
     measure.start("StaticField");
     TestStaticField.run();
     sb.append(measure.stop());
+    measure.start("StaticFieldWithOtherMembers");
+    TestStaticFieldWithOtherMembers.run();
+    sb.append(measure.stop());
     measure.start("StaticMethod");
     TestStaticMethod.run();
     sb.append(measure.stop());
     measure.start("InstanceField");
     TestInstanceField.run();
+    sb.append(measure.stop());
+    measure.start("InstanceFieldWithOtherMembers");
+    TestInstanceFieldWithOtherMembers.run();
     sb.append(measure.stop());
     measure.start("HashCode");
     TestHashCode.run();

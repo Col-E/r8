@@ -72,9 +72,10 @@ public class TestRunnerBuilder extends TestBase {
         .build();
   }
 
-  private static final Path ANDROID_STUDIO_LIB_PATH = Paths.get("PATH_TO_PROJECT/libs/library.jar");
+  private static final Path ANDROID_STUDIO_LIB_PATH =
+      Paths.get("<path-to-project>/app/libs/library.jar");
 
-  private static final int COUNT = 800;
+  private static final int COUNT = 400;
 
   private static final List<Class<?>> referenceClasses =
       ImmutableList.of(
@@ -86,8 +87,10 @@ public class TestRunnerBuilder extends TestBase {
           TestTypeReference.class,
           TestNewInstance.class,
           TestStaticField.class,
+          TestStaticFieldWithOtherMembers.class,
           TestStaticMethod.class,
           TestInstanceField.class,
+          TestInstanceFieldWithOtherMembers.class,
           TestInstanceMethod.class,
           TestHashCode.class,
           TestTryCatch.class);
