@@ -51,6 +51,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.PreserveMethodCharac
 import com.android.tools.r8.horizontalclassmerging.policies.PreventClassMethodAndDefaultMethodCollisions;
 import com.android.tools.r8.horizontalclassmerging.policies.RespectPackageBoundaries;
 import com.android.tools.r8.horizontalclassmerging.policies.SameFeatureSplit;
+import com.android.tools.r8.horizontalclassmerging.policies.SameFilePolicy;
 import com.android.tools.r8.horizontalclassmerging.policies.SameInstanceFields;
 import com.android.tools.r8.horizontalclassmerging.policies.SameMainDexGroup;
 import com.android.tools.r8.horizontalclassmerging.policies.SameNestHost;
@@ -273,6 +274,7 @@ public class PolicyScheduler {
     ImmediateProgramSubtypingInfo immediateSubtypingInfo =
         ImmediateProgramSubtypingInfo.create(appView);
     builder.add(
+        new SameFilePolicy(appView),
         new CheckAbstractClasses(appView),
         new NoClassAnnotationCollisions(),
         new SameFeatureSplit(appView),

@@ -1504,6 +1504,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     private boolean enableInterfaceMerging =
         System.getProperty("com.android.tools.r8.enableHorizontalInterfaceMerging") != null;
     private boolean enableInterfaceMergingInInitial = false;
+    private boolean enableSameFilePolicy = false;
     private boolean enableSyntheticMerging = true;
     private boolean ignoreRuntimeTypeChecksForTesting = false;
     private boolean restrictToSynthetics = false;
@@ -1559,6 +1560,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       return ignoreRuntimeTypeChecksForTesting;
     }
 
+    public boolean isSameFilePolicyEnabled() {
+      return enableSameFilePolicy;
+    }
+
     public boolean isSyntheticMergingEnabled() {
       return enableSyntheticMerging;
     }
@@ -1592,6 +1597,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public void setEnableInterfaceMergingInInitial() {
       enableInterfaceMergingInInitial = true;
+    }
+
+    public void setEnableSameFilePolicy(boolean enableSameFilePolicy) {
+      this.enableSameFilePolicy = enableSameFilePolicy;
     }
 
     public void setIgnoreRuntimeTypeChecksForTesting() {
