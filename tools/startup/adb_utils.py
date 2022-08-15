@@ -246,7 +246,7 @@ def install(apk, device_id=None):
   stdout = subprocess.check_output(cmd).decode('utf-8')
   assert 'Success' in stdout
 
-def install_apks(apks, device_id=None):
+def install_apks(apks, device_id=None, max_attempts=3):
   print('Installing %s' % apks)
   cmd = [
       'java', '-jar', utils.BUNDLETOOL_JAR,
@@ -254,7 +254,17 @@ def install_apks(apks, device_id=None):
       '--apks=%s' % apks]
   if device_id is not None:
     cmd.append('--device-id=%s' % device_id)
-  subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
+  for i in range(max_attempts):
+    process_result = subprocess.run(cmd, capture_output=True)
+    stdout = process_result.stdout.decode('utf-8')
+    stderr = process_result.stderr.decode('utf-8')
+    if process_result.returncode == 0:
+      return
+    print('Failed to install %s' % apks)
+    print('Stdout: %s' % stdout)
+    print('Stderr: %s' % stderr)
+    print('Retrying...')
+  raise Exception('Unable to install apks in %s attempts' % max_attempts)
 
 def install_bundle(bundle, device_id=None):
   print('Installing %s' % bundle)
@@ -301,7 +311,7 @@ def launch_activity(
       total_time_str = line.removeprefix('TotalTime: ')
       assert total_time_str.isdigit()
       result['total_time'] = int(total_time_str)
-  assert not wait_for_activity_to_launch or 'total_time' in result
+  assert not wait_for_activity_to_launch or 'total_time' in result, lines
   return result
 
 def navigate_to_home_screen(device_id=None):
