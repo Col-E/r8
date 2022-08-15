@@ -25,7 +25,7 @@ import java.util.zip.ZipInputStream;
 
 public class InternalGlobalSyntheticsProgramProvider implements ProgramResourceProvider {
 
-  public class GlobalsEntryOrigin extends Origin {
+  public static class GlobalsEntryOrigin extends Origin {
 
     private final String entryName;
 
