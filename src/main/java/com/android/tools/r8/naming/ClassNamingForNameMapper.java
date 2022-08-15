@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
-
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
@@ -106,12 +104,6 @@ public class ClassNamingForNameMapper implements ClassNaming {
           new MappedRange(minifiedRange, originalSignature, originalRange, renamedName);
       mappedRangesByName.computeIfAbsent(renamedName, k -> new ArrayList<>()).add(range);
       return range;
-    }
-
-    public void addMappedRange(MappedRange mappedRange) {
-      mappedRangesByName
-          .computeIfAbsent(mappedRange.renamedName, ignoreArgument(ArrayList::new))
-          .add(mappedRange);
     }
 
     @Override
@@ -471,15 +463,6 @@ public class ClassNamingForNameMapper implements ClassNaming {
     result = 31 * result + fieldMembers.hashCode();
     result = 31 * result + mappedRangesByRenamedName.hashCode();
     return result;
-  }
-
-  public void compose(Builder classNameMapperBuilder) {
-    // TODO(b/241763080): Account for previous mappings.
-    classNameMapperBuilder.additionalMappingInfo.addAll(additionalMappingInfo);
-    forAllFieldNaming(classNameMapperBuilder::addMemberEntry);
-    for (MappedRangesOfName ranges : mappedRangesByRenamedName.values()) {
-      ranges.mappedRanges.forEach(classNameMapperBuilder::addMappedRange);
-    }
   }
 
   /**

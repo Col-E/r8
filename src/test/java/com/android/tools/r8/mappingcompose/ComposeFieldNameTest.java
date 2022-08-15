@@ -19,7 +19,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class ComposeDistinctClassesTest extends TestBase {
+public class ComposeFieldNameTest extends TestBase {
 
   @Parameter() public TestParameters parameters;
 
@@ -28,14 +28,16 @@ public class ComposeDistinctClassesTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  private static final String mappingFoo = StringUtils.lines("com.foo -> a:");
-  private static final String mappingBar = StringUtils.lines("com.bar -> b:");
+  private static final String mappingFoo = StringUtils.lines("com.foo -> a:", "    int f1 -> f2");
+  private static final String mappingBar = StringUtils.lines("a -> b:", "    int f2 -> f3");
+  private static final String mappingResult =
+      StringUtils.lines("com.foo -> b:", "    int f1 -> f3");
 
   @Test
   public void testCompose() throws Exception {
     ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromString(mappingFoo);
     ClassNameMapper mappingForBar = ClassNameMapper.mapperFromString(mappingBar);
     String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
-    assertEquals(mappingBar + mappingFoo, composed);
+    assertEquals(mappingResult, composed);
   }
 }
