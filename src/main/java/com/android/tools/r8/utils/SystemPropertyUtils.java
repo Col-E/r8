@@ -7,9 +7,20 @@ package com.android.tools.r8.utils;
 import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.Version;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 public class SystemPropertyUtils {
+
+  public static <T> T applySystemProperty(
+      String propertyName, Function<String, T> propertyFoundFn, Supplier<T> propertyNotFoundFn) {
+    if (isSystemPropertySet(propertyName)) {
+      return propertyFoundFn.apply(System.getProperty(propertyName));
+    } else {
+      return propertyNotFoundFn.get();
+    }
+  }
 
   public static String getSystemPropertyForDevelopment(String propertyName) {
     return Version.isDevelopmentVersion() ? System.getProperty(propertyName) : null;

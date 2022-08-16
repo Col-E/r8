@@ -6,6 +6,10 @@ package com.android.tools.r8.experimental.startup;
 
 import static com.android.tools.r8.utils.SystemPropertyUtils.parseSystemPropertyForDevelopmentOrDefault;
 
+import com.android.tools.r8.StringResource;
+import com.android.tools.r8.utils.SystemPropertyUtils;
+import java.nio.file.Paths;
+
 public class StartupOptions {
 
   /**
@@ -44,7 +48,11 @@ public class StartupOptions {
   private boolean enableStartupLayoutOptimizations =
       parseSystemPropertyForDevelopmentOrDefault("com.android.tools.r8.startup.layout", true);
 
-  private StartupConfiguration startupConfiguration;
+  private StringResource startupProfile =
+      SystemPropertyUtils.applySystemProperty(
+          "com.android.tools.r8.startup.profile",
+          propertyValue -> StringResource.fromFile(Paths.get(propertyValue)),
+          () -> null);
 
   public boolean isMinimalStartupDexEnabled() {
     return enableMinimalStartupDex;
@@ -83,16 +91,16 @@ public class StartupOptions {
     return this;
   }
 
-  public boolean hasStartupConfiguration() {
-    return startupConfiguration != null;
+  public boolean hasStartupProfile() {
+    return startupProfile != null;
   }
 
-  public StartupConfiguration getStartupConfiguration() {
-    return startupConfiguration;
+  public StringResource getStartupProfile() {
+    return startupProfile;
   }
 
-  public StartupOptions setStartupConfiguration(StartupConfiguration startupConfiguration) {
-    this.startupConfiguration = startupConfiguration;
+  public StartupOptions setStartupProfile(StringResource startupProfile) {
+    this.startupProfile = startupProfile;
     return this;
   }
 }

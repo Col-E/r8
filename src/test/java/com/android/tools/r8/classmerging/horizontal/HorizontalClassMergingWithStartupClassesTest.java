@@ -5,11 +5,13 @@
 package com.android.tools.r8.classmerging.horizontal;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.experimental.startup.StartupClass;
-import com.android.tools.r8.experimental.startup.StartupConfiguration;
+import com.android.tools.r8.experimental.startup.StartupProfile;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
@@ -49,21 +51,22 @@ public class HorizontalClassMergingWithStartupClassesTest extends TestBase {
         .addOptionsModification(
             options -> {
               DexItemFactory dexItemFactory = options.dexItemFactory();
-              options
-                  .getStartupOptions()
-                  .setStartupConfiguration(
-                      StartupConfiguration.builder()
-                          .apply(
-                              builder ->
-                                  getStartupClasses()
-                                      .forEach(
-                                          startupClass ->
-                                              builder.addStartupClass(
-                                                  StartupClass.dexBuilder()
-                                                      .setClassReference(
-                                                          toDexType(startupClass, dexItemFactory))
-                                                      .build())))
-                          .build());
+              StartupProfile startupProfile =
+                  StartupProfile.builder()
+                      .apply(
+                          builder ->
+                              getStartupClasses()
+                                  .forEach(
+                                      startupClass ->
+                                          builder.addStartupClass(
+                                              StartupClass.dexBuilder()
+                                                  .setClassReference(
+                                                      toDexType(startupClass, dexItemFactory))
+                                                  .build())))
+                      .build();
+              StringResource startupProfileResource =
+                  StringResource.fromString(startupProfile.serializeToString(), Origin.unknown());
+              options.getStartupOptions().setStartupProfile(startupProfileResource);
             })
         .addHorizontallyMergedClassesInspector(
             inspector ->

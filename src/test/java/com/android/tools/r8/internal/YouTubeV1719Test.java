@@ -27,7 +27,6 @@ import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ThrowableConsumer;
-import com.android.tools.r8.experimental.startup.StartupConfiguration;
 import com.android.tools.r8.tracereferences.TraceReferences;
 import com.android.tools.r8.tracereferences.TraceReferencesCommand;
 import com.android.tools.r8.tracereferences.TraceReferencesKeepRules;
@@ -58,7 +57,7 @@ public class YouTubeV1719Test extends YouTubeCompilationTestBase {
 
   // By setting this to an actual startup list, YouTube will be build with layout optimizations
   // enabled.
-  private final Path startupList = null;
+  private final StringResource startupProfile = null;
   private final boolean enableMinimalStartupDex = true;
   private final boolean enableStartupBoundaryOptimizations = false;
 
@@ -132,8 +131,8 @@ public class YouTubeV1719Test extends YouTubeCompilationTestBase {
    * Running this test will dump an R8 build of YouTube in the {@link #dumpDirectory}, where the
    * desugared library keep rules are generated using trace references.
    *
-   * <p>If {@link #startupList} is set to a concrete startup list, YouTube will be build with layout
-   * optimizations enabled.
+   * <p>If {@link #startupProfile} is set to a concrete startup list, YouTube will be build with
+   * layout optimizations enabled.
    */
   @Test
   public void testR8() throws Exception {
@@ -146,12 +145,10 @@ public class YouTubeV1719Test extends YouTubeCompilationTestBase {
             testBuilder ->
                 testBuilder.addOptionsModification(
                     options -> {
-                      if (startupList != null) {
+                      if (startupProfile != null) {
                         options
                             .getStartupOptions()
-                            .setStartupConfiguration(
-                                StartupConfiguration.createStartupConfigurationFromFile(
-                                    options.dexItemFactory(), options.reporter, startupList))
+                            .setStartupProfile(startupProfile)
                             .setEnableMinimalStartupDex(enableMinimalStartupDex)
                             .setEnableStartupBoundaryOptimizations(
                                 enableStartupBoundaryOptimizations);

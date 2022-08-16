@@ -13,12 +13,12 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.ArchiveProgramResourceProvider;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.experimental.startup.StartupConfiguration;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -234,7 +234,7 @@ public class ChromeStartupTest extends TestBase {
       boolean enableStartupBoundaryOptimizations,
       Path outDirectory)
       throws Exception {
-    Path startupList = chromeDirectory.resolve("startup.txt");
+    StringResource startupProfile = StringResource.fromFile(chromeDirectory.resolve("startup.txt"));
     buildR8(
         testBuilder ->
             testBuilder.addOptionsModification(
@@ -243,9 +243,7 @@ public class ChromeStartupTest extends TestBase {
                         .getStartupOptions()
                         .setEnableMinimalStartupDex(enableMinimalStartupDex)
                         .setEnableStartupBoundaryOptimizations(enableStartupBoundaryOptimizations)
-                        .setStartupConfiguration(
-                            StartupConfiguration.createStartupConfigurationFromFile(
-                                options.dexItemFactory(), options.reporter, startupList))),
+                        .setStartupProfile(startupProfile)),
         outDirectory);
   }
 

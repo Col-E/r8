@@ -19,15 +19,11 @@ public abstract class StartupOrder {
   StartupOrder() {}
 
   public static StartupOrder createInitialStartupOrder(InternalOptions options) {
-    if (!options.getStartupOptions().hasStartupConfiguration()) {
+    StartupProfile startupProfile = StartupProfile.parseStartupProfile(options);
+    if (startupProfile == null || startupProfile.getStartupItems().isEmpty()) {
       return empty();
     }
-    StartupConfiguration startupConfiguration =
-        options.getStartupOptions().getStartupConfiguration();
-    if (!startupConfiguration.hasStartupItems()) {
-      return empty();
-    }
-    return new NonEmptyStartupOrder(new LinkedHashSet<>(startupConfiguration.getStartupItems()));
+    return new NonEmptyStartupOrder(new LinkedHashSet<>(startupProfile.getStartupItems()));
   }
 
   public static StartupOrder empty() {

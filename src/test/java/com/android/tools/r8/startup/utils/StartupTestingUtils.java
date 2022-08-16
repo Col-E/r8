@@ -10,17 +10,19 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8TestBuilder;
 import com.android.tools.r8.D8TestRunResult;
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
-import com.android.tools.r8.experimental.startup.StartupConfiguration;
 import com.android.tools.r8.experimental.startup.StartupConfigurationParser;
 import com.android.tools.r8.experimental.startup.StartupItem;
+import com.android.tools.r8.experimental.startup.StartupProfile;
 import com.android.tools.r8.experimental.startup.instrumentation.StartupInstrumentationOptions;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
@@ -147,8 +149,8 @@ public class StartupTestingUtils {
     testBuilder.addOptionsModification(
         options -> {
           DexItemFactory dexItemFactory = options.dexItemFactory();
-          StartupConfiguration startupConfiguration =
-              StartupConfiguration.builder()
+          StartupProfile startupProfile =
+              StartupProfile.builder()
                   .apply(
                       builder ->
                           startupItems.forEach(
@@ -156,7 +158,9 @@ public class StartupTestingUtils {
                                   builder.addStartupItem(
                                       convertStartupItemToDex(startupItem, dexItemFactory))))
                   .build();
-          options.getStartupOptions().setStartupConfiguration(startupConfiguration);
+          StringResource startupProfileResource =
+              StringResource.fromString(startupProfile.serializeToString(), Origin.unknown());
+          options.getStartupOptions().setStartupProfile(startupProfileResource);
         });
   }
 

@@ -4,26 +4,23 @@
 
 package com.android.tools.r8.experimental.startup;
 
-import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.utils.ExceptionDiagnostic;
-import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class StartupConfiguration {
+public class StartupProfile {
 
   private final List<StartupItem<DexType, DexMethod, ?>> startupItems;
 
-  public StartupConfiguration(List<StartupItem<DexType, DexMethod, ?>> startupItems) {
+  public StartupProfile(List<StartupItem<DexType, DexMethod, ?>> startupItems) {
     this.startupItems = startupItems;
   }
 
@@ -46,53 +43,45 @@ public class StartupConfiguration {
    * Landroidx/compose/runtime/ComposerImpl;
    * </pre>
    */
-  public static StartupConfiguration createStartupConfiguration(
-      DexItemFactory dexItemFactory, Reporter reporter) {
-    String propertyValue = System.getProperty("com.android.tools.r8.startup.config");
-    return propertyValue != null
-        ? createStartupConfigurationFromFile(dexItemFactory, reporter, Paths.get(propertyValue))
-        : null;
-  }
-
-  public static StartupConfiguration createStartupConfigurationFromFile(
-      DexItemFactory dexItemFactory, Reporter reporter, Path path) {
-    reporter.warning("Use of startupconfig is experimental");
-
-    List<String> startupDescriptors;
-    try {
-      startupDescriptors = FileUtils.readAllLines(path);
-    } catch (IOException e) {
-      throw reporter.fatalError(new ExceptionDiagnostic(e));
-    }
-
-    if (startupDescriptors.isEmpty()) {
+  public static StartupProfile parseStartupProfile(InternalOptions options) {
+    if (!options.getStartupOptions().hasStartupProfile()) {
       return null;
     }
-
-    return createStartupConfigurationFromLines(dexItemFactory, reporter, startupDescriptors);
+    try {
+      StringResource resource = options.getStartupOptions().getStartupProfile();
+      List<String> startupDescriptors = StringUtils.splitLines(resource.getString());
+      return createStartupConfigurationFromLines(options, startupDescriptors);
+    } catch (ResourceException e) {
+      throw new RuntimeException(e);
+    }
   }
 
-  public static StartupConfiguration createStartupConfigurationFromLines(
-      DexItemFactory dexItemFactory, Reporter reporter, List<String> startupDescriptors) {
+  public static StartupProfile createStartupConfigurationFromLines(
+      InternalOptions options, List<String> startupDescriptors) {
     List<StartupItem<DexType, DexMethod, ?>> startupItems = new ArrayList<>();
-    StartupConfigurationParser.createDexParser(dexItemFactory)
+    StartupConfigurationParser.createDexParser(options.dexItemFactory())
         .parseLines(
             startupDescriptors,
             startupItems::add,
             startupItems::add,
             error ->
-                reporter.warning(
+                options.reporter.warning(
                     new StringDiagnostic(
                         "Invalid descriptor for startup class or method: " + error)));
-    return new StartupConfiguration(startupItems);
-  }
-
-  public boolean hasStartupItems() {
-    return !startupItems.isEmpty();
+    return new StartupProfile(startupItems);
   }
 
   public List<StartupItem<DexType, DexMethod, ?>> getStartupItems() {
     return startupItems;
+  }
+
+  public String serializeToString() {
+    StringBuilder builder = new StringBuilder();
+    for (StartupItem<DexType, DexMethod, ?> startupItem : startupItems) {
+      startupItem.serializeToString(builder, DexType::toSmaliString, DexMethod::toSmaliString);
+      builder.append('\n');
+    }
+    return builder.toString();
   }
 
   public static class Builder {
@@ -118,8 +107,8 @@ public class StartupConfiguration {
       return this;
     }
 
-    public StartupConfiguration build() {
-      return new StartupConfiguration(startupItemsBuilder.build());
+    public StartupProfile build() {
+      return new StartupProfile(startupItemsBuilder.build());
     }
   }
 }

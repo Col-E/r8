@@ -64,6 +64,11 @@ public abstract class StartupItem<C, M, R> {
     return (flags & FLAG_SYNTHETIC) != 0;
   }
 
+  public abstract void serializeToString(
+      StringBuilder builder,
+      Function<C, String> classSerializer,
+      Function<M, String> methodSerializer);
+
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {

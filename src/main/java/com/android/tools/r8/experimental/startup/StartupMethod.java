@@ -43,6 +43,17 @@ public class StartupMethod<C, M> extends StartupItem<C, M, M> {
     return this;
   }
 
+  @Override
+  public void serializeToString(
+      StringBuilder builder,
+      Function<C, String> classSerializer,
+      Function<M, String> methodSerializer) {
+    if (isSynthetic()) {
+      builder.append('S');
+    }
+    builder.append(methodSerializer.apply(getReference()));
+  }
+
   public static class Builder<C, M> extends StartupItem.Builder<C, M, Builder<C, M>> {
 
     @Override
