@@ -479,14 +479,17 @@ public class ClassTypeElement extends ReferenceTypeElement {
     if (s1.isEmpty() || s2.isEmpty()) {
       return InterfaceCollection.empty();
     }
-    InterfaceCollection cached =
-        appView.dexItemFactory().leastUpperBoundOfInterfacesTable.get(s1, s2);
-    if (cached != null) {
-      return cached;
-    }
-    cached = appView.dexItemFactory().leastUpperBoundOfInterfacesTable.get(s2, s1);
-    if (cached != null) {
-      return cached;
+    // Synchronization is required, see b/242286733.
+    synchronized (appView.dexItemFactory().leastUpperBoundOfInterfacesTable) {
+      InterfaceCollection cached =
+          appView.dexItemFactory().leastUpperBoundOfInterfacesTable.get(s1, s2);
+      if (cached != null) {
+        return cached;
+      }
+      cached = appView.dexItemFactory().leastUpperBoundOfInterfacesTable.get(s2, s1);
+      if (cached != null) {
+        return cached;
+      }
     }
     Map<DexType, InterfaceMarker> seen = new IdentityHashMap<>();
     Queue<InterfaceWithMarker> worklist = new ArrayDeque<>();

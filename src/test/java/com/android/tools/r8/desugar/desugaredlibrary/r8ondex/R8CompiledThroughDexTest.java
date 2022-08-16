@@ -55,10 +55,8 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
     return buildParameters(
         getTestParameters()
             // Android 5 and 6 do not seem to work with more than 512 Mb of RAM.
-            .withDexRuntime(Version.V7_0_0)
+            .withDexRuntime(Version.V8_1_0)
             // TODO(b/241748003): Broken strictly below 19 due to charset issue.
-            // TODO(b/242286733): Broken strictly below 26 due to LinkedHashMap issue.
-            //  The LinkedHashMap issue is mitigated on 24-25.
             .withApiLevel(AndroidApiLevel.N)
             .build(),
         ImmutableList.of(JDK11_PATH),
