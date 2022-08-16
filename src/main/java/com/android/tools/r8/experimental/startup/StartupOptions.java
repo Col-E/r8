@@ -18,7 +18,7 @@ public class StartupOptions {
    */
   private boolean enableMinimalStartupDex =
       parseSystemPropertyForDevelopmentOrDefault(
-          "com.android.tools.r8.startup.minimalstartupdex", false);
+          "com.android.tools.r8.startup.minimalstartupdex", true);
 
   /**
    * When enabled, optimizations crossing the startup/non-startup boundary will be allowed.
