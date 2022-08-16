@@ -28,10 +28,11 @@ public class ComposeFieldNameTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  private static final String mappingFoo = StringUtils.lines("com.foo -> a:", "    int f1 -> f2");
-  private static final String mappingBar = StringUtils.lines("a -> b:", "    int f2 -> f3");
+  private static final String mappingFoo =
+      StringUtils.unixLines("com.foo -> a:", "    int f1 -> f2");
+  private static final String mappingBar = StringUtils.unixLines("a -> b:", "    int f2 -> f3");
   private static final String mappingResult =
-      StringUtils.lines("com.foo -> b:", "    int f1 -> f3");
+      StringUtils.unixLines("com.foo -> b:", "    int f1 -> f3");
 
   @Test
   public void testCompose() throws Exception {

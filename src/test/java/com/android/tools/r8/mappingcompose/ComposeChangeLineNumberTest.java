@@ -29,11 +29,11 @@ public class ComposeChangeLineNumberTest extends TestBase {
   }
 
   private static final String mappingFoo =
-      StringUtils.lines("com.foo -> a:", "    1:1:void m():42:42 -> m");
+      StringUtils.unixLines("com.foo -> a:", "    1:1:void m():42:42 -> m");
   private static final String mappingBar =
-      StringUtils.lines("a -> b:", "    2:2:void m():1:1 -> m");
+      StringUtils.unixLines("a -> b:", "    2:2:void m():1:1 -> m");
   private static final String mappingResult =
-      StringUtils.lines("com.foo -> b:", "    2:2:void m():42:42 -> m");
+      StringUtils.unixLines("com.foo -> b:", "    2:2:void m():42:42 -> m");
 
   @Test
   public void testCompose() throws Exception {

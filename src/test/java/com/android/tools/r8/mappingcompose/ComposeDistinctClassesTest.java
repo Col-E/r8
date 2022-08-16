@@ -28,8 +28,8 @@ public class ComposeDistinctClassesTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  private static final String mappingFoo = StringUtils.lines("com.foo -> a:");
-  private static final String mappingBar = StringUtils.lines("com.bar -> b:");
+  private static final String mappingFoo = StringUtils.unixLines("com.foo -> a:");
+  private static final String mappingBar = StringUtils.unixLines("com.bar -> b:");
 
   @Test
   public void testCompose() throws Exception {

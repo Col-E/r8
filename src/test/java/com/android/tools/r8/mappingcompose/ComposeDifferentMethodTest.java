@@ -32,11 +32,11 @@ public class ComposeDifferentMethodTest extends TestBase {
   // right hand side mapping we have no other choice than to map the naming through. This would not
   // be ok if we had overloads but any shrinker should put in line numbering for those.
   private static final String mappingFoo =
-      StringUtils.lines("com.foo -> a:", "    void f1(int) -> f2");
+      StringUtils.unixLines("com.foo -> a:", "    void f1(int) -> f2");
   private static final String mappingBar =
-      StringUtils.lines("a -> b:", "    int f2(boolean) -> f3");
+      StringUtils.unixLines("a -> b:", "    int f2(boolean) -> f3");
   private static final String mappingResult =
-      StringUtils.lines("com.foo -> b:", "    void f1(int) -> f3");
+      StringUtils.unixLines("com.foo -> b:", "    void f1(int) -> f3");
 
   @Test
   public void testCompose() throws Exception {

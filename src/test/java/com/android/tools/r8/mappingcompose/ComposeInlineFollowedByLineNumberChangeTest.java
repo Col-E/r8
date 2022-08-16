@@ -29,15 +29,15 @@ public class ComposeInlineFollowedByLineNumberChangeTest extends TestBase {
   }
 
   private static final String mappingFoo =
-      StringUtils.lines(
+      StringUtils.unixLines(
           "com.foo -> a:",
           "    1:1:void inlinee2():42:42 -> x",
           "    1:1:void foo.bar.baz.inlinee1():41 -> x",
           "    1:1:void caller():40 -> x");
   private static final String mappingBar =
-      StringUtils.lines("a -> b:", "    2:2:void x():1:1 -> y");
+      StringUtils.unixLines("a -> b:", "    2:2:void x():1:1 -> y");
   private static final String mappingResult =
-      StringUtils.lines(
+      StringUtils.unixLines(
           "com.foo -> b:",
           "    2:2:void inlinee2():42:42 -> y",
           "    2:2:void foo.bar.baz.inlinee1():41 -> y",

@@ -155,15 +155,23 @@ public class StringUtils {
   }
 
   public static String lines(List<String> lines) {
+    return lines(lines, LINE_SEPARATOR);
+  }
+
+  private static String lines(List<String> lines, String lineSeperator) {
     StringBuilder builder = new StringBuilder();
     for (String line : lines) {
-      builder.append(line).append(LINE_SEPARATOR);
+      builder.append(line).append(lineSeperator);
     }
     return builder.toString();
   }
 
   public static String lines(String... lines) {
     return lines(Arrays.asList(lines));
+  }
+
+  public static String unixLines(String... lines) {
+    return lines(Arrays.asList(lines), "\n");
   }
 
   public static String withNativeLineSeparator(String s) {

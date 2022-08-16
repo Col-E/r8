@@ -29,17 +29,17 @@ public class ComposeSplitRangeStartTest extends TestBase {
   }
 
   private static final String mappingFoo =
-      StringUtils.lines(
+      StringUtils.unixLines(
           "com.foo -> a:", "    1:5:void m():41:45 -> x", "    6:10:void m():56:60 -> x");
   private static final String mappingBar =
-      StringUtils.lines(
+      StringUtils.unixLines(
           "a -> b:",
           "    11:12:void x():1:2 -> y",
           "    13:17:void x():3:7 -> y",
           "    18:24:void x():8:8 -> y",
           "    25:26:void x():9:10 -> y");
   private static final String mappingResult =
-      StringUtils.lines(
+      StringUtils.unixLines(
           "com.foo -> b:",
           "    11:12:void m():41:42 -> y",
           "    13:15:void m():43:45 -> y",

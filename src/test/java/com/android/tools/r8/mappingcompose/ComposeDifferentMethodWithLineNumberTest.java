@@ -29,12 +29,12 @@ public class ComposeDifferentMethodWithLineNumberTest extends TestBase {
   }
 
   private static final String mappingFoo =
-      StringUtils.lines(
+      StringUtils.unixLines(
           "com.foo -> a:", "    1:1:int f1(boolean) -> f2", "    2:2:void f1(int) -> f2");
   private static final String mappingBar =
-      StringUtils.lines("a -> b:", "    8:8:void f2(boolean):2:2 -> f3");
+      StringUtils.unixLines("a -> b:", "    8:8:void f2(boolean):2:2 -> f3");
   private static final String mappingResult =
-      StringUtils.lines(
+      StringUtils.unixLines(
           "com.foo -> b:", "    1:1:int f1(boolean) -> f2", "    8:8:void f1(int) -> f3");
 
   @Test

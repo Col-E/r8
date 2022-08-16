@@ -30,8 +30,9 @@ public class ComposeFieldWithAmbiguousTypeTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  private static final String mappingFoo = StringUtils.lines("com.foo -> a:", "    int f1 -> f2");
-  private static final String mappingBar = StringUtils.lines("a -> b:", "    bool f2 -> f3");
+  private static final String mappingFoo =
+      StringUtils.unixLines("com.foo -> a:", "    int f1 -> f2");
+  private static final String mappingBar = StringUtils.unixLines("a -> b:", "    bool f2 -> f3");
 
   @Test
   public void testCompose() throws Exception {
