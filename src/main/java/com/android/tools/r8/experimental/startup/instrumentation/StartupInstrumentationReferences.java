@@ -2,20 +2,20 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.experimental.startup;
+package com.android.tools.r8.experimental.startup.instrumentation;
 
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 
-public class StartupReferences {
+class StartupInstrumentationReferences {
 
   final DexType instrumentationServerType;
   final DexType instrumentationServerImplType;
   final DexMethod addNonSyntheticMethod;
   final DexMethod addSyntheticMethod;
 
-  StartupReferences(DexItemFactory dexItemFactory) {
+  StartupInstrumentationReferences(DexItemFactory dexItemFactory) {
     instrumentationServerType =
         dexItemFactory.createType("Lcom/android/tools/r8/startup/InstrumentationServer;");
     instrumentationServerImplType =

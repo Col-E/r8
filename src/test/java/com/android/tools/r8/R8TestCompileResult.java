@@ -112,18 +112,10 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
   }
 
   @SafeVarargs
+  @Override
   public final <E extends Throwable> R8TestCompileResult inspectMultiDex(
       ThrowingConsumer<CodeInspector, E>... consumers) throws IOException, E {
-    Path out = state.getNewTempFolder();
-    getApp().writeToDirectory(out, OutputMode.DexIndexed);
-    consumers[0].accept(new CodeInspector(out.resolve("classes.dex"), getProguardMap()));
-    for (int i = 1; i < consumers.length; i++) {
-      Path dex = out.resolve("classes" + (i + 1) + ".dex");
-      CodeInspector inspector =
-          dex.toFile().exists() ? new CodeInspector(dex, getProguardMap()) : CodeInspector.empty();
-      consumers[i].accept(inspector);
-    }
-    return self();
+    return inspectMultiDex(writeProguardMap(), consumers);
   }
 
   public final <E extends Throwable> R8TestCompileResult inspectGraph(

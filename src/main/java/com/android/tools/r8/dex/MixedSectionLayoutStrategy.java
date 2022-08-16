@@ -22,15 +22,16 @@ public abstract class MixedSectionLayoutStrategy {
 
   public static MixedSectionLayoutStrategy create(
       AppView<?> appView, MixedSectionOffsets mixedSectionOffsets, VirtualFile virtualFile) {
-    StartupOrder startupOrderForWriting =
-        appView.options().getStartupOptions().isStartupLayoutOptimizationsEnabled()
-                && virtualFile.getId() == 0
-                && appView.hasClassHierarchy()
-            ? appView
-                .appInfoWithClassHierarchy()
-                .getStartupOrder()
-                .toStartupOrderForWriting(appView)
-            : StartupOrder.empty();
+    StartupOrder startupOrderForWriting;
+    if (virtualFile.getStartupOrder().isEmpty()) {
+      startupOrderForWriting = StartupOrder.empty();
+    } else {
+      assert virtualFile.getId() == 0;
+      startupOrderForWriting =
+          appView.options().getStartupOptions().isStartupLayoutOptimizationsEnabled()
+              ? virtualFile.getStartupOrder().toStartupOrderForWriting(appView)
+              : StartupOrder.empty();
+    }
     MixedSectionLayoutStrategy mixedSectionLayoutStrategy =
         startupOrderForWriting.isEmpty()
             ? new DefaultMixedSectionLayoutStrategy(appView, mixedSectionOffsets)

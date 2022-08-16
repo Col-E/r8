@@ -676,7 +676,11 @@ public class SyntheticFinalization {
     // actually equal.
     GraphLens graphLens = appView.graphLens();
     boolean includeContext =
-        intermediate || appView.options().getStartupOptions().isStartupInstrumentationEnabled();
+        intermediate
+            || appView
+                .options()
+                .getStartupInstrumentationOptions()
+                .isStartupInstrumentationEnabled();
     List<T> sortedPotentialMembers =
         ListUtils.sort(
             potentialEquivalence,

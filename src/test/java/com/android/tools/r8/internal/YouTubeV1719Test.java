@@ -90,7 +90,7 @@ public class YouTubeV1719Test extends YouTubeCompilationTestBase {
             .addOptionsModification(
                 options ->
                     options
-                        .getStartupOptions()
+                        .getStartupInstrumentationOptions()
                         .setEnableStartupInstrumentation()
                         .setStartupInstrumentationTag("r8"))
             .enableCoreLibraryDesugaring(

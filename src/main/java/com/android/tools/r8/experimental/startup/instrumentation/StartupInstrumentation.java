@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.experimental.startup;
+package com.android.tools.r8.experimental.startup.instrumentation;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.utils.PredicateUtils.not;
@@ -54,21 +54,21 @@ public class StartupInstrumentation {
   private final IRConverter converter;
   private final DexItemFactory dexItemFactory;
   private final InternalOptions options;
-  private final StartupReferences references;
-  private final StartupOptions startupOptions;
+  private final StartupInstrumentationReferences references;
+  private final StartupInstrumentationOptions startupInstrumentationOptions;
 
   private StartupInstrumentation(AppView<AppInfo> appView) {
     this.appView = appView;
     this.converter = new IRConverter(appView, Timing.empty());
     this.dexItemFactory = appView.dexItemFactory();
     this.options = appView.options();
-    this.references = new StartupReferences(dexItemFactory);
-    this.startupOptions = options.getStartupOptions();
+    this.references = new StartupInstrumentationReferences(dexItemFactory);
+    this.startupInstrumentationOptions = options.getStartupInstrumentationOptions();
   }
 
   public static void run(AppView<AppInfo> appView, ExecutorService executorService)
       throws ExecutionException {
-    if (appView.options().getStartupOptions().isStartupInstrumentationEnabled()) {
+    if (appView.options().getStartupInstrumentationOptions().isStartupInstrumentationEnabled()) {
       StartupInstrumentation startupInstrumentation = new StartupInstrumentation(appView);
       startupInstrumentation.instrumentAllClasses(executorService);
       startupInstrumentation.injectStartupRuntimeLibrary(executorService);
@@ -89,11 +89,11 @@ public class StartupInstrumentation {
     // If the startup options has a synthetic context for the startup instrumentation server, then
     // only inject the runtime library if the synthetic context exists in program to avoid injecting
     // the runtime library multiple times when there is separate compilation.
-    if (startupOptions.hasStartupInstrumentationServerSyntheticContext()) {
+    if (startupInstrumentationOptions.hasStartupInstrumentationServerSyntheticContext()) {
       DexType syntheticContext =
           dexItemFactory.createType(
               DescriptorUtils.javaTypeToDescriptor(
-                  startupOptions.getStartupInstrumentationServerSyntheticContext()));
+                  startupInstrumentationOptions.getStartupInstrumentationServerSyntheticContext()));
       if (asProgramClassOrNull(appView.definitionFor(syntheticContext)) == null) {
         return;
       }
@@ -113,7 +113,7 @@ public class StartupInstrumentation {
   private List<DexProgramClass> createStartupRuntimeLibraryClasses() {
     DexProgramClass instrumentationServerImplClass =
         InstrumentationServerImplFactory.createClass(dexItemFactory);
-    if (startupOptions.hasStartupInstrumentationTag()) {
+    if (startupInstrumentationOptions.hasStartupInstrumentationTag()) {
       instrumentationServerImplClass
           .lookupUniqueStaticFieldWithName(dexItemFactory.createString("writeToLogcat"))
           .setStaticValue(DexValueBoolean.create(true));
@@ -121,7 +121,8 @@ public class StartupInstrumentation {
           .lookupUniqueStaticFieldWithName(dexItemFactory.createString("logcatTag"))
           .setStaticValue(
               new DexValueString(
-                  dexItemFactory.createString(startupOptions.getStartupInstrumentationTag())));
+                  dexItemFactory.createString(
+                      startupInstrumentationOptions.getStartupInstrumentationTag())));
     }
 
     return ImmutableList.of(
@@ -174,8 +175,11 @@ public class StartupInstrumentation {
 
     // Insert invoke to record that the enclosing class is a startup class.
     SyntheticItems syntheticItems = appView.getSyntheticItems();
-    boolean isSyntheticClass = syntheticItems.isSyntheticClass(method.getHolder());
-    if (method.getDefinition().isClassInitializer() && !isSyntheticClass) {
+    boolean generalizeSyntheticToSyntheticOfSyntheticContexts =
+        startupInstrumentationOptions.isGeneralizationOfSyntheticsToSyntheticContextEnabled()
+            && syntheticItems.isSyntheticClass(method.getHolder());
+    if (method.getDefinition().isClassInitializer()
+        && !generalizeSyntheticToSyntheticOfSyntheticContexts) {
       DexMethod methodToInvoke = references.addNonSyntheticMethod;
       DexType classToPrint = method.getHolderType();
       Value descriptorValue =
@@ -193,7 +197,7 @@ public class StartupInstrumentation {
     if (!skipMethodLogging) {
       DexMethod methodToInvoke;
       DexReference referenceToPrint;
-      if (isSyntheticClass) {
+      if (generalizeSyntheticToSyntheticOfSyntheticContexts) {
         Collection<DexType> synthesizingContexts =
             syntheticItems.getSynthesizingContextTypes(method.getHolderType());
         assert synthesizingContexts.size() == 1;

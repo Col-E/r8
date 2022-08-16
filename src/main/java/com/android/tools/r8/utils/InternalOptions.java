@@ -39,6 +39,7 @@ import com.android.tools.r8.errors.MissingNestHostNestDesugarDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.experimental.startup.StartupOptions;
+import com.android.tools.r8.experimental.startup.instrumentation.StartupInstrumentationOptions;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -816,6 +817,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   private final ApiModelTestingOptions apiModelTestingOptions = new ApiModelTestingOptions();
   private final DesugarSpecificOptions desugarSpecificOptions = new DesugarSpecificOptions();
   private final StartupOptions startupOptions = new StartupOptions();
+  private final StartupInstrumentationOptions startupInstrumentationOptions =
+      new StartupInstrumentationOptions();
   public final TestingOptions testing = new TestingOptions();
 
   public List<ProguardConfigurationRule> mainDexKeepRules = ImmutableList.of();
@@ -877,6 +880,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public StartupOptions getStartupOptions() {
     return startupOptions;
+  }
+
+  public StartupInstrumentationOptions getStartupInstrumentationOptions() {
+    return startupInstrumentationOptions;
   }
 
   public TestingOptions getTestingOptions() {

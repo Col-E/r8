@@ -11,7 +11,7 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
-import com.android.tools.r8.experimental.startup.StartupInstrumentation;
+import com.android.tools.r8.experimental.startup.instrumentation.StartupInstrumentation;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;

@@ -15,7 +15,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.experimental.startup.StartupItem;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
-import com.android.tools.r8.startup.StartupSyntheticPlacementTest.Main;
 import com.android.tools.r8.startup.utils.StartupTestingUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -49,7 +48,8 @@ public class MinimalStartupDexTest extends TestBase {
     List<StartupItem<ClassReference, MethodReference, ?>> startupList = new ArrayList<>();
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .apply(StartupTestingUtils.enableStartupInstrumentationUsingLogcat(parameters))
+        .apply(
+            StartupTestingUtils.enableStartupInstrumentationForOriginalAppUsingLogcat(parameters))
         .release()
         .setMinApi(parameters.getApiLevel())
         .compile()

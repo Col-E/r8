@@ -444,6 +444,27 @@ public abstract class TestCompileResult<
     return self();
   }
 
+  @SuppressWarnings("unchecked")
+  public <E extends Throwable> CR inspectMultiDex(ThrowingConsumer<CodeInspector, E>... consumers)
+      throws IOException, E {
+    return inspectMultiDex(null, consumers);
+  }
+
+  @SafeVarargs
+  public final <E extends Throwable> CR inspectMultiDex(
+      Path mappingFile, ThrowingConsumer<CodeInspector, E>... consumers) throws IOException, E {
+    Path out = state.getNewTempFolder();
+    getApp().writeToDirectory(out, OutputMode.DexIndexed);
+    consumers[0].accept(new CodeInspector(out.resolve("classes.dex"), mappingFile));
+    for (int i = 1; i < consumers.length; i++) {
+      Path dex = out.resolve("classes" + (i + 1) + ".dex");
+      CodeInspector inspector =
+          dex.toFile().exists() ? new CodeInspector(dex, mappingFile) : CodeInspector.empty();
+      consumers[i].accept(inspector);
+    }
+    return self();
+  }
+
   public <E extends Throwable> CR inspectWithOptions(
       ThrowingConsumer<CodeInspector, E> consumer, Consumer<InternalOptions> debugOptionsConsumer)
       throws IOException, E {

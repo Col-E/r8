@@ -10,14 +10,14 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8TestBuilder;
 import com.android.tools.r8.D8TestRunResult;
-import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.experimental.startup.StartupConfiguration;
 import com.android.tools.r8.experimental.startup.StartupConfigurationParser;
 import com.android.tools.r8.experimental.startup.StartupItem;
-import com.android.tools.r8.experimental.startup.StartupOptions;
+import com.android.tools.r8.experimental.startup.instrumentation.StartupInstrumentationOptions;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -40,25 +40,54 @@ public class StartupTestingUtils {
 
   private static String startupInstrumentationTag = "startup";
 
-  public static ThrowableConsumer<D8TestBuilder> enableStartupInstrumentationUsingFile(
-      TestParameters parameters) {
-    return testBuilder -> enableStartupInstrumentation(testBuilder, parameters, false);
+  private enum AppVariant {
+    ORIGINAL,
+    OPTIMIZED;
+
+    boolean isOriginal() {
+      return this == ORIGINAL;
+    }
   }
 
-  public static ThrowableConsumer<D8TestBuilder> enableStartupInstrumentationUsingLogcat(
-      TestParameters parameters) {
-    return testBuilder -> enableStartupInstrumentation(testBuilder, parameters, true);
+  public static ThrowableConsumer<D8TestBuilder>
+      enableStartupInstrumentationForOriginalAppUsingFile(TestParameters parameters) {
+    return testBuilder ->
+        enableStartupInstrumentation(testBuilder, parameters, AppVariant.ORIGINAL, false);
+  }
+
+  public static ThrowableConsumer<D8TestBuilder>
+      enableStartupInstrumentationForOriginalAppUsingLogcat(TestParameters parameters) {
+    return testBuilder ->
+        enableStartupInstrumentation(testBuilder, parameters, AppVariant.ORIGINAL, true);
+  }
+
+  public static ThrowableConsumer<D8TestBuilder>
+      enableStartupInstrumentationForOptimizedAppUsingFile(TestParameters parameters) {
+    return testBuilder ->
+        enableStartupInstrumentation(testBuilder, parameters, AppVariant.OPTIMIZED, false);
+  }
+
+  public static ThrowableConsumer<D8TestBuilder>
+      enableStartupInstrumentationForOptimizedAppUsingLogcat(TestParameters parameters) {
+    return testBuilder ->
+        enableStartupInstrumentation(testBuilder, parameters, AppVariant.OPTIMIZED, true);
   }
 
   private static void enableStartupInstrumentation(
-      D8TestBuilder testBuilder, TestParameters parameters, boolean logcat) throws IOException {
+      D8TestBuilder testBuilder, TestParameters parameters, AppVariant appVariant, boolean logcat)
+      throws IOException {
     testBuilder
         .addOptionsModification(
             options -> {
-              StartupOptions startupOptions =
-                  options.getStartupOptions().setEnableStartupInstrumentation();
+              StartupInstrumentationOptions startupInstrumentationOptions =
+                  options
+                      .getStartupInstrumentationOptions()
+                      .setEnableStartupInstrumentation()
+                      .setEnableGeneralizationOfSyntheticsToSyntheticContext(
+                          appVariant.isOriginal());
               if (logcat) {
-                startupOptions.setStartupInstrumentationTag(startupInstrumentationTag);
+                startupInstrumentationOptions.setStartupInstrumentationTag(
+                    startupInstrumentationTag);
               }
             })
         .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
@@ -113,7 +142,7 @@ public class StartupTestingUtils {
   }
 
   public static void setStartupConfiguration(
-      R8TestBuilder<?> testBuilder,
+      TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder,
       List<StartupItem<ClassReference, MethodReference, ?>> startupItems) {
     testBuilder.addOptionsModification(
         options -> {

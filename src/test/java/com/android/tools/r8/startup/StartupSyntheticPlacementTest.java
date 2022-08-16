@@ -11,12 +11,16 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.D8TestCompileResult;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.experimental.startup.StartupClass;
 import com.android.tools.r8.experimental.startup.StartupItem;
 import com.android.tools.r8.experimental.startup.StartupMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
@@ -26,8 +30,11 @@ import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.MethodReferenceUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -64,35 +71,89 @@ public class StartupSyntheticPlacementTest extends TestBase {
   }
 
   @Test
-  public void test() throws Exception {
+  public void testLayoutUsingD8() throws Exception {
+    // First build the app using R8.
+    R8TestCompileResult r8CompileResult =
+        testForR8(parameters.getBackend())
+            .addInnerClasses(getClass())
+            .addKeepMainRule(Main.class)
+            .addKeepClassAndMembersRules(A.class, B.class, C.class)
+            .addDontOptimize()
+            .setMinApi(parameters.getApiLevel())
+            .compile();
+
+    // Verify that the build works.
+    r8CompileResult
+        .run(parameters.getRuntime(), Main.class, Boolean.toString(useLambda))
+        .assertSuccessWithOutputLines(getExpectedOutput());
+
+    Path optimizedApp = r8CompileResult.writeToZip();
+
+    // Then instrument the app to generate a startup list for the minified app.
     List<StartupItem<ClassReference, MethodReference, ?>> startupList = new ArrayList<>();
     testForD8(parameters.getBackend())
-        .addInnerClasses(getClass())
-        .apply(StartupTestingUtils.enableStartupInstrumentationUsingLogcat(parameters))
+        .addProgramFiles(optimizedApp)
+        .apply(
+            StartupTestingUtils.enableStartupInstrumentationForOptimizedAppUsingLogcat(parameters))
         .release()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .addRunClasspathFiles(StartupTestingUtils.getAndroidUtilLog(temp))
         .run(parameters.getRuntime(), Main.class, Boolean.toString(useLambda))
         .apply(StartupTestingUtils.removeStartupListFromStdout(startupList::add))
-        .assertSuccessWithOutputLines(getExpectedOutput());
-    assertEquals(getExpectedStartupList(), startupList);
+        .assertSuccessWithOutputLines(getExpectedOutput())
+        .apply(
+            runResult ->
+                assertEquals(
+                    getExpectedStartupList(r8CompileResult.inspector(), false), startupList));
 
+    // Finally rebuild the minified app using D8 and the startup list.
+    testForD8(parameters.getBackend())
+        .addProgramFiles(optimizedApp)
+        .apply(
+            testBuilder ->
+                configureStartupOptions(testBuilder, r8CompileResult.inspector(), startupList))
+        .release()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspectMultiDex(
+            r8CompileResult.writeProguardMap(), this::inspectPrimaryDex, this::inspectSecondaryDex)
+        .run(parameters.getRuntime(), Main.class, Boolean.toString(useLambda))
+        .assertSuccessWithOutputLines(getExpectedOutput());
+  }
+
+  @Test
+  public void testLayoutUsingR8() throws Exception {
+    // First generate a startup list for the original app.
+    List<StartupItem<ClassReference, MethodReference, ?>> startupList = new ArrayList<>();
+    D8TestCompileResult instrumentationCompileResult =
+        testForD8(parameters.getBackend())
+            .addInnerClasses(getClass())
+            .apply(
+                StartupTestingUtils.enableStartupInstrumentationForOriginalAppUsingLogcat(
+                    parameters))
+            .release()
+            .setMinApi(parameters.getApiLevel())
+            .compile();
+
+    instrumentationCompileResult
+        .addRunClasspathFiles(StartupTestingUtils.getAndroidUtilLog(temp))
+        .run(parameters.getRuntime(), Main.class, Boolean.toString(useLambda))
+        .apply(StartupTestingUtils.removeStartupListFromStdout(startupList::add))
+        .assertSuccessWithOutputLines(getExpectedOutput())
+        .apply(
+            runResult ->
+                assertEquals(getExpectedStartupList(runResult.inspector(), true), startupList));
+
+    // Then build the app using the startup list that is based on original names.
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addKeepClassAndMembersRules(A.class, B.class, C.class)
-        .addOptionsModification(
-            options -> {
-              options
-                  .getStartupOptions()
-                  .setEnableMinimalStartupDex(enableMinimalStartupDex)
-                  .setEnableStartupCompletenessCheckForTesting(enableStartupCompletenessCheck);
-              options
-                  .getTestingOptions()
-                  .setMixedSectionLayoutStrategyInspector(getMixedSectionLayoutInspector());
-            })
-        .apply(testBuilder -> StartupTestingUtils.setStartupConfiguration(testBuilder, startupList))
+        .apply(
+            testBuilder ->
+                configureStartupOptions(
+                    testBuilder, instrumentationCompileResult.inspector(), startupList))
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspectMultiDex(this::inspectPrimaryDex, this::inspectSecondaryDex)
@@ -103,12 +164,31 @@ public class StartupSyntheticPlacementTest extends TestBase {
             runResult -> runResult.assertSuccessWithOutputLines(getExpectedOutput()));
   }
 
+  private void configureStartupOptions(
+      TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder,
+      CodeInspector inspector,
+      List<StartupItem<ClassReference, MethodReference, ?>> startupList) {
+    testBuilder
+        .addOptionsModification(
+            options -> {
+              options
+                  .getStartupOptions()
+                  .setEnableMinimalStartupDex(enableMinimalStartupDex)
+                  .setEnableStartupCompletenessCheckForTesting(enableStartupCompletenessCheck);
+              options
+                  .getTestingOptions()
+                  .setMixedSectionLayoutStrategyInspector(
+                      getMixedSectionLayoutInspector(inspector));
+            })
+        .apply(ignore -> StartupTestingUtils.setStartupConfiguration(testBuilder, startupList));
+  }
+
   private List<String> getExpectedOutput() {
     return ImmutableList.of("A", "B", "C");
   }
 
-  private List<StartupItem<ClassReference, MethodReference, ?>> getExpectedStartupList()
-      throws NoSuchMethodException {
+  private List<StartupItem<ClassReference, MethodReference, ?>> getExpectedStartupList(
+      CodeInspector inspector, boolean isStartupListForOriginalApp) throws NoSuchMethodException {
     ImmutableList.Builder<StartupItem<ClassReference, MethodReference, ?>> builder =
         ImmutableList.builder();
     builder.add(
@@ -132,11 +212,56 @@ public class StartupSyntheticPlacementTest extends TestBase {
                 Reference.methodFromMethod(B.class.getDeclaredMethod("b", boolean.class)))
             .build());
     if (useLambda) {
+      if (isStartupListForOriginalApp) {
+        builder.add(
+            StartupClass.referenceBuilder()
+                .setClassReference(Reference.classFromClass(B.class))
+                .setSynthetic()
+                .build());
+      } else {
+        ClassSubject bClassSubject = inspector.clazz(B.class);
+
+        MethodSubject syntheticLambdaAccessorMethod =
+            bClassSubject.uniqueMethodThatMatches(
+                method ->
+                    method
+                        .getOriginalName()
+                        .startsWith(LambdaClass.R8_LAMBDA_ACCESSOR_METHOD_PREFIX));
+        assertThat(syntheticLambdaAccessorMethod, isPresent());
+
+        ClassSubject externalSyntheticLambdaClassSubject =
+            inspector.clazz(getSyntheticLambdaClassReference());
+        assertThat(externalSyntheticLambdaClassSubject, isPresent());
+
+        ClassReference externalSyntheticLambdaClassReference =
+            externalSyntheticLambdaClassSubject.getFinalReference();
+
+        builder.add(
+            StartupClass.referenceBuilder()
+                .setClassReference(externalSyntheticLambdaClassReference)
+                .build(),
+            StartupMethod.referenceBuilder()
+                .setMethodReference(
+                    MethodReferenceUtils.instanceConstructor(externalSyntheticLambdaClassReference))
+                .build(),
+            StartupMethod.referenceBuilder()
+                .setMethodReference(
+                    Reference.method(
+                        externalSyntheticLambdaClassReference,
+                        "accept",
+                        ImmutableList.of(Reference.classFromClass(Object.class)),
+                        null))
+                .build(),
+            StartupMethod.referenceBuilder()
+                .setMethodReference(
+                    Reference.method(
+                        Reference.classFromClass(B.class),
+                        syntheticLambdaAccessorMethod.getFinalName(),
+                        ImmutableList.of(Reference.classFromClass(Object.class)),
+                        null))
+                .build());
+      }
       builder.add(
-          StartupClass.referenceBuilder()
-              .setClassReference(Reference.classFromClass(B.class))
-              .setSynthetic()
-              .build(),
           StartupMethod.referenceBuilder()
               .setMethodReference(
                   Reference.methodFromMethod(B.class.getDeclaredMethod("lambda$b$0", Object.class)))
@@ -152,7 +277,10 @@ public class StartupSyntheticPlacementTest extends TestBase {
     return builder.build();
   }
 
-  private List<ClassReference> getExpectedClassDataLayout(int virtualFile) {
+  private List<ClassReference> getExpectedClassDataLayout(
+      CodeInspector inspector, int virtualFile) {
+    ClassSubject syntheticLambdaClassSubject = inspector.clazz(getSyntheticLambdaClassReference());
+
     // The synthetic lambda should only be placed alongside its synthetic context (B) if it is used.
     // Otherwise, it should be last, or in the second dex file if compiling with minimal startup.
     ImmutableList.Builder<ClassReference> layoutBuilder = ImmutableList.builder();
@@ -162,23 +290,24 @@ public class StartupSyntheticPlacementTest extends TestBase {
           Reference.classFromClass(A.class),
           Reference.classFromClass(B.class));
       if (useLambda) {
-        layoutBuilder.add(getSyntheticLambdaClassReference());
+        layoutBuilder.add(syntheticLambdaClassSubject.getFinalReference());
       }
       layoutBuilder.add(Reference.classFromClass(C.class));
     }
     if (!useLambda) {
       if (!enableMinimalStartupDex || virtualFile == 1) {
-        layoutBuilder.add(getSyntheticLambdaClassReference());
+        layoutBuilder.add(syntheticLambdaClassSubject.getFinalReference());
       }
     }
     return layoutBuilder.build();
   }
 
-  private MixedSectionLayoutInspector getMixedSectionLayoutInspector() {
+  private MixedSectionLayoutInspector getMixedSectionLayoutInspector(CodeInspector inspector) {
     return new MixedSectionLayoutInspector() {
       @Override
       public void inspectClassDataLayout(int virtualFile, Collection<DexProgramClass> layout) {
-        assertThat(layout, isEqualToClassDataLayout(getExpectedClassDataLayout(virtualFile)));
+        assertThat(
+            layout, isEqualToClassDataLayout(getExpectedClassDataLayout(inspector, virtualFile)));
       }
     };
   }
