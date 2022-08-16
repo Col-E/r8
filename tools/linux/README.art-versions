@@ -42,6 +42,29 @@ To reproduce that AOSP state, use the following commands:
   <continue with repo sync as above>
 
 
+art-master (Currently Android U)
+--------------------------------
+Build from master, build spec included. Art at 31b98e9ce8fbb56c3507c8e7718881efa1ce9f63.
+
+repo sync -cq -j24
+source build/envsetup.sh
+lunch aosp_redfin-userdebug
+m -j48
+m -j48 build-art
+m -j48 test-art-host
+repo manifest -r -o build_spec.xml
+
+Collected into tools/linux/host/art-master. The "host" path element is checked
+by the script for running Art.
+
+  cd <r8 checkout>
+  scripts/update-host-art.sh \
+     --android-checkout <...>/android/tm-dev \
+     --art-dir host/art-master \
+     --android-product redfin
+
+(cd tools/linux/host; upload_to_google_storage.py -a --bucket r8-deps art-master)
+
 art-13 (Android T)
 ------------------
 Build from tm-dev commit 442e1091f39417c692d91609af05e58af60d8e2b.

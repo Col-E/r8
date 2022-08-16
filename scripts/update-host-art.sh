@@ -91,8 +91,23 @@ ANDROID_HOST_BUILD=$ANDROID_CHECKOUT/out/host/linux-x86
 ANDROID_TARGET_BUILD=$ANDROID_CHECKOUT/out/target
 DEST=$DEST_ROOT/$ART_DIR
 
-# Clean out the previous version of Art
+# Clean out the previous version of Art.
 rm -rf $DEST
+
+# Copy build_spec.xml for documentation.
+mkdir -p $DEST
+if [ -f $ANDROID_CHECKOUT/build_spec.xml ]; then
+  cp $ANDROID_CHECKOUT/build_spec.xml $DEST
+  # Remove the build spec to ensure it is created anew for a new build.
+  rm $ANDROID_CHECKOUT/build_spec.xml
+else
+  echo "File $ANDROID_CHECKOUT/build_spec.xml not found. Please run"
+  echo
+  echo "  repo manifest -r -o build_spec.xml"
+  echo
+  echo "in $ANDROID_CHECKOUT"
+  exit 1
+fi
 
 # Required binaries and scripts.
 mkdir -p $DEST/bin
