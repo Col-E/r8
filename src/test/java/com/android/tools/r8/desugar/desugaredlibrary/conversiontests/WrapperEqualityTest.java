@@ -177,6 +177,7 @@ public class WrapperEqualityTest extends DesugaredLibraryTestBase {
       appConsumer = consumer;
     }
 
+    @SuppressWarnings("unchecked")
     public static void setSupplier(Supplier supplier) {
       appSupplier = supplier;
     }

@@ -187,6 +187,7 @@ public class StartupSyntheticPlacementTest extends TestBase {
     return ImmutableList.of("A", "B", "C");
   }
 
+  @SuppressWarnings("unchecked")
   private List<StartupItem<ClassReference, MethodReference, ?>> getExpectedStartupList(
       CodeInspector inspector, boolean isStartupListForOriginalApp) throws NoSuchMethodException {
     ImmutableList.Builder<StartupItem<ClassReference, MethodReference, ?>> builder =

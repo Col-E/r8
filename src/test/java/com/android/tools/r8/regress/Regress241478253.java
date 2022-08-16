@@ -44,6 +44,8 @@ public class Regress241478253 extends TestBase {
   }
 
   public static class Foo {
+
+    @SuppressWarnings("unchecked")
     public static void main(String[] args) {
       try {
         Class<Bar> impl =
