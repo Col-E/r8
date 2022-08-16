@@ -33,7 +33,7 @@ public interface StringResource extends Resource {
    *
    * @param file Path of file with UTF-8 encoded text.
    */
-  static StringResource fromFile(Path file) {
+  static FileResource fromFile(Path file) {
     return fromFile(file, StandardCharsets.UTF_8);
   }
 
@@ -45,7 +45,7 @@ public interface StringResource extends Resource {
    * @param file Path of file.
    * @param charset Charset coding of file.
    */
-  static StringResource fromFile(Path file, Charset charset) {
+  static FileResource fromFile(Path file, Charset charset) {
     return new FileResource(file, charset);
   }
 
@@ -74,7 +74,7 @@ public interface StringResource extends Resource {
     }
 
     @Override
-    public String getString() throws ResourceException {
+    public String getString() {
       return content;
     }
   }
@@ -103,6 +103,14 @@ public interface StringResource extends Resource {
         return FileUtils.readTextFile(file, charset);
       } catch (IOException e) {
         throw new ResourceException(origin, e);
+      }
+    }
+
+    public String getStringWithRuntimeException() {
+      try {
+        return getString();
+      } catch (ResourceException e) {
+        throw new RuntimeException(e);
       }
     }
   }

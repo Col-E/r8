@@ -6,6 +6,7 @@ package com.android.tools.r8.experimental.startup;
 
 import static com.android.tools.r8.utils.SystemPropertyUtils.parseSystemPropertyForDevelopmentOrDefault;
 
+import com.android.tools.r8.StartupProfileProvider;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.utils.SystemPropertyUtils;
 import java.nio.file.Paths;
@@ -48,10 +49,11 @@ public class StartupOptions {
   private boolean enableStartupLayoutOptimizations =
       parseSystemPropertyForDevelopmentOrDefault("com.android.tools.r8.startup.layout", true);
 
-  private StringResource startupProfile =
+  private StartupProfileProvider startupProfileProvider =
       SystemPropertyUtils.applySystemProperty(
           "com.android.tools.r8.startup.profile",
-          propertyValue -> StringResource.fromFile(Paths.get(propertyValue)),
+          propertyValue ->
+              StringResource.fromFile(Paths.get(propertyValue))::getStringWithRuntimeException,
           () -> null);
 
   public boolean isMinimalStartupDexEnabled() {
@@ -91,16 +93,16 @@ public class StartupOptions {
     return this;
   }
 
-  public boolean hasStartupProfile() {
-    return startupProfile != null;
+  public boolean hasStartupProfileProvider() {
+    return startupProfileProvider != null;
   }
 
-  public StringResource getStartupProfile() {
-    return startupProfile;
+  public StartupProfileProvider getStartupProfileProvider() {
+    return startupProfileProvider;
   }
 
-  public StartupOptions setStartupProfile(StringResource startupProfile) {
-    this.startupProfile = startupProfile;
+  public StartupOptions setStartupProfileProvider(StartupProfileProvider startupProfileProvider) {
+    this.startupProfileProvider = startupProfileProvider;
     return this;
   }
 }

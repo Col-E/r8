@@ -13,6 +13,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.ArchiveProgramResourceProvider;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.StartupProfileProvider;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -234,7 +235,9 @@ public class ChromeStartupTest extends TestBase {
       boolean enableStartupBoundaryOptimizations,
       Path outDirectory)
       throws Exception {
-    StringResource startupProfile = StringResource.fromFile(chromeDirectory.resolve("startup.txt"));
+    StartupProfileProvider startupProfileProvider =
+        StringResource.fromFile(chromeDirectory.resolve("startup.txt"))
+            ::getStringWithRuntimeException;
     buildR8(
         testBuilder ->
             testBuilder.addOptionsModification(
@@ -243,7 +246,7 @@ public class ChromeStartupTest extends TestBase {
                         .getStartupOptions()
                         .setEnableMinimalStartupDex(enableMinimalStartupDex)
                         .setEnableStartupBoundaryOptimizations(enableStartupBoundaryOptimizations)
-                        .setStartupProfile(startupProfile)),
+                        .setStartupProfileProvider(startupProfileProvider)),
         outDirectory);
   }
 

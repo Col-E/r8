@@ -4,8 +4,7 @@
 
 package com.android.tools.r8.experimental.startup;
 
-import com.android.tools.r8.ResourceException;
-import com.android.tools.r8.StringResource;
+import com.android.tools.r8.StartupProfileProvider;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.InternalOptions;
@@ -44,16 +43,12 @@ public class StartupProfile {
    * </pre>
    */
   public static StartupProfile parseStartupProfile(InternalOptions options) {
-    if (!options.getStartupOptions().hasStartupProfile()) {
+    if (!options.getStartupOptions().hasStartupProfileProvider()) {
       return null;
     }
-    try {
-      StringResource resource = options.getStartupOptions().getStartupProfile();
-      List<String> startupDescriptors = StringUtils.splitLines(resource.getString());
-      return createStartupConfigurationFromLines(options, startupDescriptors);
-    } catch (ResourceException e) {
-      throw new RuntimeException(e);
-    }
+    StartupProfileProvider resource = options.getStartupOptions().getStartupProfileProvider();
+    List<String> startupDescriptors = StringUtils.splitLines(resource.get());
+    return createStartupConfigurationFromLines(options, startupDescriptors);
   }
 
   public static StartupProfile createStartupConfigurationFromLines(
