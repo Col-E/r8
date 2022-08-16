@@ -41,6 +41,7 @@ public enum DexVersion {
         // ANDROID_PLATFORM is an unknown higher api version we therefore choose the highest known
         // version.
       case ANDROID_PLATFORM:
+      case MASTER:
       case T:
       case Sv2:
       case S:

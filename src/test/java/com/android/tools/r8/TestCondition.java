@@ -28,6 +28,7 @@ public class TestCondition {
     ART_V12_0_0,
     ART_V13_0_0,
     ART_DEFAULT,
+    ART_MASTER,
     JAVA;
 
     static final Runtime LOWEST_ART_VERSION = ART_V4_0_4;
@@ -57,6 +58,8 @@ public class TestCondition {
           return ART_V13_0_0;
         case DEFAULT:
           return ART_DEFAULT;
+        case MASTER:
+          return ART_MASTER;
         default:
           throw new Unreachable();
       }

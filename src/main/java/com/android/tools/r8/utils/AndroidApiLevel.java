@@ -43,6 +43,7 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
   S(31),
   Sv2(32),
   T(33),
+  MASTER(34), // API level for master is tentative.
   ANDROID_PLATFORM(10000);
 
   // When updating LATEST and a new version goes stable, add a new api-versions.xml to third_party
@@ -166,6 +167,8 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
         return Sv2;
       case 33:
         return T;
+      case 34:
+        return MASTER;
       case 10000:
         return ANDROID_PLATFORM;
       default:

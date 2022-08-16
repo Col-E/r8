@@ -128,9 +128,14 @@ public class TestParametersBuilder {
     return withCfRuntimeFilter(vm -> vm.lessThan(endExclusive));
   }
 
-  /** Add all available DEX runtimes. */
-  public TestParametersBuilder withDexRuntimes() {
+  /** Add all available DEX runtimes including master. */
+  public TestParametersBuilder withDexRuntimesIncludingMaster() {
     return withDexRuntimeFilter(vm -> true);
+  }
+
+  /** Add all available DEX runtimes except master. */
+  public TestParametersBuilder withDexRuntimes() {
+    return withDexRuntimeFilter(vm -> vm != DexVm.Version.MASTER);
   }
 
   public TestParametersBuilder withDexRuntimesAndAllApiLevels() {

@@ -20,7 +20,7 @@ public abstract class AndroidApiLevelCompute {
   public AndroidApiLevelCompute() {
     knownApiLevelCache = new KnownApiLevel[AndroidApiLevel.LATEST.getLevel() + 1];
     for (AndroidApiLevel value : AndroidApiLevel.values()) {
-      if (value != AndroidApiLevel.ANDROID_PLATFORM) {
+      if (value != AndroidApiLevel.ANDROID_PLATFORM && value != AndroidApiLevel.MASTER) {
         knownApiLevelCache[value.getLevel()] = new KnownApiLevel(value);
       }
     }
@@ -29,6 +29,9 @@ public abstract class AndroidApiLevelCompute {
   public KnownApiLevel of(AndroidApiLevel apiLevel) {
     if (apiLevel == AndroidApiLevel.ANDROID_PLATFORM) {
       return ComputedApiLevel.platform();
+    }
+    if (apiLevel == AndroidApiLevel.MASTER) {
+      return ComputedApiLevel.master();
     }
     return knownApiLevelCache[apiLevel.getLevel()];
   }
@@ -55,9 +58,13 @@ public abstract class AndroidApiLevelCompute {
   }
 
   public ComputedApiLevel computeInitialMinApiLevel(InternalOptions options) {
-      return options.getMinApiLevel() == AndroidApiLevel.ANDROID_PLATFORM
-          ? ComputedApiLevel.platform()
-          : new KnownApiLevel(options.getMinApiLevel());
+    if (options.getMinApiLevel() == AndroidApiLevel.ANDROID_PLATFORM) {
+      return ComputedApiLevel.platform();
+    }
+    if (options.getMinApiLevel() == AndroidApiLevel.MASTER) {
+      return ComputedApiLevel.master();
+    }
+    return new KnownApiLevel(options.getMinApiLevel());
   }
 
   public ComputedApiLevel getPlatformApiLevelOrUnknown(AppView<?> appView) {
