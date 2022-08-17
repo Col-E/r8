@@ -162,7 +162,7 @@ public class RewriteFrameMappingInformation extends MappingInformation {
 
     static final String FUNCTION_NAME = "throws";
 
-    private final ClassReference classReference;
+    private ClassReference classReference;
 
     private ThrowsCondition(ClassReference classReference) {
       this.classReference = classReference;
@@ -181,6 +181,14 @@ public class RewriteFrameMappingInformation extends MappingInformation {
     @Override
     public ThrowsCondition asThrowsCondition() {
       return this;
+    }
+
+    public void setClassReferenceInternal(ClassReference reference) {
+      this.classReference = reference;
+    }
+
+    public ClassReference getClassReference() {
+      return classReference;
     }
 
     @Override

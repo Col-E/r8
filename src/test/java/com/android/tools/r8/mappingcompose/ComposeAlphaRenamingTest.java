@@ -31,19 +31,19 @@ public class ComposeAlphaRenamingTest extends TestBase {
   private static final String mapping =
       StringUtils.unixLines(
           "a -> b:",
-          "    int x -> y",
-          "    void x() -> y",
+          "    int a -> b",
+          "    void a() -> b",
           "b -> a:",
-          "    int y -> x",
-          "    void y() -> x");
+          "    int b -> a",
+          "    void b() -> a");
   private static final String mappingResult =
       StringUtils.unixLines(
           "a -> a:",
-          "    int x -> x",
-          "    void x() -> x",
+          "    int a -> a",
+          "    void a() -> a",
           "b -> b:",
-          "    int y -> y",
-          "    void y() -> y");
+          "    int b -> b",
+          "    void b() -> b");
 
   @Test
   public void testCompose() throws Exception {

@@ -4,7 +4,8 @@
 
 package com.android.tools.r8.mappingcompose;
 
-import static org.junit.Assert.assertNotEquals;
+import static com.android.tools.r8.mappingcompose.ComposeHelpers.doubleToSingleQuote;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -42,23 +43,22 @@ public class ComposeRewriteFrameTest extends TestBase {
           "# { id: 'com.android.tools.r8.mapping', version: '2.0' }",
           "a -> b:",
           "x -> c:",
-          "    void a(Other.Class) -> m");
+          "    8:8:void a(Other.Class):4:4 -> m");
   private static final String mappingResult =
       StringUtils.unixLines(
-          "# { id: 'com.android.tools.r8.mapping', version: '2.0' }",
-          "my.CustomException -> b:",
+          "# {'id':'com.android.tools.r8.mapping','version':'2.0'}",
           "foo.Bar -> c:",
-          "    4:4:void other.Class.inlinee():23:23 -> m",
-          "    4:4:void caller(other.Class):7 -> m",
-          "    # { id: 'com.android.tools.r8.rewriteFrame', "
-              + "conditions: ['throws(Lb;)'], actions: ['removeInnerFrames(1)'] }");
+          "    8:8:void other.Class.inlinee():23:23 -> m",
+          "    8:8:void caller(other.Class):7 -> m",
+          "    # {'id':'com.android.tools.r8.rewriteFrame','conditions':['throws(Lb;)'],"
+              + "'actions':['removeInnerFrames(1)']}",
+          "my.CustomException -> b:");
 
   @Test
   public void testCompose() throws Exception {
     ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromString(mappingFoo);
     ClassNameMapper mappingForBar = ClassNameMapper.mapperFromString(mappingBar);
     String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
-    // TODO(b/241763080): Support mapping information.
-    assertNotEquals(mappingResult, composed);
+    assertEquals(mappingResult, doubleToSingleQuote(composed));
   }
 }

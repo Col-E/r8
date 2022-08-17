@@ -9,7 +9,14 @@ import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
+import com.android.tools.r8.naming.mappinginformation.MappingInformation;
+import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation;
+import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation.ThrowsCondition;
+import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.utils.BiMapContainer;
 import com.android.tools.r8.utils.ChainableStringConsumer;
+import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SegmentTree;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -26,14 +33,26 @@ public class ComposingBuilder {
 
   /**
    * To ensure we can do alpha renaming of classes and members without polluting the existing
-   * mapping, we use a committed map that we update for each class name mapping. That allows us to
+   * mappping, we use a committed map that we update for each class name mapping. That allows us to
    * rename to existing renamed names as long as these are also renamed later in the map.
    */
   private final Map<String, ComposingClassBuilder> committed = new HashMap<>();
 
   private Map<String, ComposingClassBuilder> current = new HashMap<>();
 
+  private MapVersionMappingInformation currentMapVersion = null;
+
+  private final ComposingSharedData sharedData = new ComposingSharedData();
+
   public void compose(ClassNameMapper classNameMapper) throws MappingComposeException {
+    MapVersionMappingInformation thisMapVersion = classNameMapper.getFirstMapVersionInformation();
+    if (thisMapVersion != null) {
+      if (currentMapVersion == null
+          || currentMapVersion.getMapVersion().isLessThan(thisMapVersion.getMapVersion())) {
+        currentMapVersion = thisMapVersion;
+      }
+    }
+    sharedData.patchupMappingInformation(classNameMapper);
     for (ClassNamingForNameMapper classMapping : classNameMapper.getClassNameMappings().values()) {
       compose(classMapping);
     }
@@ -45,7 +64,7 @@ public class ComposingBuilder {
     ComposingClassBuilder composingClassBuilder = committed.get(originalName);
     String renamedName = classMapping.renamedName;
     if (composingClassBuilder == null) {
-      composingClassBuilder = new ComposingClassBuilder(originalName, renamedName);
+      composingClassBuilder = new ComposingClassBuilder(originalName, renamedName, sharedData);
     } else {
       composingClassBuilder.setRenamedName(renamedName);
       committed.remove(originalName);
@@ -88,11 +107,46 @@ public class ComposingBuilder {
     List<ComposingClassBuilder> classBuilders = new ArrayList<>(committed.values());
     classBuilders.sort(Comparator.comparing(ComposingClassBuilder::getOriginalName));
     StringBuilder sb = new StringBuilder();
+    // TODO(b/241763080): Keep preamble of mapping files"
+    if (currentMapVersion != null) {
+      sb.append("# ").append(currentMapVersion.serialize()).append("\n");
+    }
     ChainableStringConsumer wrap = ChainableStringConsumer.wrap(sb::append);
     for (ComposingClassBuilder classBuilder : classBuilders) {
       classBuilder.write(wrap);
     }
     return sb.toString();
+  }
+
+  public static class ComposingSharedData {
+
+    /**
+     * RewriteFrameInformation contains condition clauses that are bound to the residual program. As
+     * a result of that, we have to patch up the conditions when we compose new class mappings.
+     */
+    private final List<RewriteFrameMappingInformation> mappingInformationToPatchUp =
+        new ArrayList<>();
+
+    private void patchupMappingInformation(ClassNameMapper classNameMapper) {
+      BiMapContainer<String, String> obfuscatedToOriginalMapping =
+          classNameMapper.getObfuscatedToOriginalMapping();
+      for (RewriteFrameMappingInformation rewriteMappingInfo : mappingInformationToPatchUp) {
+        rewriteMappingInfo
+            .getConditions()
+            .forEach(
+                rewriteCondition -> {
+                  ThrowsCondition throwsCondition = rewriteCondition.asThrowsCondition();
+                  if (throwsCondition != null) {
+                    String originalName = throwsCondition.getClassReference().getTypeName();
+                    String obfuscatedName = obfuscatedToOriginalMapping.inverse.get(originalName);
+                    if (obfuscatedName != null) {
+                      throwsCondition.setClassReferenceInternal(
+                          Reference.classFromTypeName(obfuscatedName));
+                    }
+                  }
+                });
+      }
+    }
   }
 
   public static class ComposingClassBuilder {
@@ -108,10 +162,14 @@ public class ComposingBuilder {
     // starting position uniquely identifies a method. If no position is given there can be only
     // one method since any shrinker should put in line numbers for overloads.
     private final Map<String, SegmentTree<List<MappedRange>>> methodMembers = new HashMap<>();
+    private List<MappingInformation> additionalMappingInfo = null;
+    private final ComposingSharedData sharedData;
 
-    private ComposingClassBuilder(String originalName, String renamedName) {
+    private ComposingClassBuilder(
+        String originalName, String renamedName, ComposingSharedData sharedData) {
       this.originalName = originalName;
       this.renamedName = renamedName;
+      this.sharedData = sharedData;
     }
 
     public void setRenamedName(String renamedName) {
@@ -127,6 +185,13 @@ public class ComposingBuilder {
     }
 
     public void compose(ClassNamingForNameMapper mapper) throws MappingComposeException {
+      List<MappingInformation> newMappingInfo = mapper.getAdditionalMappingInfo();
+      if (newMappingInfo != null && !newMappingInfo.isEmpty()) {
+        if (additionalMappingInfo == null) {
+          additionalMappingInfo = new ArrayList<>();
+        }
+        additionalMappingInfo.addAll(newMappingInfo);
+      }
       composeFieldNamings(mapper);
       composeMethodNamings(mapper);
     }
@@ -231,6 +296,12 @@ public class ComposingBuilder {
             && !thisMappedRange.minifiedRange.equals(lastSeen.minifiedRange)
             && !isInlineMappedRange(mappedRanges, i)) {
           break;
+        }
+        for (MappingInformation mappingInformation : thisMappedRange.getAdditionalMappingInfo()) {
+          if (mappingInformation.isRewriteFrameMappingInformation()) {
+            sharedData.mappingInformationToPatchUp.add(
+                mappingInformation.asRewriteFrameMappingInformation());
+          }
         }
         seenMappedRanges.add(thisMappedRange);
         lastSeen = thisMappedRange;
@@ -405,12 +476,17 @@ public class ComposingBuilder {
                 new Range(newOriginalStart, newOriginalStart + newMinifiedRange.span() - 1);
           }
         }
-        newComposedRanges.add(
+        MappedRange computedRange =
             new MappedRange(
                 newMinifiedRange,
                 existingMappedRange.signature,
                 newOriginalRange,
-                newMappedRange.renamedName));
+                newMappedRange.renamedName);
+        existingMappedRange
+            .getAdditionalMappingInfo()
+            .forEach(
+                info -> computedRange.addMappingInformation(info, ConsumerUtils.emptyConsumer()));
+        newComposedRanges.add(computedRange);
       }
     }
 
@@ -426,7 +502,10 @@ public class ComposingBuilder {
 
     public void write(ChainableStringConsumer consumer) {
       consumer.accept(originalName).accept(" -> ").accept(renamedName).accept(":\n");
-      // TODO(b/241763080): Support mapping information.
+      if (additionalMappingInfo != null) {
+        additionalMappingInfo.forEach(
+            info -> consumer.accept("# " + info.serialize()).accept("\n"));
+      }
       writeFields(consumer);
       writeMethods(consumer);
     }
@@ -438,7 +517,9 @@ public class ComposingBuilder {
       }
       fieldNamings.sort(Comparator.comparing(MemberNaming::getOriginalName));
       fieldNamings.forEach(
-          naming -> consumer.accept(INDENTATION).accept(naming.toString()).accept("\n"));
+          naming -> {
+            consumer.accept(INDENTATION).accept(naming.toString()).accept("\n");
+          });
     }
 
     private void writeMethods(ChainableStringConsumer consumer) {
@@ -462,8 +543,12 @@ public class ComposingBuilder {
         signatureToMappedRanges
             .get(key)
             .forEach(
-                mappedRange ->
-                    consumer.accept(INDENTATION).accept(mappedRange.toString()).accept("\n"));
+                mappedRange -> {
+                  consumer.accept(INDENTATION).accept(mappedRange.toString()).accept("\n");
+                  for (MappingInformation info : mappedRange.getAdditionalMappingInfo()) {
+                    consumer.accept(INDENTATION).accept("# ").accept(info.serialize()).accept("\n");
+                  }
+                });
       }
     }
 

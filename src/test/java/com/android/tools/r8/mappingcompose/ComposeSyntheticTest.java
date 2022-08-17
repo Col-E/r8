@@ -4,7 +4,8 @@
 
 package com.android.tools.r8.mappingcompose;
 
-import static org.junit.Assert.assertNotEquals;
+import static com.android.tools.r8.mappingcompose.ComposeHelpers.doubleToSingleQuote;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -30,6 +31,7 @@ public class ComposeSyntheticTest extends TestBase {
 
   private static final String mappingFoo =
       StringUtils.unixLines(
+          "# { id: 'com.android.tools.r8.mapping', version: '1.0' }",
           "com.foo -> a:",
           "# { id: 'com.android.tools.r8.synthesized' }",
           "    int f -> a",
@@ -38,6 +40,7 @@ public class ComposeSyntheticTest extends TestBase {
           "    # { id: 'com.android.tools.r8.synthesized' }");
   private static final String mappingBar =
       StringUtils.unixLines(
+          "# { id: 'com.android.tools.r8.mapping', version: '1.0' }",
           "a -> b:",
           "    int a -> b",
           "com.bar -> c:",
@@ -46,23 +49,23 @@ public class ComposeSyntheticTest extends TestBase {
           "    # { id: 'com.android.tools.r8.synthesized' }");
   private static final String mappingResult =
       StringUtils.unixLines(
-          "com.foo -> b:",
-          "# { id: 'com.android.tools.r8.synthesized' }",
-          "    int f -> b",
-          "    # { id: 'com.android.tools.r8.synthesized' }",
-          "    void m() -> b",
-          "    # { id: 'com.android.tools.r8.synthesized' }",
+          "# {'id':'com.android.tools.r8.mapping','version':'1.0'}",
           "com.bar -> c:",
-          "# { id: 'com.android.tools.r8.synthesized' }",
+          "# {'id':'com.android.tools.r8.synthesized'}",
           "    void bar() -> a",
-          "    # { id: 'com.android.tools.r8.synthesized' }");
+          "    # {'id':'com.android.tools.r8.synthesized'}",
+          "com.foo -> b:",
+          "# {'id':'com.android.tools.r8.synthesized'}",
+          "    int f -> b",
+          // TODO(b/242673239): When fixed, we should emit synthetized info here as well.
+          "    void m() -> b",
+          "    # {'id':'com.android.tools.r8.synthesized'}");
 
   @Test
   public void testCompose() throws Exception {
     ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromString(mappingFoo);
     ClassNameMapper mappingForBar = ClassNameMapper.mapperFromString(mappingBar);
     String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
-    // TODO(b/241763080): Support mapping information.
-    assertNotEquals(mappingResult, composed);
+    assertEquals(mappingResult, doubleToSingleQuote(composed));
   }
 }

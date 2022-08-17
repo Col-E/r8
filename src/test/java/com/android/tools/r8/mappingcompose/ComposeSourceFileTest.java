@@ -4,7 +4,8 @@
 
 package com.android.tools.r8.mappingcompose;
 
-import static org.junit.Assert.assertNotEquals;
+import static com.android.tools.r8.mappingcompose.ComposeHelpers.doubleToSingleQuote;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -36,16 +37,15 @@ public class ComposeSourceFileTest extends TestBase {
   private static final String mappingResult =
       StringUtils.unixLines(
           "com.bar -> c:",
-          "    # {'id':'sourceFile','fileName':'Bar.kt'}",
+          "# {'id':'sourceFile','fileName':'Bar.kt'}",
           "com.foo -> b:",
-          "    # {'id':'sourceFile','fileName':'Foo.kt'}");
+          "# {'id':'sourceFile','fileName':'Foo.kt'}");
 
   @Test
   public void testCompose() throws Exception {
     ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromString(mappingFoo);
     ClassNameMapper mappingForBar = ClassNameMapper.mapperFromString(mappingBar);
     String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
-    // TODO(b/241763080): Support mapping information.
-    assertNotEquals(mappingResult, composed);
+    assertEquals(mappingResult, doubleToSingleQuote(composed));
   }
 }

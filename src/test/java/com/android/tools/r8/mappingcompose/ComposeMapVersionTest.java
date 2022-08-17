@@ -4,7 +4,8 @@
 
 package com.android.tools.r8.mappingcompose;
 
-import static org.junit.Assert.assertNotEquals;
+import static com.android.tools.r8.mappingcompose.ComposeHelpers.doubleToSingleQuote;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -35,14 +36,13 @@ public class ComposeMapVersionTest extends TestBase {
       StringUtils.unixLines("# { id: 'com.android.tools.r8.mapping', version: '2.0' }", "a -> b:");
   private static final String mappingResult =
       StringUtils.unixLines(
-          "# { id: 'com.android.tools.r8.mapping', version: '2.0' }", "com.bar -> b:");
+          "# {'id':'com.android.tools.r8.mapping','version':'2.0'}", "com.foo -> b:");
 
   @Test
   public void testCompose() throws Exception {
     ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromString(mappingFoo);
     ClassNameMapper mappingForBar = ClassNameMapper.mapperFromString(mappingBar);
     String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
-    // TODO(b/241763080): Support mapping information.
-    assertNotEquals(mappingResult, composed);
+    assertEquals(mappingResult, doubleToSingleQuote(composed));
   }
 }
