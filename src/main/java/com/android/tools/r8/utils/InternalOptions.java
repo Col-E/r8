@@ -1793,6 +1793,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public static class TestingOptions {
 
     public boolean neverReuseCfLocalRegisters = false;
+    public boolean roundtripThroughLIR = false;
     private boolean hasReadCheckDeterminism = false;
     private DeterminismChecker determinismChecker = null;
 

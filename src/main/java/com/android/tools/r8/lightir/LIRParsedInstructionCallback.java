@@ -36,6 +36,10 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
 
   public void onInvokeMethodInstruction(DexMethod method, IntList arguments) {}
 
+  public void onInvokeDirect(DexMethod method, IntList arguments) {
+    onInvokeMethodInstruction(method, arguments);
+  }
+
   public void onInvokeVirtual(DexMethod method, IntList arguments) {
     onInvokeMethodInstruction(method, arguments);
   }
@@ -70,13 +74,17 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
           }
           break;
         }
+      case LIROpcodes.INVOKEDIRECT:
+        {
+          DexMethod target = getInvokeInstructionTarget(view);
+          IntList arguments = getInvokeInstructionArguments(view);
+          onInvokeDirect(target, arguments);
+          break;
+        }
       case LIROpcodes.INVOKEVIRTUAL:
         {
-          DexMethod target = (DexMethod) getConstantItem(view.getNextConstantOperand());
-          IntList arguments = new IntArrayList();
-          while (view.hasMoreOperands()) {
-            arguments.add(view.getNextValueOperand());
-          }
+          DexMethod target = getInvokeInstructionTarget(view);
+          IntList arguments = getInvokeInstructionArguments(view);
           onInvokeVirtual(target, arguments);
           break;
         }
@@ -94,5 +102,17 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
       default:
         throw new Unimplemented("No dispatch for opcode " + LIROpcodes.toString(view.getOpcode()));
     }
+  }
+
+  private DexMethod getInvokeInstructionTarget(LIRInstructionView view) {
+    return (DexMethod) getConstantItem(view.getNextConstantOperand());
+  }
+
+  private IntList getInvokeInstructionArguments(LIRInstructionView view) {
+    IntList arguments = new IntArrayList();
+    while (view.hasMoreOperands()) {
+      arguments.add(view.getNextValueOperand());
+    }
+    return arguments;
   }
 }

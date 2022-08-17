@@ -181,6 +181,7 @@ public interface LIROpcodes {
   int LCONST = 201;
   int FCONST = 202;
   int DCONST = 203;
+  int INVOKEDIRECT = 204;
 
   static String toString(int opcode) {
     switch (opcode) {

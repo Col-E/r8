@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
@@ -31,13 +32,7 @@ import java.util.List;
 
 public class LIR2IRBuilder {
 
-  private final AppView<?> appView;
-
-  public LIR2IRBuilder(AppView<?> appView) {
-    this.appView = appView;
-  }
-
-  public IRCode translate(ProgramMethod method, LIRCode lirCode) {
+  public static IRCode translate(ProgramMethod method, LIRCode lirCode, AppView<?> appView) {
     Parser parser = new Parser(lirCode, appView);
     parser.parseArguments(method);
     lirCode.forEach(view -> view.accept(parser));
@@ -167,6 +162,15 @@ public class LIR2IRBuilder {
     public void onConstString(DexString string) {
       Value dest = getOutValueForNextInstruction(TypeElement.stringClassType(appView));
       addInstruction(new ConstString(dest, string));
+    }
+
+    @Override
+    public void onInvokeDirect(DexMethod target, IntList arguments) {
+      // TODO(b/225838009): Maintain is-interface bit.
+      Value dest = getInvokeInstructionOutputValue(target);
+      List<Value> ssaArgumentValues = getSsaValues(arguments);
+      InvokeDirect instruction = new InvokeDirect(target, dest, ssaArgumentValues);
+      addInstruction(instruction);
     }
 
     @Override

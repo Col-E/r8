@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.lightir.LIRBuilder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.List;
 
@@ -213,6 +214,11 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
     }
 
     return LibraryMethodReadSetModeling.getModeledReadSetOrUnknown(appView, this);
+  }
+
+  @Override
+  public void buildLIR(LIRBuilder<Value> builder) {
+    builder.addInvokeDirect(getInvokedMethod(), arguments());
   }
 
   public static class Builder extends InvokeMethod.Builder<Builder, InvokeDirect> {

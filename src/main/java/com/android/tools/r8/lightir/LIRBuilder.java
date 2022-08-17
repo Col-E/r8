@@ -115,7 +115,7 @@ public class LIRBuilder<V> {
     return writeConstantReferencingInstruction(LIROpcodes.GETSTATIC, field);
   }
 
-  public LIRBuilder<V> addInvokeVirtual(DexMethod method, List<V> arguments) {
+  public LIRBuilder<V> addInvokeInstruction(int opcode, DexMethod method, List<V> arguments) {
     instructionCount++;
     int argumentOprandSize = constantIndexSize(method);
     int[] argumentIndexes = new int[arguments.size()];
@@ -125,12 +125,20 @@ public class LIRBuilder<V> {
       argumentIndexes[i++] = argumentIndex;
       argumentOprandSize += valueIndexSize(argumentIndex);
     }
-    writer.writeInstruction(LIROpcodes.INVOKEVIRTUAL, argumentOprandSize);
+    writer.writeInstruction(opcode, argumentOprandSize);
     writeConstantIndex(method);
     for (int argumentIndex : argumentIndexes) {
       writeValueIndex(argumentIndex);
     }
     return this;
+  }
+
+  public LIRBuilder<V> addInvokeDirect(DexMethod method, List<V> arguments) {
+    return addInvokeInstruction(LIROpcodes.INVOKEDIRECT, method, arguments);
+  }
+
+  public LIRBuilder<V> addInvokeVirtual(DexMethod method, List<V> arguments) {
+    return addInvokeInstruction(LIROpcodes.INVOKEVIRTUAL, method, arguments);
   }
 
   public LIRBuilder<V> addReturn(V value) {
