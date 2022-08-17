@@ -17,10 +17,7 @@ public class MappingComposer {
     }
     ComposingBuilder builder = new ComposingBuilder();
     for (ClassNameMapper classNameMapper : classNameMappers) {
-      for (ClassNamingForNameMapper classMapping :
-          classNameMapper.getClassNameMappings().values()) {
-        builder.compose(classMapping);
-      }
+      builder.compose(classNameMapper);
     }
     return builder.toString();
   }

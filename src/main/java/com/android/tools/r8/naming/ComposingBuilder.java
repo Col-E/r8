@@ -24,23 +24,37 @@ import java.util.Map.Entry;
 
 public class ComposingBuilder {
 
-  private final Map<String, ComposingClassBuilder> mapping = new HashMap<>();
+  /**
+   * To ensure we can do alpha renaming of classes and members without polluting the existing
+   * mapping, we use a committed map that we update for each class name mapping. That allows us to
+   * rename to existing renamed names as long as these are also renamed later in the map.
+   */
+  private final Map<String, ComposingClassBuilder> committed = new HashMap<>();
 
-  public void compose(ClassNamingForNameMapper classMapping) throws MappingComposeException {
+  private Map<String, ComposingClassBuilder> current = new HashMap<>();
+
+  public void compose(ClassNameMapper classNameMapper) throws MappingComposeException {
+    for (ClassNamingForNameMapper classMapping : classNameMapper.getClassNameMappings().values()) {
+      compose(classMapping);
+    }
+    commit();
+  }
+
+  private void compose(ClassNamingForNameMapper classMapping) throws MappingComposeException {
     String originalName = classMapping.originalName;
-    ComposingClassBuilder composingClassBuilder = mapping.get(originalName);
+    ComposingClassBuilder composingClassBuilder = committed.get(originalName);
     String renamedName = classMapping.renamedName;
     if (composingClassBuilder == null) {
       composingClassBuilder = new ComposingClassBuilder(originalName, renamedName);
     } else {
       composingClassBuilder.setRenamedName(renamedName);
-      mapping.remove(originalName);
+      committed.remove(originalName);
     }
-    ComposingClassBuilder previousMapping = mapping.put(renamedName, composingClassBuilder);
-    if (previousMapping != null) {
+    ComposingClassBuilder duplicateMapping = current.put(renamedName, composingClassBuilder);
+    if (duplicateMapping != null) {
       throw new MappingComposeException(
           "Duplicate class mapping. Both '"
-              + previousMapping.getOriginalName()
+              + duplicateMapping.getOriginalName()
               + "' and '"
               + originalName
               + "' maps to '"
@@ -50,9 +64,28 @@ public class ComposingBuilder {
     composingClassBuilder.compose(classMapping);
   }
 
+  private void commit() throws MappingComposeException {
+    for (Entry<String, ComposingClassBuilder> newEntry : current.entrySet()) {
+      String renamedName = newEntry.getKey();
+      ComposingClassBuilder classBuilder = newEntry.getValue();
+      ComposingClassBuilder duplicateMapping = committed.put(renamedName, classBuilder);
+      if (duplicateMapping != null) {
+        throw new MappingComposeException(
+            "Duplicate class mapping. Both '"
+                + duplicateMapping.getOriginalName()
+                + "' and '"
+                + classBuilder.getOriginalName()
+                + "' maps to '"
+                + renamedName
+                + "'.");
+      }
+    }
+    current = new HashMap<>();
+  }
+
   @Override
   public String toString() {
-    List<ComposingClassBuilder> classBuilders = new ArrayList<>(mapping.values());
+    List<ComposingClassBuilder> classBuilders = new ArrayList<>(committed.values());
     classBuilders.sort(Comparator.comparing(ComposingClassBuilder::getOriginalName));
     StringBuilder sb = new StringBuilder();
     ChainableStringConsumer wrap = ChainableStringConsumer.wrap(sb::append);
