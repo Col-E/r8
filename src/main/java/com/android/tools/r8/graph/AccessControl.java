@@ -5,6 +5,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.experimental.startup.StartupOrder;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
+import com.android.tools.r8.features.FeatureSplitBoundaryOptimizationUtils;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
@@ -42,9 +43,10 @@ public class AccessControl {
     }
     if (clazz.isProgramClass()
         && context.isProgramDefinition()
-        && !classToFeatureSplitMap.isInBaseOrSameFeatureAs(
+        && !FeatureSplitBoundaryOptimizationUtils.isSafeForAccess(
             clazz.asProgramClass(),
             context.asProgramDefinition(),
+            classToFeatureSplitMap,
             options,
             startupOrder,
             syntheticItems)) {

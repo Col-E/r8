@@ -15,6 +15,7 @@ import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.features.FeatureSplitBoundaryOptimizationUtils;
 import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -387,9 +388,8 @@ public class VerticalClassMerger {
         .map(DexEncodedMember::getReference)
         .noneMatch(appInfo::isPinned);
 
-    if (!appInfo
-        .getClassToFeatureSplitMap()
-        .isInSameFeatureOrBothInSameBase(sourceClass, targetClass, appView)) {
+    if (!FeatureSplitBoundaryOptimizationUtils.isSafeForVerticalClassMerging(
+        sourceClass, targetClass, appView)) {
       return false;
     }
     if (appView.appServices().allServiceTypes().contains(sourceClass.type)

@@ -11,7 +11,7 @@ import com.android.tools.r8.dex.code.DexMoveResult;
 import com.android.tools.r8.dex.code.DexMoveResultObject;
 import com.android.tools.r8.dex.code.DexMoveResultWide;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.features.ClassToFeatureSplitMap;
+import com.android.tools.r8.features.FeatureSplitBoundaryOptimizationUtils;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -163,13 +163,9 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return false;
     }
 
-    ClassToFeatureSplitMap classToFeatureSplitMap = appView.appInfo().getClassToFeatureSplitMap();
-    if (!classToFeatureSplitMap.isInSameFeatureOrBothInSameBase(singleTarget, method, appView)) {
-      // Still allow inlining if we inline from the base into a feature.
-      if (!classToFeatureSplitMap.isInBase(singleTarget.getHolder(), appView)) {
-        whyAreYouNotInliningReporter.reportInliningAcrossFeatureSplit();
-        return false;
-      }
+    if (!FeatureSplitBoundaryOptimizationUtils.isSafeForInlining(method, singleTarget, appView)) {
+      whyAreYouNotInliningReporter.reportInliningAcrossFeatureSplit();
+      return false;
     }
 
     Set<Reason> validInliningReasons = appView.testing().validInliningReasons;

@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.features.FeatureSplitBoundaryOptimizationUtils;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -382,14 +383,13 @@ public class InliningConstraints {
       // This will fail at runtime.
       return ConstraintWithTarget.NEVER;
     }
-    if (!appView
-        .appInfo()
-        .getClassToFeatureSplitMap()
-        .isInBaseOrSameFeatureAs(
-            resolvedMember.getHolderType(), context.asProgramMethod(), appView)) {
-      // We never inline into the base from a feature (calls should never happen) and we
-      // never inline between features, so this check should be sufficient.
-      return ConstraintWithTarget.NEVER;
+    ConstraintWithTarget featureSplitInliningConstraint =
+        FeatureSplitBoundaryOptimizationUtils.getInliningConstraintForResolvedMember(
+            context, resolvedMember, appView);
+    assert featureSplitInliningConstraint == ConstraintWithTarget.ALWAYS
+        || featureSplitInliningConstraint == ConstraintWithTarget.NEVER;
+    if (featureSplitInliningConstraint == ConstraintWithTarget.NEVER) {
+      return featureSplitInliningConstraint;
     }
     DexType resolvedHolder = graphLens.lookupType(resolvedMember.getHolderType());
     assert initialResolutionHolder != null;

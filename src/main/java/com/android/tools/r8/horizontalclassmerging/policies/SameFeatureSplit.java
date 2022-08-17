@@ -5,6 +5,7 @@
 package com.android.tools.r8.horizontalclassmerging.policies;
 
 import com.android.tools.r8.FeatureSplit;
+import com.android.tools.r8.features.FeatureSplitBoundaryOptimizationUtils;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -19,7 +20,8 @@ public class SameFeatureSplit extends MultiClassSameReferencePolicy<FeatureSplit
 
   @Override
   public FeatureSplit getMergeKey(DexProgramClass clazz) {
-    return appView.appInfo().getClassToFeatureSplitMap().getFeatureSplit(clazz, appView);
+    return FeatureSplitBoundaryOptimizationUtils.getMergeKeyForHorizontalClassMerging(
+        clazz, appView);
   }
 
   @Override

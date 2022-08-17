@@ -18,7 +18,6 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
@@ -327,11 +326,13 @@ public class ClassToFeatureSplitMap {
 
   // Static helpers to avoid verbose predicates.
 
-  private static ClassToFeatureSplitMap getMap(AppView<AppInfoWithLiveness> appView) {
+  private static ClassToFeatureSplitMap getMap(
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
     return appView.appInfo().getClassToFeatureSplitMap();
   }
 
-  public static boolean isInFeature(DexProgramClass clazz, AppView<AppInfoWithLiveness> appView) {
+  public static boolean isInFeature(
+      DexProgramClass clazz, AppView<? extends AppInfoWithClassHierarchy> appView) {
     return getMap(appView)
         .isInFeature(
             clazz,
