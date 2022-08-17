@@ -195,7 +195,8 @@ public class ComposingBuilder {
         // Otherwise break if we see a signature that is not equal to the current one and it
         // has another minified range meaning it is not an inlinee.
         if (!thisMappedRange.signature.equals(lastSeen.signature)
-            && !thisMappedRange.minifiedRange.equals(lastSeen.minifiedRange)) {
+            && !thisMappedRange.minifiedRange.equals(lastSeen.minifiedRange)
+            && !isInlineMappedRange(mappedRanges, i)) {
           break;
         }
         seenMappedRanges.add(thisMappedRange);
