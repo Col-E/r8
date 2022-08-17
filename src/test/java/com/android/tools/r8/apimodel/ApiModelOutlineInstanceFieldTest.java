@@ -7,6 +7,7 @@ package com.android.tools.r8.apimodel;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForField;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
@@ -17,6 +18,8 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import java.lang.reflect.Field;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -29,7 +32,8 @@ public class ApiModelOutlineInstanceFieldTest extends TestBase {
   private static final AndroidApiLevel classApiLevel = AndroidApiLevel.M;
   private static final AndroidApiLevel fieldApiLevel = AndroidApiLevel.P;
 
-  private static final String EXPECTED = "LibraryClass::field";
+  private static final String[] EXPECTED =
+      new String[] {"LibraryClass::getField", "LibraryClass::putField"};
 
   @Parameter public TestParameters parameters;
 
@@ -47,7 +51,8 @@ public class ApiModelOutlineInstanceFieldTest extends TestBase {
         .addAndroidBuildVersion()
         .apply(setMockApiLevelForClass(LibraryClass.class, classApiLevel))
         .apply(setMockApiLevelForDefaultInstanceInitializer(LibraryClass.class, classApiLevel))
-        .apply(setMockApiLevelForField(LibraryClass.class.getField("field"), fieldApiLevel))
+        .apply(setMockApiLevelForField(LibraryClass.class.getField("getField"), fieldApiLevel))
+        .apply(setMockApiLevelForField(LibraryClass.class.getField("putField"), fieldApiLevel))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(ApiModelingTestHelper::enableOutliningOfMethods)
         .apply(ApiModelingTestHelper::disableStubbingOfClasses);
@@ -65,8 +70,7 @@ public class ApiModelOutlineInstanceFieldTest extends TestBase {
         .setMode(CompilationMode.DEBUG)
         .apply(this::setupTestBuilder)
         .compile()
-        // TODO(b/242078642):  We should outline field references to newer api levels.
-        .inspect(ApiModelingTestHelper::assertNoSynthesizedClasses)
+        .inspect(this::inspect)
         .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkOutput);
@@ -79,8 +83,7 @@ public class ApiModelOutlineInstanceFieldTest extends TestBase {
         .setMode(CompilationMode.RELEASE)
         .apply(this::setupTestBuilder)
         .compile()
-        // TODO(b/242078642):  We should outline field references to newer api levels.
-        .inspect(ApiModelingTestHelper::assertNoSynthesizedClasses)
+        .inspect(this::inspect)
         .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkOutput);
@@ -92,11 +95,21 @@ public class ApiModelOutlineInstanceFieldTest extends TestBase {
         .apply(this::setupTestBuilder)
         .addKeepMainRule(Main.class)
         .compile()
-        // TODO(b/242078642):  We should outline field references to newer api levels.
-        .inspect(ApiModelingTestHelper::assertNoSynthesizedClasses)
+        .inspect(this::inspect)
         .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkOutput);
+  }
+
+  private void inspect(CodeInspector inspector) throws Exception {
+    Field[] fields =
+        new Field[] {
+          LibraryClass.class.getField("getField"), LibraryClass.class.getField("putField")
+        };
+    for (Field field : fields) {
+      verifyThat(inspector, parameters, field)
+          .isOutlinedFromUntil(Main.class.getMethod("main", String[].class), fieldApiLevel);
+    }
   }
 
   private void checkOutput(SingleTestRunResult<?> runResult) {
@@ -111,7 +124,9 @@ public class ApiModelOutlineInstanceFieldTest extends TestBase {
   // Only present from api level 23.
   public static class LibraryClass {
 
-    public String field = "LibraryClass::field";
+    public String getField = "LibraryClass::getField";
+
+    public String putField;
   }
 
   public static class Main {
@@ -119,7 +134,9 @@ public class ApiModelOutlineInstanceFieldTest extends TestBase {
     public static void main(String[] args) {
       if (AndroidBuildVersion.VERSION >= 23) {
         LibraryClass libraryClass = new LibraryClass();
-        System.out.println(libraryClass.field);
+        System.out.println(libraryClass.getField);
+        libraryClass.putField = "LibraryClass::putField";
+        System.out.println(libraryClass.putField);
       } else {
         System.out.println("Not calling API");
       }

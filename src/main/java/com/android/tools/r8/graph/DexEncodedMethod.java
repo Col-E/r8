@@ -443,10 +443,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return accessFlags.isNative();
   }
 
-  public boolean isPublic() {
-    return accessFlags.isPublic();
-  }
-
   public boolean isSynchronized() {
     return accessFlags.isSynchronized();
   }

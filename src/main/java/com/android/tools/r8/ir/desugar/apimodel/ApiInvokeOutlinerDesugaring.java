@@ -8,17 +8,21 @@ import static org.objectweb.asm.Opcodes.INVOKESTATIC;
 
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.androidapi.ComputedApiLevel;
+import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.contexts.CompilationContext.UniqueContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -27,11 +31,16 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
+import com.android.tools.r8.ir.synthetic.FieldAccessorBuilder;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
+import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
+import java.util.function.Function;
 
 /**
  * This desugaring will outline calls to library methods that are introduced after the min-api
@@ -57,11 +66,12 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
       MethodProcessingContext methodProcessingContext,
       CfInstructionDesugaringCollection desugaringCollection,
       DexItemFactory dexItemFactory) {
-    ComputedApiLevel computedApiLevel = getComputedApiLevelForMethodOnHolderWithMinApi(instruction);
+    ComputedApiLevel computedApiLevel =
+        getComputedApiLevelInstructionOnHolderWithMinApi(instruction);
     if (computedApiLevel.isGreaterThan(appView.computedMinApiLevel())) {
       return desugarLibraryCall(
           methodProcessingContext.createUniqueContext(),
-          instruction.asInvoke(),
+          instruction,
           computedApiLevel,
           dexItemFactory,
           eventConsumer,
@@ -75,59 +85,68 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
     if (context.getDefinition().isD8R8Synthesized()) {
       return false;
     }
-    return getComputedApiLevelForMethodOnHolderWithMinApi(instruction)
+    return getComputedApiLevelInstructionOnHolderWithMinApi(instruction)
         .isGreaterThan(appView.computedMinApiLevel());
   }
 
-  private ComputedApiLevel getComputedApiLevelForMethodOnHolderWithMinApi(
+  private ComputedApiLevel getComputedApiLevelInstructionOnHolderWithMinApi(
       CfInstruction instruction) {
-    if (!instruction.isInvoke()) {
+    if (!instruction.isInvoke() && !instruction.isFieldInstruction()) {
       return appView.computedMinApiLevel();
     }
-    CfInvoke cfInvoke = instruction.asInvoke();
-    if (cfInvoke.isInvokeSpecial()) {
+    DexReference reference;
+    if (instruction.isInvoke()) {
+      CfInvoke cfInvoke = instruction.asInvoke();
+      if (cfInvoke.isInvokeSpecial()) {
+        return appView.computedMinApiLevel();
+      }
+      reference = cfInvoke.getMethod();
+    } else {
+      reference = instruction.asFieldInstruction().getField();
+    }
+    if (!reference.getContextType().isClassType()) {
       return appView.computedMinApiLevel();
     }
-    DexType holderType = cfInvoke.getMethod().getHolderType();
-    if (!holderType.isClassType()) {
-      return appView.computedMinApiLevel();
-    }
-    DexClass holder = appView.definitionFor(holderType);
+    DexClass holder = appView.definitionFor(reference.getContextType());
     if (holder == null || !holder.isLibraryClass()) {
       return appView.computedMinApiLevel();
     }
-    ComputedApiLevel methodApiLevel =
-        apiLevelCompute.computeApiLevelForLibraryReference(
-            cfInvoke.getMethod(), ComputedApiLevel.unknown());
-    if (appView.computedMinApiLevel().isGreaterThanOrEqualTo(methodApiLevel)
-        || isApiLevelLessThanOrEqualTo9(methodApiLevel)
-        || methodApiLevel.isUnknownApiLevel()) {
+    ComputedApiLevel referenceApiLevel =
+        apiLevelCompute.computeApiLevelForLibraryReference(reference, ComputedApiLevel.unknown());
+    if (appView.computedMinApiLevel().isGreaterThanOrEqualTo(referenceApiLevel)
+        || isApiLevelLessThanOrEqualTo9(referenceApiLevel)
+        || referenceApiLevel.isUnknownApiLevel()) {
       return appView.computedMinApiLevel();
     }
     // Check for protected or package private access flags before outlining.
     if (holder.isInterface()) {
-      return methodApiLevel;
+      return referenceApiLevel;
     } else {
-      DexEncodedMethod methodDefinition =
-          simpleLookupInClassHierarchy(holder.asLibraryClass(), cfInvoke.getMethod());
-      return methodDefinition != null && methodDefinition.isPublic()
-          ? methodApiLevel
+      DexEncodedMember<?, ?> definition =
+          simpleLookupInClassHierarchy(
+              holder.asLibraryClass(),
+              reference.isDexMethod()
+                  ? x -> x.lookupMethod(reference.asDexMethod())
+                  : x -> x.lookupField(reference.asDexField()));
+      return definition != null && definition.isPublic()
+          ? referenceApiLevel
           : appView.computedMinApiLevel();
     }
   }
 
-  private DexEncodedMethod simpleLookupInClassHierarchy(DexLibraryClass holder, DexMethod method) {
-    DexEncodedMethod result = holder.lookupMethod(method);
+  private DexEncodedMember<?, ?> simpleLookupInClassHierarchy(
+      DexLibraryClass holder, Function<DexClass, DexEncodedMember<?, ?>> lookup) {
+    DexEncodedMember<?, ?> result = lookup.apply(holder);
     if (result != null) {
       return result;
     }
-    TraversalContinuation<DexEncodedMethod, ?> traversalResult =
+    TraversalContinuation<DexEncodedMember<?, ?>, ?> traversalResult =
         appView
             .appInfoForDesugaring()
             .traverseSuperClasses(
                 holder,
                 (ignored, superClass, ignored_) -> {
-                  DexEncodedMethod definition = superClass.lookupMethod(method);
+                  DexEncodedMember<?, ?> definition = lookup.apply(superClass);
                   if (definition != null) {
                     return TraversalContinuation.doBreak(definition);
                   }
@@ -143,29 +162,24 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
 
   private Collection<CfInstruction> desugarLibraryCall(
       UniqueContext uniqueContext,
-      CfInvoke invoke,
+      CfInstruction instruction,
       ComputedApiLevel computedApiLevel,
       DexItemFactory factory,
       ApiInvokeOutlinerDesugaringEventConsumer eventConsumer,
       ProgramMethod context) {
-    DexMethod method = invoke.getMethod();
+    assert instruction.isInvoke() || instruction.isFieldInstruction();
     ProgramMethod outlinedMethod =
-        ensureOutlineMethod(uniqueContext, method, computedApiLevel, factory, invoke);
+        ensureOutlineMethod(uniqueContext, instruction, computedApiLevel, factory, context);
     eventConsumer.acceptOutlinedMethod(outlinedMethod, context);
     return ImmutableList.of(new CfInvoke(INVOKESTATIC, outlinedMethod.getReference(), false));
   }
 
   private ProgramMethod ensureOutlineMethod(
       UniqueContext context,
-      DexMethod apiMethod,
+      CfInstruction instruction,
       ComputedApiLevel apiLevel,
       DexItemFactory factory,
-      CfInvoke invoke) {
-    DexClass libraryHolder = appView.definitionFor(apiMethod.getHolderType());
-    assert libraryHolder != null;
-    boolean isVirtualMethod = invoke.isInvokeVirtual() || invoke.isInvokeInterface();
-    assert verifyLibraryHolderAndInvoke(libraryHolder, apiMethod, isVirtualMethod);
-    DexProto proto = factory.prependHolderToProtoIf(apiMethod, isVirtualMethod);
+      ProgramMethod programContext) {
     return appView
         .getSyntheticItems()
         .createMethod(
@@ -174,7 +188,6 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
             appView,
             syntheticMethodBuilder -> {
               syntheticMethodBuilder
-                  .setProto(proto)
                   .setAccessFlags(
                       MethodAccessFlags.builder()
                           .setPublic()
@@ -183,22 +196,81 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
                           .setBridge()
                           .build())
                   .setApiLevelForDefinition(apiLevel)
-                  .setApiLevelForCode(apiLevel)
-                  .setCode(
-                      m -> {
-                        if (isVirtualMethod) {
-                          return ForwardMethodBuilder.builder(factory)
-                              .setVirtualTarget(apiMethod, libraryHolder.isInterface())
-                              .setNonStaticSource(apiMethod)
-                              .build();
-                        } else {
-                          return ForwardMethodBuilder.builder(factory)
-                              .setStaticTarget(apiMethod, libraryHolder.isInterface())
-                              .setStaticSource(apiMethod)
-                              .build();
-                        }
-                      });
+                  .setApiLevelForCode(apiLevel);
+              if (instruction.isInvoke()) {
+                setCodeForInvoke(syntheticMethodBuilder, instruction.asInvoke(), factory);
+              } else {
+                assert instruction.isCfInstruction();
+                setCodeForFieldInstruction(
+                    syntheticMethodBuilder,
+                    instruction.asFieldInstruction(),
+                    factory,
+                    programContext);
+              }
             });
+  }
+
+  private void setCodeForInvoke(
+      SyntheticMethodBuilder methodBuilder, CfInvoke invoke, DexItemFactory factory) {
+    DexMethod method = invoke.getMethod();
+    DexClass libraryHolder = appView.definitionFor(method.getHolderType());
+    assert libraryHolder != null;
+    boolean isVirtualMethod = invoke.isInvokeVirtual() || invoke.isInvokeInterface();
+    assert verifyLibraryHolderAndInvoke(libraryHolder, method, isVirtualMethod);
+    DexProto proto = factory.prependHolderToProtoIf(method, isVirtualMethod);
+    methodBuilder
+        .setProto(proto)
+        .setCode(
+            m -> {
+              if (isVirtualMethod) {
+                return ForwardMethodBuilder.builder(factory)
+                    .setVirtualTarget(method, libraryHolder.isInterface())
+                    .setNonStaticSource(method)
+                    .build();
+              } else {
+                return ForwardMethodBuilder.builder(factory)
+                    .setStaticTarget(method, libraryHolder.isInterface())
+                    .setStaticSource(method)
+                    .build();
+              }
+            });
+  }
+
+  private void setCodeForFieldInstruction(
+      SyntheticMethodBuilder methodBuilder,
+      CfFieldInstruction fieldInstruction,
+      DexItemFactory factory,
+      ProgramMethod programContext) {
+    DexField field = fieldInstruction.getField();
+    DexClass libraryHolder = appView.definitionFor(field.getHolderType());
+    assert libraryHolder != null;
+    boolean isInstance =
+        fieldInstruction.isInstanceFieldPut() || fieldInstruction.isInstanceFieldGet();
+    // Outlined field references will return a value if getter and only takes arguments if
+    // instance or if put or two arguments if both.
+    DexType returnType = fieldInstruction.isFieldGet() ? field.getType() : factory.voidType;
+    List<DexType> parameters = new ArrayList<>();
+    if (isInstance) {
+      parameters.add(libraryHolder.getType());
+    }
+    if (fieldInstruction.isFieldPut()) {
+      parameters.add(field.getType());
+    }
+    methodBuilder
+        .setProto(factory.createProto(returnType, parameters))
+        .setCode(
+            m ->
+                FieldAccessorBuilder.builder()
+                    .applyIf(
+                        isInstance,
+                        thenConsumer -> thenConsumer.setInstanceField(field),
+                        elseConsumer -> elseConsumer.setStaticField(field))
+                    .applyIf(
+                        fieldInstruction.isFieldGet(),
+                        FieldAccessorBuilder::setGetter,
+                        FieldAccessorBuilder::setSetter)
+                    .setSourceMethod(programContext.getReference())
+                    .build());
   }
 
   private boolean verifyLibraryHolderAndInvoke(

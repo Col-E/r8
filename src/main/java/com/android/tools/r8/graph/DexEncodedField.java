@@ -221,10 +221,6 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     return accessFlags.isProtected();
   }
 
-  public boolean isPublic() {
-    return accessFlags.isPublic();
-  }
-
   @Override
   public boolean isStaticMember() {
     return isStatic();

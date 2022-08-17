@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.apimodel;
 
+import static com.android.tools.r8.utils.codeinspector.CodeMatchers.accessesField;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethodWithName;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
@@ -11,10 +12,12 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
+import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -193,6 +196,12 @@ public abstract class ApiModelingTestHelper {
         inspector, parameters, Reference.methodFromMethod(method));
   }
 
+  static ApiModelingFieldVerificationHelper verifyThat(
+      CodeInspector inspector, TestParameters parameters, Field field) {
+    return new ApiModelingFieldVerificationHelper(
+        inspector, parameters, Reference.fieldFromField(field));
+  }
+
   public static void assertNoSynthesizedClasses(CodeInspector inspector) {
     assertEquals(
         Collections.emptySet(),
@@ -221,6 +230,51 @@ public abstract class ApiModelingTestHelper {
               isPresent(),
               parameters.isCfRuntime()
                   || parameters.getApiLevel().isGreaterThanOrEqualTo(finalApiLevel)));
+    }
+  }
+
+  public static class ApiModelingFieldVerificationHelper {
+
+    private final CodeInspector inspector;
+    private final FieldReference fieldOfInterest;
+    private final TestParameters parameters;
+
+    private ApiModelingFieldVerificationHelper(
+        CodeInspector inspector, TestParameters parameters, FieldReference fieldOfInterest) {
+      this.inspector = inspector;
+      this.fieldOfInterest = fieldOfInterest;
+      this.parameters = parameters;
+    }
+
+    void isOutlinedFromUntil(Method method, AndroidApiLevel apiLevel) {
+      if (parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(apiLevel)) {
+        isOutlinedFrom(method);
+      } else {
+        isNotOutlinedFrom(method);
+      }
+    }
+
+    void isOutlinedFrom(Method method) {
+      // Check that the call is in a synthetic class.
+      List<FoundMethodSubject> outlinedMethod =
+          inspector.allClasses().stream()
+              .flatMap(clazz -> clazz.allMethods().stream())
+              .filter(
+                  methodSubject ->
+                      methodSubject.isSynthetic()
+                          && accessesField(fieldOfInterest).matches(methodSubject))
+              .collect(Collectors.toList());
+      assertFalse(outlinedMethod.isEmpty());
+      // Assert that method invokes the outline
+      MethodSubject caller = inspector.method(method);
+      assertThat(caller, isPresent());
+      assertThat(caller, invokesMethod(outlinedMethod.get(0)));
+    }
+
+    void isNotOutlinedFrom(Method method) {
+      MethodSubject caller = inspector.method(method);
+      assertThat(caller, isPresent());
+      assertThat(caller, accessesField(fieldOfInterest));
     }
   }
 

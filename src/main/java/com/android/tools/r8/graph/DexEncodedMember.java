@@ -73,6 +73,10 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
     return getAccessFlags().isPrivate();
   }
 
+  public final boolean isPublic() {
+    return getAccessFlags().isPublic();
+  }
+
   public abstract ProgramMember<D, R> asProgramMember(DexDefinitionSupplier definitions);
 
   public abstract <T> T apply(

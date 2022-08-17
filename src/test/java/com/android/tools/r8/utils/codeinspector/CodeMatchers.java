@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.references.FieldReference;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
@@ -20,7 +20,10 @@ public class CodeMatchers {
     if (!targetSubject.isPresent()) {
       throw new IllegalArgumentException();
     }
-    DexField target = targetSubject.getField().getReference();
+    return accessesField(targetSubject.getField().getReference().asFieldReference());
+  }
+
+  public static Matcher<MethodSubject> accessesField(FieldReference target) {
     return new TypeSafeMatcher<MethodSubject>() {
       @Override
       protected boolean matchesSafely(MethodSubject subject) {
@@ -35,7 +38,7 @@ public class CodeMatchers {
 
       @Override
       public void describeTo(Description description) {
-        description.appendText("accesses field `" + target.toSourceString() + "`");
+        description.appendText("accesses field `" + target.toString() + "`");
       }
 
       @Override
@@ -232,7 +235,8 @@ public class CodeMatchers {
     };
   }
 
-  public static Predicate<InstructionSubject> isFieldAccessWithTarget(DexField target) {
-    return instruction -> instruction.isFieldAccess() && instruction.getField() == target;
+  public static Predicate<InstructionSubject> isFieldAccessWithTarget(FieldReference target) {
+    return instruction ->
+        instruction.isFieldAccess() && instruction.getField().asFieldReference().equals(target);
   }
 }
