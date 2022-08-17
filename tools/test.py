@@ -260,7 +260,7 @@ def Main():
       utils.DownloadFromGoogleCloudStorage(utils.BAZEL_SHA_FILE)
       utils.DownloadFromGoogleCloudStorage(utils.JAVA8_SHA_FILE)
       utils.DownloadFromGoogleCloudStorage(utils.JAVA11_SHA_FILE)
-      (library_jar, maven_zip) = archive_desugar_jdk_libs.BuildDesugaredLibrary(checkout_dir, 'jdk11' if options.desugared_library_configuration == 'jdk11' else 'jdk8')
+      (library_jar, maven_zip) = archive_desugar_jdk_libs.BuildDesugaredLibrary(checkout_dir, 'jdk11_legacy' if options.desugared_library_configuration == 'jdk11' else 'jdk8')
       desugar_jdk_libs = os.path.join(desugar_jdk_libs_dir, os.path.basename(library_jar))
       shutil.copyfile(library_jar, desugar_jdk_libs)
       print('Desugared library for test in ' + desugar_jdk_libs)

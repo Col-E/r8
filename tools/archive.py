@@ -169,6 +169,23 @@ def Main():
         utils.DESUGAR_IMPLEMENTATION_JDK11,
         utils.LIBRARY_DESUGAR_CONVERSIONS_LEGACY_ZIP)
 
+    ### THIS IS MISSING CONVERTING OF THE JSON ###
+    create_maven_release.generate_desugar_configuration_maven_zip(
+        utils.DESUGAR_CONFIGURATION_JDK11_MINIMAL_MAVEN_ZIP,
+        utils.DESUGAR_CONFIGURATION_JDK11_MINIMAL,
+        utils.DESUGAR_IMPLEMENTATION_JDK11,
+        utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP)
+    create_maven_release.generate_desugar_configuration_maven_zip(
+        utils.DESUGAR_CONFIGURATION_JDK11_MAVEN_ZIP,
+        utils.DESUGAR_CONFIGURATION_JDK11,
+        utils.DESUGAR_IMPLEMENTATION_JDK11,
+        utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP)
+    create_maven_release.generate_desugar_configuration_maven_zip(
+        utils.DESUGAR_CONFIGURATION_JDK11_NIO_MAVEN_ZIP,
+        utils.DESUGAR_CONFIGURATION_JDK11_NIO,
+        utils.DESUGAR_IMPLEMENTATION_JDK11,
+        utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP)
+
     version = GetVersion()
     is_main = IsMain(version)
     if is_main:
