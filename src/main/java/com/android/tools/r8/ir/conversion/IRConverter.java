@@ -82,7 +82,7 @@ import com.android.tools.r8.ir.optimize.outliner.Outliner;
 import com.android.tools.r8.ir.optimize.string.StringBuilderAppendOptimizer;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.lightir.IR2LIRConverter;
-import com.android.tools.r8.lightir.LIR2IRBuilder;
+import com.android.tools.r8.lightir.LIR2IRConverter;
 import com.android.tools.r8.lightir.LIRCode;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
@@ -1631,7 +1631,7 @@ public class IRConverter {
       BytecodeMetadataProvider bytecodeMetadataProvider,
       Timing timing) {
     LIRCode lirCode = IR2LIRConverter.translate(code);
-    IRCode irCode = LIR2IRBuilder.translate(code.context(), lirCode, appView);
+    IRCode irCode = LIR2IRConverter.translate(code.context(), lirCode, appView);
     return irCode;
   }
 

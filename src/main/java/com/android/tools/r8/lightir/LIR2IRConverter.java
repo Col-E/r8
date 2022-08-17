@@ -30,7 +30,9 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-public class LIR2IRBuilder {
+public class LIR2IRConverter {
+
+  private LIR2IRConverter() {}
 
   public static IRCode translate(ProgramMethod method, LIRCode lirCode, AppView<?> appView) {
     Parser parser = new Parser(lirCode, appView);

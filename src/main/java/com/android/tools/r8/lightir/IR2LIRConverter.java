@@ -14,6 +14,8 @@ import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 
 public class IR2LIRConverter {
 
+  private IR2LIRConverter() {}
+
   public static LIRCode translate(IRCode irCode) {
     Reference2IntMap<Value> values = new Reference2IntOpenHashMap<>();
     int index = 0;
