@@ -73,7 +73,7 @@ public class TestRunnerBuilder extends TestBase {
   }
 
   private static final Path ANDROID_STUDIO_LIB_PATH =
-      Paths.get("<path-to-project>/app/libs/library.jar");
+      Paths.get("path-to-project/app/libs/library.jar");
 
   private static final int COUNT = 400;
 
