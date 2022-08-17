@@ -12,5 +12,21 @@ package com.android.tools.r8.lightir;
  */
 public interface LIRInstructionView {
 
-  void accept(LIRBasicInstructionCallback eventCallback);
+  /** Convenience method to forward control to a callback. */
+  void accept(LIRInstructionCallback eventCallback);
+
+  /** The opcode of the instruction (See {@code LIROpcodes} for values). */
+  int getOpcode();
+
+  /** The remaining size of the instruction's payload. */
+  int getRemainingOperandSizeInBytes();
+
+  /** True if the instruction has any operands that have not yet been parsed. */
+  boolean hasMoreOperands();
+
+  /** Get the next operand as a constant-pool index. */
+  int getNextConstantOperand();
+
+  /** Get the next operand as an SSA value index. */
+  int getNextValueOperand();
 }

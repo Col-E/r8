@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
+import com.android.tools.r8.lightir.LIRBuilder;
 import java.io.UTFDataFormatException;
 
 public class ConstString extends ConstInstruction {
@@ -178,5 +179,10 @@ public class ConstString extends ConstInstruction {
     TypeElement expectedType = TypeElement.stringClassType(appView, definitelyNotNull());
     assert getOutType().equals(expectedType);
     return true;
+  }
+
+  @Override
+  public void buildLIR(LIRBuilder<Value> builder) {
+    builder.addConstString(value);
   }
 }

@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.lightir;
 
+import it.unimi.dsi.fastutil.bytes.ByteIterator;
+
 /** Simple utilities for byte encodings. */
 public class ByteUtils {
 
@@ -34,6 +36,15 @@ public class ByteUtils {
     writer.put(truncateToU1(value >> 16));
     writer.put(truncateToU1(value >> 8));
     writer.put(truncateToU1(value));
+  }
+
+  public static int readEncodedInt(ByteIterator iterator) {
+    assert 4 == intEncodingSize(0);
+    int value = ensureU1(iterator.nextByte()) << 24;
+    value |= ensureU1(iterator.nextByte()) << 16;
+    value |= ensureU1(iterator.nextByte()) << 8;
+    value |= ensureU1(iterator.nextByte());
+    return value;
   }
 
   public static boolean isU2(int value) {

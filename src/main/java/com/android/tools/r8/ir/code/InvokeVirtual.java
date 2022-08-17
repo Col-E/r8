@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.lightir.LIRBuilder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.List;
 
@@ -174,5 +175,10 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
     public Builder self() {
       return this;
     }
+  }
+
+  @Override
+  public void buildLIR(LIRBuilder<Value> builder) {
+    builder.addInvokeVirtual(getInvokedMethod(), arguments());
   }
 }

@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.lightir.LIRBuilder;
 import java.util.Set;
 
 /**
@@ -173,5 +174,10 @@ public class Argument extends Instruction {
     public Builder self() {
       return this;
     }
+  }
+
+  @Override
+  public void buildLIR(LIRBuilder<Value> builder) {
+    builder.addArgument(index, knownToBeBoolean);
   }
 }

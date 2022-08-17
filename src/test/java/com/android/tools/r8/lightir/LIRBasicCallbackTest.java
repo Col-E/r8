@@ -11,7 +11,8 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.IntBox;
+import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.ir.code.IRMetadata;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -30,10 +31,15 @@ public class LIRBasicCallbackTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    LIRCode code = LIRCode.builder().addConstNull().addConstInt(42).build();
-
-    // State to keep track of position in the byte array as we don't expose this in the iterator.
-    IntBox offset = new IntBox(0);
+    LIRCode code =
+        LIRCode.builder(
+                v -> {
+                  throw new Unreachable();
+                })
+            .setMetadata(IRMetadata.unknown())
+            .addConstNull()
+            .addConstInt(42)
+            .build();
 
     LIRIterator it = code.iterator();
 
@@ -43,23 +49,17 @@ public class LIRBasicCallbackTest extends TestBase {
     assertSame(it, next);
 
     it.accept(
-        (int opcode, int operandOffset, int operandSize) -> {
-          int headerSize = 1;
-          assertEquals(LIROpcodes.ACONST_NULL, opcode);
-          assertEquals(offset.get() + headerSize, operandOffset);
-          assertEquals(0, operandSize);
-          offset.increment(headerSize + operandSize);
+        insn -> {
+          assertEquals(LIROpcodes.ACONST_NULL, insn.getOpcode());
+          assertEquals(0, insn.getRemainingOperandSizeInBytes());
         });
 
     assertTrue(it.hasNext());
     it.next();
     it.accept(
-        (int opcode, int operandOffset, int operandSize) -> {
-          int headerSize = 2; // opcode + payload-size
-          assertEquals(LIROpcodes.ICONST, opcode);
-          assertEquals(offset.get() + headerSize, operandOffset);
-          assertEquals(4, operandSize);
-          offset.increment(headerSize + operandSize);
+        insn -> {
+          assertEquals(LIROpcodes.ICONST, insn.getOpcode());
+          assertEquals(4, insn.getRemainingOperandSizeInBytes());
         });
     assertFalse(it.hasNext());
 
@@ -69,10 +69,10 @@ public class LIRBasicCallbackTest extends TestBase {
     for (LIRInstructionView view : code) {
       if (oldView == null) {
         oldView = view;
-        view.accept((opcode, ignore1, ignore2) -> assertEquals(LIROpcodes.ACONST_NULL, opcode));
+        view.accept(insn -> assertEquals(LIROpcodes.ACONST_NULL, insn.getOpcode()));
       } else {
         assertSame(oldView, view);
-        view.accept((opcode, ignore1, ignore2) -> assertEquals(LIROpcodes.ICONST, opcode));
+        view.accept(insn -> assertEquals(LIROpcodes.ICONST, insn.getOpcode()));
       }
     }
   }
