@@ -20,7 +20,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class ApiModelNoInliningOfHigherApiLevelStaticTest extends TestBase {
+public class ApiModelNoInliningOfHigherApiLevelStaticMethodTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -29,7 +29,7 @@ public class ApiModelNoInliningOfHigherApiLevelStaticTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public ApiModelNoInliningOfHigherApiLevelStaticTest(TestParameters parameters) {
+  public ApiModelNoInliningOfHigherApiLevelStaticMethodTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
