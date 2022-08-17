@@ -75,7 +75,7 @@ def repack(apk, processed_out, resources, temp, quiet, logging):
   with utils.ChangedWorkingDirectory(processed_out, quiet=quiet):
     dex_files = glob.glob('*.dex')
     resource_files = glob.glob(resources) if resources else []
-    cmd = ['zip', '-u', '-9', processed_apk] + dex_files + resource_files
+    cmd = ['zip', '-u', '-0', processed_apk] + dex_files + resource_files
     utils.RunCmd(cmd, quiet=quiet, logging=logging)
   return processed_apk
 
