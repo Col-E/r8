@@ -26,7 +26,8 @@ public class IR2LIRConverter {
       index++;
     }
     LIRBuilder<Value> builder =
-        new LIRBuilder<Value>(values::getInt).setMetadata(irCode.metadata());
+        new LIRBuilder<Value>(irCode.context().getReference(), values::getInt)
+            .setMetadata(irCode.metadata());
     BasicBlockIterator blockIt = irCode.listIterator();
     while (blockIt.hasNext()) {
       BasicBlock block = blockIt.next();
@@ -35,6 +36,7 @@ public class IR2LIRConverter {
       InstructionIterator it = block.iterator();
       while (it.hasNext()) {
         Instruction instruction = it.next();
+        builder.setCurrentPosition(instruction.getPosition());
         instruction.buildLIR(builder);
       }
     }

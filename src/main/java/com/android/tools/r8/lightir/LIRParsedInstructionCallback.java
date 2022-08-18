@@ -54,6 +54,8 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
 
   public void onReturnVoid() {}
 
+  public void onDebugPosition() {}
+
   private DexItem getConstantItem(int index) {
     return code.getConstantItem(index);
   }
@@ -97,6 +99,11 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
       case LIROpcodes.RETURN:
         {
           onReturnVoid();
+          break;
+        }
+      case LIROpcodes.DEBUGPOS:
+        {
+          onDebugPosition();
           break;
         }
       default:

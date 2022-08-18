@@ -13,12 +13,12 @@ import com.android.tools.r8.errors.Unreachable;
 public interface LIROpcodes {
 
   static boolean isOneByteInstruction(int opcode) {
-    assert opcode >= NOP;
-    return opcode <= DCONST_1;
+    assert opcode >= ACONST_NULL;
+    return opcode <= DCONST_1 || opcode == RETURN || opcode == DEBUGPOS;
   }
 
   // Instructions maintaining the same opcode as defined in CF.
-  int NOP = 0;
+  // int NOP = 0;
   int ACONST_NULL = 1;
   int ICONST_M1 = 2;
   int ICONST_0 = 3;
@@ -182,11 +182,11 @@ public interface LIROpcodes {
   int FCONST = 202;
   int DCONST = 203;
   int INVOKEDIRECT = 204;
+  int DEBUGPOS = 205;
 
   static String toString(int opcode) {
     switch (opcode) {
-      case NOP:
-        return "NOP";
+        // case NOP: return "NOP";
       case ACONST_NULL:
         return "ACONST_NULL";
       case ICONST_M1:
@@ -485,6 +485,10 @@ public interface LIROpcodes {
         return "FCONST";
       case DCONST:
         return "DCONST";
+      case INVOKEDIRECT:
+        return "INVOKEDIRECT";
+      case DEBUGPOS:
+        return "DEBUGPOS";
 
       default:
         throw new Unreachable("Unexpected LIR opcode: " + opcode);

@@ -15,16 +15,19 @@ import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
+import com.android.tools.r8.ir.code.DebugPosition;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
+import com.android.tools.r8.lightir.LIRCode.PositionEntry;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -35,7 +38,7 @@ public class LIR2IRConverter {
   private LIR2IRConverter() {}
 
   public static IRCode translate(ProgramMethod method, LIRCode lirCode, AppView<?> appView) {
-    Parser parser = new Parser(lirCode, appView);
+    Parser parser = new Parser(lirCode, method.getReference(), appView);
     parser.parseArguments(method);
     lirCode.forEach(view -> view.accept(parser));
     return parser.getIRCode(method);
@@ -55,14 +58,37 @@ public class LIR2IRConverter {
     private final Value[] values;
     private final LinkedList<BasicBlock> blocks = new LinkedList<>();
 
-    private BasicBlock currentBlock;
+    private BasicBlock currentBlock = null;
     private int nextInstructionIndex = 0;
 
-    public Parser(LIRCode code, AppView<?> appView) {
+    private Position currentPosition;
+    private PositionEntry nextPositionEntry = null;
+    private int nextIndexInPositionsTable = 0;
+
+    public Parser(LIRCode code, DexMethod method, AppView<?> appView) {
       super(code);
+      assert code.getPositionTable().length > 0;
+      assert code.getPositionTable()[0].fromInstructionIndex == 0;
       this.appView = appView;
       this.code = code;
-      this.values = new Value[code.getArgumentCount() + code.getInstructionCount()];
+      values = new Value[code.getArgumentCount() + code.getInstructionCount()];
+      // Recreate the preamble position. This is active for arguments and code with no positions.
+      currentPosition = SyntheticPosition.builder().setLine(0).setMethod(method).build();
+    }
+
+    private void ensureCurrentPosition() {
+      if (nextPositionEntry != null
+          && nextPositionEntry.fromInstructionIndex < nextInstructionIndex) {
+        currentPosition = nextPositionEntry.position;
+        advanceNextPositionEntry();
+      }
+    }
+
+    private void advanceNextPositionEntry() {
+      nextPositionEntry =
+          nextIndexInPositionsTable < code.getPositionTable().length
+              ? code.getPositionTable()[nextIndexInPositionsTable++]
+              : null;
     }
 
     public void parseArguments(ProgramMethod method) {
@@ -75,6 +101,8 @@ public class LIR2IRConverter {
         addThisArgument(method.getHolderType());
       }
       method.getParameters().forEach(this::addArgument);
+      // Set up position state after adding arguments.
+      advanceNextPositionEntry();
     }
 
     public IRCode getIRCode(ProgramMethod method) {
@@ -132,8 +160,8 @@ public class LIR2IRConverter {
     }
 
     private void addInstruction(Instruction instruction) {
-      // TODO(b/225838009): Add correct position info.
-      instruction.setPosition(Position.syntheticNone());
+      ensureCurrentPosition();
+      instruction.setPosition(currentPosition);
       currentBlock.getInstructions().add(instruction);
       instruction.setBlock(currentBlock);
       ++nextInstructionIndex;
@@ -199,6 +227,11 @@ public class LIR2IRConverter {
     @Override
     public void onReturnVoid() {
       addInstruction(new Return());
+    }
+
+    @Override
+    public void onDebugPosition() {
+      addInstruction(new DebugPosition());
     }
   }
 }

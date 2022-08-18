@@ -8,6 +8,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -45,6 +46,22 @@ public class LIRRoundtripTest extends TestBase {
   public void testRoundtrip() throws Exception {
     testForD8(parameters.getBackend())
         .release()
+        .setMinApi(AndroidApiLevel.B)
+        .addProgramClasses(TestClass.class)
+        .addOptionsModification(
+            o -> {
+              o.testing.forceIRForCfToCfDesugar = true;
+              o.testing.roundtripThroughLIR = true;
+            })
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutputLines("Hello, world!");
+  }
+
+  @Test
+  public void testRoundtripDebug() throws Exception {
+    testForD8(parameters.getBackend())
+        .debug()
+        .setMinApi(AndroidApiLevel.B)
         .addProgramClasses(TestClass.class)
         .addOptionsModification(
             o -> {

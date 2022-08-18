@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.lightir.LIRBuilder;
 
 public class DebugPosition extends Instruction {
 
@@ -97,5 +98,10 @@ public class DebugPosition extends Instruction {
   @Override
   public boolean isAllowedAfterThrowingInstruction() {
     return true;
+  }
+
+  @Override
+  public void buildLIR(LIRBuilder<Value> builder) {
+    builder.addDebugPosition(getPosition());
   }
 }

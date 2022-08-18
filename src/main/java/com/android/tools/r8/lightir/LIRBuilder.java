@@ -3,13 +3,19 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.lightir;
 
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.ir.code.IRMetadata;
+import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.SyntheticPosition;
+import com.android.tools.r8.lightir.LIRCode.PositionEntry;
+import com.android.tools.r8.utils.ListUtils;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -28,13 +34,33 @@ public class LIRBuilder<V> {
   private final LIRWriter writer = new LIRWriter(byteWriter);
   private final Reference2IntMap<DexItem> constants;
   private final ValueIndexGetter<V> valueIndexGetter;
+  private final List<PositionEntry> positionTable;
   private int argumentCount = 0;
   private int instructionCount = 0;
   private IRMetadata metadata = null;
 
-  public LIRBuilder(ValueIndexGetter<V> valueIndexGetter) {
+  private Position currentPosition;
+  private Position flushedPosition;
+
+  public LIRBuilder(DexMethod method, ValueIndexGetter<V> valueIndexGetter) {
     constants = new Reference2IntOpenHashMap<>();
+    positionTable = new ArrayList<>();
     this.valueIndexGetter = valueIndexGetter;
+    currentPosition = SyntheticPosition.builder().setLine(0).setMethod(method).build();
+    flushedPosition = currentPosition;
+  }
+
+  public LIRBuilder<V> setCurrentPosition(Position position) {
+    assert position != null;
+    assert position != Position.none();
+    currentPosition = position;
+    return this;
+  }
+
+  private void setPositionIndex(int instructionIndex, Position position) {
+    assert positionTable.isEmpty()
+        || ListUtils.last(positionTable).fromInstructionIndex < instructionIndex;
+    positionTable.add(new PositionEntry(instructionIndex, position));
   }
 
   private int getConstantIndex(DexItem item) {
@@ -82,20 +108,22 @@ public class LIRBuilder<V> {
     return this;
   }
 
-  public LIRBuilder<V> addNop() {
-    instructionCount++;
-    writer.writeOneByteInstruction(LIROpcodes.NOP);
-    return this;
+  private void addInstruction() {
+    if (!currentPosition.equals(flushedPosition)) {
+      setPositionIndex(instructionCount, currentPosition);
+      flushedPosition = currentPosition;
+    }
+    ++instructionCount;
   }
 
   public LIRBuilder<V> addConstNull() {
-    instructionCount++;
+    addInstruction();
     writer.writeOneByteInstruction(LIROpcodes.ACONST_NULL);
     return this;
   }
 
   public LIRBuilder<V> addConstInt(int value) {
-    instructionCount++;
+    addInstruction();
     if (0 <= value && value <= 5) {
       writer.writeOneByteInstruction(LIROpcodes.ICONST_0 + value);
     } else {
@@ -106,17 +134,17 @@ public class LIRBuilder<V> {
   }
 
   public LIRBuilder<V> addConstString(DexString string) {
-    instructionCount++;
+    addInstruction();
     return writeConstantReferencingInstruction(LIROpcodes.LDC, string);
   }
 
   public LIRBuilder<V> addStaticGet(DexField field) {
-    instructionCount++;
+    addInstruction();
     return writeConstantReferencingInstruction(LIROpcodes.GETSTATIC, field);
   }
 
   public LIRBuilder<V> addInvokeInstruction(int opcode, DexMethod method, List<V> arguments) {
-    instructionCount++;
+    addInstruction();
     int argumentOprandSize = constantIndexSize(method);
     int[] argumentIndexes = new int[arguments.size()];
     int i = 0;
@@ -142,12 +170,19 @@ public class LIRBuilder<V> {
   }
 
   public LIRBuilder<V> addReturn(V value) {
-    return this;
+    throw new Unimplemented();
   }
 
   public LIRBuilder<V> addReturnVoid() {
-    instructionCount++;
-    writer.writeInstruction(LIROpcodes.RETURN, 0);
+    addInstruction();
+    writer.writeOneByteInstruction(LIROpcodes.RETURN);
+    return this;
+  }
+
+  public LIRBuilder<V> addDebugPosition(Position position) {
+    assert currentPosition == position;
+    addInstruction();
+    writer.writeOneByteInstruction(LIROpcodes.DEBUGPOS);
     return this;
   }
 
@@ -157,6 +192,11 @@ public class LIRBuilder<V> {
     DexItem[] constantTable = new DexItem[constantsCount];
     constants.forEach((item, index) -> constantTable[index] = item);
     return new LIRCode(
-        metadata, constantTable, argumentCount, byteWriter.toByteArray(), instructionCount);
+        metadata,
+        constantTable,
+        positionTable.toArray(new PositionEntry[positionTable.size()]),
+        argumentCount,
+        byteWriter.toByteArray(),
+        instructionCount);
   }
 }

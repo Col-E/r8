@@ -12,7 +12,10 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.IRMetadata;
+import com.android.tools.r8.references.Reference;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -31,8 +34,11 @@ public class LIRBasicCallbackTest extends TestBase {
 
   @Test
   public void test() throws Exception {
+    DexItemFactory factory = new DexItemFactory();
+    DexMethod method = factory.createMethod(Reference.methodFromDescriptor("LFoo;", "bar", "()V"));
     LIRCode code =
         LIRCode.builder(
+                method,
                 v -> {
                   throw new Unreachable();
                 })
