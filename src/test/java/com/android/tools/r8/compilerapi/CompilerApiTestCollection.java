@@ -41,15 +41,15 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
           CustomSourceFileTest.ApiTest.class,
           AssertionConfigurationTest.ApiTest.class,
           InputDependenciesTest.ApiTest.class,
-          DesugarDependenciesTest.ApiTest.class);
-
-  private static final List<Class<? extends CompilerApiTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
-      ImmutableList.of(
+          DesugarDependenciesTest.ApiTest.class,
           GlobalSyntheticsTest.ApiTest.class,
           CommandLineParserTest.ApiTest.class,
           EnableMissingLibraryApiModelingTest.ApiTest.class,
           AndroidPlatformBuildApiTest.ApiTest.class,
           UnsupportedFeaturesDiagnosticApiTest.ApiTest.class);
+
+  private static final List<Class<? extends CompilerApiTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
+      ImmutableList.of();
 
   private final TemporaryFolder temp;
 
