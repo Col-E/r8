@@ -150,6 +150,12 @@ def get_apk_path(app_id, device_id=None):
         'Expected stdout to end with ".apk", was: %s' % stdout)
   return apk_path
 
+def get_component_name(app_id, activity):
+  if activity.startswith(app_id):
+    return '%s/.%s' % (app_id, activity[len(app_id)+1:])
+  else:
+    return '%s/%s' % (app_id, activity)
+
 def get_profile_data(app_id, device_id=None):
   with utils.TempDir() as temp:
     source = get_profile_path(app_id)
@@ -268,18 +274,22 @@ def issue_key_event(key_event, device_id=None, sleep_in_seconds=1):
   time.sleep(sleep_in_seconds)
 
 def launch_activity(
-    app_id, activity, device_id=None, wait_for_activity_to_launch=False):
+    app_id,
+    activity,
+    device_id=None,
+    intent_data_uri=None,
+    wait_for_activity_to_launch=False):
   args = ['shell', 'am', 'start', '-n', '%s/%s' % (app_id, activity)]
+  if intent_data_uri:
+    args.extend(['-d', intent_data_uri])
   if wait_for_activity_to_launch:
     args.append('-W')
   cmd = create_adb_cmd(args, device_id)
   stdout = subprocess.check_output(cmd).decode('utf-8').strip()
-  if activity.startswith(app_id):
-    expected_stdout = (
-        'Starting: Intent { cmp=%s/.%s }' % (app_id, activity[len(app_id)+1:]))
-  else:
-    expected_stdout = 'Starting: Intent { cmp=%s/%s }' % (app_id, activity)
-  assert stdout.startswith(expected_stdout), 'was %s, expected %s' % (stdout, expected_stdout)
+  assert stdout.startswith('Starting: Intent {')
+  expected_component = 'cmp=%s' % get_component_name(app_id, activity)
+  assert expected_component in stdout, \
+      'was %s, expected %s' % (stdout, expected_component)
   lines = stdout.splitlines()
   result = {}
   for line in lines:
@@ -324,10 +334,12 @@ def set_screen_off_timeout(screen_off_timeout_in_millis, device_id=None):
   stdout = subprocess.check_output(cmd).decode('utf-8').strip()
   assert len(stdout) == 0
 
-def start_logcat(device_id=None, format=None, filter=None):
+def start_logcat(device_id=None, format=None, filter=None, silent=False):
   args = ['logcat']
   if format:
     args.extend(['--format', format])
+  if silent:
+    args.append('-s')
   if filter:
     args.append(filter)
   cmd = create_adb_cmd(args, device_id)

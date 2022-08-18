@@ -4,7 +4,9 @@
 # BSD-style license that can be found in the LICENSE file.
 
 import argparse
+import datetime
 import os
+import re
 import statistics
 import sys
 import time
@@ -141,6 +143,16 @@ def teardown_for_run(out_dir, options, teardown_options):
 def run(out_dir, options, tmp_dir):
   assert adb_utils.get_screen_state(options.device_id).is_on_and_unlocked()
 
+  # Start logcat for time to fully drawn.
+  logcat_process = None
+  if options.fully_drawn_logcat_message:
+    adb_utils.clear_logcat(options.device_id)
+    logcat_process = adb_utils.start_logcat(
+        options.device_id,
+        format='time',
+        filter='%s ActivityTaskManager:I' % options.fully_drawn_logcat_filter,
+        silent=True)
+
   # Start perfetto trace collector.
   perfetto_process = None
   perfetto_trace_path = None
@@ -153,16 +165,63 @@ def run(out_dir, options, tmp_dir):
       options.app_id,
       options.main_activity,
       options.device_id,
+      intent_data_uri=options.intent_data_uri,
       wait_for_activity_to_launch=True)
+
+  # Wait for app to be fully drawn.
+  logcat = None
+  if logcat_process is not None:
+    wait_until_fully_drawn(logcat_process, options)
+    logcat = adb_utils.stop_logcat(logcat_process)
 
   # Wait for perfetto trace collector to stop.
   if options.perfetto:
     perfetto_utils.stop_record_android_trace(perfetto_process, out_dir)
 
   # Get minor and major page faults from app process.
-  data = compute_data(launch_activity_result, perfetto_trace_path, options)
+  data = compute_data(
+    launch_activity_result, logcat, perfetto_trace_path, options)
   write_data(out_dir, data)
   return data
+
+def wait_until_fully_drawn(logcat_process, options):
+  print('Waiting until app is fully drawn')
+  while True:
+    is_fully_drawn = any(
+        is_app_fully_drawn_logcat_message(line, options) \
+        for line in logcat_process.lines)
+    if is_fully_drawn:
+      break
+    time.sleep(1)
+  print('Done')
+
+def compute_time_to_fully_drawn_from_time_to_first_frame(logcat, options):
+  displayed_time = None
+  fully_drawn_time = None
+  for line in logcat:
+    if is_app_displayed_logcat_message(line, options):
+      displayed_time = get_timestamp_from_logcat_message(line)
+    elif is_app_fully_drawn_logcat_message(line, options):
+      fully_drawn_time = get_timestamp_from_logcat_message(line)
+  assert displayed_time is not None
+  assert fully_drawn_time is not None
+  assert fully_drawn_time > displayed_time
+  return fully_drawn_time - displayed_time
+
+def get_timestamp_from_logcat_message(line):
+  time_end_index = len('00-00 00:00:00.000')
+  time_format = '%m-%d %H:%M:%S.%f'
+  time_str = line[0:time_end_index] + '000'
+  time_seconds = datetime.datetime.strptime(time_str, time_format).timestamp()
+  return int(time_seconds * 1000)
+
+def is_app_displayed_logcat_message(line, options):
+  substring = 'Displayed %s' % adb_utils.get_component_name(
+      options.app_id, options.main_activity)
+  return substring in line
+
+def is_app_fully_drawn_logcat_message(line, options):
+  return re.search(options.fully_drawn_logcat_message, line)
 
 def add_data(data_total, data):
   for key, value in data.items():
@@ -183,7 +242,7 @@ def add_data(data_total, data):
       assert isinstance(value, int), key
       data_total[key] = [value]
 
-def compute_data(launch_activity_result, perfetto_trace_path, options):
+def compute_data(launch_activity_result, logcat, perfetto_trace_path, options):
   minfl, majfl = adb_utils.get_minor_major_page_faults(
       options.app_id, options.device_id)
   data = {
@@ -193,13 +252,23 @@ def compute_data(launch_activity_result, perfetto_trace_path, options):
     'majfl': majfl
   }
   startup_data = compute_startup_data(
-      launch_activity_result, perfetto_trace_path, options)
+      launch_activity_result, logcat, perfetto_trace_path, options)
   return data | startup_data
 
-def compute_startup_data(launch_activity_result, perfetto_trace_path, options):
+def compute_startup_data(
+    launch_activity_result, logcat, perfetto_trace_path, options):
+  time_to_first_frame = launch_activity_result.get('total_time')
   startup_data = {
-    'adb_startup': launch_activity_result.get('total_time')
+    'adb_startup': time_to_first_frame
   }
+
+  # Time to fully drawn.
+  if options.fully_drawn_logcat_message:
+    startup_data['time_to_fully_drawn'] = \
+        compute_time_to_fully_drawn_from_time_to_first_frame(logcat, options) \
+            + time_to_first_frame
+
+  # Perfetto stats.
   perfetto_startup_data = {}
   if options.perfetto:
     trace_processor = TraceProcessor(file_path=perfetto_trace_path)
@@ -272,10 +341,19 @@ def parse_options(argv):
                       help='Device id (e.g., emulator-5554).')
   result.add_argument('--device-pin',
                       help='Device pin code (e.g., 1234)')
+  result.add_argument('--fully-drawn-logcat-filter',
+                      help='Logcat filter for the fully drawn message '
+                           '(e.g., "tag:I")')
+  result.add_argument('--fully-drawn-logcat-message',
+                      help='Logcat message that indicates that the app is '
+                           'fully drawn (regexp)')
   result.add_argument('--hot-startup',
                       help='Measure hot startup instead of cold startup',
                       default=False,
                       action='store_true')
+  result.add_argument('--intent-data-uri',
+                      help='Value to use for the -d argument to the intent '
+                           'that is used to launch the app')
   result.add_argument('--iterations',
                       help='Number of traces to generate',
                       default=1,
@@ -314,6 +392,10 @@ def parse_options(argv):
 
   # Profile is only used with --aot.
   assert options.aot or not options.baseline_profile
+
+  # Fully drawn logcat filter and message is absent or both present.
+  assert (options.fully_drawn_logcat_filter is None) == \
+      (options.fully_drawn_logcat_message is None)
 
   return options, args
 
