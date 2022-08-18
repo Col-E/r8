@@ -77,24 +77,12 @@ DESUGAR_IMPLEMENTATION = os.path.join(
       'third_party', 'openjdk', 'desugar_jdk_libs', 'desugar_jdk_libs.jar')
 DESUGAR_CONFIGURATION_JDK11_LEGACY = os.path.join(
       'src', 'library_desugar', 'jdk11', 'desugar_jdk_libs_legacy.json')
-DESUGAR_CONFIGURATION_JDK11_MINIMAL = os.path.join(
-      'src', 'library_desugar', 'jdk11', 'desugar_jdk_libs_minimal.json')
-DESUGAR_CONFIGURATION_JDK11 = os.path.join(
-      'src', 'library_desugar', 'jdk11', 'desugar_jdk_libs.json')
-DESUGAR_CONFIGURATION_JDK11_NIO = os.path.join(
-      'src', 'library_desugar', 'jdk11', 'desugar_jdk_libs_nio.json')
 DESUGAR_IMPLEMENTATION_JDK11 = os.path.join(
       'third_party', 'openjdk', 'desugar_jdk_libs_11', 'desugar_jdk_libs.jar')
 DESUGAR_CONFIGURATION_MAVEN_ZIP = os.path.join(
   LIBS, 'desugar_jdk_libs_configuration.zip')
 DESUGAR_CONFIGURATION_JDK11_LEGACY_MAVEN_ZIP = os.path.join(
   LIBS, 'desugar_jdk_libs_configuration_jdk11_legacy.zip')
-DESUGAR_CONFIGURATION_JDK11_MINIMAL_MAVEN_ZIP = os.path.join(
-  LIBS, 'desugar_jdk_libs_configuration_jdk11_minimal.zip')
-DESUGAR_CONFIGURATION_JDK11_MAVEN_ZIP = os.path.join(
-  LIBS, 'desugar_jdk_libs_configuration_jdk11.zip')
-DESUGAR_CONFIGURATION_JDK11_NIO_MAVEN_ZIP = os.path.join(
-  LIBS, 'desugar_jdk_libs_configuration_jdk11_nio.zip')
 GENERATED_LICENSE = os.path.join(GENERATED_LICENSE_DIR, 'LICENSE')
 RT_JAR = os.path.join(REPO_ROOT, 'third_party/openjdk/openjdk-rt-1.8/rt.jar')
 R8LIB_KEEP_RULES = os.path.join(REPO_ROOT, 'src/main/keep.txt')
