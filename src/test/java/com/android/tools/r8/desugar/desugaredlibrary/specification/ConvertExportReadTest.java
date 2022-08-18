@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.Mac
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineTopLevelFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MultiAPILevelMachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MultiAPILevelMachineDesugaredLibrarySpecificationJsonExporter;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.DesugaredLibraryConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.HumanToMachineSpecificationConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.LegacyToHumanSpecificationConverter;
 import com.android.tools.r8.origin.Origin;
@@ -41,6 +42,7 @@ import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Map;
 import org.junit.Assume;
 import org.junit.Test;
@@ -106,6 +108,35 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
                 AndroidApiLevel.B.getLevel(),
                 new SyntheticNaming())
             .parse(StringResource.fromString(json2.get(), Origin.unknown()));
+    assertFalse(machineSpecParsed.getRewriteType().isEmpty());
+  }
+
+  @Test
+  public void testMultiLevelLegacyUsingMain() throws IOException {
+    LibraryDesugaringSpecification legacySpec = LibraryDesugaringSpecification.JDK8;
+    testMultiLevelUsingMain(legacySpec);
+  }
+
+  @Test
+  public void testMultiLevelHumanUsingMain() throws IOException {
+    LibraryDesugaringSpecification humanSpec = LibraryDesugaringSpecification.JDK11;
+    testMultiLevelUsingMain(humanSpec);
+  }
+
+  private void testMultiLevelUsingMain(LibraryDesugaringSpecification spec) throws IOException {
+    Path output = temp.newFile().toPath();
+    DesugaredLibraryConverter.convertMultiLevelAnythingToMachineSpecification(
+        spec.getSpecification(), spec.getDesugarJdkLibs(), spec.getLibraryFiles(), output);
+
+    InternalOptions options = new InternalOptions();
+    MachineDesugaredLibrarySpecification machineSpecParsed =
+        new MachineDesugaredLibrarySpecificationParser(
+                options.dexItemFactory(),
+                options.reporter,
+                true,
+                AndroidApiLevel.B.getLevel(),
+                new SyntheticNaming())
+            .parse(StringResource.fromFile(output));
     assertFalse(machineSpecParsed.getRewriteType().isEmpty());
   }
 
