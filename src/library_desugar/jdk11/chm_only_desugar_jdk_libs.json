@@ -20,6 +20,11 @@
       "rewrite_prefix": {
         "java.util.concurrent.Helpers": "j$.util.concurrent.Helpers",
         "sun.misc.Desugar": "j$.sun.misc.Desugar"
+      },
+      "rewrite_derived_prefix": {
+        "sun.misc.DesugarUnsafe": {
+          "jdk.internal.misc.Unsafe": "j$.sun.misc.DesugarUnsafe"
+        }
       }
     }
   ],

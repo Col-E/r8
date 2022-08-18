@@ -184,6 +184,9 @@
       "rewrite_derived_prefix": {
         "java.time.": {
           "j$.time.": "java.time."
+        },
+        "sun.misc.DesugarUnsafe": {
+          "jdk.internal.misc.Unsafe": "j$.sun.misc.DesugarUnsafe"
         }
       },
       "backport": {

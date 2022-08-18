@@ -34,6 +34,7 @@ public class DesugaredLibraryJDK11Undesugarer extends DesugaredLibraryTestBase {
           .put("java/lang/DesugarMath", "java/lang/Math")
           .put("java/io/DesugarBufferedReader", "java/io/BufferedReader")
           .put("java/io/DesugarInputStream", "java/io/InputStream")
+          .put("sun/misc/DesugarUnsafe", "jdk/internal/misc/Unsafe")
           .put("wrapper/adapter/HybridFileSystemProvider", "java/adapter/HybridFileSystemProvider")
           .put("wrapper/adapter/HybridFileTypeDetector", "java/adapter/HybridFileTypeDetector")
           .build();

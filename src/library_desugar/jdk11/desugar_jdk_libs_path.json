@@ -374,6 +374,9 @@
         "java.util.ConversionRuntimeException": "j$.util.ConversionRuntimeException"
       },
       "rewrite_derived_prefix": {
+        "sun.misc.DesugarUnsafe": {
+          "jdk.internal.misc.Unsafe" : "j$.sun.misc.DesugarUnsafe"
+        },
         "java.nio.file.attribute.": {
           "j$.nio.file.attribute.": "java.nio.file.attribute."
         },
