@@ -48,6 +48,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   private String l8ExtraKeepRules = "";
   private Consumer<InternalOptions> l8OptionModifier = ConsumerUtils.emptyConsumer();
   private boolean l8FinalPrefixVerification = true;
+  private boolean overrideDefaultLibraryFiles = false;
 
   private CustomLibrarySpecification customLibrarySpecification = null;
   private TestingKeepRuleConsumer keepRuleConsumer = null;
@@ -67,7 +68,6 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
 
   private void setUp() {
     builder
-        .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
         .setMinApi(parameters.getApiLevel())
         .setMode(compilationSpecification.getProgramCompilationMode());
     LibraryDesugaringTestConfiguration.Builder libraryConfBuilder =
@@ -149,6 +149,17 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
+  /**
+   * By default the compilation uses as library libraryDesugaringSpecification.getLibraryFiles(),
+   * which is android.jar at the required compilation api level. Use this Api to set different
+   * library files.
+   */
+  public DesugaredLibraryTestBuilder<T> overrideLibraryFiles(Path... files) {
+    overrideDefaultLibraryFiles = true;
+    builder.addLibraryFiles(files);
+    return this;
+  }
+
   public DesugaredLibraryTestBuilder<T> addProgramFiles(Collection<Path> files) {
     builder.addProgramFiles(files);
     return this;
@@ -165,7 +176,12 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
-  public DesugaredLibraryTestBuilder<T> setMode(CompilationMode mode) {
+  /**
+   * By default the compilation uses libraryDesugaringSpecification.getProgramCompilationMode()
+   * which maps to the studio set-up: D8-debug, D8-release and R8-release. Use this Api to set a
+   * different compilation mode.
+   */
+  public DesugaredLibraryTestBuilder<T> overrideCompilationMode(CompilationMode mode) {
     builder.setMode(mode);
     return this;
   }
@@ -311,13 +327,22 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
+  private void prepareCompilation() {
+    if (overrideDefaultLibraryFiles) {
+      return;
+    }
+    builder.addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles());
+  }
+
   public DesugaredLibraryTestCompileResult<T> compile() throws Exception {
+    prepareCompilation();
     TestCompileResult<?, ? extends SingleTestRunResult<?>> compile = builder.compile();
     return internalCompile(compile);
   }
 
   public DesugaredLibraryTestCompileResult<T> compileWithExpectedDiagnostics(
       DiagnosticsConsumer consumer) throws Exception {
+    prepareCompilation();
     TestCompileResult<?, ? extends SingleTestRunResult<?>> compile =
         builder.compileWithExpectedDiagnostics(consumer);
     return internalCompile(compile);

@@ -2,7 +2,7 @@
   "configuration_format_version": 5,
   "group_id" : "com.tools.android",
   "artifact_id" : "desugar_jdk_libs",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "required_compilation_api_level": 30,
   "synthesized_library_classes_package_prefix": "j$.",
   "support_all_callbacks_from_library": true,
@@ -19,7 +19,8 @@
         "java.util.GregorianCalendar#toZonedDateTime": "java.util.DesugarGregorianCalendar"
       },
       "wrapper_conversion": [
-        "java.time.Clock"
+        "java.time.Clock",
+        "java.time.temporal.ChronoUnit"
       ],
       "custom_conversion": {
         "java.time.Duration": "java.time.TimeConversions",

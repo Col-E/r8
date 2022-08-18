@@ -66,7 +66,7 @@ public class ConcurrentHashMapSubclassV2Test extends DesugaredLibraryTestBase {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addInnerClasses(getClass())
         .addKeepMainRule(Executor.class)
-        .setMode(compilationMode)
+        .overrideCompilationMode(compilationMode)
         .addOptionsModification(
             options -> {
               // Devirtualizing is correcting the invalid member-rebinding.

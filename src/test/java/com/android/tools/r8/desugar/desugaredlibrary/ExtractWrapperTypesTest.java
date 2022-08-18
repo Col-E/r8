@@ -147,7 +147,7 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
 
   // TODO: parameterize to check both api<=23 as well as 23<api<26 for which the spec differs.
   private final AndroidApiLevel minApi = AndroidApiLevel.B;
-  private final AndroidApiLevel targetApi = AndroidApiLevel.S;
+  private final AndroidApiLevel targetApi = AndroidApiLevel.T;
 
   private Set<String> getMissingGenericTypeConversions() {
     HashSet<String> missing = new HashSet<>(MISSING_GENERIC_TYPE_CONVERSION);
@@ -407,6 +407,11 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
               indirectWrappers.computeIfAbsent(t, k -> new HashSet<>()).add(reference);
             }
           };
+      if (clazz.getAccessFlags().isEnum()) {
+        // Enum are not really wrapped, instead, each instance is converted to the matching
+        // instance, so there is no need to wrap indirect parameters and return types.
+        continue;
+      }
       clazz.forAllVirtualMethods(
           method -> {
             assertTrue(method.toString(), method.isPublic() || method.isProtected());
