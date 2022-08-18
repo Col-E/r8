@@ -274,8 +274,8 @@ tools/*/art-10.0.0
 tools/*/art-10.0.0.tar.gz
 tools/*/host/art-12.0.0-beta4
 tools/*/host/art-12.0.0-beta4.tar.gz
-tools/*/host/art-13-dev
-tools/*/host/art-13-dev.tar.gz
+tools/*/host/art-13.0.0
+tools/*/host/art-13.0.0.tar.gz
 tools/*/host/art-master
 tools/*/host/art-master.tar.gz
 tools/*/art.tar.gz

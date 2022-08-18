@@ -67,25 +67,29 @@ by the script for running Art.
 
 art-13 (Android T)
 ------------------
-Build from tm-dev commit 442e1091f39417c692d91609af05e58af60d8e2b.
+Build branch android-13.0.0_r3.
 
-repo sync -cq -j24
+export BRANCH=android-13.0.0_r3
+mkdir ${BRANCH}
+cd ${BRANCH}
+repo init -u https://android.googlesource.com/platform/manifest -b ${BRANCH}
+repo sync -cq -j48
 source build/envsetup.sh
 lunch aosp_redfin-userdebug
-m -j48
-m -j48 build-art
-m -j48 test-art-host
+USE_RBE=false m -j48
+USE_RBE=false m -j48 build-art
+USE_RBE=false m -j48 test-art-host
 
 Collected into tools/linux/host/art-13. The "host" path element is checked
 by the script for running Art.
 
   cd <r8 checkout>
   scripts/update-host-art.sh \
-     --android-checkout <...>/android/tm-dev \
+     --android-checkout <...>/android-13.0.0_r3 \
      --art-dir host/art-13 \
      --android-product redfin
 
-(cd tools/linux/host; upload_to_google_storage.py -a --bucket r8-deps art-13)
+  (cd tools/linux/host; upload_to_google_storage.py -a --bucket r8-deps art-13)
 
 art-12.0.0 (Android S)
 ---------------------
