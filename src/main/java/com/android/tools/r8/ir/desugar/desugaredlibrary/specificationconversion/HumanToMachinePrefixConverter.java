@@ -55,6 +55,7 @@ public class HumanToMachinePrefixConverter {
     rewriteValues(rewritingFlags.getCustomConversions());
     rewriteEmulatedInterface(rewritingFlags.getEmulatedInterfaces());
     rewriteRetargetKeys(rewritingFlags.getRetargetMethodEmulatedDispatch());
+    rewriteApiConversions(rewritingFlags.getApiGenericConversion());
     warnIfUnusedPrefix(warnConsumer);
   }
 
@@ -83,6 +84,17 @@ public class HumanToMachinePrefixConverter {
       DexType type = convertJavaNameToDesugaredLibrary(dexMethod.holder);
       builder.rewriteDerivedTypeOnly(dexMethod.holder, type);
     }
+  }
+
+  private void rewriteApiConversions(Map<DexMethod, DexMethod[]> apiGenericConversions) {
+    apiGenericConversions.forEach(
+        (k, v) -> {
+          for (DexMethod dexMethod : v) {
+            if (dexMethod != null) {
+              registerClassType(dexMethod.getHolderType());
+            }
+          }
+        });
   }
 
   private void rewriteEmulatedInterface(Map<DexType, DexType> emulateLibraryInterface) {

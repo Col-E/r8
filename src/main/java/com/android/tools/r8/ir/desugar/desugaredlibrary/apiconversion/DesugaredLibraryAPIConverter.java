@@ -148,6 +148,14 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
     if (isAlreadyDesugared(invoke, context)) {
       return false;
     }
+    if (appView
+            .options()
+            .machineDesugaredLibrarySpecification
+            .getApiGenericConversion()
+            .get(invokedMethod.getReference())
+        != null) {
+      return true;
+    }
     return appView.typeRewriter.hasRewrittenTypeInSignature(invokedMethod.getProto(), appView);
   }
 
@@ -262,6 +270,15 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
     }
     DexClassAndMethod methodForDesugaring = getMethodForDesugaring(invoke, context);
     assert methodForDesugaring != null;
+    // Specific apis that we never want to outline, namely, apis for stack introspection since it
+    // confuses developers in debug mode.
+    if (appView
+        .options()
+        .machineDesugaredLibrarySpecification
+        .getNeverOutlineApi()
+        .contains(methodForDesugaring.getReference())) {
+      return false;
+    }
     return methodForDesugaring.getAccessFlags().isPublic();
   }
 

@@ -147,7 +147,7 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
 
   // TODO: parameterize to check both api<=23 as well as 23<api<26 for which the spec differs.
   private final AndroidApiLevel minApi = AndroidApiLevel.B;
-  private final AndroidApiLevel targetApi = AndroidApiLevel.T;
+  private final AndroidApiLevel targetApi = AndroidApiLevel.MASTER;
 
   private Set<String> getMissingGenericTypeConversions() {
     HashSet<String> missing = new HashSet<>(MISSING_GENERIC_TYPE_CONVERSION);

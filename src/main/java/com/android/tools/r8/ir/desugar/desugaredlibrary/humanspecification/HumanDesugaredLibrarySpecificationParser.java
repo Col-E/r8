@@ -56,6 +56,7 @@ public class HumanDesugaredLibrarySpecificationParser {
   static final String DONT_REWRITE_PREFIX_KEY = "dont_rewrite_prefix";
   static final String MAINTAIN_PREFIX_KEY = "maintain_prefix";
   static final String RETARGET_STATIC_FIELD_KEY = "retarget_static_field";
+  static final String NEVER_OUTLINE_API_KEY = "never_outline_api";
   static final String COVARIANT_RETARGET_METHOD_KEY = "covariant_retarget_method";
   static final String RETARGET_METHOD_KEY = "retarget_method";
   static final String RETARGET_METHOD_EMULATED_DISPATCH_KEY =
@@ -262,6 +263,11 @@ public class HumanDesugaredLibrarySpecificationParser {
       for (JsonElement dontRewritePrefix :
           jsonFlagSet.get(DONT_REWRITE_PREFIX_KEY).getAsJsonArray()) {
         builder.putDontRewritePrefix(dontRewritePrefix.getAsString());
+      }
+    }
+    if (jsonFlagSet.has(NEVER_OUTLINE_API_KEY)) {
+      for (JsonElement neverOutlineApi : jsonFlagSet.get(NEVER_OUTLINE_API_KEY).getAsJsonArray()) {
+        builder.neverOutlineApi(parseMethod(neverOutlineApi.getAsString()));
       }
     }
     if (jsonFlagSet.has(API_GENERIC_TYPES_CONVERSION)) {

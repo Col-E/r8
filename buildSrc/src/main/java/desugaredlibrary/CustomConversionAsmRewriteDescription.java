@@ -21,6 +21,7 @@ public class CustomConversionAsmRewriteDescription {
           "j$/util/stream/Collector$Characteristics");
   private static final Set<String> WRAP_CONVERT_OWNER =
       ImmutableSet.of(
+          "j$/util/stream/Stream",
           "j$/nio/file/spi/FileSystemProvider",
           "j$/nio/file/spi/FileTypeDetector",
           "j$/nio/file/Path",

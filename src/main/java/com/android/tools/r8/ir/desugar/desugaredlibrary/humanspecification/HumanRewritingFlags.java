@@ -40,6 +40,7 @@ public class HumanRewritingFlags {
   private final Set<DexMethod> dontRewriteInvocation;
   private final Set<DexType> dontRetarget;
   private final Map<DexType, Set<DexMethod>> wrapperConversions;
+  private final Set<DexMethod> neverOutlineApi;
   private final Map<DexMethod, MethodAccessFlags> amendLibraryMethod;
   private final Map<DexField, FieldAccessFlags> amendLibraryField;
 
@@ -59,6 +60,7 @@ public class HumanRewritingFlags {
       Set<DexMethod> dontRewriteInvocation,
       Set<DexType> dontRetarget,
       Map<DexType, Set<DexMethod>> wrapperConversion,
+      Set<DexMethod> neverOutlineApi,
       Map<DexMethod, MethodAccessFlags> amendLibraryMethod,
       Map<DexField, FieldAccessFlags> amendLibraryField) {
     this.rewritePrefix = rewritePrefix;
@@ -76,6 +78,7 @@ public class HumanRewritingFlags {
     this.dontRewriteInvocation = dontRewriteInvocation;
     this.dontRetarget = dontRetarget;
     this.wrapperConversions = wrapperConversion;
+    this.neverOutlineApi = neverOutlineApi;
     this.amendLibraryMethod = amendLibraryMethod;
     this.amendLibraryField = amendLibraryField;
   }
@@ -97,6 +100,7 @@ public class HumanRewritingFlags {
         ImmutableSet.of(),
         ImmutableSet.of(),
         ImmutableMap.of(),
+        ImmutableSet.of(),
         ImmutableMap.of(),
         ImmutableMap.of());
   }
@@ -124,6 +128,7 @@ public class HumanRewritingFlags {
         dontRewriteInvocation,
         dontRetarget,
         wrapperConversions,
+        neverOutlineApi,
         amendLibraryMethod,
         amendLibraryField);
   }
@@ -162,6 +167,10 @@ public class HumanRewritingFlags {
 
   public Map<DexMethod, DexType> getRetargetMethodEmulatedDispatch() {
     return retargetMethodEmulatedDispatch;
+  }
+
+  public Set<DexMethod> getNeverOutlineApi() {
+    return neverOutlineApi;
   }
 
   public Map<DexMethod, DexMethod[]> getApiGenericConversion() {
@@ -227,6 +236,7 @@ public class HumanRewritingFlags {
     private final Set<DexMethod> dontRewriteInvocation;
     private final Set<DexType> dontRetarget;
     private final Map<DexType, Set<DexMethod>> wrapperConversions;
+    private final Set<DexMethod> neverOutlineApi;
     private final Map<DexMethod, MethodAccessFlags> amendLibraryMethod;
     private final Map<DexField, FieldAccessFlags> amendLibraryField;
 
@@ -249,6 +259,7 @@ public class HumanRewritingFlags {
           Sets.newIdentityHashSet(),
           Sets.newIdentityHashSet(),
           new IdentityHashMap<>(),
+          Sets.newIdentityHashSet(),
           new IdentityHashMap<>(),
           new IdentityHashMap<>());
     }
@@ -271,6 +282,7 @@ public class HumanRewritingFlags {
         Set<DexMethod> dontRewriteInvocation,
         Set<DexType> dontRetargetLibMember,
         Map<DexType, Set<DexMethod>> wrapperConversions,
+        Set<DexMethod> neverOutlineApi,
         Map<DexMethod, MethodAccessFlags> amendLibraryMethod,
         Map<DexField, FieldAccessFlags> amendLibraryField) {
       this.reporter = reporter;
@@ -292,6 +304,8 @@ public class HumanRewritingFlags {
       this.dontRetarget = Sets.newIdentityHashSet();
       this.dontRetarget.addAll(dontRetargetLibMember);
       this.wrapperConversions = new IdentityHashMap<>(wrapperConversions);
+      this.neverOutlineApi = Sets.newIdentityHashSet();
+      this.neverOutlineApi.addAll(neverOutlineApi);
       this.amendLibraryMethod = new IdentityHashMap<>(amendLibraryMethod);
       this.amendLibraryField = new IdentityHashMap<>(amendLibraryField);
     }
@@ -439,6 +453,11 @@ public class HumanRewritingFlags {
       return this;
     }
 
+    public Builder neverOutlineApi(DexMethod method) {
+      neverOutlineApi.add(method);
+      return this;
+    }
+
     public Builder amendLibraryField(DexField member, FieldAccessFlags flags) {
       amendLibraryField.put(member, flags);
       return this;
@@ -462,6 +481,7 @@ public class HumanRewritingFlags {
           ImmutableSet.copyOf(dontRewriteInvocation),
           ImmutableSet.copyOf(dontRetarget),
           ImmutableMap.copyOf(wrapperConversions),
+          ImmutableSet.copyOf(neverOutlineApi),
           ImmutableMap.copyOf(amendLibraryMethod),
           ImmutableMap.copyOf(amendLibraryField));
     }

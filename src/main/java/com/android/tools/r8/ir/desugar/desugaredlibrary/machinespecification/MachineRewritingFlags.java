@@ -42,6 +42,7 @@ public class MachineRewritingFlags {
       Map<DexType, DexType> legacyBackport,
       Set<DexType> dontRetarget,
       Map<DexType, CustomConversionDescriptor> customConversions,
+      Set<DexMethod> neverOutlineApi,
       Map<DexMethod, MethodAccessFlags> amendLibraryMethods,
       Map<DexField, FieldAccessFlags> amendLibraryFields) {
     this.rewriteType = rewriteType;
@@ -60,6 +61,7 @@ public class MachineRewritingFlags {
     this.legacyBackport = legacyBackport;
     this.dontRetarget = dontRetarget;
     this.customConversions = customConversions;
+    this.neverOutlineApi = neverOutlineApi;
     this.amendLibraryMethod = amendLibraryMethods;
     this.amendLibraryField = amendLibraryFields;
   }
@@ -106,6 +108,7 @@ public class MachineRewritingFlags {
   private final Map<DexType, DexType> legacyBackport;
   private final Set<DexType> dontRetarget;
   private final Map<DexType, CustomConversionDescriptor> customConversions;
+  private final Set<DexMethod> neverOutlineApi;
   private final Map<DexMethod, MethodAccessFlags> amendLibraryMethod;
   private final Map<DexField, FieldAccessFlags> amendLibraryField;
 
@@ -183,6 +186,10 @@ public class MachineRewritingFlags {
     return customConversions;
   }
 
+  public Set<DexMethod> getNeverOutlineApi() {
+    return neverOutlineApi;
+  }
+
   public Map<DexMethod, MethodAccessFlags> getAmendLibraryMethod() {
     return amendLibraryMethod;
   }
@@ -253,6 +260,7 @@ public class MachineRewritingFlags {
     private final ImmutableSet.Builder<DexType> dontRetarget = ImmutableSet.builder();
     private final ImmutableMap.Builder<DexType, CustomConversionDescriptor> customConversions =
         ImmutableMap.builder();
+    private final ImmutableSet.Builder<DexMethod> neverOutlineApi = ImmutableSet.builder();
     private final ImmutableMap.Builder<DexMethod, MethodAccessFlags> amendLibraryMethod =
         ImmutableMap.builder();
     private final ImmutableMap.Builder<DexField, FieldAccessFlags> amendLibraryField =
@@ -309,6 +317,10 @@ public class MachineRewritingFlags {
 
     public void addWrapper(DexType type, WrapperDescriptor descriptor) {
       this.wrappers.put(type, descriptor);
+    }
+
+    public void neverOutlineApi(DexMethod method) {
+      neverOutlineApi.add(method);
     }
 
     public void putLegacyBackport(DexType src, DexType target) {
@@ -370,6 +382,7 @@ public class MachineRewritingFlags {
           legacyBackport.build(),
           dontRetarget.build(),
           customConversions.build(),
+          neverOutlineApi.build(),
           amendLibraryMethod.build(),
           amendLibraryField.build());
     }

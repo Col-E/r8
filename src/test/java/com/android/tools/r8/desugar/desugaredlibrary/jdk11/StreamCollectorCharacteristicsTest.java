@@ -51,7 +51,7 @@ public class StreamCollectorCharacteristicsTest extends DesugaredLibraryTestBase
   }
 
   @Test
-  public void test() throws Exception {
+  public void test() throws Throwable {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)

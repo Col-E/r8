@@ -129,6 +129,7 @@ public class HumanToMachineSpecificationConverter {
     rewritingFlags.getAmendLibraryMethod().forEach(builder::amendLibraryMethod);
     rewritingFlags.getAmendLibraryField().forEach(builder::amendLibraryField);
     rewritingFlags.getApiGenericConversion().forEach(builder::addApiGenericTypesConversion);
+    rewritingFlags.getNeverOutlineApi().forEach(builder::neverOutlineApi);
     new HumanToMachineRetargetConverter(appInfo)
         .convertRetargetFlags(rewritingFlags, builder, this::warnMissingReferences);
     new HumanToMachineEmulatedInterfaceConverter(appInfo)

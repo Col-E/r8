@@ -143,7 +143,10 @@ public class GenerateLintFiles {
   }
 
   private static Path getAndroidJarPath(AndroidApiLevel apiLevel) {
-    String jar = String.format(ANDROID_JAR_PATTERN, apiLevel.getLevel());
+    String jar =
+        apiLevel == AndroidApiLevel.MASTER
+            ? "third_party/android_jar/lib-master/android.jar"
+            : String.format(ANDROID_JAR_PATTERN, apiLevel.getLevel());
     return Paths.get(jar);
   }
 

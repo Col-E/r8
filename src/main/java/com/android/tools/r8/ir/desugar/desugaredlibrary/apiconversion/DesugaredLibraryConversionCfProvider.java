@@ -586,6 +586,11 @@ public class DesugaredLibraryConversionCfProvider {
                 appView.dexItemFactory().createProto(newReturnType, newParameterTypes),
                 method.name);
     assert convertedAPI == methodWithVivifiedTypeInSignature(method, newHolder, appView)
+        || appView
+            .options()
+            .machineDesugaredLibrarySpecification
+            .getApiGenericConversion()
+            .containsKey(method)
         || invalidType(method, returnConversion, parameterConversions, appView) != null;
     return convertedAPI;
   }

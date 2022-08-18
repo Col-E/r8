@@ -180,6 +180,10 @@ public class MachineDesugaredLibrarySpecification implements DesugaredLibrarySpe
     return rewritingFlags.getCustomConversions();
   }
 
+  public Set<DexMethod> getNeverOutlineApi() {
+    return rewritingFlags.getNeverOutlineApi();
+  }
+
   public Map<DexMethod, MethodAccessFlags> getAmendLibraryMethods() {
     return rewritingFlags.getAmendLibraryMethod();
   }
