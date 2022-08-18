@@ -35,8 +35,8 @@ public class DesugaredLibraryJDK11Undesugarer extends DesugaredLibraryTestBase {
           .put("java/io/DesugarBufferedReader", "java/io/BufferedReader")
           .put("java/io/DesugarInputStream", "java/io/InputStream")
           .put("sun/misc/DesugarUnsafe", "jdk/internal/misc/Unsafe")
-          .put("wrapper/adapter/HybridFileSystemProvider", "java/adapter/HybridFileSystemProvider")
-          .put("wrapper/adapter/HybridFileTypeDetector", "java/adapter/HybridFileTypeDetector")
+          .put("wrapper/adapter/HybridFileSystemProvider", "sun/nio/fs/DefaultFileSystemProvider")
+          .put("wrapper/adapter/HybridFileTypeDetector", "sun/nio/fs/DefaultFileTypeDetector")
           .build();
 
   public static Path undesugaredJarJDK11(Path undesugarFolder, Path jdk11Jar) {

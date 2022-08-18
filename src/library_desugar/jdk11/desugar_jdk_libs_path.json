@@ -374,6 +374,12 @@
         "java.util.ConversionRuntimeException": "j$.util.ConversionRuntimeException"
       },
       "rewrite_derived_prefix": {
+        "desugar.sun.nio.fs.DesugarDefaultFileSystemProvider": {
+          "sun.nio.fs.DefaultFileSystemProvider": "j$.adapter.HybridFileSystemProvider"
+        },
+        "desugar.sun.nio.fs.DesugarDefaultFileTypeDetector": {
+          "sun.nio.fs.DefaultFileTypeDetector": "j$.adapter.HybridFileTypeDetector"
+        },
         "sun.misc.DesugarUnsafe": {
           "jdk.internal.misc.Unsafe" : "j$.sun.misc.DesugarUnsafe"
         },
