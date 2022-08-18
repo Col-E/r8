@@ -60,8 +60,7 @@ public class InliningOutOfStartupPartitionTest extends TestBase {
             inspector -> {
               ClassSubject mainClassSubject = inspector.clazz(Main.class);
               assertThat(mainClassSubject, isPresent());
-              // TODO(b/242815611): Should be absent since inlining out of the startup is OK.
-              assertThat(mainClassSubject.uniqueMethodWithName("postStartupMethod"), isPresent());
+              assertThat(mainClassSubject.uniqueMethodWithName("postStartupMethod"), isAbsent());
 
               ClassSubject postStartupClassSubject = inspector.clazz(PostStartupClass.class);
               // TODO(b/242815611): Should be present since inlining increases the size of the
