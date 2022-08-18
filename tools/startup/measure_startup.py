@@ -245,12 +245,14 @@ def add_data(data_total, data):
 def compute_data(launch_activity_result, logcat, perfetto_trace_path, options):
   minfl, majfl = adb_utils.get_minor_major_page_faults(
       options.app_id, options.device_id)
+  meminfo = adb_utils.get_meminfo(options.app_id, options.device_id)
   data = {
     'app_id': options.app_id,
     'time': time.ctime(time.time()),
     'minfl': minfl,
     'majfl': majfl
   }
+  data.update(meminfo)
   startup_data = compute_startup_data(
       launch_activity_result, logcat, perfetto_trace_path, options)
   return data | startup_data

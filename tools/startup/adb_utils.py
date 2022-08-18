@@ -156,6 +156,19 @@ def get_component_name(app_id, activity):
   else:
     return '%s/%s' % (app_id, activity)
 
+def get_meminfo(app_id, device_id=None):
+  cmd = create_adb_cmd('shell dumpsys meminfo -s %s' % app_id, device_id)
+  stdout = subprocess.check_output(cmd).decode('utf-8').strip()
+  for line in stdout.splitlines():
+    if 'TOTAL PSS: ' in line:
+      elements = [s for s in line.replace('TOTAL ', 'TOTAL_').split()]
+      assert elements[0] == 'TOTAL_PSS:', elements[0]
+      assert elements[1].isdigit()
+      assert elements[2] == 'TOTAL_RSS:'
+      assert elements[3].isdigit()
+      return { 'total_pss': int(elements[1]), 'total_rss': int(elements[3]) }
+  raise ValueError('Unexpected stdout: %s' % stdout)
+
 def get_profile_data(app_id, device_id=None):
   with utils.TempDir() as temp:
     source = get_profile_path(app_id)
