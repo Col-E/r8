@@ -2820,19 +2820,20 @@ public class Enqueuer {
     WorkList<DexType> worklist = WorkList.newIdentityWorkList(type);
     worklist.addIfNotSeen(interfaces);
     while (worklist.hasNext()) {
-      DexClass clazz = appInfo().definitionFor(worklist.next());
-      if (clazz == null) {
-        continue;
-      }
-      if (clazz.isProgramClass()) {
-        markProgramMethodOverridesAsLive(instantiation, clazz.asProgramClass());
-      } else {
-        markLibraryAndClasspathMethodOverridesAsLive(instantiation, clazz);
-      }
-      if (clazz.superType != null) {
-        worklist.addIfNotSeen(clazz.superType);
-      }
-      worklist.addIfNotSeen(clazz.interfaces);
+      ClassResolutionResult classResolutionResult =
+          appInfo().contextIndependentDefinitionForWithResolutionResult(worklist.next());
+      classResolutionResult.forEachClassResolutionResult(
+          clazz -> {
+            if (clazz.isProgramClass()) {
+              markProgramMethodOverridesAsLive(instantiation, clazz.asProgramClass());
+            } else {
+              markLibraryAndClasspathMethodOverridesAsLive(instantiation, clazz);
+            }
+            if (clazz.superType != null) {
+              worklist.addIfNotSeen(clazz.superType);
+            }
+            worklist.addIfNotSeen(clazz.interfaces);
+          });
     }
   }
 

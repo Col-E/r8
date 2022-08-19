@@ -40,6 +40,8 @@ public class StackWalkerTest extends DesugaredLibraryTestBase {
       Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR + "stackwalker.jar");
   private static final String EXPECTED_OUTPUT =
       StringUtils.lines("[main]", "[frame2, frame1, main]");
+  private static final String EXPECTED_OUTPUT_R8_MINIMAL = StringUtils.lines("[main]", "[main]");
+  private static final String EXPECTED_OUTPUT_R8 = StringUtils.lines("[main]", "[a, main]");
   private static final String MAIN_CLASS = "stackwalker.Example";
 
   @Parameters(name = "{0}, spec: {1}, {2}")
@@ -74,19 +76,25 @@ public class StackWalkerTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testDesugaredLibrary() throws Throwable {
-    Assume.assumeTrue(
-        "TODO(b/242948951): Issue with maintain type on function",
-        !compilationSpecification.isL8Shrink());
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramFiles(INPUT_JAR)
         .addKeepMainRule(MAIN_CLASS)
+        // TODO(b/242948951): Should not need dontobfuscate.
+        .applyIf(compilationSpecification.isL8Shrink(), b -> b.addL8KeepRules("-dontobfuscate"))
         .overrideLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.MASTER))
         // Missing class java.lang.StackWalker$StackFrame.
         .addOptionsModification(opt -> opt.ignoreMissingClasses = true)
         .applyIf(
-            libraryDesugaringSpecification != JDK11_MINIMAL,
+            libraryDesugaringSpecification != JDK11_MINIMAL
+                || parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.MASTER),
             DesugaredLibraryTestBuilder::allowDiagnosticWarningMessages)
         .run(parameters.getRuntime(), MAIN_CLASS)
-        .assertSuccessWithOutput(EXPECTED_OUTPUT);
+        .assertSuccessWithOutput(
+            compilationSpecification.isProgramShrink()
+                ? ((libraryDesugaringSpecification == JDK11_MINIMAL
+                        || parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.MASTER))
+                    ? EXPECTED_OUTPUT_R8_MINIMAL
+                    : EXPECTED_OUTPUT_R8)
+                : EXPECTED_OUTPUT);
   }
 }
