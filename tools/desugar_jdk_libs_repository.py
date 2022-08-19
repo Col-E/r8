@@ -14,9 +14,12 @@ import sys
 import utils
 import create_maven_release
 
-class Configuration(Enum):
+class Variant(Enum):
     jdk8 = 'jdk8'
-    jdk11_legacy = 'jdk11-legacy'
+    jdk11_legacy = 'jdk11_legacy'
+    jdk11_minimal = 'jdk11_minimal'
+    jdk11 = 'jdk11'
+    jdk11_nio = 'jdk11_nio'
 
     def __str__(self):
         return self.value
@@ -32,7 +35,7 @@ def parse_options():
                       default=False,
                       action='store_true',
                       help='Clear the Maven repository so it only has one version present')
-  parser.add_argument('--configuration', default='jdk8', type=Configuration, choices=list(Configuration))
+  parser.add_argument('--variant', type=Variant, choices=list(Variant))
   parser.add_argument('--desugar-jdk-libs-checkout', '--desugar_jdk_libs_checkout',
                       default=None,
                       metavar=('<path>'),
@@ -56,29 +59,70 @@ def jar_file(unzip_dir, artifact, version):
 def pom_file(unzip_dir, artifact, version):
   return jar_or_pom_file(unzip_dir, artifact, version, 'pom')
 
-def main():
-  args = parse_options()
-  if args.clear_repo:
-    shutil.rmtree(args.repo_root, ignore_errors=True)
-  utils.makedirs_if_needed(args.repo_root)
-  configuration = (utils.DESUGAR_CONFIGURATION
-                   if args.configuration is Configuration.jdk8
-                   else utils.DESUGAR_CONFIGURATION_JDK11_LEGACY)
-  implementation = (utils.DESUGAR_IMPLEMENTATION
-                    if args.configuration is Configuration.jdk8
-                    else utils.DESUGAR_IMPLEMENTATION_JDK11)
-  version_file = ('VERSION.txt'
-                  if args.configuration is Configuration.jdk8 else
-                  'VERSION_JDK11.txt')
-  with utils.TempDir() as tmp_dir:
-    version = utils.desugar_configuration_version(configuration)
+def run(args):
+  artifact = None
+  configuration_artifact = None
+  configuration = None
+  conversions = None
+  implementation = None
+  version_file = None
+  implementation_build_target = None
+  implementation_build_output = None
+  match args.variant:
+    case Variant.jdk8:
+      artifact = 'desugar_jdk_libs'
+      configuration_artifact = 'desugar_jdk_libs_configuration'
+      configuration = utils.DESUGAR_CONFIGURATION
+      conversions = utils.LIBRARY_DESUGAR_CONVERSIONS_LEGACY_ZIP
+      implementation = utils.DESUGAR_IMPLEMENTATION
+      version_file = 'VERSION.txt'
+      implementation_build_target = ':maven_release'
+      implementation_build_output = join('bazel-bin', 'desugar_jdk_libs.zip')
+    case Variant.jdk11_legacy:
+      artifact = 'desugar_jdk_libs'
+      configuration_artifact = 'desugar_jdk_libs_configuration'
+      configuration = utils.DESUGAR_CONFIGURATION_JDK11_LEGACY
+      conversions = utils.LIBRARY_DESUGAR_CONVERSIONS_LEGACY_ZIP
+      implementation = utils.DESUGAR_IMPLEMENTATION_JDK11
+      version_file = 'VERSION_JDK11_LEGACY.txt'
+      implementation_build_target = ':maven_release_jdk11_legacy'
+      implementation_build_output = join('bazel-bin', 'desugar_jdk_libs_jdk11_legacy.zip')
+    case Variant.jdk11_minimal:
+      artifact = 'desugar_jdk_libs_minimal'
+      configuration_artifact = 'desugar_jdk_libs_configuration_minimal'
+      configuration = utils.DESUGAR_CONFIGURATION_JDK11_MINIMAL
+      conversions = utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP
+      implementation = utils.DESUGAR_IMPLEMENTATION_JDK11
+      version_file = 'VERSION_JDK11_MINIMAL.txt'
+      implementation_build_target = ':maven_release_jdk11_minimal'
+      implementation_build_output = join('bazel-bin', 'desugar_jdk_libs_jdk11_minimal.zip')
+    case Variant.jdk11:
+      artifact = 'desugar_jdk_libs'
+      configuration_artifact = 'desugar_jdk_libs_configuration'
+      configuration = utils.DESUGAR_CONFIGURATION_JDK11
+      conversions = utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP
+      implementation = utils.DESUGAR_IMPLEMENTATION_JDK11
+      version_file = 'VERSION_JDK11.txt'
+      implementation_build_target = ':maven_release_jdk11'
+      implementation_build_output = join('bazel-bin', 'desugar_jdk_libs_jdk11.zip')
+    case Variant.jdk11_nio:
+      artifact = 'desugar_jdk_libs_nio'
+      configuration_artifact = 'desugar_jdk_libs_configuration_nio'
+      configuration = utils.DESUGAR_CONFIGURATION_JDK11_NIO
+      conversions = utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP
+      implementation = utils.DESUGAR_IMPLEMENTATION_JDK11
+      version_file = 'VERSION_JDK11_NIO.txt'
+      implementation_build_target = ':maven_release_jdk11_nio'
+      implementation_build_output = join('bazel-bin', 'desugar_jdk_libs_jdk11_nio.zip')
+  with utils.TempDir(delete=False) as tmp_dir:
+    (name, version) = utils.desugar_configuration_name_and_version(configuration, False)
     # Checkout desugar_jdk_libs from GitHub
     use_existing_checkout = args.desugar_jdk_libs_checkout != None
     checkout_dir = (args.desugar_jdk_libs_checkout
                     if use_existing_checkout
                     else join(tmp_dir, 'desugar_jdk_libs'))
     if (not use_existing_checkout):
-      utils.RunCmd(['git', 'clone', 'https://github.com/google/desugar_jdk_libs.git', checkout_dir])
+      subprocess.check_call(['git', 'clone', 'https://github.com/google/desugar_jdk_libs.git', checkout_dir])
     with utils.ChangedWorkingDirectory(checkout_dir):
       with open(version_file) as version_file:
         version_file_lines = version_file.readlines()
@@ -99,56 +143,51 @@ def main():
     create_maven_release.generate_desugar_configuration_maven_zip(
       maven_zip,
       configuration,
-      implementation)
+      implementation,
+      conversions)
     unzip_dir = join(tmp_dir, 'desugar_jdk_libs_configuration_unzipped')
     cmd = ['unzip', '-q', maven_zip, '-d', unzip_dir]
-    utils.RunCmd(cmd)
+    subprocess.check_call(cmd)
     cmd = [
       'mvn',
       'deploy:deploy-file',
       '-Durl=file:' + args.repo_root,
       '-DrepositoryId=someName',
-      '-Dfile=' + jar_file(unzip_dir, 'desugar_jdk_libs_configuration', version),
-      '-DpomFile=' + pom_file(unzip_dir, 'desugar_jdk_libs_configuration', version)]
-    utils.RunCmd(cmd)
+      '-Dfile=' + jar_file(unzip_dir, configuration_artifact, version),
+      '-DpomFile=' + pom_file(unzip_dir, configuration_artifact, version)]
+    subprocess.check_call(cmd)
 
     # Build desugared library.
     print("Building desugared library " + version)
     with utils.ChangedWorkingDirectory(checkout_dir):
-      utils.RunCmd([
+      subprocess.check_call([
           'bazel',
           '--bazelrc=/dev/null',
           'build',
           '--spawn_strategy=local',
           '--verbose_failures',
-          (':maven_release'
-            if args.configuration is Configuration.jdk8
-          else ':maven_release_jdk11')])
+          implementation_build_target])
     unzip_dir = join(tmp_dir, 'desugar_jdk_libs_unzipped')
     cmd = [
         'unzip',
         '-q',
-        join(checkout_dir,
-            'bazel-bin',
-            ('desugar_jdk_libs.zip'
-              if args.configuration is Configuration.jdk8
-              else 'desugar_jdk_libs_jdk11.zip')),
+        join(checkout_dir, implementation_build_output),
         '-d',
         unzip_dir]
-    utils.RunCmd(cmd)
+    subprocess.check_call(cmd)
     cmd = [
       'mvn',
       'deploy:deploy-file',
       '-Durl=file:' + args.repo_root,
       '-DrepositoryId=someName',
-      '-Dfile=' + jar_file(unzip_dir, 'desugar_jdk_libs', version),
-      '-DpomFile=' + pom_file(unzip_dir, 'desugar_jdk_libs', version)]
-    utils.RunCmd(cmd)
+      '-Dfile=' + jar_file(unzip_dir, artifact, version),
+      '-DpomFile=' + pom_file(unzip_dir, artifact, version)]
+    subprocess.check_call(cmd)
 
     print()
     print("Artifacts:")
-    print("  com.android.tools:desugar_jdk_libs_configuration:" + version)
-    print("  com.android.tools:desugar_jdk_libs:" + version)
+    print("  com.android.tools:%s:%s" % (configuration_artifact, version))
+    print("  com.android.tools:%s:%s" % (artifact, version))
     print()
     print("deployed to Maven repository at " + args.repo_root + ".")
     print()
@@ -161,7 +200,7 @@ def main():
     print("to dependencyResolutionManagement.repositories in settings.gradle, and use")
     print('the "changing" property of the coreLibraryDesugaring dependency:')
     print()
-    print("  coreLibraryDesugaring('com.android.tools:desugar_jdk_libs:" +  version + "') {")
+    print("  coreLibraryDesugaring('com.android.tools:%s:%s') {" % (artifact, version))
     print("    changing = true")
     print("  }")
     print()
@@ -169,6 +208,18 @@ def main():
       + " --refresh-dependencies (./gradlew --refresh-dependencies ...) "
       + "to ensure the cache is not used when the same version is published."
       + "multiple times.")
+
+def main():
+  args = parse_options()
+  if args.clear_repo:
+    shutil.rmtree(args.repo_root, ignore_errors=True)
+  utils.makedirs_if_needed(args.repo_root)
+  if (args.variant):
+    run(args)
+  else:
+    for v in Variant:
+      args.variant = v
+      run(args)
 
 if __name__ == '__main__':
   sys.exit(main())

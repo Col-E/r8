@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Map;
 import java.util.zip.ZipEntry;
@@ -38,6 +39,16 @@ public class DesugaredLibraryJDK11Undesugarer extends DesugaredLibraryTestBase {
           .put("wrapper/adapter/HybridFileSystemProvider", "sun/nio/fs/DefaultFileSystemProvider")
           .put("wrapper/adapter/HybridFileTypeDetector", "sun/nio/fs/DefaultFileTypeDetector")
           .build();
+
+  public static void main(String[] args) {
+    if (!Files.exists(Paths.get(args[0]))) {
+      throw new RuntimeException("Undesugarer source not found");
+    }
+    if (Files.exists(Paths.get(args[1]))) {
+      throw new RuntimeException("Undesugarer destination already exists");
+    }
+    generateUndesugaredJar(Paths.get(args[0]), Paths.get(args[1]));
+  }
 
   public static Path undesugaredJarJDK11(Path undesugarFolder, Path jdk11Jar) {
     String fileName = jdk11Jar.getFileName().toString();

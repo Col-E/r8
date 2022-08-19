@@ -182,6 +182,22 @@ def Main():
         utils.DESUGAR_IMPLEMENTATION_JDK11,
         utils.LIBRARY_DESUGAR_CONVERSIONS_LEGACY_ZIP)
 
+    create_maven_release.generate_desugar_configuration_maven_zip(
+        utils.DESUGAR_CONFIGURATION_JDK11_MINIMAL_MAVEN_ZIP,
+        utils.DESUGAR_CONFIGURATION_JDK11_MINIMAL,
+        utils.DESUGAR_IMPLEMENTATION_JDK11,
+        utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP)
+    create_maven_release.generate_desugar_configuration_maven_zip(
+        utils.DESUGAR_CONFIGURATION_JDK11_MAVEN_ZIP,
+        utils.DESUGAR_CONFIGURATION_JDK11,
+        utils.DESUGAR_IMPLEMENTATION_JDK11,
+        utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP)
+    create_maven_release.generate_desugar_configuration_maven_zip(
+        utils.DESUGAR_CONFIGURATION_JDK11_NIO_MAVEN_ZIP,
+        utils.DESUGAR_CONFIGURATION_JDK11_NIO,
+        utils.DESUGAR_IMPLEMENTATION_JDK11,
+        utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP)
+
     version = GetVersion()
     is_main = IsMain(version)
     if is_main:
@@ -213,6 +229,9 @@ def Main():
       utils.DESUGAR_CONFIGURATION_MAVEN_ZIP,
       utils.DESUGAR_CONFIGURATION_JDK11_LEGACY,
       utils.DESUGAR_CONFIGURATION_JDK11_LEGACY_MAVEN_ZIP,
+      utils.DESUGAR_CONFIGURATION_JDK11_MINIMAL_MAVEN_ZIP,
+      utils.DESUGAR_CONFIGURATION_JDK11_MAVEN_ZIP,
+      utils.DESUGAR_CONFIGURATION_JDK11_NIO_MAVEN_ZIP,
       utils.GENERATED_LICENSE,
     ]:
       file_name = os.path.basename(file)

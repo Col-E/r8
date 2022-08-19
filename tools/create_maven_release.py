@@ -81,7 +81,7 @@ DESUGAR_CONFIGUATION_POMTEMPLATE = Template(
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.android.tools</groupId>
-  <artifactId>desugar_jdk_libs_configuration</artifactId>
+  <artifactId>$artifactId</artifactId>
   <version>$version</version>
   <name>D8 configuration to desugar desugar_jdk_libs</name>
   <description>
@@ -260,11 +260,19 @@ def generate_dependencies():
   return result
 
 def write_default_r8_pom_file(pom_file, version):
-  write_pom_file(R8_POMTEMPLATE, pom_file, version, generate_dependencies(), '')
+  write_pom_file(R8_POMTEMPLATE, pom_file, version, dependencies=generate_dependencies())
 
-def write_pom_file(template, pom_file, version, dependencies='', library_licenses=''):
-  version_pom = template.substitute(
-      version=version, dependencies=dependencies, library_licenses=library_licenses)
+def write_pom_file(
+    template, pom_file, version, artifact_id=None, dependencies='', library_licenses=''):
+  version_pom = (
+      template.substitute(
+          artifactId=artifact_id,
+          version=version,
+          dependencies=dependencies,
+          library_licenses=library_licenses)
+    if artifact_id else
+      template.substitute(
+          version=version, dependencies=dependencies, library_licenses=library_licenses))
   with open(pom_file, 'w') as file:
     file.write(version_pom)
 
@@ -332,8 +340,8 @@ def generate_r8_maven_zip(out, is_r8lib=False, version_file=None, skip_gradle_bu
         R8_POMTEMPLATE,
         pom_file,
         version,
-        "" if is_r8lib else generate_dependencies(),
-        generate_library_licenses() if is_r8lib else "")
+        dependencies='' if is_r8lib else generate_dependencies(),
+        library_licenses=generate_library_licenses() if is_r8lib else '')
     # Write the maven zip file.
     generate_maven_zip(
         'r8',
@@ -383,14 +391,31 @@ def generate_jar_with_desugar_configuration(
     make_archive(destination, 'zip', tmp_dir)
     move(destination + '.zip', destination)
 
+def convert_desugar_configuration(configuration, machine_configuration):
+  cmd = [jdk.GetJavaExecutable(),
+      '-cp',
+      utils.R8_JAR,
+      'com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.DesugaredLibraryConverter',
+      configuration,
+      utils.DESUGAR_IMPLEMENTATION_JDK11,
+      utils.get_android_jar(33),
+      machine_configuration]
+  subprocess.check_call(cmd)
+
 # Generate the maven zip for the configuration to desugar desugar_jdk_libs.
 def generate_desugar_configuration_maven_zip(
     out, configuration, implementation, conversions):
   with utils.TempDir() as tmp_dir:
-    version = utils.desugar_configuration_version(configuration)
+    (name, version) = utils.desugar_configuration_name_and_version(configuration, False)
+
+    if (not version.startswith("1.")):
+      machine_configuration = join(tmp_dir, "machine.json")
+      convert_desugar_configuration(configuration, machine_configuration)
+      configuration = machine_configuration
+
     # Generate the pom file.
     pom_file = join(tmp_dir, 'desugar_configuration.pom')
-    write_pom_file(DESUGAR_CONFIGUATION_POMTEMPLATE, pom_file, version)
+    write_pom_file(DESUGAR_CONFIGUATION_POMTEMPLATE, pom_file, version, artifact_id=name)
     # Generate the jar with the configuration file.
     jar_file = join(tmp_dir, 'desugar_configuration.jar')
     generate_jar_with_desugar_configuration(
@@ -399,8 +424,7 @@ def generate_desugar_configuration_maven_zip(
         conversions,
         jar_file)
     # Write the maven zip file.
-    generate_maven_zip(
-        'desugar_jdk_libs_configuration', version, pom_file, jar_file, out)
+    generate_maven_zip(name, version, pom_file, jar_file, out)
 
 def main(argv):
   options = parse_options(argv)

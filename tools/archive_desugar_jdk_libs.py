@@ -19,7 +19,10 @@
 # repository to fetch the artifact com.android.tools:desugar_jdk_libs:1.0.0
 
 import archive
+import defines
 import git_utils
+import gradle
+import hashlib
 import jdk
 import optparse
 import os
@@ -28,17 +31,59 @@ import shutil
 import subprocess
 import sys
 import utils
+import zipfile
 
 VERSION_FILE_JDK8 = 'VERSION.txt'
+VERSION_FILE_JDK11_LEGACY = 'VERSION_JDK11_LEGACY.txt'
+VERSION_FILE_JDK11_MINIMAL = 'VERSION_JDK11_MINIMAL.txt'
 VERSION_FILE_JDK11 = 'VERSION_JDK11.txt'
-LIBRARY_NAME = 'desugar_jdk_libs'
+VERSION_FILE_JDK11_NIO = 'VERSION_JDK11_NIO.txt'
+
+VERSION_MAP = {
+  'jdk8': VERSION_FILE_JDK8,
+  'jdk11_legacy': VERSION_FILE_JDK11_LEGACY,
+  'jdk11_minimal': VERSION_FILE_JDK11_MINIMAL,
+  'jdk11': VERSION_FILE_JDK11,
+  'jdk11_nio': VERSION_FILE_JDK11_NIO
+}
+
+GITHUB_REPRO = 'desugar_jdk_libs'
+
+BASE_LIBRARY_NAME = 'desugar_jdk_libs'
+
+LIBRARY_NAME_MAP = {
+  'jdk8': BASE_LIBRARY_NAME,
+  'jdk11_legacy': BASE_LIBRARY_NAME,
+  'jdk11_minimal': BASE_LIBRARY_NAME + '_minimal',
+  'jdk11': BASE_LIBRARY_NAME,
+  'jdk11_nio': BASE_LIBRARY_NAME + '_nio'
+}
+
+MAVEN_RELEASE_TARGET_MAP = {
+  'jdk8': 'maven_release',
+  'jdk11_legacy': 'maven_release_jdk11_legacy',
+  'jdk11_minimal': 'maven_release_jdk11_minimal',
+  'jdk11': 'maven_release_jdk11',
+  'jdk11_nio': 'maven_release_jdk11_nio'
+}
+
+MAVEN_RELEASE_ZIP = {
+  'jdk8': BASE_LIBRARY_NAME + '.zip',
+  'jdk11_legacy': BASE_LIBRARY_NAME + '_jdk11_legacy.zip',
+  'jdk11_minimal': BASE_LIBRARY_NAME + '_jdk11_minimal.zip',
+  'jdk11': BASE_LIBRARY_NAME + '_jdk11.zip',
+  'jdk11_nio': BASE_LIBRARY_NAME + '_jdk11_nio.zip'
+}
+
 
 def ParseOptions(argv):
   result = optparse.OptionParser()
   result.add_option('--variant',
-      help='.',
-      choices = ['jdk8', 'jdk11'],
-      default='jdk11')
+      help="Variant(s) to build",
+      metavar=('<variants(s)>'),
+      choices=['jdk8', 'jdk11_legacy', 'jdk11_minimal', 'jdk11', 'jdk11_nio'],
+      default=[],
+      action='append')
   result.add_option('--dry-run', '--dry_run',
       help='Running on bot, use third_party dependency.',
       default=False,
@@ -89,7 +134,7 @@ def Upload(options, file_name, storage_path, destination, is_main):
 def CloneDesugaredLibrary(github_account, checkout_dir):
   git_utils.GitClone(
     'https://github.com/'
-        + github_account + '/' + LIBRARY_NAME, checkout_dir)
+        + github_account + '/' + GITHUB_REPRO, checkout_dir)
 
 def GetJavaEnv():
   java_env = dict(os.environ, JAVA_HOME = jdk.GetJdk11Home())
@@ -98,9 +143,11 @@ def GetJavaEnv():
   return java_env
 
 
-def BuildDesugaredLibrary(checkout_dir, variant):
-  if (variant != 'jdk8' and variant != 'jdk11'):
-    raise Exception('Variant ' + variant + 'is not supported')
+def BuildDesugaredLibrary(checkout_dir, variant, version = None):
+  if not variant in MAVEN_RELEASE_TARGET_MAP:
+    raise Exception('Variant ' + variant + ' is not supported')
+  if variant != 'jdk8' and variant != 'jdk11_legacy' and version is None:
+    raise Exception('Variant ' + variant + ' require version for undesugaring')
   with utils.ChangedWorkingDirectory(checkout_dir):
     bazel = os.path.join(utils.BAZEL_TOOL, 'lib', 'bazel', 'bin', 'bazel')
     cmd = [
@@ -109,7 +156,7 @@ def BuildDesugaredLibrary(checkout_dir, variant):
         'build',
         '--spawn_strategy=local',
         '--verbose_failures',
-        'maven_release' + ('_jdk11' if variant == 'jdk11' else '')]
+        MAVEN_RELEASE_TARGET_MAP[variant]]
     utils.PrintCmd(cmd)
     subprocess.check_call(cmd, env=GetJavaEnv())
     cmd = [bazel, 'shutdown']
@@ -122,18 +169,135 @@ def BuildDesugaredLibrary(checkout_dir, variant):
       library_jar = os.path.join(
           checkout_dir, 'bazel-bin', 'src', 'share', 'classes', 'java', 'libjava.jar')
     else:
+      # All JDK11 variants use the same library code.
       library_jar = os.path.join(
           checkout_dir, 'bazel-bin', 'jdk11', 'src', 'd8_java_base_selected_with_addon.jar')
     maven_zip = os.path.join(
       checkout_dir,
       'bazel-bin',
-      LIBRARY_NAME + ('_jdk11' if variant == 'jdk11' else '') +'.zip')
-    return (library_jar, maven_zip)
+      MAVEN_RELEASE_ZIP[variant])
 
+    if variant != 'jdk8' and variant != 'jdk11_legacy':
+      # The undesugaring is temporary...
+      undesugared_maven_zip = os.path.join(checkout_dir, 'undesugared_maven')
+      Undesugar(variant, maven_zip, version, undesugared_maven_zip)
+      undesugared_maven_zip = os.path.join(checkout_dir, 'undesugared_maven.zip')
+      return (library_jar, undesugared_maven_zip)
+    else:
+      return (library_jar, maven_zip)
+
+def hash_for(file, hash):
+  with open(file, 'rb') as f:
+    while True:
+      # Read chunks of 1MB
+      chunk = f.read(2 ** 20)
+      if not chunk:
+        break
+      hash.update(chunk)
+  return hash.hexdigest()
+
+def write_md5_for(file):
+  hexdigest = hash_for(file, hashlib.md5())
+  with (open(file + '.md5', 'w')) as file:
+    file.write(hexdigest)
+
+def write_sha1_for(file):
+  hexdigest = hash_for(file, hashlib.sha1())
+  with (open(file + '.sha1', 'w')) as file:
+    file.write(hexdigest)
+
+def Undesugar(variant, maven_zip, version, undesugared_maven_zip):
+  gradle.RunGradle(['testJar', 'repackageTestDeps'])
+  with utils.TempDir() as tmp:
+    with zipfile.ZipFile(maven_zip, 'r') as zip_ref:
+      zip_ref.extractall(tmp)
+    desugar_jdk_libs_jar = os.path.join(
+          tmp,
+          'com',
+          'android',
+          'tools',
+          LIBRARY_NAME_MAP[variant],
+          version,
+          '%s-%s.jar' % (LIBRARY_NAME_MAP[variant], version))
+    print(desugar_jdk_libs_jar)
+    undesugared_jar = os.path.join(tmp, 'undesugared.jar')
+    buildLibs = os.path.join(defines.REPO_ROOT, 'build', 'libs')
+    cmd = [jdk.GetJavaExecutable(),
+      '-cp',
+      '%s:%s:%s' % (os.path.join(buildLibs, 'r8_with_deps.jar'), os.path.join(buildLibs, 'r8tests.jar'), os.path.join(buildLibs, 'test_deps_all.jar')),
+      'com.android.tools.r8.desugar.desugaredlibrary.jdk11.DesugaredLibraryJDK11Undesugarer',
+      desugar_jdk_libs_jar,
+      undesugared_jar]
+    print(cmd)
+    try:
+      output = subprocess.check_output(cmd, stderr = subprocess.STDOUT).decode('utf-8')
+    except subprocess.CalledProcessError as e:
+      print(e)
+      print(e.output)
+      raise e
+    print(output)
+    # Copy the undesugared jar into place and update the checksums.
+    shutil.copyfile(undesugared_jar, desugar_jdk_libs_jar)
+    write_md5_for(desugar_jdk_libs_jar)
+    write_sha1_for(desugar_jdk_libs_jar)
+    shutil.make_archive(undesugared_maven_zip, 'zip', tmp)
+    print(undesugared_maven_zip)
+    output = subprocess.check_output(['ls', '-l', os.path.dirname(undesugared_maven_zip)], stderr = subprocess.STDOUT).decode('utf-8')
+    print(output)
 
 def MustBeExistingDirectory(path):
   if (not os.path.exists(path) or not os.path.isdir(path)):
     raise Exception(path + ' does not exist or is not a directory')
+
+def BuildAndUpload(options, variant):
+  if options.build_only:
+    with utils.TempDir() as checkout_dir:
+      CloneDesugaredLibrary(options.github_account, checkout_dir)
+      (library_jar, maven_zip) = BuildDesugaredLibrary(checkout_dir, variant)
+      shutil.copyfile(
+        library_jar,
+        os.path.join(options.build_only, os.path.basename(library_jar)))
+      shutil.copyfile(
+        maven_zip,
+        os.path.join(options.build_only, os.path.basename(maven_zip)))
+      return
+
+  # Only handling versioned desugar_jdk_libs.
+  is_main = False
+
+  with utils.TempDir() as checkout_dir:
+    CloneDesugaredLibrary(options.github_account, checkout_dir)
+    version = GetVersion(os.path.join(checkout_dir, VERSION_MAP[variant]))
+
+    destination = archive.GetVersionDestination(
+        'gs://', LIBRARY_NAME_MAP[variant] + '/' + version, is_main)
+    if utils.cloud_storage_exists(destination) and not options.dry_run:
+      raise Exception(
+          'Target archive directory %s already exists' % destination)
+
+    (library_jar, maven_zip) = BuildDesugaredLibrary(checkout_dir, variant, version)
+
+    storage_path = LIBRARY_NAME_MAP[variant] + '/' + version
+    # Upload the jar file with the library.
+    destination = archive.GetUploadDestination(
+        storage_path, LIBRARY_NAME_MAP[variant] + '.jar', is_main)
+    Upload(options, library_jar, storage_path, destination, is_main)
+
+    # Upload the maven zip file with the library.
+    destination = archive.GetUploadDestination(
+        storage_path, MAVEN_RELEASE_ZIP[variant], is_main)
+    Upload(options, maven_zip, storage_path, destination, is_main)
+
+    # Upload the jar file for accessing GCS as a maven repro.
+    maven_destination = archive.GetUploadDestination(
+        utils.get_maven_path('desugar_jdk_libs', version),
+        'desugar_jdk_libs-%s.jar' % version,
+        is_main)
+    if options.dry_run:
+      print('Dry run, not actually creating maven repo')
+    else:
+      utils.upload_file_to_cloud_storage(library_jar, maven_destination)
+      print('Maven repo root available at: %s' % archive.GetMavenUrl(is_main))
 
 def Main(argv):
   (options, args) = ParseOptions(argv)
@@ -154,58 +318,8 @@ def Main(argv):
   utils.DownloadFromGoogleCloudStorage(utils.JAVA8_SHA_FILE)
   utils.DownloadFromGoogleCloudStorage(utils.JAVA11_SHA_FILE)
 
-  if options.build_only:
-    with utils.TempDir() as checkout_dir:
-      CloneDesugaredLibrary(options.github_account, checkout_dir)
-      (library_jar, maven_zip) = BuildDesugaredLibrary(checkout_dir, options.variant)
-      shutil.copyfile(
-        library_jar,
-        os.path.join(options.build_only, os.path.basename(library_jar)))
-      shutil.copyfile(
-        maven_zip,
-        os.path.join(options.build_only, os.path.basename(maven_zip)))
-      return
-
-  # Only handling versioned desugar_jdk_libs.
-  is_main = False
-
-  with utils.TempDir() as checkout_dir:
-    CloneDesugaredLibrary(options.github_account, checkout_dir)
-    version = GetVersion(
-      os.path.join(
-        checkout_dir,
-        VERSION_FILE_JDK11 if options.variant == 'jdk11' else VERSION_FILE_JDK8))
-
-    destination = archive.GetVersionDestination(
-        'gs://', LIBRARY_NAME + '/' + version, is_main)
-    if utils.cloud_storage_exists(destination) and not options.dry_run:
-      raise Exception(
-          'Target archive directory %s already exists' % destination)
-
-    (library_jar, maven_zip) = BuildDesugaredLibrary(checkout_dir, options.variant)
-
-    storage_path = LIBRARY_NAME + '/' + version
-    # Upload the jar file with the library.
-    destination = archive.GetUploadDestination(
-        storage_path, LIBRARY_NAME + '.jar', is_main)
-    Upload(options, library_jar, storage_path, destination, is_main)
-
-    # Upload the maven zip file with the library.
-    destination = archive.GetUploadDestination(
-        storage_path, LIBRARY_NAME + '.zip', is_main)
-    Upload(options, maven_zip, storage_path, destination, is_main)
-
-    # Upload the jar file for accessing GCS as a maven repro.
-    maven_destination = archive.GetUploadDestination(
-        utils.get_maven_path('desugar_jdk_libs', version),
-        'desugar_jdk_libs-%s.jar' % version,
-        is_main)
-    if options.dry_run:
-      print('Dry run, not actually creating maven repo')
-    else:
-      utils.upload_file_to_cloud_storage(library_jar, maven_destination)
-      print('Maven repo root available at: %s' % archive.GetMavenUrl(is_main))
-
+  for v in options.variant:
+    BuildAndUpload(options, v)
 
 if __name__ == '__main__':
   sys.exit(Main(sys.argv[1:]))

@@ -77,12 +77,24 @@ DESUGAR_IMPLEMENTATION = os.path.join(
       'third_party', 'openjdk', 'desugar_jdk_libs', 'desugar_jdk_libs.jar')
 DESUGAR_CONFIGURATION_JDK11_LEGACY = os.path.join(
       'src', 'library_desugar', 'jdk11', 'desugar_jdk_libs_legacy.json')
+DESUGAR_CONFIGURATION_JDK11_MINIMAL = os.path.join(
+      'src', 'library_desugar', 'jdk11', 'desugar_jdk_libs_minimal.json')
+DESUGAR_CONFIGURATION_JDK11 = os.path.join(
+      'src', 'library_desugar', 'jdk11', 'desugar_jdk_libs.json')
+DESUGAR_CONFIGURATION_JDK11_NIO = os.path.join(
+      'src', 'library_desugar', 'jdk11', 'desugar_jdk_libs_nio.json')
 DESUGAR_IMPLEMENTATION_JDK11 = os.path.join(
       'third_party', 'openjdk', 'desugar_jdk_libs_11', 'desugar_jdk_libs.jar')
 DESUGAR_CONFIGURATION_MAVEN_ZIP = os.path.join(
   LIBS, 'desugar_jdk_libs_configuration.zip')
 DESUGAR_CONFIGURATION_JDK11_LEGACY_MAVEN_ZIP = os.path.join(
   LIBS, 'desugar_jdk_libs_configuration_jdk11_legacy.zip')
+DESUGAR_CONFIGURATION_JDK11_MINIMAL_MAVEN_ZIP = os.path.join(
+  LIBS, 'desugar_jdk_libs_configuration_jdk11_minimal.zip')
+DESUGAR_CONFIGURATION_JDK11_MAVEN_ZIP = os.path.join(
+  LIBS, 'desugar_jdk_libs_configuration_jdk11.zip')
+DESUGAR_CONFIGURATION_JDK11_NIO_MAVEN_ZIP = os.path.join(
+  LIBS, 'desugar_jdk_libs_configuration_jdk11_nio.zip')
 GENERATED_LICENSE = os.path.join(GENERATED_LICENSE_DIR, 'LICENSE')
 RT_JAR = os.path.join(REPO_ROOT, 'third_party/openjdk/openjdk-rt-1.8/rt.jar')
 R8LIB_KEEP_RULES = os.path.join(REPO_ROOT, 'src/main/keep.txt')
@@ -626,17 +638,48 @@ def getR8Version(path):
   # so we split on '('; clean up tailing spaces; and strip off 'R8 '.
   return output.split('(')[0].strip()[3:]
 
-def desugar_configuration_version(configuration):
+def desugar_configuration_name_and_version(configuration, is_for_maven):
+  name = 'desugar_jdk_libs_configuration'
   with open(configuration, 'r') as f:
     configuration_json = json.loads(f.read())
     configuration_format_version = \
         configuration_json.get('configuration_format_version')
+    if (not configuration_format_version):
+        raise Exception(
+            'No "configuration_format_version" found in ' + configuration)
+    if (configuration_format_version != 3
+        and configuration_format_version != 5
+        and configuration_format_version != (200 if is_for_maven else 100)):
+          raise Exception(
+              'Unsupported "configuration_format_version" "%s" found in %s'
+              % (configuration_format_version, configuration))
     version = configuration_json.get('version')
     if not version:
-      raise Exception(
-          'No "version" found in ' + configuration)
-    check_basic_semver_version(version, 'in ' + configuration, allowPrerelease = True)
-    return version
+      if configuration_format_version == (200 if is_for_maven else 100):
+        identifier = configuration_json.get('identifier')
+        if not identifier:
+          raise Exception(
+              'No "identifier" found in ' + configuration)
+        identifier_split = identifier.split(':')
+        if (len(identifier_split) != 3):
+          raise Exception('Invalid "identifier" found in ' + configuration)
+        if (identifier_split[0] != 'com.tools.android'):
+          raise Exception('Invalid "identifier" found in ' + configuration)
+        if not identifier_split[1].startswith('desugar_jdk_libs_configuration'):
+          raise Exception('Invalid "identifier" found in ' + configuration)
+        name = identifier_split[1]
+        version = identifier_split[2]
+      else:
+        raise Exception(
+            'No "version" found in ' + configuration)
+    else:
+      if configuration_format_version == (200 if is_for_maven else 100):
+        raise Exception(
+            'No "version" expected in ' + configuration)
+    # Disallow prerelease, as older R8 versions cannot parse it causing hard to
+    # understand errors.
+    check_basic_semver_version(version, 'in ' + configuration, allowPrerelease = False)
+    return (name, version)
 
 class SemanticVersion:
   def __init__(self, major, minor, patch, prerelease):

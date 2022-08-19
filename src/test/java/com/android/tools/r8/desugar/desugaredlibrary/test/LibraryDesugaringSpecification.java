@@ -118,7 +118,7 @@ public class LibraryDesugaringSpecification {
       new LibraryDesugaringSpecification(
           "JDK11_PATH",
           getUndesugaredJdk11LibJarForTesting(),
-          "jdk11/desugar_jdk_libs_path.json",
+          "jdk11/desugar_jdk_libs_nio.json",
           AndroidApiLevel.R,
           JDK11_PATH_DESCRIPTOR,
           LATEST);
@@ -128,7 +128,7 @@ public class LibraryDesugaringSpecification {
       new LibraryDesugaringSpecification(
           "JDK11_PATH_ALTERNATIVE_3",
           getUndesugaredJdk11LibJarForTesting(),
-          "jdk11/desugar_jdk_libs_path_alternative_3.json",
+          "jdk11/desugar_jdk_libs_nio_alternative_3.json",
           AndroidApiLevel.R,
           JDK11_PATH_DESCRIPTOR,
           LATEST);
