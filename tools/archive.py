@@ -31,6 +31,9 @@ def ParseOptions():
   result.add_option('--dry-run-output', '--dry_run_output',
       help='Output directory for \'build only, no upload\'.',
       type="string", action="store")
+  result.add_option('--skip-gradle-build', '--skip_gradle_build',
+      help='Skip Gradle build. Can only be used for local testing.',
+      default=False, action='store_true')
   return result.parse_args()
 
 def GetVersion():
@@ -112,6 +115,8 @@ def Main():
        not os.path.isdir(options.dry_run_output))):
     raise Exception(options.dry_run_output
         + ' does not exist or is not a directory')
+  if (options.skip_gradle_build and not options.dry_run):
+    raise Exception('Using --skip-gradle-build only supported with --dry-run')
 
   if utils.is_bot() and not utils.IsWindows():
     SetRLimitToMax()
@@ -134,27 +139,35 @@ def Main():
       version_writer.write('version-file.version.code=1\n')
 
     # Create maven release which uses a build that exclude dependencies.
-    create_maven_release.generate_r8_maven_zip(utils.MAVEN_ZIP, version_file=version_file)
     create_maven_release.generate_r8_maven_zip(
-        utils.MAVEN_ZIP_LIB, is_r8lib=True, version_file=version_file)
+        utils.MAVEN_ZIP,
+        version_file=version_file,
+        skip_gradle_build=options.skip_gradle_build)
+    create_maven_release.generate_r8_maven_zip(
+        utils.MAVEN_ZIP_LIB,
+        is_r8lib=True,
+        version_file=version_file,
+        skip_gradle_build=options.skip_gradle_build)
 
     # Generate and copy a full build without dependencies.
-    gradle.RunGradleExcludeDeps([utils.R8, utils.R8_SRC])
+    if (not options.skip_gradle_build):
+      gradle.RunGradleExcludeDeps([utils.R8, utils.R8_SRC])
     shutil.copyfile(utils.R8_JAR, utils.R8_FULL_EXCLUDE_DEPS_JAR)
 
     # Ensure all archived artifacts has been built before archiving.
     # The target tasks postfixed by 'lib' depend on the actual target task so
     # building it invokes the original task first.
     # The '-Pno_internal' flag is important because we generate the lib based on uses in tests.
-    gradle.RunGradle([
-        utils.R8,
-        utils.R8LIB,
-        utils.R8LIB_NO_DEPS,
-        utils.R8RETRACE,
-        utils.R8RETRACE_NO_DEPS,
-        utils.LIBRARY_DESUGAR_CONVERSIONS,
-        '-Pno_internal'
-    ])
+    if (not options.skip_gradle_build):
+      gradle.RunGradle([
+          utils.R8,
+          utils.R8LIB,
+          utils.R8LIB_NO_DEPS,
+          utils.R8RETRACE,
+          utils.R8RETRACE_NO_DEPS,
+          utils.LIBRARY_DESUGAR_CONVERSIONS,
+          '-Pno_internal'
+      ])
 
     # Create maven release of the desuage_jdk_libs configuration. This require
     # an r8.jar with dependencies to have been built.
