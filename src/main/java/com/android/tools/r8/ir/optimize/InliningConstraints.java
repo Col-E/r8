@@ -351,6 +351,9 @@ public class InliningConstraints {
   private ConstraintWithTarget forFieldInstruction(DexField field, ProgramMethod context) {
     DexField lookup = graphLens.lookupField(field);
     FieldResolutionResult fieldResolutionResult = appView.appInfo().resolveField(lookup);
+    if (fieldResolutionResult.isMultiFieldResolutionResult()) {
+      return ConstraintWithTarget.NEVER;
+    }
     return forResolvedMember(
         fieldResolutionResult.getInitialResolutionHolder(),
         context,
