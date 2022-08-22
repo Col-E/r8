@@ -240,14 +240,24 @@ def r8_tester_with_default(name,
             dimensions = dimensions, category = category, release_trigger=release_trigger)
 
 def archivers():
-  for name in ["archive", "archive_release", "lib_desugar-archive-jdk11", "lib_desugar-archive-jdk8"]:
+  for name in [
+      "archive",
+      "archive_release",
+      "lib_desugar-archive-jdk11",
+      "lib_desugar-archive-jdk11-legacy",
+      "lib_desugar-archive-jdk8"]:
     desugar = "desugar" in name
     properties = {
         "test_wrapper" : "tools/archive_desugar_jdk_libs.py" if desugar else "tools/archive.py",
         "builder_group" : "internal.client.r8"
     }
     if desugar:
-      properties["test_options"] = ["--variant=jdk11" if "jdk11" in name else "--variant=jdk8"]
+      if name.endswith("jdk11"):
+        properties["test_options"] = ["--variant=jdk11_minimal", "--variant=jdk11", "--variant=jdk11_nio"]
+      elif name.endswith("jdk11-legacy"):
+        properties["test_options"] = ["--variant=jdk11_legacy"]
+      else:
+        properties["test_options"] = ["--variant=jdk8"]
 
     r8_builder(
         name,
