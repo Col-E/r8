@@ -6,8 +6,9 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
-import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -46,7 +47,7 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
-        getJdk8Jdk11(),
+        ImmutableList.of(JDK8, JDK11, JDK11_PATH),
         ImmutableList.of(D8_L8DEBUG));
   }
 
@@ -65,6 +66,7 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
     testForL8(parameters.getApiLevel())
         .apply(libraryDesugaringSpecification::configureL8TestBuilder)
         .compile()
+        .assertNoMessages()
         .inspect(this::assertCorrect);
   }
 
@@ -108,7 +110,9 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
                 assertThat(
                     clazz.getOriginalName(),
                     CoreMatchers.anyOf(startsWith("j$."), startsWith("java."))));
-    assertThat(inspector.clazz("j$.time.Clock"), isPresent());
+    if (parameters.getApiLevel().getLevel() <= AndroidApiLevel.R.getLevel()) {
+      assertThat(inspector.clazz("j$.time.Clock"), isPresent());
+    }
     // Above N the following classes are removed instead of being desugared.
     if (parameters.getApiLevel().getLevel() >= AndroidApiLevel.N.getLevel()) {
       assertFalse(inspector.clazz("j$.util.Optional").isPresent());
