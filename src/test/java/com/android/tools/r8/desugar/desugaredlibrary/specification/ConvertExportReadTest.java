@@ -124,6 +124,8 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
   }
 
   private void testMultiLevelUsingMain(LibraryDesugaringSpecification spec) throws IOException {
+    Assume.assumeTrue(ToolHelper.isLocalDevelopment());
+
     Path output = temp.newFile().toPath();
     DesugaredLibraryConverter.convertMultiLevelAnythingToMachineSpecification(
         spec.getSpecification(), spec.getDesugarJdkLibs(), spec.getLibraryFiles(), output);
