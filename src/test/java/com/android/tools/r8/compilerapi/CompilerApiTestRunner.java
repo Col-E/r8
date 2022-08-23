@@ -15,9 +15,8 @@ import org.junit.runners.Parameterized.Parameters;
  * Base runner for all compiler API tests.
  *
  * <p>Using this runner will automatically create an externalized variant of the test. That is
- * useful to more quickely ensure the test itself is not using resources that are not available.
- * Note however, that it does not prevent using non-kept code in the compilers unless testing with
- * r8lib!
+ * useful to more quickly ensure the test itself is not using resources that are not available. Note
+ * however, that it does not prevent using non-kept code in the compilers unless testing with r8lib!
  */
 @RunWith(Parameterized.class)
 public abstract class CompilerApiTestRunner extends TestBase {

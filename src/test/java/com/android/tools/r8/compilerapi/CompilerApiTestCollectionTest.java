@@ -36,7 +36,7 @@ public class CompilerApiTestCollectionTest extends TestBase {
   /**
    * If this test fails the test.jar needs to be regenerated and uploaded to cloud storage.
    *
-   * <p>See: {@code CompilerApiTestCollection.main} to regenerate.
+   * <p>See: {@link CompilerApiTestCollectionTest#main} to regenerate.
    *
    * <p>To preserve compatibility, make sure only to regenerate together with test changes and with
    * NO changes to the compiler itself.

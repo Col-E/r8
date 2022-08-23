@@ -4,8 +4,11 @@
 
 package com.android.tools.r8.startup;
 
+import com.android.tools.r8.Keep;
 import com.android.tools.r8.references.ClassReference;
 
+/** Interface for providing information about a synthetic startup method to the compiler. */
+@Keep
 public interface SyntheticStartupMethodBuilder {
 
   SyntheticStartupMethodBuilder setSyntheticContextReference(ClassReference classReference);

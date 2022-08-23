@@ -18,6 +18,7 @@ import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardConfigurationSource;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceFile;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceStrings;
+import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AssertionConfigurationWithDefault;
@@ -264,6 +265,35 @@ public final class D8Command extends BaseCompilerCommand {
       return self();
     }
 
+    /**
+     * Add a collection of startup profile providers that should be used for distributing the
+     * program classes in dex.
+     *
+     * <p>NOTE: Startup profiles are ignored when compiling to class files or the min-API level does
+     * not support native multidex (API<=20).
+     *
+     * <p>NOTE: This API is experimental and may be subject to changes.
+     */
+    @Override
+    public Builder addStartupProfileProviders(StartupProfileProvider... startupProfileProviders) {
+      return super.addStartupProfileProviders(startupProfileProviders);
+    }
+
+    /**
+     * Add a collection of startup profile providers that should be used for distributing the
+     * program classes in dex.
+     *
+     * <p>NOTE: Startup profiles are ignored when compiling to class files or the min-API level does
+     * not support native multidex (API<=20).
+     *
+     * <p>NOTE: This API is experimental and may be subject to changes.
+     */
+    @Override
+    public Builder addStartupProfileProviders(
+        Collection<StartupProfileProvider> startupProfileProviders) {
+      return super.addStartupProfileProviders(startupProfileProviders);
+    }
+
     @Override
     Builder self() {
       return this;
@@ -426,6 +456,7 @@ public final class D8Command extends BaseCompilerCommand {
           proguardMapConsumer,
           enableMissingLibraryApiModeling,
           getAndroidPlatformBuild(),
+          getStartupProfileProviders(),
           factory);
     }
   }
@@ -516,6 +547,7 @@ public final class D8Command extends BaseCompilerCommand {
       StringConsumer proguardMapConsumer,
       boolean enableMissingLibraryApiModeling,
       boolean isAndroidPlatformBuild,
+      List<StartupProfileProvider> startupProfileProviders,
       DexItemFactory factory) {
     super(
         inputApp,
@@ -534,7 +566,8 @@ public final class D8Command extends BaseCompilerCommand {
         dumpInputFlags,
         mapIdProvider,
         null,
-        isAndroidPlatformBuild);
+        isAndroidPlatformBuild,
+        startupProfileProviders);
     this.intermediate = intermediate;
     this.globalSyntheticsConsumer = globalSyntheticsConsumer;
     this.desugarGraphConsumer = desugarGraphConsumer;
@@ -653,6 +686,11 @@ public final class D8Command extends BaseCompilerCommand {
     }
 
     internal.configureAndroidPlatformBuild(getAndroidPlatformBuild());
+
+    // TODO(b/238173796): Change StartupOptions to store a Collection<StartupProfileProvider>.
+    if (getStartupProfileProviders().size() == 1) {
+      internal.getStartupOptions().setStartupProfileProvider(getStartupProfileProviders().get(0));
+    }
 
     internal.setDumpInputFlags(getDumpInputFlags());
     internal.dumpOptions = dumpOptions();

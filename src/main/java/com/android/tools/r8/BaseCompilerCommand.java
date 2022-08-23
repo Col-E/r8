@@ -12,6 +12,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecific
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DumpInputFlags;
@@ -21,6 +22,7 @@ import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -55,6 +57,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
   private final MapIdProvider mapIdProvider;
   private final SourceFileProvider sourceFileProvider;
   private final boolean isAndroidPlatformBuild;
+  private final List<StartupProfileProvider> startupProfileProviders;
 
   BaseCompilerCommand(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
@@ -74,6 +77,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     mapIdProvider = null;
     sourceFileProvider = null;
     isAndroidPlatformBuild = false;
+    startupProfileProviders = null;
   }
 
   BaseCompilerCommand(
@@ -93,7 +97,8 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       DumpInputFlags dumpInputFlags,
       MapIdProvider mapIdProvider,
       SourceFileProvider sourceFileProvider,
-      boolean isAndroidPlatformBuild) {
+      boolean isAndroidPlatformBuild,
+      List<StartupProfileProvider> startupProfileProviders) {
     super(app);
     assert minApiLevel > 0;
     assert mode != null;
@@ -113,6 +118,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     this.mapIdProvider = mapIdProvider;
     this.sourceFileProvider = sourceFileProvider;
     this.isAndroidPlatformBuild = isAndroidPlatformBuild;
+    this.startupProfileProviders = startupProfileProviders;
   }
 
   /**
@@ -208,6 +214,10 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     return isAndroidPlatformBuild;
   }
 
+  List<StartupProfileProvider> getStartupProfileProviders() {
+    return startupProfileProviders;
+  }
+
   DumpInputFlags getDumpInputFlags() {
     return dumpInputFlags;
   }
@@ -249,6 +259,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private MapIdProvider mapIdProvider = null;
     private SourceFileProvider sourceFileProvider = null;
     private boolean isAndroidPlatformBuild = false;
+    private List<StartupProfileProvider> startupProfileProviders = new ArrayList<>();
 
     abstract CompilationMode defaultCompilationMode();
 
@@ -662,6 +673,19 @@ public abstract class BaseCompilerCommand extends BaseCommand {
 
     public boolean getAndroidPlatformBuild() {
       return isAndroidPlatformBuild;
+    }
+
+    B addStartupProfileProviders(StartupProfileProvider... startupProfileProviders) {
+      return addStartupProfileProviders(Arrays.asList(startupProfileProviders));
+    }
+
+    B addStartupProfileProviders(Collection<StartupProfileProvider> startupProfileProviders) {
+      this.startupProfileProviders.addAll(startupProfileProviders);
+      return self();
+    }
+
+    List<StartupProfileProvider> getStartupProfileProviders() {
+      return startupProfileProviders;
     }
 
     /**

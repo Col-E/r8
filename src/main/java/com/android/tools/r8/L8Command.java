@@ -117,7 +117,8 @@ public final class L8Command extends BaseCompilerCommand {
         dumpInputFlags,
         mapIdProvider,
         null,
-        false);
+        false,
+        null);
     this.d8Command = d8Command;
     this.r8Command = r8Command;
     this.desugaredLibrarySpecification = desugaredLibrarySpecification;

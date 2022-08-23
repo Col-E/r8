@@ -7,6 +7,9 @@ package com.android.tools.r8.experimental.startup;
 import static com.android.tools.r8.utils.SystemPropertyUtils.parseSystemPropertyForDevelopmentOrDefault;
 
 import com.android.tools.r8.StringResource;
+import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.startup.StartupProfileBuilder;
 import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.utils.SystemPropertyUtils;
 import java.nio.file.Paths;
@@ -53,7 +56,23 @@ public class StartupOptions {
       SystemPropertyUtils.applySystemProperty(
           "com.android.tools.r8.startup.profile",
           propertyValue ->
-              StringResource.fromFile(Paths.get(propertyValue))::getStringWithRuntimeException,
+              new StartupProfileProvider() {
+                @Override
+                public String get() {
+                  return StringResource.fromFile(Paths.get(propertyValue))
+                      .getStringWithRuntimeException();
+                }
+
+                @Override
+                public void getStartupProfile(StartupProfileBuilder startupProfileBuilder) {
+                  throw new Unimplemented();
+                }
+
+                @Override
+                public Origin getOrigin() {
+                  return Origin.unknown();
+                }
+              },
           () -> null);
 
   public boolean isMinimalStartupDexEnabled() {

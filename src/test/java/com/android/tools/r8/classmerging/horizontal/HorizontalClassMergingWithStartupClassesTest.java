@@ -7,9 +7,12 @@ package com.android.tools.r8.classmerging.horizontal;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.experimental.startup.StartupClass;
 import com.android.tools.r8.experimental.startup.StartupProfile;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.startup.StartupProfileBuilder;
 import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
@@ -63,7 +66,23 @@ public class HorizontalClassMergingWithStartupClassesTest extends TestBase {
                                                       toDexType(startupClass, dexItemFactory))
                                                   .build())))
                       .build();
-              StartupProfileProvider startupProfileProvider = startupProfile::serializeToString;
+              StartupProfileProvider startupProfileProvider =
+                  new StartupProfileProvider() {
+                    @Override
+                    public String get() {
+                      return startupProfile.serializeToString();
+                    }
+
+                    @Override
+                    public void getStartupProfile(StartupProfileBuilder startupProfileBuilder) {
+                      throw new Unimplemented();
+                    }
+
+                    @Override
+                    public Origin getOrigin() {
+                      return Origin.unknown();
+                    }
+                  };
               options.getStartupOptions().setStartupProfileProvider(startupProfileProvider);
             })
         .addHorizontallyMergedClassesInspector(

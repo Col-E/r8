@@ -4,10 +4,17 @@
 
 package com.android.tools.r8.startup;
 
-/** Interface for providing a startup profile to the compiler. */
-@FunctionalInterface
-public interface StartupProfileProvider {
+import com.android.tools.r8.Keep;
+import com.android.tools.r8.Resource;
 
+/** Interface for providing a startup profile to the compiler. */
+@Keep
+public interface StartupProfileProvider extends Resource {
+
+  // TODO(b/238173796): Change the implementation to use the new API below.
   /** Return the startup profile. */
   String get();
+
+  /** Provides the startup profile by callbacks to the given {@param startupProfileBuilder}. */
+  void getStartupProfile(StartupProfileBuilder startupProfileBuilder);
 }
