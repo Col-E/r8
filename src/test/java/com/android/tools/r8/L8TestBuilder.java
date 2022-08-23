@@ -195,6 +195,7 @@ public class L8TestBuilder {
     if (programConsumer != null) {
       return null;
     }
+    assertNoUnexpectedDiagnosticMessages();
     return new L8TestCompileResult(
             sink.build(),
             apiLevel,
@@ -213,6 +214,29 @@ public class L8TestBuilder {
                                 assertTrue(
                                     clazz.getFinalName().startsWith("j$.")
                                         || clazz.getFinalName().startsWith("java.")))));
+  }
+
+  private void assertNoUnexpectedDiagnosticMessages() {
+    TestDiagnosticMessages diagnosticsMessages = state.getDiagnosticsMessages();
+    diagnosticsMessages.assertNoErrors();
+    List<Diagnostic> warnings = diagnosticsMessages.getWarnings();
+    // We allow warnings exclusively when using the extended version for JDK11 testing.
+    // In this case, all warnings should apply to org.testng.Assert types which are not present
+    // in the vanilla desugared library.
+    // Vanilla desugared library compilation should have no warnings.
+    assertTrue(
+        warnings.isEmpty()
+            || warnings.stream()
+                .allMatch(warn -> warn.getDiagnosticMessage().contains("org.testng.Assert")));
+    List<Diagnostic> infos = diagnosticsMessages.getInfos();
+    // The rewriting confuses the generic signatures in some methods. Such signatures are never
+    // used by tools (they use the non library desugared version) and are stripped when compiling
+    // with R8 anyway.
+    // TODO(b/243483320): Investigate the Invalid signature.
+    assertTrue(
+        infos.isEmpty()
+            || infos.stream()
+                .allMatch(info -> info.getDiagnosticMessage().contains("Invalid signature ")));
   }
 
   private L8Command.Builder addProgramClassFileData(L8Command.Builder builder) {

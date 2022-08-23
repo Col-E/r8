@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.benchmarks.desugaredlib;
 
+import static com.android.tools.r8.ToolHelper.getDesugarLibConversions;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.CustomConversionVersion.LATEST;
+
 import com.android.tools.r8.L8TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestState;
@@ -61,7 +64,7 @@ public class L8Benchmark extends BenchmarkBase {
     LibraryDesugaringSpecification spec =
         new LibraryDesugaringSpecification(
             "JDK11_Benchmark",
-            ImmutableSet.of(undesugarJdkLib),
+            ImmutableSet.of(undesugarJdkLib, getDesugarLibConversions(LATEST)),
             Paths.get("src/library_desugar/jdk11/desugar_jdk_libs.json"),
             ImmutableSet.of(androidJar.getRoot(environment).resolve("android.jar")),
             LibraryDesugaringSpecification.JDK11_DESCRIPTOR,
