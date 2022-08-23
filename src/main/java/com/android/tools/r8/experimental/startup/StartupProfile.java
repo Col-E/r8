@@ -4,9 +4,9 @@
 
 package com.android.tools.r8.experimental.startup;
 
-import com.android.tools.r8.StartupProfileProvider;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;

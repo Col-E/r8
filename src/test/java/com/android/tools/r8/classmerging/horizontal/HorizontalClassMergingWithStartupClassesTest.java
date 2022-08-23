@@ -5,12 +5,12 @@
 package com.android.tools.r8.classmerging.horizontal;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.StartupProfileProvider;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.experimental.startup.StartupClass;
 import com.android.tools.r8.experimental.startup.StartupProfile;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;

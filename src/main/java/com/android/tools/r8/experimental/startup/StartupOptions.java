@@ -6,8 +6,8 @@ package com.android.tools.r8.experimental.startup;
 
 import static com.android.tools.r8.utils.SystemPropertyUtils.parseSystemPropertyForDevelopmentOrDefault;
 
-import com.android.tools.r8.StartupProfileProvider;
 import com.android.tools.r8.StringResource;
+import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.utils.SystemPropertyUtils;
 import java.nio.file.Paths;
 
