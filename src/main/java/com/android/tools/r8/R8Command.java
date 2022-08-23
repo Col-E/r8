@@ -1046,9 +1046,12 @@ public final class R8Command extends BaseCompilerCommand {
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
 
     internal.setDesugaredLibrarySpecification(desugaredLibrarySpecification);
-    internal.synthesizedClassPrefix = synthesizedClassPrefix;
-    // TODO(b/214382176): Enable all the time.
+    internal.synthesizedClassPrefix =
+        synthesizedClassPrefix.isEmpty()
+            ? System.getProperty("com.android.tools.r8.synthesizedClassPrefix", "")
+            : synthesizedClassPrefix;
     boolean l8Shrinking = !synthesizedClassPrefix.isEmpty();
+    // TODO(b/214382176): Enable all the time.
     internal.loadAllClassDefinitions = l8Shrinking;
     if (l8Shrinking) {
       internal.apiModelingOptions().disableSubbingOfClasses();
