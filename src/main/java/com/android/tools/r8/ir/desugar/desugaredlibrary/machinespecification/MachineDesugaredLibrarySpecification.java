@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class MachineDesugaredLibrarySpecification implements DesugaredLibrarySpecification {
 
@@ -101,6 +102,13 @@ public class MachineDesugaredLibrarySpecification implements DesugaredLibrarySpe
   @Override
   public List<String> getExtraKeepRules() {
     return topLevelFlags.getExtraKeepRules();
+  }
+
+  @Override
+  public Set<String> getMaintainTypeOrPrefixForTesting() {
+    return rewritingFlags.getMaintainType().stream()
+        .map(DexType::toString)
+        .collect(Collectors.toSet());
   }
 
   public Map<DexType, DexType> getRewriteType() {

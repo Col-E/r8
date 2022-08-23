@@ -8,6 +8,8 @@ import static junit.framework.Assert.assertNull;
 import static junit.framework.TestCase.assertTrue;
 
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidAppConsumers;
@@ -23,6 +25,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
@@ -204,16 +207,30 @@ public class L8TestBuilder {
             mapping,
             state,
             backend.isCf() ? OutputMode.ClassFile : OutputMode.DexIndexed)
-        .applyIf(
-            finalPrefixVerification,
-            compileResult ->
-                compileResult.inspect(
-                    inspector ->
-                        inspector.forAllClasses(
-                            clazz ->
-                                assertTrue(
-                                    clazz.getFinalName().startsWith("j$.")
-                                        || clazz.getFinalName().startsWith("java.")))));
+        .applyIf(finalPrefixVerification, this::validatePrefix);
+  }
+
+  private void validatePrefix(L8TestCompileResult compileResult) throws IOException {
+    InternalOptions options = new InternalOptions();
+    DesugaredLibrarySpecification specification =
+        DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecification(
+            this.desugaredLibrarySpecification,
+            options.dexItemFactory(),
+            options.reporter,
+            true,
+            apiLevel.getLevel());
+    Set<String> maintainTypeOrPrefix = specification.getMaintainTypeOrPrefixForTesting();
+    compileResult.inspect(
+        inspector ->
+            inspector.forAllClasses(
+                clazz -> {
+                  String finalName = clazz.getFinalName();
+                  if (finalName.startsWith("java.")) {
+                    assertTrue(maintainTypeOrPrefix.stream().anyMatch(finalName::startsWith));
+                  } else {
+                    assertTrue(finalName.startsWith("j$."));
+                  }
+                }));
   }
 
   private void assertNoUnexpectedDiagnosticMessages() {

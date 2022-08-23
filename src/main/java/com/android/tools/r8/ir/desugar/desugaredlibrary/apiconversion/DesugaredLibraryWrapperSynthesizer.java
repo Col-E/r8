@@ -31,7 +31,6 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredL
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.CustomConversionDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.WrapperDescriptor;
 import com.android.tools.r8.ir.synthetic.apiconverter.NullableConversionCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.apiconverter.NullableConversionCfCodeProvider.ArrayConversionCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.apiconverter.WrapperConstructorCfCodeProvider;
@@ -727,22 +726,8 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   }
 
   private DexClass getWrapperContext(DexClass context, WrapperKind kind) {
-    if (kind != WrapperKind.VIVIFIED_WRAPPER) {
-      return context;
-    }
-    WrapperDescriptor descriptor =
-        appView.options().machineDesugaredLibrarySpecification.getWrappers().get(context.type);
-    assert descriptor != null;
-    if (descriptor.hasNonPublicAccess()) {
-      return appView
-          .getSyntheticItems()
-          .ensureFixedClasspathClassFromType(
-              kinds -> kinds.VIVIFIED,
-              vivifiedTypeFor(context.type),
-              appView,
-              ignored -> {},
-              ignored -> {});
-    }
+    // A different context can be specified here, so that the wrapper is prefixed by a different
+    // class than the context.
     return context;
   }
 

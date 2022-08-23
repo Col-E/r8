@@ -10,6 +10,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Timing;
 import java.util.List;
+import java.util.Set;
 
 public class HumanDesugaredLibrarySpecification implements DesugaredLibrarySpecification {
 
@@ -70,6 +71,11 @@ public class HumanDesugaredLibrarySpecification implements DesugaredLibrarySpeci
 
   public String getIdentifier() {
     return topLevelFlags.getIdentifier();
+  }
+
+  @Override
+  public Set<String> getMaintainTypeOrPrefixForTesting() {
+    return rewritingFlags.getMaintainPrefix();
   }
 
   @Override

@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.Mac
 import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.LegacyToHumanSpecificationConverter;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -108,6 +109,11 @@ public class LegacyDesugaredLibrarySpecification implements DesugaredLibrarySpec
   @Override
   public List<String> getExtraKeepRules() {
     return topLevelFlags.getExtraKeepRules();
+  }
+
+  @Override
+  public Set<String> getMaintainTypeOrPrefixForTesting() {
+    return ImmutableSet.of();
   }
 
   @Override

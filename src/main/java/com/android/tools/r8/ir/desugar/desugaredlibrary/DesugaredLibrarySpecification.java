@@ -10,6 +10,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 public interface DesugaredLibrarySpecification {
 
@@ -30,6 +31,8 @@ public interface DesugaredLibrarySpecification {
   String getSynthesizedLibraryClassesPackagePrefix();
 
   List<String> getExtraKeepRules();
+
+  Set<String> getMaintainTypeOrPrefixForTesting();
 
   AndroidApiLevel getRequiredCompilationApiLevel();
 
