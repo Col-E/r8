@@ -15,7 +15,6 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
-import com.android.tools.r8.desugar.desugaredlibrary.test.DesugaredLibraryTestBuilder;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
@@ -40,14 +39,17 @@ public class StackWalkerTest extends DesugaredLibraryTestBase {
       Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR + "stackwalker.jar");
   private static final String EXPECTED_OUTPUT =
       StringUtils.lines("[main]", "[frame2, frame1, main]");
-  private static final String EXPECTED_OUTPUT_R8_MINIMAL = StringUtils.lines("[main]", "[main]");
-  private static final String EXPECTED_OUTPUT_R8 = StringUtils.lines("[main]", "[a, main]");
+  private static final String EXPECTED_OUTPUT_R8 = StringUtils.lines("[main]", "[main]");
   private static final String MAIN_CLASS = "stackwalker.Example";
 
   @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withDexRuntime(Version.MASTER).withAllApiLevels().build(),
+        getTestParameters()
+            .withDexRuntime(Version.MASTER)
+            .withApiLevel(AndroidApiLevel.B)
+            .withApiLevel(AndroidApiLevel.T)
+            .build(),
         ImmutableList.of(JDK11_MINIMAL, JDK11, JDK11_PATH),
         DEFAULT_SPECIFICATIONS);
   }
@@ -79,22 +81,11 @@ public class StackWalkerTest extends DesugaredLibraryTestBase {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramFiles(INPUT_JAR)
         .addKeepMainRule(MAIN_CLASS)
-        // TODO(b/242948951): Should not need dontobfuscate.
-        .applyIf(compilationSpecification.isL8Shrink(), b -> b.addL8KeepRules("-dontobfuscate"))
         .overrideLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.MASTER))
         // Missing class java.lang.StackWalker$StackFrame.
         .addOptionsModification(opt -> opt.ignoreMissingClasses = true)
-        .applyIf(
-            libraryDesugaringSpecification != JDK11_MINIMAL
-                || parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.MASTER),
-            DesugaredLibraryTestBuilder::allowDiagnosticWarningMessages)
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutput(
-            compilationSpecification.isProgramShrink()
-                ? ((libraryDesugaringSpecification == JDK11_MINIMAL
-                        || parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.MASTER))
-                    ? EXPECTED_OUTPUT_R8_MINIMAL
-                    : EXPECTED_OUTPUT_R8)
-                : EXPECTED_OUTPUT);
+            compilationSpecification.isProgramShrink() ? EXPECTED_OUTPUT_R8 : EXPECTED_OUTPUT);
   }
 }

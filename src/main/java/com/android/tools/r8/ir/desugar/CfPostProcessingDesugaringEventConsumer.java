@@ -123,6 +123,11 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     public void acceptEnumConversionClasspathClass(DexClasspathClass clazz) {
       // Intentionally empty.
     }
+
+    @Override
+    public void acceptGenericApiConversionStub(DexClasspathClass dexClasspathClass) {
+      // Intentionally empty.
+    }
   }
 
   public static class R8PostProcessingDesugaringEventConsumer
@@ -197,6 +202,11 @@ public abstract class CfPostProcessingDesugaringEventConsumer
 
     @Override
     public void acceptEnumConversionClasspathClass(DexClasspathClass clazz) {
+      additions.addLiveClasspathClass(clazz);
+    }
+
+    @Override
+    public void acceptGenericApiConversionStub(DexClasspathClass clazz) {
       additions.addLiveClasspathClass(clazz);
     }
   }

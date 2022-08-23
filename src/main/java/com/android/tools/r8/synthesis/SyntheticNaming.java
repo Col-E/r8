@@ -29,6 +29,7 @@ public class SyntheticNaming {
   public final SyntheticKind API_MODEL_STUB = generator.forGlobalClass();
 
   // Classpath only synthetics in the global type namespace.
+  public final SyntheticKind GENERIC_API_CONVERSION_STUB = generator.forGlobalClasspathClass();
   public final SyntheticKind RETARGET_STUB = generator.forGlobalClasspathClass();
   public final SyntheticKind EMULATED_INTERFACE_MARKER_CLASS = generator.forGlobalClasspathClass();
 

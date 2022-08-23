@@ -10,6 +10,7 @@ import com.android.tools.r8.contexts.CompilationContext.UniqueContext;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.ClasspathMethod;
 import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
@@ -167,6 +168,28 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     return false;
   }
 
+  private DexMethod ensureApiGenericConversion(
+      DexMethod conversion, DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer) {
+    assert !appView.options().isDesugaredLibraryCompilation();
+    ClasspathMethod classpathMethod =
+        appView
+            .getSyntheticItems()
+            .ensureFixedClasspathMethodFromType(
+                conversion.getName(),
+                conversion.getProto(),
+                kinds -> kinds.GENERIC_API_CONVERSION_STUB,
+                conversion.getHolderType(),
+                appView,
+                ignored -> {},
+                eventConsumer::acceptGenericApiConversionStub,
+                methodBuilder ->
+                    methodBuilder
+                        .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                        .setCode(null));
+    assert classpathMethod.getReference() == conversion;
+    return conversion;
+  }
+
   public DexMethod ensureConversionMethod(
       DexType type,
       boolean destIsVivified,
@@ -175,7 +198,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
       Supplier<UniqueContext> contextSupplier) {
     if (apiGenericTypesConversion != null) {
       assert !type.isArrayType();
-      return apiGenericTypesConversion;
+      return ensureApiGenericConversion(apiGenericTypesConversion, eventConsumer);
     }
     DexType srcType = destIsVivified ? type : vivifiedTypeFor(type);
     DexType destType = destIsVivified ? vivifiedTypeFor(type) : type;
