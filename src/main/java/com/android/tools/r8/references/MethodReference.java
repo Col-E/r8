@@ -85,6 +85,6 @@ public final class MethodReference {
 
   @Override
   public String toString() {
-    return getHolderClass().toString() + getMethodName() + getMethodDescriptor();
+    return getHolderClass() + getMethodName() + getMethodDescriptor();
   }
 }

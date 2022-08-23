@@ -281,6 +281,10 @@ public class CodeInspector {
     return clazz(Reference.classFromTypeName(name));
   }
 
+  public ClassNameMapper getMapping() {
+    return mapping;
+  }
+
   // Simple wrapper to more easily change the implementation for retracing subjects.
   // This should in time be replaced by use of the Retrace API.
   public static class MappingWrapper {

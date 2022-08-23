@@ -57,6 +57,7 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.PositionRangeAllocator;
 import com.android.tools.r8.naming.PositionRangeAllocator.CardinalPositionRangeAllocator;
 import com.android.tools.r8.naming.PositionRangeAllocator.NonCardinalPositionRangeAllocator;
@@ -71,6 +72,7 @@ import com.android.tools.r8.naming.mappinginformation.OutlineMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation.RemoveInnerFramesAction;
 import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation.ThrowsCondition;
+import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.internal.RetraceUtils;
 import com.android.tools.r8.shaking.KeepInfoCollection;
@@ -674,7 +676,9 @@ public class LineNumberOptimizer {
           DexMethod outlineMethod = getOutlineMethod(mappedPositions.get(0));
           if (outlineMethod != null) {
             outlinesToFix
-                .computeIfAbsent(outlineMethod, ignored -> new OutlineFixupBuilder())
+                .computeIfAbsent(
+                    outlineMethod,
+                    outline -> new OutlineFixupBuilder(computeMappedMethod(outline, appView)))
                 .setMappedPositionsOutline(mappedPositions);
             methodMappingInfo.add(OutlineMappingInformation.builder().build());
           }
@@ -778,7 +782,8 @@ public class LineNumberOptimizer {
                   });
               outlinesToFix
                   .computeIfAbsent(
-                      firstPosition.outlineCallee, ignored -> new OutlineFixupBuilder())
+                      firstPosition.outlineCallee,
+                      outline -> new OutlineFixupBuilder(computeMappedMethod(outline, appView)))
                   .addMappedRangeForOutlineCallee(lastMappedRange, positionMap);
             }
             i = j;
@@ -829,6 +834,14 @@ public class LineNumberOptimizer {
       return true;
     }
     return false;
+  }
+
+  private static MethodReference computeMappedMethod(DexMethod current, AppView<?> appView) {
+    NamingLens namingLens = appView.getNamingLens();
+    DexMethod renamedMethodSignature =
+        namingLens.lookupMethod(
+            appView.graphLens().getRenamedMethodSignature(current), appView.dexItemFactory());
+    return renamedMethodSignature.asMethodReference();
   }
 
   private static DexMethod getOutlineMethod(MappedPosition mappedPosition) {
@@ -1403,11 +1416,16 @@ public class LineNumberOptimizer {
 
   private static class OutlineFixupBuilder {
 
-    private static int MINIFIED_POSITION_REMOVED = -1;
+    private static final int MINIFIED_POSITION_REMOVED = -1;
 
+    private final MethodReference outlineMethod;
     private List<MappedPosition> mappedOutlinePositions = null;
     private final List<Pair<MappedRange, Int2IntMap>> mappedOutlineCalleePositions =
         new ArrayList<>();
+
+    private OutlineFixupBuilder(MethodReference outlineMethod) {
+      this.outlineMethod = outlineMethod;
+    }
 
     public void setMappedPositionsOutline(List<MappedPosition> mappedPositionsOutline) {
       this.mappedOutlinePositions = mappedPositionsOutline;
@@ -1437,7 +1455,7 @@ public class LineNumberOptimizer {
               }
             });
         mappedRange.addMappingInformation(
-            OutlineCallsiteMappingInformation.create(map), Unreachable::raise);
+            OutlineCallsiteMappingInformation.create(map, outlineMethod), Unreachable::raise);
       }
     }
 

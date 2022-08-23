@@ -6,6 +6,9 @@ package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.naming.MapVersion;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.utils.MethodReferenceUtils;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import it.unimi.dsi.fastutil.ints.Int2IntLinkedOpenHashMap;
@@ -15,14 +18,18 @@ import java.util.function.Consumer;
 public class OutlineCallsiteMappingInformation extends MappingInformation {
 
   public static final MapVersion SUPPORTED_VERSION = MapVersion.MAP_VERSION_2_0;
+  public static final MapVersion SUPPORTED_WITH_OUTLINE_VERSION = MapVersion.MAP_VERSION_2_1;
   public static final String ID = "com.android.tools.r8.outlineCallsite";
 
   private static final String POSITIONS_KEY = "positions";
+  private static final String OUTLINE_KEY = "outline";
 
   private final Int2IntSortedMap positions;
+  private final MethodReference outline;
 
-  private OutlineCallsiteMappingInformation(Int2IntSortedMap positions) {
+  private OutlineCallsiteMappingInformation(Int2IntSortedMap positions, MethodReference outline) {
     this.positions = positions;
+    this.outline = outline;
   }
 
   @Override
@@ -40,6 +47,9 @@ public class OutlineCallsiteMappingInformation extends MappingInformation {
           mappedPositions.add(obfuscatedPosition + "", new JsonPrimitive(originalPosition));
         });
     result.add(POSITIONS_KEY, mappedPositions);
+    if (outline != null) {
+      result.add(OUTLINE_KEY, new JsonPrimitive(outline.toString()));
+    }
     return result.toString();
   }
 
@@ -62,8 +72,9 @@ public class OutlineCallsiteMappingInformation extends MappingInformation {
     return positions.getOrDefault(originalPosition, originalPosition);
   }
 
-  public static OutlineCallsiteMappingInformation create(Int2IntSortedMap positions) {
-    return new OutlineCallsiteMappingInformation(positions);
+  public static OutlineCallsiteMappingInformation create(
+      Int2IntSortedMap positions, MethodReference outline) {
+    return new OutlineCallsiteMappingInformation(positions, outline);
   }
 
   public static boolean isSupported(MapVersion version) {
@@ -75,8 +86,7 @@ public class OutlineCallsiteMappingInformation extends MappingInformation {
     if (isSupported(version)) {
       JsonObject postionsMapObject = object.getAsJsonObject(POSITIONS_KEY);
       if (postionsMapObject == null) {
-        throw new CompilationError(
-            "Expected '" + POSITIONS_KEY + "' to be present: " + object.getAsString());
+        throw new CompilationError("Expected '" + POSITIONS_KEY + "' to be present: " + object);
       }
       Int2IntSortedMap positionsMap = new Int2IntLinkedOpenHashMap();
       postionsMapObject
@@ -92,7 +102,14 @@ public class OutlineCallsiteMappingInformation extends MappingInformation {
                   throw new CompilationError("Invalid position entry: " + entry.toString());
                 }
               });
-      onMappingInfo.accept(OutlineCallsiteMappingInformation.create(positionsMap));
+      MethodReference outline = null;
+      JsonElement outlineElement = object.get(OUTLINE_KEY);
+      if (outlineElement != null) {
+        outline = MethodReferenceUtils.methodFromSmali(outlineElement.getAsString());
+      } else if (version.isGreaterThanOrEqualTo(SUPPORTED_WITH_OUTLINE_VERSION)) {
+        throw new CompilationError("Expected '" + OUTLINE_KEY + "' to be present: " + object);
+      }
+      onMappingInfo.accept(OutlineCallsiteMappingInformation.create(positionsMap, outline));
     }
   }
 }

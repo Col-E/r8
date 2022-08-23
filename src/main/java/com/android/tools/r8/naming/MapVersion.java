@@ -12,10 +12,11 @@ public enum MapVersion implements Ordered<MapVersion> {
   MAP_VERSION_NONE("none"),
   MAP_VERSION_1_0("1.0"),
   MAP_VERSION_2_0("2.0"),
+  MAP_VERSION_2_1("2.1"),
   MAP_VERSION_EXPERIMENTAL("experimental"),
   MAP_VERSION_UNKNOWN("unknown");
 
-  public static final MapVersion STABLE = MAP_VERSION_2_0;
+  public static final MapVersion STABLE = MAP_VERSION_2_1;
 
   private final String name;
 

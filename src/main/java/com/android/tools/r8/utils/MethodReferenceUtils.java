@@ -147,4 +147,13 @@ public class MethodReferenceUtils {
     }
     return builder.append(")").toString();
   }
+
+  public static MethodReference methodFromSmali(String smali) {
+    int holderEndIndex = smali.indexOf(";") + 1;
+    int methodDescriptorIndex = smali.indexOf("(", holderEndIndex);
+    return Reference.methodFromDescriptor(
+        smali.substring(0, holderEndIndex),
+        smali.substring(holderEndIndex, methodDescriptorIndex),
+        smali.substring(methodDescriptorIndex));
+  }
 }
