@@ -28,10 +28,14 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -45,8 +49,10 @@ public class ClassNameMapper implements ProguardMap {
 
   public static class Builder extends ProguardMap.Builder {
 
+    private boolean buildPreamble = false;
+    private final List<String> preamble = new ArrayList<>();
     private final Map<String, ClassNamingForNameMapper.Builder> mapping = new HashMap<>();
-    private LinkedHashSet<MapVersionMappingInformation> mapVersions = new LinkedHashSet<>();
+    private final LinkedHashSet<MapVersionMappingInformation> mapVersions = new LinkedHashSet<>();
     private final Map<String, String> originalSourceFiles = new HashMap<>();
 
     @Override
@@ -58,9 +64,22 @@ public class ClassNameMapper implements ProguardMap {
       return classNamingBuilder;
     }
 
+    Builder setBuildPreamble(boolean buildPreamble) {
+      this.buildPreamble = buildPreamble;
+      return this;
+    }
+
+    @Override
+    void addPreambleLine(String line) {
+      if (buildPreamble) {
+        preamble.add(line);
+      }
+    }
+
     @Override
     public ClassNameMapper build() {
-      return new ClassNameMapper(buildClassNameMappings(), mapVersions, originalSourceFiles);
+      return new ClassNameMapper(
+          buildClassNameMappings(), mapVersions, originalSourceFiles, preamble);
     }
 
     private ImmutableMap<String, ClassNamingForNameMapper> buildClassNameMappings() {
@@ -100,6 +119,11 @@ public class ClassNameMapper implements ProguardMap {
     return mapperFromBufferedReader(CharSource.wrap(contents).openBufferedStream(), null);
   }
 
+  public static ClassNameMapper mapperFromStringWithPreamble(String contents) throws IOException {
+    return mapperFromBufferedReader(
+        CharSource.wrap(contents).openBufferedStream(), null, false, false, true);
+  }
+
   public static ClassNameMapper mapperFromString(
       String contents, DiagnosticsHandler diagnosticsHandler) throws IOException {
     return mapperFromBufferedReader(
@@ -110,38 +134,43 @@ public class ClassNameMapper implements ProguardMap {
       String contents,
       DiagnosticsHandler diagnosticsHandler,
       boolean allowEmptyMappedRanges,
-      boolean allowExperimentalMapping)
+      boolean allowExperimentalMapping,
+      boolean readPreamble)
       throws IOException {
     return mapperFromLineReader(
         LineReader.fromBufferedReader(CharSource.wrap(contents).openBufferedStream()),
         diagnosticsHandler,
         allowEmptyMappedRanges,
-        allowExperimentalMapping);
+        allowExperimentalMapping,
+        readPreamble);
   }
 
   private static ClassNameMapper mapperFromBufferedReader(
       BufferedReader reader, DiagnosticsHandler diagnosticsHandler) throws IOException {
-    return mapperFromBufferedReader(reader, diagnosticsHandler, false, false);
+    return mapperFromBufferedReader(reader, diagnosticsHandler, false, false, false);
   }
 
   public static ClassNameMapper mapperFromBufferedReader(
       BufferedReader reader,
       DiagnosticsHandler diagnosticsHandler,
       boolean allowEmptyMappedRanges,
-      boolean allowExperimentalMapping)
+      boolean allowExperimentalMapping,
+      boolean buildPreamble)
       throws IOException {
     return mapperFromLineReader(
         LineReader.fromBufferedReader(reader),
         diagnosticsHandler,
         allowEmptyMappedRanges,
-        allowExperimentalMapping);
+        allowExperimentalMapping,
+        buildPreamble);
   }
 
   public static ClassNameMapper mapperFromLineReader(
       LineReader reader,
       DiagnosticsHandler diagnosticsHandler,
       boolean allowEmptyMappedRanges,
-      boolean allowExperimentalMapping)
+      boolean allowExperimentalMapping,
+      boolean buildPreamble)
       throws IOException {
     try (ProguardMapReader proguardReader =
         new ProguardMapReader(
@@ -149,7 +178,7 @@ public class ClassNameMapper implements ProguardMap {
             diagnosticsHandler != null ? diagnosticsHandler : new Reporter(),
             allowEmptyMappedRanges,
             allowExperimentalMapping)) {
-      ClassNameMapper.Builder builder = ClassNameMapper.builder();
+      ClassNameMapper.Builder builder = ClassNameMapper.builder().setBuildPreamble(buildPreamble);
       proguardReader.parse(builder);
       return builder.build();
     }
@@ -180,18 +209,25 @@ public class ClassNameMapper implements ProguardMap {
   private final Map<Signature, Signature> signatureMap = new HashMap<>();
   private final LinkedHashSet<MapVersionMappingInformation> mapVersions;
   private final Map<String, String> originalSourceFiles;
+  private final List<String> preamble;
 
   private ClassNameMapper(
       ImmutableMap<String, ClassNamingForNameMapper> classNameMappings,
       LinkedHashSet<MapVersionMappingInformation> mapVersions,
-      Map<String, String> originalSourceFiles) {
+      Map<String, String> originalSourceFiles,
+      List<String> preamble) {
     this.classNameMappings = classNameMappings;
     this.mapVersions = mapVersions;
     this.originalSourceFiles = originalSourceFiles;
+    this.preamble = preamble;
   }
 
   public Map<String, ClassNamingForNameMapper> getClassNameMappings() {
     return classNameMappings;
+  }
+
+  public Collection<String> getPreamble() {
+    return preamble;
   }
 
   private Signature canonicalizeSignature(Signature signature) {
@@ -274,7 +310,14 @@ public class ClassNameMapper implements ProguardMap {
     // This will overwrite existing source files but the chance of that happening should be very
     // slim.
     newSourcesFiles.putAll(other.originalSourceFiles);
-    return new ClassNameMapper(builder.build(), newMapVersions, newSourcesFiles);
+
+    List<String> newPreamble = Collections.emptyList();
+    if (!this.preamble.isEmpty() || !other.preamble.isEmpty()) {
+      newPreamble = new ArrayList<>();
+      newPreamble.addAll(this.preamble);
+      newPreamble.addAll(other.preamble);
+    }
+    return new ClassNameMapper(builder.build(), newMapVersions, newSourcesFiles, newPreamble);
   }
 
   @Override
@@ -301,7 +344,7 @@ public class ClassNameMapper implements ProguardMap {
     ImmutableMap.Builder<String, ClassNamingForNameMapper> builder = ImmutableMap.builder();
     builder.orderEntriesByValue(Comparator.comparing(x -> x.originalName));
     classNameMappings.forEach(builder::put);
-    return new ClassNameMapper(builder.build(), mapVersions, originalSourceFiles);
+    return new ClassNameMapper(builder.build(), mapVersions, originalSourceFiles, preamble);
   }
 
   public boolean verifyIsSorted() {

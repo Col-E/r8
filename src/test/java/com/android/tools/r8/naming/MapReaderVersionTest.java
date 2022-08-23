@@ -38,7 +38,8 @@ public class MapReaderVersionTest extends TestBase {
         CharSource.wrap(StringUtils.joinLines(lines)).openBufferedStream(),
         diagnosticsHandler,
         false,
-        true);
+        true,
+        false);
   }
 
   private static ClassNameMapper read(String... lines) throws IOException {

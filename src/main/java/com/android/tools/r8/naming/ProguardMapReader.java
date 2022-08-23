@@ -69,6 +69,7 @@ public class ProguardMapReader implements AutoCloseable {
   private final DiagnosticsHandler diagnosticsHandler;
   private final boolean allowEmptyMappedRanges;
   private final boolean allowExperimentalMapping;
+  private boolean seenClassMapping = false;
 
   private final CardinalPositionRangeAllocator cardinalRangeCache =
       PositionRangeAllocator.createCardinalPositionRangeAllocator();
@@ -147,11 +148,11 @@ public class ProguardMapReader implements AutoCloseable {
     }
   }
 
-  private boolean nextLine() throws IOException {
+  private boolean nextLine(ProguardMap.Builder mapBuilder) throws IOException {
     if (line.length() != lineOffset) {
       throw new ParseException("Expected end of line");
     }
-    return skipLine();
+    return skipLine(mapBuilder);
   }
 
   private boolean isEmptyOrCommentLine(String line) {
@@ -184,10 +185,6 @@ public class ProguardMapReader implements AutoCloseable {
     return false;
   }
 
-  private boolean isClassMapping() {
-    return !isEmptyOrCommentLine(line) && line.endsWith(":");
-  }
-
   private static boolean hasFirstCharJsonBrace(String line, int commentCharIndex) {
     for (int i = commentCharIndex + 1; i < line.length(); i++) {
       char c = line.charAt(i);
@@ -200,12 +197,17 @@ public class ProguardMapReader implements AutoCloseable {
     return false;
   }
 
-  private boolean skipLine() throws IOException {
+  private boolean skipLine(ProguardMap.Builder mapBuilder) throws IOException {
     lineOffset = 0;
+    boolean isEmptyOrCommentLine;
     do {
-      lineNo++;
       line = reader.readLine();
-    } while (hasLine() && isEmptyOrCommentLine(line));
+      lineNo++;
+      isEmptyOrCommentLine = isEmptyOrCommentLine(line);
+      if (!seenClassMapping && isEmptyOrCommentLine) {
+        mapBuilder.addPreambleLine(line);
+      }
+    } while (hasLine() && isEmptyOrCommentLine);
     return hasLine();
   }
 
@@ -242,10 +244,7 @@ public class ProguardMapReader implements AutoCloseable {
 
   void parse(ProguardMap.Builder mapBuilder) throws IOException {
     // Read the first line.
-    do {
-      line = reader.readLine();
-      lineNo++;
-    } while (hasLine() && isEmptyOrCommentLine(line));
+    skipLine(mapBuilder);
     parseClassMappings(mapBuilder);
   }
 
@@ -255,17 +254,23 @@ public class ProguardMapReader implements AutoCloseable {
     while (hasLine()) {
       skipWhitespace();
       if (isCommentLineWithJsonBrace()) {
-        parseMappingInformation(
+        if (!parseMappingInformation(
             info -> {
               assert info.isMapVersionMappingInformation()
                   || info.isUnknownJsonMappingInformation();
               if (info.isMapVersionMappingInformation()) {
                 mapBuilder.setCurrentMapVersion(info.asMapVersionMappingInformation());
+              } else if (!seenClassMapping) {
+                mapBuilder.addPreambleLine(line);
               }
-            });
+            })) {
+          if (!seenClassMapping) {
+            mapBuilder.addPreambleLine(line);
+          }
+        }
         // Skip reading the rest of the line.
         lineOffset = line.length();
-        nextLine();
+        nextLine(mapBuilder);
         continue;
       }
       String before = parseType(false);
@@ -284,40 +289,47 @@ public class ProguardMapReader implements AutoCloseable {
       String after = parseType(false);
       skipWhitespace();
       expect(':');
+      seenClassMapping = true;
       ClassNaming.Builder currentClassBuilder =
           mapBuilder.classNamingBuilder(after, before, getPosition());
       skipWhitespace();
-      if (nextLine()) {
-        parseMemberMappings(currentClassBuilder);
+      if (nextLine(mapBuilder)) {
+        parseMemberMappings(mapBuilder, currentClassBuilder);
       }
     }
   }
 
-  private void parseMappingInformation(Consumer<MappingInformation> onMappingInfo) {
-    MappingInformation.fromJsonObject(
-        version,
-        parseJsonInComment(),
-        diagnosticsHandler,
-        lineNo,
-        info -> {
-          MapVersionMappingInformation generatorInfo = info.asMapVersionMappingInformation();
-          if (generatorInfo != null) {
-            if (generatorInfo.getMapVersion().equals(MapVersion.MAP_VERSION_EXPERIMENTAL)) {
-              // A mapping file that is marked "experimental" will be treated as an unversioned
-              // file if the compiler/tool is not explicitly running with experimental support.
-              version =
-                  allowExperimentalMapping
-                      ? MapVersion.MAP_VERSION_EXPERIMENTAL
-                      : MapVersion.MAP_VERSION_NONE;
-            } else {
-              version = generatorInfo.getMapVersion();
+  private boolean parseMappingInformation(Consumer<MappingInformation> onMappingInfo) {
+    JsonObject object = parseJsonInComment();
+    if (object != null) {
+      MappingInformation.fromJsonObject(
+          version,
+          object,
+          diagnosticsHandler,
+          lineNo,
+          info -> {
+            MapVersionMappingInformation generatorInfo = info.asMapVersionMappingInformation();
+            if (generatorInfo != null) {
+              if (generatorInfo.getMapVersion().equals(MapVersion.MAP_VERSION_EXPERIMENTAL)) {
+                // A mapping file that is marked "experimental" will be treated as an unversioned
+                // file if the compiler/tool is not explicitly running with experimental support.
+                version =
+                    allowExperimentalMapping
+                        ? MapVersion.MAP_VERSION_EXPERIMENTAL
+                        : MapVersion.MAP_VERSION_NONE;
+              } else {
+                version = generatorInfo.getMapVersion();
+              }
             }
-          }
-          onMappingInfo.accept(info);
-        });
+            onMappingInfo.accept(info);
+          });
+      return true;
+    }
+    return false;
   }
 
-  private void parseMemberMappings(ClassNaming.Builder classNamingBuilder) throws IOException {
+  private void parseMemberMappings(
+      ProguardMap.Builder mapBuilder, ClassNaming.Builder classNamingBuilder) throws IOException {
     MemberNaming lastAddedNaming = null;
     MemberNaming activeMemberNaming = null;
     MappedRange activeMappedRange = null;
@@ -421,7 +433,7 @@ public class ProguardMapReader implements AutoCloseable {
       activeMemberNaming =
           new MemberNaming(signature, signature.asRenamed(renamedName), getPosition());
       previousMappedRange = mappedRange;
-    } while (nextLine());
+    } while (nextLine(mapBuilder));
 
     if (activeMemberNaming != null) {
       boolean notAdded =

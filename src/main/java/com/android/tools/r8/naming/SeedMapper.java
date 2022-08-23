@@ -63,6 +63,11 @@ public class SeedMapper implements ProguardMap {
     }
 
     @Override
+    void addPreambleLine(String line) {
+      // Do nothing.
+    }
+
+    @Override
     ProguardMap.Builder setCurrentMapVersion(MapVersionMappingInformation mapVersion) {
       // Do nothing
       return this;

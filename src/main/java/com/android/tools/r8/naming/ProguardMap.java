@@ -13,6 +13,8 @@ public interface ProguardMap {
     abstract ClassNaming.Builder classNamingBuilder(
         String renamedName, String originalName, Position position);
 
+    abstract void addPreambleLine(String line);
+
     abstract Builder setCurrentMapVersion(MapVersionMappingInformation mapVersion);
 
     abstract ProguardMap build();

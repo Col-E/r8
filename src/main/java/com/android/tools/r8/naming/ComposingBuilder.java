@@ -119,7 +119,7 @@ public class ComposingBuilder {
     List<ComposingClassBuilder> classBuilders = new ArrayList<>(committed.classBuilders.values());
     classBuilders.sort(Comparator.comparing(ComposingClassBuilder::getOriginalName));
     StringBuilder sb = new StringBuilder();
-    // TODO(b/241763080): Keep preamble of mapping files
+    committed.preamble.forEach(preambleLine -> sb.append(preambleLine).append("\n"));
     if (currentMapVersion != null) {
       sb.append("# ").append(currentMapVersion.serialize()).append("\n");
     }
@@ -152,8 +152,11 @@ public class ComposingBuilder {
     private final Map<ClassDescriptorAndMethodName, UpdateOutlineCallsiteInformation>
         outlineSourcePositionsUpdated = new HashMap<>();
 
+    private final List<String> preamble = new ArrayList<>();
+
     public void commit(ComposingData current, ClassNameMapper classNameMapper)
         throws MappingComposeException {
+      preamble.addAll(classNameMapper.getPreamble());
       commitClassBuilders(current);
       commitRewriteFrameInformation(current, classNameMapper);
       commitOutlineCallsiteInformation(current, classNameMapper);

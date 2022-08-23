@@ -276,7 +276,8 @@ public class ApplicationReader {
                         content,
                         options.reporter,
                         false,
-                        options.testing.enableExperimentalMapFileVersion));
+                        options.testing.enableExperimentalMapFileVersion,
+                        false));
               } catch (IOException | ResourceException e) {
                 throw new CompilationError("Failure to read proguard map file", e, map.getOrigin());
               }
