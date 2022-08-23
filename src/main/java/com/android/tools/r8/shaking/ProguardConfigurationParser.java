@@ -288,7 +288,7 @@ public class ProguardConfigurationParser {
           || parseUnsupportedOptionAndErr(optionStart)) {
         // Intentionally left empty.
       } else if (acceptString("keepkotlinmetadata")) {
-        configurationBuilder.addRule(
+        ProguardKeepRule keepKotlinMetadata =
             ProguardKeepRule.builder()
                 .setType(ProguardKeepRuleType.KEEP)
                 .setClassType(ProguardClassType.CLASS)
@@ -301,7 +301,11 @@ public class ProguardConfigurationParser {
                         .build())
                 .setMemberRules(Collections.singletonList(ProguardMemberRule.defaultKeepAllRule()))
                 .setSource("-keepkotlinmetadata")
-                .build());
+                .build();
+        // Mark the rule as used to ensure we do not report any information messages if the class
+        // is not present.
+        keepKotlinMetadata.markAsUsed();
+        configurationBuilder.addRule(keepKotlinMetadata);
         configurationBuilder.addKeepAttributePatterns(
             Collections.singletonList(RUNTIME_VISIBLE_ANNOTATIONS));
       } else if (acceptString("renamesourcefileattribute")) {

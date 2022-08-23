@@ -18,7 +18,6 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.AnnotationSubject;
@@ -86,7 +85,7 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
             // Keep UtilKt#comma*Join*(). Let R8 optimize (inline) others, such as joinOf*(String).
             .addKeepRules("-keep class **.UtilKt")
             .addKeepRules("-keepclassmembers class * { ** comma*Join*(...); }")
-            .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addKeepKotlinMetadata()
             .compile()
             .inspect(this::inspectMerged)
             .writeToZip();
@@ -130,7 +129,7 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
             .addKeepRules("-keepclassmembers class * { ** comma*Join*(...); }")
             // Keep yet rename joinOf*(String).
             .addKeepRules("-keepclassmembers,allowobfuscation class * { ** joinOf*(...); }")
-            .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addKeepKotlinMetadata()
             .compile()
             .inspect(this::inspectRenamed)
             .writeToZip();
