@@ -31,7 +31,7 @@ public class ComposeRewriteFrameTest extends TestBase {
 
   private static final String mappingFoo =
       StringUtils.unixLines(
-          "# { id: 'com.android.tools.r8.mapping', version: '2.0' }",
+          "# { id: 'com.android.tools.r8.mapping', version: '2.1' }",
           "my.CustomException -> a:",
           "foo.Bar -> x:",
           "    4:4:void other.Class.inlinee():23:23 -> a",
@@ -40,13 +40,13 @@ public class ComposeRewriteFrameTest extends TestBase {
               + "conditions: ['throws(La;)'], actions: ['removeInnerFrames(1)'] }");
   private static final String mappingBar =
       StringUtils.unixLines(
-          "# { id: 'com.android.tools.r8.mapping', version: '2.0' }",
+          "# { id: 'com.android.tools.r8.mapping', version: '2.1' }",
           "a -> b:",
           "x -> c:",
           "    8:8:void a(Other.Class):4:4 -> m");
   private static final String mappingResult =
       StringUtils.unixLines(
-          "# {'id':'com.android.tools.r8.mapping','version':'2.0'}",
+          "# {'id':'com.android.tools.r8.mapping','version':'2.1'}",
           "foo.Bar -> c:",
           "    8:8:void other.Class.inlinee():23:23 -> m",
           "    8:8:void caller(other.Class):7 -> m",

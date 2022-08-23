@@ -24,8 +24,8 @@ public class OutlineCallsiteMappingInformation extends MappingInformation {
   private static final String POSITIONS_KEY = "positions";
   private static final String OUTLINE_KEY = "outline";
 
-  private final Int2IntSortedMap positions;
-  private final MethodReference outline;
+  private Int2IntSortedMap positions;
+  private MethodReference outline;
 
   private OutlineCallsiteMappingInformation(Int2IntSortedMap positions, MethodReference outline) {
     this.positions = positions;
@@ -72,6 +72,10 @@ public class OutlineCallsiteMappingInformation extends MappingInformation {
     return positions.getOrDefault(originalPosition, originalPosition);
   }
 
+  public MethodReference getOutline() {
+    return outline;
+  }
+
   public static OutlineCallsiteMappingInformation create(
       Int2IntSortedMap positions, MethodReference outline) {
     return new OutlineCallsiteMappingInformation(positions, outline);
@@ -111,5 +115,17 @@ public class OutlineCallsiteMappingInformation extends MappingInformation {
       }
       onMappingInfo.accept(OutlineCallsiteMappingInformation.create(positionsMap, outline));
     }
+  }
+
+  public void setOutlineInternal(MethodReference outline) {
+    this.outline = outline;
+  }
+
+  public Int2IntSortedMap getPositions() {
+    return positions;
+  }
+
+  public void setPositionsInternal(Int2IntSortedMap positions) {
+    this.positions = positions;
   }
 }

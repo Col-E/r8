@@ -5,7 +5,7 @@
 package com.android.tools.r8.mappingcompose;
 
 import static com.android.tools.r8.mappingcompose.ComposeHelpers.doubleToSingleQuote;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -26,12 +26,12 @@ public class ComposeOutlineTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+    return getTestParameters().withNoneRuntime().build();
   }
 
   private static final String mappingFoo =
       StringUtils.unixLines(
-          "# { id: 'com.android.tools.r8.mapping', version: '2.0' }",
+          "# { id: 'com.android.tools.r8.mapping', version: '2.1' }",
           "outline.Class -> a:",
           "    1:2:int some.inlinee():75:76 -> a",
           "    1:2:int outline():0 -> a",
@@ -41,24 +41,27 @@ public class ComposeOutlineTest extends TestBase {
           "    5:5:int foo.bar.baz.outlineCaller(int):98:98 -> s",
           "    5:5:int outlineCaller(int):24 -> s",
           "    27:27:int outlineCaller(int):0:0 -> s",
-          "    # { 'id':'com.android.tools.r8.outlineCallsite', 'positions': { '1': 4, '2': 5 } }");
-  private static final String mappingBar =
+          "    # { 'id':'com.android.tools.r8.outlineCallsite', 'positions': { '1': 4, '2': 5 },"
+              + " 'outline':'La;a()I' }");
+  private static final String mappingBar = StringUtils.unixLines("a -> b:");
+  private static final String mappingBaz =
       StringUtils.unixLines(
-          "a -> b:",
+          "b -> c:",
           "    4:5:int a():1:2 -> m",
-          "x -> c:",
+          "x -> y:",
           "    8:9:int s(int):4:5 -> o",
           "    42:42:int s(int):27:27 -> o");
   private static final String mappingResult =
       StringUtils.unixLines(
-          "# {'id':'com.android.tools.r8.mapping','version':'2.0'}",
-          "outline.Callsite -> c:",
+          "# {'id':'com.android.tools.r8.mapping','version':'2.1'}",
+          "outline.Callsite -> y:",
           "    8:8:int outlineCaller(int):23 -> o",
           "    9:9:int foo.bar.baz.outlineCaller(int):98:98 -> o",
           "    9:9:int outlineCaller(int):24 -> o",
           "    42:42:int outlineCaller(int):0:0 -> o",
-          "    # { 'id':'com.android.tools.r8.outlineCallsite', 'positions': { '4': 8, '5': 9 } }",
-          "outline.Class -> b:",
+          "    #"
+              + " {'id':'com.android.tools.r8.outlineCallsite','positions':{'4':8,'5':9},'outline':'Lc;m()I'}",
+          "outline.Class -> c:",
           "    4:5:int some.inlinee():75:76 -> m",
           "    4:5:int outline():0 -> m",
           "    # {'id':'com.android.tools.r8.outline'}");
@@ -67,8 +70,8 @@ public class ComposeOutlineTest extends TestBase {
   public void testCompose() throws Exception {
     ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromString(mappingFoo);
     ClassNameMapper mappingForBar = ClassNameMapper.mapperFromString(mappingBar);
-    String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
-    // TODO(b/242682464): Update this test when the link has been added to the mapping information.
-    assertNotEquals(mappingResult, doubleToSingleQuote(composed));
+    ClassNameMapper mappingForBaz = ClassNameMapper.mapperFromString(mappingBaz);
+    String composed = MappingComposer.compose(mappingForFoo, mappingForBar, mappingForBaz);
+    assertEquals(mappingResult, doubleToSingleQuote(composed));
   }
 }

@@ -27,6 +27,11 @@ public class OutlineMappingInformation extends MappingInformation {
   }
 
   @Override
+  public OutlineMappingInformation asOutlineMappingInformation() {
+    return this;
+  }
+
+  @Override
   public boolean allowOther(MappingInformation information) {
     return true;
   }

@@ -66,6 +66,10 @@ public abstract class MappingInformation {
     return null;
   }
 
+  public OutlineMappingInformation asOutlineMappingInformation() {
+    return null;
+  }
+
   public OutlineCallsiteMappingInformation asOutlineCallsiteInformation() {
     return null;
   }

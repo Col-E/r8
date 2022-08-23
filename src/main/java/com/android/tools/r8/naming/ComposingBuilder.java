@@ -11,14 +11,22 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
+import com.android.tools.r8.naming.mappinginformation.OutlineCallsiteMappingInformation;
+import com.android.tools.r8.naming.mappinginformation.OutlineMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation.ThrowsCondition;
+import com.android.tools.r8.references.ArrayReference;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.utils.BiMapContainer;
+import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.utils.ChainableStringConsumer;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SegmentTree;
+import com.google.common.collect.Sets;
+import it.unimi.dsi.fastutil.ints.Int2IntLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2IntSortedMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.ArrayList;
@@ -28,48 +36,70 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Consumer;
 
 public class ComposingBuilder {
 
-  /**
-   * To ensure we can do alpha renaming of classes and members without polluting the existing
-   * mappping, we use a committed map that we update for each class name mapping. That allows us to
-   * rename to existing renamed names as long as these are also renamed later in the map.
-   */
-  private final Map<String, ComposingClassBuilder> committed = new HashMap<>();
-
-  private Map<String, ComposingClassBuilder> current = new HashMap<>();
-
   private MapVersionMappingInformation currentMapVersion = null;
 
-  private final ComposingSharedData sharedData = new ComposingSharedData();
+  /**
+   * When composing we store a view of the previously known mappings in committed and retain a
+   * current working set. When composing of a new map is finished we commit everything in current
+   * into the committed set.
+   *
+   * <p>The reason for not having just a single set is that we can have a circular mapping as
+   * follows:
+   *
+   * <pre>
+   *   a -> b:
+   *   ...
+   *   b -> a:
+   * </pre>
+   *
+   * After composing our current view of a with the above, we could end up transforming 'a' into 'b'
+   * and then later transforming 'b' back into 'a' again. To ensure we do not mess up namings while
+   * composing classes and methods we resort to a working set and committed set.
+   */
+  private final ComposingData committed = new ComposingData();
+
+  private ComposingData current;
 
   public void compose(ClassNameMapper classNameMapper) throws MappingComposeException {
-    MapVersionMappingInformation thisMapVersion = classNameMapper.getFirstMapVersionInformation();
-    if (thisMapVersion != null) {
+    current = new ComposingData();
+    MapVersionMappingInformation newMapVersionInfo =
+        classNameMapper.getFirstMapVersionInformation();
+    if (newMapVersionInfo != null) {
+      MapVersion newMapVersion = newMapVersionInfo.getMapVersion();
+      if (newMapVersion.isLessThan(MapVersion.MAP_VERSION_2_1) || newMapVersion.isUnknown()) {
+        throw new MappingComposeException(
+            "Composition of mapping files supported from map version 2.1.");
+      }
       if (currentMapVersion == null
-          || currentMapVersion.getMapVersion().isLessThan(thisMapVersion.getMapVersion())) {
-        currentMapVersion = thisMapVersion;
+          || currentMapVersion.getMapVersion().isLessThan(newMapVersion)) {
+        currentMapVersion = newMapVersionInfo;
       }
     }
-    sharedData.patchupMappingInformation(classNameMapper);
     for (ClassNamingForNameMapper classMapping : classNameMapper.getClassNameMappings().values()) {
       compose(classMapping);
     }
-    commit();
+    committed.commit(current, classNameMapper);
   }
 
   private void compose(ClassNamingForNameMapper classMapping) throws MappingComposeException {
     String originalName = classMapping.originalName;
-    ComposingClassBuilder composingClassBuilder = committed.get(originalName);
+    ComposingClassBuilder composingClassBuilder = committed.classBuilders.get(originalName);
     String renamedName = classMapping.renamedName;
     if (composingClassBuilder == null) {
-      composingClassBuilder = new ComposingClassBuilder(originalName, renamedName, sharedData);
+      composingClassBuilder = new ComposingClassBuilder(originalName, renamedName);
     } else {
       composingClassBuilder.setRenamedName(renamedName);
-      committed.remove(originalName);
+      committed.classBuilders.remove(originalName);
     }
-    ComposingClassBuilder duplicateMapping = current.put(renamedName, composingClassBuilder);
+    composingClassBuilder.setCurrentComposingData(current, classMapping.originalName);
+    ComposingClassBuilder duplicateMapping =
+        current.classBuilders.put(renamedName, composingClassBuilder);
     if (duplicateMapping != null) {
       throw new MappingComposeException(
           "Duplicate class mapping. Both '"
@@ -83,31 +113,13 @@ public class ComposingBuilder {
     composingClassBuilder.compose(classMapping);
   }
 
-  private void commit() throws MappingComposeException {
-    for (Entry<String, ComposingClassBuilder> newEntry : current.entrySet()) {
-      String renamedName = newEntry.getKey();
-      ComposingClassBuilder classBuilder = newEntry.getValue();
-      ComposingClassBuilder duplicateMapping = committed.put(renamedName, classBuilder);
-      if (duplicateMapping != null) {
-        throw new MappingComposeException(
-            "Duplicate class mapping. Both '"
-                + duplicateMapping.getOriginalName()
-                + "' and '"
-                + classBuilder.getOriginalName()
-                + "' maps to '"
-                + renamedName
-                + "'.");
-      }
-    }
-    current = new HashMap<>();
-  }
 
   @Override
   public String toString() {
-    List<ComposingClassBuilder> classBuilders = new ArrayList<>(committed.values());
+    List<ComposingClassBuilder> classBuilders = new ArrayList<>(committed.classBuilders.values());
     classBuilders.sort(Comparator.comparing(ComposingClassBuilder::getOriginalName));
     StringBuilder sb = new StringBuilder();
-    // TODO(b/241763080): Keep preamble of mapping files"
+    // TODO(b/241763080): Keep preamble of mapping files
     if (currentMapVersion != null) {
       sb.append("# ").append(currentMapVersion.serialize()).append("\n");
     }
@@ -118,33 +130,242 @@ public class ComposingBuilder {
     return sb.toString();
   }
 
-  public static class ComposingSharedData {
+  public static class ComposingData {
 
+    /**
+     * A map of minified names to their class builders. When committing to a new minified name we
+     * destructively remove the previous minified mapping and replace it with the up-to-date one.
+     */
+    private final Map<String, ComposingClassBuilder> classBuilders = new HashMap<>();
     /**
      * RewriteFrameInformation contains condition clauses that are bound to the residual program. As
      * a result of that, we have to patch up the conditions when we compose new class mappings.
      */
-    private final List<RewriteFrameMappingInformation> mappingInformationToPatchUp =
-        new ArrayList<>();
+    private final List<RewriteFrameMappingInformation> rewriteFrameInformation = new ArrayList<>();
+    /** Map of newly added outline call site informations which do not require any rewriting. */
+    private Map<ClassDescriptorAndMethodName, OutlineCallsiteMappingInformation>
+        outlineCallsiteInformation = new HashMap<>();
+    /**
+     * Map of updated outline definitions which has to be committed. The positions in the caller are
+     * fixed at this point since these are local to the method when rewriting.
+     */
+    private final Map<ClassDescriptorAndMethodName, UpdateOutlineCallsiteInformation>
+        outlineSourcePositionsUpdated = new HashMap<>();
 
-    private void patchupMappingInformation(ClassNameMapper classNameMapper) {
-      BiMapContainer<String, String> obfuscatedToOriginalMapping =
-          classNameMapper.getObfuscatedToOriginalMapping();
-      for (RewriteFrameMappingInformation rewriteMappingInfo : mappingInformationToPatchUp) {
+    public void commit(ComposingData current, ClassNameMapper classNameMapper)
+        throws MappingComposeException {
+      commitClassBuilders(current);
+      commitRewriteFrameInformation(current, classNameMapper);
+      commitOutlineCallsiteInformation(current, classNameMapper);
+    }
+
+    private void commitClassBuilders(ComposingData current) throws MappingComposeException {
+      for (Entry<String, ComposingClassBuilder> newEntry : current.classBuilders.entrySet()) {
+        String renamedName = newEntry.getKey();
+        ComposingClassBuilder classBuilder = newEntry.getValue();
+        ComposingClassBuilder duplicateMapping = classBuilders.put(renamedName, classBuilder);
+        if (duplicateMapping != null) {
+          throw new MappingComposeException(
+              "Duplicate class mapping. Both '"
+                  + duplicateMapping.getOriginalName()
+                  + "' and '"
+                  + classBuilder.getOriginalName()
+                  + "' maps to '"
+                  + renamedName
+                  + "'.");
+        }
+      }
+    }
+
+    private void commitRewriteFrameInformation(
+        ComposingData current, ClassNameMapper classNameMapper) {
+      // First update the existing frame information to have new class name mappings.
+      Map<String, String> inverse = classNameMapper.getObfuscatedToOriginalMapping().inverse;
+      for (RewriteFrameMappingInformation rewriteMappingInfo : rewriteFrameInformation) {
         rewriteMappingInfo
             .getConditions()
             .forEach(
                 rewriteCondition -> {
                   ThrowsCondition throwsCondition = rewriteCondition.asThrowsCondition();
                   if (throwsCondition != null) {
-                    String originalName = throwsCondition.getClassReference().getTypeName();
-                    String obfuscatedName = obfuscatedToOriginalMapping.inverse.get(originalName);
-                    if (obfuscatedName != null) {
-                      throwsCondition.setClassReferenceInternal(
-                          Reference.classFromTypeName(obfuscatedName));
-                    }
+                    throwsCondition.setClassReferenceInternal(
+                        mapTypeReference(inverse, throwsCondition.getClassReference()).asClass());
                   }
                 });
+      }
+      rewriteFrameInformation.addAll(current.rewriteFrameInformation);
+    }
+
+    private void commitOutlineCallsiteInformation(
+        ComposingData current, ClassNameMapper classNameMapper) {
+      // To commit outline call site information, we take the previously committed and bring forward
+      // to a new mapping, and potentially rewrite source positions if available.
+      Map<ClassDescriptorAndMethodName, OutlineCallsiteMappingInformation> newOutlineCallsiteInfo =
+          new HashMap<>();
+      Map<String, String> inverse = classNameMapper.getObfuscatedToOriginalMapping().inverse;
+      outlineCallsiteInformation.forEach(
+          (holderAndMethodNameOfOutline, outlineInfo) -> {
+            UpdateOutlineCallsiteInformation updateOutlineCallsiteInformation =
+                current.outlineSourcePositionsUpdated.get(holderAndMethodNameOfOutline);
+            String newMethodName = outlineInfo.getOutline().getMethodName();
+            if (updateOutlineCallsiteInformation != null) {
+              // We have a callsite mapping that we need to update.
+              MappedRangeOriginalToMinifiedMap originalToMinifiedMap =
+                  MappedRangeOriginalToMinifiedMap.build(
+                      updateOutlineCallsiteInformation.newMappedRanges);
+              Int2IntSortedMap newPositionMap = new Int2IntLinkedOpenHashMap();
+              outlineInfo
+                  .getPositions()
+                  .forEach(
+                      (originalPosition, destination) -> {
+                        originalToMinifiedMap.visitMinified(
+                            originalPosition,
+                            newMinified -> {
+                              newPositionMap.put(newMinified, destination);
+                            });
+                      });
+              outlineInfo.setPositionsInternal(newPositionMap);
+              newMethodName = updateOutlineCallsiteInformation.newMethodName;
+            }
+            // Holder, return type or formals could have changed the outline descriptor.
+            MethodReference outline = outlineInfo.getOutline();
+            ClassReference newHolder =
+                mapTypeReference(inverse, outline.getHolderClass()).asClass();
+            outlineInfo.setOutlineInternal(
+                Reference.method(
+                    newHolder,
+                    newMethodName,
+                    mapTypeReferences(inverse, outline.getFormalTypes()),
+                    mapTypeReference(inverse, outline.getReturnType())));
+            newOutlineCallsiteInfo.put(
+                new ClassDescriptorAndMethodName(
+                    newHolder.getTypeName(), holderAndMethodNameOfOutline.getMethodName()),
+                outlineInfo);
+          });
+      newOutlineCallsiteInfo.putAll(current.outlineCallsiteInformation);
+      outlineCallsiteInformation = newOutlineCallsiteInfo;
+    }
+
+    public void addNewOutlineCallsiteInformation(
+        MethodReference outline, OutlineCallsiteMappingInformation outlineCallsiteInfo) {
+      outlineCallsiteInformation.put(
+          new ClassDescriptorAndMethodName(
+              outline.getHolderClass().getTypeName(), outline.getMethodName()),
+          outlineCallsiteInfo);
+    }
+
+    public UpdateOutlineCallsiteInformation getUpdateOutlineCallsiteInformation(
+        String originalHolder, String originalMethodName, String newMethodName) {
+      return outlineSourcePositionsUpdated.computeIfAbsent(
+          new ClassDescriptorAndMethodName(originalHolder, originalMethodName),
+          ignore -> new UpdateOutlineCallsiteInformation(newMethodName));
+    }
+
+    private List<TypeReference> mapTypeReferences(
+        Map<String, String> typeNameMap, List<TypeReference> typeReferences) {
+      return ListUtils.map(typeReferences, typeRef -> mapTypeReference(typeNameMap, typeRef));
+    }
+
+    private TypeReference mapTypeReference(
+        Map<String, String> typeNameMap, TypeReference typeReference) {
+      if (typeReference == null || typeReference.isPrimitive()) {
+        return typeReference;
+      }
+      if (typeReference.isArray()) {
+        ArrayReference arrayReference = typeReference.asArray();
+        return Reference.array(
+            mapTypeReference(typeNameMap, arrayReference.getBaseType()),
+            arrayReference.getDimensions());
+      } else {
+        assert typeReference.isClass();
+        String newTypeName = typeNameMap.get(typeReference.getTypeName());
+        return newTypeName == null ? typeReference : Reference.classFromTypeName(newTypeName);
+      }
+    }
+  }
+
+  private static class ClassDescriptorAndMethodName {
+
+    private final String holderTypeName;
+    private final String methodName;
+
+    public ClassDescriptorAndMethodName(String holderTypeName, String methodName) {
+      this.holderTypeName = holderTypeName;
+      this.methodName = methodName;
+    }
+
+    public String getHolderTypeName() {
+      return holderTypeName;
+    }
+
+    public String getMethodName() {
+      return methodName;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (!(o instanceof ClassDescriptorAndMethodName)) {
+        return false;
+      }
+      ClassDescriptorAndMethodName that = (ClassDescriptorAndMethodName) o;
+      return holderTypeName.equals(that.holderTypeName) && methodName.equals(that.methodName);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(holderTypeName, methodName);
+    }
+  }
+
+  private static class UpdateOutlineCallsiteInformation {
+
+    private List<MappedRange> newMappedRanges;
+    private final String newMethodName;
+
+    private UpdateOutlineCallsiteInformation(String newMethodName) {
+      this.newMethodName = newMethodName;
+    }
+
+    private void setNewMappedRanges(List<MappedRange> mappedRanges) {
+      newMappedRanges = mappedRanges;
+    }
+  }
+
+  private static class MappedRangeOriginalToMinifiedMap {
+
+    private final Int2ReferenceMap<List<Integer>> originalToMinified;
+
+    private MappedRangeOriginalToMinifiedMap(Int2ReferenceMap<List<Integer>> originalToMinified) {
+      this.originalToMinified = originalToMinified;
+    }
+
+    private static MappedRangeOriginalToMinifiedMap build(List<MappedRange> mappedRanges) {
+      Int2ReferenceMap<List<Integer>> positionMap = new Int2ReferenceOpenHashMap<>();
+      for (MappedRange mappedRange : mappedRanges) {
+        Range originalRange = mappedRange.originalRange;
+        for (int position = originalRange.from; position <= originalRange.to; position++) {
+          // It is perfectly fine to have multiple minified ranges mapping to the same source, we
+          // just need to keep the additional information.
+          positionMap
+              .computeIfAbsent(position, ignoreArgument(ArrayList::new))
+              .add(mappedRange.minifiedRange.from + (position - originalRange.from));
+        }
+      }
+      return new MappedRangeOriginalToMinifiedMap(positionMap);
+    }
+
+    public int lookupFirst(int originalPosition) {
+      List<Integer> minifiedPositions = originalToMinified.get(originalPosition);
+      return minifiedPositions == null ? 0 : minifiedPositions.get(0);
+    }
+
+    public void visitMinified(int originalPosition, Consumer<Integer> consumer) {
+      List<Integer> minifiedPositions = originalToMinified.get(originalPosition);
+      if (minifiedPositions != null) {
+        minifiedPositions.forEach(consumer);
       }
     }
   }
@@ -163,13 +384,23 @@ public class ComposingBuilder {
     // one method since any shrinker should put in line numbers for overloads.
     private final Map<String, SegmentTree<List<MappedRange>>> methodMembers = new HashMap<>();
     private List<MappingInformation> additionalMappingInfo = null;
-    private final ComposingSharedData sharedData;
 
-    private ComposingClassBuilder(
-        String originalName, String renamedName, ComposingSharedData sharedData) {
+    private ComposingData current;
+
+    /**
+     * Keeps track of the current original name which is different from originalName if this is a
+     * subsequent mapping.
+     */
+    private String currentOriginalName;
+
+    private ComposingClassBuilder(String originalName, String renamedName) {
       this.originalName = originalName;
       this.renamedName = renamedName;
-      this.sharedData = sharedData;
+    }
+
+    public void setCurrentComposingData(ComposingData current, String currentMinifiedName) {
+      this.current = current;
+      this.currentOriginalName = currentMinifiedName;
     }
 
     public void setRenamedName(String renamedName) {
@@ -268,7 +499,8 @@ public class ComposingBuilder {
      * long as the current mapped range is the same method and return a mapped range result
      * containing all ranges for a method along with some additional information.
      */
-    private MappedRangeResult getMappedRangesForMethod(List<MappedRange> mappedRanges, int index) {
+    private MappedRangeResult getMappedRangesForMethod(List<MappedRange> mappedRanges, int index)
+        throws MappingComposeException {
       if (index >= mappedRanges.size()) {
         return null;
       }
@@ -297,10 +529,30 @@ public class ComposingBuilder {
             && !isInlineMappedRange(mappedRanges, i)) {
           break;
         }
+        // Register mapping information that is dependent on the residual naming to allow updating
+        // later on.
         for (MappingInformation mappingInformation : thisMappedRange.getAdditionalMappingInfo()) {
           if (mappingInformation.isRewriteFrameMappingInformation()) {
-            sharedData.mappingInformationToPatchUp.add(
-                mappingInformation.asRewriteFrameMappingInformation());
+            RewriteFrameMappingInformation rewriteFrameMappingInformation =
+                mappingInformation.asRewriteFrameMappingInformation();
+            rewriteFrameMappingInformation
+                .getConditions()
+                .forEach(
+                    condition -> {
+                      if (condition.isThrowsCondition()) {
+                        current.rewriteFrameInformation.add(rewriteFrameMappingInformation);
+                      }
+                    });
+          } else if (mappingInformation.isOutlineCallsiteInformation()) {
+            OutlineCallsiteMappingInformation outlineCallsiteInfo =
+                mappingInformation.asOutlineCallsiteInformation();
+            MethodReference outline = outlineCallsiteInfo.getOutline();
+            if (outline == null) {
+              throw new MappingComposeException(
+                  "Unable to compose outline call site information without outline key: "
+                      + outlineCallsiteInfo.serialize());
+            }
+            current.addNewOutlineCallsiteInformation(outline, outlineCallsiteInfo);
           }
         }
         seenMappedRanges.add(thisMappedRange);
@@ -345,6 +597,7 @@ public class ComposingBuilder {
       Int2ReferenceMap<List<MappedRange>> mappedRangesForPosition =
           getExistingMapping(existingRanges);
       List<MappedRange> newComposedRanges = new ArrayList<>();
+      ComputedOutlineInformation computedOutlineInformation = new ComputedOutlineInformation();
       for (int i = 0; i < newRanges.size(); i++) {
         if (isInlineMappedRange(newRanges, i)) {
           throw new MappingComposeException(
@@ -378,6 +631,7 @@ public class ComposingBuilder {
                 newComposedRanges,
                 newRange,
                 existingMappedRanges,
+                computedOutlineInformation,
                 newRange.minifiedRange.from,
                 newRange.minifiedRange.to);
           } else {
@@ -403,6 +657,7 @@ public class ComposingBuilder {
                     newComposedRanges,
                     newRange,
                     existingMappedRanges,
+                    computedOutlineInformation,
                     lastStartingMinifiedFrom,
                     position - 1);
                 lastStartingMinifiedFrom = position;
@@ -413,9 +668,39 @@ public class ComposingBuilder {
                 newComposedRanges,
                 newRange,
                 existingMappedRanges,
+                computedOutlineInformation,
                 lastStartingMinifiedFrom,
                 newRange.minifiedRange.to);
           }
+        }
+      }
+      MappedRange lastComposedRange = ListUtils.last(newComposedRanges);
+      if (computedOutlineInformation.seenOutlineMappingInformation != null) {
+        current
+            .getUpdateOutlineCallsiteInformation(
+                currentOriginalName,
+                ListUtils.last(newRanges).signature.getName(),
+                lastComposedRange.renamedName)
+            .setNewMappedRanges(newRanges);
+        lastComposedRange.addMappingInformation(
+            computedOutlineInformation.seenOutlineMappingInformation,
+            ConsumerUtils.emptyConsumer());
+      }
+      if (!computedOutlineInformation.outlineCallsiteMappingInformationToPatchUp.isEmpty()) {
+        MappedRangeOriginalToMinifiedMap originalToMinifiedMap =
+            MappedRangeOriginalToMinifiedMap.build(newRanges);
+        List<OutlineCallsiteMappingInformation> outlineCallSites =
+            new ArrayList<>(computedOutlineInformation.outlineCallsiteMappingInformationToPatchUp);
+        outlineCallSites.sort(Comparator.comparing(mapping -> mapping.getOutline().toString()));
+        for (OutlineCallsiteMappingInformation outlineCallSite : outlineCallSites) {
+          Int2IntSortedMap positionMap = outlineCallSite.getPositions();
+          for (Integer keyPosition : positionMap.keySet()) {
+            int keyPositionInt = keyPosition;
+            int originalDestination = positionMap.get(keyPositionInt);
+            int newDestination = originalToMinifiedMap.lookupFirst(originalDestination);
+            positionMap.put(keyPositionInt, newDestination);
+          }
+          lastComposedRange.addMappingInformation(outlineCallSite, ConsumerUtils.emptyConsumer());
         }
       }
       return newComposedRanges;
@@ -453,6 +738,7 @@ public class ComposingBuilder {
         List<MappedRange> newComposedRanges,
         MappedRange newMappedRange,
         List<MappedRange> existingMappedRanges,
+        ComputedOutlineInformation computedOutlineInformation,
         int lastStartingMinifiedFrom,
         int position) {
       Range existingRange = existingMappedRanges.get(0).minifiedRange;
@@ -485,7 +771,17 @@ public class ComposingBuilder {
         existingMappedRange
             .getAdditionalMappingInfo()
             .forEach(
-                info -> computedRange.addMappingInformation(info, ConsumerUtils.emptyConsumer()));
+                info -> {
+                  if (info.isOutlineMappingInformation()) {
+                    computedOutlineInformation.seenOutlineMappingInformation =
+                        info.asOutlineMappingInformation();
+                  } else if (info.isOutlineCallsiteInformation()) {
+                    computedOutlineInformation.outlineCallsiteMappingInformationToPatchUp.add(
+                        info.asOutlineCallsiteInformation());
+                  } else {
+                    computedRange.addMappingInformation(info, ConsumerUtils.emptyConsumer());
+                  }
+                });
         newComposedRanges.add(computedRange);
       }
     }
@@ -572,6 +868,12 @@ public class ComposingBuilder {
         this.lastRange = lastRange;
         this.allRanges = allRanges;
       }
+    }
+
+    private static class ComputedOutlineInformation {
+      private final Set<OutlineCallsiteMappingInformation>
+          outlineCallsiteMappingInformationToPatchUp = Sets.newIdentityHashSet();
+      private OutlineMappingInformation seenOutlineMappingInformation = null;
     }
   }
 }

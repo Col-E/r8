@@ -4,13 +4,14 @@
 
 package com.android.tools.r8.mappingcompose;
 
-import static com.android.tools.r8.mappingcompose.ComposeHelpers.doubleToSingleQuote;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.naming.MappingComposeException;
 import com.android.tools.r8.naming.MappingComposer;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
@@ -31,18 +32,20 @@ public class ComposeMapVersionTest extends TestBase {
 
   private static final String mappingFoo =
       StringUtils.unixLines(
-          "# { id: 'com.android.tools.r8.mapping', version: '1.0' }", "com.foo -> a:");
+          "# { id: 'com.android.tools.r8.mapping', version: '2.1' }", "com.foo -> a:");
   private static final String mappingBar =
-      StringUtils.unixLines("# { id: 'com.android.tools.r8.mapping', version: '2.0' }", "a -> b:");
-  private static final String mappingResult =
-      StringUtils.unixLines(
-          "# {'id':'com.android.tools.r8.mapping','version':'2.0'}", "com.foo -> b:");
+      StringUtils.unixLines("# { id: 'com.android.tools.r8.mapping', version: '2.2' }", "a -> b:");
 
   @Test
   public void testCompose() throws Exception {
     ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromString(mappingFoo);
     ClassNameMapper mappingForBar = ClassNameMapper.mapperFromString(mappingBar);
-    String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
-    assertEquals(mappingResult, doubleToSingleQuote(composed));
+    MappingComposeException mappingComposeException =
+        assertThrows(
+            MappingComposeException.class,
+            () -> MappingComposer.compose(mappingForFoo, mappingForBar));
+    assertEquals(
+        "Composition of mapping files supported from map version 2.1.",
+        mappingComposeException.getMessage());
   }
 }

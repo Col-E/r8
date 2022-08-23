@@ -31,7 +31,7 @@ public class ComposeSyntheticTest extends TestBase {
 
   private static final String mappingFoo =
       StringUtils.unixLines(
-          "# { id: 'com.android.tools.r8.mapping', version: '1.0' }",
+          "# { id: 'com.android.tools.r8.mapping', version: '2.1' }",
           "com.foo -> a:",
           "# { id: 'com.android.tools.r8.synthesized' }",
           "    int f -> a",
@@ -40,7 +40,7 @@ public class ComposeSyntheticTest extends TestBase {
           "    # { id: 'com.android.tools.r8.synthesized' }");
   private static final String mappingBar =
       StringUtils.unixLines(
-          "# { id: 'com.android.tools.r8.mapping', version: '1.0' }",
+          "# { id: 'com.android.tools.r8.mapping', version: '2.1' }",
           "a -> b:",
           "    int a -> b",
           "com.bar -> c:",
@@ -49,7 +49,7 @@ public class ComposeSyntheticTest extends TestBase {
           "    # { id: 'com.android.tools.r8.synthesized' }");
   private static final String mappingResult =
       StringUtils.unixLines(
-          "# {'id':'com.android.tools.r8.mapping','version':'1.0'}",
+          "# {'id':'com.android.tools.r8.mapping','version':'2.1'}",
           "com.bar -> c:",
           "# {'id':'com.android.tools.r8.synthesized'}",
           "    void bar() -> a",
