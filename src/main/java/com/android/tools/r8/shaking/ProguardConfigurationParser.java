@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.shaking.ProguardKeepAttributes.RUNTIME_INVISIBLE_ANNOTATIONS;
 import static com.android.tools.r8.shaking.ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS;
 import static com.android.tools.r8.utils.DescriptorUtils.javaTypeToDescriptor;
 
@@ -288,26 +289,23 @@ public class ProguardConfigurationParser {
           || parseUnsupportedOptionAndErr(optionStart)) {
         // Intentionally left empty.
       } else if (acceptString("keepkotlinmetadata")) {
+        String source = "-keepkotlinmetadata";
         ProguardKeepRule keepKotlinMetadata =
-            ProguardKeepRule.builder()
-                .setType(ProguardKeepRuleType.KEEP)
-                .setClassType(ProguardClassType.CLASS)
-                .setOrigin(origin)
-                .setStart(optionStart)
-                .setClassNames(
-                    ProguardClassNameList.builder()
-                        .addClassName(
-                            false, ProguardTypeMatcher.create(dexItemFactory.kotlinMetadataType))
-                        .build())
-                .setMemberRules(Collections.singletonList(ProguardMemberRule.defaultKeepAllRule()))
-                .setSource("-keepkotlinmetadata")
-                .build();
-        // Mark the rule as used to ensure we do not report any information messages if the class
+            ProguardKeepRuleUtils.keepClassAndMembersRule(
+                origin, optionStart, dexItemFactory.kotlinMetadataType, source);
+        ProguardKeepRule keepKotlinJvmNameAnnotation =
+            ProguardKeepRuleUtils.keepClassAndMembersRule(
+                origin, optionStart, dexItemFactory.kotlinJvmNameType, source);
+        // Mark the rules as used to ensure we do not report any information messages if the class
         // is not present.
         keepKotlinMetadata.markAsUsed();
+        keepKotlinJvmNameAnnotation.markAsUsed();
         configurationBuilder.addRule(keepKotlinMetadata);
+        configurationBuilder.addRule(keepKotlinJvmNameAnnotation);
         configurationBuilder.addKeepAttributePatterns(
             Collections.singletonList(RUNTIME_VISIBLE_ANNOTATIONS));
+        configurationBuilder.addKeepAttributePatterns(
+            Collections.singletonList(RUNTIME_INVISIBLE_ANNOTATIONS));
       } else if (acceptString("renamesourcefileattribute")) {
         skipWhitespace();
         if (isOptionalArgumentGiven()) {

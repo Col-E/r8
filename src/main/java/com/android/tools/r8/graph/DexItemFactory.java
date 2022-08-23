@@ -304,6 +304,7 @@ public class DexItemFactory {
   public final DexString reflectiveOperationExceptionDescriptor =
       createString("Ljava/lang/ReflectiveOperationException;");
   public final DexString kotlinMetadataDescriptor = createString("Lkotlin/Metadata;");
+  public final DexString kotlinJvmNameDescriptor = createString("Lkotlin/jvm/JvmName;");
 
   public final DexString intFieldUpdaterDescriptor =
       createString("Ljava/util/concurrent/atomic/AtomicIntegerFieldUpdater;");
@@ -490,6 +491,7 @@ public class DexItemFactory {
   public final DexType reflectiveOperationExceptionType =
       createStaticallyKnownType(reflectiveOperationExceptionDescriptor);
   public final DexType kotlinMetadataType = createStaticallyKnownType(kotlinMetadataDescriptor);
+  public final DexType kotlinJvmNameType = createStaticallyKnownType(kotlinJvmNameDescriptor);
 
   public final DexType javaIoFileType = createStaticallyKnownType("Ljava/io/File;");
   public final DexType javaMathBigIntegerType = createStaticallyKnownType("Ljava/math/BigInteger;");
