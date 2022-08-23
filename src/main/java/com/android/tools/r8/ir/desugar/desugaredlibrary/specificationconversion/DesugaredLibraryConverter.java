@@ -39,10 +39,14 @@ public class DesugaredLibraryConverter {
   public static void main(String[] args) throws IOException {
     Path jsonFile = Paths.get(args[0]);
     Path desugaredLibraryJar = Paths.get(args[1]);
-    Path androidJar = Paths.get(args[2]);
-    Path output = Paths.get(args[3]);
+    Path customConversionsJar = Paths.get(args[2]);
+    Path androidJar = Paths.get(args[3]);
+    Path output = Paths.get(args[4]);
     convertMultiLevelAnythingToMachineSpecification(
-        jsonFile, ImmutableSet.of(desugaredLibraryJar), ImmutableSet.of(androidJar), output);
+        jsonFile,
+        ImmutableSet.of(desugaredLibraryJar, customConversionsJar),
+        ImmutableSet.of(androidJar),
+        output);
   }
 
   public static void convertMultiLevelAnythingToMachineSpecification(

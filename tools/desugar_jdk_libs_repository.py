@@ -11,8 +11,10 @@ import shutil
 import subprocess
 import sys
 
+import gradle
 import utils
 import create_maven_release
+import archive_desugar_jdk_libs
 
 class Variant(Enum):
     jdk8 = 'jdk8'
@@ -114,6 +116,7 @@ def run(args):
       version_file = 'VERSION_JDK11_NIO.txt'
       implementation_build_target = ':maven_release_jdk11_nio'
       implementation_build_output = join('bazel-bin', 'desugar_jdk_libs_jdk11_nio.zip')
+  gradle.RunGradle([utils.R8])
   with utils.TempDir(delete=False) as tmp_dir:
     (name, version) = utils.desugar_configuration_name_and_version(configuration, False)
     # Checkout desugar_jdk_libs from GitHub
@@ -167,11 +170,24 @@ def run(args):
           '--spawn_strategy=local',
           '--verbose_failures',
           implementation_build_target])
+
+    # Undesugar desugared library if needed.
+    undesugared_if_needed = join(checkout_dir, implementation_build_output)
+    if (args.variant == Variant.jdk11_minimal
+        or args.variant == Variant.jdk11
+        or args.variant == Variant.jdk11_nio):
+      undesugared_if_needed = join(tmp_dir, 'undesugared.zip')
+      archive_desugar_jdk_libs.Undesugar(
+        str(args.variant),
+        join(checkout_dir, implementation_build_output),
+        version,
+        undesugared_if_needed)
+
     unzip_dir = join(tmp_dir, 'desugar_jdk_libs_unzipped')
     cmd = [
         'unzip',
         '-q',
-        join(checkout_dir, implementation_build_output),
+        undesugared_if_needed,
         '-d',
         unzip_dir]
     subprocess.check_call(cmd)
@@ -204,7 +220,7 @@ def run(args):
     print("    changing = true")
     print("  }")
     print()
-    print('If not using the !changing" propertyRemember to run gradle with '
+    print('If not using the "changing" propertyRemember to run gradle with '
       + " --refresh-dependencies (./gradlew --refresh-dependencies ...) "
       + "to ensure the cache is not used when the same version is published."
       + "multiple times.")

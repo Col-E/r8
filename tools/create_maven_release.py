@@ -391,13 +391,15 @@ def generate_jar_with_desugar_configuration(
     make_archive(destination, 'zip', tmp_dir)
     move(destination + '.zip', destination)
 
-def convert_desugar_configuration(configuration, machine_configuration):
+def convert_desugar_configuration(
+    configuration, conversions, implementation, machine_configuration):
   cmd = [jdk.GetJavaExecutable(),
       '-cp',
       utils.R8_JAR,
       'com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.DesugaredLibraryConverter',
       configuration,
-      utils.DESUGAR_IMPLEMENTATION_JDK11,
+      implementation,
+      conversions,
       utils.get_android_jar(33),
       machine_configuration]
   subprocess.check_call(cmd)
@@ -410,7 +412,7 @@ def generate_desugar_configuration_maven_zip(
 
     if (not version.startswith("1.")):
       machine_configuration = join(tmp_dir, "machine.json")
-      convert_desugar_configuration(configuration, machine_configuration)
+      convert_desugar_configuration(configuration, conversions, implementation, machine_configuration)
       configuration = machine_configuration
 
     # Generate the pom file.
