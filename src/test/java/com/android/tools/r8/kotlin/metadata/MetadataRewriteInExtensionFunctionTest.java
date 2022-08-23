@@ -15,10 +15,13 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
-import com.android.tools.r8.utils.Box;
+import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
@@ -28,8 +31,13 @@ import com.android.tools.r8.utils.codeinspector.KmTypeProjectionSubject;
 import com.android.tools.r8.utils.codeinspector.KmTypeSubject;
 import com.android.tools.r8.utils.codeinspector.KmValueParameterSubject;
 import com.android.tools.r8.utils.codeinspector.Matchers;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -184,8 +192,7 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
   @Test
   public void testMetadataInExtensionFunction_renamedKotlinSources() throws Exception {
     assumeTrue(kotlinc.getCompilerVersion().isGreaterThanOrEqualTo(KOTLINC_1_4_20));
-    Box<String> renamedKtHolder = new Box<>();
-    Path libJar =
+    R8TestCompileResult r8LibraryResult =
         testForR8(parameters.getBackend())
             .addClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
             .addProgramFiles(extLibJarMap.getForConfiguration(kotlinc, targetVersion))
@@ -201,21 +208,65 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
             .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
             .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
             .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
-            .compile()
-            .inspect(
-                inspector -> {
-                  ClassSubject clazz = inspector.clazz(PKG + ".extension_function_lib.BKt");
-                  assertThat(clazz, isPresentAndRenamed());
-                  renamedKtHolder.set(clazz.getFinalName());
-                })
-            .writeToZip();
+            .compile();
+    Path kotlinSourcePath = getKotlinFileInTest(PKG_PREFIX + "/extension_function_app", "main");
 
-    kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
-        .addClasspathFiles(libJar)
-        .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/extension_function_app", "main"))
-        .setOutputPath(temp.newFolder().toPath())
-        // TODO(b/242289529): Expect that we can compile without errors.
-        .compile(true);
+    String kotlinSource = FileUtils.readTextFile(kotlinSourcePath, StandardCharsets.UTF_8);
+
+    CodeInspector inspector = r8LibraryResult.inspector();
+
+    ClassSubject clazz = inspector.clazz(PKG + ".extension_function_lib.BKt");
+    assertThat(clazz, isPresentAndRenamed());
+
+    // Rewrite the source kotlin files that reference the four extension methods into their renamed
+    // name by changing the import statement and the actual call.
+    String[] methodNames = new String[] {"extension", "csHash", "longArrayHash", "myApply"};
+    for (String methodName : methodNames) {
+      MethodSubject method = clazz.uniqueMethodWithName(methodName);
+      assertThat(method, isPresentAndRenamed());
+      String finalMethodName = method.getFinalName();
+      kotlinSource =
+          kotlinSource.replace(
+              "import com.android.tools.r8.kotlin.metadata.extension_function_lib." + methodName,
+              "import "
+                  + DescriptorUtils.getPackageNameFromTypeName(clazz.getFinalName())
+                  + "."
+                  + finalMethodName);
+      kotlinSource = kotlinSource.replace(")." + methodName, ")." + finalMethodName);
+    }
+
+    Path newSource = temp.newFolder().toPath().resolve("main.kt");
+    Files.write(newSource, kotlinSource.getBytes(StandardCharsets.UTF_8));
+
+    Path libJar = r8LibraryResult.writeToZip();
+    Path tempUnzipPath = temp.newFolder().toPath();
+    List<String> kotlinModuleFiles = new ArrayList<>();
+    ZipUtils.unzip(
+        libJar,
+        tempUnzipPath,
+        f -> {
+          if (f.getName().endsWith(".kotlin_module")) {
+            kotlinModuleFiles.add(f.getName());
+          }
+          return false;
+        });
+    assertEquals(Collections.singletonList("META-INF/main.kotlin_module"), kotlinModuleFiles);
+    Path output =
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
+            .addClasspathFiles(libJar)
+            .addSourceFiles(newSource)
+            .setOutputPath(temp.newFolder().toPath())
+            .compile();
+
+    if (kotlinParameters.isOlderThan(KOTLINC_1_4_20)) {
+      return;
+    }
+
+    testForJvm()
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
+        .addClasspath(output)
+        .run(parameters.getRuntime(), PKG + ".extension_function_app.MainKt")
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   private void inspectRenamed(CodeInspector inspector) {

@@ -47,6 +47,7 @@ import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.naming.KotlinModuleSynthesizer;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapId;
 import com.android.tools.r8.origin.Origin;
@@ -605,13 +606,19 @@ public class ApplicationWriter {
       ExceptionUtils.withFinishedResourceHandler(options.reporter, options.mainDexListConsumer);
     }
 
+    KotlinModuleSynthesizer kotlinModuleSynthesizer = new KotlinModuleSynthesizer(appView);
+
     DataResourceConsumer dataResourceConsumer = options.dataResourceConsumer;
     if (dataResourceConsumer != null) {
       ImmutableList<DataResourceProvider> dataResourceProviders =
           appView.app().dataResourceProviders;
       ResourceAdapter resourceAdapter = new ResourceAdapter(appView);
       adaptAndPassDataResources(
-          options, dataResourceConsumer, dataResourceProviders, resourceAdapter);
+          options,
+          dataResourceConsumer,
+          dataResourceProviders,
+          resourceAdapter,
+          kotlinModuleSynthesizer);
 
       // Write the META-INF/services resources. Sort on service names and keep the order from
       // the input for the implementation lines for deterministic output.
@@ -638,6 +645,10 @@ public class ApplicationWriter {
                       options.reporter);
                 });
       }
+      // Rewrite/synthesize kotlin_module files
+      kotlinModuleSynthesizer
+          .synthesizeKotlinModuleFiles()
+          .forEach(file -> dataResourceConsumer.accept(file, options.reporter));
     }
 
     if (options.featureSplitConfiguration != null) {
@@ -645,7 +656,11 @@ public class ApplicationWriter {
           options.featureSplitConfiguration.getDataResourceProvidersAndConsumers()) {
         ResourceAdapter resourceAdapter = new ResourceAdapter(appView);
         adaptAndPassDataResources(
-            options, entry.getConsumer(), entry.getProviders(), resourceAdapter);
+            options,
+            entry.getConsumer(),
+            entry.getProviders(),
+            resourceAdapter,
+            kotlinModuleSynthesizer);
       }
     }
   }
@@ -654,7 +669,8 @@ public class ApplicationWriter {
       InternalOptions options,
       DataResourceConsumer dataResourceConsumer,
       Collection<DataResourceProvider> dataResourceProviders,
-      ResourceAdapter resourceAdapter) {
+      ResourceAdapter resourceAdapter,
+      KotlinModuleSynthesizer kotlinModuleSynthesizer) {
     Set<String> generatedResourceNames = new HashSet<>();
 
     for (DataResourceProvider dataResourceProvider : dataResourceProviders) {
@@ -676,7 +692,10 @@ public class ApplicationWriter {
                   // META-INF/services resources are handled below.
                   return;
                 }
-
+                if (kotlinModuleSynthesizer.isKotlinModuleFile(file)) {
+                  // .kotlin_module files are synthesized.
+                  return;
+                }
                 DataEntryResource adapted = resourceAdapter.adaptIfNeeded(file);
                 if (generatedResourceNames.add(adapted.getName())) {
                   dataResourceConsumer.accept(adapted, options.reporter);

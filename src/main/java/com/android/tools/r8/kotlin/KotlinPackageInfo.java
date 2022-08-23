@@ -97,4 +97,8 @@ public class KotlinPackageInfo implements EnqueuerMetadataTraceable {
     containerInfo.trace(definitionSupplier);
     localDelegatedProperties.trace(definitionSupplier);
   }
+
+  public String getModuleName() {
+    return moduleName;
+  }
 }

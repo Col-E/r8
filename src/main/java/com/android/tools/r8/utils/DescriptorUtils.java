@@ -404,6 +404,17 @@ public class DescriptorUtils {
   }
 
   /**
+   * Get package java name from a class type name.
+   *
+   * @param typeName a class descriptor i.e. "java.lang.Object"
+   * @return java package name i.e. "java.lang"
+   */
+  public static String getPackageNameFromTypeName(String typeName) {
+    return getPackageNameFromBinaryName(
+        getClassBinaryNameFromDescriptor(javaTypeToDescriptor(typeName)));
+  }
+
+  /**
    * Convert package name to a binary name.
    *
    * @param packageName a package name i.e., "java.lang"

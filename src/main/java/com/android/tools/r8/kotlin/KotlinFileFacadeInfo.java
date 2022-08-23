@@ -70,6 +70,10 @@ public class KotlinFileFacadeInfo implements KotlinClassLevelInfo {
     return packageName;
   }
 
+  public String getModuleName() {
+    return packageInfo.getModuleName();
+  }
+
   @Override
   public int[] getMetadataVersion() {
     return metadataVersion;

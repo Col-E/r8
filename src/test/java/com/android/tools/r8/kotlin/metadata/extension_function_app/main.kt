@@ -13,7 +13,7 @@ fun main() {
   B().doStuff()
   B().extension()
 
-  "R8".csHash()
+  ("R8").csHash()
   longArrayOf(42L).longArrayHash()
   B().myApply { this.doStuff() }
 }

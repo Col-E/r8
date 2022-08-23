@@ -18,7 +18,6 @@ import kotlinx.metadata.jvm.KotlinClassMetadata.MultiFileClassPart;
 // Holds information about Metadata.MultiFileClassPartInfo
 public class KotlinMultiFileClassPartInfo implements KotlinClassLevelInfo {
 
-  // TODO(b/157630779): Maybe model facadeClassName.
   private final String facadeClassName;
   private final KotlinPackageInfo packageInfo;
   private final String packageName;
@@ -78,6 +77,10 @@ public class KotlinMultiFileClassPartInfo implements KotlinClassLevelInfo {
     return packageName;
   }
 
+  public String getModuleName() {
+    return packageInfo.getModuleName();
+  }
+
   @Override
   public int[] getMetadataVersion() {
     return metadataVersion;
@@ -86,5 +89,9 @@ public class KotlinMultiFileClassPartInfo implements KotlinClassLevelInfo {
   @Override
   public void trace(DexDefinitionSupplier definitionSupplier) {
     packageInfo.trace(definitionSupplier);
+  }
+
+  public String getFacadeClassName() {
+    return facadeClassName;
   }
 }
