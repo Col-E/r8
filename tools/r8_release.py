@@ -567,12 +567,10 @@ def prepare_desugar_library(args):
         % library_version)
       sys.exit(1)
 
-    library_archive = DESUGAR_JDK_LIBS + '.zip'
-    library_jar = DESUGAR_JDK_LIBS + '.jar'
-    library_artifact_id = \
-        '%s:%s:%s' % (ANDROID_TOOLS_PACKAGE, DESUGAR_JDK_LIBS, library_version)
-
     postfix = "" if library_version.startswith('1.1') else '_jdk11_legacy'
+    library_archive = DESUGAR_JDK_LIBS + postfix + '.zip'
+    library_jar = DESUGAR_JDK_LIBS + postfix + '.jar'
+
     configuration_archive = DESUGAR_JDK_LIBS_CONFIGURATION + postfix + '.zip'
 
     with utils.TempDir() as temp:
@@ -590,9 +588,11 @@ def prepare_desugar_library(args):
             args, [library_gfile, configuration_gfile])
 
         print("Staged Release ID " + release_id + ".\n")
+        library_artifact_id = \
+            '%s:%s:%s' % (ANDROID_TOOLS_PACKAGE, DESUGAR_JDK_LIBS, library_version)
         gmaven_publisher_stage_redir_test_info(
             release_id,
-            "com.android.tools:%s:%s" % (DESUGAR_JDK_LIBS, library_version),
+            library_artifact_id,
             library_jar)
 
         print("")

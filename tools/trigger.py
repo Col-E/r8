@@ -23,6 +23,7 @@ LUCI_SCHEDULE = os.path.join(utils.REPO_ROOT, 'infra', 'config', 'global',
 TRIGGERS_RE = r'^  triggers: "(\w.*)"'
 
 DESUGAR_JDK11_BOT = 'lib_desugar-archive-jdk11'
+DESUGAR_JDK11_LEGACY_BOT = 'lib_desugar-archive-jdk11-legacy'
 DESUGAR_JDK8_BOT = 'lib_desugar-archive-jdk8'
 
 def ParseOptions():
@@ -36,6 +37,9 @@ def ParseOptions():
                     'https://r8-review.googlesource.com/c/r8/+/37420/1')
   result.add_option('--desugar-jdk11',
                     help='Run the jdk11 library desugar and archiving bot.',
+                    default=False, action='store_true')
+  result.add_option('--desugar-jdk11-legacy',
+                    help='Run the jdk11 legacy library desugar and archiving bot.',
                     default=False, action='store_true')
   result.add_option('--desugar-jdk8',
                     help='Run the jdk8 library desugar and archiving bot.',
@@ -66,6 +70,7 @@ def get_builders():
           assert 'release' not in builder, builder
           main_builders.append(builder)
   print('Desugar jdk11 builder:\n  ' + DESUGAR_JDK11_BOT)
+  print('Desugar jdk11 legacy builder:\n  ' + DESUGAR_JDK11_LEGACY_BOT)
   print('Desugar jdk8 builder:\n  ' + DESUGAR_JDK8_BOT)
   print('Main builders:\n  ' + '\n  '.join(main_builders))
   print('Release builders:\n  ' + '\n  '.join(release_builders))
@@ -90,7 +95,7 @@ def trigger_cl(builders, cl_url):
 
 def Main():
   (options, args) = ParseOptions()
-  desugar = options.desugar_jdk11 or options.desugar_jdk8
+  desugar = options.desugar_jdk11 or options.desugar_jdk11_legacy or options.desugar_jdk8
   if len(args) != 1 and not options.cl and not desugar:
     print('Takes exactly one argument, the commit to run')
     return 1
@@ -111,8 +116,13 @@ def Main():
     assert builder in main_builders or builder in release_builders
     builders = [options.builder]
   if desugar:
-    assert options.desugar_jdk8 or options.desugar_jdk11
-    builders = [DESUGAR_JDK8_BOT if options.desugar_jdk8 else DESUGAR_JDK11_BOT]
+    assert options.desugar_jdk11 or options.desugar_jdk11_legacy or options.desugar_jdk8
+    if options.desugar_jdk11:
+      builders = [DESUGAR_JDK11_BOT]
+    elif options.desugar_jdk11_legacy:
+      builders = [DESUGAR_JDK11_LEGACY_BOT]
+    else:
+      builders = [DESUGAR_JDK8_BOT]
     commit = git_utils.GetHeadRevision(utils.REPO_ROOT, use_main=True)
   if options.cl:
     trigger_cl(builders, options.cl)
