@@ -48,7 +48,6 @@ public class LIR2IRConverter {
 
   public static IRCode translate(ProgramMethod method, LIRCode lirCode, AppView<?> appView) {
     Parser parser = new Parser(lirCode, method.getReference(), appView);
-    parser.computeControlFlowGraph();
     parser.parseArguments(method);
     lirCode.forEach(view -> view.accept(parser));
     return parser.getIRCode(method);
@@ -93,12 +92,13 @@ public class LIR2IRConverter {
     }
 
     private void ensureCurrentBlock() {
-      BasicBlock nextBlock = blocks.get(nextInstructionIndex);
-      if (nextBlock != null) {
-        assert currentBlock != nextBlock;
-        currentBlock = nextBlock;
+      // Control instructions must close the block, thus the current block is null iff the
+      // instruction denotes a new block.
+      if (currentBlock == null) {
+        currentBlock = blocks.computeIfAbsent(nextInstructionIndex, k -> new BasicBlock());
+      } else {
+        assert !blocks.containsKey(nextInstructionIndex);
       }
-      assert currentBlock != null;
     }
 
     private void ensureCurrentPosition() {
@@ -116,34 +116,8 @@ public class LIR2IRConverter {
               : null;
     }
 
-    public void computeControlFlowGraph() {
-      // TODO(b/225838009): Since each basic block has a terminal instruction we can compute block
-      //  structure lazily while iterating the instructions and avoid this additional pass.
-      // Always create an entry block as it cannot be targeted from code.
-      blocks.put(ENTRY_BLOCK_INDEX, createBlock());
-      for (LIRInstructionView view : code) {
-        int opcode = view.getOpcode();
-        if (LIROpcodes.isControlFlowInstruction(opcode)) {
-          // TODO(b/225838009): Deal with multi-target instructions.
-          int target = view.getNextBlockOperand();
-          blocks.computeIfAbsent(target, k -> createBlock());
-          if (LIROpcodes.isControlFlowInstructionWithFallthrough(opcode)) {
-            blocks.computeIfAbsent(view.getInstructionIndex() + 1, k -> createBlock());
-          }
-        }
-      }
-    }
-
-    public BasicBlock createBlock() {
-      BasicBlock block = new BasicBlock();
-      block.setNumber(basicBlockNumberGenerator.next());
-      // The LIR is in SSA with accurate phis. The blocks are thus filled by construction.
-      block.setFilled();
-      return block;
-    }
-
     public void parseArguments(ProgramMethod method) {
-      currentBlock = blocks.get(ENTRY_BLOCK_INDEX);
+      currentBlock = getBasicBlock(ENTRY_BLOCK_INDEX);
       boolean hasReceiverArgument = !method.getDefinition().isStatic();
       assert code.getArgumentCount()
           == method.getParameters().size() + (hasReceiverArgument ? 1 : 0);
@@ -159,13 +133,13 @@ public class LIR2IRConverter {
     }
 
     public IRCode getIRCode(ProgramMethod method) {
-      // TODO(b/225838009): Support control flow.
-      currentBlock.setFilled();
       LinkedList<BasicBlock> blockList = new LinkedList<>();
       IntList blockIndices = new IntArrayList(blocks.keySet());
       blockIndices.sort(Integer::compare);
       for (int i = 0; i < blockIndices.size(); i++) {
-        blockList.add(blocks.get(blockIndices.getInt(i)));
+        BasicBlock block = blocks.get(blockIndices.getInt(i));
+        block.setFilled();
+        blockList.add(block);
       }
       return new IRCode(
           appView.options(),
@@ -180,9 +154,13 @@ public class LIR2IRConverter {
     }
 
     public BasicBlock getBasicBlock(int instructionIndex) {
-      BasicBlock block = blocks.get(instructionIndex);
-      assert block != null;
-      return block;
+      return blocks.computeIfAbsent(
+          instructionIndex,
+          k -> {
+            BasicBlock block = new BasicBlock();
+            block.setNumber(basicBlockNumberGenerator.next());
+            return block;
+          });
     }
 
     public Value getValue(int index) {
@@ -301,6 +279,12 @@ public class LIR2IRConverter {
     }
 
     @Override
+    public void onFallthrough() {
+      int nextBlockIndex = peekNextInstructionIndex() + 1;
+      onGoto(nextBlockIndex);
+    }
+
+    @Override
     public void onGoto(int blockIndex) {
       BasicBlock targetBlock = getBasicBlock(blockIndex);
       addInstruction(new Goto());
@@ -341,6 +325,7 @@ public class LIR2IRConverter {
     @Override
     public void onReturnVoid() {
       addInstruction(new Return());
+      closeCurrentBlock();
     }
 
     @Override

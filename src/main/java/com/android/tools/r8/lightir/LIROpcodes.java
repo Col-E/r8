@@ -14,26 +14,7 @@ public interface LIROpcodes {
 
   static boolean isOneByteInstruction(int opcode) {
     assert opcode >= ACONST_NULL;
-    return opcode <= DCONST_1 || opcode == RETURN || opcode == DEBUGPOS;
-  }
-
-  static boolean isControlFlowInstruction(int opcode) {
-    return opcode == GOTO || isControlFlowInstructionWithFallthrough(opcode);
-  }
-
-  static boolean isControlFlowInstructionWithFallthrough(int opcode) {
-    switch (opcode) {
-      case IFEQ:
-      case IFNE:
-      case IFLT:
-      case IFGE:
-      case IFGT:
-      case IFLE:
-        // TODO(b/225838009): put in the rest!
-        return true;
-      default:
-        return false;
-    }
+    return opcode <= DCONST_1 || opcode == RETURN || opcode == DEBUGPOS || opcode == FALLTHROUGH;
   }
 
   // Instructions maintaining the same opcode as defined in CF.
@@ -203,6 +184,7 @@ public interface LIROpcodes {
   int INVOKEDIRECT = 204;
   int DEBUGPOS = 205;
   int PHI = 206;
+  int FALLTHROUGH = 207;
 
   static String toString(int opcode) {
     switch (opcode) {
@@ -511,6 +493,8 @@ public interface LIROpcodes {
         return "DEBUGPOS";
       case PHI:
         return "PHI";
+      case FALLTHROUGH:
+        return "FALLTHROUGH";
 
       default:
         throw new Unreachable("Unexpected LIR opcode: " + opcode);

@@ -71,7 +71,16 @@ public class IR2LIRConverter {
       while (it.hasNext()) {
         Instruction instruction = it.next();
         builder.setCurrentPosition(instruction.getPosition());
-        instruction.buildLIR(builder);
+        if (instruction.isGoto()) {
+          BasicBlock nextBlock = blockIt.peekNext();
+          if (instruction.asGoto().getTarget() == nextBlock) {
+            builder.addFallthrough();
+          } else {
+            instruction.buildLIR(builder);
+          }
+        } else {
+          instruction.buildLIR(builder);
+        }
       }
     }
     return builder.build();

@@ -241,6 +241,10 @@ public class LIRBuilder<V, B> {
     return addNoOperandInstruction(LIROpcodes.DEBUGPOS);
   }
 
+  public void addFallthrough() {
+    addNoOperandInstruction(LIROpcodes.FALLTHROUGH);
+  }
+
   public LIRBuilder<V, B> addGoto(B target) {
     int targetIndex = getBlockIndex(target);
     int operandSize = blockIndexSize(targetIndex);

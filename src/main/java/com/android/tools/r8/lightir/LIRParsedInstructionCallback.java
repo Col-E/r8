@@ -40,6 +40,8 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
 
   public void onGoto(int blockIndex) {}
 
+  public void onFallthrough() {}
+
   public void onInvokeMethodInstruction(DexMethod method, IntList arguments) {}
 
   public void onInvokeDirect(DexMethod method, IntList arguments) {
@@ -142,6 +144,11 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
             operands.add(view.getNextValueOperand());
           }
           onPhi(type, operands);
+          break;
+        }
+      case LIROpcodes.FALLTHROUGH:
+        {
+          onFallthrough();
           break;
         }
       default:
