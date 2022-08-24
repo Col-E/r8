@@ -5,10 +5,10 @@
 package com.android.tools.r8.dex;
 
 import com.android.tools.r8.dex.FileWriter.MixedSectionOffsets;
-import com.android.tools.r8.experimental.startup.StartupClass;
-import com.android.tools.r8.experimental.startup.StartupItem;
-import com.android.tools.r8.experimental.startup.StartupMethod;
 import com.android.tools.r8.experimental.startup.StartupOrder;
+import com.android.tools.r8.experimental.startup.profile.StartupClass;
+import com.android.tools.r8.experimental.startup.profile.StartupItem;
+import com.android.tools.r8.experimental.startup.profile.StartupMethod;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;

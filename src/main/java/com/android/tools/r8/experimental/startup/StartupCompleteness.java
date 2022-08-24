@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.experimental.startup;
 
+import com.android.tools.r8.experimental.startup.profile.StartupClass;
+import com.android.tools.r8.experimental.startup.profile.StartupItem;
+import com.android.tools.r8.experimental.startup.profile.StartupMethod;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;

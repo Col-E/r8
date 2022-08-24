@@ -15,10 +15,10 @@ import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.errors.Unimplemented;
-import com.android.tools.r8.experimental.startup.StartupConfigurationParser;
-import com.android.tools.r8.experimental.startup.StartupItem;
-import com.android.tools.r8.experimental.startup.StartupProfile;
 import com.android.tools.r8.experimental.startup.instrumentation.StartupInstrumentationOptions;
+import com.android.tools.r8.experimental.startup.profile.StartupItem;
+import com.android.tools.r8.experimental.startup.profile.StartupProfile;
+import com.android.tools.r8.experimental.startup.profile.StartupProfileParser;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -110,7 +110,7 @@ public class StartupTestingUtils {
   public static void readStartupListFromFile(
       Path path, Consumer<StartupItem<ClassReference, MethodReference, ?>> startupItemConsumer)
       throws IOException {
-    StartupConfigurationParser.createReferenceParser()
+    StartupProfileParser.createReferenceParser()
         .parseLines(
             Files.readAllLines(path),
             startupItemConsumer,
@@ -126,8 +126,8 @@ public class StartupTestingUtils {
   public static void removeStartupListFromStdout(
       D8TestRunResult runResult,
       Consumer<StartupItem<ClassReference, MethodReference, ?>> startupItemConsumer) {
-    StartupConfigurationParser<ClassReference, MethodReference, TypeReference> parser =
-        StartupConfigurationParser.createReferenceParser();
+    StartupProfileParser<ClassReference, MethodReference, TypeReference> parser =
+        StartupProfileParser.createReferenceParser();
     StringBuilder stdoutBuilder = new StringBuilder();
     String startupDescriptorPrefix = "[" + startupInstrumentationTag + "] ";
     for (String line : StringUtils.splitLines(runResult.getStdOut(), true)) {

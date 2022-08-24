@@ -14,9 +14,9 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.experimental.startup.StartupClass;
-import com.android.tools.r8.experimental.startup.StartupItem;
-import com.android.tools.r8.experimental.startup.StartupMethod;
+import com.android.tools.r8.experimental.startup.profile.StartupClass;
+import com.android.tools.r8.experimental.startup.profile.StartupItem;
+import com.android.tools.r8.experimental.startup.profile.StartupMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;

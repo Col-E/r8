@@ -1,8 +1,8 @@
-// Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.experimental.startup;
+package com.android.tools.r8.experimental.startup.profile;
 
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -54,7 +54,7 @@ public class StartupProfile {
   public static StartupProfile createStartupConfigurationFromLines(
       InternalOptions options, List<String> startupDescriptors) {
     List<StartupItem<DexType, DexMethod, ?>> startupItems = new ArrayList<>();
-    StartupConfigurationParser.createDexParser(options.dexItemFactory())
+    StartupProfileParser.createDexParser(options.dexItemFactory())
         .parseLines(
             startupDescriptors,
             startupItems::add,

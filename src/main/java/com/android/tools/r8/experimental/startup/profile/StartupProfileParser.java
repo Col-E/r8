@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.experimental.startup;
+package com.android.tools.r8.experimental.startup.profile;
 
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class StartupConfigurationParser<C, M, T> {
+public class StartupProfileParser<C, M, T> {
 
   interface MethodFactory<C, M, T> {
 
@@ -29,7 +29,7 @@ public class StartupConfigurationParser<C, M, T> {
   private final MethodFactory<C, M, T> methodFactory;
   private final Function<String, T> typeFactory;
 
-  StartupConfigurationParser(
+  StartupProfileParser(
       Function<String, C> classFactory,
       MethodFactory<C, M, T> methodFactory,
       Function<String, T> typeFactory) {
@@ -38,9 +38,9 @@ public class StartupConfigurationParser<C, M, T> {
     this.typeFactory = typeFactory;
   }
 
-  public static StartupConfigurationParser<DexType, DexMethod, DexType> createDexParser(
+  public static StartupProfileParser<DexType, DexMethod, DexType> createDexParser(
       DexItemFactory dexItemFactory) {
-    return new StartupConfigurationParser<>(
+    return new StartupProfileParser<>(
         dexItemFactory::createType,
         (methodHolder, methodName, methodParameters, methodReturnType) ->
             dexItemFactory.createMethod(
@@ -50,9 +50,9 @@ public class StartupConfigurationParser<C, M, T> {
         dexItemFactory::createType);
   }
 
-  public static StartupConfigurationParser<ClassReference, MethodReference, TypeReference>
+  public static StartupProfileParser<ClassReference, MethodReference, TypeReference>
       createReferenceParser() {
-    return new StartupConfigurationParser<>(
+    return new StartupProfileParser<>(
         Reference::classFromDescriptor, Reference::method, Reference::returnTypeFromDescriptor);
   }
 
