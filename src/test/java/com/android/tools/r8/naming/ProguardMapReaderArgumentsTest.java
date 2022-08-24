@@ -65,9 +65,6 @@ public class ProguardMapReaderArgumentsTest extends TestBase {
                     diagnosticMessage(containsString("Could not locate 'id'")),
                     diagnosticPosition(positionLine(4))),
                 allOf(
-                    diagnosticMessage(containsString("Not valid JSON")),
-                    diagnosticPosition(positionLine(6))),
-                allOf(
                     diagnosticMessage(containsString("Could not find a handler for bar")),
                     diagnosticPosition(positionLine(8)))))
         .assertAllInfosMatch(diagnosticType(MappingInformationDiagnostics.class));
