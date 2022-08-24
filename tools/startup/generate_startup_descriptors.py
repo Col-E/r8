@@ -30,7 +30,7 @@ def extend_startup_descriptors(startup_descriptors, iteration, device, options):
         profile_classes_and_methods, iteration, options)
     current_startup_descriptors = \
         profile_utils.transform_art_profile_to_r8_startup_list(
-            profile_classes_and_methods)
+            profile_classes_and_methods, options.generalize_synthetics)
   write_tmp_startup_descriptors(current_startup_descriptors, iteration, options)
   new_startup_descriptors = add_r8_startup_descriptors(
       startup_descriptors, current_startup_descriptors)
@@ -307,6 +307,11 @@ def parse_options(argv):
   result.add_argument('--device-pin',
                       help='Device pin code (e.g., 1234)',
                       action='append')
+  result.add_argument('--generalize-synthetics',
+                      help='Whether synthetics should be abstracted into their '
+                           'synthetic contexts',
+                      action='store_true',
+                      default=False)
   result.add_argument('--logcat',
                       action='store_true',
                       default=False)

@@ -41,11 +41,12 @@ def parse_art_profile(lines):
     art_profile[descriptor] = flags
   return art_profile
 
-def transform_art_profile_to_r8_startup_list(art_profile):
+def transform_art_profile_to_r8_startup_list(
+    art_profile, generalize_synthetics=False):
   r8_startup_list = {}
   for startup_descriptor, flags in art_profile.items():
     transformed_startup_descriptor = transform_synthetic_descriptor(
-        startup_descriptor)
+        startup_descriptor) if generalize_synthetics else startup_descriptor
     r8_startup_list[transformed_startup_descriptor] = {
       'conditional_startup': False,
       'post_startup': flags['post_startup'],
