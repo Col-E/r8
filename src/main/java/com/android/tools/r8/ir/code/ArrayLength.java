@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
+import com.android.tools.r8.lightir.LIRBuilder;
 
 public class ArrayLength extends Instruction {
 
@@ -150,5 +151,10 @@ public class ArrayLength extends Instruction {
   @Override
   public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     return false;
+  }
+
+  @Override
+  public void buildLIR(LIRBuilder<Value, BasicBlock> builder) {
+    builder.addArrayLength(array());
   }
 }

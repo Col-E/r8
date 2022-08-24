@@ -16,9 +16,13 @@ public class LIRIterator implements Iterator<LIRInstructionView>, LIRInstruction
 
   private final ByteIterator iterator;
 
+  // State of the byte offsets into the iterator.
   private int currentByteIndex = 0;
-  private int currentOpcode = -1;
   private int endOfCurrentInstruction = 0;
+
+  // State of the instruction interpretation.
+  private int currentInstructionIndex = -1;
+  private int currentOpcode = -1;
 
   public LIRIterator(ByteIterator iterator) {
     this.iterator = iterator;
@@ -39,6 +43,7 @@ public class LIRIterator implements Iterator<LIRInstructionView>, LIRInstruction
   @Override
   public LIRInstructionView next() {
     skipRemainingOperands();
+    ++currentInstructionIndex;
     currentOpcode = u1();
     if (LIROpcodes.isOneByteInstruction(currentOpcode)) {
       endOfCurrentInstruction = currentByteIndex;
@@ -54,6 +59,11 @@ public class LIRIterator implements Iterator<LIRInstructionView>, LIRInstruction
   @Override
   public void accept(LIRInstructionCallback eventCallback) {
     eventCallback.onInstructionView(this);
+  }
+
+  @Override
+  public int getInstructionIndex() {
+    return currentInstructionIndex;
   }
 
   @Override
@@ -79,6 +89,12 @@ public class LIRIterator implements Iterator<LIRInstructionView>, LIRInstruction
 
   @Override
   public int getNextValueOperand() {
+    assert hasMoreOperands();
+    return u4();
+  }
+
+  @Override
+  public int getNextBlockOperand() {
     assert hasMoreOperands();
     return u4();
   }

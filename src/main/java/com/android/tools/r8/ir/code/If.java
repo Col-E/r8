@@ -13,6 +13,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.lightir.LIRBuilder;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOutputMode;
@@ -288,5 +289,17 @@ public class If extends JumpInstruction {
     assert inValues.size() == 2;
     assert inValues.get(0).outType() == inValues.get(1).outType();
     builder.add(new CfIfCmp(type, ifType, builder.getLabel(getTrueTarget())), this);
+  }
+
+  @Override
+  public void buildLIR(LIRBuilder<Value, BasicBlock> builder) {
+    ValueType ifType = inValues.get(0).outType();
+    if (inValues.size() == 1) {
+      builder.addIf(type, ifType, inValues.get(0), getTrueTarget());
+      return;
+    }
+    assert inValues.size() == 2;
+    assert inValues.get(0).outType() == inValues.get(1).outType();
+    builder.addIfCmp(type, ifType, inValues, getTrueTarget());
   }
 }

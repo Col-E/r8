@@ -1559,7 +1559,7 @@ public abstract class Instruction
     return false;
   }
 
-  public void buildLIR(LIRBuilder<Value> builder) {
+  public void buildLIR(LIRBuilder<Value, BasicBlock> builder) {
     throw new Unimplemented("Missing impl for " + getClass().getSimpleName());
   }
 

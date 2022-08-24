@@ -18,7 +18,7 @@ public class LIRRoundtripTest extends TestBase {
 
   static class TestClass {
     public static void main(String[] args) {
-      System.out.println("Hello, world!");
+      System.out.println(args.length == 0 ? "Hello, world!" : "Oh no!");
     }
   }
 

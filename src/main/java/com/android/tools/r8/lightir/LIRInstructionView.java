@@ -15,6 +15,9 @@ public interface LIRInstructionView {
   /** Convenience method to forward control to a callback. */
   void accept(LIRInstructionCallback eventCallback);
 
+  /** Get the instruction index. */
+  int getInstructionIndex();
+
   /** The opcode of the instruction (See {@code LIROpcodes} for values). */
   int getOpcode();
 
@@ -29,4 +32,7 @@ public interface LIRInstructionView {
 
   /** Get the next operand as an SSA value index. */
   int getNextValueOperand();
+
+  /** Get the next operand as a basic-block index. */
+  int getNextBlockOperand();
 }

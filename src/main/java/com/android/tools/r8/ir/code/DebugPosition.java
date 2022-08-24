@@ -101,7 +101,7 @@ public class DebugPosition extends Instruction {
   }
 
   @Override
-  public void buildLIR(LIRBuilder<Value> builder) {
+  public void buildLIR(LIRBuilder<Value, BasicBlock> builder) {
     builder.addDebugPosition(getPosition());
   }
 }

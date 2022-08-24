@@ -41,7 +41,11 @@ public class LIRBasicCallbackTest extends TestBase {
                 method,
                 v -> {
                   throw new Unreachable();
-                })
+                },
+                b -> {
+                  throw new Unreachable();
+                },
+                factory)
             .setMetadata(IRMetadata.unknown())
             .addConstNull()
             .addConstInt(42)

@@ -153,7 +153,7 @@ public class Return extends JumpInstruction {
   }
 
   @Override
-  public void buildLIR(LIRBuilder<Value> builder) {
+  public void buildLIR(LIRBuilder<Value, BasicBlock> builder) {
     if (hasReturnValue()) {
       builder.addReturn(returnValue());
     } else {

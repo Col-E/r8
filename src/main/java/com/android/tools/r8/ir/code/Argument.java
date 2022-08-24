@@ -177,7 +177,7 @@ public class Argument extends Instruction {
   }
 
   @Override
-  public void buildLIR(LIRBuilder<Value> builder) {
+  public void buildLIR(LIRBuilder<Value, BasicBlock> builder) {
     builder.addArgument(index, knownToBeBoolean);
   }
 }

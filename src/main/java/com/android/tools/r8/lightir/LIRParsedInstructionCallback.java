@@ -8,6 +8,8 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.code.If;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 
@@ -34,6 +36,10 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
 
   public void onConstString(DexString string) {}
 
+  public void onIf(If.Type ifKind, int blockIndex, int valueIndex) {}
+
+  public void onGoto(int blockIndex) {}
+
   public void onInvokeMethodInstruction(DexMethod method, IntList arguments) {}
 
   public void onInvokeDirect(DexMethod method, IntList arguments) {
@@ -54,7 +60,11 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
 
   public void onReturnVoid() {}
 
+  public void onArrayLength(int arrayIndex) {}
+
   public void onDebugPosition() {}
+
+  public void onPhi(DexType type, IntList operands) {}
 
   private DexItem getConstantItem(int index) {
     return code.getConstantItem(index);
@@ -74,6 +84,19 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
           if (item instanceof DexString) {
             onConstString((DexString) item);
           }
+          break;
+        }
+      case LIROpcodes.IFNE:
+        {
+          int blockIndex = view.getNextBlockOperand();
+          int valueIndex = view.getNextValueOperand();
+          onIf(If.Type.NE, blockIndex, valueIndex);
+          break;
+        }
+      case LIROpcodes.GOTO:
+        {
+          int blockIndex = view.getNextBlockOperand();
+          onGoto(blockIndex);
           break;
         }
       case LIROpcodes.INVOKEDIRECT:
@@ -101,9 +124,24 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
           onReturnVoid();
           break;
         }
+      case LIROpcodes.ARRAYLENGTH:
+        {
+          onArrayLength(view.getNextValueOperand());
+          break;
+        }
       case LIROpcodes.DEBUGPOS:
         {
           onDebugPosition();
+          break;
+        }
+      case LIROpcodes.PHI:
+        {
+          DexType type = (DexType) getConstantItem(view.getNextConstantOperand());
+          IntList operands = new IntArrayList();
+          while (view.hasMoreOperands()) {
+            operands.add(view.getNextValueOperand());
+          }
+          onPhi(type, operands);
           break;
         }
       default:

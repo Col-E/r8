@@ -4,9 +4,11 @@
 package com.android.tools.r8.lightir;
 
 import com.android.tools.r8.graph.DexItem;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.lightir.LIRBuilder.BlockIndexGetter;
 import com.android.tools.r8.lightir.LIRBuilder.ValueIndexGetter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
@@ -34,14 +36,18 @@ public class LIRCode implements Iterable<LIRInstructionView> {
   /** Full number of arguments (including receiver for non-static methods). */
   private final int argumentCount;
 
-  /** Byte encoding of the instructions (including phis). */
+  /** Byte encoding of the instructions (excludes arguments, includes phis). */
   private final byte[] instructions;
 
-  /** Cached value for the number of logical instructions (including phis). */
+  /** Cached value for the number of logical instructions (excludes arguments, includes phis). */
   private final int instructionCount;
 
-  public static <V> LIRBuilder<V> builder(DexMethod method, ValueIndexGetter<V> valueIndexGetter) {
-    return new LIRBuilder<V>(method, valueIndexGetter);
+  public static <V, B> LIRBuilder<V, B> builder(
+      DexMethod method,
+      ValueIndexGetter<V> valueIndexGetter,
+      BlockIndexGetter<B> blockIndexGetter,
+      DexItemFactory factory) {
+    return new LIRBuilder<V, B>(method, valueIndexGetter, blockIndexGetter, factory);
   }
 
   // Should be constructed using LIRBuilder.
@@ -102,6 +108,7 @@ public class LIRCode implements Iterable<LIRInstructionView> {
         .append("):{");
     int index = 0;
     for (LIRInstructionView view : this) {
+      builder.append(index).append(':');
       builder.append(LIROpcodes.toString(view.getOpcode()));
       if (view.getRemainingOperandSizeInBytes() > 0) {
         builder.append("(size:").append(1 + view.getRemainingOperandSizeInBytes()).append(")");

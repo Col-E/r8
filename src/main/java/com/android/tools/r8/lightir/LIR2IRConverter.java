@@ -12,15 +12,21 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Argument;
+import com.android.tools.r8.ir.code.ArrayLength;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DebugPosition;
+import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NumberGenerator;
+import com.android.tools.r8.ir.code.Phi;
+import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.Return;
@@ -28,6 +34,9 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.lightir.LIRCode.PositionEntry;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -39,6 +48,7 @@ public class LIR2IRConverter {
 
   public static IRCode translate(ProgramMethod method, LIRCode lirCode, AppView<?> appView) {
     Parser parser = new Parser(lirCode, method.getReference(), appView);
+    parser.computeControlFlowGraph();
     parser.parseArguments(method);
     lirCode.forEach(view -> view.accept(parser));
     return parser.getIRCode(method);
@@ -50,13 +60,15 @@ public class LIR2IRConverter {
    */
   private static class Parser extends LIRParsedInstructionCallback {
 
+    private static final int ENTRY_BLOCK_INDEX = -1;
+
     private final AppView<?> appView;
     private final LIRCode code;
     private final NumberGenerator valueNumberGenerator = new NumberGenerator();
     private final NumberGenerator basicBlockNumberGenerator = new NumberGenerator();
 
     private final Value[] values;
-    private final LinkedList<BasicBlock> blocks = new LinkedList<>();
+    private final Int2ReferenceMap<BasicBlock> blocks = new Int2ReferenceOpenHashMap<>();
 
     private BasicBlock currentBlock = null;
     private int nextInstructionIndex = 0;
@@ -76,9 +88,22 @@ public class LIR2IRConverter {
       currentPosition = SyntheticPosition.builder().setLine(0).setMethod(method).build();
     }
 
+    private void closeCurrentBlock() {
+      currentBlock = null;
+    }
+
+    private void ensureCurrentBlock() {
+      BasicBlock nextBlock = blocks.get(nextInstructionIndex);
+      if (nextBlock != null) {
+        assert currentBlock != nextBlock;
+        currentBlock = nextBlock;
+      }
+      assert currentBlock != null;
+    }
+
     private void ensureCurrentPosition() {
       if (nextPositionEntry != null
-          && nextPositionEntry.fromInstructionIndex < nextInstructionIndex) {
+          && nextPositionEntry.fromInstructionIndex <= nextInstructionIndex) {
         currentPosition = nextPositionEntry.position;
         advanceNextPositionEntry();
       }
@@ -91,16 +116,44 @@ public class LIR2IRConverter {
               : null;
     }
 
+    public void computeControlFlowGraph() {
+      // TODO(b/225838009): Since each basic block has a terminal instruction we can compute block
+      //  structure lazily while iterating the instructions and avoid this additional pass.
+      // Always create an entry block as it cannot be targeted from code.
+      blocks.put(ENTRY_BLOCK_INDEX, createBlock());
+      for (LIRInstructionView view : code) {
+        int opcode = view.getOpcode();
+        if (LIROpcodes.isControlFlowInstruction(opcode)) {
+          // TODO(b/225838009): Deal with multi-target instructions.
+          int target = view.getNextBlockOperand();
+          blocks.computeIfAbsent(target, k -> createBlock());
+          if (LIROpcodes.isControlFlowInstructionWithFallthrough(opcode)) {
+            blocks.computeIfAbsent(view.getInstructionIndex() + 1, k -> createBlock());
+          }
+        }
+      }
+    }
+
+    public BasicBlock createBlock() {
+      BasicBlock block = new BasicBlock();
+      block.setNumber(basicBlockNumberGenerator.next());
+      // The LIR is in SSA with accurate phis. The blocks are thus filled by construction.
+      block.setFilled();
+      return block;
+    }
+
     public void parseArguments(ProgramMethod method) {
-      currentBlock = new BasicBlock();
-      currentBlock.setNumber(basicBlockNumberGenerator.next());
+      currentBlock = blocks.get(ENTRY_BLOCK_INDEX);
       boolean hasReceiverArgument = !method.getDefinition().isStatic();
       assert code.getArgumentCount()
           == method.getParameters().size() + (hasReceiverArgument ? 1 : 0);
       if (hasReceiverArgument) {
         addThisArgument(method.getHolderType());
       }
-      method.getParameters().forEach(this::addArgument);
+      int index = hasReceiverArgument ? 1 : 0;
+      for (DexType parameter : method.getParameters()) {
+        addArgument(parameter, index++);
+      }
       // Set up position state after adding arguments.
       advanceNextPositionEntry();
     }
@@ -108,12 +161,17 @@ public class LIR2IRConverter {
     public IRCode getIRCode(ProgramMethod method) {
       // TODO(b/225838009): Support control flow.
       currentBlock.setFilled();
-      blocks.add(currentBlock);
+      LinkedList<BasicBlock> blockList = new LinkedList<>();
+      IntList blockIndices = new IntArrayList(blocks.keySet());
+      blockIndices.sort(Integer::compare);
+      for (int i = 0; i < blockIndices.size(); i++) {
+        blockList.add(blocks.get(blockIndices.getInt(i)));
+      }
       return new IRCode(
           appView.options(),
           method,
           Position.syntheticNone(),
-          blocks,
+          blockList,
           valueNumberGenerator,
           basicBlockNumberGenerator,
           code.getMetadata(),
@@ -121,7 +179,13 @@ public class LIR2IRConverter {
           new MutableMethodConversionOptions(appView.options()));
     }
 
-    public Value getSsaValue(int index) {
+    public BasicBlock getBasicBlock(int instructionIndex) {
+      BasicBlock block = blocks.get(instructionIndex);
+      assert block != null;
+      return block;
+    }
+
+    public Value getValue(int index) {
       Value value = values[index];
       if (value == null) {
         value = new Value(valueNumberGenerator.next(), TypeElement.getBottom(), null);
@@ -130,10 +194,10 @@ public class LIR2IRConverter {
       return value;
     }
 
-    public List<Value> getSsaValues(IntList indices) {
+    public List<Value> getValues(IntList indices) {
       List<Value> arguments = new ArrayList<>(indices.size());
       for (int i = 0; i < indices.size(); i++) {
-        arguments.add(getSsaValue(indices.getInt(i)));
+        arguments.add(getValue(indices.getInt(i)));
       }
       return arguments;
     }
@@ -145,7 +209,7 @@ public class LIR2IRConverter {
     public Value getOutValueForNextInstruction(TypeElement type) {
       // TODO(b/225838009): Support debug locals.
       DebugLocalInfo localInfo = null;
-      int index = peekNextInstructionIndex();
+      int index = peekNextInstructionIndex() + code.getArgumentCount();
       Value value = values[index];
       if (value == null) {
         value = new Value(valueNumberGenerator.next(), type, localInfo);
@@ -159,27 +223,59 @@ public class LIR2IRConverter {
       return value;
     }
 
-    private void addInstruction(Instruction instruction) {
+    public Phi getPhiForNextInstructionAndAdvanceState(TypeElement type) {
+      int index = peekNextInstructionIndex() + code.getArgumentCount();
+      // TODO(b/225838009): The phi constructor implicitly adds to the block, so we need to ensure
+      //  the block. However, we must grab the index above. Find a way to clean this up so it is
+      //  uniform with instructions.
+      advanceInstructionState();
+      // Creating the phi implicitly adds it to currentBlock.
+      DebugLocalInfo localInfo = null;
+      Phi phi =
+          new Phi(
+              valueNumberGenerator.next(), currentBlock, type, localInfo, RegisterReadType.NORMAL);
+      Value value = values[index];
+      if (value != null) {
+        // A fake ssa value has already been created, replace the users by the actual phi.
+        // TODO(b/225838009): We could consider encoding the value type as a bit in the value index
+        //  and avoid the overhead of replacing users at phi-definition time.
+        assert !value.isPhi();
+        value.replaceUsers(phi);
+      }
+      values[index] = phi;
+      return phi;
+    }
+
+    private void advanceInstructionState() {
+      ensureCurrentBlock();
       ensureCurrentPosition();
-      instruction.setPosition(currentPosition);
-      currentBlock.getInstructions().add(instruction);
-      instruction.setBlock(currentBlock);
       ++nextInstructionIndex;
     }
 
+    private void addInstruction(Instruction instruction) {
+      advanceInstructionState();
+      instruction.setPosition(currentPosition);
+      currentBlock.getInstructions().add(instruction);
+      instruction.setBlock(currentBlock);
+    }
+
     private void addThisArgument(DexType type) {
-      Argument argument = addArgument(type);
+      Argument argument = addArgument(type, 0);
       argument.outValue().markAsThis();
     }
 
-    private Argument addArgument(DexType type) {
-      Argument instruction =
-          new Argument(
-              getOutValueForNextInstruction(type.toTypeElement(appView)),
-              peekNextInstructionIndex(),
-              type.isBooleanType());
-      addInstruction(instruction);
-      return instruction;
+    private Argument addArgument(DexType type, int index) {
+      // Arguments are not included in the "instructions" so this does not call "addInstruction"
+      // which would otherwise advance the state.
+      Value dest = getValue(index);
+      dest.setType(type.toTypeElement(appView));
+      Argument argument = new Argument(dest, index, type.isBooleanType());
+      assert currentBlock != null;
+      assert currentPosition.isSyntheticPosition();
+      argument.setPosition(currentPosition);
+      currentBlock.getInstructions().add(argument);
+      argument.setBlock(currentBlock);
+      return argument;
     }
 
     @Override
@@ -195,10 +291,28 @@ public class LIR2IRConverter {
     }
 
     @Override
+    public void onIf(Type ifKind, int blockIndex, int valueIndex) {
+      BasicBlock targetBlock = getBasicBlock(blockIndex);
+      Value value = getValue(valueIndex);
+      addInstruction(new If(ifKind, value));
+      currentBlock.link(targetBlock);
+      currentBlock.link(getBasicBlock(nextInstructionIndex));
+      closeCurrentBlock();
+    }
+
+    @Override
+    public void onGoto(int blockIndex) {
+      BasicBlock targetBlock = getBasicBlock(blockIndex);
+      addInstruction(new Goto());
+      currentBlock.link(targetBlock);
+      closeCurrentBlock();
+    }
+
+    @Override
     public void onInvokeDirect(DexMethod target, IntList arguments) {
       // TODO(b/225838009): Maintain is-interface bit.
       Value dest = getInvokeInstructionOutputValue(target);
-      List<Value> ssaArgumentValues = getSsaValues(arguments);
+      List<Value> ssaArgumentValues = getValues(arguments);
       InvokeDirect instruction = new InvokeDirect(target, dest, ssaArgumentValues);
       addInstruction(instruction);
     }
@@ -207,7 +321,7 @@ public class LIR2IRConverter {
     public void onInvokeVirtual(DexMethod target, IntList arguments) {
       // TODO(b/225838009): Maintain is-interface bit.
       Value dest = getInvokeInstructionOutputValue(target);
-      List<Value> ssaArgumentValues = getSsaValues(arguments);
+      List<Value> ssaArgumentValues = getValues(arguments);
       InvokeVirtual instruction = new InvokeVirtual(target, dest, ssaArgumentValues);
       addInstruction(instruction);
     }
@@ -230,8 +344,25 @@ public class LIR2IRConverter {
     }
 
     @Override
+    public void onArrayLength(int arrayIndex) {
+      Value dest = getOutValueForNextInstruction(TypeElement.getInt());
+      Value arrayValue = getValue(arrayIndex);
+      addInstruction(new ArrayLength(dest, arrayValue));
+    }
+
+    @Override
     public void onDebugPosition() {
       addInstruction(new DebugPosition());
+    }
+
+    @Override
+    public void onPhi(DexType type, IntList operands) {
+      Phi phi = getPhiForNextInstructionAndAdvanceState(type.toTypeElement(appView));
+      List<Value> values = new ArrayList<>(operands.size());
+      for (int i = 0; i < operands.size(); i++) {
+        values.add(getValue(operands.getInt(i)));
+      }
+      phi.addOperands(values);
     }
   }
 }

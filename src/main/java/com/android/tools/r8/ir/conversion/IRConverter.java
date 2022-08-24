@@ -1656,10 +1656,14 @@ public class IRConverter {
       code = roundtripThroughLIR(code, feedback, bytecodeMetadataProvider, timing);
     }
     if (options.isGeneratingClassFiles()) {
+      timing.begin("IR->CF");
       finalizeToCf(code, feedback, bytecodeMetadataProvider, timing);
+      timing.end();
     } else {
       assert options.isGeneratingDex();
+      timing.begin("IR->DEX");
       finalizeToDex(code, feedback, bytecodeMetadataProvider, timing);
+      timing.end();
     }
   }
 
@@ -1668,8 +1672,12 @@ public class IRConverter {
       OptimizationFeedback feedback,
       BytecodeMetadataProvider bytecodeMetadataProvider,
       Timing timing) {
-    LIRCode lirCode = IR2LIRConverter.translate(code);
+    timing.begin("IR->LIR");
+    LIRCode lirCode = IR2LIRConverter.translate(code, appView.dexItemFactory());
+    timing.end();
+    timing.begin("LIR->IR");
     IRCode irCode = LIR2IRConverter.translate(code.context(), lirCode, appView);
+    timing.end();
     return irCode;
   }
 
