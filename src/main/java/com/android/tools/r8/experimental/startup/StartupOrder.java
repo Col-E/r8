@@ -7,7 +7,6 @@ package com.android.tools.r8.experimental.startup;
 import com.android.tools.r8.experimental.startup.profile.StartupItem;
 import com.android.tools.r8.experimental.startup.profile.StartupProfile;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
@@ -34,7 +33,7 @@ public abstract class StartupOrder {
 
   public abstract boolean contains(DexType type, SyntheticItems syntheticItems);
 
-  public abstract Collection<StartupItem<DexType, DexMethod, ?>> getItems();
+  public abstract Collection<StartupItem> getItems();
 
   public abstract boolean isEmpty();
 

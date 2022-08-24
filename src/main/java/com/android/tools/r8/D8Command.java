@@ -690,10 +690,7 @@ public final class D8Command extends BaseCompilerCommand {
 
     internal.configureAndroidPlatformBuild(getAndroidPlatformBuild());
 
-    // TODO(b/238173796): Change StartupOptions to store a Collection<StartupProfileProvider>.
-    if (getStartupProfileProviders().size() == 1) {
-      internal.getStartupOptions().setStartupProfileProvider(getStartupProfileProviders().get(0));
-    }
+    internal.getStartupOptions().setStartupProfileProviders(getStartupProfileProviders());
 
     internal.setDumpInputFlags(getDumpInputFlags());
     internal.dumpOptions = dumpOptions();

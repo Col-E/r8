@@ -4,90 +4,49 @@
 
 package com.android.tools.r8.experimental.startup.profile;
 
-import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
+import com.android.tools.r8.startup.StartupProfileBuilder;
+import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.stream.Stream;
 
-public class StartupProfileParser<C, M, T> {
+public class StartupProfileParser {
 
-  interface MethodFactory<C, M, T> {
-
-    M createMethod(
-        C methodHolder, String methodName, List<T> methodParameterTypes, T methodReturnType);
-  }
-
-  private final Function<String, C> classFactory;
-  private final MethodFactory<C, M, T> methodFactory;
-  private final Function<String, T> typeFactory;
-
-  StartupProfileParser(
-      Function<String, C> classFactory,
-      MethodFactory<C, M, T> methodFactory,
-      Function<String, T> typeFactory) {
-    this.classFactory = classFactory;
-    this.methodFactory = methodFactory;
-    this.typeFactory = typeFactory;
-  }
-
-  public static StartupProfileParser<DexType, DexMethod, DexType> createDexParser(
-      DexItemFactory dexItemFactory) {
-    return new StartupProfileParser<>(
-        dexItemFactory::createType,
-        (methodHolder, methodName, methodParameters, methodReturnType) ->
-            dexItemFactory.createMethod(
-                methodHolder,
-                dexItemFactory.createProto(methodReturnType, methodParameters),
-                dexItemFactory.createString(methodName)),
-        dexItemFactory::createType);
-  }
-
-  public static StartupProfileParser<ClassReference, MethodReference, TypeReference>
-      createReferenceParser() {
-    return new StartupProfileParser<>(
-        Reference::classFromDescriptor, Reference::method, Reference::returnTypeFromDescriptor);
+  public static StartupProfileParser create() {
+    return new StartupProfileParser();
   }
 
   public void parseLines(
-      List<String> startupDescriptors,
-      Consumer<? super StartupClass<C, M>> startupClassConsumer,
-      Consumer<? super StartupMethod<C, M>> startupMethodConsumer,
+      Stream<String> startupDescriptors,
+      StartupProfileBuilder startupProfileBuilder,
       Consumer<String> parseErrorHandler) {
-    for (String startupDescriptor : startupDescriptors) {
-      if (!startupDescriptor.isEmpty()) {
-        parseLine(
-            startupDescriptor, startupClassConsumer, startupMethodConsumer, parseErrorHandler);
-      }
-    }
+    startupDescriptors.forEach(
+        startupDescriptor -> {
+          if (!startupDescriptor.isEmpty()) {
+            parseLine(startupDescriptor, startupProfileBuilder, parseErrorHandler);
+          }
+        });
   }
 
   public void parseLine(
       String startupDescriptor,
-      Consumer<? super StartupClass<C, M>> startupClassConsumer,
-      Consumer<? super StartupMethod<C, M>> startupMethodConsumer,
+      StartupProfileBuilder startupProfileBuilder,
       Consumer<String> parseErrorHandler) {
-    StartupItem.Builder<C, M, ?> startupItemBuilder = StartupItem.builder();
-    startupDescriptor = parseSyntheticFlag(startupDescriptor, startupItemBuilder);
+    BooleanBox syntheticFlag = new BooleanBox();
+    startupDescriptor = parseSyntheticFlag(startupDescriptor, syntheticFlag);
     parseStartupClassOrMethod(
-        startupDescriptor,
-        startupItemBuilder,
-        startupClassConsumer,
-        startupMethodConsumer,
-        parseErrorHandler);
+        startupDescriptor, startupProfileBuilder, syntheticFlag, parseErrorHandler);
   }
 
-  private static String parseSyntheticFlag(
-      String startupDescriptor, StartupItem.Builder<?, ?, ?> startupItemBuilder) {
+  private static String parseSyntheticFlag(String startupDescriptor, BooleanBox syntheticFlag) {
     if (!startupDescriptor.isEmpty() && startupDescriptor.charAt(0) == 'S') {
-      startupItemBuilder.setSynthetic();
+      syntheticFlag.set();
       return startupDescriptor.substring(1);
     }
     return startupDescriptor;
@@ -95,24 +54,34 @@ public class StartupProfileParser<C, M, T> {
 
   private void parseStartupClassOrMethod(
       String startupDescriptor,
-      StartupItem.Builder<C, M, ?> startupItemBuilder,
-      Consumer<? super StartupClass<C, M>> startupClassConsumer,
-      Consumer<? super StartupMethod<C, M>> startupMethodConsumer,
+      StartupProfileBuilder startupProfileBuilder,
+      BooleanBox syntheticFlag,
       Consumer<String> parseErrorHandler) {
     int arrowStartIndex = getArrowStartIndex(startupDescriptor);
     if (arrowStartIndex >= 0) {
-      M startupMethod = parseStartupMethodDescriptor(startupDescriptor, arrowStartIndex);
-      if (startupMethod != null) {
-        startupMethodConsumer.accept(
-            startupItemBuilder.setMethodReference(startupMethod).buildStartupMethod());
+      if (syntheticFlag.isFalse()) {
+        MethodReference startupMethod =
+            parseStartupMethodDescriptor(startupDescriptor, arrowStartIndex);
+        if (startupMethod != null) {
+          startupProfileBuilder.addStartupMethod(
+              startupMethodBuilder -> startupMethodBuilder.setMethodReference(startupMethod));
+        } else {
+          parseErrorHandler.accept(startupDescriptor);
+        }
       } else {
         parseErrorHandler.accept(startupDescriptor);
       }
     } else {
-      C startupClass = parseStartupClassDescriptor(startupDescriptor);
+      ClassReference startupClass = parseStartupClassDescriptor(startupDescriptor);
       if (startupClass != null) {
-        startupClassConsumer.accept(
-            startupItemBuilder.setClassReference(startupClass).buildStartupClass());
+        if (syntheticFlag.isFalse()) {
+          startupProfileBuilder.addStartupClass(
+              startupClassBuilder -> startupClassBuilder.setClassReference(startupClass));
+        } else {
+          startupProfileBuilder.addSyntheticStartupMethod(
+              syntheticStartupMethodBuilder ->
+                  syntheticStartupMethodBuilder.setSyntheticContextReference(startupClass));
+        }
       } else {
         parseErrorHandler.accept(startupDescriptor);
       }
@@ -123,17 +92,18 @@ public class StartupProfileParser<C, M, T> {
     return startupDescriptor.indexOf("->");
   }
 
-  private C parseStartupClassDescriptor(String startupClassDescriptor) {
+  private ClassReference parseStartupClassDescriptor(String startupClassDescriptor) {
     if (DescriptorUtils.isClassDescriptor(startupClassDescriptor)) {
-      return classFactory.apply(startupClassDescriptor);
+      return Reference.classFromDescriptor(startupClassDescriptor);
     } else {
       return null;
     }
   }
 
-  private M parseStartupMethodDescriptor(String startupMethodDescriptor, int arrowStartIndex) {
+  private MethodReference parseStartupMethodDescriptor(
+      String startupMethodDescriptor, int arrowStartIndex) {
     String classDescriptor = startupMethodDescriptor.substring(0, arrowStartIndex);
-    C methodHolder = parseStartupClassDescriptor(classDescriptor);
+    ClassReference methodHolder = parseStartupClassDescriptor(classDescriptor);
     if (methodHolder == null) {
       return null;
     }
@@ -150,14 +120,15 @@ public class StartupProfileParser<C, M, T> {
     return parseStartupMethodProto(methodHolder, methodName, protoDescriptor);
   }
 
-  private M parseStartupMethodProto(C methodHolder, String methodName, String protoDescriptor) {
-    List<T> parameterTypes = new ArrayList<>();
+  private MethodReference parseStartupMethodProto(
+      ClassReference methodHolder, String methodName, String protoDescriptor) {
+    List<TypeReference> parameterTypes = new ArrayList<>();
     for (String parameterTypeDescriptor :
         DescriptorUtils.getArgumentTypeDescriptors(protoDescriptor)) {
-      parameterTypes.add(typeFactory.apply(parameterTypeDescriptor));
+      parameterTypes.add(Reference.typeFromDescriptor(parameterTypeDescriptor));
     }
     String returnTypeDescriptor = DescriptorUtils.getReturnTypeDescriptor(protoDescriptor);
-    T returnType = typeFactory.apply(returnTypeDescriptor);
-    return methodFactory.createMethod(methodHolder, methodName, parameterTypes, returnType);
+    TypeReference returnType = Reference.returnTypeFromDescriptor(returnTypeDescriptor);
+    return Reference.method(methodHolder, methodName, parameterTypes, returnType);
   }
 }

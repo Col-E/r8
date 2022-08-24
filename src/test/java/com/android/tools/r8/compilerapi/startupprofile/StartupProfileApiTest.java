@@ -82,9 +82,8 @@ public class StartupProfileApiTest extends CompilerApiTestRunner {
     testRunner.accept(new DexIndexedConsumer.DirectoryConsumer(output));
     assertThat(
         new CodeInspector(output.resolve("classes.dex")).clazz(test.getMockClass()), isPresent());
-    // TODO(b/238173796): The PostStartupMockClass should be in classes2.dex.
     assertThat(
-        new CodeInspector(output.resolve("classes.dex")).clazz(test.getPostStartupMockClass()),
+        new CodeInspector(output.resolve("classes2.dex")).clazz(test.getPostStartupMockClass()),
         isPresent());
   }
 
@@ -96,11 +95,6 @@ public class StartupProfileApiTest extends CompilerApiTestRunner {
 
     private StartupProfileProvider getStartupProfileProvider() {
       return new StartupProfileProvider() {
-        @Override
-        public String get() {
-          // Intentionally empty. All uses of this API should be rewritten to use getStartupProfile.
-          return "";
-        }
 
         @Override
         public void getStartupProfile(StartupProfileBuilder startupProfileBuilder) {

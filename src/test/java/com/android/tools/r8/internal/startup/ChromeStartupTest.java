@@ -13,23 +13,22 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.ArchiveProgramResourceProvider;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8FullTestBuilder;
-import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.errors.Unimplemented;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.startup.StartupProfileBuilder;
+import com.android.tools.r8.experimental.startup.StartupProfileProviderUtils;
 import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -238,25 +237,10 @@ public class ChromeStartupTest extends TestBase {
       boolean enableStartupBoundaryOptimizations,
       Path outDirectory)
       throws Exception {
+    Reporter reporter = new Reporter();
     StartupProfileProvider startupProfileProvider =
-        new StartupProfileProvider() {
-          @Override
-          public String get() {
-            return StringResource.fromFile(chromeDirectory.resolve("startup.txt"))
-                .getStringWithRuntimeException();
-          }
-
-          @Override
-          public void getStartupProfile(StartupProfileBuilder startupProfileBuilder) {
-            throw new Unimplemented();
-          }
-
-          @Override
-          public Origin getOrigin() {
-            return Origin.unknown();
-          }
-        };
-
+        StartupProfileProviderUtils.createFromFile(
+            chromeDirectory.resolve("startup.txt"), reporter);
     buildR8(
         testBuilder ->
             testBuilder.addOptionsModification(
@@ -265,7 +249,7 @@ public class ChromeStartupTest extends TestBase {
                         .getStartupOptions()
                         .setEnableMinimalStartupDex(enableMinimalStartupDex)
                         .setEnableStartupBoundaryOptimizations(enableStartupBoundaryOptimizations)
-                        .setStartupProfileProvider(startupProfileProvider)),
+                        .setStartupProfileProviders(Collections.singleton(startupProfileProvider))),
         outDirectory);
   }
 

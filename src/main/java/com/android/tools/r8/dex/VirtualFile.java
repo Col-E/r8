@@ -1396,7 +1396,7 @@ public class VirtualFile {
         return;
       }
 
-      assert options.getStartupOptions().hasStartupProfileProvider();
+      assert options.getStartupOptions().hasStartupProfileProviders();
 
       // In practice, all startup classes should fit in a single dex file, so optimistically try to
       // commit the startup classes using a single transaction.

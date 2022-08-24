@@ -6,13 +6,13 @@ package com.android.tools.r8.experimental.startup;
 
 import static com.android.tools.r8.utils.SystemPropertyUtils.parseSystemPropertyForDevelopmentOrDefault;
 
-import com.android.tools.r8.StringResource;
-import com.android.tools.r8.errors.Unimplemented;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.startup.StartupProfileBuilder;
 import com.android.tools.r8.startup.StartupProfileProvider;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SystemPropertyUtils;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.Collections;
 
 public class StartupOptions {
 
@@ -52,28 +52,18 @@ public class StartupOptions {
   private boolean enableStartupLayoutOptimizations =
       parseSystemPropertyForDevelopmentOrDefault("com.android.tools.r8.startup.layout", true);
 
-  private StartupProfileProvider startupProfileProvider =
-      SystemPropertyUtils.applySystemProperty(
-          "com.android.tools.r8.startup.profile",
-          propertyValue ->
-              new StartupProfileProvider() {
-                @Override
-                public String get() {
-                  return StringResource.fromFile(Paths.get(propertyValue))
-                      .getStringWithRuntimeException();
-                }
+  private Collection<StartupProfileProvider> startupProfileProviders;
 
-                @Override
-                public void getStartupProfile(StartupProfileBuilder startupProfileBuilder) {
-                  throw new Unimplemented();
-                }
-
-                @Override
-                public Origin getOrigin() {
-                  return Origin.unknown();
-                }
-              },
-          () -> null);
+  public StartupOptions(InternalOptions options) {
+    this.startupProfileProviders =
+        SystemPropertyUtils.applySystemProperty(
+            "com.android.tools.r8.startup.profile",
+            propertyValue ->
+                ImmutableList.of(
+                    StartupProfileProviderUtils.createFromFile(
+                        Paths.get(propertyValue), options.reporter)),
+            Collections::emptyList);
+  }
 
   public boolean isMinimalStartupDexEnabled() {
     return enableMinimalStartupDex;
@@ -112,16 +102,17 @@ public class StartupOptions {
     return this;
   }
 
-  public boolean hasStartupProfileProvider() {
-    return startupProfileProvider != null;
+  public boolean hasStartupProfileProviders() {
+    return startupProfileProviders != null && !startupProfileProviders.isEmpty();
   }
 
-  public StartupProfileProvider getStartupProfileProvider() {
-    return startupProfileProvider;
+  public Collection<StartupProfileProvider> getStartupProfileProviders() {
+    return startupProfileProviders;
   }
 
-  public StartupOptions setStartupProfileProvider(StartupProfileProvider startupProfileProvider) {
-    this.startupProfileProvider = startupProfileProvider;
+  public StartupOptions setStartupProfileProviders(
+      Collection<StartupProfileProvider> startupProfileProviders) {
+    this.startupProfileProviders = startupProfileProviders;
     return this;
   }
 }

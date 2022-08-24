@@ -816,7 +816,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       new KotlinOptimizationOptions();
   private final ApiModelTestingOptions apiModelTestingOptions = new ApiModelTestingOptions();
   private final DesugarSpecificOptions desugarSpecificOptions = new DesugarSpecificOptions();
-  private final StartupOptions startupOptions = new StartupOptions();
+  private final StartupOptions startupOptions = new StartupOptions(this);
   private final StartupInstrumentationOptions startupInstrumentationOptions =
       new StartupInstrumentationOptions();
   public final TestingOptions testing = new TestingOptions();

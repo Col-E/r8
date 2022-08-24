@@ -9,12 +9,10 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.experimental.startup.profile.StartupClass;
-import com.android.tools.r8.experimental.startup.profile.StartupItem;
-import com.android.tools.r8.experimental.startup.profile.StartupMethod;
-import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.startup.profile.ExternalStartupClass;
+import com.android.tools.r8.startup.profile.ExternalStartupItem;
+import com.android.tools.r8.startup.profile.ExternalStartupMethod;
 import com.android.tools.r8.startup.utils.StartupTestingUtils;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.MethodReferenceUtils;
@@ -48,7 +46,7 @@ public class StartupInstrumentationTest extends TestBase {
   @Test
   public void test() throws Exception {
     Path out = temp.newFolder().toPath().resolve("out.txt").toAbsolutePath();
-    List<StartupItem<ClassReference, MethodReference, ?>> startupList = new ArrayList<>();
+    List<ExternalStartupItem> startupList = new ArrayList<>();
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
         .applyIf(
@@ -75,19 +73,18 @@ public class StartupInstrumentationTest extends TestBase {
     return ImmutableList.of("foo");
   }
 
-  private List<StartupItem<ClassReference, MethodReference, ?>> getExpectedStartupList()
-      throws NoSuchMethodException {
+  private List<ExternalStartupItem> getExpectedStartupList() throws NoSuchMethodException {
     return ImmutableList.of(
-        StartupClass.referenceBuilder()
+        ExternalStartupClass.builder()
             .setClassReference(Reference.classFromClass(Main.class))
             .build(),
-        StartupMethod.referenceBuilder()
+        ExternalStartupMethod.builder()
             .setMethodReference(MethodReferenceUtils.mainMethod(Main.class))
             .build(),
-        StartupClass.referenceBuilder()
+        ExternalStartupClass.builder()
             .setClassReference(Reference.classFromClass(AStartupClass.class))
             .build(),
-        StartupMethod.referenceBuilder()
+        ExternalStartupMethod.builder()
             .setMethodReference(
                 Reference.methodFromMethod(AStartupClass.class.getDeclaredMethod("foo")))
             .build());

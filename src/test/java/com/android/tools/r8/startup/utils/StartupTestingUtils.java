@@ -14,28 +14,25 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.experimental.startup.instrumentation.StartupInstrumentationOptions;
-import com.android.tools.r8.experimental.startup.profile.StartupItem;
-import com.android.tools.r8.experimental.startup.profile.StartupProfile;
 import com.android.tools.r8.experimental.startup.profile.StartupProfileParser;
-import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.MethodReference;
-import com.android.tools.r8.references.TypeReference;
+import com.android.tools.r8.startup.StartupClassBuilder;
+import com.android.tools.r8.startup.StartupMethodBuilder;
 import com.android.tools.r8.startup.StartupProfileBuilder;
 import com.android.tools.r8.startup.StartupProfileProvider;
+import com.android.tools.r8.startup.SyntheticStartupMethodBuilder;
+import com.android.tools.r8.startup.profile.ExternalStartupClass;
+import com.android.tools.r8.startup.profile.ExternalStartupItem;
+import com.android.tools.r8.startup.profile.ExternalStartupMethod;
+import com.android.tools.r8.startup.profile.ExternalSyntheticStartupMethod;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.ClassReferenceUtils;
-import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 import org.junit.rules.TemporaryFolder;
@@ -53,6 +50,39 @@ public class StartupTestingUtils {
     }
   }
 
+  private static StartupProfileBuilder createStartupItemFactory(
+      Consumer<ExternalStartupItem> startupItemConsumer) {
+    return new StartupProfileBuilder() {
+      @Override
+      public StartupProfileBuilder addStartupClass(
+          Consumer<StartupClassBuilder> startupClassBuilderConsumer) {
+        ExternalStartupClass.Builder startupClassBuilder = ExternalStartupClass.builder();
+        startupClassBuilderConsumer.accept(startupClassBuilder);
+        startupItemConsumer.accept(startupClassBuilder.build());
+        return this;
+      }
+
+      @Override
+      public StartupProfileBuilder addStartupMethod(
+          Consumer<StartupMethodBuilder> startupMethodBuilderConsumer) {
+        ExternalStartupMethod.Builder startupMethodBuilder = ExternalStartupMethod.builder();
+        startupMethodBuilderConsumer.accept(startupMethodBuilder);
+        startupItemConsumer.accept(startupMethodBuilder.build());
+        return this;
+      }
+
+      @Override
+      public StartupProfileBuilder addSyntheticStartupMethod(
+          Consumer<SyntheticStartupMethodBuilder> syntheticStartupMethodBuilderConsumer) {
+        ExternalSyntheticStartupMethod.Builder syntheticStartupMethodBuilder =
+            ExternalSyntheticStartupMethod.builder();
+        syntheticStartupMethodBuilderConsumer.accept(syntheticStartupMethodBuilder);
+        startupItemConsumer.accept(syntheticStartupMethodBuilder.build());
+        return this;
+      }
+    };
+  }
+
   public static ThrowableConsumer<D8TestBuilder>
       enableStartupInstrumentationForOriginalAppUsingFile(TestParameters parameters) {
     return testBuilder ->
@@ -63,12 +93,6 @@ public class StartupTestingUtils {
       enableStartupInstrumentationForOriginalAppUsingLogcat(TestParameters parameters) {
     return testBuilder ->
         enableStartupInstrumentation(testBuilder, parameters, AppVariant.ORIGINAL, true);
-  }
-
-  public static ThrowableConsumer<D8TestBuilder>
-      enableStartupInstrumentationForOptimizedAppUsingFile(TestParameters parameters) {
-    return testBuilder ->
-        enableStartupInstrumentation(testBuilder, parameters, AppVariant.OPTIMIZED, false);
   }
 
   public static ThrowableConsumer<D8TestBuilder>
@@ -108,26 +132,22 @@ public class StartupTestingUtils {
   }
 
   public static void readStartupListFromFile(
-      Path path, Consumer<StartupItem<ClassReference, MethodReference, ?>> startupItemConsumer)
-      throws IOException {
-    StartupProfileParser.createReferenceParser()
+      Path path, Consumer<ExternalStartupItem> startupItemConsumer) throws IOException {
+    StartupProfileParser.create()
         .parseLines(
-            Files.readAllLines(path),
-            startupItemConsumer,
-            startupItemConsumer,
+            Files.readAllLines(path).stream(),
+            createStartupItemFactory(startupItemConsumer),
             error -> fail("Unexpected parse error: " + error));
   }
 
   public static ThrowingConsumer<D8TestRunResult, RuntimeException> removeStartupListFromStdout(
-      Consumer<StartupItem<ClassReference, MethodReference, ?>> startupItemConsumer) {
+      Consumer<ExternalStartupItem> startupItemConsumer) {
     return runResult -> removeStartupListFromStdout(runResult, startupItemConsumer);
   }
 
   public static void removeStartupListFromStdout(
-      D8TestRunResult runResult,
-      Consumer<StartupItem<ClassReference, MethodReference, ?>> startupItemConsumer) {
-    StartupProfileParser<ClassReference, MethodReference, TypeReference> parser =
-        StartupProfileParser.createReferenceParser();
+      D8TestRunResult runResult, Consumer<ExternalStartupItem> startupItemConsumer) {
+    StartupProfileParser parser = StartupProfileParser.create();
     StringBuilder stdoutBuilder = new StringBuilder();
     String startupDescriptorPrefix = "[" + startupInstrumentationTag + "] ";
     for (String line : StringUtils.splitLines(runResult.getStdOut(), true)) {
@@ -135,8 +155,7 @@ public class StartupTestingUtils {
         String message = line.substring(startupDescriptorPrefix.length());
         parser.parseLine(
             message,
-            startupItemConsumer,
-            startupItemConsumer,
+            createStartupItemFactory(startupItemConsumer),
             error -> fail("Unexpected parse error: " + error));
       } else {
         stdoutBuilder.append(line).append(System.lineSeparator());
@@ -146,30 +165,31 @@ public class StartupTestingUtils {
   }
 
   public static void setStartupConfiguration(
-      TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder,
-      List<StartupItem<ClassReference, MethodReference, ?>> startupItems) {
+      TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder, List<ExternalStartupItem> startupItems) {
     testBuilder.addOptionsModification(
         options -> {
-          DexItemFactory dexItemFactory = options.dexItemFactory();
-          StartupProfile startupProfile =
-              StartupProfile.builder()
-                  .apply(
-                      builder ->
-                          startupItems.forEach(
-                              startupItem ->
-                                  builder.addStartupItem(
-                                      convertStartupItemToDex(startupItem, dexItemFactory))))
-                  .build();
           StartupProfileProvider startupProfileProvider =
               new StartupProfileProvider() {
                 @Override
-                public String get() {
-                  return startupProfile.serializeToString();
-                }
-
-                @Override
                 public void getStartupProfile(StartupProfileBuilder startupProfileBuilder) {
-                  throw new Unimplemented();
+                  for (ExternalStartupItem startupItem : startupItems) {
+                    startupItem.apply(
+                        startupClass ->
+                            startupProfileBuilder.addStartupClass(
+                                startupClassBuilder ->
+                                    startupClassBuilder.setClassReference(
+                                        startupClass.getReference())),
+                        startupMethod ->
+                            startupProfileBuilder.addStartupMethod(
+                                startupMethodBuilder ->
+                                    startupMethodBuilder.setMethodReference(
+                                        startupMethod.getReference())),
+                        syntheticStartupMethod ->
+                            startupProfileBuilder.addSyntheticStartupMethod(
+                                syntheticStartupMethodBuilder ->
+                                    syntheticStartupMethodBuilder.setSyntheticContextReference(
+                                        syntheticStartupMethod.getSyntheticContextReference())));
+                  }
                 }
 
                 @Override
@@ -177,25 +197,10 @@ public class StartupTestingUtils {
                   return Origin.unknown();
                 }
               };
-          options.getStartupOptions().setStartupProfileProvider(startupProfileProvider);
+          options
+              .getStartupOptions()
+              .setStartupProfileProviders(Collections.singleton(startupProfileProvider));
         });
-  }
-
-  private static StartupItem<DexType, DexMethod, ?> convertStartupItemToDex(
-      StartupItem<ClassReference, MethodReference, ?> startupItem, DexItemFactory dexItemFactory) {
-    return StartupItem.dexBuilder()
-        .applyIf(
-            startupItem.isStartupClass(),
-            builder ->
-                builder.setClassReference(
-                    ClassReferenceUtils.toDexType(
-                        startupItem.asStartupClass().getReference(), dexItemFactory)),
-            builder ->
-                builder.setMethodReference(
-                    MethodReferenceUtils.toDexMethod(
-                        startupItem.asStartupMethod().getReference(), dexItemFactory)))
-        .setFlags(startupItem.getFlags())
-        .build();
   }
 
   private static byte[] getTransformedAndroidUtilLog() throws IOException {

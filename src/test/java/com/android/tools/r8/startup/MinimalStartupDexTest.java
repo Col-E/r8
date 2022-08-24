@@ -12,9 +12,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.experimental.startup.profile.StartupItem;
-import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.startup.profile.ExternalStartupItem;
 import com.android.tools.r8.startup.utils.StartupTestingUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -45,7 +43,7 @@ public class MinimalStartupDexTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    List<StartupItem<ClassReference, MethodReference, ?>> startupList = new ArrayList<>();
+    List<ExternalStartupItem> startupList = new ArrayList<>();
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
         .apply(

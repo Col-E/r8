@@ -5,19 +5,19 @@
 package com.android.tools.r8.experimental.startup.profile;
 
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.references.MethodReference;
-import com.android.tools.r8.startup.StartupMethodBuilder;
-import com.android.tools.r8.utils.MethodReferenceUtils;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.startup.SyntheticStartupMethodBuilder;
+import com.android.tools.r8.utils.ClassReferenceUtils;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class StartupMethod extends StartupItem {
+public class SyntheticStartupMethod extends StartupItem {
 
-  private final DexMethod method;
+  private final DexType syntheticContextType;
 
-  StartupMethod(DexMethod method) {
-    this.method = method;
+  SyntheticStartupMethod(DexType syntheticContextType) {
+    this.syntheticContextType = syntheticContextType;
   }
 
   public static Builder builder() {
@@ -33,7 +33,7 @@ public class StartupMethod extends StartupItem {
       Consumer<StartupClass> classConsumer,
       Consumer<StartupMethod> methodConsumer,
       Consumer<SyntheticStartupMethod> syntheticMethodConsumer) {
-    methodConsumer.accept(this);
+    syntheticMethodConsumer.accept(this);
   }
 
   @Override
@@ -41,20 +41,20 @@ public class StartupMethod extends StartupItem {
       Function<StartupClass, T> classFunction,
       Function<StartupMethod, T> methodFunction,
       Function<SyntheticStartupMethod, T> syntheticMethodFunction) {
-    return methodFunction.apply(this);
+    return syntheticMethodFunction.apply(this);
   }
 
-  public DexMethod getReference() {
-    return method;
+  public DexType getSyntheticContextType() {
+    return syntheticContextType;
   }
 
   @Override
-  public boolean isStartupMethod() {
+  public boolean isSyntheticStartupMethod() {
     return true;
   }
 
   @Override
-  public StartupMethod asStartupMethod() {
+  public SyntheticStartupMethod asSyntheticStartupMethod() {
     return this;
   }
 
@@ -66,20 +66,20 @@ public class StartupMethod extends StartupItem {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    StartupMethod that = (StartupMethod) o;
-    return method == that.method;
+    SyntheticStartupMethod that = (SyntheticStartupMethod) o;
+    return syntheticContextType == that.syntheticContextType;
   }
 
   @Override
   public int hashCode() {
-    return method.hashCode();
+    return syntheticContextType.hashCode();
   }
 
-  public static class Builder implements StartupMethodBuilder {
+  public static class Builder implements SyntheticStartupMethodBuilder {
 
     private final DexItemFactory dexItemFactory;
 
-    private DexMethod method;
+    private DexType syntheticContextReference;
 
     Builder() {
       this(null);
@@ -90,18 +90,19 @@ public class StartupMethod extends StartupItem {
     }
 
     @Override
-    public Builder setMethodReference(MethodReference classReference) {
+    public Builder setSyntheticContextReference(ClassReference syntheticContextReference) {
       assert dexItemFactory != null;
-      return setMethodReference(MethodReferenceUtils.toDexMethod(classReference, dexItemFactory));
+      return setSyntheticContextReference(
+          ClassReferenceUtils.toDexType(syntheticContextReference, dexItemFactory));
     }
 
-    public Builder setMethodReference(DexMethod method) {
-      this.method = method;
+    public Builder setSyntheticContextReference(DexType syntheticContextReference) {
+      this.syntheticContextReference = syntheticContextReference;
       return this;
     }
 
-    public StartupMethod build() {
-      return new StartupMethod(method);
+    public SyntheticStartupMethod build() {
+      return new SyntheticStartupMethod(syntheticContextReference);
     }
   }
 }

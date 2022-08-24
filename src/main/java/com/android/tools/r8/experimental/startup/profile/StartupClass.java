@@ -4,46 +4,48 @@
 
 package com.android.tools.r8.experimental.startup.profile;
 
-import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.startup.StartupClassBuilder;
+import com.android.tools.r8.utils.ClassReferenceUtils;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-// TODO(b/238173796): When updating the compiler to have support for taking a list of startup
-//  methods, this class may likely be removed along with the StartupItem class, so that only
-//  StartupMethod remains.
-public class StartupClass<C, M> extends StartupItem<C, M, C> {
+public class StartupClass extends StartupItem {
 
-  public StartupClass(int flags, C reference) {
-    super(flags, reference);
+  private final DexType type;
+
+  StartupClass(DexType type) {
+    this.type = type;
   }
 
-  public static <C, M> Builder<C, M> builder() {
-    return new Builder<>();
+  public static Builder builder() {
+    return new Builder();
   }
 
-  public static Builder<DexType, DexMethod> dexBuilder() {
-    return new Builder<>();
-  }
-
-  public static Builder<ClassReference, MethodReference> referenceBuilder() {
-    return new Builder<>();
+  public static Builder builder(DexItemFactory dexItemFactory) {
+    return new Builder(dexItemFactory);
   }
 
   @Override
   public void accept(
-      Consumer<StartupClass<C, M>> classConsumer, Consumer<StartupMethod<C, M>> methodConsumer) {
+      Consumer<StartupClass> classConsumer,
+      Consumer<StartupMethod> methodConsumer,
+      Consumer<SyntheticStartupMethod> syntheticMethodConsumer) {
     classConsumer.accept(this);
   }
 
   @Override
   public <T> T apply(
-      Function<StartupClass<C, M>, T> classFunction,
-      Function<StartupMethod<C, M>, T> methodFunction) {
+      Function<StartupClass, T> classFunction,
+      Function<StartupMethod, T> methodFunction,
+      Function<SyntheticStartupMethod, T> syntheticMethodFunction) {
     return classFunction.apply(this);
+  }
+
+  public DexType getReference() {
+    return type;
   }
 
   @Override
@@ -52,31 +54,54 @@ public class StartupClass<C, M> extends StartupItem<C, M, C> {
   }
 
   @Override
-  public StartupClass<C, M> asStartupClass() {
+  public StartupClass asStartupClass() {
     return this;
   }
 
   @Override
-  public void serializeToString(
-      StringBuilder builder,
-      Function<C, String> classSerializer,
-      Function<M, String> methodSerializer) {
-    if (isSynthetic()) {
-      builder.append('S');
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
-    builder.append(classSerializer.apply(getReference()));
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    StartupClass that = (StartupClass) o;
+    return type == that.type;
   }
 
-  public static class Builder<C, M> extends StartupItem.Builder<C, M, Builder<C, M>> {
+  @Override
+  public int hashCode() {
+    return type.hashCode();
+  }
 
-    @Override
-    public Builder<C, M> setMethodReference(M reference) {
-      throw new Unreachable();
+  public static class Builder implements StartupClassBuilder {
+
+    private final DexItemFactory dexItemFactory;
+
+    private DexType type;
+
+    Builder() {
+      this(null);
+    }
+
+    Builder(DexItemFactory dexItemFactory) {
+      this.dexItemFactory = dexItemFactory;
     }
 
     @Override
-    public StartupClass<C, M> build() {
-      return new StartupClass<>(flags, classReference);
+    public Builder setClassReference(ClassReference classReference) {
+      assert dexItemFactory != null;
+      return setClassReference(ClassReferenceUtils.toDexType(classReference, dexItemFactory));
+    }
+
+    public Builder setClassReference(DexType type) {
+      this.type = type;
+      return this;
+    }
+
+    public StartupClass build() {
+      return new StartupClass(type);
     }
   }
 }

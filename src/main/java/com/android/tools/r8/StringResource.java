@@ -105,13 +105,5 @@ public interface StringResource extends Resource {
         throw new ResourceException(origin, e);
       }
     }
-
-    public String getStringWithRuntimeException() {
-      try {
-        return getString();
-      } catch (ResourceException e) {
-        throw new RuntimeException(e);
-      }
-    }
   }
 }

@@ -4,27 +4,32 @@
 
 package com.android.tools.r8.experimental.startup.profile;
 
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.startup.StartupClassBuilder;
+import com.android.tools.r8.startup.StartupMethodBuilder;
+import com.android.tools.r8.startup.StartupProfileBuilder;
 import com.android.tools.r8.startup.StartupProfileProvider;
+import com.android.tools.r8.startup.SyntheticStartupMethodBuilder;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.StringDiagnostic;
-import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 
 public class StartupProfile {
 
-  private final List<StartupItem<DexType, DexMethod, ?>> startupItems;
+  private final List<StartupItem> startupItems;
 
-  public StartupProfile(List<StartupItem<DexType, DexMethod, ?>> startupItems) {
+  public StartupProfile(List<StartupItem> startupItems) {
     this.startupItems = startupItems;
   }
 
   public static Builder builder() {
     return new Builder();
+  }
+
+  public static Builder builder(DexItemFactory dexItemFactory) {
+    return new Builder(dexItemFactory);
   }
 
   /**
@@ -43,58 +48,61 @@ public class StartupProfile {
    * </pre>
    */
   public static StartupProfile parseStartupProfile(InternalOptions options) {
-    if (!options.getStartupOptions().hasStartupProfileProvider()) {
+    if (!options.getStartupOptions().hasStartupProfileProviders()) {
       return null;
     }
-    StartupProfileProvider resource = options.getStartupOptions().getStartupProfileProvider();
-    List<String> startupDescriptors = StringUtils.splitLines(resource.get());
-    return createStartupConfigurationFromLines(options, startupDescriptors);
+    Collection<StartupProfileProvider> startupProfileProviders =
+        options.getStartupOptions().getStartupProfileProviders();
+    StartupProfile.Builder startupProfileBuilder = StartupProfile.builder(options.dexItemFactory());
+    for (StartupProfileProvider startupProfileProvider : startupProfileProviders) {
+      startupProfileProvider.getStartupProfile(startupProfileBuilder);
+    }
+    return startupProfileBuilder.build();
   }
 
-  public static StartupProfile createStartupConfigurationFromLines(
-      InternalOptions options, List<String> startupDescriptors) {
-    List<StartupItem<DexType, DexMethod, ?>> startupItems = new ArrayList<>();
-    StartupProfileParser.createDexParser(options.dexItemFactory())
-        .parseLines(
-            startupDescriptors,
-            startupItems::add,
-            startupItems::add,
-            error ->
-                options.reporter.warning(
-                    new StringDiagnostic(
-                        "Invalid descriptor for startup class or method: " + error)));
-    return new StartupProfile(startupItems);
-  }
-
-  public List<StartupItem<DexType, DexMethod, ?>> getStartupItems() {
+  public List<StartupItem> getStartupItems() {
     return startupItems;
   }
 
-  public String serializeToString() {
-    StringBuilder builder = new StringBuilder();
-    for (StartupItem<DexType, DexMethod, ?> startupItem : startupItems) {
-      startupItem.serializeToString(builder, DexType::toSmaliString, DexMethod::toSmaliString);
-      builder.append('\n');
+  public static class Builder implements StartupProfileBuilder {
+
+    private final DexItemFactory dexItemFactory;
+    private final ImmutableList.Builder<StartupItem> startupItemsBuilder = ImmutableList.builder();
+
+    Builder() {
+      this(null);
     }
-    return builder.toString();
-  }
 
-  public static class Builder {
+    Builder(DexItemFactory dexItemFactory) {
+      this.dexItemFactory = dexItemFactory;
+    }
 
-    private final ImmutableList.Builder<StartupItem<DexType, DexMethod, ?>> startupItemsBuilder =
-        ImmutableList.builder();
+    @Override
+    public Builder addStartupClass(Consumer<StartupClassBuilder> startupClassBuilderConsumer) {
+      StartupClass.Builder startupClassBuilder = StartupClass.builder(dexItemFactory);
+      startupClassBuilderConsumer.accept(startupClassBuilder);
+      return addStartupItem(startupClassBuilder.build());
+    }
 
-    public Builder addStartupItem(StartupItem<DexType, DexMethod, ?> startupItem) {
+    @Override
+    public Builder addStartupMethod(Consumer<StartupMethodBuilder> startupMethodBuilderConsumer) {
+      StartupMethod.Builder startupMethodBuilder = StartupMethod.builder(dexItemFactory);
+      startupMethodBuilderConsumer.accept(startupMethodBuilder);
+      return addStartupItem(startupMethodBuilder.build());
+    }
+
+    @Override
+    public StartupProfileBuilder addSyntheticStartupMethod(
+        Consumer<SyntheticStartupMethodBuilder> syntheticStartupMethodBuilderConsumer) {
+      SyntheticStartupMethod.Builder syntheticStartupMethodBuilder =
+          SyntheticStartupMethod.builder(dexItemFactory);
+      syntheticStartupMethodBuilderConsumer.accept(syntheticStartupMethodBuilder);
+      return addStartupItem(syntheticStartupMethodBuilder.build());
+    }
+
+    private Builder addStartupItem(StartupItem startupItem) {
       this.startupItemsBuilder.add(startupItem);
       return this;
-    }
-
-    public Builder addStartupClass(StartupClass<DexType, DexMethod> startupClass) {
-      return addStartupItem(startupClass);
-    }
-
-    public Builder addStartupMethod(StartupMethod<DexType, DexMethod> startupMethod) {
-      return addStartupItem(startupMethod);
     }
 
     public Builder apply(Consumer<Builder> consumer) {

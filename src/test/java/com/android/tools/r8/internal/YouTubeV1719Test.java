@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import org.junit.After;
 import org.junit.Test;
@@ -149,7 +150,8 @@ public class YouTubeV1719Test extends YouTubeCompilationTestBase {
                       if (startupProfileProvider != null) {
                         options
                             .getStartupOptions()
-                            .setStartupProfileProvider(startupProfileProvider)
+                            .setStartupProfileProviders(
+                                Collections.singleton(startupProfileProvider))
                             .setEnableMinimalStartupDex(enableMinimalStartupDex)
                             .setEnableStartupBoundaryOptimizations(
                                 enableStartupBoundaryOptimizations);
