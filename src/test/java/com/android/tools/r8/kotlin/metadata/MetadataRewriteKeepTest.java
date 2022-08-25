@@ -66,7 +66,8 @@ public class MetadataRewriteKeepTest extends KotlinMetadataTestBase {
     // All kept classes should have their kotlin metadata.
     for (FoundClassSubject clazz : inspector.allClasses()) {
       if (clazz.getFinalName().startsWith("kotlin.io")
-          || clazz.getFinalName().equals("kotlin.Metadata")) {
+          || clazz.getFinalName().equals("kotlin.Metadata")
+          || clazz.getFinalName().equals("kotlin.jvm.JvmName")) {
         assertNotNull(clazz.getKotlinClassMetadata());
         assertNotNull(clazz.getKotlinClassMetadata().getHeader().getData2());
       } else {

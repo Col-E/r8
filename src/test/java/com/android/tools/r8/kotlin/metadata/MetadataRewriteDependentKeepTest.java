@@ -22,7 +22,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class MetadataRewriteDependentKeep extends KotlinMetadataTestBase {
+public class MetadataRewriteDependentKeepTest extends KotlinMetadataTestBase {
 
   @Parameterized.Parameters(name = "{0}, {1}")
   public static Collection<Object[]> data() {
@@ -33,7 +33,7 @@ public class MetadataRewriteDependentKeep extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
-  public MetadataRewriteDependentKeep(
+  public MetadataRewriteDependentKeepTest(
       TestParameters parameters, KotlinTestParameters kotlinParameters) {
     super(kotlinParameters);
     this.parameters = parameters;
@@ -56,7 +56,8 @@ public class MetadataRewriteDependentKeep extends KotlinMetadataTestBase {
     // All kept classes should have their kotlin metadata.
     for (FoundClassSubject clazz : inspector.allClasses()) {
       if (clazz.getFinalName().startsWith("kotlin.io")
-          || clazz.getFinalName().equals("kotlin.Metadata")) {
+          || clazz.getFinalName().equals("kotlin.Metadata")
+          || clazz.getFinalName().equals("kotlin.jvm.JvmName")) {
         assertNotNull(clazz.getKotlinClassMetadata());
       } else {
         assertNull(clazz.getKotlinClassMetadata());
