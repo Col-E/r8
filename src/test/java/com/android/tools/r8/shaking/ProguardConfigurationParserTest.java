@@ -911,7 +911,8 @@ public class ProguardConfigurationParserTest extends TestBase {
     verifyParserEndsCleanly();
     ProguardConfiguration config = parser.getConfig();
     assertEquals(
-        "-keepattributes RuntimeVisibleAnnotations", config.getKeepAttributes().toString());
+        "-keepattributes RuntimeVisibleAnnotations,RuntimeInvisibleAnnotations",
+        config.getKeepAttributes().toString());
     assertEquals(
         StringUtils.joinLines("-keep class kotlin.Metadata {", "  *;", "}"),
         config.getRules().get(0).toString());
