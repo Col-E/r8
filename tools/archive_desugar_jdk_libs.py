@@ -207,7 +207,7 @@ def write_sha1_for(file):
     file.write(hexdigest)
 
 def Undesugar(variant, maven_zip, version, undesugared_maven_zip):
-  gradle.RunGradle(['testJar', 'repackageTestDeps'])
+  gradle.RunGradle(['testJar', 'repackageTestDeps', '-Pno_internal'])
   with utils.TempDir() as tmp:
     with zipfile.ZipFile(maven_zip, 'r') as zip_ref:
       zip_ref.extractall(tmp)
