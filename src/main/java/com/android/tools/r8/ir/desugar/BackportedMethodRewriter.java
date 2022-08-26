@@ -265,6 +265,11 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
           || appView
               .options()
               .machineDesugaredLibrarySpecification
+              .getEmulatedInterfaces()
+              .containsKey(type)
+          || appView
+              .options()
+              .machineDesugaredLibrarySpecification
               .getMaintainType()
               .contains(type);
     }
