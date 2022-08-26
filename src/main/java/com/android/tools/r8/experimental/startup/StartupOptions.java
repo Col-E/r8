@@ -60,8 +60,8 @@ public class StartupOptions {
             "com.android.tools.r8.startup.profile",
             propertyValue ->
                 ImmutableList.of(
-                    StartupProfileProviderUtils.createFromFile(
-                        Paths.get(propertyValue), options.reporter)),
+                    StartupProfileProviderUtils.createFromHumanReadableARTProfile(
+                        Paths.get(propertyValue))),
             Collections::emptyList);
   }
 

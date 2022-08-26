@@ -21,7 +21,6 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.experimental.startup.StartupProfileProviderUtils;
 import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
@@ -237,10 +236,9 @@ public class ChromeStartupTest extends TestBase {
       boolean enableStartupBoundaryOptimizations,
       Path outDirectory)
       throws Exception {
-    Reporter reporter = new Reporter();
     StartupProfileProvider startupProfileProvider =
-        StartupProfileProviderUtils.createFromFile(
-            chromeDirectory.resolve("startup.txt"), reporter);
+        StartupProfileProviderUtils.createFromHumanReadableARTProfile(
+            chromeDirectory.resolve("startup.txt"));
     buildR8(
         testBuilder ->
             testBuilder.addOptionsModification(

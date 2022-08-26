@@ -25,12 +25,8 @@ public class InstrumentationServerImpl extends InstrumentationServer {
     return InstrumentationServerImpl.INSTANCE;
   }
 
-  public static void addNonSyntheticMethod(String descriptor) {
+  public static void addMethod(String descriptor) {
     getInstance().addLine(descriptor);
-  }
-
-  public static void addSyntheticMethod(String descriptor) {
-    getInstance().addLine('S' + descriptor);
   }
 
   private void addLine(String line) {

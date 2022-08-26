@@ -10,14 +10,6 @@ import static com.android.tools.r8.utils.SystemPropertyUtils.parseSystemProperty
 public class StartupInstrumentationOptions {
 
   /**
-   * When enabled, the instrumentation for synthetics will print the name of the synthetic context
-   * instead of printing the name of the synthetic itself.
-   */
-  private boolean enableGeneralizationOfSyntheticsToSyntheticContext =
-      parseSystemPropertyForDevelopmentOrDefault(
-          "com.android.tools.r8.startup.instrumentation.generalizesynthetics", false);
-
-  /**
    * When enabled, each method will be instrumented to notify the startup InstrumentationServer that
    * it has been executed.
    *
@@ -79,17 +71,6 @@ public class StartupInstrumentationOptions {
   public StartupInstrumentationOptions setStartupInstrumentationTag(
       String startupInstrumentationTag) {
     this.startupInstrumentationTag = startupInstrumentationTag;
-    return this;
-  }
-
-  public boolean isGeneralizationOfSyntheticsToSyntheticContextEnabled() {
-    return enableGeneralizationOfSyntheticsToSyntheticContext;
-  }
-
-  public StartupInstrumentationOptions setEnableGeneralizationOfSyntheticsToSyntheticContext(
-      boolean enableGeneralizationOfSyntheticsToSyntheticContext) {
-    this.enableGeneralizationOfSyntheticsToSyntheticContext =
-        enableGeneralizationOfSyntheticsToSyntheticContext;
     return this;
   }
 

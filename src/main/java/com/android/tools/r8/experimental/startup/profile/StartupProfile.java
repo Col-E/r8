@@ -5,34 +5,47 @@
 package com.android.tools.r8.experimental.startup.profile;
 
 import com.android.tools.r8.TextInputStream;
-import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.experimental.startup.profile.art.ARTProfileBuilderUtils;
+import com.android.tools.r8.experimental.startup.profile.art.ARTProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
+import com.android.tools.r8.experimental.startup.profile.art.AlwaysTrueARTProfileRulePredicate;
+import com.android.tools.r8.experimental.startup.profile.art.HumanReadableARTProfileParser;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.startup.ARTProfileRulePredicate;
 import com.android.tools.r8.startup.HumanReadableARTProfileParserBuilder;
 import com.android.tools.r8.startup.StartupClassBuilder;
 import com.android.tools.r8.startup.StartupMethodBuilder;
 import com.android.tools.r8.startup.StartupProfileBuilder;
 import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.startup.SyntheticStartupMethodBuilder;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.function.Consumer;
 
 public class StartupProfile {
 
-  private final List<StartupItem> startupItems;
+  private final LinkedHashSet<StartupItem> startupItems;
 
-  public StartupProfile(List<StartupItem> startupItems) {
+  StartupProfile(LinkedHashSet<StartupItem> startupItems) {
     this.startupItems = startupItems;
   }
 
-  public static Builder builder() {
-    return new Builder();
+  public static Builder builder(
+      InternalOptions options,
+      StartupProfileProvider startupProfileProvider,
+      SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
+    return new Builder(options, startupProfileProvider, syntheticToSyntheticContextGeneralization);
   }
 
-  public static Builder builder(DexItemFactory dexItemFactory) {
-    return new Builder(dexItemFactory);
+  public static StartupProfile merge(Collection<StartupProfile> startupProfiles) {
+    LinkedHashSet<StartupItem> mergedStartupItems = new LinkedHashSet<>();
+    for (StartupProfile startupProfile : startupProfiles) {
+      mergedStartupItems.addAll(startupProfile.getStartupItems());
+    }
+    return new StartupProfile(mergedStartupItems);
   }
 
   /**
@@ -50,34 +63,47 @@ public class StartupProfile {
    * Landroidx/compose/runtime/ComposerImpl;
    * </pre>
    */
-  public static StartupProfile parseStartupProfile(InternalOptions options) {
+  public static StartupProfile parseStartupProfile(
+      InternalOptions options,
+      SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
     if (!options.getStartupOptions().hasStartupProfileProviders()) {
       return null;
     }
     Collection<StartupProfileProvider> startupProfileProviders =
         options.getStartupOptions().getStartupProfileProviders();
-    StartupProfile.Builder startupProfileBuilder = StartupProfile.builder(options.dexItemFactory());
+    List<StartupProfile> startupProfiles = new ArrayList<>(startupProfileProviders.size());
     for (StartupProfileProvider startupProfileProvider : startupProfileProviders) {
+      StartupProfile.Builder startupProfileBuilder =
+          StartupProfile.builder(
+              options, startupProfileProvider, syntheticToSyntheticContextGeneralization);
       startupProfileProvider.getStartupProfile(startupProfileBuilder);
+      startupProfiles.add(startupProfileBuilder.build());
     }
-    return startupProfileBuilder.build();
+    return StartupProfile.merge(startupProfiles);
   }
 
-  public List<StartupItem> getStartupItems() {
+  public Collection<StartupItem> getStartupItems() {
     return startupItems;
   }
 
   public static class Builder implements StartupProfileBuilder {
 
     private final DexItemFactory dexItemFactory;
-    private final ImmutableList.Builder<StartupItem> startupItemsBuilder = ImmutableList.builder();
+    private final InternalOptions options;
+    private final StartupProfileProvider startupProfileProvider;
+    private final SyntheticToSyntheticContextGeneralization
+        syntheticToSyntheticContextGeneralization;
 
-    Builder() {
-      this(null);
-    }
+    private final LinkedHashSet<StartupItem> startupItems = new LinkedHashSet<>();
 
-    Builder(DexItemFactory dexItemFactory) {
-      this.dexItemFactory = dexItemFactory;
+    Builder(
+        InternalOptions options,
+        StartupProfileProvider startupProfileProvider,
+        SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
+      this.dexItemFactory = options.dexItemFactory();
+      this.options = options;
+      this.startupProfileProvider = startupProfileProvider;
+      this.syntheticToSyntheticContextGeneralization = syntheticToSyntheticContextGeneralization;
     }
 
     @Override
@@ -107,11 +133,31 @@ public class StartupProfile {
     public StartupProfileBuilder addHumanReadableARTProfile(
         TextInputStream textInputStream,
         Consumer<HumanReadableARTProfileParserBuilder> parserBuilderConsumer) {
-      throw new Unimplemented();
+      Box<ARTProfileRulePredicate> rulePredicateBox =
+          new Box<>(new AlwaysTrueARTProfileRulePredicate());
+      parserBuilderConsumer.accept(
+          new HumanReadableARTProfileParserBuilder() {
+            @Override
+            public HumanReadableARTProfileParserBuilder setRulePredicate(
+                ARTProfileRulePredicate rulePredicate) {
+              rulePredicateBox.set(rulePredicate);
+              return this;
+            }
+          });
+
+      HumanReadableARTProfileParser parser =
+          HumanReadableARTProfileParser.builder()
+              .setReporter(options.reporter)
+              .setProfileBuilder(
+                  ARTProfileBuilderUtils.createBuilderForARTProfileToStartupProfileConversion(
+                      this, rulePredicateBox.get(), syntheticToSyntheticContextGeneralization))
+              .build();
+      parser.parse(textInputStream, startupProfileProvider.getOrigin());
+      return this;
     }
 
     private Builder addStartupItem(StartupItem startupItem) {
-      this.startupItemsBuilder.add(startupItem);
+      this.startupItems.add(startupItem);
       return this;
     }
 
@@ -121,7 +167,7 @@ public class StartupProfile {
     }
 
     public StartupProfile build() {
-      return new StartupProfile(startupItemsBuilder.build());
+      return new StartupProfile(startupItems);
     }
   }
 }

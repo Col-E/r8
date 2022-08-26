@@ -5,6 +5,7 @@
 package com.android.tools.r8.experimental.startup;
 
 import com.android.tools.r8.experimental.startup.profile.StartupItem;
+import com.android.tools.r8.experimental.startup.profile.art.ARTProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -27,11 +28,16 @@ public class StartupCompleteness {
   private final StartupOrder startupOrder;
 
   private StartupCompleteness(AppView<?> appView) {
+    SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization =
+        appView.enableWholeProgramOptimizations()
+            ? SyntheticToSyntheticContextGeneralization.createForR8()
+            : SyntheticToSyntheticContextGeneralization.createForD8();
     this.appView = appView;
     this.startupOrder =
         appView.hasClassHierarchy()
             ? appView.appInfoWithClassHierarchy().getStartupOrder()
-            : StartupOrder.createInitialStartupOrder(appView.options());
+            : StartupOrder.createInitialStartupOrder(
+                appView.options(), syntheticToSyntheticContextGeneralization);
   }
 
   /**

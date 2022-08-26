@@ -5,18 +5,23 @@
 package com.android.tools.r8.startup.utils;
 
 import static com.android.tools.r8.TestBase.transformer;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8TestBuilder;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
+import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TextInputStream;
 import com.android.tools.r8.ThrowableConsumer;
-import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.startup.instrumentation.StartupInstrumentationOptions;
+import com.android.tools.r8.experimental.startup.profile.art.ARTProfileBuilder;
+import com.android.tools.r8.experimental.startup.profile.art.ARTProfileBuilderUtils;
+import com.android.tools.r8.experimental.startup.profile.art.ARTProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
+import com.android.tools.r8.experimental.startup.profile.art.AlwaysTrueARTProfileRulePredicate;
 import com.android.tools.r8.experimental.startup.profile.art.HumanReadableARTProfileParser;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.startup.HumanReadableARTProfileParserBuilder;
@@ -30,13 +35,14 @@ import com.android.tools.r8.startup.profile.ExternalStartupItem;
 import com.android.tools.r8.startup.profile.ExternalStartupMethod;
 import com.android.tools.r8.startup.profile.ExternalSyntheticStartupMethod;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
+import com.android.tools.r8.utils.UTF8TextInputStream;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.function.Consumer;
 import org.junit.rules.TemporaryFolder;
 
@@ -44,85 +50,74 @@ public class StartupTestingUtils {
 
   private static String startupInstrumentationTag = "startup";
 
-  private enum AppVariant {
-    ORIGINAL,
-    OPTIMIZED;
+  private static ARTProfileBuilder createStartupItemFactory(
+      Consumer<ExternalStartupItem> startupItemConsumer,
+      SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
+    StartupProfileBuilder startupProfileBuilder =
+        new StartupProfileBuilder() {
+          @Override
+          public StartupProfileBuilder addStartupClass(
+              Consumer<StartupClassBuilder> startupClassBuilderConsumer) {
+            ExternalStartupClass.Builder startupClassBuilder = ExternalStartupClass.builder();
+            startupClassBuilderConsumer.accept(startupClassBuilder);
+            startupItemConsumer.accept(startupClassBuilder.build());
+            return this;
+          }
 
-    boolean isOriginal() {
-      return this == ORIGINAL;
-    }
-  }
+          @Override
+          public StartupProfileBuilder addStartupMethod(
+              Consumer<StartupMethodBuilder> startupMethodBuilderConsumer) {
+            ExternalStartupMethod.Builder startupMethodBuilder = ExternalStartupMethod.builder();
+            startupMethodBuilderConsumer.accept(startupMethodBuilder);
+            startupItemConsumer.accept(startupMethodBuilder.build());
+            return this;
+          }
 
-  private static StartupProfileBuilder createStartupItemFactory(
-      Consumer<ExternalStartupItem> startupItemConsumer) {
-    return new StartupProfileBuilder() {
-      @Override
-      public StartupProfileBuilder addStartupClass(
-          Consumer<StartupClassBuilder> startupClassBuilderConsumer) {
-        ExternalStartupClass.Builder startupClassBuilder = ExternalStartupClass.builder();
-        startupClassBuilderConsumer.accept(startupClassBuilder);
-        startupItemConsumer.accept(startupClassBuilder.build());
-        return this;
-      }
+          @Override
+          public StartupProfileBuilder addSyntheticStartupMethod(
+              Consumer<SyntheticStartupMethodBuilder> syntheticStartupMethodBuilderConsumer) {
+            ExternalSyntheticStartupMethod.Builder syntheticStartupMethodBuilder =
+                ExternalSyntheticStartupMethod.builder();
+            syntheticStartupMethodBuilderConsumer.accept(syntheticStartupMethodBuilder);
+            startupItemConsumer.accept(syntheticStartupMethodBuilder.build());
+            return this;
+          }
 
-      @Override
-      public StartupProfileBuilder addStartupMethod(
-          Consumer<StartupMethodBuilder> startupMethodBuilderConsumer) {
-        ExternalStartupMethod.Builder startupMethodBuilder = ExternalStartupMethod.builder();
-        startupMethodBuilderConsumer.accept(startupMethodBuilder);
-        startupItemConsumer.accept(startupMethodBuilder.build());
-        return this;
-      }
-
-      @Override
-      public StartupProfileBuilder addSyntheticStartupMethod(
-          Consumer<SyntheticStartupMethodBuilder> syntheticStartupMethodBuilderConsumer) {
-        ExternalSyntheticStartupMethod.Builder syntheticStartupMethodBuilder =
-            ExternalSyntheticStartupMethod.builder();
-        syntheticStartupMethodBuilderConsumer.accept(syntheticStartupMethodBuilder);
-        startupItemConsumer.accept(syntheticStartupMethodBuilder.build());
-        return this;
-      }
-
-      @Override
-      public StartupProfileBuilder addHumanReadableARTProfile(
-          TextInputStream textInputStream,
-          Consumer<HumanReadableARTProfileParserBuilder> parserBuilderConsumer) {
-        throw new Unimplemented();
-      }
-    };
+          @Override
+          public StartupProfileBuilder addHumanReadableARTProfile(
+              TextInputStream textInputStream,
+              Consumer<HumanReadableARTProfileParserBuilder> parserBuilderConsumer) {
+            throw new Unreachable();
+          }
+        };
+    return ARTProfileBuilderUtils.createBuilderForARTProfileToStartupProfileConversion(
+        startupProfileBuilder,
+        new AlwaysTrueARTProfileRulePredicate(),
+        syntheticToSyntheticContextGeneralization);
   }
 
   public static ThrowableConsumer<D8TestBuilder>
       enableStartupInstrumentationForOriginalAppUsingFile(TestParameters parameters) {
-    return testBuilder ->
-        enableStartupInstrumentation(testBuilder, parameters, AppVariant.ORIGINAL, false);
+    return testBuilder -> enableStartupInstrumentation(testBuilder, parameters, false);
   }
 
   public static ThrowableConsumer<D8TestBuilder>
       enableStartupInstrumentationForOriginalAppUsingLogcat(TestParameters parameters) {
-    return testBuilder ->
-        enableStartupInstrumentation(testBuilder, parameters, AppVariant.ORIGINAL, true);
+    return testBuilder -> enableStartupInstrumentation(testBuilder, parameters, true);
   }
 
   public static ThrowableConsumer<D8TestBuilder>
       enableStartupInstrumentationForOptimizedAppUsingLogcat(TestParameters parameters) {
-    return testBuilder ->
-        enableStartupInstrumentation(testBuilder, parameters, AppVariant.OPTIMIZED, true);
+    return testBuilder -> enableStartupInstrumentation(testBuilder, parameters, true);
   }
 
   private static void enableStartupInstrumentation(
-      D8TestBuilder testBuilder, TestParameters parameters, AppVariant appVariant, boolean logcat)
-      throws IOException {
+      D8TestBuilder testBuilder, TestParameters parameters, boolean logcat) throws IOException {
     testBuilder
         .addOptionsModification(
             options -> {
               StartupInstrumentationOptions startupInstrumentationOptions =
-                  options
-                      .getStartupInstrumentationOptions()
-                      .setEnableStartupInstrumentation()
-                      .setEnableGeneralizationOfSyntheticsToSyntheticContext(
-                          appVariant.isOriginal());
+                  options.getStartupInstrumentationOptions().setEnableStartupInstrumentation();
               if (logcat) {
                 startupInstrumentationOptions.setStartupInstrumentationTag(
                     startupInstrumentationTag);
@@ -142,40 +137,59 @@ public class StartupTestingUtils {
   }
 
   public static void readStartupListFromFile(
-      Path path, Consumer<ExternalStartupItem> startupItemConsumer) throws IOException {
-    HumanReadableARTProfileParser.create()
-        .parseLines(
-            Files.readAllLines(path).stream(),
-            createStartupItemFactory(startupItemConsumer),
-            error -> fail("Unexpected parse error: " + error));
+      Path path,
+      Consumer<ExternalStartupItem> startupItemConsumer,
+      SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization)
+      throws IOException {
+    TestDiagnosticMessagesImpl diagnostics = new TestDiagnosticMessagesImpl();
+    HumanReadableARTProfileParser parser =
+        HumanReadableARTProfileParser.builder()
+            .setReporter(new Reporter(diagnostics))
+            .setProfileBuilder(
+                createStartupItemFactory(
+                    startupItemConsumer, syntheticToSyntheticContextGeneralization))
+            .build();
+    parser.parse(new UTF8TextInputStream(path), Origin.unknown());
+    diagnostics.assertNoMessages();
   }
 
   public static ThrowingConsumer<D8TestRunResult, RuntimeException> removeStartupListFromStdout(
-      Consumer<ExternalStartupItem> startupItemConsumer) {
-    return runResult -> removeStartupListFromStdout(runResult, startupItemConsumer);
+      Consumer<ExternalStartupItem> startupItemConsumer,
+      SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
+    return runResult ->
+        removeStartupListFromStdout(
+            runResult, startupItemConsumer, syntheticToSyntheticContextGeneralization);
   }
 
   public static void removeStartupListFromStdout(
-      D8TestRunResult runResult, Consumer<ExternalStartupItem> startupItemConsumer) {
-    HumanReadableARTProfileParser parser = HumanReadableARTProfileParser.create();
+      D8TestRunResult runResult,
+      Consumer<ExternalStartupItem> startupItemConsumer,
+      SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
+    TestDiagnosticMessagesImpl diagnostics = new TestDiagnosticMessagesImpl();
+    HumanReadableARTProfileParser parser =
+        HumanReadableARTProfileParser.builder()
+            .setReporter(new Reporter(diagnostics))
+            .setProfileBuilder(
+                createStartupItemFactory(
+                    startupItemConsumer, syntheticToSyntheticContextGeneralization))
+            .build();
     StringBuilder stdoutBuilder = new StringBuilder();
     String startupDescriptorPrefix = "[" + startupInstrumentationTag + "] ";
     for (String line : StringUtils.splitLines(runResult.getStdOut(), true)) {
       if (line.startsWith(startupDescriptorPrefix)) {
         String message = line.substring(startupDescriptorPrefix.length());
-        parser.parseLine(
-            message,
-            createStartupItemFactory(startupItemConsumer),
-            error -> fail("Unexpected parse error: " + error));
+        assertTrue(parser.parseRule(message));
       } else {
         stdoutBuilder.append(line).append(System.lineSeparator());
       }
     }
+    diagnostics.assertNoMessages();
     runResult.getResult().setStdout(stdoutBuilder.toString());
   }
 
   public static void setStartupConfiguration(
-      TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder, List<ExternalStartupItem> startupItems) {
+      TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder,
+      Collection<ExternalStartupItem> startupItems) {
     testBuilder.addOptionsModification(
         options -> {
           StartupProfileProvider startupProfileProvider =

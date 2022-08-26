@@ -7,6 +7,7 @@ package com.android.tools.r8.startup.profile;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.startup.StartupMethodBuilder;
 import com.android.tools.r8.startup.profile.ExternalStartupClass.Builder;
+import com.android.tools.r8.utils.MethodReferenceUtils;
 import java.util.function.Function;
 
 public class ExternalStartupMethod extends ExternalStartupItem {
@@ -48,6 +49,11 @@ public class ExternalStartupMethod extends ExternalStartupItem {
   @Override
   public int hashCode() {
     return methodReference.hashCode();
+  }
+
+  @Override
+  public String toString() {
+    return MethodReferenceUtils.toSourceString(methodReference);
   }
 
   public static class Builder implements StartupMethodBuilder {

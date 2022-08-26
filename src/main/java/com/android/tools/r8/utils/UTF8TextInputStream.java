@@ -5,13 +5,20 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.TextInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class UTF8TextInputStream implements TextInputStream {
 
   private final InputStream inputStream;
+
+  public UTF8TextInputStream(Path path) throws IOException {
+    this(Files.newInputStream(path));
+  }
 
   public UTF8TextInputStream(InputStream inputStream) {
     this.inputStream = inputStream;

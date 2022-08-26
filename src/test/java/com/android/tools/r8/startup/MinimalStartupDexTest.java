@@ -12,6 +12,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.experimental.startup.profile.art.ARTProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
 import com.android.tools.r8.startup.profile.ExternalStartupItem;
 import com.android.tools.r8.startup.utils.StartupTestingUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -19,8 +20,9 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -43,7 +45,7 @@ public class MinimalStartupDexTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    List<ExternalStartupItem> startupList = new ArrayList<>();
+    Set<ExternalStartupItem> startupList = new LinkedHashSet<>();
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
         .apply(
@@ -53,7 +55,9 @@ public class MinimalStartupDexTest extends TestBase {
         .compile()
         .addRunClasspathFiles(StartupTestingUtils.getAndroidUtilLog(temp))
         .run(parameters.getRuntime(), Main.class)
-        .apply(StartupTestingUtils.removeStartupListFromStdout(startupList::add))
+        .apply(
+            StartupTestingUtils.removeStartupListFromStdout(
+                startupList::add, SyntheticToSyntheticContextGeneralization.createForR8()))
         .assertSuccessWithOutputLines(getExpectedOutput());
 
     testForR8(parameters.getBackend())

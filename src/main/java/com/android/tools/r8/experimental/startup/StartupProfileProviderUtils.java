@@ -4,34 +4,26 @@
 
 package com.android.tools.r8.experimental.startup;
 
-import com.android.tools.r8.experimental.startup.profile.art.HumanReadableARTProfileParser;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.startup.StartupProfileBuilder;
 import com.android.tools.r8.startup.StartupProfileProvider;
-import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.ConsumerUtils;
+import com.android.tools.r8.utils.UTF8TextInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 
 public class StartupProfileProviderUtils {
 
-  public static StartupProfileProvider createFromFile(Path path, Reporter reporter) {
+  public static StartupProfileProvider createFromHumanReadableARTProfile(Path path) {
     return new StartupProfileProvider() {
 
       @Override
       public void getStartupProfile(StartupProfileBuilder startupProfileBuilder) {
         try {
-          HumanReadableARTProfileParser.create()
-              .parseLines(
-                  FileUtils.readAllLines(path).stream(),
-                  startupProfileBuilder,
-                  error ->
-                      reporter.warning(
-                          new StringDiagnostic(
-                              "Invalid descriptor for startup class or method: " + error)));
+          startupProfileBuilder.addHumanReadableARTProfile(
+              new UTF8TextInputStream(path), ConsumerUtils.emptyConsumer());
         } catch (IOException e) {
           throw new UncheckedIOException(e);
         }

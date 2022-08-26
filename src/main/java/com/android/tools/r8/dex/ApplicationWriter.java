@@ -25,6 +25,7 @@ import com.android.tools.r8.dex.VirtualFile.ItemUseInfo;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.experimental.startup.StartupCompleteness;
 import com.android.tools.r8.experimental.startup.StartupOrder;
+import com.android.tools.r8.experimental.startup.profile.art.ARTProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
 import com.android.tools.r8.features.FeatureSplitConfiguration.DataResourceProvidersAndConsumer;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
@@ -225,7 +226,8 @@ public class ApplicationWriter {
       StartupOrder startupOrder =
           appView.appInfo().hasClassHierarchy()
               ? appView.appInfoWithClassHierarchy().getStartupOrder()
-              : StartupOrder.createInitialStartupOrder(options);
+              : StartupOrder.createInitialStartupOrder(
+                  options, SyntheticToSyntheticContextGeneralization.createForD8());
       distributor =
           new VirtualFile.FillFilesDistributor(
               this, classes, options, executorService, startupOrder);

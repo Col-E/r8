@@ -8,7 +8,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DexIndexedConsumer;
@@ -53,7 +52,7 @@ public class StartupProfileApiTest extends CompilerApiTestRunner {
     return ApiTest.class;
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testD8ArrayApi() throws Exception {
     ApiTest test = new ApiTest(ApiTest.PARAMETERS);
     runTest(
@@ -62,7 +61,7 @@ public class StartupProfileApiTest extends CompilerApiTestRunner {
             test.runD8(ApiTest::addStartupProfileProviderUsingArrayApi, programConsumer));
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testD8CollectionApi() throws Exception {
     ApiTest test = new ApiTest(ApiTest.PARAMETERS);
     runTest(
@@ -71,7 +70,7 @@ public class StartupProfileApiTest extends CompilerApiTestRunner {
             test.runD8(ApiTest::addStartupProfileProviderUsingCollectionApi, programConsumer));
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testR8ArrayApi() throws Exception {
     ApiTest test = new ApiTest(ApiTest.PARAMETERS);
     runTest(
@@ -80,7 +79,7 @@ public class StartupProfileApiTest extends CompilerApiTestRunner {
             test.runR8(ApiTest::addStartupProfileProviderUsingArrayApi, programConsumer));
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testR8CollectionApi() throws Exception {
     ApiTest test = new ApiTest(ApiTest.PARAMETERS);
     runTest(
@@ -182,7 +181,7 @@ public class StartupProfileApiTest extends CompilerApiTestRunner {
       R8.run(commandBuilder.build());
     }
 
-    @Test(expected = CompilationFailedException.class)
+    @Test
     public void testD8ArrayApi() throws Exception {
       runD8(ApiTest::addStartupProfileProviderUsingArrayApi, DexIndexedConsumer.emptyConsumer());
     }
@@ -194,7 +193,7 @@ public class StartupProfileApiTest extends CompilerApiTestRunner {
       commandBuilder.addStartupProfileProviders(startupProfileProviders);
     }
 
-    @Test(expected = CompilationFailedException.class)
+    @Test
     public void testD8CollectionApi() throws Exception {
       runD8(
           ApiTest::addStartupProfileProviderUsingCollectionApi, DexIndexedConsumer.emptyConsumer());
@@ -207,7 +206,7 @@ public class StartupProfileApiTest extends CompilerApiTestRunner {
       commandBuilder.addStartupProfileProviders(startupProfileProviders);
     }
 
-    @Test(expected = CompilationFailedException.class)
+    @Test
     public void testR8ArrayApi() throws Exception {
       runR8(ApiTest::addStartupProfileProviderUsingArrayApi, DexIndexedConsumer.emptyConsumer());
     }
@@ -219,7 +218,7 @@ public class StartupProfileApiTest extends CompilerApiTestRunner {
       commandBuilder.addStartupProfileProviders(startupProfileProviders);
     }
 
-    @Test(expected = CompilationFailedException.class)
+    @Test
     public void testR8CollectionApi() throws Exception {
       runR8(
           ApiTest::addStartupProfileProviderUsingCollectionApi, DexIndexedConsumer.emptyConsumer());

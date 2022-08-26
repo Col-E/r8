@@ -6,6 +6,7 @@ package com.android.tools.r8.experimental.startup;
 
 import com.android.tools.r8.experimental.startup.profile.StartupItem;
 import com.android.tools.r8.experimental.startup.profile.StartupProfile;
+import com.android.tools.r8.experimental.startup.profile.art.ARTProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
@@ -19,8 +20,11 @@ public abstract class StartupOrder {
 
   StartupOrder() {}
 
-  public static StartupOrder createInitialStartupOrder(InternalOptions options) {
-    StartupProfile startupProfile = StartupProfile.parseStartupProfile(options);
+  public static StartupOrder createInitialStartupOrder(
+      InternalOptions options,
+      SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
+    StartupProfile startupProfile =
+        StartupProfile.parseStartupProfile(options, syntheticToSyntheticContextGeneralization);
     if (startupProfile == null || startupProfile.getStartupItems().isEmpty()) {
       return empty();
     }

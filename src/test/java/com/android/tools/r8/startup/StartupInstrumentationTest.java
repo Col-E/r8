@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.experimental.startup.profile.art.ARTProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.startup.profile.ExternalStartupClass;
 import com.android.tools.r8.startup.profile.ExternalStartupItem;
@@ -20,8 +21,9 @@ import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -46,7 +48,9 @@ public class StartupInstrumentationTest extends TestBase {
   @Test
   public void test() throws Exception {
     Path out = temp.newFolder().toPath().resolve("out.txt").toAbsolutePath();
-    List<ExternalStartupItem> startupList = new ArrayList<>();
+    Set<ExternalStartupItem> startupList = new LinkedHashSet<>();
+    SyntheticToSyntheticContextGeneralization syntheticGeneralization =
+        SyntheticToSyntheticContextGeneralization.createForD8();
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
         .applyIf(
@@ -63,8 +67,11 @@ public class StartupInstrumentationTest extends TestBase {
         .run(parameters.getRuntime(), Main.class, Boolean.toString(logcat), out.toString())
         .applyIf(
             logcat,
-            StartupTestingUtils.removeStartupListFromStdout(startupList::add),
-            runResult -> StartupTestingUtils.readStartupListFromFile(out, startupList::add))
+            StartupTestingUtils.removeStartupListFromStdout(
+                startupList::add, syntheticGeneralization),
+            runResult ->
+                StartupTestingUtils.readStartupListFromFile(
+                    out, startupList::add, syntheticGeneralization))
         .assertSuccessWithOutputLines(getExpectedOutput());
     assertEquals(getExpectedStartupList(), startupList);
   }
@@ -73,21 +80,22 @@ public class StartupInstrumentationTest extends TestBase {
     return ImmutableList.of("foo");
   }
 
-  private List<ExternalStartupItem> getExpectedStartupList() throws NoSuchMethodException {
-    return ImmutableList.of(
-        ExternalStartupClass.builder()
-            .setClassReference(Reference.classFromClass(Main.class))
-            .build(),
-        ExternalStartupMethod.builder()
-            .setMethodReference(MethodReferenceUtils.mainMethod(Main.class))
-            .build(),
-        ExternalStartupClass.builder()
-            .setClassReference(Reference.classFromClass(AStartupClass.class))
-            .build(),
-        ExternalStartupMethod.builder()
-            .setMethodReference(
-                Reference.methodFromMethod(AStartupClass.class.getDeclaredMethod("foo")))
-            .build());
+  private Set<ExternalStartupItem> getExpectedStartupList() throws NoSuchMethodException {
+    return new LinkedHashSet<>(
+        ImmutableList.of(
+            ExternalStartupClass.builder()
+                .setClassReference(Reference.classFromClass(Main.class))
+                .build(),
+            ExternalStartupMethod.builder()
+                .setMethodReference(MethodReferenceUtils.mainMethod(Main.class))
+                .build(),
+            ExternalStartupClass.builder()
+                .setClassReference(Reference.classFromClass(AStartupClass.class))
+                .build(),
+            ExternalStartupMethod.builder()
+                .setMethodReference(
+                    Reference.methodFromMethod(AStartupClass.class.getDeclaredMethod("foo")))
+                .build()));
   }
 
   static class Main {

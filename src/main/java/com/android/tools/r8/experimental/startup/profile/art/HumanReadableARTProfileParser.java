@@ -4,106 +4,123 @@
 
 package com.android.tools.r8.experimental.startup.profile.art;
 
+import com.android.tools.r8.TextInputStream;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
-import com.android.tools.r8.startup.StartupProfileBuilder;
-import com.android.tools.r8.utils.BooleanBox;
+import com.android.tools.r8.startup.diagnostic.HumanReadableARTProfileParserErrorDiagnostic;
+import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.Reporter;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 public class HumanReadableARTProfileParser {
 
-  public static HumanReadableARTProfileParser create() {
-    return new HumanReadableARTProfileParser();
+  private final ARTProfileBuilder profileBuilder;
+  private final Reporter reporter;
+
+  HumanReadableARTProfileParser(ARTProfileBuilder profileBuilder, Reporter reporter) {
+    this.profileBuilder = profileBuilder;
+    this.reporter = reporter;
   }
 
-  public void parseLines(
-      Stream<String> startupDescriptors,
-      StartupProfileBuilder startupProfileBuilder,
-      Consumer<String> parseErrorHandler) {
-    startupDescriptors.forEach(
-        startupDescriptor -> {
-          if (!startupDescriptor.isEmpty()) {
-            parseLine(startupDescriptor, startupProfileBuilder, parseErrorHandler);
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  public void parse(TextInputStream textInputStream, Origin origin) {
+    try {
+      try (InputStreamReader inputStreamReader =
+              new InputStreamReader(
+                  textInputStream.getInputStream(), textInputStream.getCharset());
+          BufferedReader bufferedReader = new BufferedReader(inputStreamReader)) {
+        int lineNumber = 1;
+        while (bufferedReader.ready()) {
+          String rule = bufferedReader.readLine();
+          if (!parseRule(rule)) {
+            parseError(rule, lineNumber, origin);
           }
-        });
-  }
-
-  public void parseLine(
-      String startupDescriptor,
-      StartupProfileBuilder startupProfileBuilder,
-      Consumer<String> parseErrorHandler) {
-    BooleanBox syntheticFlag = new BooleanBox();
-    startupDescriptor = parseSyntheticFlag(startupDescriptor, syntheticFlag);
-    parseStartupClassOrMethod(
-        startupDescriptor, startupProfileBuilder, syntheticFlag, parseErrorHandler);
-  }
-
-  private static String parseSyntheticFlag(String startupDescriptor, BooleanBox syntheticFlag) {
-    if (!startupDescriptor.isEmpty() && startupDescriptor.charAt(0) == 'S') {
-      syntheticFlag.set();
-      return startupDescriptor.substring(1);
+          lineNumber++;
+        }
+      }
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
-    return startupDescriptor;
   }
 
-  private void parseStartupClassOrMethod(
-      String startupDescriptor,
-      StartupProfileBuilder startupProfileBuilder,
-      BooleanBox syntheticFlag,
-      Consumer<String> parseErrorHandler) {
-    int arrowStartIndex = getArrowStartIndex(startupDescriptor);
+  private void parseError(String rule, int lineNumber, Origin origin) {
+    if (reporter != null) {
+      reporter.warning(new HumanReadableARTProfileParserErrorDiagnostic(rule, lineNumber, origin));
+    }
+  }
+
+  public boolean parseRule(String rule) {
+    ARTProfileMethodRuleInfoImpl.Builder methodRuleInfoBuilder =
+        ARTProfileMethodRuleInfoImpl.builder();
+    rule = parseFlag(rule, 'H', methodRuleInfoBuilder::setHot);
+    rule = parseFlag(rule, 'S', methodRuleInfoBuilder::setStartup);
+    rule = parseFlag(rule, 'P', methodRuleInfoBuilder::setPostStartup);
+    return parseClassOrMethodDescriptor(rule, methodRuleInfoBuilder.build());
+  }
+
+  private static String parseFlag(String rule, char c, Action action) {
+    if (!rule.isEmpty() && rule.charAt(0) == c) {
+      action.execute();
+      return rule.substring(1);
+    }
+    return rule;
+  }
+
+  private boolean parseClassOrMethodDescriptor(
+      String descriptor, ARTProfileMethodRuleInfoImpl methodRuleInfo) {
+    int arrowStartIndex = descriptor.indexOf("->");
     if (arrowStartIndex >= 0) {
-      if (syntheticFlag.isFalse()) {
-        MethodReference startupMethod =
-            parseStartupMethodDescriptor(startupDescriptor, arrowStartIndex);
-        if (startupMethod != null) {
-          startupProfileBuilder.addStartupMethod(
-              startupMethodBuilder -> startupMethodBuilder.setMethodReference(startupMethod));
-        } else {
-          parseErrorHandler.accept(startupDescriptor);
-        }
-      } else {
-        parseErrorHandler.accept(startupDescriptor);
-      }
+      return parseMethodRule(descriptor, methodRuleInfo, arrowStartIndex);
+    } else if (methodRuleInfo.isEmpty()) {
+      return parseClassRule(descriptor);
     } else {
-      ClassReference startupClass = parseStartupClassDescriptor(startupDescriptor);
-      if (startupClass != null) {
-        if (syntheticFlag.isFalse()) {
-          startupProfileBuilder.addStartupClass(
-              startupClassBuilder -> startupClassBuilder.setClassReference(startupClass));
-        } else {
-          startupProfileBuilder.addSyntheticStartupMethod(
-              syntheticStartupMethodBuilder ->
-                  syntheticStartupMethodBuilder.setSyntheticContextReference(startupClass));
-        }
-      } else {
-        parseErrorHandler.accept(startupDescriptor);
-      }
+      return false;
     }
   }
 
-  private static int getArrowStartIndex(String startupDescriptor) {
-    return startupDescriptor.indexOf("->");
+  private boolean parseClassRule(String descriptor) {
+    ClassReference classReference = parseClassDescriptor(descriptor);
+    if (classReference == null) {
+      return false;
+    }
+    profileBuilder.addClassRule(classReference, ARTProfileClassRuleInfoImpl.empty());
+    return true;
   }
 
-  private ClassReference parseStartupClassDescriptor(String startupClassDescriptor) {
-    if (DescriptorUtils.isClassDescriptor(startupClassDescriptor)) {
-      return Reference.classFromDescriptor(startupClassDescriptor);
+  private boolean parseMethodRule(
+      String descriptor, ARTProfileMethodRuleInfoImpl methodRuleInfo, int arrowStartIndex) {
+    MethodReference methodReference = parseMethodDescriptor(descriptor, arrowStartIndex);
+    if (methodReference == null) {
+      return false;
+    }
+    profileBuilder.addMethodRule(methodReference, methodRuleInfo);
+    return true;
+  }
+
+  private ClassReference parseClassDescriptor(String classDescriptor) {
+    if (DescriptorUtils.isClassDescriptor(classDescriptor)) {
+      return Reference.classFromDescriptor(classDescriptor);
     } else {
       return null;
     }
   }
 
-  private MethodReference parseStartupMethodDescriptor(
+  private MethodReference parseMethodDescriptor(
       String startupMethodDescriptor, int arrowStartIndex) {
     String classDescriptor = startupMethodDescriptor.substring(0, arrowStartIndex);
-    ClassReference methodHolder = parseStartupClassDescriptor(classDescriptor);
+    ClassReference methodHolder = parseClassDescriptor(classDescriptor);
     if (methodHolder == null) {
       return null;
     }
@@ -117,10 +134,10 @@ public class HumanReadableARTProfileParser {
     String methodName = protoWithNameDescriptor.substring(0, methodNameEndIndex);
 
     String protoDescriptor = protoWithNameDescriptor.substring(methodNameEndIndex);
-    return parseStartupMethodProto(methodHolder, methodName, protoDescriptor);
+    return parseMethodProto(methodHolder, methodName, protoDescriptor);
   }
 
-  private MethodReference parseStartupMethodProto(
+  private MethodReference parseMethodProto(
       ClassReference methodHolder, String methodName, String protoDescriptor) {
     List<TypeReference> parameterTypes = new ArrayList<>();
     for (String parameterTypeDescriptor :
@@ -130,5 +147,25 @@ public class HumanReadableARTProfileParser {
     String returnTypeDescriptor = DescriptorUtils.getReturnTypeDescriptor(protoDescriptor);
     TypeReference returnType = Reference.returnTypeFromDescriptor(returnTypeDescriptor);
     return Reference.method(methodHolder, methodName, parameterTypes, returnType);
+  }
+
+  public static class Builder {
+
+    private ARTProfileBuilder profileBuilder;
+    private Reporter reporter;
+
+    public Builder setReporter(Reporter reporter) {
+      this.reporter = reporter;
+      return this;
+    }
+
+    public Builder setProfileBuilder(ARTProfileBuilder profileBuilder) {
+      this.profileBuilder = profileBuilder;
+      return this;
+    }
+
+    public HumanReadableARTProfileParser build() {
+      return new HumanReadableARTProfileParser(profileBuilder, reporter);
+    }
   }
 }

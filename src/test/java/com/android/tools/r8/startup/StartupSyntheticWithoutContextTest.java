@@ -14,6 +14,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.experimental.startup.profile.art.ARTProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
@@ -29,8 +30,8 @@ import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -61,7 +62,7 @@ public class StartupSyntheticWithoutContextTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    List<ExternalStartupItem> startupList = new ArrayList<>();
+    LinkedHashSet<ExternalStartupItem> startupList = new LinkedHashSet<>();
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
         .apply(
@@ -71,7 +72,9 @@ public class StartupSyntheticWithoutContextTest extends TestBase {
         .compile()
         .addRunClasspathFiles(StartupTestingUtils.getAndroidUtilLog(temp))
         .run(parameters.getRuntime(), Main.class)
-        .apply(StartupTestingUtils.removeStartupListFromStdout(startupList::add))
+        .apply(
+            StartupTestingUtils.removeStartupListFromStdout(
+                startupList::add, SyntheticToSyntheticContextGeneralization.createForR8()))
         .assertSuccessWithOutputLines(getExpectedOutput());
     assertEquals(getExpectedStartupList(), startupList);
 
@@ -101,32 +104,40 @@ public class StartupSyntheticWithoutContextTest extends TestBase {
     return ImmutableList.of("A", "B", "C");
   }
 
-  private List<ExternalStartupItem> getExpectedStartupList() throws NoSuchMethodException {
-    return ImmutableList.of(
-        ExternalStartupClass.builder()
-            .setClassReference(Reference.classFromClass(Main.class))
-            .build(),
-        ExternalStartupMethod.builder()
-            .setMethodReference(MethodReferenceUtils.mainMethod(Main.class))
-            .build(),
-        ExternalStartupClass.builder().setClassReference(Reference.classFromClass(A.class)).build(),
-        ExternalStartupMethod.builder()
-            .setMethodReference(Reference.methodFromMethod(A.class.getDeclaredMethod("a")))
-            .build(),
-        ExternalStartupClass.builder().setClassReference(Reference.classFromClass(B.class)).build(),
-        ExternalStartupMethod.builder()
-            .setMethodReference(Reference.methodFromMethod(B.class.getDeclaredMethod("b")))
-            .build(),
-        ExternalSyntheticStartupMethod.builder()
-            .setSyntheticContextReference(Reference.classFromClass(B.class))
-            .build(),
-        ExternalStartupMethod.builder()
-            .setMethodReference(Reference.methodFromMethod(B.class.getDeclaredMethod("lambda$b$0")))
-            .build(),
-        ExternalStartupClass.builder().setClassReference(Reference.classFromClass(C.class)).build(),
-        ExternalStartupMethod.builder()
-            .setMethodReference(Reference.methodFromMethod(C.class.getDeclaredMethod("c")))
-            .build());
+  private LinkedHashSet<ExternalStartupItem> getExpectedStartupList() throws NoSuchMethodException {
+    return new LinkedHashSet<>(
+        ImmutableList.of(
+            ExternalStartupClass.builder()
+                .setClassReference(Reference.classFromClass(Main.class))
+                .build(),
+            ExternalStartupMethod.builder()
+                .setMethodReference(MethodReferenceUtils.mainMethod(Main.class))
+                .build(),
+            ExternalStartupClass.builder()
+                .setClassReference(Reference.classFromClass(A.class))
+                .build(),
+            ExternalStartupMethod.builder()
+                .setMethodReference(Reference.methodFromMethod(A.class.getDeclaredMethod("a")))
+                .build(),
+            ExternalStartupClass.builder()
+                .setClassReference(Reference.classFromClass(B.class))
+                .build(),
+            ExternalStartupMethod.builder()
+                .setMethodReference(Reference.methodFromMethod(B.class.getDeclaredMethod("b")))
+                .build(),
+            ExternalSyntheticStartupMethod.builder()
+                .setSyntheticContextReference(Reference.classFromClass(B.class))
+                .build(),
+            ExternalStartupMethod.builder()
+                .setMethodReference(
+                    Reference.methodFromMethod(B.class.getDeclaredMethod("lambda$b$0")))
+                .build(),
+            ExternalStartupClass.builder()
+                .setClassReference(Reference.classFromClass(C.class))
+                .build(),
+            ExternalStartupMethod.builder()
+                .setMethodReference(Reference.methodFromMethod(C.class.getDeclaredMethod("c")))
+                .build()));
   }
 
   private List<ClassReference> getExpectedClassDataLayout(int virtualFile) {

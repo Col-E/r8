@@ -49,6 +49,11 @@ public class ExternalSyntheticStartupMethod extends ExternalStartupItem {
     return syntheticContextReference.hashCode();
   }
 
+  @Override
+  public String toString() {
+    return "S(" + syntheticContextReference.getTypeName() + ")";
+  }
+
   public static class Builder implements SyntheticStartupMethodBuilder {
 
     private ClassReference syntheticContextReference;

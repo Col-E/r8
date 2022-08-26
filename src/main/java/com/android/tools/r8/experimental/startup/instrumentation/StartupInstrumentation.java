@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
@@ -37,13 +36,11 @@ import com.android.tools.r8.ir.conversion.IRToDexFinalizer;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.startup.generated.InstrumentationServerFactory;
 import com.android.tools.r8.startup.generated.InstrumentationServerImplFactory;
-import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -174,20 +171,14 @@ public class StartupInstrumentation {
     instructionIterator.positionBeforeNextInstructionThatMatches(not(Instruction::isArgument));
 
     // Insert invoke to record that the enclosing class is a startup class.
-    SyntheticItems syntheticItems = appView.getSyntheticItems();
-    boolean generalizeSyntheticToSyntheticOfSyntheticContexts =
-        startupInstrumentationOptions.isGeneralizationOfSyntheticsToSyntheticContextEnabled()
-            && syntheticItems.isSyntheticClass(method.getHolder());
-    if (method.getDefinition().isClassInitializer()
-        && !generalizeSyntheticToSyntheticOfSyntheticContexts) {
-      DexMethod methodToInvoke = references.addNonSyntheticMethod;
+    if (method.getDefinition().isClassInitializer()) {
       DexType classToPrint = method.getHolderType();
       Value descriptorValue =
           instructionIterator.insertConstStringInstruction(
               appView, code, dexItemFactory.createString(classToPrint.toSmaliString()));
       instructionIterator.add(
           InvokeStatic.builder()
-              .setMethod(methodToInvoke)
+              .setMethod(references.addMethod)
               .setSingleArgument(descriptorValue)
               .setPosition(Position.syntheticNone())
               .build());
@@ -195,26 +186,13 @@ public class StartupInstrumentation {
 
     // Insert invoke to record the execution of the current method.
     if (!skipMethodLogging) {
-      DexMethod methodToInvoke;
-      DexReference referenceToPrint;
-      if (generalizeSyntheticToSyntheticOfSyntheticContexts) {
-        Collection<DexType> synthesizingContexts =
-            syntheticItems.getSynthesizingContextTypes(method.getHolderType());
-        assert synthesizingContexts.size() == 1;
-        DexType synthesizingContext = synthesizingContexts.iterator().next();
-        methodToInvoke = references.addSyntheticMethod;
-        referenceToPrint = synthesizingContext;
-      } else {
-        methodToInvoke = references.addNonSyntheticMethod;
-        referenceToPrint = method.getReference();
-      }
-
+      DexReference referenceToPrint = method.getReference();
       Value descriptorValue =
           instructionIterator.insertConstStringInstruction(
               appView, code, dexItemFactory.createString(referenceToPrint.toSmaliString()));
       instructionIterator.add(
           InvokeStatic.builder()
-              .setMethod(methodToInvoke)
+              .setMethod(references.addMethod)
               .setSingleArgument(descriptorValue)
               .setPosition(Position.syntheticNone())
               .build());

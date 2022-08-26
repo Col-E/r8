@@ -16,6 +16,7 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.experimental.startup.profile.art.ARTProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.references.ClassReference;
@@ -35,9 +36,10 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -90,7 +92,7 @@ public class StartupSyntheticPlacementTest extends TestBase {
     Path optimizedApp = r8CompileResult.writeToZip();
 
     // Then instrument the app to generate a startup list for the minified app.
-    List<ExternalStartupItem> startupList = new ArrayList<>();
+    Set<ExternalStartupItem> startupList = new LinkedHashSet<>();
     testForD8(parameters.getBackend())
         .addProgramFiles(optimizedApp)
         .apply(
@@ -100,7 +102,9 @@ public class StartupSyntheticPlacementTest extends TestBase {
         .compile()
         .addRunClasspathFiles(StartupTestingUtils.getAndroidUtilLog(temp))
         .run(parameters.getRuntime(), Main.class, Boolean.toString(useLambda))
-        .apply(StartupTestingUtils.removeStartupListFromStdout(startupList::add))
+        .apply(
+            StartupTestingUtils.removeStartupListFromStdout(
+                startupList::add, SyntheticToSyntheticContextGeneralization.createForD8()))
         .assertSuccessWithOutputLines(getExpectedOutput())
         .apply(
             runResult ->
@@ -125,7 +129,7 @@ public class StartupSyntheticPlacementTest extends TestBase {
   @Test
   public void testLayoutUsingR8() throws Exception {
     // First generate a startup list for the original app.
-    List<ExternalStartupItem> startupList = new ArrayList<>();
+    Set<ExternalStartupItem> startupList = new LinkedHashSet<>();
     D8TestCompileResult instrumentationCompileResult =
         testForD8(parameters.getBackend())
             .addInnerClasses(getClass())
@@ -139,7 +143,9 @@ public class StartupSyntheticPlacementTest extends TestBase {
     instrumentationCompileResult
         .addRunClasspathFiles(StartupTestingUtils.getAndroidUtilLog(temp))
         .run(parameters.getRuntime(), Main.class, Boolean.toString(useLambda))
-        .apply(StartupTestingUtils.removeStartupListFromStdout(startupList::add))
+        .apply(
+            StartupTestingUtils.removeStartupListFromStdout(
+                startupList::add, SyntheticToSyntheticContextGeneralization.createForR8()))
         .assertSuccessWithOutputLines(getExpectedOutput())
         .apply(
             runResult ->
@@ -167,7 +173,7 @@ public class StartupSyntheticPlacementTest extends TestBase {
   private void configureStartupOptions(
       TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder,
       CodeInspector inspector,
-      List<ExternalStartupItem> startupList) {
+      Collection<ExternalStartupItem> startupList) {
     testBuilder
         .addOptionsModification(
             options -> {
@@ -188,7 +194,7 @@ public class StartupSyntheticPlacementTest extends TestBase {
   }
 
   @SuppressWarnings("unchecked")
-  private List<ExternalStartupItem> getExpectedStartupList(
+  private Set<ExternalStartupItem> getExpectedStartupList(
       CodeInspector inspector, boolean isStartupListForOriginalApp) throws NoSuchMethodException {
     ImmutableList.Builder<ExternalStartupItem> builder = ImmutableList.builder();
     builder.add(
@@ -267,7 +273,7 @@ public class StartupSyntheticPlacementTest extends TestBase {
         ExternalStartupMethod.builder()
             .setMethodReference(Reference.methodFromMethod(C.class.getDeclaredMethod("c")))
             .build());
-    return builder.build();
+    return new LinkedHashSet<>(builder.build());
   }
 
   private List<ClassReference> getExpectedClassDataLayout(

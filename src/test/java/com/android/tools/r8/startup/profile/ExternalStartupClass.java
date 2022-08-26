@@ -49,6 +49,11 @@ public class ExternalStartupClass extends ExternalStartupItem {
     return classReference.hashCode();
   }
 
+  @Override
+  public String toString() {
+    return classReference.getTypeName();
+  }
+
   public static class Builder implements StartupClassBuilder {
 
     private ClassReference classReference;

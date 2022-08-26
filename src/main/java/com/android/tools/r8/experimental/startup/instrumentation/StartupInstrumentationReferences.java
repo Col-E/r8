@@ -12,23 +12,17 @@ class StartupInstrumentationReferences {
 
   final DexType instrumentationServerType;
   final DexType instrumentationServerImplType;
-  final DexMethod addNonSyntheticMethod;
-  final DexMethod addSyntheticMethod;
+  final DexMethod addMethod;
 
   StartupInstrumentationReferences(DexItemFactory dexItemFactory) {
     instrumentationServerType =
         dexItemFactory.createType("Lcom/android/tools/r8/startup/InstrumentationServer;");
     instrumentationServerImplType =
         dexItemFactory.createType("Lcom/android/tools/r8/startup/InstrumentationServerImpl;");
-    addNonSyntheticMethod =
+    addMethod =
         dexItemFactory.createMethod(
             instrumentationServerImplType,
             dexItemFactory.createProto(dexItemFactory.voidType, dexItemFactory.stringType),
-            "addNonSyntheticMethod");
-    addSyntheticMethod =
-        dexItemFactory.createMethod(
-            instrumentationServerImplType,
-            dexItemFactory.createProto(dexItemFactory.voidType, dexItemFactory.stringType),
-            "addSyntheticMethod");
+            "addMethod");
   }
 }
