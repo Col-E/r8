@@ -50,6 +50,9 @@ public class HumanReadableARTProfileParser {
           lineNumber++;
         }
       }
+      if (reporter != null) {
+        reporter.failIfPendingErrors();
+      }
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
@@ -57,7 +60,7 @@ public class HumanReadableARTProfileParser {
 
   private void parseError(String rule, int lineNumber, Origin origin) {
     if (reporter != null) {
-      reporter.warning(new HumanReadableARTProfileParserErrorDiagnostic(rule, lineNumber, origin));
+      reporter.error(new HumanReadableARTProfileParserErrorDiagnostic(rule, lineNumber, origin));
     }
   }
 
