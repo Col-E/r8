@@ -11,6 +11,7 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.R8Command.Builder;
+import com.android.tools.r8.experimental.startup.StartupProfileProviderUtils;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -24,6 +25,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * Wrapper to make it easy to call R8 in compat mode when compiling a dump file.
@@ -58,7 +60,8 @@ public class CompileDumpCompatR8 {
           "--pg-conf",
           "--pg-map-output",
           "--desugared-lib",
-          "--threads");
+          "--threads",
+          "--startup-profile");
 
   private static final List<String> VALID_OPTIONS_WITH_TWO_OPERANDS =
       Arrays.asList("--feature-jar");
@@ -84,6 +87,7 @@ public class CompileDumpCompatR8 {
     List<Path> classpath = new ArrayList<>();
     List<Path> config = new ArrayList<>();
     List<Path> mainDexRulesFiles = new ArrayList<>();
+    List<Path> startupProfileFiles = new ArrayList<>();
     int minApi = 1;
     int threads = -1;
     boolean enableMissingLibraryApiModeling = false;
@@ -169,6 +173,11 @@ public class CompileDumpCompatR8 {
               mainDexRulesFiles.add(Paths.get(operand));
               break;
             }
+          case "--startup-profile":
+            {
+              startupProfileFiles.add(Paths.get(operand));
+              break;
+            }
           default:
             throw new IllegalArgumentException("Unimplemented option: " + option);
         }
@@ -201,6 +210,10 @@ public class CompileDumpCompatR8 {
             .addClasspathFiles(classpath)
             .addProguardConfigurationFiles(config)
             .addMainDexRulesFiles(mainDexRulesFiles)
+            .addStartupProfileProviders(
+                startupProfileFiles.stream()
+                    .map(StartupProfileProviderUtils::createFromDumpFile)
+                    .collect(Collectors.toList()))
             .setOutput(outputPath, outputMode)
             .setMode(compilationMode);
     getReflectiveBuilderMethod(

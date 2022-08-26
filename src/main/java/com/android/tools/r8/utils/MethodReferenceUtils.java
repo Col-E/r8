@@ -16,9 +16,11 @@ import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 
 public class MethodReferenceUtils {
 
@@ -104,6 +106,46 @@ public class MethodReferenceUtils {
     } catch (NoSuchMethodException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public static MethodReference parseSmaliString(String classAndMethodDescriptor) {
+    int arrowStartIndex = classAndMethodDescriptor.indexOf("->");
+    if (arrowStartIndex >= 0) {
+      return parseSmaliString(classAndMethodDescriptor, arrowStartIndex);
+    }
+    return null;
+  }
+
+  public static MethodReference parseSmaliString(
+      String classAndMethodDescriptor, int arrowStartIndex) {
+    String classDescriptor = classAndMethodDescriptor.substring(0, arrowStartIndex);
+    ClassReference methodHolder = ClassReferenceUtils.parseClassDescriptor(classDescriptor);
+    if (methodHolder == null) {
+      return null;
+    }
+
+    int methodNameStartIndex = arrowStartIndex + 2;
+    String protoWithNameDescriptor = classAndMethodDescriptor.substring(methodNameStartIndex);
+    int methodNameEndIndex = protoWithNameDescriptor.indexOf('(');
+    if (methodNameEndIndex <= 0) {
+      return null;
+    }
+    String methodName = protoWithNameDescriptor.substring(0, methodNameEndIndex);
+
+    String protoDescriptor = protoWithNameDescriptor.substring(methodNameEndIndex);
+    return parseMethodProto(methodHolder, methodName, protoDescriptor);
+  }
+
+  private static MethodReference parseMethodProto(
+      ClassReference methodHolder, String methodName, String protoDescriptor) {
+    List<TypeReference> parameterTypes = new ArrayList<>();
+    for (String parameterTypeDescriptor :
+        DescriptorUtils.getArgumentTypeDescriptors(protoDescriptor)) {
+      parameterTypes.add(Reference.typeFromDescriptor(parameterTypeDescriptor));
+    }
+    String returnTypeDescriptor = DescriptorUtils.getReturnTypeDescriptor(protoDescriptor);
+    TypeReference returnType = Reference.returnTypeFromDescriptor(returnTypeDescriptor);
+    return Reference.method(methodHolder, methodName, parameterTypes, returnType);
   }
 
   public static DexMethod toDexMethod(

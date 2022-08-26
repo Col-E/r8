@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.Reference;
 import java.util.Comparator;
 
 public class ClassReferenceUtils {
@@ -34,6 +35,14 @@ public class ClassReferenceUtils {
 
   public static Comparator<ClassReference> getClassReferenceComparator() {
     return COMPARATOR;
+  }
+
+  public static ClassReference parseClassDescriptor(String classDescriptor) {
+    if (DescriptorUtils.isClassDescriptor(classDescriptor)) {
+      return Reference.classFromDescriptor(classDescriptor);
+    } else {
+      return null;
+    }
   }
 
   public static DexType toDexType(ClassReference classReference, DexItemFactory dexItemFactory) {

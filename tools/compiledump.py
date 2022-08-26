@@ -189,11 +189,20 @@ class Dump(object):
       print("Unimplemented: proguard_input configuration.")
 
   def main_dex_list_resource(self):
-    if self.if_exists('main-dex-list.txt'):
-      print("Unimplemented: main-dex-list.")
+    return self.if_exists('main-dex-list.txt')
 
   def main_dex_rules_resource(self):
     return self.if_exists('main-dex-rules.txt')
+
+  def startup_profile_resources(self):
+    startup_profile_resources = []
+    while True:
+      current_startup_profile_index = len(startup_profile_resources) + 1
+      startup_profile_resource = self.if_exists(
+          'startup-profile-%s.txt' % current_startup_profile_index)
+      if startup_profile_resource is None:
+        return startup_profile_resources
+      startup_profile_resources.append(startup_profile_resource)
 
   def build_properties_file(self):
     return self.if_exists('build.properties')
@@ -470,8 +479,12 @@ def run1(out, args, otherargs, jdkhome=None):
         # -print{mapping,usage}
         clean_config(dump.config_file(), args)
       cmd.extend(['--pg-conf', dump.config_file()])
+    if dump.main_dex_list_resource():
+      cmd.extend(['--main-dex-list', dump.main_dex_list_resource()])
     if dump.main_dex_rules_resource():
       cmd.extend(['--main-dex-rules', dump.main_dex_rules_resource()])
+    for startup_profile_resource in dump.startup_profile_resources():
+      cmd.extend(['--startup-profile', startup_profile_resource])
     if compiler == 'l8':
       if dump.config_file():
         cmd.extend(['--pg-map-output', '%s.map' % out])

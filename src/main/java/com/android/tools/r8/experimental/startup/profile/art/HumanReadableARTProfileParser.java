@@ -8,18 +8,15 @@ import com.android.tools.r8.TextInputStream;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
-import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.startup.diagnostic.HumanReadableARTProfileParserErrorDiagnostic;
 import com.android.tools.r8.utils.Action;
-import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.ClassReferenceUtils;
+import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.Reporter;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
-import java.util.ArrayList;
-import java.util.List;
 
 public class HumanReadableARTProfileParser {
 
@@ -94,7 +91,7 @@ public class HumanReadableARTProfileParser {
   }
 
   private boolean parseClassRule(String descriptor) {
-    ClassReference classReference = parseClassDescriptor(descriptor);
+    ClassReference classReference = ClassReferenceUtils.parseClassDescriptor(descriptor);
     if (classReference == null) {
       return false;
     }
@@ -104,52 +101,13 @@ public class HumanReadableARTProfileParser {
 
   private boolean parseMethodRule(
       String descriptor, ARTProfileMethodRuleInfoImpl methodRuleInfo, int arrowStartIndex) {
-    MethodReference methodReference = parseMethodDescriptor(descriptor, arrowStartIndex);
+    MethodReference methodReference =
+        MethodReferenceUtils.parseSmaliString(descriptor, arrowStartIndex);
     if (methodReference == null) {
       return false;
     }
     profileBuilder.addMethodRule(methodReference, methodRuleInfo);
     return true;
-  }
-
-  private ClassReference parseClassDescriptor(String classDescriptor) {
-    if (DescriptorUtils.isClassDescriptor(classDescriptor)) {
-      return Reference.classFromDescriptor(classDescriptor);
-    } else {
-      return null;
-    }
-  }
-
-  private MethodReference parseMethodDescriptor(
-      String startupMethodDescriptor, int arrowStartIndex) {
-    String classDescriptor = startupMethodDescriptor.substring(0, arrowStartIndex);
-    ClassReference methodHolder = parseClassDescriptor(classDescriptor);
-    if (methodHolder == null) {
-      return null;
-    }
-
-    int methodNameStartIndex = arrowStartIndex + 2;
-    String protoWithNameDescriptor = startupMethodDescriptor.substring(methodNameStartIndex);
-    int methodNameEndIndex = protoWithNameDescriptor.indexOf('(');
-    if (methodNameEndIndex <= 0) {
-      return null;
-    }
-    String methodName = protoWithNameDescriptor.substring(0, methodNameEndIndex);
-
-    String protoDescriptor = protoWithNameDescriptor.substring(methodNameEndIndex);
-    return parseMethodProto(methodHolder, methodName, protoDescriptor);
-  }
-
-  private MethodReference parseMethodProto(
-      ClassReference methodHolder, String methodName, String protoDescriptor) {
-    List<TypeReference> parameterTypes = new ArrayList<>();
-    for (String parameterTypeDescriptor :
-        DescriptorUtils.getArgumentTypeDescriptors(protoDescriptor)) {
-      parameterTypes.add(Reference.typeFromDescriptor(parameterTypeDescriptor));
-    }
-    String returnTypeDescriptor = DescriptorUtils.getReturnTypeDescriptor(protoDescriptor);
-    TypeReference returnType = Reference.returnTypeFromDescriptor(returnTypeDescriptor);
-    return Reference.method(methodHolder, methodName, parameterTypes, returnType);
   }
 
   public static class Builder {
