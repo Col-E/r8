@@ -2,13 +2,13 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.experimental.startup.profile.art;
+package com.android.tools.r8.profile.art;
 
 import com.android.tools.r8.TextInputStream;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.profile.art.diagnostic.HumanReadableArtProfileParserErrorDiagnostic;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
-import com.android.tools.r8.startup.diagnostic.HumanReadableARTProfileParserErrorDiagnostic;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.ClassReferenceUtils;
 import com.android.tools.r8.utils.MethodReferenceUtils;
@@ -18,12 +18,12 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 
-public class HumanReadableARTProfileParser {
+public class HumanReadableArtProfileParser {
 
-  private final ARTProfileBuilder profileBuilder;
+  private final ArtProfileBuilder profileBuilder;
   private final Reporter reporter;
 
-  HumanReadableARTProfileParser(ARTProfileBuilder profileBuilder, Reporter reporter) {
+  HumanReadableArtProfileParser(ArtProfileBuilder profileBuilder, Reporter reporter) {
     this.profileBuilder = profileBuilder;
     this.reporter = reporter;
   }
@@ -57,13 +57,13 @@ public class HumanReadableARTProfileParser {
 
   private void parseError(String rule, int lineNumber, Origin origin) {
     if (reporter != null) {
-      reporter.error(new HumanReadableARTProfileParserErrorDiagnostic(rule, lineNumber, origin));
+      reporter.error(new HumanReadableArtProfileParserErrorDiagnostic(rule, lineNumber, origin));
     }
   }
 
   public boolean parseRule(String rule) {
-    ARTProfileMethodRuleInfoImpl.Builder methodRuleInfoBuilder =
-        ARTProfileMethodRuleInfoImpl.builder();
+    ArtProfileMethodRuleInfoImpl.Builder methodRuleInfoBuilder =
+        ArtProfileMethodRuleInfoImpl.builder();
     rule = parseFlag(rule, 'H', methodRuleInfoBuilder::setHot);
     rule = parseFlag(rule, 'S', methodRuleInfoBuilder::setStartup);
     rule = parseFlag(rule, 'P', methodRuleInfoBuilder::setPostStartup);
@@ -79,7 +79,7 @@ public class HumanReadableARTProfileParser {
   }
 
   private boolean parseClassOrMethodDescriptor(
-      String descriptor, ARTProfileMethodRuleInfoImpl methodRuleInfo) {
+      String descriptor, ArtProfileMethodRuleInfoImpl methodRuleInfo) {
     int arrowStartIndex = descriptor.indexOf("->");
     if (arrowStartIndex >= 0) {
       return parseMethodRule(descriptor, methodRuleInfo, arrowStartIndex);
@@ -95,12 +95,12 @@ public class HumanReadableARTProfileParser {
     if (classReference == null) {
       return false;
     }
-    profileBuilder.addClassRule(classReference, ARTProfileClassRuleInfoImpl.empty());
+    profileBuilder.addClassRule(classReference, ArtProfileClassRuleInfoImpl.empty());
     return true;
   }
 
   private boolean parseMethodRule(
-      String descriptor, ARTProfileMethodRuleInfoImpl methodRuleInfo, int arrowStartIndex) {
+      String descriptor, ArtProfileMethodRuleInfoImpl methodRuleInfo, int arrowStartIndex) {
     MethodReference methodReference =
         MethodReferenceUtils.parseSmaliString(descriptor, arrowStartIndex);
     if (methodReference == null) {
@@ -112,7 +112,7 @@ public class HumanReadableARTProfileParser {
 
   public static class Builder {
 
-    private ARTProfileBuilder profileBuilder;
+    private ArtProfileBuilder profileBuilder;
     private Reporter reporter;
 
     public Builder setReporter(Reporter reporter) {
@@ -120,13 +120,13 @@ public class HumanReadableARTProfileParser {
       return this;
     }
 
-    public Builder setProfileBuilder(ARTProfileBuilder profileBuilder) {
+    public Builder setProfileBuilder(ArtProfileBuilder profileBuilder) {
       this.profileBuilder = profileBuilder;
       return this;
     }
 
-    public HumanReadableARTProfileParser build() {
-      return new HumanReadableARTProfileParser(profileBuilder, reporter);
+    public HumanReadableArtProfileParser build() {
+      return new HumanReadableArtProfileParser(profileBuilder, reporter);
     }
   }
 }

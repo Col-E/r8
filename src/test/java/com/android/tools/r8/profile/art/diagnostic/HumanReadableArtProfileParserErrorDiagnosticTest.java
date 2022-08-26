@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.startup.diagnostic;
+package com.android.tools.r8.profile.art.diagnostic;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
@@ -28,7 +28,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class HumanReadableARTProfileParserErrorDiagnosticTest extends TestBase {
+public class HumanReadableArtProfileParserErrorDiagnosticTest extends TestBase {
 
   @Parameter(0)
   public TestParameters parameters;
@@ -47,7 +47,7 @@ public class HumanReadableARTProfileParserErrorDiagnosticTest extends TestBase {
               @Override
               public void getStartupProfile(StartupProfileBuilder startupProfileBuilder) {
 
-                startupProfileBuilder.addHumanReadableARTProfile(
+                startupProfileBuilder.addHumanReadableArtProfile(
                     new UTF8TextInputStream(
                         new ByteArrayInputStream("INVALID1\nINVALID2".getBytes())),
                     ConsumerUtils.emptyConsumer());
@@ -66,11 +66,11 @@ public class HumanReadableARTProfileParserErrorDiagnosticTest extends TestBase {
   private void inspectDiagnostics(TestDiagnosticMessages diagnostics) {
     diagnostics.assertErrorsMatch(
         allOf(
-            diagnosticType(HumanReadableARTProfileParserErrorDiagnostic.class),
+            diagnosticType(HumanReadableArtProfileParserErrorDiagnostic.class),
             diagnosticMessage(
                 equalTo("Unable to parse rule at line 1 from ART profile: INVALID1"))),
         allOf(
-            diagnosticType(HumanReadableARTProfileParserErrorDiagnostic.class),
+            diagnosticType(HumanReadableArtProfileParserErrorDiagnostic.class),
             diagnosticMessage(
                 equalTo("Unable to parse rule at line 2 from ART profile: INVALID2"))));
   }

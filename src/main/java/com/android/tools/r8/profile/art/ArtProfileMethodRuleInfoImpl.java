@@ -2,11 +2,9 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.experimental.startup.profile.art;
+package com.android.tools.r8.profile.art;
 
-import com.android.tools.r8.startup.ARTProfileMethodRuleInfo;
-
-public class ARTProfileMethodRuleInfoImpl implements ARTProfileMethodRuleInfo {
+public class ArtProfileMethodRuleInfoImpl implements ArtProfileMethodRuleInfo {
 
   private static final int FLAG_HOT = 1;
   private static final int FLAG_STARTUP = 2;
@@ -14,7 +12,7 @@ public class ARTProfileMethodRuleInfoImpl implements ARTProfileMethodRuleInfo {
 
   private final int flags;
 
-  ARTProfileMethodRuleInfoImpl(int flags) {
+  ArtProfileMethodRuleInfoImpl(int flags) {
     this.flags = flags;
   }
 
@@ -60,8 +58,8 @@ public class ARTProfileMethodRuleInfoImpl implements ARTProfileMethodRuleInfo {
       return this;
     }
 
-    public ARTProfileMethodRuleInfoImpl build() {
-      return new ARTProfileMethodRuleInfoImpl(flags);
+    public ArtProfileMethodRuleInfoImpl build() {
+      return new ArtProfileMethodRuleInfoImpl(flags);
     }
   }
 }

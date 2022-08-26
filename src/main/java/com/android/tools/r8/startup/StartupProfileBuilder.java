@@ -6,6 +6,7 @@ package com.android.tools.r8.startup;
 
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.TextInputStream;
+import com.android.tools.r8.profile.art.HumanReadableArtProfileParserBuilder;
 import java.util.function.Consumer;
 
 /** Interface for providing a startup profile to the compiler. */
@@ -49,7 +50,7 @@ public interface StartupProfileBuilder {
    * @see <a href="https://developer.android.com/topic/performance/baselineprofiles">ART Baseline
    *     Profiles</a>
    */
-  StartupProfileBuilder addHumanReadableARTProfile(
+  StartupProfileBuilder addHumanReadableArtProfile(
       TextInputStream textInputStream,
-      Consumer<HumanReadableARTProfileParserBuilder> parserBuilderConsumer);
+      Consumer<HumanReadableArtProfileParserBuilder> parserBuilderConsumer);
 }

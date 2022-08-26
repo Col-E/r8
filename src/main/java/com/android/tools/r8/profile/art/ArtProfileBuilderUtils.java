@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.experimental.startup.profile.art;
+package com.android.tools.r8.profile.art;
 
 import static com.android.tools.r8.synthesis.SyntheticNaming.COMPANION_CLASS_SUFFIX;
 import static com.android.tools.r8.synthesis.SyntheticNaming.EXTERNAL_SYNTHETIC_CLASS_SEPARATOR;
@@ -10,12 +10,9 @@ import static com.android.tools.r8.synthesis.SyntheticNaming.EXTERNAL_SYNTHETIC_
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.startup.ARTProfileClassRuleInfo;
-import com.android.tools.r8.startup.ARTProfileMethodRuleInfo;
-import com.android.tools.r8.startup.ARTProfileRulePredicate;
 import com.android.tools.r8.startup.StartupProfileBuilder;
 
-public class ARTProfileBuilderUtils {
+public class ArtProfileBuilderUtils {
 
   public interface SyntheticToSyntheticContextGeneralization {
 
@@ -65,18 +62,18 @@ public class ARTProfileBuilderUtils {
   }
 
   /**
-   * Helper for creating an {@link ARTProfileBuilder} that performs callbacks on the given {@param
+   * Helper for creating an {@link ArtProfileBuilder} that performs callbacks on the given {@param
    * startupProfileBuilder}.
    */
-  public static ARTProfileBuilder createBuilderForARTProfileToStartupProfileConversion(
+  public static ArtProfileBuilder createBuilderForArtProfileToStartupProfileConversion(
       StartupProfileBuilder startupProfileBuilder,
-      ARTProfileRulePredicate rulePredicate,
+      ArtProfileRulePredicate rulePredicate,
       SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
-    return new ARTProfileBuilder() {
+    return new ArtProfileBuilder() {
 
       @Override
       public void addClassRule(
-          ClassReference classReference, ARTProfileClassRuleInfo classRuleInfo) {
+          ClassReference classReference, ArtProfileClassRuleInfo classRuleInfo) {
         if (rulePredicate.testClassRule(classReference, classRuleInfo)) {
           ClassReference syntheticContextReference =
               syntheticToSyntheticContextGeneralization.getSyntheticContextReference(
@@ -95,7 +92,7 @@ public class ARTProfileBuilderUtils {
 
       @Override
       public void addMethodRule(
-          MethodReference methodReference, ARTProfileMethodRuleInfo methodRuleInfo) {
+          MethodReference methodReference, ArtProfileMethodRuleInfo methodRuleInfo) {
         if (rulePredicate.testMethodRule(methodReference, methodRuleInfo)) {
           ClassReference syntheticContextReference =
               syntheticToSyntheticContextGeneralization.getSyntheticContextReference(

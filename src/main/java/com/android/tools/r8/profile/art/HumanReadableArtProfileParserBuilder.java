@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.startup;
+package com.android.tools.r8.profile.art;
 
 import com.android.tools.r8.Keep;
 
@@ -13,12 +13,12 @@ import com.android.tools.r8.Keep;
  *     Profiles</a>
  */
 @Keep
-public interface HumanReadableARTProfileParserBuilder {
+public interface HumanReadableArtProfileParserBuilder {
 
   /**
    * Only include rules from the ART profile that satisfies the given {@param rulePredicate}.
    *
    * <p>By default, all rules from the ART profile are included.
    */
-  HumanReadableARTProfileParserBuilder setRulePredicate(ARTProfileRulePredicate rulePredicate);
+  HumanReadableArtProfileParserBuilder setRulePredicate(ArtProfileRulePredicate rulePredicate);
 }

@@ -18,12 +18,12 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.compilerapi.CompilerApiTest;
 import com.android.tools.r8.compilerapi.CompilerApiTestRunner;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.profile.art.ArtProfileClassRuleInfo;
+import com.android.tools.r8.profile.art.ArtProfileMethodRuleInfo;
+import com.android.tools.r8.profile.art.ArtProfileRulePredicate;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.startup.ARTProfileClassRuleInfo;
-import com.android.tools.r8.startup.ARTProfileMethodRuleInfo;
-import com.android.tools.r8.startup.ARTProfileRulePredicate;
 import com.android.tools.r8.startup.StartupProfileBuilder;
 import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.utils.ThrowingConsumer;
@@ -117,21 +117,21 @@ public class StartupProfileApiTest extends CompilerApiTestRunner {
 
           // Create parser and parse ART profile.
           List<ClassReference> seenClasses = new ArrayList<>();
-          startupProfileBuilder.addHumanReadableARTProfile(
+          startupProfileBuilder.addHumanReadableArtProfile(
               new UTF8TextInputStream(inputStream),
               parserBuilder ->
                   parserBuilder.setRulePredicate(
-                      new ARTProfileRulePredicate() {
+                      new ArtProfileRulePredicate() {
                         @Override
                         public boolean testClassRule(
-                            ClassReference reference, ARTProfileClassRuleInfo classRuleInfo) {
+                            ClassReference reference, ArtProfileClassRuleInfo classRuleInfo) {
                           seenClasses.add(reference);
                           return true;
                         }
 
                         @Override
                         public boolean testMethodRule(
-                            MethodReference reference, ARTProfileMethodRuleInfo methodRuleInfo) {
+                            MethodReference reference, ArtProfileMethodRuleInfo methodRuleInfo) {
                           return true;
                         }
                       }));

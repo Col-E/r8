@@ -2,16 +2,16 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.startup;
+package com.android.tools.r8.profile.art;
 
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 
 @Keep
-public interface ARTProfileRulePredicate {
+public interface ArtProfileRulePredicate {
 
-  boolean testClassRule(ClassReference classReference, ARTProfileClassRuleInfo classRuleInfo);
+  boolean testClassRule(ClassReference classReference, ArtProfileClassRuleInfo classRuleInfo);
 
-  boolean testMethodRule(MethodReference methodReference, ARTProfileMethodRuleInfo methodRuleInfo);
+  boolean testMethodRule(MethodReference methodReference, ArtProfileMethodRuleInfo methodRuleInfo);
 }

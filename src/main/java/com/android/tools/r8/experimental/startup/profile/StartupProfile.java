@@ -5,14 +5,14 @@
 package com.android.tools.r8.experimental.startup.profile;
 
 import com.android.tools.r8.TextInputStream;
-import com.android.tools.r8.experimental.startup.profile.art.ARTProfileBuilderUtils;
-import com.android.tools.r8.experimental.startup.profile.art.ARTProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
-import com.android.tools.r8.experimental.startup.profile.art.AlwaysTrueARTProfileRulePredicate;
-import com.android.tools.r8.experimental.startup.profile.art.HumanReadableARTProfileParser;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.startup.ARTProfileRulePredicate;
-import com.android.tools.r8.startup.HumanReadableARTProfileParserBuilder;
+import com.android.tools.r8.profile.art.AlwaysTrueArtProfileRulePredicate;
+import com.android.tools.r8.profile.art.ArtProfileBuilderUtils;
+import com.android.tools.r8.profile.art.ArtProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
+import com.android.tools.r8.profile.art.ArtProfileRulePredicate;
+import com.android.tools.r8.profile.art.HumanReadableArtProfileParser;
+import com.android.tools.r8.profile.art.HumanReadableArtProfileParserBuilder;
 import com.android.tools.r8.startup.StartupClassBuilder;
 import com.android.tools.r8.startup.StartupMethodBuilder;
 import com.android.tools.r8.startup.StartupProfileBuilder;
@@ -163,26 +163,26 @@ public class StartupProfile {
     }
 
     @Override
-    public StartupProfileBuilder addHumanReadableARTProfile(
+    public StartupProfileBuilder addHumanReadableArtProfile(
         TextInputStream textInputStream,
-        Consumer<HumanReadableARTProfileParserBuilder> parserBuilderConsumer) {
-      Box<ARTProfileRulePredicate> rulePredicateBox =
-          new Box<>(new AlwaysTrueARTProfileRulePredicate());
+        Consumer<HumanReadableArtProfileParserBuilder> parserBuilderConsumer) {
+      Box<ArtProfileRulePredicate> rulePredicateBox =
+          new Box<>(new AlwaysTrueArtProfileRulePredicate());
       parserBuilderConsumer.accept(
-          new HumanReadableARTProfileParserBuilder() {
+          new HumanReadableArtProfileParserBuilder() {
             @Override
-            public HumanReadableARTProfileParserBuilder setRulePredicate(
-                ARTProfileRulePredicate rulePredicate) {
+            public HumanReadableArtProfileParserBuilder setRulePredicate(
+                ArtProfileRulePredicate rulePredicate) {
               rulePredicateBox.set(rulePredicate);
               return this;
             }
           });
 
-      HumanReadableARTProfileParser parser =
-          HumanReadableARTProfileParser.builder()
+      HumanReadableArtProfileParser parser =
+          HumanReadableArtProfileParser.builder()
               .setReporter(reporter)
               .setProfileBuilder(
-                  ARTProfileBuilderUtils.createBuilderForARTProfileToStartupProfileConversion(
+                  ArtProfileBuilderUtils.createBuilderForArtProfileToStartupProfileConversion(
                       this, rulePredicateBox.get(), syntheticToSyntheticContextGeneralization))
               .build();
       parser.parse(textInputStream, startupProfileProvider.getOrigin());

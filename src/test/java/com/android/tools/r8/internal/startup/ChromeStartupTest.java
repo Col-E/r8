@@ -245,7 +245,7 @@ public class ChromeStartupTest extends TestBase {
                             .setEnableStartupBoundaryOptimizations(
                                 enableStartupBoundaryOptimizations))
                 .addStartupProfileProviders(
-                    StartupProfileProviderUtils.createFromHumanReadableARTProfile(
+                    StartupProfileProviderUtils.createFromHumanReadableArtProfile(
                         chromeDirectory.resolve("startup.txt"))),
         outDirectory);
   }

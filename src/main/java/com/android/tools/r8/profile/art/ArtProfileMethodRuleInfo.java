@@ -2,12 +2,12 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.startup;
+package com.android.tools.r8.profile.art;
 
 import com.android.tools.r8.Keep;
 
 @Keep
-public interface ARTProfileMethodRuleInfo {
+public interface ArtProfileMethodRuleInfo {
 
   /** Returns true if this method rule method rule is flagged as hot ('H'). */
   boolean isHot();

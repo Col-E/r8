@@ -18,13 +18,13 @@ import com.android.tools.r8.TextInputStream;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.startup.instrumentation.StartupInstrumentationOptions;
-import com.android.tools.r8.experimental.startup.profile.art.ARTProfileBuilder;
-import com.android.tools.r8.experimental.startup.profile.art.ARTProfileBuilderUtils;
-import com.android.tools.r8.experimental.startup.profile.art.ARTProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
-import com.android.tools.r8.experimental.startup.profile.art.AlwaysTrueARTProfileRulePredicate;
-import com.android.tools.r8.experimental.startup.profile.art.HumanReadableARTProfileParser;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.startup.HumanReadableARTProfileParserBuilder;
+import com.android.tools.r8.profile.art.AlwaysTrueArtProfileRulePredicate;
+import com.android.tools.r8.profile.art.ArtProfileBuilder;
+import com.android.tools.r8.profile.art.ArtProfileBuilderUtils;
+import com.android.tools.r8.profile.art.ArtProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
+import com.android.tools.r8.profile.art.HumanReadableArtProfileParser;
+import com.android.tools.r8.profile.art.HumanReadableArtProfileParserBuilder;
 import com.android.tools.r8.startup.StartupClassBuilder;
 import com.android.tools.r8.startup.StartupMethodBuilder;
 import com.android.tools.r8.startup.StartupProfileBuilder;
@@ -49,7 +49,7 @@ public class StartupTestingUtils {
 
   private static String startupInstrumentationTag = "startup";
 
-  private static ARTProfileBuilder createStartupItemFactory(
+  private static ArtProfileBuilder createStartupItemFactory(
       Consumer<ExternalStartupItem> startupItemConsumer,
       SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
     StartupProfileBuilder startupProfileBuilder =
@@ -83,15 +83,15 @@ public class StartupTestingUtils {
           }
 
           @Override
-          public StartupProfileBuilder addHumanReadableARTProfile(
+          public StartupProfileBuilder addHumanReadableArtProfile(
               TextInputStream textInputStream,
-              Consumer<HumanReadableARTProfileParserBuilder> parserBuilderConsumer) {
+              Consumer<HumanReadableArtProfileParserBuilder> parserBuilderConsumer) {
             throw new Unreachable();
           }
         };
-    return ARTProfileBuilderUtils.createBuilderForARTProfileToStartupProfileConversion(
+    return ArtProfileBuilderUtils.createBuilderForArtProfileToStartupProfileConversion(
         startupProfileBuilder,
-        new AlwaysTrueARTProfileRulePredicate(),
+        new AlwaysTrueArtProfileRulePredicate(),
         syntheticToSyntheticContextGeneralization);
   }
 
@@ -141,8 +141,8 @@ public class StartupTestingUtils {
       SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization)
       throws IOException {
     TestDiagnosticMessagesImpl diagnostics = new TestDiagnosticMessagesImpl();
-    HumanReadableARTProfileParser parser =
-        HumanReadableARTProfileParser.builder()
+    HumanReadableArtProfileParser parser =
+        HumanReadableArtProfileParser.builder()
             .setReporter(new Reporter(diagnostics))
             .setProfileBuilder(
                 createStartupItemFactory(
@@ -165,8 +165,8 @@ public class StartupTestingUtils {
       Consumer<ExternalStartupItem> startupItemConsumer,
       SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
     TestDiagnosticMessagesImpl diagnostics = new TestDiagnosticMessagesImpl();
-    HumanReadableARTProfileParser parser =
-        HumanReadableARTProfileParser.builder()
+    HumanReadableArtProfileParser parser =
+        HumanReadableArtProfileParser.builder()
             .setReporter(new Reporter(diagnostics))
             .setProfileBuilder(
                 createStartupItemFactory(

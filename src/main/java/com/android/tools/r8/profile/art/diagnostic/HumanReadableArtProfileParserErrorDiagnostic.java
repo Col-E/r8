@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.startup.diagnostic;
+package com.android.tools.r8.profile.art.diagnostic;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.Keep;
@@ -10,13 +10,13 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 
 @Keep
-public class HumanReadableARTProfileParserErrorDiagnostic implements Diagnostic {
+public class HumanReadableArtProfileParserErrorDiagnostic implements Diagnostic {
 
   private final String rule;
   private final int lineNumber;
   private final Origin origin;
 
-  public HumanReadableARTProfileParserErrorDiagnostic(String rule, int lineNumber, Origin origin) {
+  public HumanReadableArtProfileParserErrorDiagnostic(String rule, int lineNumber, Origin origin) {
     this.rule = rule;
     this.lineNumber = lineNumber;
     this.origin = origin;

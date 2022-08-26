@@ -6,9 +6,9 @@ package com.android.tools.r8.experimental.startup;
 
 import com.android.tools.r8.experimental.startup.profile.StartupItem;
 import com.android.tools.r8.experimental.startup.profile.StartupProfile;
-import com.android.tools.r8.experimental.startup.profile.art.ARTProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.profile.art.ArtProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.startup.StartupProfileBuilder;
@@ -71,13 +71,13 @@ public class StartupProfileProviderUtils {
     };
   }
 
-  public static StartupProfileProvider createFromHumanReadableARTProfile(Path path) {
+  public static StartupProfileProvider createFromHumanReadableArtProfile(Path path) {
     return new StartupProfileProvider() {
 
       @Override
       public void getStartupProfile(StartupProfileBuilder startupProfileBuilder) {
         try {
-          startupProfileBuilder.addHumanReadableARTProfile(
+          startupProfileBuilder.addHumanReadableArtProfile(
               new UTF8TextInputStream(path), ConsumerUtils.emptyConsumer());
         } catch (IOException e) {
           throw new UncheckedIOException(e);
