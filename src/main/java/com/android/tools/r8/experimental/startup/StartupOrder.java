@@ -9,6 +9,7 @@ import com.android.tools.r8.experimental.startup.profile.StartupProfile;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
@@ -48,6 +49,8 @@ public abstract class StartupOrder {
   public static StartupOrder empty() {
     return new EmptyStartupOrder();
   }
+
+  public abstract boolean contains(DexMethod method, SyntheticItems syntheticItems);
 
   public abstract boolean contains(DexType type, SyntheticItems syntheticItems);
 

@@ -10,6 +10,7 @@ import com.android.tools.r8.experimental.startup.profile.StartupMethod;
 import com.android.tools.r8.experimental.startup.profile.SyntheticStartupMethod;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
@@ -33,17 +34,32 @@ public class NonEmptyStartupOrder extends StartupOrder {
   private final Set<DexType> nonSyntheticStartupClasses = Sets.newIdentityHashSet();
   private final Set<DexType> syntheticStartupClasses = Sets.newIdentityHashSet();
 
+  private final Set<DexMethod> nonSyntheticStartupMethods = Sets.newIdentityHashSet();
+
   NonEmptyStartupOrder(LinkedHashSet<StartupItem> startupItems) {
     assert !startupItems.isEmpty();
     this.startupItems = startupItems;
     for (StartupItem startupItem : startupItems) {
-      startupItem.apply(
+      startupItem.accept(
           startupClass -> nonSyntheticStartupClasses.add(startupClass.getReference()),
-          startupMethod ->
-              nonSyntheticStartupClasses.add(startupMethod.getReference().getHolderType()),
+          startupMethod -> {
+            nonSyntheticStartupClasses.add(startupMethod.getReference().getHolderType());
+            nonSyntheticStartupMethods.add(startupMethod.getReference());
+          },
           syntheticStartupMethod ->
               syntheticStartupClasses.add(syntheticStartupMethod.getSyntheticContextType()));
     }
+  }
+
+  @Override
+  public boolean contains(DexMethod method, SyntheticItems syntheticItems) {
+    if (nonSyntheticStartupMethods.contains(method)) {
+      return true;
+    }
+    if (syntheticItems.isSyntheticClass(method.getHolderType())) {
+      return containsSyntheticClass(method.getHolderType(), syntheticItems);
+    }
+    return false;
   }
 
   @Override

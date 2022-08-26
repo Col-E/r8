@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.OptionalBool;
 
 public class FeatureSplitBoundaryOptimizationUtils {
 
@@ -54,14 +55,46 @@ public class FeatureSplitBoundaryOptimizationUtils {
       ProgramMethod callee,
       AppView<? extends AppInfoWithClassHierarchy> appView) {
     ClassToFeatureSplitMap classToFeatureSplitMap = appView.appInfo().getClassToFeatureSplitMap();
-    if (classToFeatureSplitMap.isInSameFeatureOrBothInSameBase(callee, caller, appView)) {
-      return true;
+    FeatureSplit callerFeatureSplit = classToFeatureSplitMap.getFeatureSplit(caller, appView);
+    FeatureSplit calleeFeatureSplit = classToFeatureSplitMap.getFeatureSplit(callee, appView);
+
+    // First guarantee that we don't cross any actual feature split boundaries.
+    if (!calleeFeatureSplit.isBase()) {
+      assert !callerFeatureSplit.isBase() : "Unexpected call into a feature from base";
+      if (calleeFeatureSplit != callerFeatureSplit) {
+        return false;
+      }
     }
-    // Still allow inlining if we inline from the base into a feature.
-    if (classToFeatureSplitMap.isInBase(callee.getHolder(), appView)) {
-      return true;
+
+    // Next perform startup checks.
+    StartupOrder startupOrder = appView.appInfo().getStartupOrder();
+    SyntheticItems syntheticItems = appView.getSyntheticItems();
+    OptionalBool callerIsStartupMethod = isStartupMethod(caller, startupOrder, syntheticItems);
+    if (callerIsStartupMethod.isTrue()) {
+      // If the caller is a startup method, then only allow inlining if the callee is also a startup
+      // method.
+      if (isStartupMethod(callee, startupOrder, syntheticItems).isFalse()) {
+        return false;
+      }
+    } else if (callerIsStartupMethod.isFalse()) {
+      // If the caller is not a startup method, then only allow inlining if the caller is not a
+      // startup class or the callee is a startup class.
+      if (startupOrder.contains(caller.getHolderType(), syntheticItems)
+          && !startupOrder.contains(callee.getHolderType(), syntheticItems)) {
+        return false;
+      }
     }
-    return false;
+    return true;
+  }
+
+  private static OptionalBool isStartupMethod(
+      ProgramMethod method, StartupOrder startupOrder, SyntheticItems syntheticItems) {
+    if (method.getDefinition().isD8R8Synthesized()) {
+      // Due to inadequate rewriting of the startup list during desugaring, we do not give an
+      // accurate result in this case.
+      return OptionalBool.unknown();
+    }
+    return OptionalBool.of(startupOrder.contains(method.getReference(), syntheticItems));
   }
 
   public static boolean isSafeForVerticalClassMerging(
@@ -69,7 +102,26 @@ public class FeatureSplitBoundaryOptimizationUtils {
       DexProgramClass targetClass,
       AppView<? extends AppInfoWithClassHierarchy> appView) {
     ClassToFeatureSplitMap classToFeatureSplitMap = appView.appInfo().getClassToFeatureSplitMap();
-    return classToFeatureSplitMap.isInSameFeatureOrBothInSameBase(
-        sourceClass, targetClass, appView);
+    FeatureSplit sourceFeatureSplit = classToFeatureSplitMap.getFeatureSplit(sourceClass, appView);
+    FeatureSplit targetFeatureSplit = classToFeatureSplitMap.getFeatureSplit(targetClass, appView);
+
+    // First guarantee that we don't cross any actual feature split boundaries.
+    if (targetFeatureSplit.isBase()) {
+      assert sourceFeatureSplit.isBase() : "Unexpected class in base that inherits from feature";
+    } else {
+      if (sourceFeatureSplit != targetFeatureSplit) {
+        return false;
+      }
+    }
+
+    // If the source class is a startup class then require that the target class is also a startup
+    // class.
+    StartupOrder startupOrder = appView.appInfo().getStartupOrder();
+    SyntheticItems syntheticItems = appView.getSyntheticItems();
+    if (startupOrder.contains(sourceClass.getType(), syntheticItems)
+        && !startupOrder.contains(targetClass.getType(), syntheticItems)) {
+      return false;
+    }
+    return true;
   }
 }

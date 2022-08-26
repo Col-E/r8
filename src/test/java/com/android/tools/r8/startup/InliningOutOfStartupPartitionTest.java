@@ -58,12 +58,14 @@ public class InliningOutOfStartupPartitionTest extends TestBase {
             inspector -> {
               ClassSubject mainClassSubject = inspector.clazz(Main.class);
               assertThat(mainClassSubject, isPresent());
+              // The postStartupMethod() should be inlined into PostStartupClass.runPostStartup().
               assertThat(mainClassSubject.uniqueMethodWithName("postStartupMethod"), isAbsent());
 
               ClassSubject postStartupClassSubject = inspector.clazz(PostStartupClass.class);
-              // TODO(b/242815611): Should be present since inlining increases the size of the
-              //  startup.
-              assertThat(postStartupClassSubject, isAbsent());
+              assertThat(postStartupClassSubject, isPresent());
+              // The runPostStartup() method must not be inlined into Main.main().
+              assertThat(
+                  postStartupClassSubject.uniqueMethodWithName("runPostStartup"), isPresent());
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello, world!");
