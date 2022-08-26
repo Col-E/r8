@@ -28,6 +28,7 @@ import com.android.tools.r8.startup.ARTProfileRulePredicate;
 import com.android.tools.r8.startup.StartupProfileBuilder;
 import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.utils.ThrowingConsumer;
+import com.android.tools.r8.utils.UTF8TextInputStream;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
