@@ -291,7 +291,7 @@ def BuildAndUpload(options, variant):
     # Upload the jar file for accessing GCS as a maven repro.
     maven_destination = archive.GetUploadDestination(
         utils.get_maven_path(LIBRARY_NAME_MAP[variant], version),
-        '%s-%s.jar' % (LIBRARY_NAME_MAP[variant]: version),
+        '%s-%s.jar' % (LIBRARY_NAME_MAP[variant], version),
         is_main)
     if options.dry_run:
       print('Dry run, not actually creating maven repo')
