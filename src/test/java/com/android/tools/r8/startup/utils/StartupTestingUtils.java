@@ -42,7 +42,6 @@ import com.android.tools.r8.utils.UTF8TextInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.function.Consumer;
 import org.junit.rules.TemporaryFolder;
 
@@ -190,41 +189,40 @@ public class StartupTestingUtils {
   public static void setStartupConfiguration(
       TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder,
       Collection<ExternalStartupItem> startupItems) {
-    testBuilder.addOptionsModification(
-        options -> {
-          StartupProfileProvider startupProfileProvider =
-              new StartupProfileProvider() {
-                @Override
-                public void getStartupProfile(StartupProfileBuilder startupProfileBuilder) {
-                  for (ExternalStartupItem startupItem : startupItems) {
-                    startupItem.apply(
-                        startupClass ->
-                            startupProfileBuilder.addStartupClass(
-                                startupClassBuilder ->
-                                    startupClassBuilder.setClassReference(
-                                        startupClass.getReference())),
-                        startupMethod ->
-                            startupProfileBuilder.addStartupMethod(
-                                startupMethodBuilder ->
-                                    startupMethodBuilder.setMethodReference(
-                                        startupMethod.getReference())),
-                        syntheticStartupMethod ->
-                            startupProfileBuilder.addSyntheticStartupMethod(
-                                syntheticStartupMethodBuilder ->
-                                    syntheticStartupMethodBuilder.setSyntheticContextReference(
-                                        syntheticStartupMethod.getSyntheticContextReference())));
-                  }
-                }
+    StartupProfileProvider startupProfileProvider =
+        new StartupProfileProvider() {
+          @Override
+          public void getStartupProfile(StartupProfileBuilder startupProfileBuilder) {
+            for (ExternalStartupItem startupItem : startupItems) {
+              startupItem.apply(
+                  startupClass ->
+                      startupProfileBuilder.addStartupClass(
+                          startupClassBuilder ->
+                              startupClassBuilder.setClassReference(startupClass.getReference())),
+                  startupMethod ->
+                      startupProfileBuilder.addStartupMethod(
+                          startupMethodBuilder ->
+                              startupMethodBuilder.setMethodReference(
+                                  startupMethod.getReference())),
+                  syntheticStartupMethod ->
+                      startupProfileBuilder.addSyntheticStartupMethod(
+                          syntheticStartupMethodBuilder ->
+                              syntheticStartupMethodBuilder.setSyntheticContextReference(
+                                  syntheticStartupMethod.getSyntheticContextReference())));
+            }
+          }
 
-                @Override
-                public Origin getOrigin() {
-                  return Origin.unknown();
-                }
-              };
-          options
-              .getStartupOptions()
-              .setStartupProfileProviders(Collections.singleton(startupProfileProvider));
-        });
+          @Override
+          public Origin getOrigin() {
+            return Origin.unknown();
+          }
+        };
+    if (testBuilder.isD8TestBuilder()) {
+      testBuilder.asD8TestBuilder().addStartupProfileProviders(startupProfileProvider);
+    } else {
+      assertTrue(testBuilder.isR8TestBuilder());
+      testBuilder.asR8TestBuilder().addStartupProfileProviders(startupProfileProvider);
+    }
   }
 
   private static byte[] getTransformedAndroidUtilLog() throws IOException {

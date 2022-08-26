@@ -77,6 +77,10 @@ public class MissingStartupProfileItemsDiagnostic implements Diagnostic {
       this.definitions = definitions;
     }
 
+    public static Builder nop() {
+      return new Builder(null);
+    }
+
     public boolean hasMissingStartupItems() {
       return !missingStartupItems.isEmpty();
     }

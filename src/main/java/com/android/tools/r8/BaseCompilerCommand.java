@@ -144,7 +144,8 @@ public abstract class BaseCompilerCommand extends BaseCommand {
         .setMinApi(getMinApiLevel())
         .setOptimizeMultidexForLinearAlloc(isOptimizeMultidexForLinearAlloc())
         .setThreadCount(getThreadCount())
-        .setDesugarState(getDesugarState());
+        .setDesugarState(getDesugarState())
+        .setStartupProfileProviders(getStartupProfileProviders());
     if (getAndroidPlatformBuild()) {
       builder.setAndroidPlatformBuild(true);
     }

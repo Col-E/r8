@@ -75,6 +75,11 @@ public class StartupClass extends StartupItem {
     return type.hashCode();
   }
 
+  @Override
+  public String serializeToString() {
+    return getReference().toDescriptorString();
+  }
+
   public static class Builder implements StartupClassBuilder {
 
     private final DexItemFactory dexItemFactory;

@@ -75,6 +75,11 @@ public class SyntheticStartupMethod extends StartupItem {
     return syntheticContextType.hashCode();
   }
 
+  @Override
+  public String serializeToString() {
+    return 'S' + syntheticContextType.toDescriptorString();
+  }
+
   public static class Builder implements SyntheticStartupMethodBuilder {
 
     private final DexItemFactory dexItemFactory;

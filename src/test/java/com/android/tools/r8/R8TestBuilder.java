@@ -28,6 +28,7 @@ import com.android.tools.r8.shaking.NoUnusedInterfaceRemovalRule;
 import com.android.tools.r8.shaking.NoVerticalClassMergingRule;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
+import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -70,6 +71,16 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   private final List<Path> features = new ArrayList<>();
 
   private boolean createDefaultProguardMapConsumer = true;
+
+  @Override
+  public boolean isR8TestBuilder() {
+    return true;
+  }
+
+  @Override
+  public R8TestBuilder<?> asR8TestBuilder() {
+    return this;
+  }
 
   @Override
   R8TestCompileResult internalCompile(
@@ -764,6 +775,16 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
 
   public T noDefaultProguardMapConsumer() {
     createDefaultProguardMapConsumer = false;
+    return self();
+  }
+
+  public T addStartupProfileProviders(StartupProfileProvider... startupProfileProviders) {
+    builder.addStartupProfileProviders(startupProfileProviders);
+    return self();
+  }
+
+  public T addStartupProfileProviders(Collection<StartupProfileProvider> startupProfileProviders) {
+    builder.addStartupProfileProviders(startupProfileProviders);
     return self();
   }
 }

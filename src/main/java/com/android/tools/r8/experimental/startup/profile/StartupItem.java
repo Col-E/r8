@@ -45,4 +45,6 @@ public abstract class StartupItem {
     assert false;
     return null;
   }
+
+  public abstract String serializeToString();
 }

@@ -48,31 +48,6 @@ public class HorizontalClassMergingWithStartupClassesTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepClassAndMembersRules(Main.class)
-        .addOptionsModification(
-            options -> {
-              StartupProfileProvider startupProfileProvider =
-                  new StartupProfileProvider() {
-
-                    @Override
-                    public void getStartupProfile(StartupProfileBuilder startupProfileBuilder) {
-                      for (Class<?> startupClass : getStartupClasses()) {
-                        ClassReference startupClassReference =
-                            Reference.classFromClass(startupClass);
-                        startupProfileBuilder.addStartupClass(
-                            startupClassBuilder ->
-                                startupClassBuilder.setClassReference(startupClassReference));
-                      }
-                    }
-
-                    @Override
-                    public Origin getOrigin() {
-                      return Origin.unknown();
-                    }
-                  };
-              options
-                  .getStartupOptions()
-                  .setStartupProfileProviders(Collections.singleton(startupProfileProvider));
-            })
         .addHorizontallyMergedClassesInspector(
             inspector ->
                 inspector
@@ -89,6 +64,24 @@ public class HorizontalClassMergingWithStartupClassesTest extends TestBase {
                                 .assertIsCompleteMergeGroup(
                                     OnClickHandlerA.class, OnClickHandlerB.class))
                     .assertNoOtherClassesMerged())
+        .addStartupProfileProviders(
+            new StartupProfileProvider() {
+
+              @Override
+              public void getStartupProfile(StartupProfileBuilder startupProfileBuilder) {
+                for (Class<?> startupClass : getStartupClasses()) {
+                  ClassReference startupClassReference = Reference.classFromClass(startupClass);
+                  startupProfileBuilder.addStartupClass(
+                      startupClassBuilder ->
+                          startupClassBuilder.setClassReference(startupClassReference));
+                }
+              }
+
+              @Override
+              public Origin getOrigin() {
+                return Origin.unknown();
+              }
+            })
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()

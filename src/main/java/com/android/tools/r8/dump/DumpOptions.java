@@ -10,9 +10,11 @@ import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
+import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -62,6 +64,7 @@ public class DumpOptions {
   private final FeatureSplitConfiguration featureSplitConfiguration;
   private final ProguardConfiguration proguardConfiguration;
   private final List<ProguardConfigurationRule> mainDexKeepRules;
+  private final Collection<StartupProfileProvider> startupProfileProviders;
   private final boolean enableMissingLibraryApiModeling;
   private final boolean isAndroidPlatformBuild;
 
@@ -86,6 +89,7 @@ public class DumpOptions {
       FeatureSplitConfiguration featureSplitConfiguration,
       ProguardConfiguration proguardConfiguration,
       List<ProguardConfigurationRule> mainDexKeepRules,
+      Collection<StartupProfileProvider> startupProfileProviders,
       boolean enableMissingLibraryApiModeling,
       boolean isAndroidPlatformBuild,
       Map<String, String> systemProperties,
@@ -105,6 +109,7 @@ public class DumpOptions {
     this.featureSplitConfiguration = featureSplitConfiguration;
     this.proguardConfiguration = proguardConfiguration;
     this.mainDexKeepRules = mainDexKeepRules;
+    this.startupProfileProviders = startupProfileProviders;
     this.enableMissingLibraryApiModeling = enableMissingLibraryApiModeling;
     this.isAndroidPlatformBuild = isAndroidPlatformBuild;
     this.systemProperties = systemProperties;
@@ -268,6 +273,14 @@ public class DumpOptions {
     return mainDexKeepRules;
   }
 
+  public boolean hasStartupProfileProviders() {
+    return startupProfileProviders != null && !startupProfileProviders.isEmpty();
+  }
+
+  public Collection<StartupProfileProvider> getStartupProfileProviders() {
+    return startupProfileProviders;
+  }
+
   public boolean dumpInputToFile() {
     return dumpInputToFile;
   }
@@ -293,6 +306,7 @@ public class DumpOptions {
     private FeatureSplitConfiguration featureSplitConfiguration;
     private ProguardConfiguration proguardConfiguration;
     private List<ProguardConfigurationRule> mainDexKeepRules;
+    private Collection<StartupProfileProvider> startupProfileProviders;
 
     private boolean enableMissingLibraryApiModeling = false;
     private boolean isAndroidPlatformBuild = false;
@@ -386,6 +400,12 @@ public class DumpOptions {
       return this;
     }
 
+    public Builder setStartupProfileProviders(
+        Collection<StartupProfileProvider> startupProfileProviders) {
+      this.startupProfileProviders = startupProfileProviders;
+      return this;
+    }
+
     public Builder setEnableMissingLibraryApiModeling(boolean value) {
       enableMissingLibraryApiModeling = value;
       return this;
@@ -432,6 +452,7 @@ public class DumpOptions {
           featureSplitConfiguration,
           proguardConfiguration,
           mainDexKeepRules,
+          startupProfileProviders,
           enableMissingLibraryApiModeling,
           isAndroidPlatformBuild,
           systemProperties,

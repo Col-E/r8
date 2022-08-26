@@ -35,6 +35,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.startup.StartupOrder;
+import com.android.tools.r8.experimental.startup.StartupProfileProviderUtils;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.graph.DexType;
@@ -42,6 +43,7 @@ import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.shaking.FilteredClassPath;
+import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -524,6 +526,9 @@ public class AndroidApp {
             StringUtils.joinLines(dumpOptions.getMainDexKeepRules()).getBytes(),
             ZipEntry.DEFLATED);
       }
+      if (dumpOptions.hasStartupProfileProviders()) {
+        dumpStartupProfileProviders(dumpOptions.getStartupProfileProviders(), options, out);
+      }
       nextDexIndex =
           dumpProgramResources(
               dumpProgramFileName,
@@ -551,6 +556,24 @@ public class AndroidApp {
         dumpClassFileResources(
             dumpClasspathFileName, nextDexIndex, out, classpathResourceProviders);
     return nextDexIndex;
+  }
+
+  private void dumpStartupProfileProviders(
+      Collection<StartupProfileProvider> startupProfileProviders,
+      InternalOptions options,
+      ZipOutputStream out)
+      throws IOException {
+    int startupProfileProviderIndex = 1;
+    for (StartupProfileProvider startupProfileProvider : startupProfileProviders) {
+      String startupProfileProviderFileName =
+          "startup-profile-" + startupProfileProviderIndex + ".txt";
+      writeToZipStream(
+          out,
+          startupProfileProviderFileName,
+          StartupProfileProviderUtils.serializeToString(options, startupProfileProvider).getBytes(),
+          ZipEntry.DEFLATED);
+      startupProfileProviderIndex++;
+    }
   }
 
   private static ClassFileResourceProvider createClassFileResourceProvider(

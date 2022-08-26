@@ -75,6 +75,11 @@ public class StartupMethod extends StartupItem {
     return method.hashCode();
   }
 
+  @Override
+  public String serializeToString() {
+    return method.toSmaliString();
+  }
+
   public static class Builder implements StartupMethodBuilder {
 
     private final DexItemFactory dexItemFactory;

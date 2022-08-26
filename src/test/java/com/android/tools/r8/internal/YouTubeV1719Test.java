@@ -38,7 +38,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import org.junit.After;
 import org.junit.Test;
@@ -145,18 +144,20 @@ public class YouTubeV1719Test extends YouTubeCompilationTestBase {
     R8TestCompileResult r8CompileResult =
         compileApplicationWithR8(
             testBuilder ->
-                testBuilder.addOptionsModification(
-                    options -> {
-                      if (startupProfileProvider != null) {
-                        options
-                            .getStartupOptions()
-                            .setStartupProfileProviders(
-                                Collections.singleton(startupProfileProvider))
-                            .setEnableMinimalStartupDex(enableMinimalStartupDex)
-                            .setEnableStartupBoundaryOptimizations(
-                                enableStartupBoundaryOptimizations);
-                      }
-                    }));
+                testBuilder
+                    .addOptionsModification(
+                        options -> {
+                          if (startupProfileProvider != null) {
+                            options
+                                .getStartupOptions()
+                                .setEnableMinimalStartupDex(enableMinimalStartupDex)
+                                .setEnableStartupBoundaryOptimizations(
+                                    enableStartupBoundaryOptimizations);
+                          }
+                        })
+                    .applyIf(
+                        startupProfileProvider != null,
+                        b -> b.addStartupProfileProviders(startupProfileProvider)));
 
     // Compile desugared library using cf backend (without keep rules).
     L8TestCompileResult l8CompileResult = compileDesugaredLibraryWithL8();

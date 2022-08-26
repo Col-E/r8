@@ -91,6 +91,22 @@ public abstract class TestCompilerBuilder<
   LibraryDesugaringTestConfiguration libraryDesugaringTestConfiguration =
       LibraryDesugaringTestConfiguration.DISABLED;
 
+  public boolean isD8TestBuilder() {
+    return false;
+  }
+
+  public D8TestBuilder asD8TestBuilder() {
+    return null;
+  }
+
+  public boolean isR8TestBuilder() {
+    return false;
+  }
+
+  public R8TestBuilder<?> asR8TestBuilder() {
+    return null;
+  }
+
   public boolean isTestShrinkerBuilder() {
     return false;
   }

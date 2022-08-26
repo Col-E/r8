@@ -19,9 +19,9 @@ import com.android.tools.r8.startup.StartupProfileBuilder;
 import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.startup.SyntheticStartupMethodBuilder;
 import com.android.tools.r8.startup.diagnostic.MissingStartupProfileItemsDiagnostic;
-import com.android.tools.r8.startup.diagnostic.MissingStartupProfileItemsDiagnostic.Builder;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Reporter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -108,7 +108,7 @@ public class StartupProfile {
 
     private final DexItemFactory dexItemFactory;
     private final MissingStartupProfileItemsDiagnostic.Builder missingItemsDiagnosticBuilder;
-    private final InternalOptions options;
+    private Reporter reporter;
     private final StartupProfileProvider startupProfileProvider;
     private final SyntheticToSyntheticContextGeneralization
         syntheticToSyntheticContextGeneralization;
@@ -122,7 +122,7 @@ public class StartupProfile {
         SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
       this.dexItemFactory = options.dexItemFactory();
       this.missingItemsDiagnosticBuilder = missingItemsDiagnosticBuilder;
-      this.options = options;
+      this.reporter = options.reporter;
       this.startupProfileProvider = startupProfileProvider;
       this.syntheticToSyntheticContextGeneralization = syntheticToSyntheticContextGeneralization;
     }
@@ -180,7 +180,7 @@ public class StartupProfile {
 
       HumanReadableARTProfileParser parser =
           HumanReadableARTProfileParser.builder()
-              .setReporter(options.reporter)
+              .setReporter(reporter)
               .setProfileBuilder(
                   ARTProfileBuilderUtils.createBuilderForARTProfileToStartupProfileConversion(
                       this, rulePredicateBox.get(), syntheticToSyntheticContextGeneralization))
@@ -196,6 +196,15 @@ public class StartupProfile {
 
     public Builder apply(Consumer<Builder> consumer) {
       consumer.accept(this);
+      return this;
+    }
+
+    public Builder setIgnoreWarnings() {
+      return setReporter(null);
+    }
+
+    public Builder setReporter(Reporter reporter) {
+      this.reporter = reporter;
       return this;
     }
 

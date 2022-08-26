@@ -44,11 +44,7 @@ public class MissingStartupProfileItemsDiagnosticTest extends TestBase {
   public void testD8() throws Exception {
     testForD8(Backend.DEX)
         .addProgramClasses(Main.class)
-        .addOptionsModification(
-            options ->
-                options
-                    .getStartupOptions()
-                    .setStartupProfileProviders(getStartupProfileProviders()))
+        .addStartupProfileProviders(getStartupProfileProviders())
         .release()
         .setIntermediate(true)
         .setMinApi(AndroidApiLevel.LATEST)
@@ -60,11 +56,7 @@ public class MissingStartupProfileItemsDiagnosticTest extends TestBase {
     testForR8(Backend.DEX)
         .addProgramClasses(Main.class)
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options
-                    .getStartupOptions()
-                    .setStartupProfileProviders(getStartupProfileProviders()))
+        .addStartupProfileProviders(getStartupProfileProviders())
         .allowDiagnosticWarningMessages()
         .setMinApi(AndroidApiLevel.LATEST)
         .compileWithExpectedDiagnostics(this::inspectDiagnostics);

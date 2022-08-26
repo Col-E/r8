@@ -115,6 +115,13 @@ public class MethodReferenceUtils {
         methodReference.getMethodName());
   }
 
+  public static String toSmaliString(MethodReference methodReference) {
+    return methodReference.getHolderClass().getDescriptor()
+        + "->"
+        + methodReference.getMethodName()
+        + methodReference.getMethodDescriptor();
+  }
+
   public static String toSourceStringWithoutHolderAndReturnType(MethodReference methodReference) {
     return toSourceString(methodReference, false, false);
   }
