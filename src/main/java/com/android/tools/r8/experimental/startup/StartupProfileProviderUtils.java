@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.experimental.startup;
 
-import com.android.tools.r8.experimental.startup.profile.StartupProfileParser;
+import com.android.tools.r8.experimental.startup.profile.art.HumanReadableARTProfileParser;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.startup.StartupProfileBuilder;
@@ -24,7 +24,7 @@ public class StartupProfileProviderUtils {
       @Override
       public void getStartupProfile(StartupProfileBuilder startupProfileBuilder) {
         try {
-          StartupProfileParser.create()
+          HumanReadableARTProfileParser.create()
               .parseLines(
                   FileUtils.readAllLines(path).stream(),
                   startupProfileBuilder,

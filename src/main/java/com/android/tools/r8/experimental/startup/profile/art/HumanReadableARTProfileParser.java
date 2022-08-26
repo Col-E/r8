@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.experimental.startup.profile;
+package com.android.tools.r8.experimental.startup.profile.art;
 
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
@@ -16,10 +16,10 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-public class StartupProfileParser {
+public class HumanReadableARTProfileParser {
 
-  public static StartupProfileParser create() {
-    return new StartupProfileParser();
+  public static HumanReadableARTProfileParser create() {
+    return new HumanReadableARTProfileParser();
   }
 
   public void parseLines(

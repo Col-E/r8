@@ -17,7 +17,7 @@ import com.android.tools.r8.TextInputStream;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.experimental.startup.instrumentation.StartupInstrumentationOptions;
-import com.android.tools.r8.experimental.startup.profile.StartupProfileParser;
+import com.android.tools.r8.experimental.startup.profile.art.HumanReadableARTProfileParser;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.startup.HumanReadableARTProfileParserBuilder;
 import com.android.tools.r8.startup.StartupClassBuilder;
@@ -143,7 +143,7 @@ public class StartupTestingUtils {
 
   public static void readStartupListFromFile(
       Path path, Consumer<ExternalStartupItem> startupItemConsumer) throws IOException {
-    StartupProfileParser.create()
+    HumanReadableARTProfileParser.create()
         .parseLines(
             Files.readAllLines(path).stream(),
             createStartupItemFactory(startupItemConsumer),
@@ -157,7 +157,7 @@ public class StartupTestingUtils {
 
   public static void removeStartupListFromStdout(
       D8TestRunResult runResult, Consumer<ExternalStartupItem> startupItemConsumer) {
-    StartupProfileParser parser = StartupProfileParser.create();
+    HumanReadableARTProfileParser parser = HumanReadableARTProfileParser.create();
     StringBuilder stdoutBuilder = new StringBuilder();
     String startupDescriptorPrefix = "[" + startupInstrumentationTag + "] ";
     for (String line : StringUtils.splitLines(runResult.getStdOut(), true)) {
