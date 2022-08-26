@@ -196,6 +196,12 @@ public abstract class ApiModelingTestHelper {
         inspector, parameters, Reference.methodFromMethod(method));
   }
 
+  static ApiModelingMethodVerificationHelper verifyThat(
+      CodeInspector inspector, TestParameters parameters, Constructor method) {
+    return new ApiModelingMethodVerificationHelper(
+        inspector, parameters, Reference.methodFromMethod(method));
+  }
+
   static ApiModelingFieldVerificationHelper verifyThat(
       CodeInspector inspector, TestParameters parameters, Field field) {
     return new ApiModelingFieldVerificationHelper(
