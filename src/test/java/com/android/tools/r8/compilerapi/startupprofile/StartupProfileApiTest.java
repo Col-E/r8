@@ -31,7 +31,6 @@ import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -119,7 +118,7 @@ public class StartupProfileApiTest extends CompilerApiTestRunner {
           // Create parser and parse ART profile.
           List<ClassReference> seenClasses = new ArrayList<>();
           startupProfileBuilder.addHumanReadableARTProfile(
-              new InputStreamReader(inputStream),
+              new UTF8TextInputStream(inputStream),
               parserBuilder ->
                   parserBuilder.setRulePredicate(
                       new ARTProfileRulePredicate() {
