@@ -15,6 +15,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -44,7 +45,11 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withCfRuntimes().build(),
-        getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
+        getKotlinTestParameters()
+            .withAllCompilers()
+            .withOldCompilersStartingFrom(KotlinCompilerVersion.KOTLINC_1_4_20)
+            .withAllTargetVersions()
+            .build());
   }
 
   public MetadataRewriteInMultifileClassTest(
