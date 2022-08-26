@@ -4,24 +4,38 @@
 
 package com.android.tools.r8.invalid;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
-import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.nio.charset.Charset;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class DuplicateDefinitionsTest extends JasminTestBase {
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDefaultDexRuntime().withApiLevel(AndroidApiLevel.B).build();
+  }
+
+  private final TestParameters parameters;
+
+  public DuplicateDefinitionsTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   @Test
   public void testDuplicateMethods() throws Exception {
@@ -32,38 +46,37 @@ public class DuplicateDefinitionsTest extends JasminTestBase {
     classBuilder.addVirtualMethod("method", "V", ".limit locals 1", ".limit stack 0", "return");
     classBuilder.addVirtualMethod("method", "V", ".limit locals 1", ".limit stack 0", "return");
 
-    // Run D8 and intercept warnings.
-    PrintStream stderr = System.err;
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    System.setErr(new PrintStream(baos));
+    testForD8(parameters.getBackend())
+        .addProgramClassFileData(jasminBuilder.buildClasses())
+        .setMinApi(parameters.getApiLevel())
+        .compileWithExpectedDiagnostics(
+            diagnostics ->
+                diagnostics
+                    .assertOnlyWarnings()
+                    .assertWarningsMatch(
+                        diagnosticMessage(
+                            containsString(
+                                "Ignoring an implementation of the method `void"
+                                    + " C.main(java.lang.String[])` because it has multiple"
+                                    + " definitions")),
+                        diagnosticMessage(
+                            containsString(
+                                "Ignoring an implementation of the method `void C.method()` because"
+                                    + " it has multiple definitions"))))
+        .inspect(
+            inspector -> {
+              ClassSubject clazz = inspector.clazz("C");
+              assertThat(clazz, isPresent());
 
-    AndroidApp app = compileWithD8(jasminBuilder.build());
+              // There are two direct methods, but only because one is <init>.
+              assertEquals(
+                  2, clazz.getDexProgramClass().getMethodCollection().numberOfDirectMethods());
+              assertThat(clazz.method("void", "<init>", ImmutableList.of()), isPresent());
 
-    String output = new String(baos.toByteArray(), Charset.defaultCharset());
-    System.setOut(stderr);
-
-    // Check that warnings were emitted.
-    assertThat(
-        output,
-        containsString(
-            "Ignoring an implementation of the method `void C.main(java.lang.String[])` because "
-                + "it has multiple definitions"));
-    assertThat(
-        output,
-        containsString(
-            "Ignoring an implementation of the method `void C.method()` because "
-                + "it has multiple definitions"));
-
-    CodeInspector inspector = new CodeInspector(app);
-    ClassSubject clazz = inspector.clazz("C");
-    assertThat(clazz, isPresent());
-
-    // There are two direct methods, but only because one is <init>.
-    assertEquals(2, clazz.getDexProgramClass().getMethodCollection().numberOfDirectMethods());
-    assertThat(clazz.method("void", "<init>", ImmutableList.of()), isPresent());
-
-    // There is only one virtual method.
-    assertEquals(1, clazz.getDexProgramClass().getMethodCollection().numberOfVirtualMethods());
+              // There is only one virtual method.
+              assertEquals(
+                  1, clazz.getDexProgramClass().getMethodCollection().numberOfVirtualMethods());
+            });
   }
 
   @Test
@@ -75,26 +88,26 @@ public class DuplicateDefinitionsTest extends JasminTestBase {
     classBuilder.addStaticField("staticFld", "LC;", null);
     classBuilder.addStaticField("staticFld", "LC;", null);
 
-    // Run D8 and intercept warnings.
-    PrintStream stderr = System.err;
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    System.setErr(new PrintStream(baos));
+    testForD8(parameters.getBackend())
+        .addProgramClassFileData(jasminBuilder.buildClasses())
+        .setMinApi(parameters.getApiLevel())
+        .compileWithExpectedDiagnostics(
+            diagnostics ->
+                diagnostics
+                    .assertOnlyWarnings()
+                    .assertWarningsMatch(
+                        diagnosticMessage(
+                            containsString("Field `C C.fld` has multiple definitions")),
+                        diagnosticMessage(
+                            containsString("Field `C C.staticFld` has multiple definitions"))))
+        .inspect(
+            inspector -> {
+              ClassSubject clazz = inspector.clazz("C");
+              assertThat(clazz, isPresent());
 
-    AndroidApp app = compileWithD8(jasminBuilder.build());
-
-    String output = new String(baos.toByteArray(), Charset.defaultCharset());
-    System.setOut(stderr);
-
-    // Check that warnings were emitted.
-    assertThat(output, containsString("Field `C C.fld` has multiple definitions"));
-    assertThat(output, containsString("Field `C C.staticFld` has multiple definitions"));
-
-    CodeInspector inspector = new CodeInspector(app);
-    ClassSubject clazz = inspector.clazz("C");
-    assertThat(clazz, isPresent());
-
-    // Redundant fields have been removed.
-    assertEquals(1, clazz.getDexProgramClass().instanceFields().size());
-    assertEquals(1, clazz.getDexProgramClass().staticFields().size());
+              // Redundant fields have been removed.
+              assertEquals(1, clazz.getDexProgramClass().instanceFields().size());
+              assertEquals(1, clazz.getDexProgramClass().staticFields().size());
+            });
   }
 }

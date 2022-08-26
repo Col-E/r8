@@ -37,6 +37,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.InternalOptions.HorizontalClassMergerOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
+import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -661,7 +662,8 @@ public final class R8Command extends BaseCompilerCommand {
               getSourceFileProvider(),
               enableMissingLibraryApiModeling,
               getAndroidPlatformBuild(),
-              getStartupProfileProviders());
+              getStartupProfileProviders(),
+              getClassConflictResolver());
 
       if (inputDependencyGraphConsumer != null) {
         inputDependencyGraphConsumer.finished();
@@ -848,7 +850,8 @@ public final class R8Command extends BaseCompilerCommand {
       SourceFileProvider sourceFileProvider,
       boolean enableMissingLibraryApiModeling,
       boolean isAndroidPlatformBuild,
-      List<StartupProfileProvider> startupProfileProviders) {
+      List<StartupProfileProvider> startupProfileProviders,
+      ClassConflictResolver classConflictResolver) {
     super(
         inputApp,
         mode,
@@ -867,7 +870,8 @@ public final class R8Command extends BaseCompilerCommand {
         mapIdProvider,
         sourceFileProvider,
         isAndroidPlatformBuild,
-        startupProfileProviders);
+        startupProfileProviders,
+        classConflictResolver);
     assert proguardConfiguration != null;
     assert mainDexKeepRules != null;
     this.mainDexKeepRules = mainDexKeepRules;
@@ -1068,6 +1072,10 @@ public final class R8Command extends BaseCompilerCommand {
     internal.configureAndroidPlatformBuild(getAndroidPlatformBuild());
 
     internal.getStartupOptions().setStartupProfileProviders(getStartupProfileProviders());
+
+    internal.programClassConflictResolver =
+        ProgramClassCollection.wrappedConflictResolver(
+            getClassConflictResolver(), internal.reporter);
 
     if (!DETERMINISTIC_DEBUGGING) {
       assert internal.threadCount == ThreadUtils.NOT_SPECIFIED;

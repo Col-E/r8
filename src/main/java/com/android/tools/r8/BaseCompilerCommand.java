@@ -58,6 +58,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
   private final SourceFileProvider sourceFileProvider;
   private final boolean isAndroidPlatformBuild;
   private final List<StartupProfileProvider> startupProfileProviders;
+  private final ClassConflictResolver classConflictResolver;
 
   BaseCompilerCommand(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
@@ -78,6 +79,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     sourceFileProvider = null;
     isAndroidPlatformBuild = false;
     startupProfileProviders = null;
+    classConflictResolver = null;
   }
 
   BaseCompilerCommand(
@@ -98,7 +100,8 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       MapIdProvider mapIdProvider,
       SourceFileProvider sourceFileProvider,
       boolean isAndroidPlatformBuild,
-      List<StartupProfileProvider> startupProfileProviders) {
+      List<StartupProfileProvider> startupProfileProviders,
+      ClassConflictResolver classConflictResolver) {
     super(app);
     assert minApiLevel > 0;
     assert mode != null;
@@ -119,6 +122,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     this.sourceFileProvider = sourceFileProvider;
     this.isAndroidPlatformBuild = isAndroidPlatformBuild;
     this.startupProfileProviders = startupProfileProviders;
+    this.classConflictResolver = classConflictResolver;
   }
 
   /**
@@ -218,6 +222,10 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     return startupProfileProviders;
   }
 
+  ClassConflictResolver getClassConflictResolver() {
+    return classConflictResolver;
+  }
+
   DumpInputFlags getDumpInputFlags() {
     return dumpInputFlags;
   }
@@ -260,6 +268,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private SourceFileProvider sourceFileProvider = null;
     private boolean isAndroidPlatformBuild = false;
     private List<StartupProfileProvider> startupProfileProviders = new ArrayList<>();
+    private ClassConflictResolver classConflictResolver = null;
 
     abstract CompilationMode defaultCompilationMode();
 
@@ -781,6 +790,22 @@ public abstract class BaseCompilerCommand extends BaseCommand {
 
     List<Consumer<Inspector>> getOutputInspections() {
       return outputInspections;
+    }
+
+    /**
+     * Set a conflict resolver to determine which class definition to use in case of duplicates.
+     *
+     * <p>If no resolver is set, the compiler will fail compilation in case of duplicates.
+     *
+     * @param resolver Resolver for choosing between duplicate classes.
+     */
+    public B setClassConflictResolver(ClassConflictResolver resolver) {
+      this.classConflictResolver = resolver;
+      return self();
+    }
+
+    ClassConflictResolver getClassConflictResolver() {
+      return classConflictResolver;
     }
   }
 }

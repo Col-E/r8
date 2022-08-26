@@ -10,6 +10,7 @@ import static com.android.tools.r8.ToolHelper.isTestingR8Lib;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.compilerapi.androidplatformbuild.AndroidPlatformBuildApiTest;
 import com.android.tools.r8.compilerapi.assertionconfiguration.AssertionConfigurationTest;
+import com.android.tools.r8.compilerapi.classconflictresolver.ClassConflictResolverTest;
 import com.android.tools.r8.compilerapi.desugardependencies.DesugarDependenciesTest;
 import com.android.tools.r8.compilerapi.diagnostics.UnsupportedFeaturesDiagnosticApiTest;
 import com.android.tools.r8.compilerapi.globalsynthetics.GlobalSyntheticsTest;
@@ -51,7 +52,8 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
           UnsupportedFeaturesDiagnosticApiTest.ApiTest.class);
 
   private static final List<Class<? extends CompilerApiTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
-      ImmutableList.of(StartupProfileApiTest.ApiTest.class);
+      ImmutableList.of(
+          StartupProfileApiTest.ApiTest.class, ClassConflictResolverTest.ApiTest.class);
 
   private final TemporaryFolder temp;
 
