@@ -5,6 +5,7 @@
 package com.android.tools.r8.startup;
 
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.TextInputStream;
 import java.util.function.Consumer;
 
 /** Interface for providing a startup profile to the compiler. */
@@ -40,4 +41,15 @@ public interface StartupProfileBuilder {
    */
   StartupProfileBuilder addSyntheticStartupMethod(
       Consumer<SyntheticStartupMethodBuilder> syntheticStartupMethodBuilderConsumer);
+
+  /**
+   * Adds the rules from the given human-readable ART profile to the startup profile and then closes
+   * the stream.
+   *
+   * @see <a href="https://developer.android.com/topic/performance/baselineprofiles">ART Baseline
+   *     Profiles</a>
+   */
+  StartupProfileBuilder addHumanReadableARTProfile(
+      TextInputStream textInputStream,
+      Consumer<HumanReadableARTProfileParserBuilder> parserBuilderConsumer);
 }

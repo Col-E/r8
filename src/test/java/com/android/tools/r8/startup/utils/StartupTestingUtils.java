@@ -13,10 +13,13 @@ import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TextInputStream;
 import com.android.tools.r8.ThrowableConsumer;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.experimental.startup.instrumentation.StartupInstrumentationOptions;
 import com.android.tools.r8.experimental.startup.profile.StartupProfileParser;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.startup.HumanReadableARTProfileParserBuilder;
 import com.android.tools.r8.startup.StartupClassBuilder;
 import com.android.tools.r8.startup.StartupMethodBuilder;
 import com.android.tools.r8.startup.StartupProfileBuilder;
@@ -79,6 +82,13 @@ public class StartupTestingUtils {
         syntheticStartupMethodBuilderConsumer.accept(syntheticStartupMethodBuilder);
         startupItemConsumer.accept(syntheticStartupMethodBuilder.build());
         return this;
+      }
+
+      @Override
+      public StartupProfileBuilder addHumanReadableARTProfile(
+          TextInputStream textInputStream,
+          Consumer<HumanReadableARTProfileParserBuilder> parserBuilderConsumer) {
+        throw new Unimplemented();
       }
     };
   }

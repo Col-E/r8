@@ -4,7 +4,10 @@
 
 package com.android.tools.r8.experimental.startup.profile;
 
+import com.android.tools.r8.TextInputStream;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.startup.HumanReadableARTProfileParserBuilder;
 import com.android.tools.r8.startup.StartupClassBuilder;
 import com.android.tools.r8.startup.StartupMethodBuilder;
 import com.android.tools.r8.startup.StartupProfileBuilder;
@@ -98,6 +101,13 @@ public class StartupProfile {
           SyntheticStartupMethod.builder(dexItemFactory);
       syntheticStartupMethodBuilderConsumer.accept(syntheticStartupMethodBuilder);
       return addStartupItem(syntheticStartupMethodBuilder.build());
+    }
+
+    @Override
+    public StartupProfileBuilder addHumanReadableARTProfile(
+        TextInputStream textInputStream,
+        Consumer<HumanReadableARTProfileParserBuilder> parserBuilderConsumer) {
+      throw new Unimplemented();
     }
 
     private Builder addStartupItem(StartupItem startupItem) {
