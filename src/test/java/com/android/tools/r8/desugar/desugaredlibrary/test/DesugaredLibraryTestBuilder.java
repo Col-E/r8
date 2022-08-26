@@ -218,6 +218,11 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
+  public DesugaredLibraryTestBuilder<T> applyIfR8TestBuilder(Consumer<R8TestBuilder<?>> consumer) {
+    withR8TestBuilder(consumer);
+    return this;
+  }
+
   public DesugaredLibraryTestBuilder<T> allowDiagnosticWarningMessages() {
     withR8TestBuilder(R8TestBuilder::allowDiagnosticWarningMessages);
     return this;

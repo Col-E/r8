@@ -13,6 +13,7 @@ import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.List;
@@ -61,6 +62,10 @@ public class KotlinStdLibCompilationTest extends TestBase {
         .noTreeShaking()
         .setMode(CompilationMode.DEBUG)
         .setMinApi(parameters.getApiLevel())
+        .addDontWarnJavaLangReflectAnnotatedType()
+        .applyIf(
+            parameters.isCfRuntime(),
+            TestShrinkerBuilder::addDontWarnJavaLangInvokeLambdaMetadataFactory)
         .compile()
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."));
   }
