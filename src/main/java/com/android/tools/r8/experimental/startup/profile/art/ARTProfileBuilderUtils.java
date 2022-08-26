@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.experimental.startup.profile.art;
 
+import static com.android.tools.r8.synthesis.SyntheticNaming.COMPANION_CLASS_SUFFIX;
+import static com.android.tools.r8.synthesis.SyntheticNaming.EXTERNAL_SYNTHETIC_CLASS_SEPARATOR;
+
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
@@ -13,9 +16,6 @@ import com.android.tools.r8.startup.ARTProfileRulePredicate;
 import com.android.tools.r8.startup.StartupProfileBuilder;
 
 public class ARTProfileBuilderUtils {
-
-  private static final String COMPANION_CLASS_SUFFIX = "$-CC";
-  private static final String EXTERNAL_SYNTHETIC_SUFFIX = "$$ExternalSynthetic";
 
   public interface SyntheticToSyntheticContextGeneralization {
 
@@ -52,7 +52,10 @@ public class ARTProfileBuilderUtils {
           if (classDescriptor.regionMatches(
                   i, COMPANION_CLASS_SUFFIX, 0, COMPANION_CLASS_SUFFIX.length())
               || classDescriptor.regionMatches(
-                  i, EXTERNAL_SYNTHETIC_SUFFIX, 0, EXTERNAL_SYNTHETIC_SUFFIX.length())) {
+                  i,
+                  EXTERNAL_SYNTHETIC_CLASS_SEPARATOR,
+                  0,
+                  EXTERNAL_SYNTHETIC_CLASS_SEPARATOR.length())) {
             return Reference.classFromDescriptor(classDescriptor.substring(0, i) + ";");
           }
         }

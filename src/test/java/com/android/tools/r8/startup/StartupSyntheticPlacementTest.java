@@ -35,6 +35,7 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -196,7 +197,7 @@ public class StartupSyntheticPlacementTest extends TestBase {
   @SuppressWarnings("unchecked")
   private Set<ExternalStartupItem> getExpectedStartupList(
       CodeInspector inspector, boolean isStartupListForOriginalApp) throws NoSuchMethodException {
-    ImmutableList.Builder<ExternalStartupItem> builder = ImmutableList.builder();
+    ImmutableSet.Builder<ExternalStartupItem> builder = ImmutableSet.builder();
     builder.add(
         ExternalStartupClass.builder()
             .setClassReference(Reference.classFromClass(Main.class))
@@ -273,7 +274,7 @@ public class StartupSyntheticPlacementTest extends TestBase {
         ExternalStartupMethod.builder()
             .setMethodReference(Reference.methodFromMethod(C.class.getDeclaredMethod("c")))
             .build());
-    return new LinkedHashSet<>(builder.build());
+    return builder.build();
   }
 
   private List<ClassReference> getExpectedClassDataLayout(

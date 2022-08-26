@@ -18,6 +18,7 @@ import com.android.tools.r8.startup.utils.StartupTestingUtils;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -81,21 +82,20 @@ public class StartupInstrumentationTest extends TestBase {
   }
 
   private Set<ExternalStartupItem> getExpectedStartupList() throws NoSuchMethodException {
-    return new LinkedHashSet<>(
-        ImmutableList.of(
-            ExternalStartupClass.builder()
-                .setClassReference(Reference.classFromClass(Main.class))
-                .build(),
-            ExternalStartupMethod.builder()
-                .setMethodReference(MethodReferenceUtils.mainMethod(Main.class))
-                .build(),
-            ExternalStartupClass.builder()
-                .setClassReference(Reference.classFromClass(AStartupClass.class))
-                .build(),
-            ExternalStartupMethod.builder()
-                .setMethodReference(
-                    Reference.methodFromMethod(AStartupClass.class.getDeclaredMethod("foo")))
-                .build()));
+    return ImmutableSet.of(
+        ExternalStartupClass.builder()
+            .setClassReference(Reference.classFromClass(Main.class))
+            .build(),
+        ExternalStartupMethod.builder()
+            .setMethodReference(MethodReferenceUtils.mainMethod(Main.class))
+            .build(),
+        ExternalStartupClass.builder()
+            .setClassReference(Reference.classFromClass(AStartupClass.class))
+            .build(),
+        ExternalStartupMethod.builder()
+            .setMethodReference(
+                Reference.methodFromMethod(AStartupClass.class.getDeclaredMethod("foo")))
+            .build());
   }
 
   static class Main {

@@ -30,9 +30,11 @@ import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -104,40 +106,32 @@ public class StartupSyntheticWithoutContextTest extends TestBase {
     return ImmutableList.of("A", "B", "C");
   }
 
-  private LinkedHashSet<ExternalStartupItem> getExpectedStartupList() throws NoSuchMethodException {
-    return new LinkedHashSet<>(
-        ImmutableList.of(
-            ExternalStartupClass.builder()
-                .setClassReference(Reference.classFromClass(Main.class))
-                .build(),
-            ExternalStartupMethod.builder()
-                .setMethodReference(MethodReferenceUtils.mainMethod(Main.class))
-                .build(),
-            ExternalStartupClass.builder()
-                .setClassReference(Reference.classFromClass(A.class))
-                .build(),
-            ExternalStartupMethod.builder()
-                .setMethodReference(Reference.methodFromMethod(A.class.getDeclaredMethod("a")))
-                .build(),
-            ExternalStartupClass.builder()
-                .setClassReference(Reference.classFromClass(B.class))
-                .build(),
-            ExternalStartupMethod.builder()
-                .setMethodReference(Reference.methodFromMethod(B.class.getDeclaredMethod("b")))
-                .build(),
-            ExternalSyntheticStartupMethod.builder()
-                .setSyntheticContextReference(Reference.classFromClass(B.class))
-                .build(),
-            ExternalStartupMethod.builder()
-                .setMethodReference(
-                    Reference.methodFromMethod(B.class.getDeclaredMethod("lambda$b$0")))
-                .build(),
-            ExternalStartupClass.builder()
-                .setClassReference(Reference.classFromClass(C.class))
-                .build(),
-            ExternalStartupMethod.builder()
-                .setMethodReference(Reference.methodFromMethod(C.class.getDeclaredMethod("c")))
-                .build()));
+  private Set<ExternalStartupItem> getExpectedStartupList() throws NoSuchMethodException {
+    return ImmutableSet.of(
+        ExternalStartupClass.builder()
+            .setClassReference(Reference.classFromClass(Main.class))
+            .build(),
+        ExternalStartupMethod.builder()
+            .setMethodReference(MethodReferenceUtils.mainMethod(Main.class))
+            .build(),
+        ExternalStartupClass.builder().setClassReference(Reference.classFromClass(A.class)).build(),
+        ExternalStartupMethod.builder()
+            .setMethodReference(Reference.methodFromMethod(A.class.getDeclaredMethod("a")))
+            .build(),
+        ExternalStartupClass.builder().setClassReference(Reference.classFromClass(B.class)).build(),
+        ExternalStartupMethod.builder()
+            .setMethodReference(Reference.methodFromMethod(B.class.getDeclaredMethod("b")))
+            .build(),
+        ExternalSyntheticStartupMethod.builder()
+            .setSyntheticContextReference(Reference.classFromClass(B.class))
+            .build(),
+        ExternalStartupMethod.builder()
+            .setMethodReference(Reference.methodFromMethod(B.class.getDeclaredMethod("lambda$b$0")))
+            .build(),
+        ExternalStartupClass.builder().setClassReference(Reference.classFromClass(C.class)).build(),
+        ExternalStartupMethod.builder()
+            .setMethodReference(Reference.methodFromMethod(C.class.getDeclaredMethod("c")))
+            .build());
   }
 
   private List<ClassReference> getExpectedClassDataLayout(int virtualFile) {

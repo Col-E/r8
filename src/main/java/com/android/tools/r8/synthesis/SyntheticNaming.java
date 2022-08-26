@@ -38,7 +38,7 @@ public class SyntheticNaming {
       generator.forFixedClass("$EnumUnboxingLocalUtility");
   public final SyntheticKind ENUM_UNBOXING_SHARED_UTILITY_CLASS =
       generator.forFixedClass("$EnumUnboxingSharedUtility");
-  public final SyntheticKind COMPANION_CLASS = generator.forFixedClass("$-CC");
+  public final SyntheticKind COMPANION_CLASS = generator.forFixedClass(COMPANION_CLASS_SUFFIX);
   public final SyntheticKind EMULATED_INTERFACE_CLASS =
       generator.forFixedClass(InterfaceDesugaringForTesting.EMULATED_INTERFACE_CLASS_SUFFIX);
   public final SyntheticKind RETARGET_CLASS = generator.forFixedClass("RetargetClass");
@@ -348,6 +348,7 @@ public class SyntheticNaming {
     }
   }
 
+  public static final String COMPANION_CLASS_SUFFIX = "$-CC";
   private static final String SYNTHETIC_CLASS_SEPARATOR = "$$";
   /**
    * The internal synthetic class separator is only used for representing synthetic items during
@@ -360,7 +361,7 @@ public class SyntheticNaming {
    * The external synthetic class separator is used when writing classes. It may appear in types
    * during compilation as the output of a compilation may be the input to another.
    */
-  private static final String EXTERNAL_SYNTHETIC_CLASS_SEPARATOR =
+  public static final String EXTERNAL_SYNTHETIC_CLASS_SEPARATOR =
       SYNTHETIC_CLASS_SEPARATOR + "ExternalSynthetic";
   /** Method name when generating synthetic methods in a class. */
   static final String INTERNAL_SYNTHETIC_METHOD_NAME = "m";
