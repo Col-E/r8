@@ -1,20 +1,25 @@
 # Description of the human desugared library configuration file
 
-## Version
+## Top-level flags
+
+### Identifier
+
+The field `identifier` is the maven-coordinated id for the desugared library
+configuration file with the group id, the artifact id and the version number
+joined with colon.
+
+### Version
 
 The field `configuration_format_version` encodes a versioning number internal to
 R8/D8 in the form of an unsigned integer. It allows R8/D8 to know if the file
-given is supported. If the number if greater or equal to 100, the file is
-encoded using the human flags (by opposition to the legacy flags). Human flags
-are not shipped to external users. Human flags can be converted to machine flags
-which are shipped to external users. Users internal to Google are allowed to use
-directly human flags if we can easily update the file without backward
+given is supported. If the number is between 100 and 200, the file is encoded
+using the human flags (by opposition to the legacy and machine flags). Human
+flags are not shipped to external users. Human flags can be converted to machine
+flags which are shipped to external users. Users internal to Google are allowed
+to use directly human flags if we can easily update the file without backward
 compatibility issues.
 
-The field `identifier` is the maven-coordinated id for the desugared library
-configuration file.
-
-## Required compilation API level
+### Required compilation API level
 
 The field `required_compilation_api_level` encodes the minimal Android API level
 required for the desugared library to be compiled correctly. If the API of
@@ -22,13 +27,13 @@ library used for compilation of the library or a program using the library is
 lower than this level, one has to upgrade the SDK version used to be able to use
 desugared libraries.
 
-## Synthesize prefix
+### Synthesize prefix
 
-The field `synthesized_library_classes_package_prefix` is used both to prefix
-type names of synthetic classes created during the L8 compilation and for some
-of the rewritings.
+The field `synthesized_library_classes_package_prefix` is used to prefix type
+names of synthetic classes created during the L8 compilation. It is also used
+for minification in the `java.` namespace to avoid collisions with platforms.
 
-## Library callbacks
+### Library callbacks
 
 The field `support_all_callbacks_from_library` is set if D8/R8 should generate
 extra callbacks, i.e., methods that may be called from specific library
@@ -51,16 +56,47 @@ The following subsections describe each rewriting flag.
 ### Flag rewrite_prefix
 
 `prefix: rewrittenPrefix`
-D8/R8 identifies any class type matching the prefix, and rewrite such types with
-the new prefix. Types not present as class types are not rewritten. Implicitly,
-all synthetic types derived from the matching type are also rewritten (lambdas
-and backports in the class, etc.).
+D8/R8 identifies any class which type matches the prefix, and rewrite such types
+with the new prefix. Types not present as class types are not rewritten.
+Implicitly, all synthetic types derived from the matching type are also
+rewritten (lambdas and backports in the class, etc.). Lastly, types referenced
+directly or indirectly from other flags (method retargeting, custom conversions,
+emulated interfaces, api generic type conversion) are identified and rewritten.
+
+The exact list of types is computed when generating the machine specification
+and the pattern matching never applies to user code, but instead to the
+desugared library jar and `android.jar`.
 
 Example:
 `foo.: f$.`
 A class present with the type foo.Foo will generate a rewrite rule:
 foo.Foo -> f$.Foo. A type present foo.Bar, which is not the type of any class,
 will not generate any rewrite rule.
+
+### Flag maintain_prefix
+
+`prefix`
+D8/R8 identifies any class which type matches the prefix, and maintain such
+class in desugared library in the `java` namespace. Using this flag implicitly
+means that at runtime, either a class from the bootclasspath with the same name
+will take precedence and be used, or this class will be used on lower api
+levels.
+
+Using `maintain_prefix` allows desugared library code to work seamlessly with
+recent apis (no wrappers or conversions required), at the cost of preventing
+some signature changes (the signature in desugared library, even when shrinking,
+has to match the library one). This can be done only with classes which behavior
+is identical between desugared library and platform. Lastly, derived synthetic
+classes from code in such classes (lambdas, etc.) are still moved to the new
+namespace to avoid collisions with platform, so one has to be extra careful with
+package private access being broken in this set-up.
+
+Example:
+`foo.`
+A class present with the type `foo.Foo` will be maintained in the output as
+`foo.Foo`. If `synthesized_library_classes_package_prefix` is `f$`, then all the
+derived synthetic classes such as lambdas inside `foo.Foo` will be generated as
+`f$.Foo$lambda-hash`.
 
 ### Flag rewrite_derived_prefix
 
@@ -73,6 +109,56 @@ Example:
 `foo.: { f$.: foo. }`
 A class present with the type foo.Foo will generate a rewrite rule:
 f$.Foo -> foo.Foo.
+
+### Flag dont_rewrite_prefix
+
+`prefix`
+D8/R8 identifies any class type matching the prefix, does not rewrite it and
+shrinks it away from the input. This flags takes precedence over 
+`rewrite_prefix` and `rewrite_derived_prefix`, allowing to disable prefix 
+rewriting on subpatterns.
+
+Example:
+`foo.`
+No class prefixed with foo. will be rewritten or kept in the output.
+
+### Flag never_outline_api
+
+`method`
+D8/R8 tries to outline api calls working only on high api levels and requiring
+conversions as much as possible to share the code and avoid soft verification
+errors. Methods specified here are never outlined. This is usually worse for the
+users, unless the api is expected to introspect the stack, in which case the
+extra frame is confusing.
+
+### Flag api_generic_types_conversion
+
+`methodApi: [i0, conversionMethod0, ..., iN, conversionMethodN]`
+D8/R8 automatically generates conversions surrounding api calls with rewritten
+types which are specified in custom conversions/wrappers. D8/R8 does not
+automatically convert types from generic types such as collection items, or
+conversion requiring to convert multiple values in general
+
+This flag is used to specify a plateform api (methodApi) which parameters or
+return value require a conversion different from the default one. The value is
+an array of pair. The pair's key (i0, .., iN) is the parameter index if greater
+or equal to 0, or the return type if -1. The pair's value (conversionMethod0,
+.., N) is the conversion method to use to convert the value.
+
+Example:
+`void bar(foo.Foo): [0, foo.Foo FooConverter#convertFoo(f$.Foo)]`
+When generating conversion for the api bar, the parameter 0 foo.Foo will be
+converted using FooConverter#convertFoo instead of the default conversion logic.
+
+### Flag retarget_static_field
+
+`field: retargetField`
+D8/R8 rewrites all references from the static field to the static retargetField.
+
+Example:
+`int Foo#bar: int Zorg#foo`
+D8/R8 rewrites all references to the field named bar in Foo to the field named
+foo in Zorg.
 
 ### Flag retarget_method
 
@@ -106,6 +192,13 @@ generates an emulated dispatch scheme so that the method can be retargeted, but
 the virtual dispatch is still valid and will correctly call the overrides if
 present.
 
+### Flag covariant_retarget_method
+
+`methodWithCovariantReturnType: alternativeReturnType`
+Any invoke to methodWithCovariantReturnType will be rewritten to a call to the
+same method with the alternativeReturnType and a checkcast. This is used to deal
+with covariant return types which are not present in desugared library.
+
 ### Flag amend_library_method
 
 `modifiers method`
@@ -116,6 +209,12 @@ Android SDK, or because the method is private.
 
 This flag amends the library to introduce the method, so resolution can find it
 and retarget it correctly.
+
+### Flag amend_library_field
+
+`modifiers field`
+Similar to amend_library_method, adds a field into the library so that field
+resolution can find it and it can be retargeted.
 
 ### Flag dont_retarget
 
@@ -164,12 +263,13 @@ of the form:
 Type convert(RewrittenType)
 RewrittenType convert(Type)
 
-## Extra keep rules
+## Shrinker config
 
-The last field is `extra_keep_rules`, it includes keep rules that are appended
-by L8 when shrinking the desugared library. It includes keep rules related to
+The last field is `shrinker_config`, it includes keep rules that are appended by
+L8 when shrinking the desugared library. It includes keep rules related to
 reflection inside the desugared library, related to enum to have EnumSet working
-and to keep the j$ prefix.
+and to keep the j$ prefix. It also includes various keep rules to suppor common
+serializers.
 
 ## Copyright
 
