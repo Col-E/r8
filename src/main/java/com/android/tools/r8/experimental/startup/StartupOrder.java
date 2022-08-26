@@ -8,6 +8,8 @@ import com.android.tools.r8.experimental.startup.profile.StartupItem;
 import com.android.tools.r8.experimental.startup.profile.StartupProfile;
 import com.android.tools.r8.experimental.startup.profile.art.ARTProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
@@ -22,13 +24,25 @@ public abstract class StartupOrder {
 
   public static StartupOrder createInitialStartupOrder(
       InternalOptions options,
+      DexDefinitionSupplier definitions,
       SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
     StartupProfile startupProfile =
-        StartupProfile.parseStartupProfile(options, syntheticToSyntheticContextGeneralization);
+        StartupProfile.parseStartupProfile(
+            options, definitions, syntheticToSyntheticContextGeneralization);
     if (startupProfile == null || startupProfile.getStartupItems().isEmpty()) {
       return empty();
     }
     return new NonEmptyStartupOrder(new LinkedHashSet<>(startupProfile.getStartupItems()));
+  }
+
+  public static StartupOrder createInitialStartupOrderForD8(AppView<?> appView) {
+    return createInitialStartupOrder(
+        appView.options(), appView, SyntheticToSyntheticContextGeneralization.createForD8());
+  }
+
+  public static StartupOrder createInitialStartupOrderForR8(DexApplication application) {
+    return createInitialStartupOrder(
+        application.options, application, SyntheticToSyntheticContextGeneralization.createForR8());
   }
 
   public static StartupOrder empty() {

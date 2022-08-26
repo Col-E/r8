@@ -9,6 +9,7 @@ import com.android.tools.r8.experimental.startup.profile.art.ARTProfileBuilderUt
 import com.android.tools.r8.experimental.startup.profile.art.ARTProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
 import com.android.tools.r8.experimental.startup.profile.art.AlwaysTrueARTProfileRulePredicate;
 import com.android.tools.r8.experimental.startup.profile.art.HumanReadableARTProfileParser;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.startup.ARTProfileRulePredicate;
 import com.android.tools.r8.startup.HumanReadableARTProfileParserBuilder;
@@ -17,6 +18,8 @@ import com.android.tools.r8.startup.StartupMethodBuilder;
 import com.android.tools.r8.startup.StartupProfileBuilder;
 import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.startup.SyntheticStartupMethodBuilder;
+import com.android.tools.r8.startup.diagnostic.MissingStartupProfileItemsDiagnostic;
+import com.android.tools.r8.startup.diagnostic.MissingStartupProfileItemsDiagnostic.Builder;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.ArrayList;
@@ -35,9 +38,14 @@ public class StartupProfile {
 
   public static Builder builder(
       InternalOptions options,
+      MissingStartupProfileItemsDiagnostic.Builder missingItemsDiagnosticBuilder,
       StartupProfileProvider startupProfileProvider,
       SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
-    return new Builder(options, startupProfileProvider, syntheticToSyntheticContextGeneralization);
+    return new Builder(
+        options,
+        missingItemsDiagnosticBuilder,
+        startupProfileProvider,
+        syntheticToSyntheticContextGeneralization);
   }
 
   public static StartupProfile merge(Collection<StartupProfile> startupProfiles) {
@@ -65,6 +73,7 @@ public class StartupProfile {
    */
   public static StartupProfile parseStartupProfile(
       InternalOptions options,
+      DexDefinitionSupplier definitions,
       SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
     if (!options.getStartupOptions().hasStartupProfileProviders()) {
       return null;
@@ -73,11 +82,20 @@ public class StartupProfile {
         options.getStartupOptions().getStartupProfileProviders();
     List<StartupProfile> startupProfiles = new ArrayList<>(startupProfileProviders.size());
     for (StartupProfileProvider startupProfileProvider : startupProfileProviders) {
+      MissingStartupProfileItemsDiagnostic.Builder missingItemsDiagnosticBuilder =
+          new MissingStartupProfileItemsDiagnostic.Builder(definitions)
+              .setOrigin(startupProfileProvider.getOrigin());
       StartupProfile.Builder startupProfileBuilder =
           StartupProfile.builder(
-              options, startupProfileProvider, syntheticToSyntheticContextGeneralization);
+              options,
+              missingItemsDiagnosticBuilder,
+              startupProfileProvider,
+              syntheticToSyntheticContextGeneralization);
       startupProfileProvider.getStartupProfile(startupProfileBuilder);
       startupProfiles.add(startupProfileBuilder.build());
+      if (missingItemsDiagnosticBuilder.hasMissingStartupItems()) {
+        options.reporter.warning(missingItemsDiagnosticBuilder.build());
+      }
     }
     return StartupProfile.merge(startupProfiles);
   }
@@ -89,6 +107,7 @@ public class StartupProfile {
   public static class Builder implements StartupProfileBuilder {
 
     private final DexItemFactory dexItemFactory;
+    private final MissingStartupProfileItemsDiagnostic.Builder missingItemsDiagnosticBuilder;
     private final InternalOptions options;
     private final StartupProfileProvider startupProfileProvider;
     private final SyntheticToSyntheticContextGeneralization
@@ -98,9 +117,11 @@ public class StartupProfile {
 
     Builder(
         InternalOptions options,
+        MissingStartupProfileItemsDiagnostic.Builder missingItemsDiagnosticBuilder,
         StartupProfileProvider startupProfileProvider,
         SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
       this.dexItemFactory = options.dexItemFactory();
+      this.missingItemsDiagnosticBuilder = missingItemsDiagnosticBuilder;
       this.options = options;
       this.startupProfileProvider = startupProfileProvider;
       this.syntheticToSyntheticContextGeneralization = syntheticToSyntheticContextGeneralization;
@@ -110,14 +131,22 @@ public class StartupProfile {
     public Builder addStartupClass(Consumer<StartupClassBuilder> startupClassBuilderConsumer) {
       StartupClass.Builder startupClassBuilder = StartupClass.builder(dexItemFactory);
       startupClassBuilderConsumer.accept(startupClassBuilder);
-      return addStartupItem(startupClassBuilder.build());
+      StartupClass startupClass = startupClassBuilder.build();
+      if (missingItemsDiagnosticBuilder.registerStartupClass(startupClass)) {
+        return this;
+      }
+      return addStartupItem(startupClass);
     }
 
     @Override
     public Builder addStartupMethod(Consumer<StartupMethodBuilder> startupMethodBuilderConsumer) {
       StartupMethod.Builder startupMethodBuilder = StartupMethod.builder(dexItemFactory);
       startupMethodBuilderConsumer.accept(startupMethodBuilder);
-      return addStartupItem(startupMethodBuilder.build());
+      StartupMethod startupMethod = startupMethodBuilder.build();
+      if (missingItemsDiagnosticBuilder.registerStartupMethod(startupMethod)) {
+        return this;
+      }
+      return addStartupItem(startupMethod);
     }
 
     @Override
@@ -126,7 +155,11 @@ public class StartupProfile {
       SyntheticStartupMethod.Builder syntheticStartupMethodBuilder =
           SyntheticStartupMethod.builder(dexItemFactory);
       syntheticStartupMethodBuilderConsumer.accept(syntheticStartupMethodBuilder);
-      return addStartupItem(syntheticStartupMethodBuilder.build());
+      SyntheticStartupMethod syntheticStartupMethod = syntheticStartupMethodBuilder.build();
+      if (missingItemsDiagnosticBuilder.registerSyntheticStartupMethod(syntheticStartupMethod)) {
+        return this;
+      }
+      return addStartupItem(syntheticStartupMethod);
     }
 
     @Override
