@@ -60,7 +60,6 @@ public class FeatureSplitBoundaryOptimizationUtils {
 
     // First guarantee that we don't cross any actual feature split boundaries.
     if (!calleeFeatureSplit.isBase()) {
-      assert !callerFeatureSplit.isBase() : "Unexpected call into a feature from base";
       if (calleeFeatureSplit != callerFeatureSplit) {
         return false;
       }
