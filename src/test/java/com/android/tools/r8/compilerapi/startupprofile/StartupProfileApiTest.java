@@ -15,6 +15,7 @@ import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TextInputStream;
 import com.android.tools.r8.compilerapi.CompilerApiTest;
 import com.android.tools.r8.compilerapi.CompilerApiTestRunner;
 import com.android.tools.r8.origin.Origin;
@@ -27,10 +28,12 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.startup.StartupProfileBuilder;
 import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.utils.ThrowingConsumer;
-import com.android.tools.r8.utils.UTF8TextInputStream;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -118,7 +121,18 @@ public class StartupProfileApiTest extends CompilerApiTestRunner {
           // Create parser and parse ART profile.
           List<ClassReference> seenClasses = new ArrayList<>();
           startupProfileBuilder.addHumanReadableArtProfile(
-              new UTF8TextInputStream(inputStream),
+              new TextInputStream() {
+
+                @Override
+                public InputStream getInputStream() {
+                  return inputStream;
+                }
+
+                @Override
+                public Charset getCharset() {
+                  return StandardCharsets.UTF_8;
+                }
+              },
               parserBuilder ->
                   parserBuilder.setRulePredicate(
                       new ArtProfileRulePredicate() {
