@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.NumericType;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 
@@ -34,13 +35,27 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
 
   public void onConstNull() {}
 
+  public void onConstNumber(NumericType type, long value) {}
+
+  public void onConstInt(int value) {
+    onConstNumber(NumericType.INT, value);
+  }
+
   public void onConstString(DexString string) {}
+
+  public void onDiv(NumericType type, int leftValueIndex, int rightValueIndex) {}
+
+  public void onDivInt(int leftValueIndex, int rightValueIndex) {
+    onDiv(NumericType.INT, leftValueIndex, rightValueIndex);
+  }
 
   public void onIf(If.Type ifKind, int blockIndex, int valueIndex) {}
 
   public void onGoto(int blockIndex) {}
 
   public void onFallthrough() {}
+
+  public void onMoveException(DexType exceptionType) {}
 
   public void onInvokeMethodInstruction(DexMethod method, IntList arguments) {}
 
@@ -74,67 +89,94 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
 
   @Override
   public final void onInstructionView(LIRInstructionView view) {
-    switch (view.getOpcode()) {
+    int opcode = view.getOpcode();
+    switch (opcode) {
       case LIROpcodes.ACONST_NULL:
         {
           onConstNull();
-          break;
+          return;
         }
       case LIROpcodes.LDC:
         {
           DexItem item = getConstantItem(view.getNextConstantOperand());
           if (item instanceof DexString) {
             onConstString((DexString) item);
+            return;
           }
-          break;
+          throw new Unimplemented();
+        }
+      case LIROpcodes.ICONST_M1:
+      case LIROpcodes.ICONST_0:
+      case LIROpcodes.ICONST_1:
+      case LIROpcodes.ICONST_2:
+      case LIROpcodes.ICONST_3:
+      case LIROpcodes.ICONST_4:
+      case LIROpcodes.ICONST_5:
+        {
+          int value = opcode - LIROpcodes.ICONST_0;
+          onConstInt(value);
+          return;
+        }
+      case LIROpcodes.ICONST:
+        {
+          int value = view.getNextIntegerOperand();
+          onConstInt(value);
+          return;
+        }
+      case LIROpcodes.IDIV:
+        {
+          int leftValueIndex = view.getNextValueOperand();
+          int rightValueIndex = view.getNextValueOperand();
+          onDivInt(leftValueIndex, rightValueIndex);
+          return;
         }
       case LIROpcodes.IFNE:
         {
           int blockIndex = view.getNextBlockOperand();
           int valueIndex = view.getNextValueOperand();
           onIf(If.Type.NE, blockIndex, valueIndex);
-          break;
+          return;
         }
       case LIROpcodes.GOTO:
         {
           int blockIndex = view.getNextBlockOperand();
           onGoto(blockIndex);
-          break;
+          return;
         }
       case LIROpcodes.INVOKEDIRECT:
         {
           DexMethod target = getInvokeInstructionTarget(view);
           IntList arguments = getInvokeInstructionArguments(view);
           onInvokeDirect(target, arguments);
-          break;
+          return;
         }
       case LIROpcodes.INVOKEVIRTUAL:
         {
           DexMethod target = getInvokeInstructionTarget(view);
           IntList arguments = getInvokeInstructionArguments(view);
           onInvokeVirtual(target, arguments);
-          break;
+          return;
         }
       case LIROpcodes.GETSTATIC:
         {
           DexField field = (DexField) getConstantItem(view.getNextConstantOperand());
           onStaticGet(field);
-          break;
+          return;
         }
       case LIROpcodes.RETURN:
         {
           onReturnVoid();
-          break;
+          return;
         }
       case LIROpcodes.ARRAYLENGTH:
         {
           onArrayLength(view.getNextValueOperand());
-          break;
+          return;
         }
       case LIROpcodes.DEBUGPOS:
         {
           onDebugPosition();
-          break;
+          return;
         }
       case LIROpcodes.PHI:
         {
@@ -144,15 +186,21 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
             operands.add(view.getNextValueOperand());
           }
           onPhi(type, operands);
-          break;
+          return;
         }
       case LIROpcodes.FALLTHROUGH:
         {
           onFallthrough();
-          break;
+          return;
+        }
+      case LIROpcodes.MOVEEXCEPTION:
+        {
+          DexType type = (DexType) getConstantItem(view.getNextConstantOperand());
+          onMoveException(type);
+          return;
         }
       default:
-        throw new Unimplemented("No dispatch for opcode " + LIROpcodes.toString(view.getOpcode()));
+        throw new Unimplemented("No dispatch for opcode " + LIROpcodes.toString(opcode));
     }
   }
 

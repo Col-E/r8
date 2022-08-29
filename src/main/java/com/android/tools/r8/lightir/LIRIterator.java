@@ -82,21 +82,24 @@ public class LIRIterator implements Iterator<LIRInstructionView>, LIRInstruction
   }
 
   @Override
-  public int getNextConstantOperand() {
+  public int getNextIntegerOperand() {
     assert hasMoreOperands();
     return u4();
+  }
+
+  @Override
+  public int getNextConstantOperand() {
+    return getNextIntegerOperand();
   }
 
   @Override
   public int getNextValueOperand() {
-    assert hasMoreOperands();
-    return u4();
+    return getNextIntegerOperand();
   }
 
   @Override
   public int getNextBlockOperand() {
-    assert hasMoreOperands();
-    return u4();
+    return getNextIntegerOperand();
   }
 
   private void skip(int i) {

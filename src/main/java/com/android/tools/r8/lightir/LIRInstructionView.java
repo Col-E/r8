@@ -27,6 +27,9 @@ public interface LIRInstructionView {
   /** True if the instruction has any operands that have not yet been parsed. */
   boolean hasMoreOperands();
 
+  /** Get the next operand as an encoded integer */
+  int getNextIntegerOperand();
+
   /** Get the next operand as a constant-pool index. */
   int getNextConstantOperand();
 

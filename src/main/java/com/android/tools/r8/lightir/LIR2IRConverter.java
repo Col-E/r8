@@ -14,9 +14,11 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.ArrayLength;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DebugPosition;
+import com.android.tools.r8.ir.code.Div;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
@@ -24,7 +26,9 @@ import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeVirtual;
+import com.android.tools.r8.ir.code.MoveException;
 import com.android.tools.r8.ir.code.NumberGenerator;
+import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.code.Position;
@@ -34,6 +38,7 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.lightir.LIRCode.PositionEntry;
+import com.android.tools.r8.utils.ListUtils;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -96,6 +101,13 @@ public class LIR2IRConverter {
       // instruction denotes a new block.
       if (currentBlock == null) {
         currentBlock = blocks.computeIfAbsent(nextInstructionIndex, k -> new BasicBlock());
+        CatchHandlers<Integer> handlers =
+            code.getTryCatchTable().getHandlersForBlock(nextInstructionIndex);
+        if (handlers != null) {
+          List<BasicBlock> targets = ListUtils.map(handlers.getAllTargets(), this::getBasicBlock);
+          targets.forEach(currentBlock::link);
+          currentBlock.linkCatchSuccessors(handlers.getGuards(), targets);
+        }
       } else {
         assert !blocks.containsKey(nextInstructionIndex);
       }
@@ -263,6 +275,19 @@ public class LIR2IRConverter {
     }
 
     @Override
+    public void onConstInt(int value) {
+      Value dest = getOutValueForNextInstruction(TypeElement.getInt());
+      addInstruction(new ConstNumber(dest, value));
+    }
+
+    @Override
+    public void onDivInt(int leftValueIndex, int rightValueIndex) {
+      Value dest = getOutValueForNextInstruction(TypeElement.getInt());
+      addInstruction(
+          new Div(NumericType.INT, dest, getValue(leftValueIndex), getValue(rightValueIndex)));
+    }
+
+    @Override
     public void onConstString(DexString string) {
       Value dest = getOutValueForNextInstruction(TypeElement.stringClassType(appView));
       addInstruction(new ConstString(dest, string));
@@ -348,6 +373,12 @@ public class LIR2IRConverter {
         values.add(getValue(operands.getInt(i)));
       }
       phi.addOperands(values);
+    }
+
+    @Override
+    public void onMoveException(DexType exceptionType) {
+      Value dest = getOutValueForNextInstruction(exceptionType.toTypeElement(appView));
+      addInstruction(new MoveException(dest, exceptionType, appView.options()));
     }
   }
 }

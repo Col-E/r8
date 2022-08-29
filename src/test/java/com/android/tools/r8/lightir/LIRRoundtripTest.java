@@ -5,6 +5,7 @@ package com.android.tools.r8.lightir;
 
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -18,7 +19,13 @@ public class LIRRoundtripTest extends TestBase {
 
   static class TestClass {
     public static void main(String[] args) {
-      System.out.println(args.length == 0 ? "Hello, world!" : "Oh no!");
+      String message = "Hello, world!";
+      try {
+        System.out.println(42 / (args.length == 0 ? 0 : 1));
+        message = "Oh no!";
+      } catch (ArithmeticException ignored) {
+      }
+      System.out.println(message);
     }
   }
 
@@ -57,7 +64,8 @@ public class LIRRoundtripTest extends TestBase {
         .assertSuccessWithOutputLines("Hello, world!");
   }
 
-  @Test
+  // TODO(b/225838009): Support debug local info.
+  @Test(expected = CompilationFailedException.class)
   public void testRoundtripDebug() throws Exception {
     testForD8(parameters.getBackend())
         .debug()

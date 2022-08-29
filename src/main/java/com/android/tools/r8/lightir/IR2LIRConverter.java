@@ -6,12 +6,14 @@ package com.android.tools.r8.lightir;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
+import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.lightir.LIRBuilder.BlockIndexGetter;
+import com.android.tools.r8.utils.ListUtils;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
@@ -66,6 +68,13 @@ public class IR2LIRConverter {
           permuteOperands(phi.getOperands(), permutation, operands);
           builder.addPhi(phi.getType(), Arrays.asList(operands));
         }
+      }
+      if (block.hasCatchHandlers()) {
+        CatchHandlers<BasicBlock> handlers = block.getCatchHandlers();
+        builder.addTryCatchHanders(
+            blocks.getInt(block),
+            new CatchHandlers(
+                handlers.getGuards(), ListUtils.map(handlers.getAllTargets(), blocks::getInt)));
       }
       InstructionIterator it = block.iterator();
       while (it.hasNext()) {

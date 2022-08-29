@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.lightir.LIRBuilder;
 import com.android.tools.r8.utils.InternalOptions;
 
 public class MoveException extends Instruction {
@@ -130,5 +131,10 @@ public class MoveException extends Instruction {
   @Override
   public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     return false;
+  }
+
+  @Override
+  public void buildLIR(LIRBuilder<Value, BasicBlock> builder) {
+    builder.addMoveException(exceptionType);
   }
 }

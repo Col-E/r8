@@ -12,13 +12,19 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.If.Type;
+import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.lightir.LIRCode.PositionEntry;
+import com.android.tools.r8.lightir.LIRCode.TryCatchTable;
 import com.android.tools.r8.utils.ListUtils;
+import com.google.common.collect.ImmutableList;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
@@ -59,6 +65,9 @@ public class LIRBuilder<V, B> {
   private Position currentPosition;
   private Position flushedPosition;
 
+  private final Int2ReferenceMap<CatchHandlers<Integer>> tryCatchRanges =
+      new Int2ReferenceOpenHashMap<>();
+
   // TODO(b/225838009): Reconsider this fixed space as the operand count for phis is much larger.
   // Pre-allocated space for caching value indexes when writing instructions.
   private static final int MAX_VALUE_COUNT = 10;
@@ -76,6 +85,10 @@ public class LIRBuilder<V, B> {
     this.blockIndexGetter = blockIndexGetter;
     currentPosition = SyntheticPosition.builder().setLine(0).setMethod(method).build();
     flushedPosition = currentPosition;
+  }
+
+  public void addTryCatchHanders(int blockIndex, CatchHandlers<Integer> handlers) {
+    tryCatchRanges.put(blockIndex, handlers);
   }
 
   public LIRBuilder<V, B> setCurrentPosition(Position position) {
@@ -204,8 +217,51 @@ public class LIRBuilder<V, B> {
     return this;
   }
 
+  public LIRBuilder<V, B> addConstNumber(ValueType type, long value) {
+    switch (type) {
+      case OBJECT:
+        return addConstNull();
+      case INT:
+        {
+          int intValue = (int) value;
+          if (-1 <= intValue && intValue <= 5) {
+            int opcode = LIROpcodes.ICONST_0 + intValue;
+            return addNoOperandInstruction(opcode);
+          }
+          int opcode = LIROpcodes.ICONST;
+          int size = ByteUtils.intEncodingSize(intValue);
+          writer.writeInstruction(opcode, size);
+          ByteUtils.writeEncodedInt(intValue, writer::writeOperand);
+          return this;
+        }
+      case FLOAT:
+      case LONG:
+      case DOUBLE:
+      default:
+        throw new Unimplemented();
+    }
+  }
+
   public LIRBuilder<V, B> addConstString(DexString string) {
     return addOneItemInstruction(LIROpcodes.LDC, string);
+  }
+
+  public LIRBuilder<V, B> addDiv(NumericType type, V leftValue, V rightValue) {
+    switch (type) {
+      case BYTE:
+      case CHAR:
+      case SHORT:
+      case INT:
+        {
+          return addInstructionTemplate(
+              LIROpcodes.IDIV, Collections.emptyList(), ImmutableList.of(leftValue, rightValue));
+        }
+      case LONG:
+      case FLOAT:
+      case DOUBLE:
+      default:
+        throw new Unimplemented();
+    }
   }
 
   public LIRBuilder<V, B> addArrayLength(V array) {
@@ -326,6 +382,10 @@ public class LIRBuilder<V, B> {
     return this;
   }
 
+  public LIRBuilder<V, B> addMoveException(DexType exceptionType) {
+    return addOneItemInstruction(LIROpcodes.MOVEEXCEPTION, exceptionType);
+  }
+
   public LIRBuilder<V, B> addPhi(TypeElement type, List<V> operands) {
     DexType dexType =
         type.isPrimitiveType()
@@ -345,6 +405,7 @@ public class LIRBuilder<V, B> {
         positionTable.toArray(new PositionEntry[positionTable.size()]),
         argumentCount,
         byteWriter.toByteArray(),
-        instructionCount);
+        instructionCount,
+        new TryCatchTable(tryCatchRanges));
   }
 }

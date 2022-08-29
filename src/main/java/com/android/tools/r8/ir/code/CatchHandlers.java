@@ -29,6 +29,10 @@ public class CatchHandlers<T> implements Iterable<CatchHandler<T>> {
     public T getTarget() {
       return target;
     }
+
+    public DexType getGuard() {
+      return guard;
+    }
   }
 
   private final List<DexType> guards;
