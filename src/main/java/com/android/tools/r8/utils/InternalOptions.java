@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
-import static com.android.tools.r8.utils.AndroidApiLevel.ANDROID_PLATFORM;
 import static com.android.tools.r8.utils.AndroidApiLevel.B;
 import static com.android.tools.r8.utils.SystemPropertyUtils.parseSystemPropertyForDevelopmentOrDefault;
 
@@ -274,8 +273,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
     // Configure options according to platform build assumptions.
     // See go/r8platformflag and b/232073181.
-    minApiLevel = ANDROID_PLATFORM;
     apiModelingOptions().disableMissingApiModeling();
+    enableBackportMethods = false;
   }
 
   public boolean printTimes = System.getProperty("com.android.tools.r8.printtimes") != null;
@@ -500,20 +499,12 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     this.globalSyntheticsConsumer = globalSyntheticsConsumer;
   }
 
-  public boolean isAndroidPlatform() {
-    return minApiLevel == ANDROID_PLATFORM;
-  }
-
   public boolean isDesugaredLibraryCompilation() {
     return machineDesugaredLibrarySpecification.isLibraryCompilation();
   }
 
   public boolean isRelocatorCompilation() {
     return relocatorCompilation;
-  }
-
-  public boolean shouldBackportMethods() {
-    return !hasConsumer() || isGeneratingDex() || isCfDesugaring();
   }
 
   public boolean shouldKeepStackMapTable() {
@@ -611,6 +602,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean enableLoadStoreOptimization = true;
   // Flag to turn on/off desugaring in D8/R8.
   public DesugarState desugarState = DesugarState.ON;
+  // Flag to turn on/off backport methods.
+  public boolean enableBackportMethods = true;
   // Flag to turn on/off reduction of nest to improve class merging optimizations.
   public boolean enableNestReduction = true;
   // Defines interface method rewriter behavior.
@@ -2205,7 +2198,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     // the highest known API level when the compiler is built. This ensures that when this is used
     // by the Android Platform build (which normally use an API level of 10000) there will be
     // no rewriting of backported methods. See b/147480264.
-    return desugarState.isOn() && getMinApiLevel().isLessThanOrEqualTo(AndroidApiLevel.LATEST);
+    return enableBackportMethods
+        && desugarState.isOn()
+        // TODO(b/232073181): This platform check should rather be controlled via the platform flag.
+        && getMinApiLevel().isLessThanOrEqualTo(AndroidApiLevel.LATEST);
   }
 
   public boolean enableTryWithResourcesDesugaring() {

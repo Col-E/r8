@@ -63,7 +63,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
   public BackportedMethodRewriter(AppView<?> appView) {
     assert appView.options().desugarState.isOn();
     this.appView = appView;
-    this.rewritableMethods = new RewritableMethods(appView.options(), appView);
+    this.rewritableMethods = new RewritableMethods(appView);
   }
 
   public boolean hasBackports() {
@@ -114,7 +114,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     TypeRewriter typeRewriter = options.getTypeRewriter();
     AppView<?> appView = AppView.createForD8(appInfo, typeRewriter, Timing.empty());
     BackportedMethodRewriter.RewritableMethods rewritableMethods =
-        new BackportedMethodRewriter.RewritableMethods(options, appView);
+        new BackportedMethodRewriter.RewritableMethods(appView);
     rewritableMethods.visit(methods::add);
     if (appInfo != null) {
       DesugaredLibraryRetargeter desugaredLibraryRetargeter =
@@ -159,14 +159,14 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     // Map backported method to a provider for creating the actual target method (with code).
     private final Map<DexMethod, MethodProvider> rewritable = new IdentityHashMap<>();
 
-    RewritableMethods(InternalOptions options, AppView<?> appView) {
+    RewritableMethods(AppView<?> appView) {
+      InternalOptions options = appView.options();
+      DexItemFactory factory = options.dexItemFactory();
       this.appView = appView;
-      this.typeMinApi = initializeTypeMinApi(appView.dexItemFactory());
-      if (!options.shouldBackportMethods()) {
+      this.typeMinApi = initializeTypeMinApi(factory);
+      if (!options.enableBackportedMethodRewriting()) {
         return;
       }
-
-      DexItemFactory factory = options.itemFactory;
 
       if (options.getMinApiLevel().isLessThan(AndroidApiLevel.K)) {
         initializeAndroidKMethodProviders(factory);

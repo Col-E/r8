@@ -67,6 +67,7 @@ public class AndroidPlatformBuildApiTest extends CompilerApiTestRunner {
               .addLibraryFiles(getJava8RuntimeJar())
               .setProgramConsumer(programConsumer)
               .setAndroidPlatformBuild(true)
+              .setMinApiLevel(10000)
               .build());
     }
 
@@ -78,6 +79,7 @@ public class AndroidPlatformBuildApiTest extends CompilerApiTestRunner {
               .addLibraryFiles(getJava8RuntimeJar())
               .setProgramConsumer(programConsumer)
               .setAndroidPlatformBuild(true)
+              .setMinApiLevel(10000)
               .build());
     }
 

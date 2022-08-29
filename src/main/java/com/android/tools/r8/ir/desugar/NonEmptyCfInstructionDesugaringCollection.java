@@ -79,16 +79,13 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
       return;
     }
     this.nestBasedAccessDesugaring = NestBasedAccessDesugaring.create(appView);
-    BackportedMethodRewriter backportedMethodRewriter = null;
+    BackportedMethodRewriter backportedMethodRewriter = new BackportedMethodRewriter(appView);
     desugaredLibraryRetargeter =
         appView.options().machineDesugaredLibrarySpecification.hasRetargeting()
             ? new DesugaredLibraryRetargeter(appView)
             : null;
     if (desugaredLibraryRetargeter != null) {
       desugarings.add(desugaredLibraryRetargeter);
-    }
-    if (appView.options().enableBackportedMethodRewriting()) {
-      backportedMethodRewriter = new BackportedMethodRewriter(appView);
     }
     if (appView.options().apiModelingOptions().enableOutliningOfMethods) {
       yieldingDesugarings.add(new ApiInvokeOutlinerDesugaring(appView, apiLevelCompute));
@@ -127,7 +124,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     desugarings.add(new InvokeToPrivateRewriter());
     desugarings.add(new StringConcatInstructionDesugaring(appView));
     desugarings.add(new BufferCovariantReturnTypeRewriter(appView));
-    if (backportedMethodRewriter != null && backportedMethodRewriter.hasBackports()) {
+    if (backportedMethodRewriter.hasBackports()) {
       desugarings.add(backportedMethodRewriter);
     }
     if (nestBasedAccessDesugaring != null) {
