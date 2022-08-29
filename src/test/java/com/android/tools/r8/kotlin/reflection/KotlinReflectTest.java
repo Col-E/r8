@@ -102,7 +102,9 @@ public class KotlinReflectTest extends KotlinTestBase {
         .applyIf(
             parameters.isCfRuntime() && kotlinParameters.isKotlinDev(),
             TestShrinkerBuilder::addDontWarnJavaLangInvokeLambdaMetadataFactory)
-        .addDontWarnJavaLangReflectAnnotatedType()
+        .applyIf(
+            kotlinParameters.isKotlinDev(),
+            TestShrinkerBuilder::addDontWarnJavaLangReflectAnnotatedType)
         .compile()
         .assertNoErrorMessages()
         // -keepattributes Signature is added in kotlin-reflect from version 1.4.20.

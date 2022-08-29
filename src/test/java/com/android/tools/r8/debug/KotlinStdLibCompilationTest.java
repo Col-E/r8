@@ -66,7 +66,7 @@ public class KotlinStdLibCompilationTest extends TestBase {
             kotlinTestParameters.isKotlinDev(),
             TestShrinkerBuilder::addDontWarnJavaLangReflectAnnotatedType)
         .applyIf(
-            parameters.isCfRuntime(),
+            parameters.isCfRuntime() && kotlinTestParameters.isKotlinDev(),
             TestShrinkerBuilder::addDontWarnJavaLangInvokeLambdaMetadataFactory)
         .compile()
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."));
