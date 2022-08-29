@@ -78,6 +78,7 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
         .addAll(ParseFlagInfoImpl.getAssertionsFlags())
         .add(ParseFlagInfoImpl.getThreadCount())
         .add(ParseFlagInfoImpl.getMapDiagnostics())
+        .add(ParseFlagInfoImpl.getAndroidPlatformBuild())
         .add(ParseFlagInfoImpl.getVersion("d8"))
         .add(ParseFlagInfoImpl.getHelp())
         .build();
@@ -302,6 +303,8 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
       } else if (arg.equals("--desugared-lib-pg-conf-output")) {
         StringConsumer consumer = new StringConsumer.FileConsumer(Paths.get(nextArg));
         builder.setDesugaredLibraryKeepRuleConsumer(consumer);
+      } else if (arg.equals("--android-platform-build")) {
+        builder.setAndroidPlatformBuild(true);
       } else if (arg.startsWith("--")) {
         if (tryParseAssertionArgument(builder, arg, origin)) {
           continue;

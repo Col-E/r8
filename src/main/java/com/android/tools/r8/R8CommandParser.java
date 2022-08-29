@@ -103,6 +103,7 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
                 "The <template> can reference the variables:",
                 "  %MAP_ID: map id (e.g., value of --map-id-template).",
                 "  %MAP_HASH: compiler generated mapping hash."))
+        .add(ParseFlagInfoImpl.getAndroidPlatformBuild())
         .add(ParseFlagInfoImpl.getVersion("r8"))
         .add(ParseFlagInfoImpl.getHelp())
         .build();
@@ -298,6 +299,8 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
       } else if (arg.equals("--source-file-template")) {
         builder.setSourceFileProvider(
             SourceFileTemplateProvider.create(nextArg, builder.getReporter()));
+      } else if (arg.equals("--android-platform-build")) {
+        builder.setAndroidPlatformBuild(true);
       } else if (arg.startsWith("--")) {
         if (tryParseAssertionArgument(builder, arg, argsOrigin)) {
           continue;

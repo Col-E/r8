@@ -767,6 +767,12 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
     numThreadsOptionInvalid("two");
   }
 
+  @Test
+  public void androidPlatformBuildFlag() throws Exception {
+    assertFalse(parse().getAndroidPlatformBuild());
+    assertTrue(parse("--android-platform-build").getAndroidPlatformBuild());
+  }
+
   @Override
   String[] requiredArgsForTest() {
     return new String[0];

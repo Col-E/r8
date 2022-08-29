@@ -156,6 +156,13 @@ public class ParseFlagInfoImpl implements ParseFlagInfo {
         "Note that fatal compiler errors cannot be mapped.");
   }
 
+  public static ParseFlagInfoImpl getAndroidPlatformBuild() {
+    return flag0(
+        "--android-platform-build",
+        "Compile as a platform build where the runtime/bootclasspath",
+        "is assumed to be the version specified by --min-api.");
+  }
+
   public static ParseFlagInfoImpl flag0(String flag, String... help) {
     return flag(flag, Collections.emptyList(), Arrays.asList(help));
   }

@@ -910,6 +910,12 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
     assertTrue(options.enableStubbingOfClasses);
   }
 
+  @Test
+  public void androidPlatformBuildFlag() throws Exception {
+    assertFalse(parse().getAndroidPlatformBuild());
+    assertTrue(parse("--android-platform-build").getAndroidPlatformBuild());
+  }
+
   @Override
   String[] requiredArgsForTest() {
     return new String[0];
