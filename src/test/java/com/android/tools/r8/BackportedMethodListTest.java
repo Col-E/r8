@@ -98,8 +98,10 @@ public class BackportedMethodListTest {
         backports.contains("java/lang/StrictMath#multiplyExact(JI)J"));
     // Java 9, 10 and 11 method added at API level S.
     // The method is not backported in desugared library JDK 11 (already present).
+    // TODO(b/243679691): Should no use backport but retargeting in between 24 and 33,
     assertEquals(
-        apiLevel < AndroidApiLevel.S.getLevel(),
+        apiLevel < AndroidApiLevel.S.getLevel()
+            && (mode != Mode.LIBRARY_DESUGAR_11 || apiLevel >= AndroidApiLevel.N.getLevel()),
         backports.contains("java/util/List#copyOf(Ljava/util/Collection;)Ljava/util/List;"));
 
     // Java 9, 10 and 11 methods not yet added.
