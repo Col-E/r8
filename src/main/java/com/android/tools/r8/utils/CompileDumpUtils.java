@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.utils;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.KeepMethodForCompileDump;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.references.MethodReference;
@@ -17,9 +17,9 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-@Keep
 class CompileDumpUtils {
 
+  @KeepMethodForCompileDump
   static StartupProfileProvider createStartupProfileProviderFromDumpFile(Path path) {
     return new StartupProfileProvider() {
 
