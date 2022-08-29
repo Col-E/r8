@@ -11,6 +11,12 @@ def GitClone(url, checkout_dir):
   utils.PrintCmd(cmd)
   return subprocess.check_call(cmd)
 
+def GitCheckout(revision, checkout_dir):
+  with utils.ChangedWorkingDirectory(checkout_dir):
+    cmd = ['git', 'checkout', revision]
+    utils.PrintCmd(cmd)
+    return subprocess.check_call(cmd)
+
 def GetHeadRevision(checkout_dir, use_main=False):
   revision_from = 'origin/main' if use_main else 'HEAD'
   cmd = ['git', 'rev-parse', revision_from]

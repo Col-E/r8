@@ -135,6 +135,7 @@ def CloneDesugaredLibrary(github_account, checkout_dir):
   git_utils.GitClone(
     'https://github.com/'
         + github_account + '/' + GITHUB_REPRO, checkout_dir)
+  git_utils.GitCheckout('3a970cd008e944845a7b3d29a3b5a13123df11fe', checkout_dir)
 
 def GetJavaEnv():
   java_env = dict(os.environ, JAVA_HOME = jdk.GetJdk11Home())
