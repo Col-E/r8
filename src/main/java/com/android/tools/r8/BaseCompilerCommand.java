@@ -763,6 +763,9 @@ public abstract class BaseCompilerCommand extends BaseCommand {
                   + " or earlier");
         }
       }
+      if (hasDesugaredLibraryConfiguration() && getAndroidPlatformBuild()) {
+        reporter.error("Android platform builds cannot use desugared library");
+      }
       super.validate();
     }
 
