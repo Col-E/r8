@@ -100,7 +100,7 @@ public class KotlinReflectTest extends KotlinTestBase {
         .allowDiagnosticMessages()
         .allowUnusedDontWarnKotlinReflectJvmInternal(kotlinc.isNot(KOTLINC_1_3_72))
         .applyIf(
-            parameters.isCfRuntime(),
+            parameters.isCfRuntime() && kotlinParameters.isKotlinDev(),
             TestShrinkerBuilder::addDontWarnJavaLangInvokeLambdaMetadataFactory)
         .addDontWarnJavaLangReflectAnnotatedType()
         .compile()

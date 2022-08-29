@@ -35,13 +35,17 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
   }
 
   private void test(Collection<String> rules) throws Exception {
+    boolean notShrinking = rules.contains("-dontshrink");
     testForR8(parameters.getBackend())
         .addProgramFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.LATEST))
         .addKeepRules(rules)
         .applyIf(
-            rules.contains("-dontshrink"),
+            notShrinking && kotlinParameters.isKotlinDev(),
             TestShrinkerBuilder::addDontWarnJavaLangReflectAnnotatedType)
+        .applyIf(
+            notShrinking && kotlinParameters.isKotlinDev() && parameters.isCfRuntime(),
+            TestShrinkerBuilder::addDontWarnJavaLangInvokeLambdaMetadataFactory)
         .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
         .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
         .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)

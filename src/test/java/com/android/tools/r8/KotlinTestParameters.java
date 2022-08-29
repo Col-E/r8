@@ -44,6 +44,10 @@ public class KotlinTestParameters {
     return kotlinc.is(compilerVersion);
   }
 
+  public boolean isKotlinDev() {
+    return kotlinc.is(KotlinCompilerVersion.KOTLIN_DEV);
+  }
+
   public boolean is(KotlinCompilerVersion compilerVersion, KotlinTargetVersion targetVersion) {
     return is(compilerVersion) && this.targetVersion == targetVersion;
   }

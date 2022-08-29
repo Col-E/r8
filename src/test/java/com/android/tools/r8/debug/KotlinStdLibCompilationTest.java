@@ -62,7 +62,9 @@ public class KotlinStdLibCompilationTest extends TestBase {
         .noTreeShaking()
         .setMode(CompilationMode.DEBUG)
         .setMinApi(parameters.getApiLevel())
-        .addDontWarnJavaLangReflectAnnotatedType()
+        .applyIf(
+            kotlinTestParameters.isKotlinDev(),
+            TestShrinkerBuilder::addDontWarnJavaLangReflectAnnotatedType)
         .applyIf(
             parameters.isCfRuntime(),
             TestShrinkerBuilder::addDontWarnJavaLangInvokeLambdaMetadataFactory)

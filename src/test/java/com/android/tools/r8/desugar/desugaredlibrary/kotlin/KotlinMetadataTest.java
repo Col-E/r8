@@ -17,7 +17,6 @@ import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinTestBase.KotlinCompileMemoizer;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
@@ -100,7 +99,12 @@ public class KotlinMetadataTest extends DesugaredLibraryTestBase {
         .allowDiagnosticMessages()
         .allowUnusedDontWarnKotlinReflectJvmInternal(
             kotlinParameters.getCompiler().isNot(KOTLINC_1_3_72))
-        .applyIfR8TestBuilder(TestShrinkerBuilder::addDontWarnJavaLangReflectAnnotatedType)
+        .applyIfR8TestBuilder(
+            b -> {
+              if (kotlinParameters.isKotlinDev()) {
+                b.addDontWarnJavaLangReflectAnnotatedType();
+              }
+            })
         .compile()
         .inspect(
             i -> {
