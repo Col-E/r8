@@ -57,7 +57,7 @@ public class AndroidPlatformBuildApiTest extends CompilerApiTestRunner {
         CoreMatchers.everyItem(
             CoreMatchers.allOf(
                 markerMinApi(AndroidApiLevel.getAndroidApiLevel(MIN_API_LEVEL)),
-                CoreMatchers.not(markerAndroidPlatformBuild()))));
+                markerAndroidPlatformBuild())));
   }
 
   public static class ApiTest extends CompilerApiTest {
