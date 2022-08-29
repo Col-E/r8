@@ -9,67 +9,17 @@ import com.android.tools.r8.experimental.startup.profile.StartupProfile;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.profile.art.ArtProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
-import com.android.tools.r8.references.MethodReference;
-import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.startup.StartupProfileBuilder;
 import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.startup.diagnostic.MissingStartupProfileItemsDiagnostic;
 import com.android.tools.r8.utils.ConsumerUtils;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.UTF8TextInputStream;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class StartupProfileProviderUtils {
-
-  public static StartupProfileProvider createFromDumpFile(Path path) {
-    return new StartupProfileProvider() {
-
-      @Override
-      public void getStartupProfile(StartupProfileBuilder startupProfileBuilder) {
-        try {
-          try (BufferedReader bufferedReader = Files.newBufferedReader(path)) {
-            while (bufferedReader.ready()) {
-              String rule = bufferedReader.readLine();
-              if (rule.charAt(0) == 'S') {
-                String classDescriptor = rule.substring(1);
-                assert DescriptorUtils.isClassDescriptor(classDescriptor);
-                startupProfileBuilder.addSyntheticStartupMethod(
-                    syntheticStartupMethodBuilder ->
-                        syntheticStartupMethodBuilder.setSyntheticContextReference(
-                            Reference.classFromDescriptor(classDescriptor)));
-              } else {
-                MethodReference methodReference = MethodReferenceUtils.parseSmaliString(rule);
-                if (methodReference != null) {
-                  startupProfileBuilder.addStartupMethod(
-                      startupMethodBuilder ->
-                          startupMethodBuilder.setMethodReference(methodReference));
-                } else {
-                  assert DescriptorUtils.isClassDescriptor(rule);
-                  startupProfileBuilder.addStartupClass(
-                      startupClassBuilder ->
-                          startupClassBuilder.setClassReference(
-                              Reference.classFromDescriptor(rule)));
-                }
-              }
-            }
-          }
-        } catch (IOException e) {
-          throw new UncheckedIOException(e);
-        }
-      }
-
-      @Override
-      public Origin getOrigin() {
-        return new PathOrigin(path);
-      }
-    };
-  }
 
   public static StartupProfileProvider createFromHumanReadableArtProfile(Path path) {
     return new StartupProfileProvider() {

@@ -8,7 +8,6 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.experimental.startup.StartupProfileProviderUtils;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -16,6 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -153,10 +153,6 @@ public class CompileDumpD8 {
             .addLibraryFiles(library)
             .addClasspathFiles(classpath)
             .addMainDexRulesFiles(mainDexRulesFiles)
-            .addStartupProfileProviders(
-                startupProfileFiles.stream()
-                    .map(StartupProfileProviderUtils::createFromDumpFile)
-                    .collect(Collectors.toList()))
             .setOutput(outputPath, outputMode)
             .setMode(compilationMode);
     getReflectiveBuilderMethod(
@@ -164,6 +160,13 @@ public class CompileDumpD8 {
         .accept(new Object[] {enableMissingLibraryApiModeling});
     getReflectiveBuilderMethod(commandBuilder, "setAndroidPlatformBuild", boolean.class)
         .accept(new Object[] {androidPlatformBuild});
+    getReflectiveBuilderMethod(commandBuilder, "addStartupProfileProviders", Collection.class)
+        .accept(
+            new Object[] {
+              startupProfileFiles.stream()
+                  .map(CompileDumpUtils::createStartupProfileProviderFromDumpFile)
+                  .collect(Collectors.toList())
+            });
     if (desugaredLibJson != null) {
       commandBuilder.addDesugaredLibraryConfiguration(readAllBytesJava7(desugaredLibJson));
     }
