@@ -32,6 +32,7 @@ public class Marker {
   public static final String PG_MAP_ID = "pg-map-id";
   public static final String R8_MODE = "r8-mode";
   private static final String NO_LIBRARY_DESUGARING = "<no-library-desugaring>";
+  private static final String ANDROID_PLATFORM_BUILD = "platform";
 
   public enum Tool {
     D8,
@@ -265,6 +266,17 @@ public class Marker {
   public Marker setR8Mode(String r8Mode) {
     assert !jsonObject.has(R8_MODE);
     jsonObject.addProperty(R8_MODE, r8Mode);
+    return this;
+  }
+
+  public boolean isAndroidPlatformBuild() {
+    return jsonObject.has(ANDROID_PLATFORM_BUILD)
+        && jsonObject.get(ANDROID_PLATFORM_BUILD).getAsBoolean();
+  }
+
+  public Marker setAndroidPlatformBuild() {
+    assert !jsonObject.has(ANDROID_PLATFORM_BUILD);
+    jsonObject.addProperty(ANDROID_PLATFORM_BUILD, true);
     return this;
   }
 

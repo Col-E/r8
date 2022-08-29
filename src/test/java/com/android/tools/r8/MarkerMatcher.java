@@ -95,6 +95,20 @@ public abstract class MarkerMatcher extends TypeSafeMatcher<Marker> {
     };
   }
 
+  public static Matcher<Marker> markerAndroidPlatformBuild() {
+    return new MarkerMatcher() {
+      @Override
+      protected boolean eval(Marker marker) {
+        return marker.isAndroidPlatformBuild();
+      }
+
+      @Override
+      protected void explain(Description description) {
+        description.appendText("platform");
+      }
+    };
+  }
+
   public static Matcher<Marker> markerCompilationMode(CompilationMode compilationMode) {
     return new MarkerMatcher() {
       @Override

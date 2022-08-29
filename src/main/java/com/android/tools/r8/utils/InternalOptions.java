@@ -268,9 +268,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public void configureAndroidPlatformBuild(boolean isAndroidPlatformBuild) {
+    assert !androidPlatformBuild;
     if (!isAndroidPlatformBuild) {
       return;
     }
+    androidPlatformBuild = isAndroidPlatformBuild;
     // Configure options according to platform build assumptions.
     // See go/r8platformflag and b/232073181.
     apiModelingOptions().disableMissingApiModeling();
@@ -464,6 +466,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     if (tool == Tool.R8) {
       marker.setR8Mode(forceProguardCompatibility ? "compatibility" : "full");
     }
+    if (androidPlatformBuild) {
+      marker.setAndroidPlatformBuild();
+    }
     return marker;
   }
 
@@ -591,6 +596,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // Skipping min_api check and compiling an intermediate result intended for later merging.
   // Intermediate builds also emits or update synthesized classes mapping.
   public boolean intermediate = false;
+  private boolean androidPlatformBuild = false;
   public boolean retainCompileTimeAnnotations = true;
   public boolean ignoreBootClasspathEnumsForMaindexTracing =
       System.getProperty("com.android.tools.r8.ignoreBootClasspathEnumsForMaindexTracing") != null;
