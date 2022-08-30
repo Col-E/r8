@@ -46,7 +46,7 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
           .resolve("new_api_database.ser");
 
   // Update the API_LEVEL below to have the database generated for a new api level.
-  private static final AndroidApiLevel API_LEVEL = AndroidApiLevel.S;
+  private static final AndroidApiLevel API_LEVEL = AndroidApiLevel.LATEST;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -103,9 +103,9 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
               }));
         });
     // These numbers will change when updating api-versions.xml
-    assertEquals(5065, parsedApiClasses.size());
-    assertEquals(26492, numberOfFields.get());
-    assertEquals(40475, numberOfMethods.get());
+    assertEquals(5272, parsedApiClasses.size());
+    assertEquals(27868, numberOfFields.get());
+    assertEquals(42268, numberOfMethods.get());
   }
 
   @Test
