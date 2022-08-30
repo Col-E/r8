@@ -12,11 +12,13 @@ import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
@@ -230,6 +232,11 @@ public class NewInstance extends Instruction {
     assert type.asClassType().getClassType() == clazz || appView.options().testing.allowTypeErrors;
     assert type.isDefinitelyNotNull();
     return true;
+  }
+
+  @Override
+  void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
+    registry.registerNewInstance(clazz);
   }
 
   public static class Builder extends BuilderBase<Builder, NewInstance> {

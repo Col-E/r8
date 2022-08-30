@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.graph.classmerging.MergedClassesCollection;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
@@ -1511,6 +1512,20 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
         if (!predecessor.isMarked(color)) {
           worklist.add(predecessor);
         }
+      }
+    }
+  }
+
+  /**
+   * Note: This will discard instructions that are not present on the lower level code items, such
+   * as assume.
+   */
+  public void registerCodeReferences(ProgramMethod method, UseRegistry<ProgramMethod> registry) {
+    assert registry.getTraversalContinuation().shouldContinue();
+    for (BasicBlock block : blocks) {
+      block.registerUse(registry, method);
+      if (registry.getTraversalContinuation().shouldBreak()) {
+        return;
       }
     }
   }

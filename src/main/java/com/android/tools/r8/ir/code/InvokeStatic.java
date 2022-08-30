@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
@@ -235,6 +236,11 @@ public class InvokeStatic extends InvokeMethod {
     return singleTarget
         .getHolder()
         .classInitializationMayHaveSideEffectsInContext(appView, context);
+  }
+
+  @Override
+  void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
+    registry.registerInvokeStatic(getInvokedMethod());
   }
 
   public static class Builder extends InvokeMethod.Builder<Builder, InvokeStatic> {

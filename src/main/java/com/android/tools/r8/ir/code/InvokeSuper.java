@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
@@ -133,5 +134,10 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forInvokeSuper(
         this, clazz, context, appView, mode, assumption);
+  }
+
+  @Override
+  void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
+    registry.registerInvokeSuper(getInvokedMethod());
   }
 }

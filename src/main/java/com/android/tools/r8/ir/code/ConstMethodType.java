@@ -9,9 +9,11 @@ import com.android.tools.r8.cf.code.CfConstMethodType;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.code.DexConstMethodType;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -128,5 +130,10 @@ public class ConstMethodType extends ConstInstruction {
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, ProgramMethod context) {
     return inliningConstraints.forConstMethodType();
+  }
+
+  @Override
+  void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
+    registry.registerProto(methodType);
   }
 }

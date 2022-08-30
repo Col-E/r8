@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
@@ -219,6 +220,11 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   @Override
   public void buildLIR(LIRBuilder<Value> builder) {
     builder.addInvokeDirect(getInvokedMethod(), arguments());
+  }
+
+  @Override
+  void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
+    registry.registerInvokeDirect(getInvokedMethod());
   }
 
   public static class Builder extends InvokeMethod.Builder<Builder, InvokeDirect> {

@@ -3,15 +3,19 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.graph.UseRegistry.MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
+
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfConstMethodHandle;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.code.DexConstMethodHandle;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -128,5 +132,10 @@ public class ConstMethodHandle extends ConstInstruction {
   @Override
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
     helper.storeOutValue(this, it);
+  }
+
+  @Override
+  void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
+    registry.registerMethodHandle(methodHandle, NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
   }
 }

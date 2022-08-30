@@ -18,9 +18,11 @@ import com.android.tools.r8.dex.code.DexIgetWide;
 import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
@@ -257,6 +259,11 @@ public class InstanceGet extends FieldInstruction implements FieldGet, InstanceF
   @Override
   public boolean instructionTypeCanBeCanonicalized() {
     return true;
+  }
+
+  @Override
+  void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
+    registry.registerInstanceFieldRead(getField());
   }
 
   public static class Builder extends BuilderBase<Builder, InstanceGet> {

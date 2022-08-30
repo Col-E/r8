@@ -16,8 +16,10 @@ import com.android.tools.r8.dex.code.DexMoveObjectFrom16;
 import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -276,6 +278,11 @@ public class CheckCast extends Instruction {
   @Override
   public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     return false;
+  }
+
+  @Override
+  void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
+    registry.registerCheckCast(type, ignoreCompatRules);
   }
 
   public static class Builder extends BuilderBase<Builder, CheckCast> {

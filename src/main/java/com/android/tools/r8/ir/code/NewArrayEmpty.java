@@ -10,8 +10,10 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.code.DexNewArray;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -163,5 +165,10 @@ public class NewArrayEmpty extends Instruction {
   @Override
   public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     return false;
+  }
+
+  @Override
+  void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
+    registry.registerTypeReference(type);
   }
 }

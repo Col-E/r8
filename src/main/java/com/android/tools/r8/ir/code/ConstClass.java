@@ -13,8 +13,10 @@ import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -211,6 +213,11 @@ public class ConstClass extends ConstInstruction {
       return appView.abstractValueFactory().createSingleConstClassValue(clazz);
     }
     return UnknownValue.getInstance();
+  }
+
+  @Override
+  void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
+    registry.registerConstClass(clazz, null, ignoreCompatRules);
   }
 
   public static class Builder extends BuilderBase<Builder, ConstClass> {

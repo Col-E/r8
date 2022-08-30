@@ -11,8 +11,10 @@ import com.android.tools.r8.dex.code.DexInitClass;
 import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
@@ -169,6 +171,11 @@ public class InitClass extends Instruction {
   @Override
   public String toString() {
     return super.toString() + "; " + clazz.toSourceString();
+  }
+
+  @Override
+  void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
+    registry.registerInitClass(clazz);
   }
 
   public static class Builder extends BuilderBase<Builder, InitClass> {

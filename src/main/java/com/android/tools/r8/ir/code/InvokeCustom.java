@@ -11,8 +11,10 @@ import com.android.tools.r8.dex.code.DexInvokeCustom;
 import com.android.tools.r8.dex.code.DexInvokeCustomRange;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.InterfaceCollection;
 import com.android.tools.r8.ir.analysis.type.InterfaceCollection.Builder;
@@ -203,5 +205,10 @@ public final class InvokeCustom extends Invoke {
   @Override
   public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     return true;
+  }
+
+  @Override
+  void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
+    registry.registerCallSite(callSite);
   }
 }

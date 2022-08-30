@@ -9,8 +9,10 @@ import com.android.tools.r8.cf.code.CfNewUnboxedEnum;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.code.DexNewUnboxedEnumInstance;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -158,5 +160,10 @@ public class NewUnboxedEnumInstance extends Instruction {
     assert type.asClassType().getClassType() == clazz || appView.options().testing.allowTypeErrors;
     assert type.isDefinitelyNotNull();
     return true;
+  }
+
+  @Override
+  void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
+    registry.registerNewUnboxedEnumInstance(clazz);
   }
 }

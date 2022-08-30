@@ -17,11 +17,13 @@ import com.android.tools.r8.dex.code.DexIputShort;
 import com.android.tools.r8.dex.code.DexIputWide;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
@@ -275,5 +277,10 @@ public class InstancePut extends FieldInstruction implements FieldPut, InstanceF
   @Override
   public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     return false;
+  }
+
+  @Override
+  void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
+    registry.registerInstanceFieldWrite(getField());
   }
 }

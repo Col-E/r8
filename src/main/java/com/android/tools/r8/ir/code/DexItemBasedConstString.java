@@ -9,9 +9,11 @@ import com.android.tools.r8.cf.code.CfDexItemBasedConstString;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -169,5 +171,13 @@ public class DexItemBasedConstString extends ConstInstruction {
     return appView
         .abstractValueFactory()
         .createSingleDexItemBasedStringValue(item, nameComputationInfo);
+  }
+
+  @Override
+  void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
+    if (nameComputationInfo.needsToRegisterReference()) {
+      assert item.isDexType();
+      registry.registerTypeReference(item.asDexType());
+    }
   }
 }

@@ -16,11 +16,13 @@ import com.android.tools.r8.dex.code.DexSputShort;
 import com.android.tools.r8.dex.code.DexSputWide;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
@@ -249,5 +251,10 @@ public class StaticPut extends FieldInstruction implements FieldPut, StaticField
       // different from the current context.
       return holder != context.getHolderType();
     }
+  }
+
+  @Override
+  void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
+    registry.registerStaticFieldWrite(getField());
   }
 }

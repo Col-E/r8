@@ -10,9 +10,11 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
@@ -1559,6 +1561,14 @@ public abstract class Instruction
 
   public void buildLIR(LIRBuilder<Value> builder) {
     throw new Unimplemented("Missing impl for " + getClass().getSimpleName());
+  }
+
+  public void registerUse(UseRegistry registry, ProgramMethod context) {
+    internalRegisterUse(registry, context);
+  }
+
+  void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
+    // Intentionally empty.
   }
 
   public static class SideEffectAssumption {

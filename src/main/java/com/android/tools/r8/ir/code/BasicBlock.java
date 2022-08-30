@@ -14,6 +14,8 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -2112,6 +2114,21 @@ public class BasicBlock {
         operand.removePhiUser(phi);
       }
       phiIt.remove();
+    }
+  }
+
+  public void registerUse(UseRegistry<?> registry, ProgramMethod method) {
+    for (Instruction instruction : instructions) {
+      instruction.registerUse(registry, method);
+      if (registry.getTraversalContinuation().shouldBreak()) {
+        return;
+      }
+    }
+    for (DexType guard : catchHandlers.getGuards()) {
+      registry.registerExceptionGuard(guard);
+      if (registry.getTraversalContinuation().shouldBreak()) {
+        return;
+      }
     }
   }
 }

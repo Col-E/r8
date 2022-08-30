@@ -9,8 +9,10 @@ import com.android.tools.r8.cf.code.CfInstanceOf;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.code.DexInstanceOf;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -127,5 +129,10 @@ public class InstanceOf extends Instruction {
   public String toString() {
     StringBuilder builder = new StringBuilder(super.toString());
     return builder.append("; ").append(type.toSourceString()).toString();
+  }
+
+  @Override
+  void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
+    registry.registerInstanceOf(type);
   }
 }
