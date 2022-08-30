@@ -6,8 +6,6 @@ package com.android.tools.r8.profile.art;
 
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import java.util.function.Consumer;
@@ -20,6 +18,10 @@ public class ArtProfileMethodRule extends ArtProfileRule {
   ArtProfileMethodRule(DexMethod method, ArtProfileMethodRuleInfo info) {
     this.method = method;
     this.info = info;
+  }
+
+  public static Builder builder() {
+    return new Builder();
   }
 
   public static Builder builder(DexItemFactory dexItemFactory) {
@@ -56,16 +58,6 @@ public class ArtProfileMethodRule extends ArtProfileRule {
   }
 
   @Override
-  public ArtProfileMethodRule rewrittenWithLens(GraphLens lens) {
-    return new ArtProfileMethodRule(lens.getRenamedMethodSignature(method), info);
-  }
-
-  @Override
-  public ArtProfileRule rewrittenWithLens(DexItemFactory dexItemFactory, NamingLens lens) {
-    return new ArtProfileMethodRule(lens.lookupMethod(method, dexItemFactory), info);
-  }
-
-  @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;
@@ -89,35 +81,60 @@ public class ArtProfileMethodRule extends ArtProfileRule {
     return info.toString() + method.toSmaliString();
   }
 
-  public static class Builder implements ArtProfileMethodRuleBuilder {
+  public static class Builder extends ArtProfileRule.Builder
+      implements ArtProfileMethodRuleBuilder {
 
     private final DexItemFactory dexItemFactory;
 
     private DexMethod method;
-    private ArtProfileMethodRuleInfo methodRuleInfo = ArtProfileMethodRuleInfoImpl.empty();
+    private ArtProfileMethodRuleInfoImpl.Builder methodRuleInfoBuilder =
+        ArtProfileMethodRuleInfoImpl.builder();
+
+    Builder() {
+      this(null);
+    }
 
     Builder(DexItemFactory dexItemFactory) {
       this.dexItemFactory = dexItemFactory;
     }
 
     @Override
-    public ArtProfileMethodRuleBuilder setMethodReference(MethodReference methodReference) {
-      this.method = MethodReferenceUtils.toDexMethod(methodReference, dexItemFactory);
+    public boolean isMethodRuleBuilder() {
+      return true;
+    }
+
+    @Override
+    Builder asMethodRuleBuilder() {
       return this;
     }
 
     @Override
-    public ArtProfileMethodRuleBuilder setMethodRuleInfo(
-        Consumer<ArtProfileMethodRuleInfoBuilder> methodRuleInfoBuilderConsumer) {
-      ArtProfileMethodRuleInfoImpl.Builder methodRuleInfoBuilder =
-          ArtProfileMethodRuleInfoImpl.builder();
-      methodRuleInfoBuilderConsumer.accept(methodRuleInfoBuilder);
-      methodRuleInfo = methodRuleInfoBuilder.build();
+    public Builder setMethodReference(MethodReference methodReference) {
+      assert dexItemFactory != null;
+      return setMethod(MethodReferenceUtils.toDexMethod(methodReference, dexItemFactory));
+    }
+
+    public Builder setMethod(DexMethod method) {
+      this.method = method;
       return this;
     }
 
+    @Override
+    public Builder setMethodRuleInfo(
+        Consumer<ArtProfileMethodRuleInfoBuilder> methodRuleInfoBuilderConsumer) {
+      internalSetMethodRuleInfo(methodRuleInfoBuilderConsumer);
+      return this;
+    }
+
+    public Builder internalSetMethodRuleInfo(
+        Consumer<? super ArtProfileMethodRuleInfoImpl.Builder> methodRuleInfoBuilderConsumer) {
+      methodRuleInfoBuilderConsumer.accept(methodRuleInfoBuilder);
+      return this;
+    }
+
+    @Override
     public ArtProfileMethodRule build() {
-      return new ArtProfileMethodRule(method, methodRuleInfo);
+      return new ArtProfileMethodRule(method, methodRuleInfoBuilder.build());
     }
   }
 }

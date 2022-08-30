@@ -4,16 +4,24 @@
 
 package com.android.tools.r8.profile.art;
 
+import static com.android.tools.r8.utils.MapUtils.ignoreKey;
+
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.UnaryOperator;
+import java.util.function.Function;
 
 public class ArtProfile {
 
@@ -28,40 +36,83 @@ public class ArtProfile {
   }
 
   public ArtProfile rewrittenWithLens(GraphLens lens) {
-    return transform(rule -> rule.rewrittenWithLens(lens));
+    return transform(
+        (classRule, builderFactory) -> builderFactory.apply(lens.lookupType(classRule.getType())),
+        (methodRule, builderFactory) ->
+            builderFactory
+                .apply(lens.getRenamedMethodSignature(methodRule.getMethod()))
+                .internalSetMethodRuleInfo(
+                    methodRuleInfoBuilder ->
+                        methodRuleInfoBuilder.merge(methodRule.getMethodRuleInfo())));
   }
 
   public ArtProfile rewrittenWithLens(NamingLens lens, DexItemFactory dexItemFactory) {
     assert !lens.isIdentityLens();
-    return transform(rule -> rule.rewrittenWithLens(dexItemFactory, lens));
+    return transform(
+        (classRule, builderFactory) ->
+            builderFactory.apply(lens.lookupType(classRule.getType(), dexItemFactory)),
+        (methodRule, builderFactory) ->
+            builderFactory
+                .apply(lens.lookupMethod(methodRule.getMethod(), dexItemFactory))
+                .internalSetMethodRuleInfo(
+                    methodRuleInfoBuilder ->
+                        methodRuleInfoBuilder.merge(methodRule.getMethodRuleInfo())));
   }
 
   public ArtProfile withoutPrunedItems(PrunedItems prunedItems) {
     return transform(
-        rule -> {
-          if (rule.isClassRule()) {
-            if (prunedItems.isRemoved(rule.asClassRule().getType())) {
-              return null;
-            }
-          } else {
-            assert rule.isMethodRule();
-            if (prunedItems.isRemoved(rule.asMethodRule().getMethod())) {
-              return null;
-            }
+        (classRule, builderFactory) -> {
+          if (!prunedItems.isRemoved(classRule.getType())) {
+            builderFactory.apply(classRule.getType());
           }
-          return rule;
+        },
+        (methodRule, builderFactory) -> {
+          if (!prunedItems.isRemoved(methodRule.getMethod())) {
+            builderFactory
+                .apply(methodRule.getMethod())
+                .internalSetMethodRuleInfo(
+                    methodRuleInfoBuilder ->
+                        methodRuleInfoBuilder.merge(methodRule.getMethodRuleInfo()));
+          }
         });
   }
 
-  private ArtProfile transform(UnaryOperator<ArtProfileRule> transformation) {
-    ImmutableList.Builder<ArtProfileRule> newRules =
-        ImmutableList.builderWithExpectedSize(rules.size());
+  private ArtProfile transform(
+      BiConsumer<ArtProfileClassRule, Function<DexType, ArtProfileClassRule.Builder>>
+          classTransformation,
+      BiConsumer<ArtProfileMethodRule, Function<DexMethod, ArtProfileMethodRule.Builder>>
+          methodTransformation) {
+    Map<DexReference, ArtProfileRule.Builder> ruleBuilders = new LinkedHashMap<>();
     for (ArtProfileRule rule : rules) {
-      ArtProfileRule transformedRule = transformation.apply(rule);
-      if (transformedRule != null) {
-        newRules.add(transformedRule);
+      if (rule.isClassRule()) {
+        // Supply a factory method for creating a builder. If the current rule should be included in
+        // the rewritten profile, the caller should call the provided builder factory method to
+        // create a class rule builder. If two rules are mapped to the same reference, the same rule
+        // builder is reused so that the two rules are merged into a single rule (with their flags
+        // merged).
+        classTransformation.accept(
+            rule.asClassRule(),
+            newType ->
+                ruleBuilders
+                    .computeIfAbsent(
+                        newType, ignoreKey(() -> ArtProfileClassRule.builder().setType(newType)))
+                    .asClassRuleBuilder());
+      } else {
+        // As above.
+        assert rule.isMethodRule();
+        methodTransformation.accept(
+            rule.asMethodRule(),
+            newMethod ->
+                ruleBuilders
+                    .computeIfAbsent(
+                        newMethod,
+                        ignoreKey(() -> ArtProfileMethodRule.builder().setMethod(newMethod)))
+                    .asMethodRuleBuilder());
       }
     }
+    ImmutableList.Builder<ArtProfileRule> newRules =
+        ImmutableList.builderWithExpectedSize(ruleBuilders.size());
+    ruleBuilders.values().forEach(ruleBuilder -> newRules.add(ruleBuilder.build()));
     return new ArtProfile(newRules.build());
   }
 

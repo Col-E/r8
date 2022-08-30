@@ -6,8 +6,6 @@ package com.android.tools.r8.profile.art;
 
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import java.util.function.Consumer;
@@ -18,6 +16,10 @@ public class ArtProfileClassRule extends ArtProfileRule {
 
   ArtProfileClassRule(DexType type) {
     this.type = type;
+  }
+
+  public static Builder builder() {
+    return new Builder();
   }
 
   public static Builder builder(DexItemFactory dexItemFactory) {
@@ -54,16 +56,6 @@ public class ArtProfileClassRule extends ArtProfileRule {
   }
 
   @Override
-  public ArtProfileClassRule rewrittenWithLens(GraphLens lens) {
-    return new ArtProfileClassRule(lens.lookupType(type));
-  }
-
-  @Override
-  public ArtProfileRule rewrittenWithLens(DexItemFactory dexItemFactory, NamingLens lens) {
-    return new ArtProfileClassRule(lens.lookupType(type, dexItemFactory));
-  }
-
-  @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;
@@ -85,21 +77,41 @@ public class ArtProfileClassRule extends ArtProfileRule {
     return type.toSmaliString();
   }
 
-  public static class Builder implements ArtProfileClassRuleBuilder {
+  public static class Builder extends ArtProfileRule.Builder implements ArtProfileClassRuleBuilder {
 
     private final DexItemFactory dexItemFactory;
     private DexType type;
+
+    Builder() {
+      this(null);
+    }
 
     Builder(DexItemFactory dexItemFactory) {
       this.dexItemFactory = dexItemFactory;
     }
 
     @Override
-    public ArtProfileClassRuleBuilder setClassReference(ClassReference classReference) {
-      this.type = dexItemFactory.createType(classReference.getDescriptor());
+    public boolean isClassRuleBuilder() {
+      return true;
+    }
+
+    @Override
+    Builder asClassRuleBuilder() {
       return this;
     }
 
+    @Override
+    public Builder setClassReference(ClassReference classReference) {
+      assert dexItemFactory != null;
+      return setType(dexItemFactory.createType(classReference.getDescriptor()));
+    }
+
+    public Builder setType(DexType type) {
+      this.type = type;
+      return this;
+    }
+
+    @Override
     public ArtProfileClassRule build() {
       return new ArtProfileClassRule(type);
     }

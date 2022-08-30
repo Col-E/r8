@@ -4,9 +4,6 @@
 
 package com.android.tools.r8.profile.art;
 
-import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.naming.NamingLens;
 import java.util.function.Consumer;
 
 public abstract class ArtProfileRule {
@@ -31,8 +28,24 @@ public abstract class ArtProfileRule {
     return null;
   }
 
-  public abstract ArtProfileRule rewrittenWithLens(GraphLens lens);
+  public abstract static class Builder {
 
-  public abstract ArtProfileRule rewrittenWithLens(
-      DexItemFactory dexItemFactory, NamingLens namingLens);
+    public boolean isClassRuleBuilder() {
+      return false;
+    }
+
+    ArtProfileClassRule.Builder asClassRuleBuilder() {
+      return null;
+    }
+
+    public boolean isMethodRuleBuilder() {
+      return false;
+    }
+
+    ArtProfileMethodRule.Builder asMethodRuleBuilder() {
+      return null;
+    }
+
+    public abstract ArtProfileRule build();
+  }
 }

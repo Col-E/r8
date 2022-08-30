@@ -92,8 +92,6 @@ public class ArtProfileCollisionAfterClassMergingRewritingTest extends TestBase 
             mainMethodReference,
             barClassSubject.getFinalReference(),
             helloMethodSubject.getFinalReference(),
-            // TODO(b/237043695): Bar should not occur twice in the profile.
-            barClassSubject.getFinalReference(),
             worldMethodSubject.getFinalReference()),
         residualArtProfileConsumer.references);
     assertEquals(
@@ -102,7 +100,6 @@ public class ArtProfileCollisionAfterClassMergingRewritingTest extends TestBase 
             ArtProfileMethodRuleInfoImpl.empty(),
             ArtProfileClassRuleInfoImpl.empty(),
             ArtProfileMethodRuleInfoImpl.empty(),
-            ArtProfileClassRuleInfoImpl.empty(),
             ArtProfileMethodRuleInfoImpl.empty()),
         residualArtProfileConsumer.infos);
   }
