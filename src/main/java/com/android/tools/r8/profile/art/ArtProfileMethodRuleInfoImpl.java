@@ -6,9 +6,7 @@ package com.android.tools.r8.profile.art;
 
 public class ArtProfileMethodRuleInfoImpl implements ArtProfileMethodRuleInfo {
 
-  private static final int FLAG_HOT = 1;
-  private static final int FLAG_STARTUP = 2;
-  private static final int FLAG_POST_STARTUP = 4;
+  private static final ArtProfileMethodRuleInfoImpl EMPTY = new ArtProfileMethodRuleInfoImpl(0);
 
   private final int flags;
 
@@ -20,41 +18,92 @@ public class ArtProfileMethodRuleInfoImpl implements ArtProfileMethodRuleInfo {
     return new Builder();
   }
 
+  public static ArtProfileMethodRuleInfoImpl empty() {
+    return EMPTY;
+  }
+
   public boolean isEmpty() {
     return flags == 0;
   }
 
   @Override
   public boolean isHot() {
-    return (flags & FLAG_HOT) != 0;
+    return ArtProfileMethodRuleFlagsUtils.isHot(flags);
   }
 
   @Override
   public boolean isStartup() {
-    return (flags & FLAG_STARTUP) != 0;
+    return ArtProfileMethodRuleFlagsUtils.isStartup(flags);
   }
 
   @Override
   public boolean isPostStartup() {
-    return (flags & FLAG_POST_STARTUP) != 0;
+    return ArtProfileMethodRuleFlagsUtils.isPostStartup(flags);
   }
 
-  public static class Builder {
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    ArtProfileMethodRuleInfoImpl that = (ArtProfileMethodRuleInfoImpl) o;
+    return flags == that.flags;
+  }
+
+  @Override
+  public int hashCode() {
+    return flags;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    if (isHot()) {
+      builder.append('H');
+    }
+    if (isStartup()) {
+      builder.append('S');
+    }
+    if (isPostStartup()) {
+      builder.append('P');
+    }
+    return builder.toString();
+  }
+
+  public static class Builder implements ArtProfileMethodRuleInfoBuilder {
 
     private int flags;
 
-    public Builder setHot() {
-      flags |= FLAG_HOT;
+    public Builder setIsHot() {
+      return setIsHot(true);
+    }
+
+    @Override
+    public Builder setIsHot(boolean isHot) {
+      flags = ArtProfileMethodRuleFlagsUtils.setIsHot(flags, isHot);
       return this;
     }
 
-    public Builder setStartup() {
-      flags |= FLAG_STARTUP;
+    public Builder setIsStartup() {
+      return setIsStartup(true);
+    }
+
+    @Override
+    public Builder setIsStartup(boolean isStartup) {
+      flags = ArtProfileMethodRuleFlagsUtils.setIsStartup(flags, isStartup);
       return this;
     }
 
-    public Builder setPostStartup() {
-      flags |= FLAG_POST_STARTUP;
+    public Builder setIsPostStartup() {
+      return setIsPostStartup(true);
+    }
+
+    @Override
+    public Builder setIsPostStartup(boolean isPostStartup) {
+      flags = ArtProfileMethodRuleFlagsUtils.setIsPostStartup(flags, isPostStartup);
       return this;
     }
 

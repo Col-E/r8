@@ -11,6 +11,7 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.startup.StartupProfileBuilder;
+import java.util.function.Consumer;
 
 public class ArtProfileBuilderUtils {
 
@@ -72,15 +73,19 @@ public class ArtProfileBuilderUtils {
     return new ArtProfileBuilder() {
 
       @Override
-      public void addClassRule(
-          ClassReference classReference, ArtProfileClassRuleInfo classRuleInfo) {
-        if (rulePredicate.testClassRule(classReference, classRuleInfo)) {
+      public ArtProfileBuilder addClassRule(
+          Consumer<ArtProfileClassRuleBuilder> classRuleBuilderConsumer) {
+        MutableArtProfileClassRule classRule = new MutableArtProfileClassRule();
+        classRuleBuilderConsumer.accept(classRule);
+        if (rulePredicate.testClassRule(
+            classRule.getClassReference(), classRule.getClassRuleInfo())) {
           ClassReference syntheticContextReference =
               syntheticToSyntheticContextGeneralization.getSyntheticContextReference(
-                  classReference);
+                  classRule.getClassReference());
           if (syntheticContextReference == null) {
             startupProfileBuilder.addStartupClass(
-                startupClassBuilder -> startupClassBuilder.setClassReference(classReference));
+                startupClassBuilder ->
+                    startupClassBuilder.setClassReference(classRule.getClassReference()));
           } else {
             startupProfileBuilder.addSyntheticStartupMethod(
                 syntheticStartupMethodBuilder ->
@@ -88,18 +93,23 @@ public class ArtProfileBuilderUtils {
                         syntheticContextReference));
           }
         }
+        return this;
       }
 
       @Override
-      public void addMethodRule(
-          MethodReference methodReference, ArtProfileMethodRuleInfo methodRuleInfo) {
-        if (rulePredicate.testMethodRule(methodReference, methodRuleInfo)) {
+      public ArtProfileBuilder addMethodRule(
+          Consumer<ArtProfileMethodRuleBuilder> methodRuleBuilderConsumer) {
+        MutableArtProfileMethodRule methodRule = new MutableArtProfileMethodRule();
+        methodRuleBuilderConsumer.accept(methodRule);
+        if (rulePredicate.testMethodRule(
+            methodRule.getMethodReference(), methodRule.getMethodRuleInfo())) {
           ClassReference syntheticContextReference =
               syntheticToSyntheticContextGeneralization.getSyntheticContextReference(
-                  methodReference.getHolderClass());
+                  methodRule.getMethodReference().getHolderClass());
           if (syntheticContextReference == null) {
             startupProfileBuilder.addStartupMethod(
-                startupMethodBuilder -> startupMethodBuilder.setMethodReference(methodReference));
+                startupMethodBuilder ->
+                    startupMethodBuilder.setMethodReference(methodRule.getMethodReference()));
           } else {
             startupProfileBuilder.addSyntheticStartupMethod(
                 syntheticStartupMethodBuilder ->
@@ -107,7 +117,61 @@ public class ArtProfileBuilderUtils {
                         syntheticContextReference));
           }
         }
+        return this;
       }
     };
+  }
+
+  private static class MutableArtProfileClassRule implements ArtProfileClassRuleBuilder {
+
+    private ClassReference classReference;
+
+    MutableArtProfileClassRule() {}
+
+    public ClassReference getClassReference() {
+      return classReference;
+    }
+
+    @Override
+    public ArtProfileClassRuleBuilder setClassReference(ClassReference classReference) {
+      this.classReference = classReference;
+      return this;
+    }
+
+    public ArtProfileClassRuleInfo getClassRuleInfo() {
+      return ArtProfileClassRuleInfoImpl.empty();
+    }
+  }
+
+  private static class MutableArtProfileMethodRule implements ArtProfileMethodRuleBuilder {
+
+    private MethodReference methodReference;
+    private ArtProfileMethodRuleInfo methodRuleInfo = ArtProfileMethodRuleInfoImpl.empty();
+
+    MutableArtProfileMethodRule() {}
+
+    public MethodReference getMethodReference() {
+      return methodReference;
+    }
+
+    public ArtProfileMethodRuleInfo getMethodRuleInfo() {
+      return methodRuleInfo;
+    }
+
+    @Override
+    public ArtProfileMethodRuleBuilder setMethodReference(MethodReference methodReference) {
+      this.methodReference = methodReference;
+      return this;
+    }
+
+    @Override
+    public ArtProfileMethodRuleBuilder setMethodRuleInfo(
+        Consumer<ArtProfileMethodRuleInfoBuilder> methodRuleInfoBuilderConsumer) {
+      ArtProfileMethodRuleInfoImpl.Builder methodRuleInfoBuilder =
+          ArtProfileMethodRuleInfoImpl.builder();
+      methodRuleInfoBuilderConsumer.accept(methodRuleInfoBuilder);
+      methodRuleInfo = methodRuleInfoBuilder.build();
+      return this;
+    }
   }
 }

@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.references.MethodReference;
 import com.google.common.collect.Streams;
 import java.util.Iterator;
 import java.util.List;
@@ -53,6 +54,8 @@ public abstract class MethodSubject extends MemberSubject {
   public abstract String getOriginalSignatureAttribute();
 
   public abstract DexEncodedMethod getMethod();
+
+  public abstract MethodReference getFinalReference();
 
   public abstract TypeSubject getParameter(int index);
 

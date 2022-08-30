@@ -64,6 +64,7 @@ import com.android.tools.r8.utils.InternalGlobalSyntheticsProgramConsumer.Intern
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OriginalSourceFiles;
 import com.android.tools.r8.utils.PredicateUtils;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -594,16 +595,21 @@ public class ApplicationWriter {
 
   public static void supplyAdditionalConsumers(AppView<?> appView) {
     InternalOptions options = appView.options();
+    Reporter reporter = options.reporter;
+    if (appView.hasClassHierarchy()) {
+      appView.appInfoWithClassHierarchy().getArtProfiles().supplyConsumers(appView);
+    }
     if (options.configurationConsumer != null) {
       ExceptionUtils.withConsumeResourceHandler(
-          options.reporter, options.configurationConsumer,
+          reporter,
+          options.configurationConsumer,
           options.getProguardConfiguration().getParsedConfiguration());
-      ExceptionUtils.withFinishedResourceHandler(options.reporter, options.configurationConsumer);
+      ExceptionUtils.withFinishedResourceHandler(reporter, options.configurationConsumer);
     }
     if (options.mainDexListConsumer != null) {
       ExceptionUtils.withConsumeResourceHandler(
-          options.reporter, options.mainDexListConsumer, writeMainDexList(appView));
-      ExceptionUtils.withFinishedResourceHandler(options.reporter, options.mainDexListConsumer);
+          reporter, options.mainDexListConsumer, writeMainDexList(appView));
+      ExceptionUtils.withFinishedResourceHandler(reporter, options.mainDexListConsumer);
     }
 
     KotlinModuleSynthesizer kotlinModuleSynthesizer = new KotlinModuleSynthesizer(appView);
@@ -642,13 +648,13 @@ public class ApplicationWriter {
                               .getBytes(),
                           AppServices.SERVICE_DIRECTORY_NAME + serviceName,
                           Origin.unknown()),
-                      options.reporter);
+                      reporter);
                 });
       }
       // Rewrite/synthesize kotlin_module files
       kotlinModuleSynthesizer
           .synthesizeKotlinModuleFiles()
-          .forEach(file -> dataResourceConsumer.accept(file, options.reporter));
+          .forEach(file -> dataResourceConsumer.accept(file, reporter));
     }
 
     if (options.featureSplitConfiguration != null) {

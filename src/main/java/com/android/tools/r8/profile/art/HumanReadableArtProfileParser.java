@@ -64,9 +64,9 @@ public class HumanReadableArtProfileParser {
   public boolean parseRule(String rule) {
     ArtProfileMethodRuleInfoImpl.Builder methodRuleInfoBuilder =
         ArtProfileMethodRuleInfoImpl.builder();
-    rule = parseFlag(rule, 'H', methodRuleInfoBuilder::setHot);
-    rule = parseFlag(rule, 'S', methodRuleInfoBuilder::setStartup);
-    rule = parseFlag(rule, 'P', methodRuleInfoBuilder::setPostStartup);
+    rule = parseFlag(rule, 'H', methodRuleInfoBuilder::setIsHot);
+    rule = parseFlag(rule, 'S', methodRuleInfoBuilder::setIsStartup);
+    rule = parseFlag(rule, 'P', methodRuleInfoBuilder::setIsPostStartup);
     return parseClassOrMethodDescriptor(rule, methodRuleInfoBuilder.build());
   }
 
@@ -95,7 +95,8 @@ public class HumanReadableArtProfileParser {
     if (classReference == null) {
       return false;
     }
-    profileBuilder.addClassRule(classReference, ArtProfileClassRuleInfoImpl.empty());
+    profileBuilder.addClassRule(
+        classRuleBuilder -> classRuleBuilder.setClassReference(classReference));
     return true;
   }
 
@@ -106,7 +107,16 @@ public class HumanReadableArtProfileParser {
     if (methodReference == null) {
       return false;
     }
-    profileBuilder.addMethodRule(methodReference, methodRuleInfo);
+    profileBuilder.addMethodRule(
+        methodRuleBuilder ->
+            methodRuleBuilder
+                .setMethodReference(methodReference)
+                .setMethodRuleInfo(
+                    methodRuleInfoBuilder ->
+                        methodRuleInfoBuilder
+                            .setIsHot(methodRuleInfo.isHot())
+                            .setIsStartup(methodRuleInfo.isStartup())
+                            .setIsPostStartup(methodRuleInfo.isPostStartup())));
     return true;
   }
 

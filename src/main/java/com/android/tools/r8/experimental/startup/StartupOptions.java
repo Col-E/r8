@@ -7,7 +7,6 @@ package com.android.tools.r8.experimental.startup;
 import static com.android.tools.r8.utils.SystemPropertyUtils.parseSystemPropertyForDevelopmentOrDefault;
 
 import com.android.tools.r8.startup.StartupProfileProvider;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SystemPropertyUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Paths;
@@ -54,7 +53,7 @@ public class StartupOptions {
 
   private Collection<StartupProfileProvider> startupProfileProviders;
 
-  public StartupOptions(InternalOptions options) {
+  public StartupOptions() {
     this.startupProfileProviders =
         SystemPropertyUtils.applySystemProperty(
             "com.android.tools.r8.startup.profile",

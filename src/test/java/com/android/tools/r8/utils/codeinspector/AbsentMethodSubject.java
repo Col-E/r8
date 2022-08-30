@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
+import com.android.tools.r8.references.MethodReference;
 import java.util.List;
 
 public class AbsentMethodSubject extends MethodSubject {
@@ -79,6 +80,11 @@ public class AbsentMethodSubject extends MethodSubject {
   @Override
   public DexEncodedMethod getMethod() {
     return null;
+  }
+
+  @Override
+  public MethodReference getFinalReference() {
+    throw new Unreachable("Cannot get the final reference for an absent method");
   }
 
   @Override

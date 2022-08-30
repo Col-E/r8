@@ -37,6 +37,7 @@ import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
+import com.android.tools.r8.profile.art.ArtProfileCollection;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -73,6 +74,7 @@ public class Tracer {
         AppView.createForTracer(
             AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
                 new ApplicationReader(inputApp, options, Timing.empty()).read().toDirect(),
+                ArtProfileCollection.empty(),
                 ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
                 MainDexInfo.none(),
                 GlobalSyntheticsStrategy.forSingleOutputMode(),

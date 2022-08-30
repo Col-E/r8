@@ -134,6 +134,11 @@ public class FoundMethodSubject extends MethodSubject {
   }
 
   @Override
+  public MethodReference getFinalReference() {
+    return dexMethod.getReference().asMethodReference();
+  }
+
+  @Override
   public TypeSubject getParameter(int index) {
     return new TypeSubject(codeInspector, getMethod().getParameter(index));
   }

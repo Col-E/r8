@@ -46,6 +46,7 @@ import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.profile.art.ArtProfileCollection;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -775,6 +776,7 @@ public class TestBase {
       throws Exception {
     return AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
         readApplicationForDexOutput(app, new InternalOptions()),
+        ArtProfileCollection.empty(),
         ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
         MainDexInfo.none(),
         GlobalSyntheticsStrategy.forSingleOutputMode(),

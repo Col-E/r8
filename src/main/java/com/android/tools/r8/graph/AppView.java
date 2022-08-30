@@ -34,6 +34,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.SeedMapper;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
 import com.android.tools.r8.optimize.interfaces.collection.OpenClosedInterfacesCollection;
+import com.android.tools.r8.profile.art.ArtProfileCollection;
 import com.android.tools.r8.retrace.internal.RetraceUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.AssumeInfoCollection;
@@ -206,12 +207,15 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public static AppView<AppInfoWithClassHierarchy> createForR8(
       DexApplication application, MainDexInfo mainDexInfo) {
+    ArtProfileCollection artProfiles =
+        ArtProfileCollection.createInitialArtProfileCollection(application.options);
     ClassToFeatureSplitMap classToFeatureSplitMap =
         ClassToFeatureSplitMap.createInitialClassToFeatureSplitMap(application.options);
     StartupOrder startupOrder = StartupOrder.createInitialStartupOrderForR8(application);
     AppInfoWithClassHierarchy appInfo =
         AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
             application,
+            artProfiles,
             classToFeatureSplitMap,
             mainDexInfo,
             GlobalSyntheticsStrategy.forSingleOutputMode(),

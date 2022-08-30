@@ -72,6 +72,7 @@ import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorEventConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
+import com.android.tools.r8.profile.art.ArtProfileOptions;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -819,7 +820,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       new KotlinOptimizationOptions();
   private final ApiModelTestingOptions apiModelTestingOptions = new ApiModelTestingOptions();
   private final DesugarSpecificOptions desugarSpecificOptions = new DesugarSpecificOptions();
-  private final StartupOptions startupOptions = new StartupOptions(this);
+  private final ArtProfileOptions artProfileOptions = new ArtProfileOptions();
+  private final StartupOptions startupOptions = new StartupOptions();
   private final StartupInstrumentationOptions startupInstrumentationOptions =
       new StartupInstrumentationOptions();
   public final TestingOptions testing = new TestingOptions();
@@ -879,6 +881,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public OpenClosedInterfacesOptions getOpenClosedInterfacesOptions() {
     return openClosedInterfacesOptions;
+  }
+
+  public ArtProfileOptions getArtProfileOptions() {
+    return artProfileOptions;
   }
 
   public StartupOptions getStartupOptions() {
