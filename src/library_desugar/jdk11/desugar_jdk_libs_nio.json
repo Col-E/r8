@@ -237,6 +237,13 @@
       },
       "api_generic_types_conversion": {
         "java.util.Set java.util.stream.Collector#characteristics()" : [-1, "java.util.Set java.util.stream.StreamApiFlips#flipCharacteristicSet(java.util.Set)"],
+        "java.util.stream.Stream java.util.stream.Stream#flatMap(java.util.function.Function)": [0, "java.util.function.Function java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.Function)"],
+        "java.util.stream.DoubleStream java.util.stream.DoubleStream#flatMap(java.util.function.DoubleFunction)": [0, "java.util.function.DoubleFunction java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.DoubleFunction)"],
+        "java.util.stream.DoubleStream java.util.stream.Stream#flatMapToDouble(java.util.function.Function)": [0, "java.util.function.Function java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.Function)"],
+        "java.util.stream.IntStream java.util.stream.Stream#flatMapToInt(java.util.function.Function)": [0, "java.util.function.Function java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.Function)"],
+        "java.util.stream.IntStream java.util.stream.IntStream#flatMap(java.util.function.IntFunction)": [0, "java.util.function.IntFunction java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.IntFunction)"],
+        "java.util.stream.LongStream java.util.stream.Stream#flatMapToLong(java.util.function.Function)": [0, "java.util.function.Function java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.Function)"],
+        "java.util.stream.LongStream java.util.stream.LongStream#flatMap(java.util.function.LongFunction)": [0, "java.util.function.LongFunction java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.LongFunction)"],
         "java.lang.Object java.lang.StackWalker#walk(java.util.function.Function)": [0, "java.util.function.Function java.util.stream.StackWalkerApiFlips#flipFunctionStream(java.util.function.Function)"]
       },
       "never_outline_api": [
@@ -453,6 +460,15 @@
         },
         "java.util.Optional": {
           "j$.util.Optional": "java.util.Optional"
+        },
+        "java.util.stream.DoubleStream": {
+          "j$.util.stream.DoubleStream": "java.util.stream.DoubleStream"
+        },
+        "java.util.stream.IntStream": {
+          "j$.util.stream.IntStream": "java.util.stream.IntStream"
+        },
+        "java.util.stream.LongStream": {
+          "j$.util.stream.LongStream": "java.util.stream.LongStream"
         },
         "java.util.stream.Stream": {
           "j$.util.stream.Stream": "java.util.stream.Stream"

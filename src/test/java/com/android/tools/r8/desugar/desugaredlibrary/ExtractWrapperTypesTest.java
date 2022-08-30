@@ -100,9 +100,12 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
           "java.util.Locale$FilteringMode",
           "java.util.SplittableRandom");
 
-  // TODO(b/238179854): Investigate how to fix these.
-  private static final Set<String> MISSING_GENERIC_TYPE_CONVERSION =
+  private static final Set<String> MISSING_GENERIC_TYPE_CONVERSION = ImmutableSet.of();
+
+  // Missing conversions in JDK8 and JDK11_LEGACY desugared library that are fixed in JDK11.
+  private static final Set<String> MISSING_GENERIC_TYPE_CONVERSION_8 =
       ImmutableSet.of(
+          "java.util.Set java.util.stream.Collector.characteristics()",
           "java.util.stream.Stream java.util.stream.Stream.flatMap(java.util.function.Function)",
           "java.util.stream.DoubleStream"
               + " java.util.stream.DoubleStream.flatMap(java.util.function.DoubleFunction)",
@@ -115,12 +118,7 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
           "java.util.stream.LongStream"
               + " java.util.stream.Stream.flatMapToLong(java.util.function.Function)",
           "java.util.stream.LongStream"
-              + " java.util.stream.LongStream.flatMap(java.util.function.LongFunction)");
-
-  // Missing conversions in JDK8 desugared library that are fixed in JDK11 desugared library.
-  private static final Set<String> MISSING_GENERIC_TYPE_CONVERSION_8 =
-      ImmutableSet.of(
-          "java.util.Set java.util.stream.Collector.characteristics()",
+              + " java.util.stream.LongStream.flatMap(java.util.function.LongFunction)",
           "java.lang.Object java.lang.StackWalker.walk(java.util.function.Function)");
 
   // TODO(b/238179854): Investigate how to fix these.

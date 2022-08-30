@@ -4,8 +4,13 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
-import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_LEGACY;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_MINIMAL;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.TestParameters;
@@ -15,12 +20,14 @@ import com.android.tools.r8.desugar.desugaredlibrary.test.CustomLibrarySpecifica
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -48,7 +55,7 @@ public class FlatMapConversionTest extends DesugaredLibraryTestBase {
   public static List<Object[]> data() {
     return buildParameters(
         getConversionParametersUpToExcluding(MIN_SUPPORTED),
-        getJdk8Jdk11(),
+        ImmutableList.of(JDK8, JDK11_LEGACY, JDK11_MINIMAL, JDK11, JDK11_PATH),
         DEFAULT_SPECIFICATIONS);
   }
 
@@ -62,6 +69,18 @@ public class FlatMapConversionTest extends DesugaredLibraryTestBase {
   }
 
   @Test
+  public void testReference() throws Throwable {
+    Assume.assumeTrue(
+        "Run only once",
+        libraryDesugaringSpecification == JDK11 && compilationSpecification == D8_L8DEBUG);
+    testForD8()
+        .setMinApi(parameters.getApiLevel())
+        .addProgramClasses(Executor.class, CustomLibClass.class)
+        .run(parameters.getRuntime(), Executor.class)
+        .assertSuccessWithOutput(EXPECTED_RESULT);
+  }
+
+  @Test
   public void testConvert() throws Throwable {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClasses(Executor.class)
@@ -69,7 +88,12 @@ public class FlatMapConversionTest extends DesugaredLibraryTestBase {
             new CustomLibrarySpecification(CustomLibClass.class, MIN_SUPPORTED))
         .addKeepMainRule(Executor.class)
         .run(parameters.getRuntime(), Executor.class)
-        .assertFailureWithErrorThatMatches(containsString("java.lang.ClassCastException"));
+        .applyIf(
+            libraryDesugaringSpecification == JDK8
+                || libraryDesugaringSpecification == JDK11_LEGACY,
+            r ->
+                r.assertFailureWithErrorThatMatches(containsString("java.lang.ClassCastException")),
+            r -> r.assertSuccessWithOutput(EXPECTED_RESULT));
   }
 
   static class Executor {

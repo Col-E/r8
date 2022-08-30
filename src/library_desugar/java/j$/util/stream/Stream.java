@@ -13,4 +13,12 @@ public class Stream<T> {
   public static j$.util.stream.Stream<?> inverted_wrap_convert(java.util.stream.Stream<?> stream) {
     return null;
   }
+
+  public static java.util.stream.Stream<?> wrap_convert(j$.util.stream.Stream<?> stream) {
+    return null;
+  }
+
+  public static j$.util.stream.Stream<?> wrap_convert(java.util.stream.Stream<?> stream) {
+    return null;
+  }
 }
