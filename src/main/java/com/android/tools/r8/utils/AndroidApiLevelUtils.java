@@ -107,15 +107,21 @@ public class AndroidApiLevelUtils {
   }
 
   public static boolean isApiSafeForReference(LibraryDefinition definition, AppView<?> appView) {
-    return isApiSafeForReference(definition, appView.apiLevelCompute(), appView.options());
+    if (appView.options().isAndroidPlatformBuild()) {
+      assert definition != null;
+      return true;
+    }
+    return isApiSafeForReference(
+        definition, appView.apiLevelCompute(), appView.options(), appView.dexItemFactory());
   }
 
   private static boolean isApiSafeForReference(
       LibraryDefinition definition,
       AndroidApiLevelCompute androidApiLevelCompute,
-      InternalOptions options) {
+      InternalOptions options,
+      DexItemFactory factory) {
     if (!options.apiModelingOptions().enableApiCallerIdentification) {
-      return false;
+      return factory.libraryTypesAssumedToBePresent.contains(definition.getContextType());
     }
     ComputedApiLevel apiLevel =
         androidApiLevelCompute.computeApiLevelForLibraryReference(

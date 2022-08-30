@@ -279,6 +279,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     enableBackportMethods = false;
   }
 
+  public boolean isAndroidPlatformBuild() {
+    return androidPlatformBuild;
+  }
+
   public boolean printTimes = System.getProperty("com.android.tools.r8.printtimes") != null;
   // To print memory one also have to enable printtimes.
   public boolean printMemory = System.getProperty("com.android.tools.r8.printmemory") != null;
