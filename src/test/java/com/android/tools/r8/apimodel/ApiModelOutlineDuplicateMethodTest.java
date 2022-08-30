@@ -5,7 +5,6 @@
 package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
-import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethodWithName;
@@ -60,7 +59,6 @@ public class ApiModelOutlineDuplicateMethodTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addAndroidBuildVersion()
         .apply(setMockApiLevelForClass(LibraryClass.class, classApiLevel))
-        .apply(setMockApiLevelForDefaultInstanceInitializer(LibraryClass.class, classApiLevel))
         .apply(setMockApiLevelForMethod(addedOn23(), methodApiLevel))
         // TODO(b/213552119): Remove when enabled by default.
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
@@ -162,7 +160,7 @@ public class ApiModelOutlineDuplicateMethodTest extends TestBase {
   // Only present from api level 19.
   public static class LibraryClass {
 
-    public void addedOn23() {
+    public static void addedOn23() {
       System.out.println("LibraryClass::addedOn23");
     }
   }
@@ -171,12 +169,9 @@ public class ApiModelOutlineDuplicateMethodTest extends TestBase {
 
     @NeverInline
     public static void test() {
-      if (AndroidBuildVersion.VERSION >= 19) {
-        LibraryClass libraryClass = new LibraryClass();
-        if (AndroidBuildVersion.VERSION >= 23) {
-          libraryClass.addedOn23();
-          libraryClass.addedOn23();
-        }
+      if (AndroidBuildVersion.VERSION >= 23) {
+        LibraryClass.addedOn23();
+        LibraryClass.addedOn23();
       }
       System.out.println("Hello World");
     }

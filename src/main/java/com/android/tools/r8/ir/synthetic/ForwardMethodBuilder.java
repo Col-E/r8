@@ -142,7 +142,7 @@ public class ForwardMethodBuilder {
     return this;
   }
 
-  public ForwardMethodBuilder setConstructorTarget(DexMethod method, DexItemFactory factory) {
+  public ForwardMethodBuilder setConstructorTargetWithNewInstance(DexMethod method) {
     assert method.isInstanceInitializer(factory);
     targetMethod = method;
     isConstructorDelegate = true;

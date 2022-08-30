@@ -7,7 +7,6 @@ package com.android.tools.r8.shaking;
 import static com.android.tools.r8.ir.desugar.records.RecordRewriterHelper.isInvokeDynamicOnRecord;
 
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
-import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.dex.code.CfOrDexInstruction;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -18,29 +17,23 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.UseRegistry;
 import java.util.ListIterator;
 
-public class DefaultEnqueuerUseRegistry extends UseRegistry<ProgramMethod> {
+public class DefaultEnqueuerUseRegistry extends ComputeApiLevelUseRegistry {
 
   protected final AppView<? extends AppInfoWithClassHierarchy> appView;
   protected final Enqueuer enqueuer;
-  private final AndroidApiLevelCompute apiLevelCompute;
-  private ComputedApiLevel maxApiReferenceLevel;
 
   public DefaultEnqueuerUseRegistry(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ProgramMethod context,
       Enqueuer enqueuer,
       AndroidApiLevelCompute apiLevelCompute) {
-    super(appView, context);
+    super(appView, context, apiLevelCompute);
     this.appView = appView;
     this.enqueuer = enqueuer;
-    this.apiLevelCompute = apiLevelCompute;
-    maxApiReferenceLevel = appView.computedMinApiLevel();
   }
 
   public DexProgramClass getContextHolder() {
@@ -53,6 +46,7 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry<ProgramMethod> {
 
   @Override
   public void registerInitClass(DexType clazz) {
+    super.registerInitClass(clazz);
     enqueuer.traceInitClass(clazz, getContext());
   }
 
@@ -64,90 +58,90 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry<ProgramMethod> {
 
   @Override
   public void registerInvokeVirtual(DexMethod invokedMethod) {
-    setMaxApiReferenceLevel(invokedMethod);
+    super.registerInvokeVirtual(invokedMethod);
     enqueuer.traceInvokeVirtual(invokedMethod, getContext());
   }
 
   @Override
   public void registerInvokeDirect(DexMethod invokedMethod) {
-    setMaxApiReferenceLevel(invokedMethod);
+    super.registerInvokeDirect(invokedMethod);
     enqueuer.traceInvokeDirect(invokedMethod, getContext());
   }
 
   @Override
   public void registerInvokeStatic(DexMethod invokedMethod) {
-    setMaxApiReferenceLevel(invokedMethod);
+    super.registerInvokeStatic(invokedMethod);
     enqueuer.traceInvokeStatic(invokedMethod, getContext());
   }
 
   @Override
   public void registerInvokeInterface(DexMethod invokedMethod) {
-    setMaxApiReferenceLevel(invokedMethod);
+    super.registerInvokeInterface(invokedMethod);
     enqueuer.traceInvokeInterface(invokedMethod, getContext());
   }
 
   @Override
   public void registerInvokeSuper(DexMethod invokedMethod) {
-    setMaxApiReferenceLevel(invokedMethod);
+    super.registerInvokeSuper(invokedMethod);
     enqueuer.traceInvokeSuper(invokedMethod, getContext());
   }
 
   @Override
   public void registerInstanceFieldRead(DexField field) {
-    setMaxApiReferenceLevel(field);
+    super.registerInstanceFieldRead(field);
     enqueuer.traceInstanceFieldRead(field, getContext());
   }
 
   @Override
   public void registerInstanceFieldReadFromMethodHandle(DexField field) {
-    setMaxApiReferenceLevel(field);
+    super.registerInstanceFieldReadFromMethodHandle(field);
     enqueuer.traceInstanceFieldReadFromMethodHandle(field, getContext());
   }
 
   private void registerInstanceFieldReadFromRecordMethodHandle(DexField field) {
-    setMaxApiReferenceLevel(field);
+    super.registerInstanceFieldWriteFromMethodHandle(field);
     enqueuer.traceInstanceFieldReadFromRecordMethodHandle(field, getContext());
   }
 
   @Override
   public void registerInstanceFieldWrite(DexField field) {
-    setMaxApiReferenceLevel(field);
+    super.registerInstanceFieldWrite(field);
     enqueuer.traceInstanceFieldWrite(field, getContext());
   }
 
   @Override
   public void registerInstanceFieldWriteFromMethodHandle(DexField field) {
-    setMaxApiReferenceLevel(field);
+    super.registerInstanceFieldWriteFromMethodHandle(field);
     enqueuer.traceInstanceFieldWriteFromMethodHandle(field, getContext());
   }
 
   @Override
   public void registerNewInstance(DexType type) {
-    setMaxApiReferenceLevel(type);
+    super.registerNewInstance(type);
     enqueuer.traceNewInstance(type, getContext());
   }
 
   @Override
   public void registerStaticFieldRead(DexField field) {
-    setMaxApiReferenceLevel(field);
+    super.registerStaticFieldRead(field);
     enqueuer.traceStaticFieldRead(field, getContext());
   }
 
   @Override
   public void registerStaticFieldReadFromMethodHandle(DexField field) {
-    setMaxApiReferenceLevel(field);
+    super.registerStaticFieldReadFromMethodHandle(field);
     enqueuer.traceStaticFieldReadFromMethodHandle(field, getContext());
   }
 
   @Override
   public void registerStaticFieldWrite(DexField field) {
-    setMaxApiReferenceLevel(field);
+    super.registerStaticFieldWrite(field);
     enqueuer.traceStaticFieldWrite(field, getContext());
   }
 
   @Override
   public void registerStaticFieldWriteFromMethodHandle(DexField field) {
-    setMaxApiReferenceLevel(field);
+    super.registerStaticFieldWriteFromMethodHandle(field);
     enqueuer.traceStaticFieldWriteFromMethodHandle(field, getContext());
   }
 
@@ -156,32 +150,37 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry<ProgramMethod> {
       DexType type,
       ListIterator<? extends CfOrDexInstruction> iterator,
       boolean ignoreCompatRules) {
+    super.registerConstClass(type, iterator, ignoreCompatRules);
     enqueuer.traceConstClass(type, getContext(), iterator, ignoreCompatRules);
   }
 
   @Override
   public void registerCheckCast(DexType type, boolean ignoreCompatRules) {
+    super.registerCheckCast(type, ignoreCompatRules);
     enqueuer.traceCheckCast(type, getContext(), ignoreCompatRules);
   }
 
   @Override
   public void registerSafeCheckCast(DexType type) {
+    super.registerSafeCheckCast(type);
     enqueuer.traceSafeCheckCast(type, getContext());
   }
 
   @Override
   public void registerTypeReference(DexType type) {
+    super.registerTypeReference(type);
     enqueuer.traceTypeReference(type, getContext());
   }
 
   @Override
   public void registerInstanceOf(DexType type) {
+    super.registerInstanceOf(type);
     enqueuer.traceInstanceOf(type, getContext());
   }
 
   @Override
   public void registerExceptionGuard(DexType guard) {
-    setMaxApiReferenceLevel(guard);
+    super.registerExceptionGuard(guard);
     enqueuer.traceExceptionGuard(guard, getContext());
   }
 
@@ -218,16 +217,5 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry<ProgramMethod> {
         registerInstanceFieldReadFromRecordMethodHandle(field);
       }
     }
-  }
-
-  private void setMaxApiReferenceLevel(DexReference reference) {
-    maxApiReferenceLevel =
-        maxApiReferenceLevel.max(
-            apiLevelCompute.computeApiLevelForLibraryReference(
-                reference, apiLevelCompute.getPlatformApiLevelOrUnknown(appView)));
-  }
-
-  public ComputedApiLevel getMaxApiReferenceLevel() {
-    return maxApiReferenceLevel;
   }
 }

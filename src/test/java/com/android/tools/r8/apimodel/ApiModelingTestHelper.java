@@ -6,6 +6,7 @@ package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.accessesField;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
+import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethodWithHolderAndName;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethodWithName;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
@@ -28,6 +29,7 @@ import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Collections;
@@ -334,7 +336,7 @@ public abstract class ApiModelingTestHelper {
       assertThat(target, not(CodeMatchers.invokesMethod(candidate)));
     }
 
-    void isOutlinedFromUntil(Method method, AndroidApiLevel apiLevel) {
+    void isOutlinedFromUntil(Executable method, AndroidApiLevel apiLevel) {
       if (parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(apiLevel)) {
         isOutlinedFrom(method);
       } else {
@@ -342,7 +344,7 @@ public abstract class ApiModelingTestHelper {
       }
     }
 
-    void isOutlinedFrom(Method method) {
+    void isOutlinedFrom(Executable method) {
       // Check that the call is in a synthetic class.
       List<FoundMethodSubject> outlinedMethod =
           inspector.allClasses().stream()
@@ -350,18 +352,20 @@ public abstract class ApiModelingTestHelper {
               .filter(
                   methodSubject ->
                       methodSubject.isSynthetic()
-                          && invokesMethodWithName(methodOfInterest.getMethodName())
+                          && invokesMethodWithHolderAndName(
+                                  methodOfInterest.getHolderClass().getTypeName(),
+                                  methodOfInterest.getMethodName())
                               .matches(methodSubject))
               .collect(Collectors.toList());
       assertEquals(1, outlinedMethod.size());
       // Assert that method invokes the outline
-      MethodSubject caller = inspector.method(method);
+      MethodSubject caller = inspector.method(Reference.methodFromMethod(method));
       assertThat(caller, isPresent());
       assertThat(caller, invokesMethod(outlinedMethod.get(0)));
     }
 
-    void isNotOutlinedFrom(Method method) {
-      MethodSubject caller = inspector.method(method);
+    void isNotOutlinedFrom(Executable method) {
+      MethodSubject caller = inspector.method(Reference.methodFromMethod(method));
       assertThat(caller, isPresent());
       assertThat(caller, invokesMethodWithName(methodOfInterest.getMethodName()));
     }

@@ -62,6 +62,7 @@ import com.android.tools.r8.ir.optimize.DynamicTypeOptimization;
 import com.android.tools.r8.ir.optimize.IdempotentFunctionCallCanonicalizer;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
+import com.android.tools.r8.ir.optimize.InstanceInitializerOutliner;
 import com.android.tools.r8.ir.optimize.NaturalIntLoopRemover;
 import com.android.tools.r8.ir.optimize.RedundantFieldLoadAndStoreElimination;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer;
@@ -143,6 +144,7 @@ public class IRConverter {
   private final ServiceLoaderRewriter serviceLoaderRewriter;
   private final EnumValueOptimizer enumValueOptimizer;
   private final EnumUnboxer enumUnboxer;
+  private final InstanceInitializerOutliner instanceInitializerOutliner;
 
   public final AssumeInserter assumeInserter;
   private final DynamicTypeOptimization dynamicTypeOptimization;
@@ -227,6 +229,7 @@ public class IRConverter {
       this.enumValueOptimizer = null;
       this.enumUnboxer = EnumUnboxer.empty();
       this.assumeInserter = null;
+      this.instanceInitializerOutliner = null;
       return;
     }
     this.instructionDesugaring =
@@ -237,6 +240,12 @@ public class IRConverter {
         options.processCovariantReturnTypeAnnotations
             ? new CovariantReturnTypeAnnotationTransformer(this, appView.dexItemFactory())
             : null;
+    if (appView.options().desugarState.isOn()
+        && appView.options().apiModelingOptions().enableOutliningOfMethods) {
+      this.instanceInitializerOutliner = new InstanceInitializerOutliner(appView);
+    } else {
+      this.instanceInitializerOutliner = null;
+    }
     if (appView.enableWholeProgramOptimizations()) {
       assert appView.appInfo().hasLiveness();
       assert appView.rootSet() != null;
@@ -357,6 +366,10 @@ public class IRConverter {
 
     reportNestDesugarDependencies();
     clearNestAttributes();
+
+    if (instanceInitializerOutliner != null) {
+      processSimpleSynthesizeMethods(instanceInitializerOutliner.getSynthesizedMethods(), executor);
+    }
 
     application = commitPendingSyntheticItemsD8(appView, application);
 
@@ -780,8 +793,13 @@ public class IRConverter {
     builder.setHighestSortingString(highestSortingString);
 
     if (serviceLoaderRewriter != null) {
-      processSynthesizedServiceLoaderMethods(
+      processSimpleSynthesizeMethods(
           serviceLoaderRewriter.getServiceLoadMethods(), executorService);
+    }
+
+    if (instanceInitializerOutliner != null) {
+      processSimpleSynthesizeMethods(
+          instanceInitializerOutliner.getSynthesizedMethods(), executorService);
     }
 
     // Update optimization info for all synthesized methods at once.
@@ -865,14 +883,14 @@ public class IRConverter {
     return onWaveDoneActions != null;
   }
 
-  private void processSynthesizedServiceLoaderMethods(
+  private void processSimpleSynthesizeMethods(
       List<ProgramMethod> serviceLoadMethods, ExecutorService executorService)
       throws ExecutionException {
     ThreadUtils.processItems(
-        serviceLoadMethods, this::forEachSynthesizedServiceLoaderMethod, executorService);
+        serviceLoadMethods, this::processAndFinalizeSimpleSynthesiedMethod, executorService);
   }
 
-  private void forEachSynthesizedServiceLoaderMethod(ProgramMethod method) {
+  private void processAndFinalizeSimpleSynthesiedMethod(ProgramMethod method) {
     IRCode code = method.buildIR(appView);
     assert code != null;
     codeRewriter.rewriteMoveResult(code);
@@ -1206,6 +1224,11 @@ public class IRConverter {
       timing.begin("Remove switch maps");
       enumValueOptimizer.removeSwitchMaps(code);
       timing.end();
+    }
+
+    if (instanceInitializerOutliner != null) {
+      instanceInitializerOutliner.rewriteInstanceInitializers(
+          code, context, methodProcessingContext);
     }
 
     previous = printMethod(code, "IR after disable assertions (SSA)", previous);

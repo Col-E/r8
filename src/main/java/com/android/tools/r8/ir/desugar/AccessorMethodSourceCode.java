@@ -41,7 +41,7 @@ public class AccessorMethodSourceCode {
         }
       case INVOKE_CONSTRUCTOR:
         {
-          forwardMethodBuilder.setConstructorTarget(target, appView.dexItemFactory());
+          forwardMethodBuilder.setConstructorTargetWithNewInstance(target);
           break;
         }
       default:

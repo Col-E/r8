@@ -113,11 +113,11 @@ public class ApiModelOutlineInstanceInitializerTest extends TestBase {
   private void inspect(CodeInspector inspector, boolean isR8) throws Exception {
     Method mainMethod = Main.class.getMethod("main", String[].class);
     verifyThat(inspector, parameters, Argument.class.getDeclaredConstructor(String.class))
-        .isOutlinedFromUntil(mainMethod, AndroidApiLevel.B);
+        .isOutlinedFromUntil(mainMethod, classApiLevel);
     verifyThat(inspector, parameters, LibraryClass.class.getDeclaredConstructor(Argument.class))
-        .isOutlinedFromUntil(mainMethod, AndroidApiLevel.B);
+        .isOutlinedFromUntil(mainMethod, classApiLevel);
     verifyThat(inspector, parameters, LibraryClass.class.getMethod("print"))
-        .isOutlinedFromUntil(mainMethod, isR8 ? AndroidApiLevel.B : classApiLevel);
+        .isOutlinedFromUntil(mainMethod, classApiLevel);
   }
 
   private void checkOutput(SingleTestRunResult<?> runResult) {

@@ -5,7 +5,6 @@
 package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
-import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethodWithName;
@@ -64,9 +63,6 @@ public class ApiModelOutlineMethodMissingClassTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addAndroidBuildVersion()
         .apply(setMockApiLevelForClass(LibraryClass.class, initialLibraryMockLevel))
-        .apply(
-            setMockApiLevelForDefaultInstanceInitializer(
-                LibraryClass.class, initialLibraryMockLevel))
         .apply(setMockApiLevelForMethod(addedOn23(), initialLibraryMockLevel))
         .apply(setMockApiLevelForMethod(addedOn27(), finalLibraryMethodLevel))
         // TODO(b/213552119): Remove when enabled by default.
