@@ -4191,7 +4191,6 @@ public class Enqueuer {
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(
             appInfo.getSyntheticItems().commit(app),
-            appInfo.getArtProfiles(),
             appInfo.getClassToFeatureSplitMap(),
             appInfo.getMainDexInfo(),
             mode.isInitialTreeShaking()

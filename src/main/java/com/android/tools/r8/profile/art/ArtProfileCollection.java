@@ -11,25 +11,35 @@ import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public abstract class ArtProfileCollection {
 
   public static ArtProfileCollection createInitialArtProfileCollection(InternalOptions options) {
-    List<ArtProfile> artProfiles = new ArrayList<>();
+    ArtProfileOptions artProfileOptions = options.getArtProfileOptions();
+    Collection<ArtProfileInput> artProfileInputs = artProfileOptions.getArtProfileInputs();
+    if (artProfileInputs.isEmpty()) {
+      return empty();
+    }
+    if (artProfileOptions.isPassthrough()) {
+      return passthrough();
+    }
+    List<ArtProfile> artProfiles = new ArrayList<>(artProfileInputs.size());
     for (ArtProfileInput input : options.getArtProfileOptions().getArtProfileInputs()) {
       ArtProfile.Builder artProfileBuilder = ArtProfile.builder(options.dexItemFactory());
       input.getArtProfile(artProfileBuilder);
       artProfiles.add(artProfileBuilder.build());
-    }
-    if (artProfiles.isEmpty()) {
-      return empty();
     }
     return new NonEmptyArtProfileCollection(artProfiles);
   }
 
   public static EmptyArtProfileCollection empty() {
     return EmptyArtProfileCollection.getInstance();
+  }
+
+  public static PassthroughArtProfileCollection passthrough() {
+    return PassthroughArtProfileCollection.getInstance();
   }
 
   public abstract ArtProfileCollection rewrittenWithLens(GraphLens lens);

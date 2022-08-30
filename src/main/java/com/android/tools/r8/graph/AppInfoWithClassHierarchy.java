@@ -12,7 +12,6 @@ import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.ir.analysis.type.InterfaceCollection;
 import com.android.tools.r8.ir.analysis.type.InterfaceCollection.Builder;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
-import com.android.tools.r8.profile.art.ArtProfileCollection;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.shaking.MissingClasses;
 import com.android.tools.r8.synthesis.CommittedItems;
@@ -49,21 +48,18 @@ public class AppInfoWithClassHierarchy extends AppInfo {
 
   public static AppInfoWithClassHierarchy createInitialAppInfoWithClassHierarchy(
       DexApplication application,
-      ArtProfileCollection artProfiles,
       ClassToFeatureSplitMap classToFeatureSplitMap,
       MainDexInfo mainDexInfo,
       GlobalSyntheticsStrategy globalSyntheticsStrategy,
       StartupOrder startupOrder) {
     return new AppInfoWithClassHierarchy(
         SyntheticItems.createInitialSyntheticItems(application, globalSyntheticsStrategy),
-        artProfiles,
         classToFeatureSplitMap,
         mainDexInfo,
         MissingClasses.empty(),
         startupOrder);
   }
 
-  private final ArtProfileCollection artProfiles;
   private final ClassToFeatureSplitMap classToFeatureSplitMap;
   private final StartupOrder startupOrder;
 
@@ -74,13 +70,11 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   // For AppInfoWithLiveness subclass.
   protected AppInfoWithClassHierarchy(
       CommittedItems committedItems,
-      ArtProfileCollection artProfiles,
       ClassToFeatureSplitMap classToFeatureSplitMap,
       MainDexInfo mainDexInfo,
       MissingClasses missingClasses,
       StartupOrder startupOrder) {
     super(committedItems, mainDexInfo);
-    this.artProfiles = artProfiles;
     this.classToFeatureSplitMap = classToFeatureSplitMap;
     this.missingClasses = missingClasses;
     this.startupOrder = startupOrder;
@@ -89,7 +83,6 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   // For desugaring.
   private AppInfoWithClassHierarchy(CreateDesugaringViewOnAppInfo witness, AppInfo appInfo) {
     super(witness, appInfo);
-    this.artProfiles = ArtProfileCollection.empty();
     this.classToFeatureSplitMap = ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap();
     // TODO(b/175659048): Migrate the reporting of missing classes in D8 desugar to MissingClasses,
     //  and use the missing classes from AppInfo instead of MissingClasses.empty().
@@ -105,7 +98,6 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   public final AppInfoWithClassHierarchy rebuildWithClassHierarchy(CommittedItems commit) {
     return new AppInfoWithClassHierarchy(
         commit,
-        getArtProfiles(),
         getClassToFeatureSplitMap(),
         getMainDexInfo(),
         getMissingClasses(),
@@ -117,7 +109,6 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     assert checkIfObsolete();
     return new AppInfoWithClassHierarchy(
         getSyntheticItems().commit(fn.apply(app())),
-        getArtProfiles(),
         getClassToFeatureSplitMap(),
         getMainDexInfo(),
         getMissingClasses(),
@@ -130,7 +121,6 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     assert checkIfObsolete();
     return new AppInfoWithClassHierarchy(
         getSyntheticItems().commit(app()),
-        getArtProfiles(),
         getClassToFeatureSplitMap(),
         mainDexInfo,
         getMissingClasses(),
@@ -148,15 +138,10 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     }
     return new AppInfoWithClassHierarchy(
         getSyntheticItems().commitPrunedItems(prunedItems),
-        getArtProfiles().withoutPrunedItems(prunedItems),
         getClassToFeatureSplitMap().withoutPrunedItems(prunedItems),
         getMainDexInfo().withoutPrunedItems(prunedItems),
         getMissingClasses(),
         getStartupOrder().withoutPrunedItems(prunedItems, getSyntheticItems()));
-  }
-
-  public ArtProfileCollection getArtProfiles() {
-    return artProfiles;
   }
 
   public ClassToFeatureSplitMap getClassToFeatureSplitMap() {

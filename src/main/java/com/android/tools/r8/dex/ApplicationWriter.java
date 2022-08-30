@@ -596,9 +596,7 @@ public class ApplicationWriter {
   public static void supplyAdditionalConsumers(AppView<?> appView) {
     InternalOptions options = appView.options();
     Reporter reporter = options.reporter;
-    if (appView.hasClassHierarchy()) {
-      appView.appInfoWithClassHierarchy().getArtProfiles().supplyConsumers(appView);
-    }
+    appView.getArtProfileCollection().supplyConsumers(appView);
     if (options.configurationConsumer != null) {
       ExceptionUtils.withConsumeResourceHandler(
           reporter,

@@ -57,7 +57,6 @@ import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper;
 import com.android.tools.r8.naming.SeedMapper;
-import com.android.tools.r8.profile.art.ArtProfileCollection;
 import com.android.tools.r8.shaking.KeepInfo.Joiner;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.utils.CollectionUtils;
@@ -200,7 +199,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   // TODO(zerny): Clean up the constructors so we have just one.
   AppInfoWithLiveness(
       CommittedItems committedItems,
-      ArtProfileCollection artProfiles,
       ClassToFeatureSplitMap classToFeatureSplitMap,
       MainDexInfo mainDexInfo,
       MissingClasses missingClasses,
@@ -238,7 +236,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexMethod> recordFieldValuesReferences) {
     super(
         committedItems,
-        artProfiles,
         classToFeatureSplitMap,
         mainDexInfo,
         missingClasses,
@@ -280,7 +277,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   private AppInfoWithLiveness(AppInfoWithLiveness previous, CommittedItems committedItems) {
     this(
         committedItems,
-        previous.getArtProfiles(),
         previous.getClassToFeatureSplitMap(),
         previous.getMainDexInfo(),
         previous.getMissingClasses(),
@@ -325,7 +321,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       List<Future<?>> futures) {
     this(
         previous.getSyntheticItems().commitPrunedItems(prunedItems),
-        previous.getArtProfiles().withoutPrunedItems(prunedItems),
         previous.getClassToFeatureSplitMap().withoutPrunedItems(prunedItems),
         previous.getMainDexInfo().withoutPrunedItems(prunedItems),
         previous.getMissingClasses(),
@@ -530,7 +525,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   public AppInfoWithLiveness rebuildWithMainDexInfo(MainDexInfo mainDexInfo) {
     return new AppInfoWithLiveness(
         getSyntheticItems().commit(app()),
-        getArtProfiles(),
         getClassToFeatureSplitMap(),
         mainDexInfo,
         getMissingClasses(),
@@ -609,7 +603,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       AppInfoWithLiveness previous, Map<DexField, Int2ReferenceMap<DexField>> switchMaps) {
     super(
         previous.getSyntheticItems().commit(previous.app()),
-        previous.getArtProfiles(),
         previous.getClassToFeatureSplitMap(),
         previous.getMainDexInfo(),
         previous.getMissingClasses(),
@@ -1195,7 +1188,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         committedItems.getApplication().getDefinitionsSupplier(committedItems);
     return new AppInfoWithLiveness(
         committedItems,
-        getArtProfiles().rewrittenWithLens(lens),
         getClassToFeatureSplitMap().rewrittenWithLens(lens),
         getMainDexInfo().rewrittenWithLens(getSyntheticItems(), lens),
         getMissingClasses(),

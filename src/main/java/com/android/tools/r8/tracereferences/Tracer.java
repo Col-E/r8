@@ -74,7 +74,6 @@ public class Tracer {
         AppView.createForTracer(
             AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
                 new ApplicationReader(inputApp, options, Timing.empty()).read().toDirect(),
-                ArtProfileCollection.empty(),
                 ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
                 MainDexInfo.none(),
                 GlobalSyntheticsStrategy.forSingleOutputMode(),

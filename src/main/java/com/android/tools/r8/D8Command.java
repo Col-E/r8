@@ -694,6 +694,7 @@ public final class D8Command extends BaseCompilerCommand {
 
     internal.configureAndroidPlatformBuild(getAndroidPlatformBuild());
 
+    internal.getArtProfileOptions().setPassthrough(true);
     internal.getStartupOptions().setStartupProfileProviders(getStartupProfileProviders());
 
     internal.programClassConflictResolver =

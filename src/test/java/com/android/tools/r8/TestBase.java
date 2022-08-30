@@ -776,7 +776,6 @@ public class TestBase {
       throws Exception {
     return AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
         readApplicationForDexOutput(app, new InternalOptions()),
-        ArtProfileCollection.empty(),
         ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
         MainDexInfo.none(),
         GlobalSyntheticsStrategy.forSingleOutputMode(),

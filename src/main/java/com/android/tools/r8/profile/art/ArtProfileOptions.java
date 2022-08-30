@@ -10,6 +10,7 @@ import java.util.Collections;
 public class ArtProfileOptions {
 
   private Collection<ArtProfileInput> inputs = Collections.emptyList();
+  private boolean passthrough;
 
   public ArtProfileOptions() {}
 
@@ -19,6 +20,15 @@ public class ArtProfileOptions {
 
   public ArtProfileOptions setArtProfileInputs(Collection<ArtProfileInput> inputs) {
     this.inputs = inputs;
+    return this;
+  }
+
+  public boolean isPassthrough() {
+    return passthrough;
+  }
+
+  public ArtProfileOptions setPassthrough(boolean passthrough) {
+    this.passthrough = passthrough;
     return this;
   }
 }

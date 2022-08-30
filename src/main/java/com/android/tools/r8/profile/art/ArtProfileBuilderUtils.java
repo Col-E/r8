@@ -122,7 +122,7 @@ public class ArtProfileBuilderUtils {
     };
   }
 
-  private static class MutableArtProfileClassRule implements ArtProfileClassRuleBuilder {
+  static class MutableArtProfileClassRule implements ArtProfileClassRuleBuilder {
 
     private ClassReference classReference;
 
@@ -143,7 +143,7 @@ public class ArtProfileBuilderUtils {
     }
   }
 
-  private static class MutableArtProfileMethodRule implements ArtProfileMethodRuleBuilder {
+  static class MutableArtProfileMethodRule implements ArtProfileMethodRuleBuilder {
 
     private MethodReference methodReference;
     private ArtProfileMethodRuleInfo methodRuleInfo = ArtProfileMethodRuleInfoImpl.empty();
