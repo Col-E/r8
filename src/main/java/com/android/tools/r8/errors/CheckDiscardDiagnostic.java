@@ -66,7 +66,7 @@ public class CheckDiscardDiagnostic implements Diagnostic {
     StringBuilder builder = new StringBuilder("Discard checks failed.");
     if (messages.size() > 0) {
       builder.append(System.lineSeparator());
-      builder.append("The following items where not discarded");
+      builder.append("The following items were not discarded");
       messages.forEach(
           message -> {
             builder.append(System.lineSeparator());
