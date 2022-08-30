@@ -79,6 +79,11 @@ public class DesugaredLibraryJDK11Undesugarer extends DesugaredLibraryTestBase {
           if (!entry.getName().endsWith(".class")) {
             return;
           }
+          // TODO(b/244273080): Remove from the jar.
+          if (entry.getName().equals("sun/nio/fs/DefaultFileSystemProvider.class")
+              || entry.getName().equals("sun/nio/fs/DefaultFileTypeDetector.class")) {
+            return;
+          }
           final byte[] bytes = StreamUtils.streamToByteArrayClose(input);
           final byte[] rewrittenBytes =
               transformInvoke(entry.getName().substring(0, entry.getName().length() - 6), bytes);

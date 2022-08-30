@@ -91,7 +91,7 @@ public class HumanToMachinePrefixConverter {
         (k, v) -> {
           for (DexMethod dexMethod : v) {
             if (dexMethod != null) {
-              registerClassType(dexMethod.getHolderType());
+              registerType(dexMethod.getHolderType());
             }
           }
         });
@@ -159,9 +159,13 @@ public class HumanToMachinePrefixConverter {
                   type.descriptor.withNewPrefix(prefix, k, appInfo.dexItemFactory());
               DexString rewrittenTypeDescriptor =
                   type.descriptor.withNewPrefix(prefix, v, appInfo.dexItemFactory());
+              DexType newKey = appInfo.dexItemFactory().createType(typeDescriptor);
+              assert appInfo.definitionForWithoutExistenceAssert(newKey) == null
+                  : "Trying to rewrite a type "
+                      + newKey
+                      + " with different prefix that already exists.";
               builder.rewriteType(
-                  appInfo.dexItemFactory().createType(typeDescriptor),
-                  appInfo.dexItemFactory().createType(rewrittenTypeDescriptor));
+                  newKey, appInfo.dexItemFactory().createType(rewrittenTypeDescriptor));
             });
     usedPrefix.add(prefix);
   }
