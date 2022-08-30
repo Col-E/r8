@@ -249,13 +249,20 @@ public class CompileDumpCompatR8 {
     }
   }
 
-  private static Collection<?> createStartupProfileProviders(List<Path> startupProfileFiles) {
+  private static Collection<Object> createStartupProfileProviders(List<Path> startupProfileFiles) {
     List<Object> startupProfileProviders = new ArrayList<>();
     for (Path startupProfileFile : startupProfileFiles) {
-      callReflectiveUtilsMethod(
-          "createStartupProfileProviderFromDumpFile",
-          new Class<?>[] {Path.class},
-          fn -> startupProfileProviders.add(fn.apply(new Object[] {startupProfileFile})));
+      boolean found =
+          callReflectiveUtilsMethod(
+              "createStartupProfileProviderFromDumpFile",
+              new Class<?>[] {Path.class},
+              fn -> startupProfileProviders.add(fn.apply(new Object[] {startupProfileFile})));
+      if (!found) {
+        System.out.println(
+            "Unable to add startup profiles as input. "
+                + "Method createStartupProfileProviderFromDumpFile() was not found.");
+        break;
+      }
     }
     return startupProfileProviders;
   }
@@ -278,20 +285,20 @@ public class CompileDumpCompatR8 {
     }
   }
 
-  private static void callReflectiveUtilsMethod(
+  private static boolean callReflectiveUtilsMethod(
       String methodName, Class<?>[] parameters, Consumer<Function<Object[], Object>> fnConsumer) {
     Class<?> utilsClass;
     try {
       utilsClass = Class.forName("com.android.tools.r8.utils.CompileDumpUtils");
     } catch (ClassNotFoundException e) {
-      return;
+      return false;
     }
 
     Method declaredMethod;
     try {
       declaredMethod = utilsClass.getMethod(methodName, parameters);
     } catch (NoSuchMethodException e) {
-      return;
+      return false;
     }
 
     fnConsumer.accept(
@@ -302,6 +309,7 @@ public class CompileDumpCompatR8 {
             throw new RuntimeException(e);
           }
         });
+    return true;
   }
 
   // We cannot use StringResource since this class is added to the class path and has access only

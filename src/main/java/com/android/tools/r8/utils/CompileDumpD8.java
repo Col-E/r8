@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
+import java.util.function.Function;
 
 /**
  * Wrapper to make it easy to call D8 mode when compiling a dump file.
@@ -161,12 +161,7 @@ public class CompileDumpD8 {
     getReflectiveBuilderMethod(commandBuilder, "setAndroidPlatformBuild", boolean.class)
         .accept(new Object[] {androidPlatformBuild});
     getReflectiveBuilderMethod(commandBuilder, "addStartupProfileProviders", Collection.class)
-        .accept(
-            new Object[] {
-              startupProfileFiles.stream()
-                  .map(CompileDumpUtils::createStartupProfileProviderFromDumpFile)
-                  .collect(Collectors.toList())
-            });
+        .accept(new Object[] {createStartupProfileProviders(startupProfileFiles)});
     if (desugaredLibJson != null) {
       commandBuilder.addDesugaredLibraryConfiguration(readAllBytesJava7(desugaredLibJson));
     }
@@ -182,6 +177,24 @@ public class CompileDumpD8 {
     } else {
       D8.run(command);
     }
+  }
+
+  private static Collection<Object> createStartupProfileProviders(List<Path> startupProfileFiles) {
+    List<Object> startupProfileProviders = new ArrayList<>();
+    for (Path startupProfileFile : startupProfileFiles) {
+      boolean found =
+          callReflectiveUtilsMethod(
+              "createStartupProfileProviderFromDumpFile",
+              new Class<?>[] {Path.class},
+              fn -> startupProfileProviders.add(fn.apply(new Object[] {startupProfileFile})));
+      if (!found) {
+        System.out.println(
+            "Unable to add startup profiles as input. "
+                + "Method createStartupProfileProviderFromDumpFile() was not found.");
+        break;
+      }
+    }
+    return startupProfileProviders;
   }
 
   private static Consumer<Object[]> getReflectiveBuilderMethod(
@@ -200,6 +213,33 @@ public class CompileDumpD8 {
       // The option is not available so we just return an empty consumer
       return args -> {};
     }
+  }
+
+  private static boolean callReflectiveUtilsMethod(
+      String methodName, Class<?>[] parameters, Consumer<Function<Object[], Object>> fnConsumer) {
+    Class<?> utilsClass;
+    try {
+      utilsClass = Class.forName("com.android.tools.r8.utils.CompileDumpUtils");
+    } catch (ClassNotFoundException e) {
+      return false;
+    }
+
+    Method declaredMethod;
+    try {
+      declaredMethod = utilsClass.getMethod(methodName, parameters);
+    } catch (NoSuchMethodException e) {
+      return false;
+    }
+
+    fnConsumer.accept(
+        args -> {
+          try {
+            return declaredMethod.invoke(null, args);
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        });
+    return true;
   }
 
   // We cannot use StringResource since this class is added to the class path and has access only
