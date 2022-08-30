@@ -139,11 +139,9 @@ public class ConstantCanonicalizer {
 
   private Set<BasicBlock> computeDirectAndIndirectCatchHandlerBlocks() {
     WorkList<BasicBlock> catchHandlerBlocks = WorkList.newIdentityWorkList();
-    for (BasicBlock block : code.getBlocks()) {
-      if (block.entry().isMoveException()) {
-        catchHandlerBlocks.addIfNotSeen(block);
-      }
-    }
+    code.getBlocks()
+        .forEach(
+            block -> catchHandlerBlocks.addIfNotSeen(block.getCatchHandlers().getAllTargets()));
     while (catchHandlerBlocks.hasNext()) {
       BasicBlock block = catchHandlerBlocks.next();
       catchHandlerBlocks.addIfNotSeen(block.getSuccessors());
