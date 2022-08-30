@@ -37,7 +37,7 @@ public class ArtProfile {
 
   public ArtProfile rewrittenWithLens(GraphLens lens) {
     return transform(
-        (classRule, builderFactory) -> builderFactory.apply(lens.lookupType(classRule.getType())),
+        (classRule, builderFactory) -> builderFactory.accept(lens.lookupType(classRule.getType())),
         (methodRule, builderFactory) ->
             builderFactory
                 .apply(lens.getRenamedMethodSignature(methodRule.getMethod()))
@@ -50,7 +50,7 @@ public class ArtProfile {
     assert !lens.isIdentityLens();
     return transform(
         (classRule, builderFactory) ->
-            builderFactory.apply(lens.lookupType(classRule.getType(), dexItemFactory)),
+            builderFactory.accept(lens.lookupType(classRule.getType(), dexItemFactory)),
         (methodRule, builderFactory) ->
             builderFactory
                 .apply(lens.lookupMethod(methodRule.getMethod(), dexItemFactory))
@@ -63,7 +63,7 @@ public class ArtProfile {
     return transform(
         (classRule, builderFactory) -> {
           if (!prunedItems.isRemoved(classRule.getType())) {
-            builderFactory.apply(classRule.getType());
+            builderFactory.accept(classRule.getType());
           }
         },
         (methodRule, builderFactory) -> {
@@ -78,8 +78,7 @@ public class ArtProfile {
   }
 
   private ArtProfile transform(
-      BiConsumer<ArtProfileClassRule, Function<DexType, ArtProfileClassRule.Builder>>
-          classTransformation,
+      BiConsumer<ArtProfileClassRule, Consumer<DexType>> classTransformation,
       BiConsumer<ArtProfileMethodRule, Function<DexMethod, ArtProfileMethodRule.Builder>>
           methodTransformation) {
     Map<DexReference, ArtProfileRule.Builder> ruleBuilders = new LinkedHashMap<>();
