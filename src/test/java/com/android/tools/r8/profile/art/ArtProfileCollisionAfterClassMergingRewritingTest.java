@@ -30,16 +30,19 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class ArtProfileRewritingTest extends TestBase {
+public class ArtProfileCollisionAfterClassMergingRewritingTest extends TestBase {
 
   private static final ClassReference mainClassReference = Reference.classFromClass(Main.class);
   private static final MethodReference mainMethodReference =
       MethodReferenceUtils.mainMethod(Main.class);
 
-  private static final ClassReference greeterClassReference =
-      Reference.classFromClass(Greeter.class);
-  private static final MethodReference greetMethodReference =
-      MethodReferenceUtils.methodFromMethod(Greeter.class, "greet");
+  private static final ClassReference fooClassReference = Reference.classFromClass(Foo.class);
+  private static final MethodReference helloMethodReference =
+      MethodReferenceUtils.methodFromMethod(Foo.class, "hello");
+
+  private static final ClassReference barClassReference = Reference.classFromClass(Bar.class);
+  private static final MethodReference worldMethodReference =
+      MethodReferenceUtils.methodFromMethod(Bar.class, "world");
 
   @Parameter(0)
   public TestParameters parameters;
@@ -62,6 +65,9 @@ public class ArtProfileRewritingTest extends TestBase {
                 options
                     .getArtProfileOptions()
                     .setArtProfileInputs(Collections.singleton(artProfileInput)))
+        .addHorizontallyMergedClassesInspector(
+            inspector ->
+                inspector.assertMergedInto(Foo.class, Bar.class).assertNoOtherClassesMerged())
         .enableInliningAnnotations()
         .setMinApi(AndroidApiLevel.LATEST)
         .compile()
@@ -70,26 +76,34 @@ public class ArtProfileRewritingTest extends TestBase {
 
   private void inspect(
       CodeInspector inspector, ResidualArtProfileConsumerForTesting residualArtProfileConsumer) {
-    ClassSubject greeterClassSubject = inspector.clazz(Greeter.class);
-    assertThat(greeterClassSubject, isPresentAndRenamed());
+    ClassSubject barClassSubject = inspector.clazz(Bar.class);
+    assertThat(barClassSubject, isPresentAndRenamed());
 
-    MethodSubject greetMethodSubject = greeterClassSubject.uniqueMethodWithName("greet");
-    assertThat(greetMethodSubject, isPresentAndRenamed());
+    MethodSubject helloMethodSubject = barClassSubject.uniqueMethodWithName("hello");
+    assertThat(helloMethodSubject, isPresentAndRenamed());
+
+    MethodSubject worldMethodSubject = barClassSubject.uniqueMethodWithName("world");
+    assertThat(worldMethodSubject, isPresentAndRenamed());
 
     assertTrue(residualArtProfileConsumer.finished);
     assertEquals(
         Lists.newArrayList(
             mainClassReference,
             mainMethodReference,
-            greeterClassSubject.getFinalReference(),
-            greetMethodSubject.getFinalReference()),
+            barClassSubject.getFinalReference(),
+            helloMethodSubject.getFinalReference(),
+            // TODO(b/237043695): Bar should not occur twice in the profile.
+            barClassSubject.getFinalReference(),
+            worldMethodSubject.getFinalReference()),
         residualArtProfileConsumer.references);
     assertEquals(
         Lists.newArrayList(
             ArtProfileClassRuleInfoImpl.empty(),
-            ArtProfileMethodRuleInfoImpl.builder().setIsStartup().build(),
+            ArtProfileMethodRuleInfoImpl.empty(),
             ArtProfileClassRuleInfoImpl.empty(),
-            ArtProfileMethodRuleInfoImpl.builder().setIsHot().setIsPostStartup().build()),
+            ArtProfileMethodRuleInfoImpl.empty(),
+            ArtProfileClassRuleInfoImpl.empty(),
+            ArtProfileMethodRuleInfoImpl.empty()),
         residualArtProfileConsumer.infos);
   }
 
@@ -111,35 +125,37 @@ public class ArtProfileRewritingTest extends TestBase {
       profileBuilder
           .addClassRule(classRuleBuilder -> classRuleBuilder.setClassReference(mainClassReference))
           .addMethodRule(
-              methodRuleBuilder ->
-                  methodRuleBuilder
-                      .setMethodReference(mainMethodReference)
-                      .setMethodRuleInfo(
-                          methodRuleInfoBuilder -> methodRuleInfoBuilder.setIsStartup(true)))
-          .addClassRule(
-              classRuleBuilder -> classRuleBuilder.setClassReference(greeterClassReference))
+              methodRuleBuilder -> methodRuleBuilder.setMethodReference(mainMethodReference))
+          .addClassRule(classRuleBuilder -> classRuleBuilder.setClassReference(fooClassReference))
           .addMethodRule(
-              methodRuleBuilder ->
-                  methodRuleBuilder
-                      .setMethodReference(greetMethodReference)
-                      .setMethodRuleInfo(
-                          methodRuleInfoBuilder ->
-                              methodRuleInfoBuilder.setIsHot(true).setIsPostStartup(true)));
+              methodRuleBuilder -> methodRuleBuilder.setMethodReference(helloMethodReference))
+          .addClassRule(classRuleBuilder -> classRuleBuilder.setClassReference(barClassReference))
+          .addMethodRule(
+              methodRuleBuilder -> methodRuleBuilder.setMethodReference(worldMethodReference));
     }
   }
 
   static class Main {
 
     public static void main(String[] args) {
-      Greeter.greet();
+      Foo.hello();
+      Bar.world();
     }
   }
 
-  static class Greeter {
+  static class Foo {
 
     @NeverInline
-    static void greet() {
-      System.out.println("Hello, world!");
+    static void hello() {
+      System.out.print("Hello");
+    }
+  }
+
+  static class Bar {
+
+    @NeverInline
+    static void world() {
+      System.out.println(", world!");
     }
   }
 }
