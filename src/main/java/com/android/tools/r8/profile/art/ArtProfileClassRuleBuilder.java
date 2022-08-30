@@ -4,13 +4,11 @@
 
 package com.android.tools.r8.profile.art;
 
-import java.util.function.Consumer;
+import com.android.tools.r8.references.ClassReference;
 
-/** API for building an ART profile. */
+/** API for defining a class rule for an ART profile. */
 // TODO(b/237043695): @Keep this when adding a public API for passing ART profiles to the compiler.
-public interface ArtProfileBuilder {
+public interface ArtProfileClassRuleBuilder {
 
-  ArtProfileBuilder addClassRule(Consumer<ArtProfileClassRuleBuilder> classRuleBuilderConsumer);
-
-  ArtProfileBuilder addMethodRule(Consumer<ArtProfileMethodRuleBuilder> methodRuleBuilderConsumer);
+  ArtProfileClassRuleBuilder setClassReference(ClassReference classReference);
 }

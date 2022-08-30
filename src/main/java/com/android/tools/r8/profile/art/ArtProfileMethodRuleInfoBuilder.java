@@ -4,13 +4,13 @@
 
 package com.android.tools.r8.profile.art;
 
-import java.util.function.Consumer;
-
-/** API for building an ART profile. */
+/** API for providing metadata related to a method rule for an ART profile. */
 // TODO(b/237043695): @Keep this when adding a public API for passing ART profiles to the compiler.
-public interface ArtProfileBuilder {
+public interface ArtProfileMethodRuleInfoBuilder {
 
-  ArtProfileBuilder addClassRule(Consumer<ArtProfileClassRuleBuilder> classRuleBuilderConsumer);
+  ArtProfileMethodRuleInfoBuilder setIsHot(boolean isHot);
 
-  ArtProfileBuilder addMethodRule(Consumer<ArtProfileMethodRuleBuilder> methodRuleBuilderConsumer);
+  ArtProfileMethodRuleInfoBuilder setIsStartup(boolean isStartup);
+
+  ArtProfileMethodRuleInfoBuilder setIsPostStartup(boolean isPostStartup);
 }
