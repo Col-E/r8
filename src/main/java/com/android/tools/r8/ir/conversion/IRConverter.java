@@ -1229,6 +1229,7 @@ public class IRConverter {
     if (instanceInitializerOutliner != null) {
       instanceInitializerOutliner.rewriteInstanceInitializers(
           code, context, methodProcessingContext);
+      assert code.verifyTypes(appView);
     }
 
     previous = printMethod(code, "IR after disable assertions (SSA)", previous);

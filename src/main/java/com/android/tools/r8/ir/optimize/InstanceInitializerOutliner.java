@@ -14,6 +14,10 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.type.Nullability;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -21,13 +25,16 @@ import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.ir.synthetic.NewInstanceSourceCode;
 import com.android.tools.r8.shaking.ComputeApiLevelUseRegistry;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The InstanceInitializerOutliner will outline instance initializers and their NewInstance source.
@@ -105,6 +112,7 @@ public class InstanceInitializerOutliner {
     // TODO(b/244284945): If we know that arguments to an init cannot change class initializer
     //  semantics we can avoid inserting the NewInstance outline.
     iterator = code.instructionListIterator();
+    Set<Value> newOutValues = Sets.newIdentityHashSet();
     while (iterator.hasNext()) {
       Instruction instruction = iterator.next();
       if (!instruction.isNewInstance()) {
@@ -129,8 +137,13 @@ public class InstanceInitializerOutliner {
               .setPosition(instruction)
               .build();
       newInstance.outValue().replaceUsers(newOutlineInstanceValue);
+      newOutValues.add(newOutlineInstanceValue);
       iterator.replaceCurrentInstruction(outlinedStaticInit);
     }
+    // We are changing a NewInstance to a method call where we loose that the type is not null.
+    assert !newOutValues.isEmpty();
+    new TypeAnalysis(appView).widening(newOutValues);
+
     // Outlining of instance initializers will in most cases change the api level of the context
     // since all other soft verification issues has been outlined. To ensure that we do not inline
     // the outline again in R8 - but allow inlining of other calls to min api level methods, we have
@@ -210,6 +223,13 @@ public class InstanceInitializerOutliner {
 
     synchronized (synthesizedMethods) {
       synthesizedMethods.add(method);
+      ClassTypeElement exactType =
+          targetMethod
+              .getHolderType()
+              .toTypeElement(appView, Nullability.definitelyNotNull())
+              .asClassType();
+      OptimizationFeedback.getSimpleFeedback()
+          .setDynamicReturnType(method, appView, DynamicType.createExact(exactType));
     }
     return method.getDefinition();
   }
