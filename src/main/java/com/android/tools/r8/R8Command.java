@@ -1054,7 +1054,7 @@ public final class R8Command extends BaseCompilerCommand {
         synthesizedClassPrefix.isEmpty()
             ? System.getProperty("com.android.tools.r8.synthesizedClassPrefix", "")
             : synthesizedClassPrefix;
-    boolean l8Shrinking = !synthesizedClassPrefix.isEmpty();
+    boolean l8Shrinking = !internal.synthesizedClassPrefix.isEmpty();
     // TODO(b/214382176): Enable all the time.
     internal.loadAllClassDefinitions = l8Shrinking;
     if (l8Shrinking) {
