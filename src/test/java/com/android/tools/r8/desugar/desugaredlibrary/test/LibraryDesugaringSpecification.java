@@ -6,7 +6,6 @@ package com.android.tools.r8.desugar.desugaredlibrary.test;
 import static com.android.tools.r8.ToolHelper.DESUGARED_JDK_11_LIB_JAR;
 import static com.android.tools.r8.ToolHelper.DESUGARED_JDK_8_LIB_JAR;
 import static com.android.tools.r8.ToolHelper.DESUGARED_LIB_RELEASES_DIR;
-import static com.android.tools.r8.ToolHelper.getUndesugaredJdk11LibJarForTesting;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.CustomConversionVersion.LATEST;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.CustomConversionVersion.LEGACY;
 
@@ -14,6 +13,7 @@ import com.android.tools.r8.L8TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.desugar.desugaredlibrary.jdk11.DesugaredLibraryJDK11Undesugarer;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -29,6 +29,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import org.junit.rules.TemporaryFolder;
 
 public class LibraryDesugaringSpecification {
 
@@ -89,6 +90,24 @@ public class LibraryDesugaringSpecification {
     LATEST
   }
 
+  private static final Path tempLibraryJDK11Undesugar = createUndesugaredJdk11LibJarForTesting();
+
+  private static Path createUndesugaredJdk11LibJarForTesting() {
+    try {
+      TemporaryFolder staticTemp = ToolHelper.getTemporaryFolderForTest();
+      staticTemp.create();
+      Path jdklib_desugaring = staticTemp.newFolder("jdklib_desugaring").toPath();
+      return DesugaredLibraryJDK11Undesugarer.undesugaredJarJDK11(
+          jdklib_desugaring, DESUGARED_JDK_11_LIB_JAR);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static Path getTempLibraryJDK11Undesugar() {
+    return tempLibraryJDK11Undesugar;
+  }
+
   // Main head specifications.
   public static LibraryDesugaringSpecification JDK8 =
       new LibraryDesugaringSpecification(
@@ -101,7 +120,7 @@ public class LibraryDesugaringSpecification {
   public static LibraryDesugaringSpecification JDK11 =
       new LibraryDesugaringSpecification(
           "JDK11",
-          getUndesugaredJdk11LibJarForTesting(),
+          tempLibraryJDK11Undesugar,
           "jdk11/desugar_jdk_libs.json",
           AndroidApiLevel.R,
           JDK11_DESCRIPTOR,
@@ -109,7 +128,7 @@ public class LibraryDesugaringSpecification {
   public static LibraryDesugaringSpecification JDK11_MINIMAL =
       new LibraryDesugaringSpecification(
           "JDK11_MINIMAL",
-          getUndesugaredJdk11LibJarForTesting(),
+          tempLibraryJDK11Undesugar,
           "jdk11/desugar_jdk_libs_minimal.json",
           AndroidApiLevel.R,
           EMPTY_DESCRIPTOR_24,
@@ -117,7 +136,7 @@ public class LibraryDesugaringSpecification {
   public static LibraryDesugaringSpecification JDK11_PATH =
       new LibraryDesugaringSpecification(
           "JDK11_PATH",
-          getUndesugaredJdk11LibJarForTesting(),
+          tempLibraryJDK11Undesugar,
           "jdk11/desugar_jdk_libs_nio.json",
           AndroidApiLevel.R,
           JDK11_PATH_DESCRIPTOR,
@@ -127,7 +146,7 @@ public class LibraryDesugaringSpecification {
   public static LibraryDesugaringSpecification JDK11_PATH_ALTERNATIVE_3 =
       new LibraryDesugaringSpecification(
           "JDK11_PATH_ALTERNATIVE_3",
-          getUndesugaredJdk11LibJarForTesting(),
+          tempLibraryJDK11Undesugar,
           "jdk11/desugar_jdk_libs_nio_alternative_3.json",
           AndroidApiLevel.R,
           JDK11_PATH_DESCRIPTOR,
@@ -135,7 +154,7 @@ public class LibraryDesugaringSpecification {
   public static LibraryDesugaringSpecification JDK11_CHM_ONLY =
       new LibraryDesugaringSpecification(
           "JDK11_CHM_ONLY",
-          getUndesugaredJdk11LibJarForTesting(),
+          tempLibraryJDK11Undesugar,
           "jdk11/chm_only_desugar_jdk_libs.json",
           AndroidApiLevel.R,
           EMPTY_DESCRIPTOR_24,

@@ -64,7 +64,7 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
         new LibraryDesugaringSpecification(
             "JDK11_CL",
             ImmutableSet.of(
-                ToolHelper.getUndesugaredJdk11LibJarForTesting(),
+                LibraryDesugaringSpecification.getTempLibraryJDK11Undesugar(),
                 ToolHelper.getDesugarLibConversions(LATEST),
                 ToolHelper.getCoreLambdaStubs()),
             JDK11.getSpecification(),
