@@ -13,6 +13,7 @@ import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.profile.art.ArtProfileInput;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardConfigurationSource;
@@ -457,6 +458,7 @@ public final class D8Command extends BaseCompilerCommand {
           proguardMapConsumer,
           enableMissingLibraryApiModeling,
           getAndroidPlatformBuild(),
+          getArtProfileInputs(),
           getStartupProfileProviders(),
           getClassConflictResolver(),
           factory);
@@ -549,6 +551,7 @@ public final class D8Command extends BaseCompilerCommand {
       StringConsumer proguardMapConsumer,
       boolean enableMissingLibraryApiModeling,
       boolean isAndroidPlatformBuild,
+      List<ArtProfileInput> artProfileInputs,
       List<StartupProfileProvider> startupProfileProviders,
       ClassConflictResolver classConflictResolver,
       DexItemFactory factory) {
@@ -570,6 +573,7 @@ public final class D8Command extends BaseCompilerCommand {
         mapIdProvider,
         null,
         isAndroidPlatformBuild,
+        artProfileInputs,
         startupProfileProviders,
         classConflictResolver);
     this.intermediate = intermediate;
@@ -694,7 +698,7 @@ public final class D8Command extends BaseCompilerCommand {
 
     internal.configureAndroidPlatformBuild(getAndroidPlatformBuild());
 
-    internal.getArtProfileOptions().setPassthrough(true);
+    internal.getArtProfileOptions().setArtProfileInputs(getArtProfileInputs()).setPassthrough(true);
     internal.getStartupOptions().setStartupProfileProviders(getStartupProfileProviders());
 
     internal.programClassConflictResolver =

@@ -22,7 +22,6 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.Lists;
-import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -60,11 +59,7 @@ public class ArtProfileCollisionAfterClassMergingRewritingTest extends TestBase 
     testForR8(Backend.DEX)
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options
-                    .getArtProfileOptions()
-                    .setArtProfileInputs(Collections.singleton(artProfileInput)))
+        .addArtProfileInputs(artProfileInput)
         .addHorizontallyMergedClassesInspector(
             inspector ->
                 inspector.assertMergedInto(Foo.class, Bar.class).assertNoOtherClassesMerged())

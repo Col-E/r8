@@ -121,6 +121,7 @@ public final class L8Command extends BaseCompilerCommand {
         null,
         false,
         null,
+        null,
         classConflictResolver);
     this.d8Command = d8Command;
     this.r8Command = r8Command;
@@ -371,7 +372,8 @@ public final class L8Command extends BaseCompilerCommand {
                 .setMode(getMode())
                 .setIncludeClassesChecksum(getIncludeClassesChecksum())
                 .setDexClassChecksumFilter(getDexClassChecksumFilter())
-                .setProgramConsumer(getProgramConsumer());
+                .setProgramConsumer(getProgramConsumer())
+                .addArtProfileInputs(getArtProfileInputs());
         for (ClassFileResourceProvider libraryResourceProvider :
             inputs.getLibraryResourceProviders()) {
           r8Builder.addLibraryResourceProvider(libraryResourceProvider);
@@ -402,7 +404,8 @@ public final class L8Command extends BaseCompilerCommand {
                 .setMode(getMode())
                 .setIncludeClassesChecksum(getIncludeClassesChecksum())
                 .setDexClassChecksumFilter(getDexClassChecksumFilter())
-                .setProgramConsumer(getProgramConsumer());
+                .setProgramConsumer(getProgramConsumer())
+                .addArtProfileInputs(getArtProfileInputs());
         for (ClassFileResourceProvider libraryResourceProvider :
             inputs.getLibraryResourceProviders()) {
           d8Builder.addLibraryResourceProvider(libraryResourceProvider);

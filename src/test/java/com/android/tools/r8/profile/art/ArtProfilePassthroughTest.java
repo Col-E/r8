@@ -19,7 +19,6 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -55,11 +54,7 @@ public class ArtProfilePassthroughTest extends TestBase {
         .addProgramClasses(Main.class)
         // Add a profile provider and consumer that verifies that the profile is being provided at
         // the same time it is being consumed.
-        .addOptionsModification(
-            options ->
-                options
-                    .getArtProfileOptions()
-                    .setArtProfileInputs(Collections.singleton(artProfileInput)))
+        .addArtProfileInputs(artProfileInput)
         .release()
         .setMinApi(AndroidApiLevel.LATEST)
         .compile();

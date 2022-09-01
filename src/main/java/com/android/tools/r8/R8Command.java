@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecific
 import com.android.tools.r8.naming.SourceFileRewriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.profile.art.ArtProfileInput;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardConfigurationParserOptions;
@@ -662,6 +663,7 @@ public final class R8Command extends BaseCompilerCommand {
               getSourceFileProvider(),
               enableMissingLibraryApiModeling,
               getAndroidPlatformBuild(),
+              getArtProfileInputs(),
               getStartupProfileProviders(),
               getClassConflictResolver());
 
@@ -850,6 +852,7 @@ public final class R8Command extends BaseCompilerCommand {
       SourceFileProvider sourceFileProvider,
       boolean enableMissingLibraryApiModeling,
       boolean isAndroidPlatformBuild,
+      List<ArtProfileInput> artProfileInputs,
       List<StartupProfileProvider> startupProfileProviders,
       ClassConflictResolver classConflictResolver) {
     super(
@@ -870,6 +873,7 @@ public final class R8Command extends BaseCompilerCommand {
         mapIdProvider,
         sourceFileProvider,
         isAndroidPlatformBuild,
+        artProfileInputs,
         startupProfileProviders,
         classConflictResolver);
     assert proguardConfiguration != null;
@@ -1071,6 +1075,7 @@ public final class R8Command extends BaseCompilerCommand {
 
     internal.configureAndroidPlatformBuild(getAndroidPlatformBuild());
 
+    internal.getArtProfileOptions().setArtProfileInputs(getArtProfileInputs());
     internal.getStartupOptions().setStartupProfileProviders(getStartupProfileProviders());
 
     internal.programClassConflictResolver =

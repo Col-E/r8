@@ -16,7 +16,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
-import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -24,10 +23,8 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,25 +34,6 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class DesugaredLibraryArtProfileRewritingTest extends DesugaredLibraryTestBase {
-
-  private static ClassReference jDollarConsumerClassReference =
-      Reference.classFromTypeName("j$.util.function.Consumer");
-  private static ClassReference jDollarStreamClassReference =
-      Reference.classFromTypeName("j$.util.stream.Stream");
-  private static MethodReference jDollarForEachMethodReference =
-      Reference.method(
-          jDollarStreamClassReference,
-          "forEach",
-          ImmutableList.of(jDollarConsumerClassReference),
-          null);
-
-  private static ClassReference javaStreamClassReference = Reference.classFromClass(Stream.class);
-  private static MethodReference javaForEachMethodReference =
-      Reference.method(
-          javaStreamClassReference,
-          "forEach",
-          ImmutableList.of(jDollarConsumerClassReference),
-          null);
 
   @Parameter(0)
   public TestParameters parameters;
@@ -84,12 +62,7 @@ public class DesugaredLibraryArtProfileRewritingTest extends DesugaredLibraryTes
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addL8OptionsModification(
-            options -> {
-              options
-                  .getArtProfileOptions()
-                  .setArtProfileInputs(Collections.singleton(artProfileInput));
-            })
+        .addL8ArtProfileInputs(artProfileInput)
         .compile()
         .inspectL8(
             inspector -> {
@@ -113,11 +86,8 @@ public class DesugaredLibraryArtProfileRewritingTest extends DesugaredLibraryTes
               assertEquals(
                   consumerClassSubject.asTypeSubject(), forEachMethodSubject.getParameter(0));
 
-              // TODO(b/237043695): should be `forEachMethodSubject.getFinalReference()`.
               assertEquals(
-                  libraryDesugaringSpecification == LibraryDesugaringSpecification.JDK11
-                      ? Lists.newArrayList(javaForEachMethodReference)
-                      : Lists.newArrayList(jDollarForEachMethodReference),
+                  Lists.newArrayList(forEachMethodSubject.getFinalReference()),
                   residualArtProfileConsumer.references);
             })
         .run(parameters.getRuntime(), Main.class)
@@ -139,8 +109,17 @@ public class DesugaredLibraryArtProfileRewritingTest extends DesugaredLibraryTes
 
     @Override
     public void getArtProfile(ArtProfileBuilder profileBuilder) {
+      MethodReference forEachMethodReference =
+          Reference.method(
+              Reference.classFromTypeName("j$.util.stream.Stream"),
+              "forEach",
+              ImmutableList.of(
+                  Reference.classFromTypeName(
+                      libraryDesugaringSpecification.functionPrefix(parameters)
+                          + ".util.function.Consumer")),
+              null);
       profileBuilder.addMethodRule(
-          methodRuleBuilder -> methodRuleBuilder.setMethodReference(jDollarForEachMethodReference));
+          methodRuleBuilder -> methodRuleBuilder.setMethodReference(forEachMethodReference));
     }
   }
 

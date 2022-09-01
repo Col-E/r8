@@ -15,6 +15,7 @@ import com.android.tools.r8.dexsplitter.SplitterTestBase.SplitRunner;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.profile.art.ArtProfileInput;
 import com.android.tools.r8.shaking.CheckEnumUnboxedRule;
 import com.android.tools.r8.shaking.CollectingGraphConsumer;
 import com.android.tools.r8.shaking.KeepUnusedReturnValueRule;
@@ -775,6 +776,16 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
 
   public T noDefaultProguardMapConsumer() {
     createDefaultProguardMapConsumer = false;
+    return self();
+  }
+
+  public T addArtProfileInputs(ArtProfileInput... artProfileInputs) {
+    builder.addArtProfileInputs(artProfileInputs);
+    return self();
+  }
+
+  public T addArtProfileInputs(Collection<ArtProfileInput> artProfileInputs) {
+    builder.addArtProfileInputs(artProfileInputs);
     return self();
   }
 

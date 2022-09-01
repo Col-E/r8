@@ -12,6 +12,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecific
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.profile.art.ArtProfileInput;
 import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -57,6 +58,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
   private final MapIdProvider mapIdProvider;
   private final SourceFileProvider sourceFileProvider;
   private final boolean isAndroidPlatformBuild;
+  private final List<ArtProfileInput> artProfileInputs;
   private final List<StartupProfileProvider> startupProfileProviders;
   private final ClassConflictResolver classConflictResolver;
 
@@ -78,6 +80,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     mapIdProvider = null;
     sourceFileProvider = null;
     isAndroidPlatformBuild = false;
+    artProfileInputs = null;
     startupProfileProviders = null;
     classConflictResolver = null;
   }
@@ -100,6 +103,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       MapIdProvider mapIdProvider,
       SourceFileProvider sourceFileProvider,
       boolean isAndroidPlatformBuild,
+      List<ArtProfileInput> artProfileInputs,
       List<StartupProfileProvider> startupProfileProviders,
       ClassConflictResolver classConflictResolver) {
     super(app);
@@ -121,6 +125,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     this.mapIdProvider = mapIdProvider;
     this.sourceFileProvider = sourceFileProvider;
     this.isAndroidPlatformBuild = isAndroidPlatformBuild;
+    this.artProfileInputs = artProfileInputs;
     this.startupProfileProviders = startupProfileProviders;
     this.classConflictResolver = classConflictResolver;
   }
@@ -219,6 +224,10 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     return isAndroidPlatformBuild;
   }
 
+  List<ArtProfileInput> getArtProfileInputs() {
+    return artProfileInputs;
+  }
+
   List<StartupProfileProvider> getStartupProfileProviders() {
     return startupProfileProviders;
   }
@@ -268,6 +277,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private MapIdProvider mapIdProvider = null;
     private SourceFileProvider sourceFileProvider = null;
     private boolean isAndroidPlatformBuild = false;
+    private List<ArtProfileInput> artProfileInputs = new ArrayList<>();
     private List<StartupProfileProvider> startupProfileProviders = new ArrayList<>();
     private ClassConflictResolver classConflictResolver = null;
 
@@ -683,6 +693,19 @@ public abstract class BaseCompilerCommand extends BaseCommand {
 
     public boolean getAndroidPlatformBuild() {
       return isAndroidPlatformBuild;
+    }
+
+    B addArtProfileInputs(ArtProfileInput... artProfileInputs) {
+      return addArtProfileInputs(Arrays.asList(artProfileInputs));
+    }
+
+    B addArtProfileInputs(Collection<ArtProfileInput> artProfileInputs) {
+      this.artProfileInputs.addAll(artProfileInputs);
+      return self();
+    }
+
+    List<ArtProfileInput> getArtProfileInputs() {
+      return artProfileInputs;
     }
 
     B addStartupProfileProviders(StartupProfileProvider... startupProfileProviders) {

@@ -11,6 +11,7 @@ import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.profile.art.ArtProfileInput;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.ConsumerUtils;
@@ -33,6 +34,7 @@ public class L8TestBuilder {
 
   private final AndroidApiLevel apiLevel;
   private final Backend backend;
+  private final L8Command.Builder l8Builder;
   private final TestState state;
 
   private CompilationMode mode = CompilationMode.RELEASE;
@@ -50,6 +52,7 @@ public class L8TestBuilder {
     this.apiLevel = apiLevel;
     this.backend = backend;
     this.state = state;
+    this.l8Builder = L8Command.builder(state.getDiagnosticsHandler());
   }
 
   public static L8TestBuilder create(AndroidApiLevel apiLevel, Backend backend, TestState state) {
@@ -167,15 +170,14 @@ public class L8TestBuilder {
       throws IOException, CompilationFailedException, ExecutionException {
     // We wrap exceptions in a RuntimeException to call this from a lambda.
     AndroidAppConsumers sink = new AndroidAppConsumers();
-    L8Command.Builder l8Builder =
-        L8Command.builder(state.getDiagnosticsHandler())
-            .addProgramFiles(programFiles)
-            .addLibraryFiles(getLibraryFiles())
-            .setMode(mode)
-            .setIncludeClassesChecksum(true)
-            .addDesugaredLibraryConfiguration(desugaredLibrarySpecification)
-            .setMinApiLevel(apiLevel.getLevel())
-            .setProgramConsumer(computeProgramConsumer(sink));
+    l8Builder
+        .addProgramFiles(programFiles)
+        .addLibraryFiles(getLibraryFiles())
+        .setMode(mode)
+        .setIncludeClassesChecksum(true)
+        .addDesugaredLibraryConfiguration(desugaredLibrarySpecification)
+        .setMinApiLevel(apiLevel.getLevel())
+        .setProgramConsumer(computeProgramConsumer(sink));
     addProgramClassFileData(l8Builder);
     Path mapping = null;
     ImmutableList<String> allKeepRules = null;
@@ -263,5 +265,15 @@ public class L8TestBuilder {
 
   private Collection<Path> getLibraryFiles() {
     return libraryFiles;
+  }
+
+  public L8TestBuilder addArtProfileInputs(ArtProfileInput... artProfileInputs) {
+    l8Builder.addArtProfileInputs(artProfileInputs);
+    return this;
+  }
+
+  public L8TestBuilder addArtProfileInputs(Collection<ArtProfileInput> artProfileInputs) {
+    l8Builder.addArtProfileInputs(artProfileInputs);
+    return this;
   }
 }
