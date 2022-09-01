@@ -19,6 +19,7 @@ import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.kotlin.TestKotlinClass.AccessorKind;
 import com.android.tools.r8.kotlin.TestKotlinClass.Visibility;
 import com.android.tools.r8.naming.MemberNaming;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -219,7 +220,9 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     runTest(PROPERTIES_PACKAGE_NAME, mainClass)
         .inspect(
             inspector -> {
-              if (allowAccessModification) {
+              if (allowAccessModification
+                  || (testParameters.isDexRuntime()
+                      && testParameters.getApiLevel().isGreaterThan(AndroidApiLevel.B))) {
                 checkClassIsRemoved(inspector, testedClass.getOuterClassName());
                 return;
               }

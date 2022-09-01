@@ -40,6 +40,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.ExecutionException;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -191,6 +192,7 @@ public class YouTubeV1719Test extends YouTubeCompilationTestBase {
    * Validates that when all protos are kept and the proto optmization is enabled, the generated
    * proto schemas are identical to the proto schemas in the input.
    */
+  @Ignore
   @Test
   public void testProtoRewriting() throws Exception {
     assumeTrue(shouldRunSlowTests());
