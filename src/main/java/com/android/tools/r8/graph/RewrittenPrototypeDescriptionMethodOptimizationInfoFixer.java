@@ -15,7 +15,6 @@ import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
-import com.android.tools.r8.ir.optimize.info.bridge.VirtualBridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.BitSet;
@@ -39,7 +38,7 @@ public class RewrittenPrototypeDescriptionMethodOptimizationInfoFixer
    * changes were made.
    */
   @Override
-  public BridgeInfo fixupBridgeInfo(VirtualBridgeInfo bridgeInfo) {
+  public BridgeInfo fixupBridgeInfo(BridgeInfo bridgeInfo) {
     if (getArgumentInfoCollection().isEmpty()) {
       return bridgeInfo;
     }

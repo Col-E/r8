@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.info.bridge;
 import static com.android.tools.r8.ir.code.Opcodes.ARGUMENT;
 import static com.android.tools.r8.ir.code.Opcodes.ASSUME;
 import static com.android.tools.r8.ir.code.Opcodes.CHECK_CAST;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_DIRECT;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_VIRTUAL;
 import static com.android.tools.r8.ir.code.Opcodes.RETURN;
 
@@ -14,7 +15,7 @@ import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.InvokeVirtual;
+import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -32,7 +33,7 @@ public class BridgeAnalyzer {
     // followed by a (possibly empty) sequence of CheckCast instructions, followed by a single
     // InvokeMethod instruction, followed by an optional CheckCast instruction, followed by a Return
     // instruction.
-    InvokeVirtual uniqueInvoke = null;
+    InvokeMethodWithReceiver uniqueInvoke = null;
     CheckCast uniqueReturnCast = null;
     for (Instruction instruction : code.entryBlock().getInstructions()) {
       switch (instruction.opcode()) {
@@ -59,13 +60,14 @@ public class BridgeAnalyzer {
             break;
           }
 
+        case INVOKE_DIRECT:
         case INVOKE_VIRTUAL:
           {
             if (uniqueInvoke != null) {
               return failure();
             }
-            InvokeVirtual invoke = instruction.asInvokeVirtual();
-            if (!analyzeInvokeVirtual(invoke)) {
+            InvokeMethodWithReceiver invoke = instruction.asInvokeMethodWithReceiver();
+            if (!analyzeInvoke(invoke)) {
               return failure();
             }
             // Record that we have seen the single invoke instruction.
@@ -85,7 +87,10 @@ public class BridgeAnalyzer {
     }
 
     assert uniqueInvoke != null;
-    return new VirtualBridgeInfo(uniqueInvoke.getInvokedMethod());
+    assert uniqueInvoke.isInvokeDirect() || uniqueInvoke.isInvokeVirtual();
+    return uniqueInvoke.isInvokeDirect()
+        ? new DirectBridgeInfo(uniqueInvoke.getInvokedMethod())
+        : new VirtualBridgeInfo(uniqueInvoke.getInvokedMethod());
   }
 
   private static boolean analyzeCheckCast(
@@ -148,11 +153,12 @@ public class BridgeAnalyzer {
         && castValue.singleUniqueUser().isReturn();
   }
 
-  private static boolean analyzeInvokeVirtual(InvokeVirtual invoke) {
+  private static boolean analyzeInvoke(InvokeMethodWithReceiver invoke) {
     // All of the forwarded arguments of the enclosing method must be in the same argument position.
     for (int argumentIndex = 0; argumentIndex < invoke.arguments().size(); argumentIndex++) {
       Value argument = invoke.getArgument(argumentIndex);
-      if (argument.isArgument() && argumentIndex != argument.definition.asArgument().getIndex()) {
+      if (argument.isArgument()
+          && argumentIndex != argument.getDefinition().asArgument().getIndex()) {
         return false;
       }
     }

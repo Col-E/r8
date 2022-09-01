@@ -9,6 +9,14 @@ package com.android.tools.r8.ir.optimize.info.bridge;
  */
 public abstract class BridgeInfo {
 
+  public boolean isDirectBridgeInfo() {
+    return false;
+  }
+
+  public DirectBridgeInfo asDirectBridgeInfo() {
+    return null;
+  }
+
   public boolean isVirtualBridgeInfo() {
     return false;
   }

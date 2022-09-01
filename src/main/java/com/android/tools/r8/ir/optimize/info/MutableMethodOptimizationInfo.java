@@ -396,8 +396,7 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
 
   public MutableMethodOptimizationInfo fixupBridgeInfo(MethodOptimizationInfoFixer fixer) {
     if (bridgeInfo != null) {
-      assert bridgeInfo.isVirtualBridgeInfo();
-      bridgeInfo = fixer.fixupBridgeInfo(bridgeInfo.asVirtualBridgeInfo());
+      bridgeInfo = fixer.fixupBridgeInfo(bridgeInfo);
     }
     return this;
   }
