@@ -125,8 +125,8 @@ public class BridgeHoisting {
     Set<DexProgramClass> subclasses = new TreeSet<>(Comparator.comparing(DexClass::getType));
     for (DexType subtype : subtypes) {
       DexProgramClass subclass = asProgramClassOrNull(appView.definitionFor(subtype));
-      if (subclass == null) {
-        return;
+      if (subclass == null || !appView.testing().isEligibleForBridgeHoisting.test(subclass)) {
+        continue;
       }
       subclasses.add(subclass);
     }

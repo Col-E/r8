@@ -90,6 +90,7 @@ import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -1844,6 +1845,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public ArgumentPropagatorEventConsumer argumentPropagatorEventConsumer =
         ArgumentPropagatorEventConsumer.emptyConsumer();
+
+    public Predicate<DexProgramClass> isEligibleForBridgeHoisting = Predicates.alwaysTrue();
 
     // Force writing the specified bytes as the DEX version content.
     public byte[] forceDexVersionBytes = null;
