@@ -14,14 +14,10 @@ import static com.android.tools.r8.MarkerMatcher.markerTool;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8TestCompileResult;
-import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.ExtractMarker;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestDiagnosticMessages;
@@ -63,35 +59,39 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testMergeDesugaredAndNonDesugared() throws Exception {
-    D8TestCompileResult compileResult;
-    try {
-      compileResult =
-          testForD8()
-              .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
-              .addProgramFiles(buildPart1DesugaredLibrary(), buildPart2NoDesugaredLibrary())
-              .setMinApi(parameters.getApiLevel())
-              .applyIf(
-                  someLibraryDesugaringRequired(),
-                  b ->
-                      b.enableCoreLibraryDesugaring(
-                          LibraryDesugaringTestConfiguration.forSpecification(
-                              libraryDesugaringSpecification.getSpecification())))
-              .compileWithExpectedDiagnostics(this::assertError)
-              .addRunClasspathFiles(
-                  getNonShrunkDesugaredLib(parameters, libraryDesugaringSpecification));
-      assertFalse(expectError());
-    } catch (CompilationFailedException e) {
-      assertTrue(expectError());
-      return;
-    }
-    assert !expectError();
-    assert compileResult != null;
+    D8TestCompileResult compileResult =
+        testForD8()
+            .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
+            .addProgramFiles(buildPart1DesugaredLibrary(), buildPart2NoDesugaredLibrary())
+            .setMinApi(parameters.getApiLevel())
+            .applyIf(
+                someLibraryDesugaringRequired(),
+                b ->
+                    b.enableCoreLibraryDesugaring(
+                        LibraryDesugaringTestConfiguration.forSpecification(
+                            libraryDesugaringSpecification.getSpecification())))
+            .compile()
+            .addRunClasspathFiles(
+                getNonShrunkDesugaredLib(parameters, libraryDesugaringSpecification));
     compileResult
         .run(parameters.getRuntime(), Part1.class)
-        .assertSuccessWithOutputLines(JAVA_RESULT);
+        .assertSuccessWithOutputLines(getExpected());
     compileResult
         .run(parameters.getRuntime(), Part2.class)
-        .assertSuccessWithOutputLines(JAVA_RESULT);
+        .assertFailureWithErrorThatThrowsIf(!isApiAvailable(), NoSuchMethodError.class)
+        .assertSuccessWithOutputLinesIf(isApiAvailable(), JAVA_RESULT);
+  }
+
+  private boolean isApiAvailable() {
+    return parameters.getApiLevel().getLevel() >= AndroidApiLevel.N.getLevel();
+  }
+
+  private String getExpected() {
+    if (isApiAvailable()) {
+      return JAVA_RESULT;
+    } else {
+      return J$_RESULT;
+    }
   }
 
   @Test
@@ -169,9 +169,17 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
             .writeToZip();
 
     // D8 dex file output marker has the same marker as the D8 class file output.
-    // TODO(b/166617364): They should not be the same after backend is recorded and neither has
-    //  library desugaring info.
-    assertMarkersMatch(ExtractMarker.extractMarkerFromJarFile(desugaredLibDex), markerMatcher);
+    Matcher<Marker> dexMarkerMatcher =
+        allOf(
+            markerTool(Tool.D8),
+            markerCompilationMode(CompilationMode.DEBUG),
+            markerBackend(Backend.DEX),
+            markerIsDesugared(),
+            markerMinApi(parameters.getApiLevel()),
+            not(markerHasDesugaredLibraryIdentifier()));
+    List<Matcher<Marker>> markerMatcherAfterDex = ImmutableList.of(markerMatcher, dexMarkerMatcher);
+    assertMarkersMatch(
+        ExtractMarker.extractMarkerFromJarFile(desugaredLibDex), markerMatcherAfterDex);
 
     // Build an app using library desugaring merging with library not using library desugaring.
     Path app;
@@ -183,36 +191,20 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
             .writeToZip();
 
     // When there is no class-file resources we are adding the marker for the last compilation.
-    assertMarkersMatch(
-        ExtractMarker.extractMarkerFromDexFile(app),
-        ImmutableList.of(
-            markerMatcher,
-            allOf(
-                markerTool(Tool.D8),
-                markerCompilationMode(CompilationMode.DEBUG),
-                markerBackend(Backend.DEX),
-                markerIsDesugared(),
-                markerMinApi(parameters.getApiLevel()),
-                someLibraryDesugaringRequired()
-                    ? markerHasDesugaredLibraryIdentifier()
-                    : not(markerHasDesugaredLibraryIdentifier()))));
-  }
-
-  private void assertError(TestDiagnosticMessages m) {
-    List<Diagnostic> errors = m.getErrors();
-    if (expectError()) {
-      assertEquals(1, errors.size());
-      assertTrue(
-          errors.stream()
-              .anyMatch(
-                  w ->
-                      w.getDiagnosticMessage()
-                          .contains(
-                              "The compilation is merging inputs with different"
-                                  + " desugared library desugaring")));
-    } else {
-      assertEquals(0, errors.size());
+    List<Matcher<Marker>> expectedMarkers = new ArrayList<>();
+    expectedMarkers.add(markerMatcher);
+    expectedMarkers.add(dexMarkerMatcher);
+    if (someLibraryDesugaringRequired()) {
+      expectedMarkers.add(
+          allOf(
+              markerTool(Tool.D8),
+              markerCompilationMode(CompilationMode.DEBUG),
+              markerBackend(Backend.DEX),
+              markerIsDesugared(),
+              markerMinApi(parameters.getApiLevel()),
+              markerHasDesugaredLibraryIdentifier()));
     }
+    assertMarkersMatch(ExtractMarker.extractMarkerFromDexFile(app), expectedMarkers);
   }
 
   private boolean expectError() {
@@ -241,21 +233,12 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
             .addRunClasspathFiles(
                 getNonShrunkDesugaredLib(parameters, libraryDesugaringSpecification))
             .inspectDiagnosticMessages(this::assertWarningPresent);
-    if (parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel()) {
-      compileResult
-          .run(parameters.getRuntime(), Part1.class)
-          .assertSuccessWithOutputLines(J$_RESULT);
-      compileResult
-          .run(parameters.getRuntime(), Part2.class)
-          .assertSuccessWithOutputLines(J$_RESULT);
-    } else {
-      compileResult
-          .run(parameters.getRuntime(), Part1.class)
-          .assertSuccessWithOutputLines(JAVA_RESULT);
-      compileResult
-          .run(parameters.getRuntime(), Part2.class)
-          .assertSuccessWithOutputLines(JAVA_RESULT);
-    }
+    compileResult
+        .run(parameters.getRuntime(), Part1.class)
+        .assertSuccessWithOutputLines(getExpected());
+    compileResult
+        .run(parameters.getRuntime(), Part2.class)
+        .assertSuccessWithOutputLines(getExpected());
   }
 
   private void assertWarningPresent(TestDiagnosticMessages testDiagnosticMessages) {

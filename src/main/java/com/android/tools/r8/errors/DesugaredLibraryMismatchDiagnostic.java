@@ -8,16 +8,17 @@ import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
+import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public class DesugaredLibraryMismatchDiagnostic implements Diagnostic {
 
   private final Set<String> desugaredLibraryIdentifiers;
-  private final Set<Marker> markers;
+  private final Collection<Marker> markers;
 
   public DesugaredLibraryMismatchDiagnostic(
-      Set<String> desugaredLibraryIdentifiers, Set<Marker> markers) {
+      Set<String> desugaredLibraryIdentifiers, Collection<Marker> markers) {
     this.desugaredLibraryIdentifiers = desugaredLibraryIdentifiers;
     this.markers = markers;
   }

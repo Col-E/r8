@@ -37,6 +37,7 @@ import com.android.tools.r8.graph.DexEncodedArray;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItem;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -62,6 +63,7 @@ import com.android.tools.r8.utils.InternalGlobalSyntheticsProgramConsumer;
 import com.android.tools.r8.utils.InternalGlobalSyntheticsProgramConsumer.InternalGlobalSyntheticsDexIndexedConsumer;
 import com.android.tools.r8.utils.InternalGlobalSyntheticsProgramConsumer.InternalGlobalSyntheticsDexPerFileConsumer;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OriginalSourceFiles;
 import com.android.tools.r8.utils.PredicateUtils;
 import com.android.tools.r8.utils.Reporter;
@@ -77,10 +79,12 @@ import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -93,7 +97,8 @@ public class ApplicationWriter {
   public final InternalOptions options;
   private final CodeToKeep desugaredLibraryCodeToKeep;
   private final Predicate<DexType> isTypeMissing;
-  public List<Marker> markers;
+  private final Optional<Marker> currentMarker;
+  public Collection<Marker> previousMarkers;
   public List<DexString> markerStrings;
   public Set<VirtualFile> globalSyntheticFiles;
 
@@ -169,21 +174,19 @@ public class ApplicationWriter {
     }
   }
 
-  public ApplicationWriter(AppView<?> appView, List<Marker> markers) {
-    this(appView, markers, null);
+  public ApplicationWriter(AppView<?> appView, Marker marker) {
+    this(appView, marker, null);
   }
 
-  public ApplicationWriter(
-      AppView<?> appView,
-      List<Marker> markers,
-      DexIndexedConsumer consumer) {
+  public ApplicationWriter(AppView<?> appView, Marker marker, DexIndexedConsumer consumer) {
     this.appView = appView;
     this.options = appView.options();
     this.desugaredLibraryCodeToKeep = CodeToKeep.createCodeToKeep(appView);
-    this.markers = markers;
+    this.currentMarker = Optional.ofNullable(marker);
     this.programConsumer = consumer;
     this.isTypeMissing =
         PredicateUtils.isNull(appView.appInfo()::definitionForWithoutExistenceAssert);
+    this.previousMarkers = appView.dexItemFactory().extractMarkers();
   }
 
   private NamingLens getNamingLens() {
@@ -316,8 +319,8 @@ public class ApplicationWriter {
         encodeChecksums(virtualFiles);
         timing.end();
       }
-      assert markers == null
-          || markers.isEmpty()
+      assert previousMarkers == null
+          || previousMarkers.isEmpty()
           || appView.dexItemFactory().extractMarkers() != null;
       assert appView.withProtoShrinker(
           shrinker -> virtualFiles.stream().allMatch(shrinker::verifyDeadProtoTypesNotReferenced),
@@ -404,26 +407,29 @@ public class ApplicationWriter {
 
   private void computeMarkerStrings(
       Box<ProguardMapId> delayedProguardMapId, List<LazyDexString> lazyDexStrings) {
-    if (markers != null && !markers.isEmpty()) {
-      int firstNonLazyMarker = 0;
-      if (willComputeProguardMap()) {
-        firstNonLazyMarker++;
-        lazyDexStrings.add(
-            new LazyDexString() {
-
-              @Override
-              public DexString internalCompute() {
-                Marker marker = markers.get(0);
-                marker.setPgMapId(delayedProguardMapId.get().getId());
-                return marker.toDexString(appView.dexItemFactory());
-              }
-            });
-      }
-      markerStrings = new ArrayList<>(markers.size() - firstNonLazyMarker);
-      for (int i = firstNonLazyMarker; i < markers.size(); i++) {
-        markerStrings.add(markers.get(i).toDexString(appView.dexItemFactory()));
-      }
+    List<Marker> allMarkers = new ArrayList<>();
+    if (previousMarkers != null) {
+      allMarkers.addAll(previousMarkers);
     }
+    DexItemFactory factory = appView.dexItemFactory();
+    currentMarker.ifPresent(
+        marker -> {
+          if (willComputeProguardMap()) {
+            lazyDexStrings.add(
+                new LazyDexString() {
+
+                  @Override
+                  public DexString internalCompute() {
+                    marker.setPgMapId(delayedProguardMapId.get().getId());
+                    return marker.toDexString(factory);
+                  }
+                });
+          } else {
+            allMarkers.add(marker);
+          }
+        });
+    allMarkers.sort(Comparator.comparing(Marker::toString));
+    markerStrings = ListUtils.map(allMarkers, marker -> marker.toDexString(factory));
   }
 
   private OriginalSourceFiles computeSourceFileString(

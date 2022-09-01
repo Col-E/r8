@@ -46,19 +46,16 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.collect.ImmutableList;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -278,15 +275,6 @@ public final class D8 {
       boolean hasDexResources = appView.appInfo().app().getFlags().hasReadProgramClassFromDex();
 
       Marker marker = options.getMarker(Tool.D8);
-      Set<Marker> markers = new HashSet<>(appView.dexItemFactory().extractMarkers());
-      // TODO(b/166617364): Don't add an additional marker when desugaring is turned off.
-      if (hasClassResources
-          && (options.desugarState != DesugarState.OFF
-              || markers.isEmpty()
-              || (markers.size() == 1 && markers.iterator().next().isL8()))) {
-        markers.add(marker);
-      }
-      Marker.checkCompatibleDesugaredLibrary(markers, options.reporter);
 
       timing.time(
           "Run inspections",
@@ -314,7 +302,7 @@ public final class D8 {
         // without iterating again the IR. We fall-back to writing one app with rewriting and
         // merging it with the other app in rewriteNonDexInputs.
         timing.begin("Rewrite non-dex inputs");
-        DexApplication app = rewriteNonDexInputs(appView, inputApp, executor, timing);
+        DexApplication app = rewriteNonDexInputs(appView, inputApp, executor, marker, timing);
         timing.end();
         appView.setAppInfo(
             new AppInfo(
@@ -345,8 +333,7 @@ public final class D8 {
       if (options.isGeneratingClassFiles()) {
         new CfApplicationWriter(appView, marker).write(options.getClassFileConsumer(), inputApp);
       } else {
-        new ApplicationWriter(appView, marker == null ? null : ImmutableList.copyOf(markers))
-            .write(executor, inputApp);
+        new ApplicationWriter(appView, marker).write(executor, inputApp);
       }
       options.printWarnings();
     } catch (ExecutionException e) {
@@ -408,7 +395,11 @@ public final class D8 {
   }
 
   private static DexApplication rewriteNonDexInputs(
-      AppView<AppInfo> appView, AndroidApp inputApp, ExecutorService executor, Timing timing)
+      AppView<AppInfo> appView,
+      AndroidApp inputApp,
+      ExecutorService executor,
+      Marker marker,
+      Timing timing)
       throws IOException, ExecutionException {
     // TODO(b/154575955): Remove the naming lens in D8.
     appView
@@ -437,11 +428,7 @@ public final class D8 {
     ConvertedCfFiles convertedCfFiles = new ConvertedCfFiles();
     new GenericSignatureRewriter(appView).run(appView.appInfo().classes(), executor);
     new KotlinMetadataRewriter(appView).runForD8(executor);
-    new ApplicationWriter(
-            appView,
-            null,
-            convertedCfFiles)
-        .write(executor);
+    new ApplicationWriter(appView, marker, convertedCfFiles).write(executor);
     AndroidApp.Builder builder = AndroidApp.builder(inputApp);
     builder.getProgramResourceProviders().clear();
     builder.addProgramResourceProvider(convertedCfFiles);

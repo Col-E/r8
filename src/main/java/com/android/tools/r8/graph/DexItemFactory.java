@@ -52,7 +52,9 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -2598,9 +2600,9 @@ public class DexItemFactory {
 
   // Debugging support to extract marking string.
   // Find all markers.
-  public synchronized List<Marker> extractMarkers() {
+  public synchronized Collection<Marker> extractMarkers() {
     // This is slow but it is not needed for any production code yet.
-    List<Marker> markers = new ArrayList<>();
+    Set<Marker> markers = new HashSet<>();
     for (DexString dexString : strings.keySet()) {
       Marker marker = Marker.parse(dexString);
       if (marker != null) {

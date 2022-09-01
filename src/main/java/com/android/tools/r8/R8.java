@@ -112,7 +112,6 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.io.ByteStreams;
 import java.io.ByteArrayOutputStream;
@@ -123,7 +122,6 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -215,18 +213,10 @@ public class R8 {
     try {
       Marker marker = options.getMarker(Tool.R8);
       assert marker != null;
-      // Get the markers from the input which are different from the one created for this
-      // compilation
-      Set<Marker> markers = new HashSet<>(appView.dexItemFactory().extractMarkers());
-      markers.remove(marker);
       if (options.isGeneratingClassFiles()) {
         new CfApplicationWriter(appView, marker).write(options.getClassFileConsumer(), inputApp);
       } else {
-        new ApplicationWriter(
-                appView,
-                // Ensure that the marker for this compilation is the first in the list.
-                ImmutableList.<Marker>builder().add(marker).addAll(markers).build())
-            .write(executorService, inputApp);
+        new ApplicationWriter(appView, marker).write(executorService, inputApp);
       }
     } catch (IOException e) {
       throw new RuntimeException("Cannot write application", e);

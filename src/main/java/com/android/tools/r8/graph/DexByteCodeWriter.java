@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
+import java.util.Collection;
 import java.util.function.Consumer;
 
 public abstract class DexByteCodeWriter {
@@ -49,7 +49,7 @@ public abstract class DexByteCodeWriter {
   }
 
   public void writeMarkers(PrintStream output) {
-    List<Marker> markers = application.dexItemFactory.extractMarkers();
+    Collection<Marker> markers = application.dexItemFactory.extractMarkers();
     System.out.println("Number of markers: " + markers.size());
     for (Marker marker : markers) {
       output.println(marker.toString());

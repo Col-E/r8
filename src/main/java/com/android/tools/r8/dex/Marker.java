@@ -4,20 +4,15 @@
 package com.android.tools.r8.dex;
 
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.errors.DesugaredLibraryMismatchDiagnostic;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.Map.Entry;
-import java.util.Set;
 
 /** Abstraction for hidden dex marker intended for the main dex file. */
 public class Marker {
@@ -66,55 +61,6 @@ public class Marker {
   private Marker(Tool tool, JsonObject jsonObject) {
     this.tool = tool;
     this.jsonObject = jsonObject;
-  }
-
-  public static void checkCompatibleDesugaredLibrary(Set<Marker> markers, Reporter reporter) {
-    if (markers.size() <= 1) {
-      return;
-    }
-    // In L8 compilation, the compilation has two markers, a L8 marker, which has a desugared
-    // library property, and either a D8 or a R8 marker, which has no desugared library property.
-    // In other compilations, the desugared library versions have to be consistent.
-    Set<String> desugaredLibraryIdentifiers = new HashSet<>();
-    for (Marker marker : markers) {
-      if (marker.tool == Tool.L8) {
-        assert marker.getDesugaredLibraryIdentifiers().length > 0;
-        assert markers.stream()
-            .allMatch(m -> m.tool == Tool.L8 || m.getDesugaredLibraryIdentifiers().length == 0);
-      } else {
-        String[] identifiers = marker.getDesugaredLibraryIdentifiers();
-        String identifier = null;
-        switch (identifiers.length) {
-          case 0:
-            // Only add the <no-library-desugaring> identifier for DEX. A marker from CF is
-            // assumed to go though desugaring for compiling to DEX, and that will introduce the
-            // DEX marker with the final library desugaring identifier.
-            if (marker.isDexBackend()) {
-              identifier = NO_LIBRARY_DESUGARING;
-            } else {
-              assert marker.isCfBackend();
-            }
-            break;
-          case 1:
-            identifier = identifiers[0];
-            break;
-          default:
-            // To be implemented once D8/R8 compilation supports multiple desugared libraries.
-            throw reporter.fatalError(
-                new StringDiagnostic(
-                    "Merging program compiled with multiple desugared libraries."));
-        }
-        if (marker.isDesugared() && identifier != null) {
-          desugaredLibraryIdentifiers.add(identifier);
-        } else {
-          assert identifier == null || identifier.equals(NO_LIBRARY_DESUGARING);
-        }
-      }
-    }
-
-    if (desugaredLibraryIdentifiers.size() > 1) {
-      reporter.error(new DesugaredLibraryMismatchDiagnostic(desugaredLibraryIdentifiers, markers));
-    }
   }
 
   public Tool getTool() {

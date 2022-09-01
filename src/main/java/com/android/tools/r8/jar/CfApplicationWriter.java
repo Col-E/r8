@@ -90,7 +90,7 @@ public class CfApplicationWriter {
   private final DexApplication application;
   private final AppView<?> appView;
   private final InternalOptions options;
-  private final Marker marker;
+  private final Optional<Marker> marker;
   private final Predicate<DexType> isTypeMissing;
 
   private static final CfVersion MIN_VERSION_FOR_COMPILER_GENERATED_CODE = CfVersion.V1_6;
@@ -99,8 +99,7 @@ public class CfApplicationWriter {
     this.application = appView.appInfo().app();
     this.appView = appView;
     this.options = appView.options();
-    assert marker != null;
-    this.marker = marker;
+    this.marker = Optional.ofNullable(marker);
     this.isTypeMissing =
         PredicateUtils.isNull(appView.appInfo()::definitionForWithoutExistenceAssert);
   }
@@ -137,6 +136,7 @@ public class CfApplicationWriter {
   private void writeApplication(AndroidApp inputApp, ClassFileConsumer consumer) {
     ProguardMapId proguardMapId = null;
     if (options.proguardMapConsumer != null) {
+      assert marker.isPresent();
       proguardMapId =
           runAndWriteMap(
               inputApp,
@@ -144,10 +144,9 @@ public class CfApplicationWriter {
               application.timing,
               OriginalSourceFiles.fromClasses(),
               DebugRepresentation.none(options));
-      marker.setPgMapId(proguardMapId.getId());
+      marker.get().setPgMapId(proguardMapId.getId());
     }
-    Optional<String> markerString =
-        includeMarker(marker) ? Optional.of(marker.toString()) : Optional.empty();
+    Optional<String> markerString = marker.filter(this::includeMarker).map(Marker::toString);
     SourceFileEnvironment sourceFileEnvironment = null;
     if (options.sourceFileProvider != null) {
       sourceFileEnvironment = ApplicationWriter.createSourceFileEnvironment(proguardMapId);
