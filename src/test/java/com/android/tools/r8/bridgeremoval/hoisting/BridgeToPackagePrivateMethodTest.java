@@ -11,6 +11,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,18 +36,7 @@ public class BridgeToPackagePrivateMethodTest extends TestBase {
   @Test
   public void testRuntime() throws Exception {
     testForRuntime(parameters)
-        .addProgramClassFileData(
-            transformer(Main.class)
-                .replaceClassDescriptorInMethodInstructions(
-                    descriptor(A.class), TRANSFORMED_A_DESCRIPTOR)
-                .transform(),
-            transformer(A.class).setClassDescriptor(TRANSFORMED_A_DESCRIPTOR).transform(),
-            transformer(B.class)
-                .setSuper(TRANSFORMED_A_DESCRIPTOR)
-                .replaceClassDescriptorInMethodInstructions(
-                    descriptor(A.class), TRANSFORMED_A_DESCRIPTOR)
-                .setBridge(B.class.getDeclaredMethod("bridge"))
-                .transform())
+        .addProgramClassFileData(getProgramClassFileData())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
   }
@@ -54,18 +44,7 @@ public class BridgeToPackagePrivateMethodTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClassFileData(
-            transformer(Main.class)
-                .replaceClassDescriptorInMethodInstructions(
-                    descriptor(A.class), TRANSFORMED_A_DESCRIPTOR)
-                .transform(),
-            transformer(A.class).setClassDescriptor(TRANSFORMED_A_DESCRIPTOR).transform(),
-            transformer(B.class)
-                .setSuper(TRANSFORMED_A_DESCRIPTOR)
-                .replaceClassDescriptorInMethodInstructions(
-                    descriptor(A.class), TRANSFORMED_A_DESCRIPTOR)
-                .setBridge(B.class.getDeclaredMethod("bridge"))
-                .transform())
+        .addProgramClassFileData(getProgramClassFileData())
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
@@ -73,11 +52,22 @@ public class BridgeToPackagePrivateMethodTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/233866639): Should succeed with "A", "B".
-        .applyIf(
-            parameters.isDexRuntime() && parameters.getDexRuntimeVersion().isDalvik(),
-            runResult -> runResult.assertSuccessWithOutputLines(EXPECTED_OUTPUT),
-            runResult -> runResult.assertSuccessWithOutputLines("A", "A"));
+        .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
+  }
+
+  private List<byte[]> getProgramClassFileData() throws IOException, NoSuchMethodException {
+    return ImmutableList.of(
+        transformer(Main.class)
+            .replaceClassDescriptorInMethodInstructions(
+                descriptor(A.class), TRANSFORMED_A_DESCRIPTOR)
+            .transform(),
+        transformer(A.class).setClassDescriptor(TRANSFORMED_A_DESCRIPTOR).transform(),
+        transformer(B.class)
+            .setSuper(TRANSFORMED_A_DESCRIPTOR)
+            .replaceClassDescriptorInMethodInstructions(
+                descriptor(A.class), TRANSFORMED_A_DESCRIPTOR)
+            .setBridge(B.class.getDeclaredMethod("bridge"))
+            .transform());
   }
 
   static class Main {

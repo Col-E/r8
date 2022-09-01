@@ -1007,6 +1007,26 @@ public class ClassFileTransformer {
           }
 
           @Override
+          public void visitFrame(
+              int type, int numLocal, Object[] local, int numStack, Object[] stack) {
+            for (int i = 0; i < numLocal; i++) {
+              Object object = local[i];
+              if (object instanceof String) {
+                local[i] = rewriteASMInternalTypeName((String) object);
+              }
+              i++;
+            }
+            for (int i = 0; i < numStack; i++) {
+              Object object = stack[i];
+              if (object instanceof String) {
+                stack[i] = rewriteASMInternalTypeName((String) object);
+              }
+              i++;
+            }
+            super.visitFrame(type, numLocal, local, numStack, stack);
+          }
+
+          @Override
           public void visitLdcInsn(Object value) {
             if (value instanceof Type) {
               Type type = (Type) value;

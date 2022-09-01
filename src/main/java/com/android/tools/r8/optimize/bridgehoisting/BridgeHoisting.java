@@ -141,7 +141,7 @@ public class BridgeHoisting {
     for (DexProgramClass subclass : subclasses) {
       for (DexEncodedMethod method : subclass.virtualMethods()) {
         BridgeInfo bridgeInfo = method.getOptimizationInfo().getBridgeInfo();
-        if (bridgeInfo != null) {
+        if (bridgeInfo != null && bridgeInfo.isVirtualBridgeInfo()) {
           candidates.add(equivalence.wrap(method.getReference()));
         }
       }
@@ -155,6 +155,18 @@ public class BridgeHoisting {
     // TODO(b/153147967): If the declared method is abstract, we could replace it by the bridge.
     //  Add a test.
     if (clazz.lookupMethod(method) != null) {
+      return;
+    }
+
+    // Bail out if the bridge is also declared in the parent class. In that case, hoisting would
+    // change the behavior of calling the bridge on an instance of the parent class.
+    MethodResolutionResult res =
+        appView.appInfo().resolveMethodOnClass(clazz.getSuperType(), method);
+    if (res.isSingleResolution()) {
+      if (!res.getResolvedMethod().isAbstract()) {
+        return;
+      }
+    } else if (res.isMultiMethodResolutionResult()) {
       return;
     }
 
@@ -187,7 +199,7 @@ public class BridgeHoisting {
       }
 
       BridgeInfo currentBridgeInfo = definition.getOptimizationInfo().getBridgeInfo();
-      if (currentBridgeInfo == null) {
+      if (currentBridgeInfo == null || currentBridgeInfo.isDirectBridgeInfo()) {
         // This is not a bridge, so the method needs to remain on the subclass.
         continue;
       }
@@ -196,14 +208,27 @@ public class BridgeHoisting {
 
       VirtualBridgeInfo currentVirtualBridgeInfo = currentBridgeInfo.asVirtualBridgeInfo();
       DexMethod invokedMethod = currentVirtualBridgeInfo.getInvokedMethod();
+
+      if (!clazz.getType().isSamePackage(subclass.getType())) {
+        DexEncodedMethod resolvedMethod =
+            appView.appInfo().resolveMethodOnClass(clazz, invokedMethod).getSingleTarget();
+        if (resolvedMethod == null || resolvedMethod.getAccessFlags().isPackagePrivate()) {
+          // After hoisting this bridge would now dispatch to another method, namely the package
+          // private method in the parent class.
+          continue;
+        }
+      }
+
       Wrapper<DexMethod> wrapper = MethodSignatureEquivalence.get().wrap(invokedMethod);
       eligibleVirtualInvokeBridges
           .computeIfAbsent(wrapper, ignore -> new ArrayList<>())
           .add(subclass);
     }
 
-    // There should be at least one method that is eligible for hoisting.
-    assert !eligibleVirtualInvokeBridges.isEmpty();
+    // Check if any bridges may be eligible for hoisting.
+    if (eligibleVirtualInvokeBridges.isEmpty()) {
+      return;
+    }
 
     Entry<Wrapper<DexMethod>, List<DexProgramClass>> mostFrequentBridge =
         findMostFrequentBridge(eligibleVirtualInvokeBridges);
@@ -217,7 +242,7 @@ public class BridgeHoisting {
     ProgramMethod representative = eligibleBridgeMethods.iterator().next();
 
     // Guard against accessibility issues.
-    if (mayBecomeInaccessibleAfterHoisting(clazz, representative)) {
+    if (mayBecomeInaccessibleAfterHoisting(clazz, eligibleBridgeMethods, representative)) {
       return;
     }
 
@@ -287,11 +312,21 @@ public class BridgeHoisting {
   }
 
   private boolean mayBecomeInaccessibleAfterHoisting(
-      DexProgramClass clazz, ProgramMethod representative) {
-    if (clazz.type.isSamePackage(representative.getHolder().type)) {
-      return false;
+      DexProgramClass clazz,
+      List<ProgramMethod> eligibleBridgeMethods,
+      ProgramMethod representative) {
+    int representativeVisibility = representative.getAccessFlags().getVisibilityOrdinal();
+    for (ProgramMethod eligibleBridgeMethod : eligibleBridgeMethods) {
+      if (eligibleBridgeMethod.getAccessFlags().getVisibilityOrdinal()
+          != representativeVisibility) {
+        return true;
+      }
+      if (!clazz.getType().isSamePackage(eligibleBridgeMethod.getHolderType())
+          && !eligibleBridgeMethod.getDefinition().isPublic()) {
+        return true;
+      }
     }
-    return !representative.getDefinition().isPublic();
+    return false;
   }
 
   private Code createCodeForVirtualBridge(ProgramMethod representative, DexMethod methodToInvoke) {
