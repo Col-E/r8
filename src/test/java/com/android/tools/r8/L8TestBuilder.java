@@ -11,7 +11,8 @@ import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.profile.art.ArtProfileInput;
+import com.android.tools.r8.profile.art.ArtProfileConsumer;
+import com.android.tools.r8.profile.art.ArtProfileProvider;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.ConsumerUtils;
@@ -267,13 +268,9 @@ public class L8TestBuilder {
     return libraryFiles;
   }
 
-  public L8TestBuilder addArtProfileInputs(ArtProfileInput... artProfileInputs) {
-    l8Builder.addArtProfileInputs(artProfileInputs);
-    return this;
-  }
-
-  public L8TestBuilder addArtProfileInputs(Collection<ArtProfileInput> artProfileInputs) {
-    l8Builder.addArtProfileInputs(artProfileInputs);
+  public L8TestBuilder addArtProfileForRewriting(
+      ArtProfileProvider artProfileProvider, ArtProfileConsumer residualArtProfileConsumer) {
+    l8Builder.addArtProfileForRewriting(artProfileProvider, residualArtProfileConsumer);
     return this;
   }
 }

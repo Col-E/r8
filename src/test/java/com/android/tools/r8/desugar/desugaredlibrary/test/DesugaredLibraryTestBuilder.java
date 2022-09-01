@@ -24,7 +24,9 @@ import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.KeepRuleConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
-import com.android.tools.r8.profile.art.ArtProfileInput;
+import com.android.tools.r8.profile.art.ArtProfileConsumer;
+import com.android.tools.r8.profile.art.ArtProfileForRewriting;
+import com.android.tools.r8.profile.art.ArtProfileProvider;
 import com.android.tools.r8.tracereferences.TraceReferences;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.FileUtils;
@@ -35,7 +37,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -48,7 +49,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
   private final CompilationSpecification compilationSpecification;
   private final TestCompilerBuilder<?, ?, ?, ? extends SingleTestRunResult<?>, ?> builder;
-  private List<ArtProfileInput> l8ArtProfileInputs = new ArrayList<>();
+  private List<ArtProfileForRewriting> l8ArtProfilesForRewriting = new ArrayList<>();
   private String l8ExtraKeepRules = "";
   private Consumer<InternalOptions> l8OptionModifier = ConsumerUtils.emptyConsumer();
   private boolean l8FinalPrefixVerification = true;
@@ -420,8 +421,12 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
         .applyIf(
             compilationSpecification.isL8Shrink() && !backend.isCf() && !l8ExtraKeepRules.isEmpty(),
             b -> b.addKeepRules(l8ExtraKeepRules))
-        .addOptionsModifier(l8OptionModifier)
-        .addArtProfileInputs(l8ArtProfileInputs);
+        .addOptionsModifier(l8OptionModifier);
+    for (ArtProfileForRewriting artProfileForRewriting : l8ArtProfilesForRewriting) {
+      l8Builder.addArtProfileForRewriting(
+          artProfileForRewriting.getArtProfileProvider(),
+          artProfileForRewriting.getResidualArtProfileConsumer());
+    }
   }
 
   public String collectKeepRulesWithTraceReferences(
@@ -488,15 +493,10 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
-  public DesugaredLibraryTestBuilder<?> addL8ArtProfileInputs(
-      ArtProfileInput... l8ArtProfileInputs) {
-    Collections.addAll(this.l8ArtProfileInputs, l8ArtProfileInputs);
-    return this;
-  }
-
-  public DesugaredLibraryTestBuilder<?> addL8ArtProfileInputs(
-      Collection<ArtProfileInput> l8ArtProfileInputs) {
-    this.l8ArtProfileInputs.addAll(l8ArtProfileInputs);
+  public DesugaredLibraryTestBuilder<?> addL8ArtProfileForRewriting(
+      ArtProfileProvider artProfileProvider, ArtProfileConsumer residualArtProfileConsumer) {
+    l8ArtProfilesForRewriting.add(
+        new ArtProfileForRewriting(artProfileProvider, residualArtProfileConsumer));
     return this;
   }
 }

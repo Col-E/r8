@@ -42,7 +42,7 @@ public class ArtProfile {
         (methodRule, builderFactory) ->
             builderFactory
                 .apply(lens.getRenamedMethodSignature(methodRule.getMethod()))
-                .internalSetMethodRuleInfo(
+                .acceptMethodRuleInfoBuilder(
                     methodRuleInfoBuilder ->
                         methodRuleInfoBuilder.merge(methodRule.getMethodRuleInfo())));
   }
@@ -55,7 +55,7 @@ public class ArtProfile {
         (methodRule, builderFactory) ->
             builderFactory
                 .apply(lens.lookupMethod(methodRule.getMethod(), dexItemFactory))
-                .internalSetMethodRuleInfo(
+                .acceptMethodRuleInfoBuilder(
                     methodRuleInfoBuilder ->
                         methodRuleInfoBuilder.merge(methodRule.getMethodRuleInfo())));
   }
@@ -71,7 +71,7 @@ public class ArtProfile {
           if (!prunedItems.isRemoved(methodRule.getMethod())) {
             builderFactory
                 .apply(methodRule.getMethod())
-                .internalSetMethodRuleInfo(
+                .acceptMethodRuleInfoBuilder(
                     methodRuleInfoBuilder ->
                         methodRuleInfoBuilder.merge(methodRule.getMethodRuleInfo()));
           }
@@ -116,9 +116,9 @@ public class ArtProfile {
     return new ArtProfile(newRules.build());
   }
 
-  public void supplyConsumer(ResidualArtProfileConsumer consumer, Reporter reporter) {
+  public void supplyConsumer(ArtProfileConsumer consumer, Reporter reporter) {
     if (consumer != null) {
-      ResidualArtProfileRuleConsumer ruleConsumer = consumer.getRuleConsumer();
+      ArtProfileRuleConsumer ruleConsumer = consumer.getRuleConsumer();
       if (ruleConsumer != null) {
         for (ArtProfileRule rule : rules) {
           rule.accept(

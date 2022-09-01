@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.profile.art;
 
+import com.android.tools.r8.Keep;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 
@@ -12,8 +13,8 @@ import com.android.tools.r8.references.MethodReference;
  * #acceptClassRule} and {@link #acceptMethodRule} for each class and method rule (respectively) in
  * the profile.
  */
-// TODO(b/237043695): @Keep this when adding a public API for passing ART profiles to the compiler.
-public interface ResidualArtProfileRuleConsumer {
+@Keep
+public interface ArtProfileRuleConsumer {
 
   /** Provides information about a specific class rule to the consumer. */
   void acceptClassRule(ClassReference classReference, ArtProfileClassRuleInfo classRuleInfo);

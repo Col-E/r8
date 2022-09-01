@@ -5,19 +5,20 @@
 package com.android.tools.r8.profile.art;
 
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.Keep;
 
 /**
  * API for consuming an ART profile provided by the compiler, which has been rewritten to match the
  * residual, optimized app.
  */
-// TODO(b/237043695): @Keep this when adding a public API for passing ART profiles to the compiler.
-public interface ResidualArtProfileConsumer {
+@Keep
+public interface ArtProfileConsumer {
 
   /**
-   * Returns an {@link ResidualArtProfileRuleConsumer} that will receive the rules of the residual
-   * ART profile. If this returns <code>null</code> no rules will be emitted.
+   * Returns an {@link ArtProfileRuleConsumer} that will receive the rules of the residual ART
+   * profile. If this returns <code>null</code> no rules will be emitted.
    */
-  default ResidualArtProfileRuleConsumer getRuleConsumer() {
+  default ArtProfileRuleConsumer getRuleConsumer() {
     return null;
   }
 

@@ -4,8 +4,10 @@
 
 package com.android.tools.r8.profile.art;
 
+import com.android.tools.r8.Keep;
+
 /** API for providing metadata related to a method rule for an ART profile. */
-// TODO(b/237043695): @Keep this when adding a public API for passing ART profiles to the compiler.
+@Keep
 public interface ArtProfileMethodRuleInfoBuilder {
 
   ArtProfileMethodRuleInfoBuilder setIsHot(boolean isHot);

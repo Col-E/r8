@@ -42,13 +42,14 @@ public class NonEmptyArtProfileCollection extends ArtProfileCollection {
             ? this
             : rewrittenWithLens(appView.getNamingLens(), appView.dexItemFactory());
     InternalOptions options = appView.options();
-    Collection<ArtProfileInput> inputs = options.getArtProfileOptions().getArtProfileInputs();
+    Collection<ArtProfileForRewriting> inputs =
+        options.getArtProfileOptions().getArtProfilesForRewriting();
     assert !inputs.isEmpty();
     assert collection.artProfiles.size() == inputs.size();
-    Iterator<ArtProfileInput> inputIterator = inputs.iterator();
+    Iterator<ArtProfileForRewriting> inputIterator = inputs.iterator();
     for (ArtProfile artProfile : collection.artProfiles) {
-      ArtProfileInput input = inputIterator.next();
-      artProfile.supplyConsumer(input.getArtProfileConsumer(), options.reporter);
+      ArtProfileForRewriting input = inputIterator.next();
+      artProfile.supplyConsumer(input.getResidualArtProfileConsumer(), options.reporter);
     }
   }
 

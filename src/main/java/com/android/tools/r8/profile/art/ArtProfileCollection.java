@@ -18,17 +18,19 @@ public abstract class ArtProfileCollection {
 
   public static ArtProfileCollection createInitialArtProfileCollection(InternalOptions options) {
     ArtProfileOptions artProfileOptions = options.getArtProfileOptions();
-    Collection<ArtProfileInput> artProfileInputs = artProfileOptions.getArtProfileInputs();
-    if (artProfileInputs.isEmpty()) {
+    Collection<ArtProfileForRewriting> artProfilesForRewriting =
+        artProfileOptions.getArtProfilesForRewriting();
+    if (artProfilesForRewriting.isEmpty()) {
       return empty();
     }
     if (artProfileOptions.isPassthrough()) {
       return passthrough();
     }
-    List<ArtProfile> artProfiles = new ArrayList<>(artProfileInputs.size());
-    for (ArtProfileInput input : options.getArtProfileOptions().getArtProfileInputs()) {
+    List<ArtProfile> artProfiles = new ArrayList<>(artProfilesForRewriting.size());
+    for (ArtProfileForRewriting input :
+        options.getArtProfileOptions().getArtProfilesForRewriting()) {
       ArtProfile.Builder artProfileBuilder = ArtProfile.builder(options.dexItemFactory());
-      input.getArtProfile(artProfileBuilder);
+      input.getArtProfileProvider().getArtProfile(artProfileBuilder);
       artProfiles.add(artProfileBuilder.build());
     }
     return new NonEmptyArtProfileCollection(artProfiles);

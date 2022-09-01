@@ -122,11 +122,11 @@ public class ArtProfileMethodRule extends ArtProfileRule {
     @Override
     public Builder setMethodRuleInfo(
         Consumer<ArtProfileMethodRuleInfoBuilder> methodRuleInfoBuilderConsumer) {
-      internalSetMethodRuleInfo(methodRuleInfoBuilderConsumer);
-      return this;
+      methodRuleInfoBuilder.clear();
+      return acceptMethodRuleInfoBuilder(methodRuleInfoBuilderConsumer);
     }
 
-    public Builder internalSetMethodRuleInfo(
+    public Builder acceptMethodRuleInfoBuilder(
         Consumer<? super ArtProfileMethodRuleInfoImpl.Builder> methodRuleInfoBuilderConsumer) {
       methodRuleInfoBuilderConsumer.accept(methodRuleInfoBuilder);
       return this;

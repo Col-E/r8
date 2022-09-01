@@ -16,6 +16,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -55,14 +56,12 @@ public class DesugaredLibraryArtProfileRewritingTest extends DesugaredLibraryTes
   @Test
   public void test() throws Throwable {
     Assume.assumeTrue(libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters));
-    ResidualArtProfileConsumerForTesting residualArtProfileConsumer =
-        new ResidualArtProfileConsumerForTesting();
-    ArtProfileInputForTesting artProfileInput =
-        new ArtProfileInputForTesting(residualArtProfileConsumer);
+    ArtProfileProviderForTesting artProfileProvider = new ArtProfileProviderForTesting();
+    ArtProfileConsumerForTesting residualArtProfileConsumer = new ArtProfileConsumerForTesting();
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addL8ArtProfileInputs(artProfileInput)
+        .addL8ArtProfileForRewriting(artProfileProvider, residualArtProfileConsumer)
         .compile()
         .inspectL8(
             inspector -> {
@@ -94,18 +93,7 @@ public class DesugaredLibraryArtProfileRewritingTest extends DesugaredLibraryTes
         .assertSuccessWithOutputLines("0");
   }
 
-  class ArtProfileInputForTesting implements ArtProfileInput {
-
-    private final ResidualArtProfileConsumerForTesting residualArtProfileConsumer;
-
-    ArtProfileInputForTesting(ResidualArtProfileConsumerForTesting residualArtProfileConsumer) {
-      this.residualArtProfileConsumer = residualArtProfileConsumer;
-    }
-
-    @Override
-    public ResidualArtProfileConsumer getArtProfileConsumer() {
-      return residualArtProfileConsumer;
-    }
+  class ArtProfileProviderForTesting implements ArtProfileProvider {
 
     @Override
     public void getArtProfile(ArtProfileBuilder profileBuilder) {
@@ -120,6 +108,11 @@ public class DesugaredLibraryArtProfileRewritingTest extends DesugaredLibraryTes
               null);
       profileBuilder.addMethodRule(
           methodRuleBuilder -> methodRuleBuilder.setMethodReference(forEachMethodReference));
+    }
+
+    @Override
+    public Origin getOrigin() {
+      return Origin.unknown();
     }
   }
 

@@ -9,17 +9,17 @@ import java.util.Collections;
 
 public class ArtProfileOptions {
 
-  private Collection<ArtProfileInput> inputs = Collections.emptyList();
+  private Collection<ArtProfileForRewriting> artProfilesForRewriting = Collections.emptyList();
   private boolean passthrough;
 
   public ArtProfileOptions() {}
 
-  public Collection<ArtProfileInput> getArtProfileInputs() {
-    return inputs;
+  public Collection<ArtProfileForRewriting> getArtProfilesForRewriting() {
+    return artProfilesForRewriting;
   }
 
-  public ArtProfileOptions setArtProfileInputs(Collection<ArtProfileInput> inputs) {
-    this.inputs = inputs;
+  public ArtProfileOptions setArtProfilesForRewriting(Collection<ArtProfileForRewriting> inputs) {
+    this.artProfilesForRewriting = inputs;
     return this;
   }
 

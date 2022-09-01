@@ -77,6 +77,11 @@ public class ArtProfileMethodRuleInfoImpl implements ArtProfileMethodRuleInfo {
 
     private int flags;
 
+    Builder clear() {
+      flags = 0;
+      return this;
+    }
+
     public Builder merge(ArtProfileMethodRuleInfo methodRuleInfo) {
       if (methodRuleInfo.isHot()) {
         setIsHot();

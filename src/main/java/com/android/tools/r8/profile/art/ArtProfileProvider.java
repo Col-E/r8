@@ -5,11 +5,11 @@
 package com.android.tools.r8.profile.art;
 
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.Resource;
 
-/** API for defining a class rule for an ART profile. */
+/** API for providing an ART profile to the compiler. */
 @Keep
-public interface ArtProfileClassRuleBuilder {
+public interface ArtProfileProvider extends Resource {
 
-  ArtProfileClassRuleBuilder setClassReference(ClassReference classReference);
+  void getArtProfile(ArtProfileBuilder profileBuilder);
 }

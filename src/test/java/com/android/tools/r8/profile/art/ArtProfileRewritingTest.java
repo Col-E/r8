@@ -13,6 +13,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
@@ -50,13 +51,12 @@ public class ArtProfileRewritingTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    ResidualArtProfileConsumerForTesting residualArtProfileConsumer =
-        new ResidualArtProfileConsumerForTesting();
-    MyArtProfileInput artProfileInput = new MyArtProfileInput(residualArtProfileConsumer);
+    ArtProfileProviderForTesting artProfileProvider = new ArtProfileProviderForTesting();
+    ArtProfileConsumerForTesting residualArtProfileConsumer = new ArtProfileConsumerForTesting();
     testForR8(Backend.DEX)
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addArtProfileInputs(artProfileInput)
+        .addArtProfileForRewriting(artProfileProvider, residualArtProfileConsumer)
         .enableInliningAnnotations()
         .setMinApi(AndroidApiLevel.LATEST)
         .compile()
@@ -64,7 +64,7 @@ public class ArtProfileRewritingTest extends TestBase {
   }
 
   private void inspect(
-      CodeInspector inspector, ResidualArtProfileConsumerForTesting residualArtProfileConsumer) {
+      CodeInspector inspector, ArtProfileConsumerForTesting residualArtProfileConsumer) {
     ClassSubject greeterClassSubject = inspector.clazz(Greeter.class);
     assertThat(greeterClassSubject, isPresentAndRenamed());
 
@@ -88,18 +88,7 @@ public class ArtProfileRewritingTest extends TestBase {
         residualArtProfileConsumer.infos);
   }
 
-  static class MyArtProfileInput implements ArtProfileInput {
-
-    private final ResidualArtProfileConsumerForTesting residualArtProfileConsumer;
-
-    MyArtProfileInput(ResidualArtProfileConsumerForTesting residualArtProfileConsumer) {
-      this.residualArtProfileConsumer = residualArtProfileConsumer;
-    }
-
-    @Override
-    public ResidualArtProfileConsumer getArtProfileConsumer() {
-      return residualArtProfileConsumer;
-    }
+  static class ArtProfileProviderForTesting implements ArtProfileProvider {
 
     @Override
     public void getArtProfile(ArtProfileBuilder profileBuilder) {
@@ -120,6 +109,11 @@ public class ArtProfileRewritingTest extends TestBase {
                       .setMethodRuleInfo(
                           methodRuleInfoBuilder ->
                               methodRuleInfoBuilder.setIsHot(true).setIsPostStartup(true)));
+    }
+
+    @Override
+    public Origin getOrigin() {
+      return Origin.unknown();
     }
   }
 

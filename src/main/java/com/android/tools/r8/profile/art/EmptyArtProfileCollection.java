@@ -32,7 +32,7 @@ public class EmptyArtProfileCollection extends ArtProfileCollection {
 
   @Override
   public void supplyConsumers(AppView<?> appView) {
-    assert appView.options().getArtProfileOptions().getArtProfileInputs().isEmpty();
+    assert appView.options().getArtProfileOptions().getArtProfilesForRewriting().isEmpty();
   }
 
   @Override

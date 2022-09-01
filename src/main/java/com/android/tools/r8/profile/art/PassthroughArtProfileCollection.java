@@ -36,16 +36,18 @@ public class PassthroughArtProfileCollection extends ArtProfileCollection {
 
   @Override
   public void supplyConsumers(AppView<?> appView) {
-    for (ArtProfileInput artProfileInput :
-        appView.options().getArtProfileOptions().getArtProfileInputs()) {
-      ResidualArtProfileConsumer artProfileConsumer = artProfileInput.getArtProfileConsumer();
+    for (ArtProfileForRewriting artProfileForRewriting :
+        appView.options().getArtProfileOptions().getArtProfilesForRewriting()) {
+      ArtProfileConsumer artProfileConsumer =
+          artProfileForRewriting.getResidualArtProfileConsumer();
       if (artProfileConsumer == null) {
         continue;
       }
 
-      ResidualArtProfileRuleConsumer ruleConsumer = artProfileConsumer.getRuleConsumer();
+      ArtProfileRuleConsumer ruleConsumer = artProfileConsumer.getRuleConsumer();
       if (ruleConsumer != null) {
-        artProfileInput.getArtProfile(
+        ArtProfileProvider artProfileProvider = artProfileForRewriting.getArtProfileProvider();
+        artProfileProvider.getArtProfile(
             new ArtProfileBuilder() {
 
               @Override

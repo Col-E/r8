@@ -13,6 +13,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
@@ -53,13 +54,12 @@ public class ArtProfileCollisionAfterClassMergingRewritingTest extends TestBase 
 
   @Test
   public void test() throws Exception {
-    ResidualArtProfileConsumerForTesting residualArtProfileConsumer =
-        new ResidualArtProfileConsumerForTesting();
-    MyArtProfileInput artProfileInput = new MyArtProfileInput(residualArtProfileConsumer);
+    MyArtProfileProvider artProfileProvider = new MyArtProfileProvider();
+    ArtProfileConsumerForTesting residualArtProfileConsumer = new ArtProfileConsumerForTesting();
     testForR8(Backend.DEX)
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addArtProfileInputs(artProfileInput)
+        .addArtProfileForRewriting(artProfileProvider, residualArtProfileConsumer)
         .addHorizontallyMergedClassesInspector(
             inspector ->
                 inspector.assertMergedInto(Foo.class, Bar.class).assertNoOtherClassesMerged())
@@ -70,7 +70,7 @@ public class ArtProfileCollisionAfterClassMergingRewritingTest extends TestBase 
   }
 
   private void inspect(
-      CodeInspector inspector, ResidualArtProfileConsumerForTesting residualArtProfileConsumer) {
+      CodeInspector inspector, ArtProfileConsumerForTesting residualArtProfileConsumer) {
     ClassSubject barClassSubject = inspector.clazz(Bar.class);
     assertThat(barClassSubject, isPresentAndRenamed());
 
@@ -99,18 +99,7 @@ public class ArtProfileCollisionAfterClassMergingRewritingTest extends TestBase 
         residualArtProfileConsumer.infos);
   }
 
-  static class MyArtProfileInput implements ArtProfileInput {
-
-    private final ResidualArtProfileConsumerForTesting residualArtProfileConsumer;
-
-    MyArtProfileInput(ResidualArtProfileConsumerForTesting residualArtProfileConsumer) {
-      this.residualArtProfileConsumer = residualArtProfileConsumer;
-    }
-
-    @Override
-    public ResidualArtProfileConsumer getArtProfileConsumer() {
-      return residualArtProfileConsumer;
-    }
+  static class MyArtProfileProvider implements ArtProfileProvider {
 
     @Override
     public void getArtProfile(ArtProfileBuilder profileBuilder) {
@@ -124,6 +113,11 @@ public class ArtProfileCollisionAfterClassMergingRewritingTest extends TestBase 
           .addClassRule(classRuleBuilder -> classRuleBuilder.setClassReference(barClassReference))
           .addMethodRule(
               methodRuleBuilder -> methodRuleBuilder.setMethodReference(worldMethodReference));
+    }
+
+    @Override
+    public Origin getOrigin() {
+      return Origin.unknown();
     }
   }
 

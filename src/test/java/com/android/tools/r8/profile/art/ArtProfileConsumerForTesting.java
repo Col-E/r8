@@ -10,15 +10,15 @@ import com.android.tools.r8.references.MethodReference;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ResidualArtProfileConsumerForTesting implements ResidualArtProfileConsumer {
+public class ArtProfileConsumerForTesting implements ArtProfileConsumer {
 
   boolean finished;
   List<Object> references = new ArrayList<>();
   List<Object> infos = new ArrayList<>();
 
   @Override
-  public ResidualArtProfileRuleConsumer getRuleConsumer() {
-    return new ResidualArtProfileRuleConsumer() {
+  public ArtProfileRuleConsumer getRuleConsumer() {
+    return new ArtProfileRuleConsumer() {
 
       @Override
       public void acceptClassRule(
