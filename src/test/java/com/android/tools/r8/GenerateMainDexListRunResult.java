@@ -17,7 +17,7 @@ public class GenerateMainDexListRunResult
   List<String> mainDexList;
 
   public GenerateMainDexListRunResult(List<String> mainDexList, TestState state) {
-    super(null, null, null);
+    super(null, null, null, state);
     this.mainDexList = mainDexList;
     this.state = state;
   }

@@ -19,9 +19,7 @@ import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.benchmarks.BenchmarkResults;
-import com.android.tools.r8.debug.CfDebugTestConfig;
 import com.android.tools.r8.debug.DebugTestConfig;
-import com.android.tools.r8.debug.DexDebugTestConfig;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -605,20 +603,22 @@ public abstract class TestCompileResult<
     return disassemble(System.out);
   }
 
+  @Deprecated
   public DebugTestConfig debugConfig() {
+    return debugConfig(
+        getBackend().isCf()
+            ? TestRuntime.getDefaultCfRuntime()
+            : new DexRuntime(ToolHelper.getDexVm()));
+  }
+
+  public DebugTestConfig debugConfig(TestRuntime runtime) {
+    assert runtime.getBackend() == getBackend();
     // Rethrow exceptions since debug config is usually used in a delayed wrapper which
     // does not declare exceptions.
     try {
       Path out = state.getNewTempFolder().resolve("out.zip");
       app.writeToZip(out, getOutputMode());
-      switch (getBackend()) {
-        case CF:
-          return new CfDebugTestConfig().addPaths(out);
-        case DEX:
-          return new DexDebugTestConfig().addPaths(out);
-        default:
-          throw new Unreachable();
-      }
+      return DebugTestConfig.create(runtime, out);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -687,7 +687,8 @@ public abstract class TestCompileResult<
     Path jarFile = tmp.resolve("out.jar");
     Path oatFile = tmp.resolve("out.oat");
     app.writeToZip(jarFile, OutputMode.DexIndexed);
-    return new Dex2OatTestRunResult(app, runtime, ToolHelper.runDex2OatRaw(jarFile, oatFile, vm));
+    return new Dex2OatTestRunResult(
+        app, runtime, ToolHelper.runDex2OatRaw(jarFile, oatFile, vm), state);
   }
 
   public CR benchmarkCodeSize(BenchmarkResults results) throws IOException {

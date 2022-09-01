@@ -7,9 +7,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.DebuggeeState;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.FrameInspector;
-import com.android.tools.r8.debug.DebugTestConfig.RuntimeKind;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringUtils;
@@ -289,10 +289,10 @@ public class DebugStreamComparator {
     String sig = reference.getMethodSignature();
     List<Variable> variables = reference.getVisibleVariables();
     int frameDepth = reference.getFrameDepth();
-    RuntimeKind referenceRuntime = reference.getConfig().getRuntimeKind();
+    TestRuntime referenceRuntime = reference.getConfig().getRuntime();
     for (int i = 1; i < states.size(); i++) {
       DebuggeeState state = states.get(i);
-      RuntimeKind stateRuntime = state.getConfig().getRuntimeKind();
+      TestRuntime stateRuntime = state.getConfig().getRuntime();
       if (verifyFiles) {
         assertEquals("source file mismatch", file, state.getSourceFile());
       }
@@ -328,12 +328,12 @@ public class DebugStreamComparator {
     }
   }
 
-  private static boolean shouldIgnoreVariable(Variable variable, RuntimeKind runtime) {
-    return runtime == RuntimeKind.DEX && variable.getName().isEmpty();
+  private static boolean shouldIgnoreVariable(Variable variable, TestRuntime runtime) {
+    return runtime.isDex() && variable.getName().isEmpty();
   }
 
   private static void verifyVariablesEqual(
-      RuntimeKind xRuntime, List<Variable> xs, RuntimeKind yRuntime, List<Variable> ys) {
+      TestRuntime xRuntime, List<Variable> xs, TestRuntime yRuntime, List<Variable> ys) {
     Map<String, Variable> map = new HashMap<>(xs.size());
     for (Variable x : xs) {
       if (!shouldIgnoreVariable(x, xRuntime)) {

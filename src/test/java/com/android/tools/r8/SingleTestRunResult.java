@@ -10,12 +10,14 @@ import static org.junit.Assert.assertNotNull;
 
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -23,12 +25,15 @@ import org.hamcrest.Matcher;
 
 public abstract class SingleTestRunResult<RR extends SingleTestRunResult<RR>>
     extends TestRunResult<RR> {
+  private final TestState state;
   protected final AndroidApp app;
   private final TestRuntime runtime;
   private final ProcessResult result;
   private boolean executedSatisfyingRuntime = false;
 
-  public SingleTestRunResult(AndroidApp app, TestRuntime runtime, ProcessResult result) {
+  public SingleTestRunResult(
+      AndroidApp app, TestRuntime runtime, ProcessResult result, TestState state) {
+    this.state = state;
     this.app = app;
     this.runtime = runtime;
     this.result = result;
@@ -36,6 +41,10 @@ public abstract class SingleTestRunResult<RR extends SingleTestRunResult<RR>>
 
   public boolean isR8TestRunResult() {
     return false;
+  }
+
+  public TestState getState() {
+    return state;
   }
 
   public AndroidApp app() {
@@ -217,6 +226,15 @@ public abstract class SingleTestRunResult<RR extends SingleTestRunResult<RR>>
     if (!executedSatisfyingRuntime) {
       action.accept(self());
     }
+    return self();
+  }
+
+  public <E extends Throwable> RR debugger(ThrowingConsumer<DebugTestConfig, E> consumer)
+      throws E, IOException {
+    Path out = state.getNewTempFolder().resolve("out.zip");
+    app.writeToZip(out, runtime.isCf() ? OutputMode.ClassFile : OutputMode.DexIndexed);
+    DebugTestConfig config = DebugTestConfig.create(runtime, out);
+    consumer.accept(config);
     return self();
   }
 }

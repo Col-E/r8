@@ -5,7 +5,6 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.TestBase.Backend;
-import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
@@ -98,8 +97,6 @@ public abstract class TestBuilder<RR extends TestRunResult<RR>, T extends TestBu
       throws CompilationFailedException, ExecutionException, IOException {
     return run(runtime, mainClass.getTypeName(), args);
   }
-
-  public abstract DebugTestConfig debugConfig();
 
   public abstract T addProgramFiles(Collection<Path> files);
 

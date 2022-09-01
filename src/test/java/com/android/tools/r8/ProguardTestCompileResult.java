@@ -63,6 +63,6 @@ public class ProguardTestCompileResult
 
   @Override
   public ProguardTestRunResult createRunResult(TestRuntime runtime, ProcessResult result) {
-    return new ProguardTestRunResult(app, runtime, result, proguardMap);
+    return new ProguardTestRunResult(app, runtime, result, proguardMap, state);
   }
 }

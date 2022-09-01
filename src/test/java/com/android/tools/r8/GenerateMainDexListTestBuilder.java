@@ -55,11 +55,6 @@ public class GenerateMainDexListTestBuilder
   }
 
   @Override
-  public DebugTestConfig debugConfig() {
-    throw new Unimplemented("No support for debug configuration");
-  }
-
-  @Override
   public GenerateMainDexListTestBuilder addRunClasspathFiles(Collection<Path> files) {
     throw new Unimplemented("No support for run class path");
   }

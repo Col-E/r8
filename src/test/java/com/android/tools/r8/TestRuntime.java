@@ -19,6 +19,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 // Base class for the runtime structure in the test parameters.
 public abstract class TestRuntime {
@@ -372,6 +376,26 @@ public abstract class TestRuntime {
 
     public boolean isNewerThanOrEqual(CfVm version) {
       return vm == version || !vm.lessThanOrEqual(version);
+    }
+  }
+
+  public <T> T match(Function<CfRuntime, T> onCf, BiFunction<DexRuntime, DexVm.Version, T> onDex) {
+    if (isCf()) {
+      return onCf.apply(asCf());
+    }
+    if (isDex()) {
+      return onDex.apply(asDex(), asDex().getVersion());
+    }
+    throw new Unreachable();
+  }
+
+  public void match(Consumer<CfRuntime> onCf, BiConsumer<DexRuntime, DexVm.Version> onDex) {
+    if (isCf()) {
+      onCf.accept(asCf());
+    } else if (isDex()) {
+      onDex.accept(asDex(), asDex().getVersion());
+    } else {
+      throw new Unreachable();
     }
   }
 

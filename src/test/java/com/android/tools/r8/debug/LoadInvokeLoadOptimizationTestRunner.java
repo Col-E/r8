@@ -3,11 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
-import com.android.tools.r8.ToolHelper;
+import static org.junit.Assume.assumeTrue;
+
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.FrameInspector;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.DescriptorUtils;
-import java.util.List;
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,44 +20,56 @@ public class LoadInvokeLoadOptimizationTestRunner extends DebugTestBase {
 
   static final Class CLASS = LoadInvokeLoadOptimizationTest.class;
   static final String NAME = CLASS.getCanonicalName();
-  static final String DESC = DescriptorUtils.javaTypeToDescriptor(NAME);
   static final String FILE = CLASS.getSimpleName() + ".java";
   static final AndroidApiLevel minApi = AndroidApiLevel.B;
+  static final String EXPECTED = "";
 
-  private final String name;
-  private final DebugTestConfig config;
+  private final TestParameters parameters;
 
   @Parameters(name = "{0}")
-  public static List<Object[]> setup() {
-    DebugTestParameters parameters =
-        parameters()
-            .add("CF", temp -> testForJvm(temp).addTestClasspath().debugConfig())
-            .add(
-                "D8",
-                temp -> testForD8(temp).setMinApi(minApi).addProgramClasses(CLASS).debugConfig());
-    for (Backend backend : ToolHelper.getBackends()) {
-      parameters.add(
-          "R8/" + backend,
-          temp ->
-              testForR8(temp, backend)
-                  .noTreeShaking()
-                  .addDontObfuscate()
-                  .addKeepRules("-keepattributes SourceFile,LineNumberTable")
-                  .addProgramClasses(CLASS)
-                  .setMinApi(minApi)
-                  .debug()
-                  .debugConfig());
-    }
-    return parameters.build();
+  public static TestParametersCollection setup() {
+    return TestParameters.builder().withAllRuntimes().build();
   }
 
-  public LoadInvokeLoadOptimizationTestRunner(String name, DelayedDebugTestConfig config) {
-    this.name = name;
-    this.config = config.getConfig(temp);
+  public LoadInvokeLoadOptimizationTestRunner(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Test
-  public void test() throws Throwable {
+  public void testReference() throws Throwable {
+    assumeTrue(parameters.isCfRuntime());
+    testForJvm(temp)
+        .addProgramClasses(CLASS)
+        .run(parameters.getRuntime(), CLASS)
+        .assertSuccessWithOutput(EXPECTED)
+        .debugger(this::runDebugger);
+  }
+
+  @Test
+  public void testD8() throws Throwable {
+    testForD8(parameters.getBackend())
+        .setMinApi(minApi)
+        .addProgramClasses(CLASS)
+        .run(parameters.getRuntime(), CLASS)
+        .assertSuccessWithOutput(EXPECTED)
+        .debugger(this::runDebugger);
+  }
+
+  @Test
+  public void testR8() throws Throwable {
+    testForR8(parameters.getBackend())
+        .noTreeShaking()
+        .addDontObfuscate()
+        .addKeepRules("-keepattributes SourceFile,LineNumberTable")
+        .addProgramClasses(CLASS)
+        .setMinApi(minApi)
+        .debug()
+        .run(parameters.getRuntime(), CLASS)
+        .assertSuccessWithOutput(EXPECTED)
+        .debugger(this::runDebugger);
+  }
+
+  public void runDebugger(DebugTestConfig config) throws Throwable {
     Value int42 = Value.createInt(42);
     Value int7 = Value.createInt(7);
     // The test ensures that when breaking inside a function and changing a local in the parent

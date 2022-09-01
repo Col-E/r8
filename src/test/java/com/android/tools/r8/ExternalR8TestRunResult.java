@@ -23,8 +23,9 @@ public class ExternalR8TestRunResult extends SingleTestRunResult<ExternalR8TestR
       Path outputJar,
       String proguardMap,
       TestRuntime runtime,
-      ProcessResult result) {
-    super(app, runtime, result);
+      ProcessResult result,
+      TestState state) {
+    super(app, runtime, result, state);
     this.outputJar = outputJar;
     this.proguardMap = proguardMap;
   }

@@ -342,17 +342,6 @@ public abstract class TestCompilerBuilder<
     return compile().run(runtime, mainClass, args);
   }
 
-  @Override
-  public DebugTestConfig debugConfig() {
-    // Rethrow exceptions since debug config is usually used in a delayed wrapper which
-    // does not declare exceptions.
-    try {
-      return compile().debugConfig();
-    } catch (CompilationFailedException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   public T setMode(CompilationMode mode) {
     builder.setMode(mode);
     return self();

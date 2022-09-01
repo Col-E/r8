@@ -52,6 +52,6 @@ public class D8TestCompileResult extends TestCompileResult<D8TestCompileResult, 
 
   @Override
   public D8TestRunResult createRunResult(TestRuntime runtime, ProcessResult result) {
-    return new D8TestRunResult(app, runtime, result, proguardMap);
+    return new D8TestRunResult(app, runtime, result, proguardMap, state);
   }
 }

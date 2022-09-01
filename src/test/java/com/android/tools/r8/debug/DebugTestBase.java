@@ -4,9 +4,9 @@
 package com.android.tools.r8.debug;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
-import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command.NopCommand;
 import com.android.tools.r8.errors.Unreachable;
@@ -189,20 +189,18 @@ public abstract class DebugTestBase extends TestBase {
   protected DebugTestRunner getDebugTestRunner(
       DebugTestConfig config, String debuggeeClass, List<JUnit3Wrapper.Command> commands)
       throws Throwable {
-    // TODO(b/199700280): Reenable on 12.0.0 when we have the libjdwp.so file include and the flags
-    // fixed.
     Assume.assumeTrue(
-        "Skipping test " + testName.getMethodName() + " because debugging not enabled in 12.0.0",
-        !ToolHelper.getDexVm().isEqualTo(DexVm.ART_12_0_0_HOST));
-    // Skip test due to unsupported runtime.
-    Assume.assumeTrue("Skipping test " + testName.getMethodName() + " because ART is not supported",
-        ToolHelper.artSupported());
-    Assume.assumeTrue("Skipping test " + testName.getMethodName()
+        "Skipping test "
+            + testName.getMethodName()
             + " because debug tests are not yet supported on Windows",
         !ToolHelper.isWindows());
-    Assume.assumeTrue("Skipping test " + testName.getMethodName()
-            + " because debug tests are not yet supported on device",
-        ToolHelper.getDexVm().getKind() == ToolHelper.DexVm.Kind.HOST);
+
+    // TODO(b/199700280): Reenable on 12.0.0 when we have the libjdwp.so file include and the flags
+    //  fixed.
+    Assume.assumeTrue(
+        "Skipping test " + testName.getMethodName() + " because debugging not enabled in 12.0.0",
+        config.getRuntime().isCf()
+            || !config.getRuntime().asDex().getVersion().isEqualTo(Version.V12_0_0));
 
     ClassNameMapper classNameMapper =
         config.getProguardMap() == null
@@ -545,14 +543,16 @@ public abstract class DebugTestBase extends TestBase {
 
   protected final JUnit3Wrapper.Command checkStaticFieldClinitSafe(
       String className, String fieldName, String fieldSignature, Value expectedValue) {
-    return inspect(t -> {
-      // TODO(65148874): The current Art from AOSP master hangs when requesting static fields
-      // when breaking in <clinit>. Last known good version is 7.0.0.
-      Assume.assumeTrue(
-          "Skipping test " + testName.getMethodName() + " because ART version is not supported",
-          t.isCfRuntime() || ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V7_0_0));
-      checkStaticField(className, fieldName, fieldSignature, expectedValue);
-    });
+    return inspect(
+        t -> {
+          // TODO(65148874): The current Art from AOSP master hangs when requesting static fields
+          //  when breaking in <clinit>. Last known good version is 7.0.0.
+          TestRuntime runtime = t.getRuntime();
+          Assume.assumeTrue(
+              "Skipping test " + testName.getMethodName() + " because ART version is not supported",
+              runtime.isCf() || runtime.asDex().getVersion().isOlderThanOrEqual(Version.V7_0_0));
+          checkStaticField(className, fieldName, fieldSignature, expectedValue);
+        });
   }
 
   protected final JUnit3Wrapper.Command checkStaticField(
@@ -945,18 +945,27 @@ public abstract class DebugTestBase extends TestBase {
           try {
             command.perform(this);
           } catch (TestErrorException e) {
-            boolean ignoreException = false;
-            if (config.isDexRuntime()
-                && ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V4_4_4)) {
-              // Dalvik has flaky synchronization issue on shutdown. The workaround is to ignore
-              // the exception if and only if we know that it's the final resume command.
-              if (debuggeeState == null && commandsQueue.isEmpty()) {
-                // We should receive the VMDeath event and transition to the Exit state here.
-                processEvents();
-                assert state == State.Exit;
-                ignoreException = true;
-              }
-            }
+              boolean ignoreException =
+                  config
+                      .getRuntime()
+                      .match(
+                          cfRuntime -> false,
+                          (dexRuntime, version) -> {
+                            if (version.isOlderThanOrEqual(Version.V4_4_4)) {
+                              // Dalvik has flaky synchronization issue on shutdown. The workaround
+                              // is to ignore
+                              // the exception if and only if we know that it's the final resume
+                              // command.
+                              if (debuggeeState == null && commandsQueue.isEmpty()) {
+                                // We should receive the VMDeath event and transition to the Exit
+                                // state here.
+                                processEvents();
+                                assert state == State.Exit;
+                                return true;
+                              }
+                            }
+                            return false;
+                          });
             if (!ignoreException) {
               throw e;
             }
@@ -1072,20 +1081,34 @@ public abstract class DebugTestBase extends TestBase {
 
         ArtTestOptions(String[] debuggeePath) {
           // Set debuggee command-line.
-          if (config.isDexRuntime()) {
-            ArtCommandBuilder artCommandBuilder = new ArtCommandBuilder(ToolHelper.getDexVm());
-            if (ToolHelper.getDexVm().getVersion().isNewerThan(DexVm.Version.V5_1_1)) {
-              artCommandBuilder.appendArtOption("-Xcompiler-option");
-              artCommandBuilder.appendArtOption("--debuggable");
-            }
-            if (ToolHelper.getDexVm().getVersion().isNewerThanOrEqual(DexVm.Version.V9_0_0)) {
-              artCommandBuilder.appendArtOption("-XjdwpProvider:internal");
-            }
-            if (DEBUG_TESTS && ToolHelper.getDexVm().getVersion().isNewerThan(Version.V4_4_4)) {
-              artCommandBuilder.appendArtOption("-verbose:jdwp");
-            }
-            setProperty("jpda.settings.debuggeeJavaPath", artCommandBuilder.build());
-          }
+          config
+              .getRuntime()
+              .match(
+                  cfRuntime -> {
+                    setProperty(
+                        "jpda.settings.debuggeeJavaPath", cfRuntime.getJavaExecutable().toString());
+                  },
+                  (dexRuntime, version) -> {
+                    ArtCommandBuilder artCommandBuilder = new ArtCommandBuilder(dexRuntime.getVm());
+                    if (version.isNewerThan(Version.V5_1_1)) {
+                      artCommandBuilder.appendArtOption("-Xcompiler-option");
+                      artCommandBuilder.appendArtOption("--debuggable");
+                    }
+                    if (version.isNewerThanOrEqual(Version.V13_0_0)) {
+                      // TODO(b/199700280): These options may be the same for V12 once the libs are
+                      // added.
+                      artCommandBuilder.appendArtOption("-Xplugin:libopenjdkjvmti.so");
+                      setProperty("jpda.settings.debuggeeAgentArgument", "-agentpath:");
+                      setProperty("jpda.settings.debuggeeAgentName", "libjdwp.so");
+                    } else if (version.isNewerThanOrEqual(Version.V9_0_0)) {
+                      artCommandBuilder.appendArtOption("-XjdwpProvider:internal");
+                    }
+                    if (DEBUG_TESTS && version.isNewerThan(Version.V4_4_4)) {
+                      artCommandBuilder.appendArtOption("-verbose:jdwp");
+                    }
+                    String build = artCommandBuilder.build();
+                    setProperty("jpda.settings.debuggeeJavaPath", build);
+                  });
 
           // Set debuggee classpath
           String debuggeeClassPath = String.join(File.pathSeparator, debuggeePath);
@@ -1440,6 +1463,10 @@ public abstract class DebugTestBase extends TestBase {
 
       public DebugTestConfig getConfig() {
         return config;
+      }
+
+      public TestRuntime getRuntime() {
+        return config.getRuntime();
       }
 
       public boolean isCfRuntime() {

@@ -50,11 +50,6 @@ public class IntermediateCfD8TestBuilder
   }
 
   @Override
-  public DebugTestConfig debugConfig() {
-    throw new Unimplemented("Unsupported debug config as of now...");
-  }
-
-  @Override
   public IntermediateCfD8TestBuilder addProgramFiles(Collection<Path> files) {
     cf2cf.addProgramFiles(files);
     return self();

@@ -30,8 +30,9 @@ public class R8TestRunResult extends SingleTestRunResult<R8TestRunResult> {
       TestRuntime runtime,
       ProcessResult result,
       String proguardMap,
-      GraphInspectorSupplier graphInspector) {
-    super(app, runtime, result);
+      GraphInspectorSupplier graphInspector,
+      TestState state) {
+    super(app, runtime, result, state);
     this.proguardMap = proguardMap;
     this.graphInspector = graphInspector;
   }

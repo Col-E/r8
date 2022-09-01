@@ -17,8 +17,12 @@ public class D8TestRunResult extends SingleTestRunResult<D8TestRunResult> {
   private final String proguardMap;
 
   public D8TestRunResult(
-      AndroidApp app, TestRuntime runtime, ProcessResult result, String proguardMap) {
-    super(app, runtime, result);
+      AndroidApp app,
+      TestRuntime runtime,
+      ProcessResult result,
+      String proguardMap,
+      TestState state) {
+    super(app, runtime, result, state);
     this.proguardMap = proguardMap;
   }
 

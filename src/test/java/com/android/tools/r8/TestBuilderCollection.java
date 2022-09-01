@@ -33,11 +33,6 @@ public abstract class TestBuilderCollection<
   }
 
   @Override
-  public DebugTestConfig debugConfig() {
-    throw new Unimplemented("Unsupported debug config as of now...");
-  }
-
-  @Override
   public T addProgramFiles(Collection<Path> files) {
     return forEach(b -> b.addProgramFiles(files));
   }

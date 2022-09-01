@@ -5,6 +5,8 @@ package com.android.tools.r8.debug;
 
 import static com.android.tools.r8.naming.ClassNameMapper.MissingFileAction.MISSING_FILE_IS_ERROR;
 
+import com.android.tools.r8.TestRuntime;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -20,6 +22,16 @@ public abstract class DebugTestConfig {
     DEX
   }
 
+  public static DebugTestConfig create(TestRuntime runtime, Path... paths) {
+    if (runtime.isCf()) {
+      return new CfDebugTestConfig(runtime.asCf(), Arrays.asList(paths));
+    }
+    if (runtime.isDex()) {
+      return new DexDebugTestConfig(runtime.asDex(), Arrays.asList(paths));
+    }
+    throw new Unreachable();
+  }
+
   private boolean mustProcessAllCommands = true;
   private List<Path> paths = new ArrayList<>();
 
@@ -27,15 +39,15 @@ public abstract class DebugTestConfig {
   private ClassNameMapper.MissingFileAction missingProguardMapAction;
   private boolean usePcForMissingLineNumberTable = false;
 
-  /** The expected runtime kind for the debuggee. */
-  public abstract RuntimeKind getRuntimeKind();
+  /** The runtime to use for the debuggee. */
+  public abstract TestRuntime getRuntime();
 
   public boolean isCfRuntime() {
-    return getRuntimeKind() == RuntimeKind.CF;
+    return getRuntime().isCf();
   }
 
   public boolean isDexRuntime() {
-    return getRuntimeKind() == RuntimeKind.DEX;
+    return getRuntime().isDex();
   }
 
   public void allowUsingPcForMissingLineNumberTable() {
@@ -95,7 +107,7 @@ public abstract class DebugTestConfig {
         new StringBuilder()
             .append("DebugTestConfig{")
             .append("runtime:")
-            .append(getRuntimeKind())
+            .append(getRuntime())
             .append(", classpath:[")
             .append(
                 String.join(", ", paths.stream().map(Path::toString).collect(Collectors.toList())))

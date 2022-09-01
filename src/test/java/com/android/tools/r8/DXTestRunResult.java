@@ -9,8 +9,9 @@ import com.android.tools.r8.utils.AndroidApp;
 
 public class DXTestRunResult extends SingleTestRunResult<DXTestRunResult> {
 
-  public DXTestRunResult(AndroidApp app, TestRuntime runtime, ProcessResult result) {
-    super(app, runtime, result);
+  public DXTestRunResult(
+      AndroidApp app, TestRuntime runtime, ProcessResult result, TestState state) {
+    super(app, runtime, result, state);
   }
 
   @Override

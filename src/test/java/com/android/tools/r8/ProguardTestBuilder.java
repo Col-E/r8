@@ -280,11 +280,6 @@ public class ProguardTestBuilder
   }
 
   @Override
-  public DebugTestConfig debugConfig() {
-    throw new Unimplemented("No support for debug config");
-  }
-
-  @Override
   public ProguardTestBuilder addOptionsModification(Consumer<InternalOptions> optionsConsumer) {
     throw new Unimplemented("No support for changing internal options");
   }

@@ -11,8 +11,6 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.Disassemble;
 import com.android.tools.r8.Disassemble.DisassembleCommand;
-import com.android.tools.r8.JvmTestBuilder;
-import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
@@ -92,28 +90,28 @@ public class DefaultLambdaWithSelfReferenceTestRunner extends DebugTestBase {
   @Test
   public void testJvm() throws Throwable {
     assumeTrue(parameters.isCfRuntime());
-    JvmTestBuilder builder = testForJvm().addTestClasspath();
-    builder.run(parameters.getRuntime(), CLASS).assertSuccessWithOutput(EXPECTED);
-    runDebugger(builder.debugConfig(), false);
+    testForJvm()
+        .addProgramClassesAndInnerClasses(CLASS)
+        .run(parameters.getRuntime(), CLASS)
+        .assertSuccessWithOutput(EXPECTED)
+        .debugger(config -> runDebugger(config, false));
   }
 
   @Test
   public void testR8() throws Throwable {
-    R8TestCompileResult compileResult =
-        testForR8(parameters.getBackend())
-            .addProgramClassesAndInnerClasses(CLASS)
-            .setMinApi(parameters.getApiLevel())
-            .addDontObfuscate()
-            .noTreeShaking()
-            .addKeepAllAttributes()
-            .debug()
-            .compile()
-            .assertNoMessages();
-    compileResult
+    testForR8(parameters.getBackend())
+        .addProgramClassesAndInnerClasses(CLASS)
+        .setMinApi(parameters.getApiLevel())
+        .addDontObfuscate()
+        .noTreeShaking()
+        .addKeepAllAttributes()
+        .debug()
+        .compile()
+        .assertNoMessages()
         .run(parameters.getRuntime(), CLASS)
         .assertSuccessWithOutput(EXPECTED)
-        .inspect(inspector -> assertThat(inspector.clazz(CLASS), isPresent()));
-    runDebugger(compileResult.debugConfig(), true);
+        .inspect(inspector -> assertThat(inspector.clazz(CLASS), isPresent()))
+        .debugger(config -> runDebugger(config, true));
   }
 
   @Test
@@ -168,9 +166,8 @@ public class DefaultLambdaWithSelfReferenceTestRunner extends DebugTestBase {
         .assertNoMessages()
         .writeToZip(out2)
         .run(parameters.getRuntime(), CLASS)
-        .assertSuccessWithOutput(EXPECTED);
-
-    runDebugger(compiledResult.debugConfig(), false);
+        .assertSuccessWithOutput(EXPECTED)
+        .debugger(config -> runDebugger(config, false));
 
     Path dissasemble1 = temp.newFolder().toPath().resolve("disassemble1.txt");
     Path dissasemble2 = temp.newFolder().toPath().resolve("disassemble2.txt");

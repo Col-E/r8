@@ -3,13 +3,10 @@ package com.android.tools.r8.debug;
 import static com.android.tools.r8.references.Reference.methodFromMethod;
 import static org.hamcrest.CoreMatchers.containsString;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.debug.JvmSyntheticTest.A;
 import com.android.tools.r8.debug.JvmSyntheticTest.Runner;
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -32,17 +29,17 @@ public class JvmSyntheticTestRunner extends DebugTestBase {
   }
 
   @Test
-  public void testStacktrace() throws ExecutionException, CompilationFailedException, IOException {
+  public void testStacktrace() throws Throwable {
     testForJvm()
         .addProgramClasses(A.class, CLASS)
         .run(parameters.getRuntime(), CLASS)
         .assertSuccessWithOutputThatMatches(
-            containsString("at com.android.tools.r8.debug.JvmSyntheticTest$A.access$000"));
+            containsString("at com.android.tools.r8.debug.JvmSyntheticTest$A.access$000"))
+        .debugger(this::testDebug)
+        .debugger(this::testDebugIntelliJ);
   }
 
-  @Test
-  public void testDebug() throws Throwable {
-    DebugTestConfig debugTestConfig = testForJvm().addProgramClasses(A.class, CLASS).debugConfig();
+  public void testDebug(DebugTestConfig debugTestConfig) throws Throwable {
     runDebugTest(
         debugTestConfig,
         CLASS,
@@ -54,9 +51,7 @@ public class JvmSyntheticTestRunner extends DebugTestBase {
         run());
   }
 
-  @Test
-  public void testDebugIntelliJ() throws Throwable {
-    DebugTestConfig debugTestConfig = testForJvm().addProgramClasses(A.class, CLASS).debugConfig();
+  public void testDebugIntelliJ(DebugTestConfig debugTestConfig) throws Throwable {
     runDebugTest(
         debugTestConfig,
         CLASS,

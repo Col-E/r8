@@ -6,10 +6,7 @@ package com.android.tools.r8.desugar;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.D8TestCompileResult;
-import com.android.tools.r8.JvmTestBuilder;
 import com.android.tools.r8.R8FullTestBuilder;
-import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.debug.DebugTestBase;
@@ -88,24 +85,24 @@ public class DefaultLambdaWithUnderscoreThisTestRunner extends DebugTestBase {
   @Test
   public void testJvm() throws Throwable {
     assumeTrue(parameters.isCfRuntime());
-    JvmTestBuilder builder = testForJvm().addTestClasspath();
-    builder.run(parameters.getRuntime(), CLASS).assertSuccessWithOutput(EXPECTED);
-    runDebugger(builder.debugConfig(), false);
+    testForJvm()
+        .addProgramClassesAndInnerClasses(CLASS)
+        .run(parameters.getRuntime(), CLASS)
+        .assertSuccessWithOutput(EXPECTED)
+        .debugger(config -> runDebugger(config, false));
   }
 
   @Test
   public void testD8() throws Throwable {
     assumeTrue(parameters.isDexRuntime());
-    D8TestCompileResult compileResult =
-        testForD8()
-            .addProgramClassesAndInnerClasses(CLASS)
-            .setMinApiThreshold(AndroidApiLevel.K)
-            .compile()
-            .assertNoMessages();
-    compileResult
+    testForD8()
+        .addProgramClassesAndInnerClasses(CLASS)
+        .setMinApiThreshold(AndroidApiLevel.K)
+        .compile()
+        .assertNoMessages()
         .run(parameters.getRuntime(), CLASS)
-        .assertSuccessWithOutput(EXPECTED);
-    runDebugger(compileResult.debugConfig(), true);
+        .assertSuccessWithOutput(EXPECTED)
+        .debugger(config -> runDebugger(config, true));
   }
 
   @Test
@@ -125,8 +122,9 @@ public class DefaultLambdaWithUnderscoreThisTestRunner extends DebugTestBase {
     if (parameters.isDexRuntime()) {
       r8FullTestBuilder.setMinApiThreshold(AndroidApiLevel.K);
     }
-    R8TestCompileResult compileResult = r8FullTestBuilder.compile();
-    compileResult.run(parameters.getRuntime(), CLASS).assertSuccessWithOutput(EXPECTED);
-    runDebugger(compileResult.debugConfig(), true);
+    r8FullTestBuilder
+        .run(parameters.getRuntime(), CLASS)
+        .assertSuccessWithOutput(EXPECTED)
+        .debugger(config -> runDebugger(config, true));
   }
 }

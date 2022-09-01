@@ -9,8 +9,9 @@ import com.android.tools.r8.utils.AndroidApp;
 
 public class JvmTestRunResult extends SingleTestRunResult<JvmTestRunResult> {
 
-  public JvmTestRunResult(AndroidApp app, TestRuntime runtime, ProcessResult result) {
-    super(app, runtime, result);
+  public JvmTestRunResult(
+      AndroidApp app, TestRuntime runtime, ProcessResult result, TestState state) {
+    super(app, runtime, result, state);
   }
 
   @Override

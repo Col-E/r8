@@ -151,7 +151,7 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
 
   @Override
   public R8TestRunResult createRunResult(TestRuntime runtime, ProcessResult result) {
-    return new R8TestRunResult(app, runtime, result, proguardMap, this::graphInspector);
+    return new R8TestRunResult(app, runtime, result, proguardMap, this::graphInspector, state);
   }
 
   public R8TestCompileResult addFeatureSplitsToRunClasspathFiles() {

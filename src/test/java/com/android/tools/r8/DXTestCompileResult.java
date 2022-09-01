@@ -41,6 +41,6 @@ public class DXTestCompileResult extends TestCompileResult<DXTestCompileResult, 
 
   @Override
   public DXTestRunResult createRunResult(TestRuntime runtime, ProcessResult result) {
-    return new DXTestRunResult(app, runtime, result);
+    return new DXTestRunResult(app, runtime, result, state);
   }
 }
