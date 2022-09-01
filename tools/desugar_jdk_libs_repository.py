@@ -10,6 +10,7 @@ from os.path import join
 import shutil
 import subprocess
 import sys
+import urllib.request
 
 import gradle
 import utils
@@ -42,6 +43,13 @@ def parse_options():
                       default=None,
                       metavar=('<path>'),
                       help='Use existing checkout of github.com/google/desugar_jdk_libs.')
+  parser.add_argument('--desugar-jdk-libs-revision', '--desugar_jdk_libs_revision',
+                      default=None,
+                      metavar=('<revision>'),
+                      help='Revision of github.com/google/desugar_jdk_libs to use.')
+  parser.add_argument('--release-version', '--release_version',
+                      metavar=('<version>'),
+                      help='The desugared library release version to use. This will pull from the archived releases')
   args = parser.parse_args()
   return args
 
@@ -69,7 +77,8 @@ def run(args):
   implementation = None
   version_file = None
   implementation_build_target = None
-  implementation_build_output = None
+  implementation_maven_zip = None
+  release_archive_location = None
   match args.variant:
     case Variant.jdk8:
       artifact = 'desugar_jdk_libs'
@@ -79,7 +88,8 @@ def run(args):
       implementation = utils.DESUGAR_IMPLEMENTATION
       version_file = 'VERSION.txt'
       implementation_build_target = ':maven_release'
-      implementation_build_output = join('bazel-bin', 'desugar_jdk_libs.zip')
+      implementation_maven_zip = 'desugar_jdk_libs.zip'
+      release_archive_location = 'desugar_jdk_libs'
     case Variant.jdk11_legacy:
       artifact = 'desugar_jdk_libs'
       configuration_artifact = 'desugar_jdk_libs_configuration'
@@ -88,7 +98,8 @@ def run(args):
       implementation = utils.DESUGAR_IMPLEMENTATION_JDK11
       version_file = 'VERSION_JDK11_LEGACY.txt'
       implementation_build_target = ':maven_release_jdk11_legacy'
-      implementation_build_output = join('bazel-bin', 'desugar_jdk_libs_jdk11_legacy.zip')
+      implementation_maven_zip = 'desugar_jdk_libs_jdk11_legacy.zip'
+      release_archive_location = 'desugar_jdk_libs'
     case Variant.jdk11_minimal:
       artifact = 'desugar_jdk_libs_minimal'
       configuration_artifact = 'desugar_jdk_libs_configuration_minimal'
@@ -97,7 +108,8 @@ def run(args):
       implementation = utils.DESUGAR_IMPLEMENTATION_JDK11
       version_file = 'VERSION_JDK11_MINIMAL.txt'
       implementation_build_target = ':maven_release_jdk11_minimal'
-      implementation_build_output = join('bazel-bin', 'desugar_jdk_libs_jdk11_minimal.zip')
+      implementation_maven_zip = 'desugar_jdk_libs_jdk11_minimal.zip'
+      release_archive_location = 'desugar_jdk_libs_minimal'
     case Variant.jdk11:
       artifact = 'desugar_jdk_libs'
       configuration_artifact = 'desugar_jdk_libs_configuration'
@@ -106,7 +118,8 @@ def run(args):
       implementation = utils.DESUGAR_IMPLEMENTATION_JDK11
       version_file = 'VERSION_JDK11.txt'
       implementation_build_target = ':maven_release_jdk11'
-      implementation_build_output = join('bazel-bin', 'desugar_jdk_libs_jdk11.zip')
+      implementation_maven_zip = 'desugar_jdk_libs_jdk11.zip'
+      release_archive_location = 'desugar_jdk_libs'
     case Variant.jdk11_nio:
       artifact = 'desugar_jdk_libs_nio'
       configuration_artifact = 'desugar_jdk_libs_configuration_nio'
@@ -115,30 +128,43 @@ def run(args):
       implementation = utils.DESUGAR_IMPLEMENTATION_JDK11
       version_file = 'VERSION_JDK11_NIO.txt'
       implementation_build_target = ':maven_release_jdk11_nio'
-      implementation_build_output = join('bazel-bin', 'desugar_jdk_libs_jdk11_nio.zip')
+      implementation_maven_zip = 'desugar_jdk_libs_jdk11_nio.zip'
+      release_archive_location = 'desugar_jdk_libs_nio'
+  implementation_build_output = join('bazel-bin', implementation_maven_zip)
   gradle.RunGradle([utils.R8])
-  with utils.TempDir(delete=False) as tmp_dir:
-    (name, version) = utils.desugar_configuration_name_and_version(configuration, False)
+  with utils.TempDir() as tmp_dir:
+    (name, configuration_version) = utils.desugar_configuration_name_and_version(configuration, False)
+    if (args.release_version != None and args.release_version != configuration_version):
+      raise Exception(
+          'Configuration version %s is different for specified version %s'
+          % (configuration_version, version))
+    version = configuration_version
+    print("Name: %s" % name)
+    print("Version: %s" % version)
     # Checkout desugar_jdk_libs from GitHub
     use_existing_checkout = args.desugar_jdk_libs_checkout != None
     checkout_dir = (args.desugar_jdk_libs_checkout
                     if use_existing_checkout
                     else join(tmp_dir, 'desugar_jdk_libs'))
-    if (not use_existing_checkout):
-      subprocess.check_call(['git', 'clone', 'https://github.com/google/desugar_jdk_libs.git', checkout_dir])
-    with utils.ChangedWorkingDirectory(checkout_dir):
-      with open(version_file) as version_file:
-        version_file_lines = version_file.readlines()
-        for line in version_file_lines:
-          if not line.startswith('#'):
-            desugar_jdk_libs_version = line.strip()
-            if (version != desugar_jdk_libs_version):
-              raise Exception(
-                "Version mismatch. Configuration has version '"
-                + version
-                + "', and desugar_jdk_libs has version '"
-                + desugar_jdk_libs_version
-                + "'")
+    if (not args.release_version and not use_existing_checkout):
+      subprocess.check_call(
+          ['git', 'clone', 'https://github.com/google/desugar_jdk_libs.git', checkout_dir])
+      if (args.desugar_jdk_libs_revision):
+        subprocess.check_call(
+            ['git', '-C', checkout_dir, 'checkout', args.desugar_jdk_libs_revision])
+      with utils.ChangedWorkingDirectory(checkout_dir):
+        with open(version_file) as version_file:
+          version_file_lines = version_file.readlines()
+          for line in version_file_lines:
+            if not line.startswith('#'):
+              desugar_jdk_libs_version = line.strip()
+              if (version != desugar_jdk_libs_version):
+                raise Exception(
+                  "Version mismatch. Configuration has version '"
+                  + version
+                  + "', and desugar_jdk_libs has version '"
+                  + desugar_jdk_libs_version
+                  + "'")
 
     # Build desugared library configuration.
     print("Building desugared library configuration " + version)
@@ -160,27 +186,36 @@ def run(args):
       '-DpomFile=' + pom_file(unzip_dir, configuration_artifact, version)]
     subprocess.check_call(cmd)
 
-    # Build desugared library.
-    print("Building desugared library " + version)
-    with utils.ChangedWorkingDirectory(checkout_dir):
-      subprocess.check_call([
-          'bazel',
-          '--bazelrc=/dev/null',
-          'build',
-          '--spawn_strategy=local',
-          '--verbose_failures',
-          implementation_build_target])
+    undesugared_if_needed = None
+    if not args.release_version:
+      # Build desugared library.
+      print("Building desugared library " + version)
+      with utils.ChangedWorkingDirectory(checkout_dir):
+        subprocess.check_call([
+            'bazel',
+            '--bazelrc=/dev/null',
+            'build',
+            '--spawn_strategy=local',
+            '--verbose_failures',
+            implementation_build_target])
 
-    # Undesugar desugared library if needed.
-    undesugared_if_needed = join(checkout_dir, implementation_build_output)
-    if (args.variant == Variant.jdk11_minimal
-        or args.variant == Variant.jdk11
-        or args.variant == Variant.jdk11_nio):
-      undesugared_if_needed = join(tmp_dir, 'undesugared.zip')
-      archive_desugar_jdk_libs.Undesugar(
-        str(args.variant),
-        join(checkout_dir, implementation_build_output),
-        version,
+      # Undesugar desugared library if needed.
+      undesugared_if_needed = join(checkout_dir, implementation_build_output)
+      if (args.variant == Variant.jdk11_minimal
+          or args.variant == Variant.jdk11
+          or args.variant == Variant.jdk11_nio):
+        undesugared_if_needed = join(tmp_dir, 'undesugared.zip')
+        archive_desugar_jdk_libs.Undesugar(
+          str(args.variant),
+          join(checkout_dir, implementation_build_output),
+          version,
+          undesugared_if_needed)
+    else:
+      # Download the already built and undesugared library from release archive.
+      undesugared_if_needed = join(tmp_dir, implementation_maven_zip)
+      urllib.request.urlretrieve(
+        ('https://storage.googleapis.com/r8-releases/raw/%s/%s/%s'
+            % (release_archive_location, version, implementation_maven_zip)),
         undesugared_if_needed)
 
     unzip_dir = join(tmp_dir, 'desugar_jdk_libs_unzipped')
@@ -227,6 +262,15 @@ def run(args):
 
 def main():
   args = parse_options()
+  if args.desugar_jdk_libs_checkout and args.release_version:
+    raise Exception(
+        'Options --desugar-jdk-libs-checkout and --release-version are mutually exclusive')
+  if args.desugar_jdk_libs_revision and args.release_version:
+    raise Exception(
+        'Options --desugar-jdk-libs-revision and --release-version are mutually exclusive')
+  if args.desugar_jdk_libs_checkout and args.desugar_jdk_libs_revision:
+    raise Exception(
+        'Options --desugar-jdk-libs-checkout and --desugar-jdk-libs-revision are mutually exclusive')
   if args.clear_repo:
     shutil.rmtree(args.repo_root, ignore_errors=True)
   utils.makedirs_if_needed(args.repo_root)
