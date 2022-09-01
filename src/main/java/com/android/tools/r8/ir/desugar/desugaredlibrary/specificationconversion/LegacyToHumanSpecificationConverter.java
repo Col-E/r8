@@ -67,7 +67,7 @@ public class LegacyToHumanSpecificationConverter {
     Map<ApiLevelRange, HumanRewritingFlags> libraryFlags =
         convertRewritingFlagMap(legacySpec.getLibraryFlags(), app, origin);
 
-    legacyLibraryFlagHacks(libraryFlags, app, origin);
+    legacyLibraryFlagHacks(humanTopLevelFlags.getIdentifier(), libraryFlags, app, origin);
     reportWarnings(app.options.reporter);
 
     MultiAPILevelHumanDesugaredLibrarySpecification humanSpec =
@@ -94,12 +94,12 @@ public class LegacyToHumanSpecificationConverter {
     Origin origin = Origin.unknown();
     HumanRewritingFlags humanRewritingFlags =
         convertRewritingFlags(legacySpec.getRewritingFlags(), app, origin);
-    if (app.options.getMinApiLevel().isLessThanOrEqualTo(LEGACY_HACK_LEVEL)
-        && legacySpec.isLibraryCompilation()) {
+    if (legacySpec.isLibraryCompilation()) {
       timing.begin("Legacy hacks");
       HumanRewritingFlags.Builder builder =
           humanRewritingFlags.newBuilder(app.options.reporter, origin);
-      legacyLibraryFlagHacks(app.dexItemFactory(), builder);
+      legacyLibraryFlagHacks(
+          app.dexItemFactory(), app.options.getMinApiLevel(), legacySpec.getIdentifier(), builder);
       humanRewritingFlags = builder.build();
       timing.end();
     }
@@ -128,7 +128,10 @@ public class LegacyToHumanSpecificationConverter {
   }
 
   private void legacyLibraryFlagHacks(
-      Map<ApiLevelRange, HumanRewritingFlags> libraryFlags, DexApplication app, Origin origin) {
+      String identifier,
+      Map<ApiLevelRange, HumanRewritingFlags> libraryFlags,
+      DexApplication app,
+      Origin origin) {
     ApiLevelRange range = new ApiLevelRange(LEGACY_HACK_LEVEL.getLevel());
     HumanRewritingFlags humanRewritingFlags = libraryFlags.get(range);
     if (humanRewritingFlags == null) {
@@ -137,39 +140,52 @@ public class LegacyToHumanSpecificationConverter {
     }
     HumanRewritingFlags.Builder builder =
         humanRewritingFlags.newBuilder(app.options.reporter, origin);
-    legacyLibraryFlagHacks(app.dexItemFactory(), builder);
+    legacyLibraryFlagHacks(app.dexItemFactory(), LEGACY_HACK_LEVEL, identifier, builder);
     libraryFlags.put(range, builder.build());
   }
 
   private void legacyLibraryFlagHacks(
-      DexItemFactory itemFactory, HumanRewritingFlags.Builder builder) {
+      DexItemFactory itemFactory,
+      AndroidApiLevel apiLevel,
+      String identifier,
+      HumanRewritingFlags.Builder builder) {
 
-    // TODO(b/177977763): This is only a workaround rewriting invokes of j.u.Arrays.deepEquals0
-    // to j.u.DesugarArrays.deepEquals0.
-    DexString name = itemFactory.createString("deepEquals0");
-    DexProto proto =
-        itemFactory.createProto(
-            itemFactory.booleanType, itemFactory.objectType, itemFactory.objectType);
-    DexMethod source =
-        itemFactory.createMethod(itemFactory.createType(itemFactory.arraysDescriptor), proto, name);
-    DexType target = itemFactory.createType("Ljava/util/DesugarArrays;");
-    builder.retargetMethod(source, target);
+    if (apiLevel.isLessThanOrEqualTo(LEGACY_HACK_LEVEL)) {
+      // TODO(b/177977763): This is only a workaround rewriting invokes of j.u.Arrays.deepEquals0
+      // to j.u.DesugarArrays.deepEquals0.
+      DexString name = itemFactory.createString("deepEquals0");
+      DexProto proto =
+          itemFactory.createProto(
+              itemFactory.booleanType, itemFactory.objectType, itemFactory.objectType);
+      DexMethod source =
+          itemFactory.createMethod(
+              itemFactory.createType(itemFactory.arraysDescriptor), proto, name);
+      DexType target = itemFactory.createType("Ljava/util/DesugarArrays;");
+      builder.retargetMethod(source, target);
 
-    builder.amendLibraryMethod(
-        source,
-        MethodAccessFlags.fromSharedAccessFlags(
-            Constants.ACC_PRIVATE | Constants.ACC_STATIC, false));
+      builder.amendLibraryMethod(
+          source,
+          MethodAccessFlags.fromSharedAccessFlags(
+              Constants.ACC_PRIVATE | Constants.ACC_STATIC, false));
 
-    // TODO(b/181629049): This is only a workaround rewriting invokes of
-    //  j.u.TimeZone.getTimeZone taking a java.time.ZoneId.
-    name = itemFactory.createString("getTimeZone");
-    proto =
-        itemFactory.createProto(
-            itemFactory.createType("Ljava/util/TimeZone;"),
-            itemFactory.createType("Ljava/time/ZoneId;"));
-    source = itemFactory.createMethod(itemFactory.createType("Ljava/util/TimeZone;"), proto, name);
-    target = itemFactory.createType("Ljava/util/DesugarTimeZone;");
-    builder.retargetMethod(source, target);
+      // TODO(b/181629049): This is only a workaround rewriting invokes of
+      //  j.u.TimeZone.getTimeZone taking a java.time.ZoneId.
+      name = itemFactory.createString("getTimeZone");
+      proto =
+          itemFactory.createProto(
+              itemFactory.createType("Ljava/util/TimeZone;"),
+              itemFactory.createType("Ljava/time/ZoneId;"));
+      source =
+          itemFactory.createMethod(itemFactory.createType("Ljava/util/TimeZone;"), proto, name);
+      target = itemFactory.createType("Ljava/util/DesugarTimeZone;");
+      builder.retargetMethod(source, target);
+    }
+    // Required by
+    // https://github.com/google/desugar_jdk_libs/commit/485071cd09a3691549d065ba9e323d07edccf085.
+    if (identifier.contains(":1.2")) {
+      builder.putRewriteDerivedPrefix(
+          "sun.misc.Desugar", "jdk.internal.misc.", "j$.sun.misc.Desugar");
+    }
   }
 
   private Map<ApiLevelRange, HumanRewritingFlags> convertRewritingFlagMap(

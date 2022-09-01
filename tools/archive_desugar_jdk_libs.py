@@ -75,6 +75,9 @@ MAVEN_RELEASE_ZIP = {
   'jdk11_nio': BASE_LIBRARY_NAME + '_jdk11_nio.zip'
 }
 
+DESUGAR_JDK_LIBS_HASH_FILE = os.path.join(
+    defines.THIRD_PARTY, 'openjdk', 'desugar_jdk_libs_11', 'desugar_jdk_libs_hash')
+
 
 def ParseOptions(argv):
   result = optparse.OptionParser()
@@ -131,11 +134,11 @@ def Upload(options, file_name, storage_path, destination, is_main):
     print('File available at: %s' %
         destination.replace('gs://', 'https://storage.googleapis.com/', 1))
 
-def CloneDesugaredLibrary(github_account, checkout_dir):
+def CloneDesugaredLibrary(github_account, checkout_dir, desugar_jdk_libs_hash):
   git_utils.GitClone(
     'https://github.com/'
         + github_account + '/' + GITHUB_REPRO, checkout_dir)
-  git_utils.GitCheckout('292df0eea1c2c1d6b8fe834c7b347ef0b0fdc11b', checkout_dir)
+  git_utils.GitCheckout(desugar_jdk_libs_hash, checkout_dir)
 
 def GetJavaEnv():
   java_env = dict(os.environ, JAVA_HOME = jdk.GetJdk11Home())
@@ -251,10 +254,13 @@ def MustBeExistingDirectory(path):
     raise Exception(path + ' does not exist or is not a directory')
 
 def BuildAndUpload(options, variant):
+  desugar_jdk_libs_hash = ''
+  with open(DESUGAR_JDK_LIBS_HASH_FILE, 'r') as input_hash:
+    desugar_jdk_libs_hash = input_hash.readline()
   if options.build_only:
     with utils.TempDir() as checkout_dir:
-      CloneDesugaredLibrary(options.github_account, checkout_dir)
-      (library_jar, maven_zip) = BuildDesugaredLibrary(checkout_dir, variant)
+      CloneDesugaredLibrary(options.github_account, checkout_dir, desugar_jdk_libs_hash)
+      (library_jar, maven_zip) = BuildDesugaredLibrary(checkout_dir, variant, desugar_jdk_libs_hash)
       shutil.copyfile(
         library_jar,
         os.path.join(options.build_only, os.path.basename(library_jar)))
@@ -267,7 +273,7 @@ def BuildAndUpload(options, variant):
   is_main = False
 
   with utils.TempDir() as checkout_dir:
-    CloneDesugaredLibrary(options.github_account, checkout_dir)
+    CloneDesugaredLibrary(options.github_account, checkout_dir, desugar_jdk_libs_hash)
     version = GetVersion(os.path.join(checkout_dir, VERSION_MAP[variant]))
 
     destination = archive.GetVersionDestination(
@@ -318,6 +324,7 @@ def Main(argv):
   utils.DownloadFromGoogleCloudStorage(utils.BAZEL_SHA_FILE)
   utils.DownloadFromGoogleCloudStorage(utils.JAVA8_SHA_FILE)
   utils.DownloadFromGoogleCloudStorage(utils.JAVA11_SHA_FILE)
+  utils.DownloadFromGoogleCloudStorage(utils.DESUGAR_JDK_LIBS_11_SHA_FILE)
 
   for v in options.variant:
     BuildAndUpload(options, v)
