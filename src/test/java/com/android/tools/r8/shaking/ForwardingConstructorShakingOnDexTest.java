@@ -14,6 +14,7 @@ import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
@@ -39,6 +40,8 @@ public class ForwardingConstructorShakingOnDexTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
+        .addOptionsModification(
+            options -> options.testing.enableRedundantConstructorBridgeRemoval = true)
         .enableConstantArgumentAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
@@ -50,19 +53,25 @@ public class ForwardingConstructorShakingOnDexTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
+    boolean canHaveNonReboundConstructorInvoke =
+        parameters.isDexRuntime()
+            && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L);
+
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
     assertEquals(2, aClassSubject.allMethods(FoundMethodSubject::isInstanceInitializer).size());
 
     ClassSubject bClassSubject = inspector.clazz(B.class);
     assertThat(bClassSubject, isPresent());
-    // TODO(b/173751869): Should be 0 when compiling for dex and API is above Dalvik.
-    assertEquals(2, bClassSubject.allMethods(FoundMethodSubject::isInstanceInitializer).size());
+    assertEquals(
+        canHaveNonReboundConstructorInvoke ? 0 : 2,
+        bClassSubject.allMethods(FoundMethodSubject::isInstanceInitializer).size());
 
     ClassSubject cClassSubject = inspector.clazz(C.class);
     assertThat(cClassSubject, isPresent());
-    // TODO(b/173751869): Should be 0 when compiling for dex and API is above Dalvik.
-    assertEquals(2, cClassSubject.allMethods(FoundMethodSubject::isInstanceInitializer).size());
+    assertEquals(
+        canHaveNonReboundConstructorInvoke ? 0 : 2,
+        cClassSubject.allMethods(FoundMethodSubject::isInstanceInitializer).size());
   }
 
   static class Main {

@@ -347,7 +347,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean readDebugSetFileEvent = false;
   public boolean disableL8AnnotationRemoval =
       System.getProperty("com.android.tools.r8.disableL8AnnotationRemoval") != null;
-  public boolean enableVisibilityBridgeRemoval = true;
 
   public int callGraphLikelySpuriousCallEdgeThreshold = 50;
 
@@ -1920,6 +1919,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean enableDeadSwitchCaseElimination = true;
     public boolean enableInvokeSuperToInvokeVirtualRewriting = true;
     public boolean enableMultiANewArrayDesugaringForClassFiles = false;
+    public boolean enableRedundantConstructorBridgeRemoval = false;
     public boolean enableSwitchToIfRewriting = true;
     public boolean enableEnumUnboxingDebugLogs =
         System.getProperty("com.android.tools.r8.enableEnumUnboxingDebugLogs") != null;
@@ -2701,5 +2701,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // work around a DALVIK bug. See b/36951668.
   public boolean canHaveDalvikEmptyAnnotationSetBug() {
     return canHaveBugPresentUntil(AndroidApiLevel.J_MR1);
+  }
+
+  public boolean canHaveNonReboundConstructorInvoke() {
+    return isGeneratingDex() && minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.L);
   }
 }

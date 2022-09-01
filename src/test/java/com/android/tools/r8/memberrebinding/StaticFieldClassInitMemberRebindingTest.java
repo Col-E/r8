@@ -47,7 +47,6 @@ public class StaticFieldClassInitMemberRebindingTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
-        .addOptionsModification(options -> options.enableVisibilityBridgeRemoval = false)
         .run(parameters.getRuntime(), Main.class)
         // TODO(b/220668540): R8 should not change class loading semantics.
         .assertSuccessWithOutputLines(R8_EXPECTED);

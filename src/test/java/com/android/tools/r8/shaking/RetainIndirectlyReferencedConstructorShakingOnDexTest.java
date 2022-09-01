@@ -12,6 +12,7 @@ import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
@@ -37,6 +38,8 @@ public class RetainIndirectlyReferencedConstructorShakingOnDexTest extends TestB
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
+        .addOptionsModification(
+            options -> options.testing.enableRedundantConstructorBridgeRemoval = true)
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -46,6 +49,10 @@ public class RetainIndirectlyReferencedConstructorShakingOnDexTest extends TestB
   }
 
   private void inspect(CodeInspector inspector) {
+    boolean canHaveNonReboundConstructorInvoke =
+        parameters.isDexRuntime()
+            && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L);
+
     // A.<init> should be retained despite the fact that there is no invoke-direct in the program
     // that directly targets A.<init> when B.<init> is removed.
     ClassSubject aClassSubject = inspector.clazz(A.class);
@@ -54,8 +61,9 @@ public class RetainIndirectlyReferencedConstructorShakingOnDexTest extends TestB
 
     ClassSubject bClassSubject = inspector.clazz(B.class);
     assertThat(bClassSubject, isPresent());
-    // TODO(b/173751869): Should be 0 when compiling for dex and API is above Dalvik.
-    assertEquals(1, bClassSubject.allMethods(FoundMethodSubject::isInstanceInitializer).size());
+    assertEquals(
+        canHaveNonReboundConstructorInvoke ? 0 : 1,
+        bClassSubject.allMethods(FoundMethodSubject::isInstanceInitializer).size());
   }
 
   static class Main {

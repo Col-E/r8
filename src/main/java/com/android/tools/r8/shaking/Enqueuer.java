@@ -2508,39 +2508,41 @@ public class Enqueuer {
 
   private void handleInvokeOfDirectTarget(
       DexMethod reference, ProgramDefinition context, KeepReason reason) {
-    DexType holder = reference.holder;
-    DexProgramClass clazz = getProgramClassOrNull(holder, context);
-    if (clazz == null) {
-      recordMethodReference(reference, context);
-      return;
-    }
-    // TODO(zerny): Is it ok that we lookup in both the direct and virtual pool here?
-    DexEncodedMethod encodedMethod = clazz.lookupMethod(reference);
-    if (encodedMethod == null) {
-      failedMethodResolutionTargets.add(reference);
-      return;
-    }
+    resolveMethod(reference, context, reason)
+        .forEachMethodResolutionResult(
+            resolutionResult -> {
+              if (resolutionResult.isFailedResolution()) {
+                failedMethodResolutionTargets.add(reference);
+                return;
+              }
 
-    ProgramMethod method = new ProgramMethod(clazz, encodedMethod);
+              if (!resolutionResult.isSingleResolution()
+                  || !resolutionResult.getResolvedHolder().isProgramClass()) {
+                return;
+              }
 
-    // We have to mark the resolved method as targeted even if it cannot actually be invoked
-    // to make sure the invocation will keep failing in the appropriate way.
-    markMethodAsTargeted(method, reason);
+              ProgramMethod resolvedMethod =
+                  resolutionResult.asSingleResolution().getResolvedProgramMethod();
 
-    // Only mark methods for which invocation will succeed at runtime live.
-    if (encodedMethod.isStatic()) {
-      return;
-    }
+              // We have to mark the resolved method as targeted even if it cannot actually be
+              // invoked to make sure the invocation will keep failing in the appropriate way.
+              markMethodAsTargeted(resolvedMethod, reason);
 
-    markDirectStaticOrConstructorMethodAsLive(method, reason);
+              // Only mark methods for which invocation will succeed at runtime live.
+              if (resolvedMethod.getAccessFlags().isStatic()) {
+                return;
+              }
 
-    // It is valid to have an invoke-direct instruction in a default interface method that
-    // targets another default method in the same interface (see testInvokeSpecialToDefault-
-    // Method). In a class, that would lead to a verification error.
-    if (encodedMethod.isNonPrivateVirtualMethod()
-        && virtualMethodsTargetedByInvokeDirect.add(encodedMethod.getReference())) {
-      workList.enqueueMarkMethodLiveAction(method, context, reason);
-    }
+              markDirectStaticOrConstructorMethodAsLive(resolvedMethod, reason);
+
+              // It is valid to have an invoke-direct instruction in a default interface method that
+              // targets another default method in the same interface. In a class, that would lead
+              // to a verification error. See also testInvokeSpecialToDefaultMethod.
+              if (resolvedMethod.getDefinition().isNonPrivateVirtualMethod()
+                  && virtualMethodsTargetedByInvokeDirect.add(resolvedMethod.getReference())) {
+                workList.enqueueMarkMethodLiveAction(resolvedMethod, context, reason);
+              }
+            });
   }
 
   private void ensureFromLibraryOrThrow(DexType type, DexLibraryClass context) {

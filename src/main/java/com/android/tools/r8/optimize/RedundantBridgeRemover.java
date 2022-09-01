@@ -11,11 +11,11 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
-import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.optimize.InvokeSingleTargetExtractor.InvokeKind;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.google.common.collect.Sets;
-import java.util.Set;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -28,15 +28,16 @@ public class RedundantBridgeRemover {
     this.appView = appView;
   }
 
-  private boolean isUnneededVisibilityBridge(ProgramMethod method) {
+  private boolean isRedundantBridge(ProgramMethod method) {
     // Clean-up the predicate check.
     if (appView.appInfo().isPinned(method.getReference())) {
       return false;
     }
     DexEncodedMethod definition = method.getDefinition();
-    // TODO(b/198133259): Extend to definitions that are not defined as bridges.
     // TODO(b/197490164): Remove if method is abstract.
-    if (!definition.isBridge() || definition.isAbstract()) {
+    BridgeInfo bridgeInfo = definition.getOptimizationInfo().getBridgeInfo();
+    boolean isBridge = definition.isBridge() || bridgeInfo != null;
+    if (!isBridge || definition.isAbstract()) {
       return false;
     }
     InvokeSingleTargetExtractor targetExtractor = new InvokeSingleTargetExtractor(appView, method);
@@ -47,7 +48,6 @@ public class RedundantBridgeRemover {
     if (target == null || !target.match(method.getReference())) {
       return false;
     }
-    assert !definition.isPrivate() && !definition.isInstanceInitializer();
     if (!isTargetingSuperMethod(method, targetExtractor.getKind(), target)) {
       return false;
     }
@@ -57,8 +57,21 @@ public class RedundantBridgeRemover {
             .appInfo()
             .unsafeResolveMethodDueToDexFormatLegacy(target)
             .getResolvedProgramMethod();
-    if (targetMethod == null || !targetMethod.getAccessFlags().isPublic()) {
+    if (targetMethod == null) {
       return false;
+    }
+    if (method.getAccessFlags().isPublic()) {
+      if (!targetMethod.getAccessFlags().isPublic()) {
+        return false;
+      }
+    } else {
+      if (targetMethod.getAccessFlags().isProtected()
+          && !targetMethod.getHolderType().isSamePackage(method.getHolderType())) {
+        return false;
+      }
+      if (targetMethod.getAccessFlags().isPrivate()) {
+        return false;
+      }
     }
     if (definition.isStatic()
         && method.getHolder().hasClassInitializer()
@@ -67,13 +80,6 @@ public class RedundantBridgeRemover {
             .classInitializationMayHaveSideEffectsInContext(appView, targetMethod)) {
       return false;
     }
-    if (Log.ENABLED) {
-      Log.info(
-          getClass(),
-          "Removing visibility forwarding %s -> %s",
-          method,
-          targetMethod.getReference());
-    }
     return true;
   }
 
@@ -81,6 +87,14 @@ public class RedundantBridgeRemover {
     if (kind == InvokeKind.ILLEGAL) {
       return false;
     }
+    if (kind == InvokeKind.DIRECT) {
+      return method.getDefinition().isInstanceInitializer()
+          && appView.options().canHaveNonReboundConstructorInvoke()
+          && appView.testing().enableRedundantConstructorBridgeRemoval
+          && appView.appInfo().isStrictSubtypeOf(method.getHolderType(), target.getHolderType());
+    }
+    assert !method.getAccessFlags().isPrivate();
+    assert !method.getDefinition().isInstanceInitializer();
     if (kind == InvokeKind.SUPER) {
       return true;
     }
@@ -92,33 +106,42 @@ public class RedundantBridgeRemover {
   }
 
   public void run(ExecutorService executorService) throws ExecutionException {
-    // Collect all visibility bridges to remove.
-    if (!appView.options().enableVisibilityBridgeRemoval) {
-      return;
-    }
-    ConcurrentHashMap<DexProgramClass, Set<DexEncodedMethod>> visibilityBridgesToRemove =
-        new ConcurrentHashMap<>();
+    // Collect all redundant bridges to remove.
+    Map<DexProgramClass, ProgramMethodSet> bridgesToRemove =
+        computeBridgesToRemove(executorService);
+    pruneApp(bridgesToRemove, executorService);
+  }
+
+  private Map<DexProgramClass, ProgramMethodSet> computeBridgesToRemove(
+      ExecutorService executorService) throws ExecutionException {
+    Map<DexProgramClass, ProgramMethodSet> bridgesToRemove = new ConcurrentHashMap<>();
     processItems(
         appView.appInfo().classes(),
         clazz -> {
-          Set<DexEncodedMethod> bridgesToRemoveForClass = Sets.newIdentityHashSet();
+          ProgramMethodSet bridgesToRemoveForClass = ProgramMethodSet.create();
           clazz.forEachProgramMethod(
               method -> {
-                if (isUnneededVisibilityBridge(method)) {
-                  bridgesToRemoveForClass.add(method.getDefinition());
+                if (isRedundantBridge(method)) {
+                  bridgesToRemoveForClass.add(method);
                 }
               });
           if (!bridgesToRemoveForClass.isEmpty()) {
-            visibilityBridgesToRemove.put(clazz, bridgesToRemoveForClass);
+            bridgesToRemove.put(clazz, bridgesToRemoveForClass);
           }
         },
         executorService);
-    // Remove all bridges found.
-    PrunedItems.Builder builder = PrunedItems.builder();
-    visibilityBridgesToRemove.forEach(
+    return bridgesToRemove;
+  }
+
+  private void pruneApp(
+      Map<DexProgramClass, ProgramMethodSet> bridgesToRemove, ExecutorService executorService)
+      throws ExecutionException {
+    PrunedItems.Builder prunedItemsBuilder = PrunedItems.builder().setPrunedApp(appView.app());
+    bridgesToRemove.forEach(
         (clazz, methods) -> {
-          clazz.getMethodCollection().removeMethods(methods);
-          methods.forEach(method -> builder.addRemovedMethod(method.getReference()));
+          clazz.getMethodCollection().removeMethods(methods.toDefinitionSet());
+          methods.forEach(method -> prunedItemsBuilder.addRemovedMethod(method.getReference()));
         });
+    appView.pruneItems(prunedItemsBuilder.build(), executorService);
   }
 }

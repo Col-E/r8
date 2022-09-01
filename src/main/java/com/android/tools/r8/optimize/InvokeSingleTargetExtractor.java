@@ -55,7 +55,7 @@ public class InvokeSingleTargetExtractor extends UseRegistry<ProgramMethod> {
 
   @Override
   public void registerInvokeDirect(DexMethod method) {
-    invalid();
+    setTarget(method, InvokeKind.DIRECT);
   }
 
   @Override
@@ -109,6 +109,7 @@ public class InvokeSingleTargetExtractor extends UseRegistry<ProgramMethod> {
   }
 
   public enum InvokeKind {
+    DIRECT,
     VIRTUAL,
     STATIC,
     SUPER,
