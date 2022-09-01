@@ -19,7 +19,6 @@ import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.startup.instrumentation.StartupInstrumentationOptions;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.profile.art.AlwaysTrueArtProfileRulePredicate;
 import com.android.tools.r8.profile.art.ArtProfileBuilder;
 import com.android.tools.r8.profile.art.ArtProfileBuilderUtils;
 import com.android.tools.r8.profile.art.ArtProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
@@ -86,12 +85,12 @@ public class StartupTestingUtils {
           public StartupProfileBuilder addHumanReadableArtProfile(
               TextInputStream textInputStream,
               Consumer<HumanReadableArtProfileParserBuilder> parserBuilderConsumer) {
+            // The ART profile parser never calls addHumanReadableArtProfile().
             throw new Unreachable();
           }
         };
     return ArtProfileBuilderUtils.createBuilderForArtProfileToStartupProfileConversion(
         startupProfileBuilder,
-        new AlwaysTrueArtProfileRulePredicate(),
         syntheticToSyntheticContextGeneralization);
   }
 

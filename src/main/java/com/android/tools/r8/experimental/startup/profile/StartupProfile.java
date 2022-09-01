@@ -7,10 +7,8 @@ package com.android.tools.r8.experimental.startup.profile;
 import com.android.tools.r8.TextInputStream;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.profile.art.AlwaysTrueArtProfileRulePredicate;
 import com.android.tools.r8.profile.art.ArtProfileBuilderUtils;
 import com.android.tools.r8.profile.art.ArtProfileBuilderUtils.SyntheticToSyntheticContextGeneralization;
-import com.android.tools.r8.profile.art.ArtProfileRulePredicate;
 import com.android.tools.r8.profile.art.HumanReadableArtProfileParser;
 import com.android.tools.r8.profile.art.HumanReadableArtProfileParserBuilder;
 import com.android.tools.r8.startup.StartupClassBuilder;
@@ -19,7 +17,6 @@ import com.android.tools.r8.startup.StartupProfileBuilder;
 import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.startup.SyntheticStartupMethodBuilder;
 import com.android.tools.r8.startup.diagnostic.MissingStartupProfileItemsDiagnostic;
-import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import java.util.ArrayList;
@@ -166,25 +163,14 @@ public class StartupProfile {
     public StartupProfileBuilder addHumanReadableArtProfile(
         TextInputStream textInputStream,
         Consumer<HumanReadableArtProfileParserBuilder> parserBuilderConsumer) {
-      Box<ArtProfileRulePredicate> rulePredicateBox =
-          new Box<>(new AlwaysTrueArtProfileRulePredicate());
-      parserBuilderConsumer.accept(
-          new HumanReadableArtProfileParserBuilder() {
-            @Override
-            public HumanReadableArtProfileParserBuilder setRulePredicate(
-                ArtProfileRulePredicate rulePredicate) {
-              rulePredicateBox.set(rulePredicate);
-              return this;
-            }
-          });
-
-      HumanReadableArtProfileParser parser =
+      HumanReadableArtProfileParser.Builder parserBuilder =
           HumanReadableArtProfileParser.builder()
               .setReporter(reporter)
               .setProfileBuilder(
                   ArtProfileBuilderUtils.createBuilderForArtProfileToStartupProfileConversion(
-                      this, rulePredicateBox.get(), syntheticToSyntheticContextGeneralization))
-              .build();
+                      this, syntheticToSyntheticContextGeneralization));
+      parserBuilderConsumer.accept(parserBuilder);
+      HumanReadableArtProfileParser parser = parserBuilder.build();
       parser.parse(textInputStream, startupProfileProvider.getOrigin());
       return this;
     }

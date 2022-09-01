@@ -137,12 +137,16 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private final ComputedApiLevel computedMinApiLevel;
 
   private AppView(
-      T appInfo, WholeProgramOptimizations wholeProgramOptimizations, TypeRewriter mapper) {
-    this(appInfo, wholeProgramOptimizations, mapper, Timing.empty());
+      T appInfo,
+      ArtProfileCollection artProfileCollection,
+      WholeProgramOptimizations wholeProgramOptimizations,
+      TypeRewriter mapper) {
+    this(appInfo, artProfileCollection, wholeProgramOptimizations, mapper, Timing.empty());
   }
 
   private AppView(
       T appInfo,
+      ArtProfileCollection artProfileCollection,
       WholeProgramOptimizations wholeProgramOptimizations,
       TypeRewriter mapper,
       Timing timing) {
@@ -151,7 +155,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     this.context =
         timing.time(
             "Compilation context", () -> CompilationContext.createInitialContext(options()));
-    this.artProfileCollection = ArtProfileCollection.createInitialArtProfileCollection(options());
+    this.artProfileCollection = artProfileCollection;
     this.dontWarnConfiguration =
         timing.time(
             "Dont warn config",
@@ -194,12 +198,29 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public static <T extends AppInfo> AppView<T> createForD8(T appInfo) {
-    return new AppView<>(appInfo, WholeProgramOptimizations.OFF, defaultTypeRewriter(appInfo));
+    return new AppView<>(
+        appInfo,
+        ArtProfileCollection.createInitialArtProfileCollection(appInfo.options()),
+        WholeProgramOptimizations.OFF,
+        defaultTypeRewriter(appInfo));
+  }
+
+  public static <T extends AppInfo> AppView<T> createForSimulatingD8InR8(T appInfo) {
+    return new AppView<>(
+        appInfo,
+        ArtProfileCollection.empty(),
+        WholeProgramOptimizations.OFF,
+        defaultTypeRewriter(appInfo));
   }
 
   public static <T extends AppInfo> AppView<T> createForD8(
       T appInfo, TypeRewriter mapper, Timing timing) {
-    return new AppView<>(appInfo, WholeProgramOptimizations.OFF, mapper, timing);
+    return new AppView<>(
+        appInfo,
+        ArtProfileCollection.createInitialArtProfileCollection(appInfo.options()),
+        WholeProgramOptimizations.OFF,
+        mapper,
+        timing);
   }
 
   public static AppView<AppInfoWithClassHierarchy> createForR8(DexApplication application) {
@@ -218,20 +239,36 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
             mainDexInfo,
             GlobalSyntheticsStrategy.forSingleOutputMode(),
             startupOrder);
-    return new AppView<>(appInfo, WholeProgramOptimizations.ON, defaultTypeRewriter(appInfo));
+    return new AppView<>(
+        appInfo,
+        ArtProfileCollection.createInitialArtProfileCollection(application.options),
+        WholeProgramOptimizations.ON,
+        defaultTypeRewriter(appInfo));
   }
 
   public static <T extends AppInfo> AppView<T> createForL8(T appInfo, TypeRewriter mapper) {
-    return new AppView<>(appInfo, WholeProgramOptimizations.OFF, mapper);
+    return new AppView<>(
+        appInfo,
+        ArtProfileCollection.createInitialArtProfileCollection(appInfo.options()),
+        WholeProgramOptimizations.OFF,
+        mapper);
   }
 
   public static <T extends AppInfo> AppView<T> createForRelocator(T appInfo) {
-    return new AppView<>(appInfo, WholeProgramOptimizations.OFF, defaultTypeRewriter(appInfo));
+    return new AppView<>(
+        appInfo,
+        ArtProfileCollection.empty(),
+        WholeProgramOptimizations.OFF,
+        defaultTypeRewriter(appInfo));
   }
 
   public static AppView<AppInfoWithClassHierarchy> createForTracer(
       AppInfoWithClassHierarchy appInfo) {
-    return new AppView<>(appInfo, WholeProgramOptimizations.ON, defaultTypeRewriter(appInfo));
+    return new AppView<>(
+        appInfo,
+        ArtProfileCollection.empty(),
+        WholeProgramOptimizations.ON,
+        defaultTypeRewriter(appInfo));
   }
 
   public AbstractValueFactory abstractValueFactory() {

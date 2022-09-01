@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.profile.art;
 
+import com.android.tools.r8.TextInputStream;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.GraphLens;
@@ -67,6 +68,20 @@ public class PassthroughArtProfileCollection extends ArtProfileCollection {
                 methodRuleBuilderConsumer.accept(methodRule);
                 ruleConsumer.acceptMethodRule(
                     methodRule.getMethodReference(), methodRule.getMethodRuleInfo());
+                return this;
+              }
+
+              @Override
+              public ArtProfileBuilder addHumanReadableArtProfile(
+                  TextInputStream textInputStream,
+                  Consumer<HumanReadableArtProfileParserBuilder> parserBuilderConsumer) {
+                HumanReadableArtProfileParser.Builder parserBuilder =
+                    HumanReadableArtProfileParser.builder()
+                        .setReporter(appView.reporter())
+                        .setProfileBuilder(this);
+                parserBuilderConsumer.accept(parserBuilder);
+                HumanReadableArtProfileParser parser = parserBuilder.build();
+                parser.parse(textInputStream, artProfileProvider.getOrigin());
                 return this;
               }
             });

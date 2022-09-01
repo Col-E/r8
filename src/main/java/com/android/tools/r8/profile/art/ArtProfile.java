@@ -6,6 +6,7 @@ package com.android.tools.r8.profile.art;
 
 import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
+import com.android.tools.r8.TextInputStream;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
@@ -13,6 +14,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -32,8 +34,8 @@ public class ArtProfile {
     this.rules = rules;
   }
 
-  public static Builder builder(DexItemFactory dexItemFactory) {
-    return new Builder(dexItemFactory);
+  public static Builder builder(ArtProfileProvider artProfileProvider, InternalOptions options) {
+    return new Builder(artProfileProvider, options);
   }
 
   public ArtProfile rewrittenWithLens(GraphLens lens) {
@@ -136,11 +138,15 @@ public class ArtProfile {
 
   public static class Builder implements ArtProfileBuilder {
 
+    private final ArtProfileProvider artProfileProvider;
     private final DexItemFactory dexItemFactory;
+    private Reporter reporter;
     private final List<ArtProfileRule> rules = new ArrayList<>();
 
-    Builder(DexItemFactory dexItemFactory) {
-      this.dexItemFactory = dexItemFactory;
+    Builder(ArtProfileProvider artProfileProvider, InternalOptions options) {
+      this.artProfileProvider = artProfileProvider;
+      this.dexItemFactory = options.dexItemFactory();
+      this.reporter = reporter;
     }
 
     @Override
@@ -158,6 +164,18 @@ public class ArtProfile {
       ArtProfileMethodRule.Builder methodRuleBuilder = ArtProfileMethodRule.builder(dexItemFactory);
       methodRuleBuilderConsumer.accept(methodRuleBuilder);
       rules.add(methodRuleBuilder.build());
+      return this;
+    }
+
+    @Override
+    public ArtProfileBuilder addHumanReadableArtProfile(
+        TextInputStream textInputStream,
+        Consumer<HumanReadableArtProfileParserBuilder> parserBuilderConsumer) {
+      HumanReadableArtProfileParser.Builder parserBuilder =
+          HumanReadableArtProfileParser.builder().setReporter(reporter).setProfileBuilder(this);
+      parserBuilderConsumer.accept(parserBuilder);
+      HumanReadableArtProfileParser parser = parserBuilder.build();
+      parser.parse(textInputStream, artProfileProvider.getOrigin());
       return this;
     }
 

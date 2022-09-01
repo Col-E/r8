@@ -13,6 +13,7 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TextInputStream;
 import com.android.tools.r8.compilerapi.CompilerApiTest;
 import com.android.tools.r8.compilerapi.CompilerApiTestRunner;
 import com.android.tools.r8.compilerapi.artprofiles.ArtProfilesForRewritingApiTest.ApiTest.ArtProfileConsumerForTesting;
@@ -27,9 +28,14 @@ import com.android.tools.r8.profile.art.ArtProfileRuleConsumer;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.utils.ThrowingConsumer;
-import com.google.common.collect.Lists;
+import com.android.tools.r8.utils.ThrowingBiConsumer;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.junit.Test;
@@ -59,49 +65,67 @@ public class ArtProfilesForRewritingApiTest extends CompilerApiTestRunner {
     runTest(test::runR8);
   }
 
-  private void runTest(ThrowingConsumer<ArtProfileConsumerForTesting, Exception> testRunner)
+  private void runTest(
+      ThrowingBiConsumer<ArtProfileConsumerForTesting, ArtProfileConsumerForTesting, Exception>
+          testRunner)
       throws Exception {
-    ArtProfileConsumerForTesting artProfileConsumer = new ArtProfileConsumerForTesting();
-    testRunner.accept(artProfileConsumer);
-    assertTrue(artProfileConsumer.isFinished());
-    assertEquals(
-        Lists.newArrayList(
-            "Lcom/android/tools/r8/compilerapi/mockdata/MockClass;",
-            "PLcom/android/tools/r8/compilerapi/mockdata/MockClass;-><init>()V",
-            "HSPLcom/android/tools/r8/compilerapi/mockdata/MockClass;->main([Ljava/lang/String;)V"),
-        artProfileConsumer.getResidualArtProfileRules());
+    ArtProfileConsumerForTesting apiArtProfileConsumer = new ArtProfileConsumerForTesting();
+    ArtProfileConsumerForTesting textualArtProfileConsumer = new ArtProfileConsumerForTesting();
+    testRunner.accept(apiArtProfileConsumer, textualArtProfileConsumer);
+    for (ArtProfileConsumerForTesting artProfileConsumer :
+        new ArtProfileConsumerForTesting[] {apiArtProfileConsumer, textualArtProfileConsumer}) {
+      assertTrue(artProfileConsumer.isFinished());
+      assertEquals(ApiTest.textualArtProfileLines, artProfileConsumer.getResidualArtProfileRules());
+    }
   }
 
   public static class ApiTest extends CompilerApiTest {
 
-    private static ClassReference mockClassReference = Reference.classFromClass(MockClass.class);
-    private static MethodReference mockInitMethodReference =
+    static ClassReference mockClassReference = Reference.classFromClass(MockClass.class);
+    static MethodReference mockInitMethodReference =
         Reference.method(mockClassReference, "<init>", Collections.emptyList(), null);
-    private static MethodReference mockMainMethodReference =
+    static MethodReference mockMainMethodReference =
         Reference.method(
             mockClassReference,
             "main",
             Collections.singletonList(Reference.classFromClass(String[].class)),
             null);
+    static List<String> textualArtProfileLines =
+        Arrays.asList(
+            "Lcom/android/tools/r8/compilerapi/mockdata/MockClass;",
+            "PLcom/android/tools/r8/compilerapi/mockdata/MockClass;-><init>()V",
+            "HSPLcom/android/tools/r8/compilerapi/mockdata/MockClass;->main([Ljava/lang/String;)V");
 
     public ApiTest(Object parameters) {
       super(parameters);
     }
 
-    public void runD8(ArtProfileConsumerForTesting artProfileConsumer) throws Exception {
-      ArtProfileProviderForTesting artProfileProvider = new ArtProfileProviderForTesting();
+    public void runD8(
+        ArtProfileConsumerForTesting apiArtProfileConsumer,
+        ArtProfileConsumerForTesting textualArtProfileConsumer)
+        throws Exception {
+      ApiArtProfileProviderForTesting apiArtProfileProvider = new ApiArtProfileProviderForTesting();
+      TextualArtProfileProviderForTesting textualArtProfileProvider =
+          new TextualArtProfileProviderForTesting();
       D8Command.Builder commandBuilder =
           D8Command.builder()
               .addClassProgramData(getBytesForClass(getMockClass()), Origin.unknown())
               .addLibraryFiles(getJava8RuntimeJar())
               .setMinApiLevel(SOME_API_LEVEL)
               .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-              .addArtProfileForRewriting(artProfileProvider, artProfileConsumer);
+              .addArtProfileForRewriting(apiArtProfileProvider, apiArtProfileConsumer)
+              .addArtProfileForRewriting(textualArtProfileProvider, textualArtProfileConsumer);
       D8.run(commandBuilder.build());
+      assertTrue(textualArtProfileProvider.inputStream.isClosed());
     }
 
-    public void runR8(ArtProfileConsumerForTesting artProfileConsumer) throws Exception {
-      ArtProfileProviderForTesting artProfileProvider = new ArtProfileProviderForTesting();
+    public void runR8(
+        ArtProfileConsumerForTesting apiArtProfileConsumer,
+        ArtProfileConsumerForTesting textualArtProfileConsumer)
+        throws Exception {
+      ApiArtProfileProviderForTesting apiArtProfileProvider = new ApiArtProfileProviderForTesting();
+      TextualArtProfileProviderForTesting textualArtProfileProvider =
+          new TextualArtProfileProviderForTesting();
       R8Command.Builder commandBuilder =
           R8Command.builder()
               .addClassProgramData(getBytesForClass(getMockClass()), Origin.unknown())
@@ -110,21 +134,23 @@ public class ArtProfilesForRewritingApiTest extends CompilerApiTestRunner {
               .addLibraryFiles(getJava8RuntimeJar())
               .setMinApiLevel(SOME_API_LEVEL)
               .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-              .addArtProfileForRewriting(artProfileProvider, artProfileConsumer);
+              .addArtProfileForRewriting(apiArtProfileProvider, apiArtProfileConsumer)
+              .addArtProfileForRewriting(textualArtProfileProvider, textualArtProfileConsumer);
       R8.run(commandBuilder.build());
+      assertTrue(textualArtProfileProvider.inputStream.isClosed());
     }
 
     @Test
     public void testD8() throws Exception {
-      runD8(null);
+      runD8(null, null);
     }
 
     @Test
     public void testR8() throws Exception {
-      runR8(null);
+      runR8(null, null);
     }
 
-    static class ArtProfileProviderForTesting implements ArtProfileProvider {
+    static class ApiArtProfileProviderForTesting implements ArtProfileProvider {
 
       @Override
       public void getArtProfile(ArtProfileBuilder profileBuilder) {
@@ -149,6 +175,35 @@ public class ArtProfilesForRewritingApiTest extends CompilerApiTestRunner {
                                     .setIsHot(true)
                                     .setIsStartup(true)
                                     .setIsPostStartup(true)));
+      }
+
+      @Override
+      public Origin getOrigin() {
+        return Origin.unknown();
+      }
+    }
+
+    static class TextualArtProfileProviderForTesting implements ArtProfileProvider {
+
+      final ClosableByteArrayInputStream inputStream =
+          new ClosableByteArrayInputStream(
+              String.join("\n", textualArtProfileLines).concat("\n").getBytes());
+
+      @Override
+      public void getArtProfile(ArtProfileBuilder profileBuilder) {
+        profileBuilder.addHumanReadableArtProfile(
+            new TextInputStream() {
+              @Override
+              public InputStream getInputStream() {
+                return inputStream;
+              }
+
+              @Override
+              public Charset getCharset() {
+                return StandardCharsets.UTF_8;
+              }
+            },
+            parserBuilderConsumer -> {});
       }
 
       @Override
@@ -207,6 +262,25 @@ public class ArtProfilesForRewritingApiTest extends CompilerApiTestRunner {
 
       boolean isFinished() {
         return finished;
+      }
+    }
+
+    private static class ClosableByteArrayInputStream extends ByteArrayInputStream {
+
+      private boolean closed;
+
+      public ClosableByteArrayInputStream(byte[] buf) {
+        super(buf);
+      }
+
+      @Override
+      public void close() throws IOException {
+        super.close();
+        closed = true;
+      }
+
+      public boolean isClosed() {
+        return closed;
       }
     }
   }

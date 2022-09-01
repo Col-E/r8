@@ -21,10 +21,13 @@ import java.io.UncheckedIOException;
 public class HumanReadableArtProfileParser {
 
   private final ArtProfileBuilder profileBuilder;
+  private final ArtProfileRulePredicate rulePredicate;
   private final Reporter reporter;
 
-  HumanReadableArtProfileParser(ArtProfileBuilder profileBuilder, Reporter reporter) {
+  HumanReadableArtProfileParser(
+      ArtProfileBuilder profileBuilder, ArtProfileRulePredicate rulePredicate, Reporter reporter) {
     this.profileBuilder = profileBuilder;
+    this.rulePredicate = rulePredicate;
     this.reporter = reporter;
   }
 
@@ -95,8 +98,10 @@ public class HumanReadableArtProfileParser {
     if (classReference == null) {
       return false;
     }
-    profileBuilder.addClassRule(
-        classRuleBuilder -> classRuleBuilder.setClassReference(classReference));
+    if (rulePredicate.testClassRule(classReference, ArtProfileClassRuleInfoImpl.empty())) {
+      profileBuilder.addClassRule(
+          classRuleBuilder -> classRuleBuilder.setClassReference(classReference));
+    }
     return true;
   }
 
@@ -107,26 +112,35 @@ public class HumanReadableArtProfileParser {
     if (methodReference == null) {
       return false;
     }
-    profileBuilder.addMethodRule(
-        methodRuleBuilder ->
-            methodRuleBuilder
-                .setMethodReference(methodReference)
-                .setMethodRuleInfo(
-                    methodRuleInfoBuilder ->
-                        methodRuleInfoBuilder
-                            .setIsHot(methodRuleInfo.isHot())
-                            .setIsStartup(methodRuleInfo.isStartup())
-                            .setIsPostStartup(methodRuleInfo.isPostStartup())));
+    if (rulePredicate.testMethodRule(methodReference, methodRuleInfo)) {
+      profileBuilder.addMethodRule(
+          methodRuleBuilder ->
+              methodRuleBuilder
+                  .setMethodReference(methodReference)
+                  .setMethodRuleInfo(
+                      methodRuleInfoBuilder ->
+                          methodRuleInfoBuilder
+                              .setIsHot(methodRuleInfo.isHot())
+                              .setIsStartup(methodRuleInfo.isStartup())
+                              .setIsPostStartup(methodRuleInfo.isPostStartup())));
+    }
     return true;
   }
 
-  public static class Builder {
+  public static class Builder implements HumanReadableArtProfileParserBuilder {
 
     private ArtProfileBuilder profileBuilder;
+    private ArtProfileRulePredicate rulePredicate = new AlwaysTrueArtProfileRulePredicate();
     private Reporter reporter;
 
     public Builder setReporter(Reporter reporter) {
       this.reporter = reporter;
+      return this;
+    }
+
+    @Override
+    public Builder setRulePredicate(ArtProfileRulePredicate rulePredicate) {
+      this.rulePredicate = rulePredicate;
       return this;
     }
 
@@ -136,7 +150,7 @@ public class HumanReadableArtProfileParser {
     }
 
     public HumanReadableArtProfileParser build() {
-      return new HumanReadableArtProfileParser(profileBuilder, reporter);
+      return new HumanReadableArtProfileParser(profileBuilder, rulePredicate, reporter);
     }
   }
 }

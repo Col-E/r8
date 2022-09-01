@@ -7,6 +7,8 @@ package com.android.tools.r8.profile.art;
 import static com.android.tools.r8.synthesis.SyntheticNaming.COMPANION_CLASS_SUFFIX;
 import static com.android.tools.r8.synthesis.SyntheticNaming.EXTERNAL_SYNTHETIC_CLASS_SEPARATOR;
 
+import com.android.tools.r8.TextInputStream;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
@@ -68,7 +70,6 @@ public class ArtProfileBuilderUtils {
    */
   public static ArtProfileBuilder createBuilderForArtProfileToStartupProfileConversion(
       StartupProfileBuilder startupProfileBuilder,
-      ArtProfileRulePredicate rulePredicate,
       SyntheticToSyntheticContextGeneralization syntheticToSyntheticContextGeneralization) {
     return new ArtProfileBuilder() {
 
@@ -77,21 +78,18 @@ public class ArtProfileBuilderUtils {
           Consumer<ArtProfileClassRuleBuilder> classRuleBuilderConsumer) {
         MutableArtProfileClassRule classRule = new MutableArtProfileClassRule();
         classRuleBuilderConsumer.accept(classRule);
-        if (rulePredicate.testClassRule(
-            classRule.getClassReference(), classRule.getClassRuleInfo())) {
-          ClassReference syntheticContextReference =
-              syntheticToSyntheticContextGeneralization.getSyntheticContextReference(
-                  classRule.getClassReference());
-          if (syntheticContextReference == null) {
-            startupProfileBuilder.addStartupClass(
-                startupClassBuilder ->
-                    startupClassBuilder.setClassReference(classRule.getClassReference()));
-          } else {
-            startupProfileBuilder.addSyntheticStartupMethod(
-                syntheticStartupMethodBuilder ->
-                    syntheticStartupMethodBuilder.setSyntheticContextReference(
-                        syntheticContextReference));
-          }
+        ClassReference syntheticContextReference =
+            syntheticToSyntheticContextGeneralization.getSyntheticContextReference(
+                classRule.getClassReference());
+        if (syntheticContextReference == null) {
+          startupProfileBuilder.addStartupClass(
+              startupClassBuilder ->
+                  startupClassBuilder.setClassReference(classRule.getClassReference()));
+        } else {
+          startupProfileBuilder.addSyntheticStartupMethod(
+              syntheticStartupMethodBuilder ->
+                  syntheticStartupMethodBuilder.setSyntheticContextReference(
+                      syntheticContextReference));
         }
         return this;
       }
@@ -101,23 +99,28 @@ public class ArtProfileBuilderUtils {
           Consumer<ArtProfileMethodRuleBuilder> methodRuleBuilderConsumer) {
         MutableArtProfileMethodRule methodRule = new MutableArtProfileMethodRule();
         methodRuleBuilderConsumer.accept(methodRule);
-        if (rulePredicate.testMethodRule(
-            methodRule.getMethodReference(), methodRule.getMethodRuleInfo())) {
-          ClassReference syntheticContextReference =
-              syntheticToSyntheticContextGeneralization.getSyntheticContextReference(
-                  methodRule.getMethodReference().getHolderClass());
-          if (syntheticContextReference == null) {
-            startupProfileBuilder.addStartupMethod(
-                startupMethodBuilder ->
-                    startupMethodBuilder.setMethodReference(methodRule.getMethodReference()));
-          } else {
-            startupProfileBuilder.addSyntheticStartupMethod(
-                syntheticStartupMethodBuilder ->
-                    syntheticStartupMethodBuilder.setSyntheticContextReference(
-                        syntheticContextReference));
-          }
+        ClassReference syntheticContextReference =
+            syntheticToSyntheticContextGeneralization.getSyntheticContextReference(
+                methodRule.getMethodReference().getHolderClass());
+        if (syntheticContextReference == null) {
+          startupProfileBuilder.addStartupMethod(
+              startupMethodBuilder ->
+                  startupMethodBuilder.setMethodReference(methodRule.getMethodReference()));
+        } else {
+          startupProfileBuilder.addSyntheticStartupMethod(
+              syntheticStartupMethodBuilder ->
+                  syntheticStartupMethodBuilder.setSyntheticContextReference(
+                      syntheticContextReference));
         }
         return this;
+      }
+
+      @Override
+      public ArtProfileBuilder addHumanReadableArtProfile(
+          TextInputStream textInputStream,
+          Consumer<HumanReadableArtProfileParserBuilder> parserBuilderConsumer) {
+        // The ART profile parser never calls addHumanReadableArtProfile().
+        throw new Unreachable();
       }
     };
   }

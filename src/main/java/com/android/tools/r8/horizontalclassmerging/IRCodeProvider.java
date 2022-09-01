@@ -45,7 +45,7 @@ public interface IRCodeProvider {
       // of the class initializers without applying the unapplied code rewritings, to avoid that we
       // apply the lens more than once to the same piece of code.
       AppView<AppInfo> appViewForConversion =
-          AppView.createForD8(
+          AppView.createForSimulatingD8InR8(
               AppInfo.createInitialAppInfo(
                   appView.appInfo().app(), GlobalSyntheticsStrategy.forNonSynthesizing()));
       appViewForConversion.setGraphLens(appView.graphLens());

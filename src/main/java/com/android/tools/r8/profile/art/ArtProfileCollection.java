@@ -27,10 +27,11 @@ public abstract class ArtProfileCollection {
       return passthrough();
     }
     List<ArtProfile> artProfiles = new ArrayList<>(artProfilesForRewriting.size());
-    for (ArtProfileForRewriting input :
+    for (ArtProfileForRewriting artProfileForRewriting :
         options.getArtProfileOptions().getArtProfilesForRewriting()) {
-      ArtProfile.Builder artProfileBuilder = ArtProfile.builder(options.dexItemFactory());
-      input.getArtProfileProvider().getArtProfile(artProfileBuilder);
+      ArtProfileProvider artProfileProvider = artProfileForRewriting.getArtProfileProvider();
+      ArtProfile.Builder artProfileBuilder = ArtProfile.builder(artProfileProvider, options);
+      artProfileForRewriting.getArtProfileProvider().getArtProfile(artProfileBuilder);
       artProfiles.add(artProfileBuilder.build());
     }
     return new NonEmptyArtProfileCollection(artProfiles);
