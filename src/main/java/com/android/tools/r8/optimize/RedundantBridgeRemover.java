@@ -20,11 +20,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
-public class VisibilityBridgeRemover {
+public class RedundantBridgeRemover {
 
   private final AppView<AppInfoWithLiveness> appView;
 
-  public VisibilityBridgeRemover(AppView<AppInfoWithLiveness> appView) {
+  public RedundantBridgeRemover(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
   }
 

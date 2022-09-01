@@ -69,7 +69,7 @@ import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.optimize.AccessModifier;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLensFactory;
-import com.android.tools.r8.optimize.VisibilityBridgeRemover;
+import com.android.tools.r8.optimize.RedundantBridgeRemover;
 import com.android.tools.r8.optimize.bridgehoisting.BridgeHoisting;
 import com.android.tools.r8.optimize.interfaces.analysis.CfOpenClosedInterfacesAnalysis;
 import com.android.tools.r8.optimize.proto.ProtoNormalizer;
@@ -467,10 +467,10 @@ public class R8 {
                 subtypingInfo);
         boolean changed = appView.setGraphLens(publicizedLens);
         if (changed) {
-          // We can now remove visibility bridges. Note that we do not need to update the
+          // We can now remove redundant bridges. Note that we do not need to update the
           // invoke-targets here, as the existing invokes will simply dispatch to the now
           // visible super-method. MemberRebinding, if run, will then dispatch it correctly.
-          new VisibilityBridgeRemover(appView.withLiveness()).run(executorService);
+          new RedundantBridgeRemover(appView.withLiveness()).run(executorService);
         }
       }
 
@@ -698,10 +698,10 @@ public class R8 {
         }
       }
 
-      // Remove unneeded visibility bridges that have been inserted for member rebinding.
+      // Remove redundant bridges that have been inserted for member rebinding.
       // This can only be done if we have AppInfoWithLiveness.
       if (appView.appInfo().hasLiveness()) {
-        new VisibilityBridgeRemover(appView.withLiveness()).run(executorService);
+        new RedundantBridgeRemover(appView.withLiveness()).run(executorService);
       } else {
         // If we don't have AppInfoWithLiveness here, it must be because we are not shrinking. When
         // we are not shrinking, we can't move visibility bridges. In principle, though, it would be
