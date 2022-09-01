@@ -13,6 +13,7 @@ import com.android.tools.r8.debug.CfDebugTestConfig;
 import com.android.tools.r8.debug.DebugTestBase;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.debug.DexDebugTestConfig;
+import com.android.tools.r8.debug.classinit.ClassInitializationTest;
 import com.android.tools.r8.shaking.ProguardKeepRule;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
@@ -82,10 +83,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
     this.backend = backend;
   }
 
-  /**
-   * replica of {@link
-   * com.android.tools.r8.debug.ClassInitializationTest#testBreakpointInEmptyClassInitializer}
-   */
+  /** replica of {@link ClassInitializationTest#testBreakpointInEmptyClassInitializer} */
   @Test
   public void testBreakpointInEmptyClassInitializer() throws Throwable {
     final String CLASS = "ClassInitializerEmpty";

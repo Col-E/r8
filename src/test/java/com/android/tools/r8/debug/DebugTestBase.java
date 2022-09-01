@@ -543,16 +543,7 @@ public abstract class DebugTestBase extends TestBase {
 
   protected final JUnit3Wrapper.Command checkStaticFieldClinitSafe(
       String className, String fieldName, String fieldSignature, Value expectedValue) {
-    return inspect(
-        t -> {
-          // TODO(65148874): The current Art from AOSP master hangs when requesting static fields
-          //  when breaking in <clinit>. Last known good version is 7.0.0.
-          TestRuntime runtime = t.getRuntime();
-          Assume.assumeTrue(
-              "Skipping test " + testName.getMethodName() + " because ART version is not supported",
-              runtime.isCf() || runtime.asDex().getVersion().isOlderThanOrEqual(Version.V7_0_0));
-          checkStaticField(className, fieldName, fieldSignature, expectedValue);
-        });
+    return inspect(t -> checkStaticField(className, fieldName, fieldSignature, expectedValue));
   }
 
   protected final JUnit3Wrapper.Command checkStaticField(
