@@ -24,8 +24,7 @@ public class BridgeAnalyzer {
 
   /** Returns a {@link BridgeInfo} object describing this method if it is recognized as a bridge. */
   public static BridgeInfo analyzeMethod(DexEncodedMethod method, IRCode code) {
-    // TODO(b/154263783): Consider computing BridgeInfo also for non-declared bridges.
-    if (!method.isBridge() || code.blocks.size() > 1) {
+    if (code.blocks.size() > 1) {
       return failure();
     }
 

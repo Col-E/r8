@@ -294,7 +294,7 @@ public class B77836766 extends TestBase {
 
               // Cls1#foo and Cls2#bar should refer to Base#foo.
 
-              MethodSubject barInCls2 = cls2Subject.method("void", "bar", "java.lang.String");
+              MethodSubject barInCls2 = baseSubject.method("void", "bar", "java.lang.String");
               assertThat(barInCls2, isPresent());
 
               // Cls1#foo has been moved to Base#foo as a result of bridge hoisting.
@@ -404,7 +404,7 @@ public class B77836766 extends TestBase {
 
               // DerivedString2#bar should refer to Base#foo.
 
-              MethodSubject barInSub = subSubject.method("void", "bar", "java.lang.String");
+              MethodSubject barInSub = baseSubject.method("void", "bar", "java.lang.String");
               assertThat(barInSub, isPresent());
 
               if (parameters.isDexRuntime()) {

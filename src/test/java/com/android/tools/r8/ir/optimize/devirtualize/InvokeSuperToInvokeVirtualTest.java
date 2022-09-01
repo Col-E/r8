@@ -54,6 +54,9 @@ public class InvokeSuperToInvokeVirtualTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
+    ClassSubject aClassSubject = inspector.clazz(A.class);
+    assertThat(aClassSubject, isPresent());
+
     ClassSubject bClassSubject = inspector.clazz(B.class);
     assertThat(bClassSubject, isPresent());
 
@@ -63,7 +66,8 @@ public class InvokeSuperToInvokeVirtualTest extends TestBase {
     assertTrue(
         negativeTestSubject.streamInstructions().noneMatch(InstructionSubject::isInvokeVirtual));
 
-    MethodSubject positiveTestSubject = bClassSubject.uniqueMethodWithName("positiveTest");
+    // B.positiveTest() is moved to A as a result of bridge hoisting.
+    MethodSubject positiveTestSubject = aClassSubject.uniqueMethodWithName("positiveTest");
     assertThat(positiveTestSubject, isPresent());
     assertTrue(positiveTestSubject.streamInstructions().noneMatch(this::isInvokeSuper));
     assertTrue(
