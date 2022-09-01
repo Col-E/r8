@@ -28,7 +28,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class HumanReadableArtProfileParserErrorDiagnosticTest extends TestBase {
+public class HumanReadableArtProfileParserErrorDiagnosticFromStartupProfileTest extends TestBase {
 
   @Parameter(0)
   public TestParameters parameters;

@@ -146,7 +146,7 @@ public class ArtProfile {
     Builder(ArtProfileProvider artProfileProvider, InternalOptions options) {
       this.artProfileProvider = artProfileProvider;
       this.dexItemFactory = options.dexItemFactory();
-      this.reporter = reporter;
+      this.reporter = options.reporter;
     }
 
     @Override
