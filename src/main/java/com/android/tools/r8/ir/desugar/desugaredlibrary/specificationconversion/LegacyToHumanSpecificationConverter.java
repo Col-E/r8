@@ -99,7 +99,7 @@ public class LegacyToHumanSpecificationConverter {
       HumanRewritingFlags.Builder builder =
           humanRewritingFlags.newBuilder(app.options.reporter, origin);
       legacyLibraryFlagHacks(
-          app.dexItemFactory(), app.options.getMinApiLevel(), legacySpec.getIdentifier(), builder);
+          legacySpec.getIdentifier(), app.dexItemFactory(), app.options.getMinApiLevel(), builder);
       humanRewritingFlags = builder.build();
       timing.end();
     }
@@ -140,14 +140,14 @@ public class LegacyToHumanSpecificationConverter {
     }
     HumanRewritingFlags.Builder builder =
         humanRewritingFlags.newBuilder(app.options.reporter, origin);
-    legacyLibraryFlagHacks(app.dexItemFactory(), LEGACY_HACK_LEVEL, identifier, builder);
+    legacyLibraryFlagHacks(identifier, app.dexItemFactory(), LEGACY_HACK_LEVEL, builder);
     libraryFlags.put(range, builder.build());
   }
 
   private void legacyLibraryFlagHacks(
+      String identifier,
       DexItemFactory itemFactory,
       AndroidApiLevel apiLevel,
-      String identifier,
       HumanRewritingFlags.Builder builder) {
 
     if (apiLevel.isLessThanOrEqualTo(LEGACY_HACK_LEVEL)) {
