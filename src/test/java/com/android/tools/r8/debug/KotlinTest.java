@@ -33,7 +33,8 @@ public class KotlinTest extends KotlinDebugTestBase {
   }
 
   protected KotlinDebugD8Config getD8Config() {
-    return KotlinDebugD8Config.build(kotlinParameters, parameters.getApiLevel());
+    return KotlinDebugD8Config.build(
+        kotlinParameters, parameters.getApiLevel(), parameters.getRuntime().asDex());
   }
 
   // TODO(shertz) simplify test

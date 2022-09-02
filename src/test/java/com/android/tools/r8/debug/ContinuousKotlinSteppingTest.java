@@ -36,14 +36,16 @@ public class ContinuousKotlinSteppingTest extends DebugTestBase {
   @Test
   public void testContinuousSingleStepKotlinApp() throws Throwable {
     KotlinDebugD8Config d8Config =
-        KotlinDebugD8Config.build(kotlinParameters, parameters.getApiLevel());
+        KotlinDebugD8Config.build(
+            kotlinParameters, parameters.getApiLevel(), parameters.getRuntime().asDex());
     runContinuousTest("KotlinApp", d8Config, MAIN_METHOD_NAME);
   }
 
   @Test
   public void testContinuousSingleStepKotlinInline() throws Throwable {
     KotlinDebugD8Config d8Config =
-        KotlinDebugD8Config.build(kotlinParameters, parameters.getApiLevel());
+        KotlinDebugD8Config.build(
+            kotlinParameters, parameters.getApiLevel(), parameters.getRuntime().asDex());
     runContinuousTest("KotlinInline", d8Config, MAIN_METHOD_NAME);
   }
 }

@@ -6,6 +6,7 @@ package com.android.tools.r8.debug;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -13,12 +14,20 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 import org.junit.rules.TemporaryFolder;
 
 /** Test configuration with utilities for compiling with D8 and adding results to the classpath. */
 public class D8DebugTestConfig extends DexDebugTestConfig {
+
+  @Deprecated
+  public D8DebugTestConfig() {}
+
+  public D8DebugTestConfig(DexRuntime runtime) {
+    super(runtime, Collections.emptyList());
+  }
 
   // Use the option with api-level below.
   @Deprecated()

@@ -5,10 +5,12 @@ package com.android.tools.r8.debug;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,7 +43,8 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
   }
 
   protected KotlinDebugD8Config getD8Config() {
-    return KotlinDebugD8Config.build(kotlinParameters, parameters.getApiLevel());
+    return KotlinDebugD8Config.build(
+        kotlinParameters, parameters.getApiLevel(), parameters.getRuntime().asDex());
   }
 
   @Test
@@ -254,6 +257,9 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
 
   @Test
   public void testNestedInlining() throws Throwable {
+    assumeTrue(
+        "b/244704042: Incorrect step-into StringBuilder.",
+        parameters.isCfRuntime() || !parameters.getDexRuntimeVersion().isEqualTo(Version.V13_0_0));
     // Count the number of lines in the source file. This is needed to check that inlined code
     // refers to non-existing line numbers.
     Path sourceFilePath =
@@ -336,7 +342,7 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
         checkLocals(left_mangledLvName, right_mangledLvName),
         // Enter "foo"
         stepInto(),
-        // TODO(b/207743106): Remove when resolved.
+        // See b/207743106 for incorrect debug info on Kotlin 1.6.
         applyIf(
             kotlinParameters.getCompilerVersion() == KotlinCompilerVersion.KOTLINC_1_6_0,
             this::stepInto),
@@ -395,7 +401,7 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
         checkNoLocal(inlinee2_lambda2_inlineScope),
         // Enter the call to "foo"
         stepInto(),
-        // TODO(b/207743106): Remove when resolved.
+        // See b/207743106 for incorrect debug info on Kotlin 1.6.
         applyIf(
             kotlinParameters.getCompilerVersion() == KotlinCompilerVersion.KOTLINC_1_6_0,
             this::stepInto),

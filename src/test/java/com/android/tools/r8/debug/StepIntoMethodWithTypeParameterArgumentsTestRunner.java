@@ -10,6 +10,7 @@ import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
@@ -60,9 +61,10 @@ public class StepIntoMethodWithTypeParameterArgumentsTestRunner extends DebugTes
         checkLocal("strings"),
         checkNoLocal("objects"),
         stepOver(),
-        // Step will skip line 14 and hit 15 on JVM but will (correctly?) hit 14 on Art.
+        // Step will skip line 14 and hit 15 on JVM but will (correctly?) hit 14 on Art pre-13.
         subcommands(
-            config instanceof CfDebugTestConfig
+            (config.getRuntime().isCf()
+                    || config.getRuntime().asDex().getVersion().isNewerThanOrEqual(Version.V13_0_0))
                 ? ImmutableList.of()
                 : ImmutableList.of(checkLine(FILE, 14), stepOver())),
         checkLine(FILE, 15),

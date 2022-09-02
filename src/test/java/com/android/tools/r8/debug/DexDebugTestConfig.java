@@ -16,10 +16,12 @@ public class DexDebugTestConfig extends DebugTestConfig {
 
   private final DexRuntime runtime;
 
+  @Deprecated
   public DexDebugTestConfig() {
     this(Collections.emptyList());
   }
 
+  @Deprecated
   public DexDebugTestConfig(Path... paths) {
     this(Arrays.asList(paths));
   }
