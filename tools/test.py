@@ -255,7 +255,7 @@ def Main():
     os.makedirs(desugar_jdk_libs_dir)
     print('Building desugared library.')
     with utils.TempDir() as checkout_dir:
-      archive_desugar_jdk_libs.CloneDesugaredLibrary('google', checkout_dir)
+      archive_desugar_jdk_libs.CloneDesugaredLibrary('google', checkout_dir, 'HEAD')
       # Make sure bazel is extracted in third_party.
       utils.DownloadFromGoogleCloudStorage(utils.BAZEL_SHA_FILE)
       utils.DownloadFromGoogleCloudStorage(utils.JAVA8_SHA_FILE)
