@@ -256,6 +256,12 @@ public abstract class AccessFlags<T extends AccessFlags<T>> implements Structura
     promote(Constants.ACC_PUBLIC);
   }
 
+  public T withPublic() {
+    T newAccessFlags = copy();
+    newAccessFlags.promoteToPublic();
+    return newAccessFlags;
+  }
+
   public void promoteToStatic() {
     promote(Constants.ACC_STATIC);
   }

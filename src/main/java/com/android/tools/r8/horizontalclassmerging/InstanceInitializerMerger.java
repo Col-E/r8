@@ -263,7 +263,6 @@ public class InstanceInitializerMerger {
   }
 
   private MethodAccessFlags getNewAccessFlags() {
-    // TODO(b/164998929): ensure this behaviour is correct, should probably calculate upper bound
     return MethodAccessFlags.fromSharedAccessFlags(
         Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, true);
   }
@@ -281,7 +280,7 @@ public class InstanceInitializerMerger {
           needsClassId,
           extraNulls);
     }
-    if (isSingleton() && !group.hasClassIdField()) {
+    if (!useSyntheticMethod()) {
       return getRepresentative().getDefinition().getCode();
     }
     return new ConstructorEntryPointSynthesizedCode(
@@ -328,7 +327,7 @@ public class InstanceInitializerMerger {
     // Move instance initializers to target class.
     if (hasInstanceInitializerDescription()) {
       lensBuilder.moveMethods(instanceInitializers, newMethodReference);
-    } else if (isSingleton() && !group.hasClassIdField()) {
+    } else if (!useSyntheticMethod()) {
       lensBuilder.moveMethod(representative.getReference(), newMethodReference, true);
     } else {
       for (ProgramMethod instanceInitializer : instanceInitializers) {
@@ -343,7 +342,8 @@ public class InstanceInitializerMerger {
     // Add a mapping from a synthetic name to the synthetic constructor.
     DexMethod syntheticMethodReference =
         getSyntheticMethodReference(classMethodsBuilder, newMethodReference);
-    if (!isSingleton() || group.hasClassIdField()) {
+
+    if (useSyntheticMethod()) {
       lensBuilder.recordNewMethodSignature(syntheticMethodReference, newMethodReference, true);
     }
 
@@ -360,10 +360,14 @@ public class InstanceInitializerMerger {
     }
 
     DexEncodedMethod representativeMethod = representative.getDefinition();
+    boolean useSynthethicBuilder = useSyntheticMethod() || representativeMethod.isD8R8Synthesized();
     DexEncodedMethod newInstanceInitializer =
-        DexEncodedMethod.syntheticBuilder()
+        (useSynthethicBuilder ? DexEncodedMethod.syntheticBuilder() : DexEncodedMethod.builder())
             .setMethod(newMethodReference)
-            .setAccessFlags(getNewAccessFlags())
+            .setAccessFlags(
+                useSynthethicBuilder
+                    ? getNewAccessFlags()
+                    : representative.getAccessFlags().withPublic())
             .setCode(
                 getNewCode(
                     newMethodReference,
@@ -386,5 +390,9 @@ public class InstanceInitializerMerger {
             || newInstanceInitializer.getCode().isIncompleteHorizontalClassMergerCode();
       }
     }
+  }
+
+  private boolean useSyntheticMethod() {
+    return !isSingleton() || group.hasClassIdField();
   }
 }
