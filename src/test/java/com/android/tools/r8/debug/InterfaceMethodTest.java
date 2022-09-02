@@ -7,7 +7,9 @@ package com.android.tools.r8.debug;
 import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.getCompanionClassNameSuffix;
 import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.getDefaultMethodPrefix;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting;
 import java.nio.file.Path;
@@ -42,6 +44,10 @@ public class InterfaceMethodTest extends DebugTestBase {
 
   @Test
   public void testDefaultMethod() throws Throwable {
+    // TODO(b/244683447): This test fails on ART 13 when checking current method in doSomething.
+    assumeTrue(
+        config.getRuntime().isCf()
+            || !config.getRuntime().asDex().getVersion().isEqualTo(Version.V13_0_0));
     String debuggeeClass = "DebugInterfaceMethod";
     String parameterName = "msg";
     String localVariableName = "name";
