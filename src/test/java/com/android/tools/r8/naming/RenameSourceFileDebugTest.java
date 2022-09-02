@@ -14,6 +14,7 @@ import com.android.tools.r8.debug.DebugTestBase;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.debug.DexDebugTestConfig;
 import com.android.tools.r8.debug.classinit.ClassInitializationTest;
+import com.android.tools.r8.debug.classinit.ClassInitializerEmpty;
 import com.android.tools.r8.shaking.ProguardKeepRule;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
@@ -49,6 +50,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
                         ImmutableList.of("SourceFile", "LineNumberTable"));
                   })
               .addProgramFiles(DEBUGGEE_JAR)
+              .addProgramFiles(ToolHelper.getClassFileForTestClass(ClassInitializerEmpty.class))
               .setMode(CompilationMode.DEBUG)
               .setProguardMapOutputPath(proguardMapPath);
       DebugTestConfig config;
@@ -86,13 +88,13 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
   /** replica of {@link ClassInitializationTest#testBreakpointInEmptyClassInitializer} */
   @Test
   public void testBreakpointInEmptyClassInitializer() throws Throwable {
-    final String CLASS = "ClassInitializerEmpty";
+    final String CLASS = typeName(ClassInitializerEmpty.class);
     runDebugTest(
         configs.get(backend),
         CLASS,
         breakpoint(CLASS, "<clinit>"),
         run(),
-        checkLine(TEST_FILE, 8),
+        checkLine(TEST_FILE, 9),
         run());
   }
 
