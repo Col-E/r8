@@ -25,6 +25,8 @@ public class TestParametersBuilder {
   // Built via the methods found below. Defaults to no applicable parameters, i.e., the emtpy set.
   private Predicate<TestParameters> filter = param -> false;
   private boolean hasDexRuntimeFilter = false;
+  // TODO(b/245066448): Enable bot with testing new art master.
+  private boolean allowMaster = System.getProperty("com.android.tools.r8.artmaster") != null;
 
   TestParametersBuilder() {}
 
@@ -40,7 +42,10 @@ public class TestParametersBuilder {
   private TestParametersBuilder withDexRuntimeFilter(Predicate<DexVm.Version> predicate) {
     hasDexRuntimeFilter = true;
     return withFilter(
-        p -> p.isDexRuntime() && predicate.test(p.getRuntime().asDex().getVm().getVersion()));
+        p ->
+            p.isDexRuntime()
+                && (allowMaster || p.getDexRuntimeVersion().isOlderThan(DexVm.Version.MASTER))
+                && predicate.test(p.getDexRuntimeVersion()));
   }
 
   public TestParametersBuilder withNoneRuntime() {
@@ -130,12 +135,13 @@ public class TestParametersBuilder {
 
   /** Add all available DEX runtimes including master. */
   public TestParametersBuilder withDexRuntimesIncludingMaster() {
-    return withDexRuntimeFilter(vm -> true);
+    this.allowMaster = true;
+    return withDexRuntimes();
   }
 
   /** Add all available DEX runtimes except master. */
   public TestParametersBuilder withDexRuntimes() {
-    return withDexRuntimeFilter(vm -> vm != DexVm.Version.MASTER);
+    return withDexRuntimeFilter(vm -> true);
   }
 
   public TestParametersBuilder withDexRuntimesAndAllApiLevels() {
