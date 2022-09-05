@@ -124,22 +124,23 @@ public abstract class ApiModelingTestHelper {
       TestCompilerBuilder<?, ?, ?, ?, ?> compilerBuilder) {
     compilerBuilder.addOptionsModification(
         options -> {
+          options.apiModelingOptions().enableLibraryApiModeling = true;
           options.apiModelingOptions().enableApiCallerIdentification = true;
         });
   }
 
-  static void enableStubbingOfClasses(TestCompilerBuilder<?, ?, ?, ?, ?> compilerBuilder) {
+  public static void enableStubbingOfClasses(TestCompilerBuilder<?, ?, ?, ?, ?> compilerBuilder) {
     compilerBuilder.addOptionsModification(
         options -> {
-          options.apiModelingOptions().enableApiCallerIdentification = true;
+          options.apiModelingOptions().enableLibraryApiModeling = true;
           options.apiModelingOptions().enableStubbingOfClasses = true;
         });
   }
 
-  static void enableOutliningOfMethods(TestCompilerBuilder<?, ?, ?, ?, ?> compilerBuilder) {
+  public static void enableOutliningOfMethods(TestCompilerBuilder<?, ?, ?, ?, ?> compilerBuilder) {
     compilerBuilder.addOptionsModification(
         options -> {
-          options.apiModelingOptions().enableApiCallerIdentification = true;
+          options.apiModelingOptions().enableLibraryApiModeling = true;
           options.apiModelingOptions().enableOutliningOfMethods = true;
         });
   }
@@ -167,6 +168,19 @@ public abstract class ApiModelingTestHelper {
   public static void disableOutlining(TestCompilerBuilder<?, ?, ?, ?, ?> compilerBuilder) {
     compilerBuilder.addOptionsModification(
         options -> options.apiModelingOptions().enableOutliningOfMethods = false);
+  }
+
+  public static void disableApiCallerIdentification(
+      TestCompilerBuilder<?, ?, ?, ?, ?> compilerBuilder) {
+    compilerBuilder.addOptionsModification(
+        options -> options.apiModelingOptions().enableApiCallerIdentification = false);
+  }
+
+  public static void disableApiModeling(TestCompilerBuilder<?, ?, ?, ?, ?> compilerBuilder) {
+    disableOutliningAndStubbing(compilerBuilder);
+    disableApiCallerIdentification(compilerBuilder);
+    compilerBuilder.addOptionsModification(
+        options -> options.apiModelingOptions().enableLibraryApiModeling = false);
   }
 
   static <T extends TestCompilerBuilder<?, ?, ?, ?, ?>>

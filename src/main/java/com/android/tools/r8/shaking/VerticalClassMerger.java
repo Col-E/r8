@@ -533,7 +533,7 @@ public class VerticalClassMerger {
     }
     // Only merge if api reference level of source class is equal to target class. The check is
     // somewhat expensive.
-    if (appView.options().apiModelingOptions().enableApiCallerIdentification) {
+    if (appView.options().apiModelingOptions().isApiCallerIdentificationEnabled()) {
       ComputedApiLevel sourceApiLevel =
           getApiReferenceLevelForMerging(appView, apiLevelCompute, sourceClass);
       ComputedApiLevel targetApiLevel =

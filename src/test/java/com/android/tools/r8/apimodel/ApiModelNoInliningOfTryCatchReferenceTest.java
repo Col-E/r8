@@ -47,6 +47,7 @@ public class ApiModelNoInliningOfTryCatchReferenceTest extends TestBase {
         .apply(setMockApiLevelForClass(ApiException.class, exceptionApiLevel))
         .apply(setMockApiLevelForDefaultInstanceInitializer(ApiException.class, exceptionApiLevel))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .enableInliningAnnotations()
         .addHorizontallyMergedClassesInspector(
             horizontallyMergedClassesInspector -> {

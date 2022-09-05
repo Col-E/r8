@@ -10,8 +10,10 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.examples.JavaExampleClassProxy;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -94,6 +96,7 @@ public class TwrCloseResourceDuplicationTest extends TestBase {
   public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addProgramFiles(getProgramInputs())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.LATEST))
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN.typeName(), getZipFile())
         .assertSuccessWithOutput(EXPECTED)
@@ -106,7 +109,7 @@ public class TwrCloseResourceDuplicationTest extends TestBase {
               // TODO(b/168568827): Once we support a nested addSuppressed this will increase.
               int expectedSynthetics =
                   parameters.getApiLevel().isLessThan(apiLevelWithTwrCloseResourceSupport())
-                      ? 2
+                      ? 3
                       : 0;
               assertEquals(INPUT_CLASSES + expectedSynthetics, inspector.allClasses().size());
             });
@@ -117,12 +120,9 @@ public class TwrCloseResourceDuplicationTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     testForR8(parameters.getBackend())
         .addProgramFiles(getProgramInputs())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.LATEST))
         .addKeepMainRule(MAIN.typeName())
         .addKeepClassAndMembersRules(FOO.typeName(), BAR.typeName())
-        // TODO(b/214250388): Don't warn about synthetic code.
-        .applyIf(
-            parameters.getApiLevel().isLessThan(apiLevelWithTwrCloseResourceSupport()),
-            builder -> builder.addDontWarn("java.lang.AutoCloseable"))
         .setMinApi(parameters.getApiLevel())
         .addDontObfuscate()
         .run(parameters.getRuntime(), MAIN.typeName(), getZipFile())
@@ -141,11 +141,7 @@ public class TwrCloseResourceDuplicationTest extends TestBase {
               if (parameters.getApiLevel().isLessThan(apiLevelWithTwrCloseResourceSupport())) {
                 Set<String> classOutputWithSynthetics = new HashSet<>(nonSyntheticClassOutput);
                 classOutputWithSynthetics.add(
-                    SyntheticItemsTestUtils.syntheticBackportClass(BAR.getClassReference(), 0)
-                        .getTypeName());
-                classOutputWithSynthetics.add(
-                    SyntheticItemsTestUtils.syntheticTwrCloseResourceClass(
-                            BAR.getClassReference(), 1)
+                    SyntheticItemsTestUtils.syntheticApiOutlineClass(BAR.getClassReference(), 0)
                         .getTypeName());
                 assertEquals(classOutputWithSynthetics, foundClasses);
               } else {

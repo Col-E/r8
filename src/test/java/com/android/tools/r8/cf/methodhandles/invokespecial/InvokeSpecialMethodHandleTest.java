@@ -15,6 +15,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.apimodel.ApiModelingTestHelper;
 import com.android.tools.r8.errors.UnsupportedFeatureDiagnostic;
 import com.android.tools.r8.transformers.ClassTransformer;
 import com.android.tools.r8.utils.StringUtils;
@@ -75,6 +76,7 @@ public class InvokeSpecialMethodHandleTest extends TestBase {
         .addProgramClasses(C.class, Main.class)
         .addProgramClassFileData(getTransformedD())
         .setMinApi(parameters.getApiLevel())
+        .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .compileWithExpectedDiagnostics(this::checkDiagnostics)
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkResult);
@@ -89,6 +91,7 @@ public class InvokeSpecialMethodHandleTest extends TestBase {
         .addProgramClassFileData(getTransformedD())
         .setMinApi(parameters.getApiLevel())
         .allowDiagnosticMessages()
+        .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .compileWithExpectedDiagnostics(this::checkDiagnostics)
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkResult);

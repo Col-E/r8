@@ -42,13 +42,15 @@ public abstract class AndroidApiLevelCompute {
   public abstract ComputedApiLevel computeApiLevelForDefinition(
       Iterable<DexType> types, ComputedApiLevel unknownValue);
 
+  public abstract boolean isEnabled();
+
   public ComputedApiLevel computeApiLevelForDefinition(
       DexMember<?, ?> reference, DexItemFactory factory, ComputedApiLevel unknownValue) {
     return computeApiLevelForDefinition(reference.getReferencedBaseTypes(factory), unknownValue);
   }
 
   public static AndroidApiLevelCompute create(AppView<?> appView) {
-    return appView.options().apiModelingOptions().enableApiCallerIdentification
+    return appView.options().apiModelingOptions().enableLibraryApiModeling
         ? new DefaultAndroidApiLevelCompute(appView)
         : noAndroidApiLevelCompute();
   }
@@ -79,18 +81,23 @@ public abstract class AndroidApiLevelCompute {
     @Override
     public ComputedApiLevel computeApiLevelForDefinition(
         Iterable<DexType> types, ComputedApiLevel unknownValue) {
-      return unknownValue;
+      return ComputedApiLevel.notSet();
+    }
+
+    @Override
+    public boolean isEnabled() {
+      return false;
     }
 
     @Override
     public ComputedApiLevel computeApiLevelForLibraryReference(
         DexReference reference, ComputedApiLevel unknownValue) {
-      return unknownValue;
+      return ComputedApiLevel.notSet();
     }
 
     @Override
     public ComputedApiLevel computeInitialMinApiLevel(InternalOptions options) {
-      return ComputedApiLevel.unknown();
+      return ComputedApiLevel.notSet();
     }
   }
 
@@ -112,6 +119,11 @@ public abstract class AndroidApiLevelCompute {
         computedLevel = cache.lookupMax(type, computedLevel, unknownValue);
       }
       return computedLevel;
+    }
+
+    @Override
+    public boolean isEnabled() {
+      return true;
     }
 
     @Override

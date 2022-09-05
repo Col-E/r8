@@ -87,6 +87,8 @@ public class ClassInitFieldSynthesizer {
                       .createField(clazz.type, clinitField.type, clinitField.name))
               .setAccessFlags(accessFlags)
               .setApiLevel(appView.computedMinApiLevel())
+              .disableAndroidApiLevelCheckIf(
+                  !appView.options().apiModelingOptions().isApiCallerIdentificationEnabled())
               .build();
       clazz.appendStaticField(encodedClinitField);
     }

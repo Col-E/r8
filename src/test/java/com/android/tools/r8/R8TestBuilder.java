@@ -66,6 +66,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
 
   private AllowedDiagnosticMessages allowedDiagnosticMessages = AllowedDiagnosticMessages.NONE;
   private boolean allowUnusedProguardConfigurationRules = false;
+  private boolean enableMissingLibraryApiModeling = true;
   private CollectingGraphConsumer graphConsumer = null;
   private List<String> keepRules = new ArrayList<>();
   private List<Path> mainDexRulesFiles = new ArrayList<>();
@@ -140,6 +141,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     ToolHelper.addSyntheticProguardRulesConsumerForTesting(
         builder, rules -> box.syntheticProguardRules = rules);
     libraryDesugaringTestConfiguration.configure(builder);
+    builder.setEnableExperimentalMissingLibraryApiModeling(enableMissingLibraryApiModeling);
     ToolHelper.runAndBenchmarkR8WithoutResult(
         builder,
         optionsConsumer.andThen(

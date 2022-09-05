@@ -52,6 +52,7 @@ public class ApiModelNoClassInliningFieldTest extends TestBase {
         .apply(setMockApiLevelForClass(Api.class, AndroidApiLevel.L_MR1))
         .apply(setMockApiLevelForDefaultInstanceInitializer(Api.class, AndroidApiLevel.L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .compile()
         .inspect(
             inspector -> {

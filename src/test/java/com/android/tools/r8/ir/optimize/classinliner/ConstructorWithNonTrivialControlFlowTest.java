@@ -12,6 +12,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.apimodel.ApiModelingTestHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -45,6 +46,7 @@ public class ConstructorWithNonTrivialControlFlowTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ConstructorWithNonTrivialControlFlowTest.class)
         .addKeepMainRule(TestClass.class)
+        .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .addOptionsModification(options -> options.enableClassInlining = enableClassInlining)
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()

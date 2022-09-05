@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -255,7 +256,12 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
               assert theApi.equals(appView.options().getMinApiLevel());
               return;
             }
-            assert theApi.equals(api.max(appView.options().getMinApiLevel()));
+            DexClass clazz =
+                appView
+                    .contextIndependentDefinitionForWithResolutionResult(type)
+                    .toSingleClassWithProgramOverLibrary();
+            assert theApi.equals(api.max(appView.options().getMinApiLevel()))
+                || (clazz != null && clazz.isProgramClass());
           });
       return true;
     }

@@ -42,6 +42,7 @@ public class ApiModelCovariantReturnTypeTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .apply(
             addTracedApiReferenceLevelCallBack(
                 (method, apiLevel) -> {

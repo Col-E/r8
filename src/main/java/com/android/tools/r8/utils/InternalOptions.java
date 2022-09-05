@@ -277,7 +277,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     androidPlatformBuild = isAndroidPlatformBuild;
     // Configure options according to platform build assumptions.
     // See go/r8platformflag and b/232073181.
-    apiModelingOptions().disableMissingApiModeling();
+    apiModelingOptions().disableApiModeling();
     enableBackportMethods = false;
   }
 
@@ -1709,6 +1709,14 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public static class ApiModelTestingOptions {
 
+    // Flag to specify if we should load the database or not. The api database is used for
+    // library member rebinding.
+    public boolean enableLibraryApiModeling =
+        System.getProperty("com.android.tools.r8.disableApiModeling") == null;
+
+    // The flag enableApiCallerIdentification controls if we can inline or merge targets with
+    // different api levels. It is also the flag that specifies if we assign api levels to
+    // references.
     public boolean enableApiCallerIdentification =
         System.getProperty("com.android.tools.r8.disableApiModeling") == null;
     public boolean checkAllApiReferencesAreSet =
@@ -1746,11 +1754,31 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
           });
     }
 
+    public boolean isApiLibraryModelingEnabled() {
+      return enableLibraryApiModeling;
+    }
+
+    public boolean isCheckAllApiReferencesAreSet() {
+      return enableLibraryApiModeling && checkAllApiReferencesAreSet;
+    }
+
+    public boolean isApiCallerIdentificationEnabled() {
+      return enableLibraryApiModeling && enableApiCallerIdentification;
+    }
+
+    public void disableApiModeling() {
+      enableLibraryApiModeling = false;
+      enableApiCallerIdentification = false;
+      enableOutliningOfMethods = false;
+      enableStubbingOfClasses = false;
+      checkAllApiReferencesAreSet = false;
+    }
+
     /**
      * Disable the workarounds for missing APIs. This does not disable the use of the database, just
      * the introduction of soft-verification workarounds for potentially missing API references.
      */
-    public void disableMissingApiModeling() {
+    public void disableOutliningAndStubbing() {
       enableOutliningOfMethods = false;
       enableStubbingOfClasses = false;
     }
@@ -1759,7 +1787,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       enableApiCallerIdentification = false;
     }
 
-    public void disableSubbingOfClasses() {
+    public void disableStubbingOfClasses() {
       enableStubbingOfClasses = false;
     }
   }

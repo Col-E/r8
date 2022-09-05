@@ -1022,7 +1022,8 @@ public final class R8Command extends BaseCompilerCommand {
     internal.outputInspections = InspectorImpl.wrapInspections(getOutputInspections());
 
     if (!enableMissingLibraryApiModeling) {
-      internal.apiModelingOptions().disableMissingApiModeling();
+      internal.apiModelingOptions().disableApiCallerIdentification();
+      internal.apiModelingOptions().disableOutliningAndStubbing();
     }
 
     // Default is to remove all javac generated assertion code when generating dex.
@@ -1062,7 +1063,7 @@ public final class R8Command extends BaseCompilerCommand {
     // TODO(b/214382176): Enable all the time.
     internal.loadAllClassDefinitions = l8Shrinking;
     if (l8Shrinking) {
-      internal.apiModelingOptions().disableSubbingOfClasses();
+      internal.apiModelingOptions().disableStubbingOfClasses();
     }
     internal.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
 

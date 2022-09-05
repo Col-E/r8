@@ -905,7 +905,7 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
   @Test
   public void defaultApiModelingState() throws Exception {
     ApiModelTestingOptions options = parse("").getInternalOptions().apiModelingOptions();
-    assertTrue(options.enableApiCallerIdentification);
+    assertTrue(options.isApiCallerIdentificationEnabled());
     assertTrue(options.enableOutliningOfMethods);
     assertTrue(options.enableStubbingOfClasses);
   }

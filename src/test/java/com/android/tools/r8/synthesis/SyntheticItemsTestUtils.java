@@ -66,6 +66,10 @@ public class SyntheticItemsTestUtils {
     return syntheticClass(clazz, naming.API_MODEL_OUTLINE, id);
   }
 
+  public static ClassReference syntheticApiOutlineClass(ClassReference classReference, int id) {
+    return syntheticClass(classReference, naming.API_MODEL_OUTLINE, id);
+  }
+
   public static ClassReference syntheticBackportClass(Class<?> clazz, int id) {
     return syntheticClass(clazz, naming.BACKPORT, id);
   }

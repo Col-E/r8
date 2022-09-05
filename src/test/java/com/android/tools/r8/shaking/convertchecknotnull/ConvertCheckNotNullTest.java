@@ -15,6 +15,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeMatchers;
@@ -64,7 +65,10 @@ public class ConvertCheckNotNullTest extends TestBase {
               MethodSubject mainMethodSubject = mainClassSubject.mainMethod();
               assertThat(mainMethodSubject, isPresent());
               assertEquals(
-                  6,
+                  parameters.isDexRuntime()
+                          && parameters.getApiLevel().isLessThan(AndroidApiLevel.K)
+                      ? 4
+                      : 6,
                   mainMethodSubject
                       .streamInstructions()
                       .filter(
@@ -92,8 +96,16 @@ public class ConvertCheckNotNullTest extends TestBase {
       }
     } else {
       if (parameters.getDexRuntimeVersion().isEqualToOneOf(Version.V8_1_0, Version.DEFAULT)) {
-        message4 =
-            message5 = message6 = "Attempt to invoke a virtual method on a null object reference";
+        if (parameters.getApiLevel().isLessThan(AndroidApiLevel.K)) {
+          message4 = message5 = "Attempt to invoke a virtual method on a null object reference";
+          message6 =
+              "Attempt to invoke virtual method 'java.lang.Class"
+                  + " java.lang.Object.getClass()' on a null object reference";
+
+        } else {
+          message4 =
+              message5 = message6 = "Attempt to invoke a virtual method on a null object reference";
+        }
       } else if (parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V5_1_1)) {
         message4 =
             message5 =

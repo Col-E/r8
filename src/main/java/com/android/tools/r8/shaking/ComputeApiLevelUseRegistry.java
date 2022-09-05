@@ -21,6 +21,7 @@ public class ComputeApiLevelUseRegistry extends UseRegistry<ProgramMethod> {
 
   protected final AppView<?> appView;
   private final AndroidApiLevelCompute apiLevelCompute;
+  private final boolean isEnabled;
   private ComputedApiLevel maxApiReferenceLevel;
 
   public ComputeApiLevelUseRegistry(
@@ -28,6 +29,7 @@ public class ComputeApiLevelUseRegistry extends UseRegistry<ProgramMethod> {
     super(appView, context);
     this.appView = appView;
     this.apiLevelCompute = apiLevelCompute;
+    isEnabled = apiLevelCompute.isEnabled();
     maxApiReferenceLevel = appView.computedMinApiLevel();
   }
 
@@ -145,10 +147,12 @@ public class ComputeApiLevelUseRegistry extends UseRegistry<ProgramMethod> {
   }
 
   private void setMaxApiReferenceLevel(DexReference reference) {
-    maxApiReferenceLevel =
-        maxApiReferenceLevel.max(
-            apiLevelCompute.computeApiLevelForLibraryReference(
-                reference, apiLevelCompute.getPlatformApiLevelOrUnknown(appView)));
+    if (isEnabled) {
+      maxApiReferenceLevel =
+          maxApiReferenceLevel.max(
+              apiLevelCompute.computeApiLevelForLibraryReference(
+                  reference, apiLevelCompute.getPlatformApiLevelOrUnknown(appView)));
+    }
   }
 
   public ComputedApiLevel getMaxApiReferenceLevel() {

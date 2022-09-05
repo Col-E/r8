@@ -664,7 +664,7 @@ public final class D8Command extends BaseCompilerCommand {
 
     if (!enableMissingLibraryApiModeling) {
       internal.apiModelingOptions().disableApiCallerIdentification();
-      internal.apiModelingOptions().disableMissingApiModeling();
+      internal.apiModelingOptions().disableOutliningAndStubbing();
     }
 
     // Default is to remove all javac generated assertion code when generating dex.

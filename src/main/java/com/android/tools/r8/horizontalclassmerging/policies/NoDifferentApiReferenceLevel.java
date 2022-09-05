@@ -23,7 +23,7 @@ public class NoDifferentApiReferenceLevel extends MultiClassSameReferencePolicy<
     this.appView = appView;
     apiLevelCompute = appView.apiLevelCompute();
     enableApiCallerIdentification =
-        appView.options().apiModelingOptions().enableApiCallerIdentification;
+        appView.options().apiModelingOptions().isApiCallerIdentificationEnabled();
   }
 
   @Override

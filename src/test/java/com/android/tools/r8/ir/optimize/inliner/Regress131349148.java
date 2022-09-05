@@ -11,13 +11,18 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ThrowableConsumer;
+import com.android.tools.r8.apimodel.ApiModelingTestHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.UnverifiableCfCodeDiagnostic;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.Streams;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -61,36 +66,62 @@ public class Regress131349148 extends TestBase {
   }
 
   @Test
+  public void testNoInlineNonExistingCatchPreLWithApiModeling() throws Exception {
+    setupR8TestBuilder(
+        b ->
+            b.apply(ApiModelingTestHelper::enableOutliningOfMethods)
+                .apply(ApiModelingTestHelper::enableStubbingOfClasses)
+                .apply(ApiModelingTestHelper::enableApiCallerIdentification),
+        inspector -> {
+          ClassSubject classSubject = inspector.clazz(TestClassCallingMethodWithNonExisting.class);
+          boolean hasCatchHandler =
+              Streams.stream(classSubject.mainMethod().iterateTryCatches()).count() > 0;
+          // The catch handler does not exist in ClassWithCatchNonExisting.methodWithCatch thus we
+          // assign UNKNOWN api level. As a result we do not inline.
+          assertFalse(hasCatchHandler);
+        });
+  }
+
+  @Test
   public void testNoInlineNonExistingCatchPreL() throws Exception {
-    R8TestRunResult result =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(
-                TestClassCallingMethodWithNonExisting.class,
-                ClassWithCatchNonExisting.class,
-                ExistingException.class)
-            .addKeepMainRule(TestClassCallingMethodWithNonExisting.class)
-            .addDontWarn(NonExistingException.class)
-            .allowDiagnosticWarningMessages()
-            .setMinApi(parameters.getApiLevel())
-            .compileWithExpectedDiagnostics(
-                diagnostics ->
-                    diagnostics.assertWarningsMatch(
-                        allOf(
-                            diagnosticType(UnverifiableCfCodeDiagnostic.class),
-                            diagnosticMessage(
-                                containsString(
-                                    "Unverifiable code in `void "
-                                        + ClassWithCatchNonExisting.class.getTypeName()
-                                        + ".methodWithCatch()`")))))
-            .run(parameters.getRuntime(), TestClassCallingMethodWithNonExisting.class)
-            .assertSuccess();
-    ClassSubject classSubject =
-        result.inspector().clazz(TestClassCallingMethodWithNonExisting.class);
-    boolean hasCatchHandler =
-        Streams.stream(classSubject.mainMethod().iterateTryCatches()).count() > 0;
-    // The catch handler does not exist in ClassWithCatchNonExisting.methodWithCatch thus we assign
-    // UNKNOWN api level. As a result we do not inline.
-    assertFalse(hasCatchHandler);
+    setupR8TestBuilder(
+        b -> b.apply(ApiModelingTestHelper::disableApiModeling),
+        inspector -> {
+          ClassSubject classSubject = inspector.clazz(TestClassCallingMethodWithNonExisting.class);
+          boolean hasCatchHandler =
+              Streams.stream(classSubject.mainMethod().iterateTryCatches()).count() > 0;
+          int runtimeLevel = parameters.getApiLevel().getLevel();
+          assertEquals(runtimeLevel >= AndroidApiLevel.L.getLevel(), hasCatchHandler);
+        });
+  }
+
+  private void setupR8TestBuilder(
+      ThrowableConsumer<R8FullTestBuilder> r8TestBuilderConsumer,
+      ThrowingConsumer<CodeInspector, ? extends Exception> inspect)
+      throws Exception {
+    testForR8(parameters.getBackend())
+        .addProgramClasses(
+            TestClassCallingMethodWithNonExisting.class,
+            ClassWithCatchNonExisting.class,
+            ExistingException.class)
+        .addKeepMainRule(TestClassCallingMethodWithNonExisting.class)
+        .addDontWarn(NonExistingException.class)
+        .allowDiagnosticWarningMessages()
+        .setMinApi(parameters.getApiLevel())
+        .apply(r8TestBuilderConsumer)
+        .compileWithExpectedDiagnostics(
+            diagnostics ->
+                diagnostics.assertWarningsMatch(
+                    allOf(
+                        diagnosticType(UnverifiableCfCodeDiagnostic.class),
+                        diagnosticMessage(
+                            containsString(
+                                "Unverifiable code in `void "
+                                    + ClassWithCatchNonExisting.class.getTypeName()
+                                    + ".methodWithCatch()`")))))
+        .run(parameters.getRuntime(), TestClassCallingMethodWithNonExisting.class)
+        .assertSuccess()
+        .inspect(inspect);
   }
 
   static class TestClass {

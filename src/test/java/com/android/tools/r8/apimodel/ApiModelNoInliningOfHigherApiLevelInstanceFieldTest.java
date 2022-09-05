@@ -53,6 +53,7 @@ public class ApiModelNoInliningOfHigherApiLevelInstanceFieldTest extends TestBas
         .apply(setMockApiLevelForClass(Api.class, L_MR1))
         .apply(setMockApiLevelForDefaultInstanceInitializer(Api.class, L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .compile()
         .inspect(
             inspector ->

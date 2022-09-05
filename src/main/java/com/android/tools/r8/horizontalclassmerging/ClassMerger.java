@@ -225,6 +225,8 @@ public class ClassMerger {
             .setField(group.getClassIdField())
             .setAccessFlags(FieldAccessFlags.createPublicFinalSynthetic())
             .setApiLevel(appView.computedMinApiLevel())
+            .disableAndroidApiLevelCheckIf(
+                !appView.options().apiModelingOptions().isApiCallerIdentificationEnabled())
             .build();
 
     // For the $r8$classId synthesized fields, we try to over-approximate the set of values it may

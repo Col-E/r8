@@ -31,6 +31,7 @@ public class D8TestBuilder
   }
 
   private StringBuilder proguardMapOutputBuilder = null;
+  private boolean enableMissingLibraryApiModeling = true;
 
   @Override
   public boolean isD8TestBuilder() {
@@ -82,6 +83,7 @@ public class D8TestBuilder
       BenchmarkResults benchmarkResults)
       throws CompilationFailedException {
     libraryDesugaringTestConfiguration.configure(builder);
+    builder.setEnableExperimentalMissingLibraryApiModeling(enableMissingLibraryApiModeling);
     ToolHelper.runAndBenchmarkD8(builder, optionsConsumer, benchmarkResults);
     return new D8TestCompileResult(
         getState(),

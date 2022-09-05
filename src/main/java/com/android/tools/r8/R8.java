@@ -843,19 +843,16 @@ public class R8 {
 
   private static boolean allReferencesAssignedApiLevel(
       AppView<? extends AppInfoWithClassHierarchy> appView) {
-    if (!appView.options().apiModelingOptions().checkAllApiReferencesAreSet
+    if (!appView.options().apiModelingOptions().isCheckAllApiReferencesAreSet()
         || appView.options().configurationDebugging) {
       return true;
     }
-    // This will return false if we find anything in the library which is not modeled.
+    // This will assert false if we find anything in the library which is not modeled.
     for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {
       clazz.forEachProgramMember(
           member -> {
             assert !member.getDefinition().getApiLevel().isNotSetApiLevel()
                 : "Every member should have been analyzed";
-            assert appView.options().apiModelingOptions().enableApiCallerIdentification
-                    || member.getDefinition().getApiLevel().isUnknownApiLevel()
-                : "Every member should have level UNKNOWN";
           });
     }
     return true;

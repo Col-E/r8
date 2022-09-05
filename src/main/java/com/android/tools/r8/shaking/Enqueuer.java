@@ -3577,7 +3577,9 @@ public class Enqueuer {
         && appView.options().getProguardConfiguration().getKeepAttributes().signature) {
       registerAnalysis(new GenericSignatureEnqueuerAnalysis(enqueuerDefinitionSupplier));
     }
-    registerAnalysis(new ApiModelAnalysis(appView));
+    if (options.apiModelingOptions().enableLibraryApiModeling) {
+      registerAnalysis(new ApiModelAnalysis(appView));
+    }
 
     // Transfer the minimum keep info from the root set into the Enqueuer state.
     includeMinimumKeepInfo(rootSet);

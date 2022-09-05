@@ -60,6 +60,7 @@ public class ApiModelMockMergeTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(ApiModelingTestHelper::enableStubbingOfClasses)
+        .apply(ApiModelingTestHelper::disableOutlining)
         .apply(setMockApiLevelForClass(LibraryClass.class, mockLevel))
         .apply(setMockApiLevelForDefaultInstanceInitializer(LibraryClass.class, mockLevel))
         .apply(setMockApiLevelForMethod(LibraryClass.class.getDeclaredMethod("foo"), mockLevel))

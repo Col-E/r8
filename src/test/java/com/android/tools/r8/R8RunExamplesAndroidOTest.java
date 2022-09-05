@@ -190,6 +190,8 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withProguardCompatibilityMode(enableProguardCompatibilityMode)
         .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
+        .withBuilderTransformation(
+            builder -> builder.setEnableExperimentalMissingLibraryApiModeling(true))
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
         .withBuilderTransformation(ToolHelper::allowTestProguardOptions)
         .withBuilderTransformation(
@@ -232,6 +234,8 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
         .withBuilderTransformation(ToolHelper::allowTestProguardOptions)
+        .withBuilderTransformation(
+            builder -> builder.setEnableExperimentalMissingLibraryApiModeling(true))
         .withBuilderTransformation(
             b ->
                 b.addProguardConfiguration(

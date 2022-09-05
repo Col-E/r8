@@ -12,6 +12,7 @@ import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.apimodel.ApiModelingTestHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -62,6 +63,7 @@ public class KotlinIntrinsicsInlineChainTest extends KotlinTestBase {
         .allowDiagnosticWarningMessages()
         .setMinApi(parameters.getApiLevel())
         .addDontObfuscate()
+        .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .compile()
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .run(parameters.getRuntime(), MAIN, "foobar")

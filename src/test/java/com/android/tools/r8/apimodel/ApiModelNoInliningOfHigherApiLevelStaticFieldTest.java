@@ -49,6 +49,7 @@ public class ApiModelNoInliningOfHigherApiLevelStaticFieldTest extends TestBase 
         .enableNoHorizontalClassMergingAnnotations()
         .apply(setMockApiLevelForField(apiField, AndroidApiLevel.L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .compile()
         .inspect(
             inspector ->

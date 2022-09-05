@@ -36,7 +36,7 @@ public class AndroidApiReferenceLevelCache {
 
   public static AndroidApiReferenceLevelCache create(
       AppView<?> appView, AndroidApiLevelCompute apiLevelCompute) {
-    assert appView.options().apiModelingOptions().enableApiCallerIdentification;
+    assert appView.options().apiModelingOptions().isApiLibraryModelingEnabled();
     ImmutableList.Builder<AndroidApiForHashingReference> builder = ImmutableList.builder();
     BiConsumer<DexReference, AndroidApiLevel> addItemToList =
         ConsumerUtils.andThen(AndroidApiForHashingReference::create, builder::add);

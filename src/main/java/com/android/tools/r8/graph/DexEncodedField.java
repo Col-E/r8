@@ -312,7 +312,8 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     return builder(this)
         .setField(field)
         .disableAndroidApiLevelCheckIf(
-            !appView.options().apiModelingOptions().enableApiCallerIdentification)
+            !appView.options().apiModelingOptions().enableApiCallerIdentification
+                || !appView.enableWholeProgramOptimizations())
         .apply(consumer)
         .build();
   }

@@ -36,7 +36,7 @@ public class AndroidApiLevelUtils {
       ProgramMethod inlinee,
       InternalOptions options,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    if (!options.apiModelingOptions().enableApiCallerIdentification) {
+    if (!options.apiModelingOptions().isApiCallerIdentificationEnabled()) {
       return true;
     }
     if (caller.getHolderType() == inlinee.getHolderType()) {
@@ -90,13 +90,19 @@ public class AndroidApiLevelUtils {
       DexMethod original,
       AndroidApiLevelCompute androidApiLevelCompute,
       InternalOptions options) {
+    // If we are not using the api database and we have the platform build, then we assume we are
+    // running with boot class path as min api and all definitions are accessible at runtime.
+    if (!androidApiLevelCompute.isEnabled()) {
+      assert !options.apiModelingOptions().enableLibraryApiModeling;
+      return options.isAndroidPlatformBuild();
+    }
+    assert options.apiModelingOptions().enableLibraryApiModeling;
     ComputedApiLevel apiLevel =
         androidApiLevelCompute.computeApiLevelForLibraryReference(
             method.getReference(), ComputedApiLevel.unknown());
     if (apiLevel.isUnknownApiLevel()) {
       return false;
     }
-    assert options.apiModelingOptions().enableApiCallerIdentification;
     ComputedApiLevel apiLevelOfOriginal =
         androidApiLevelCompute.computeApiLevelForLibraryReference(
             original, ComputedApiLevel.unknown());
@@ -169,7 +175,7 @@ public class AndroidApiLevelUtils {
       // Program and classpath classes are not api level dependent.
       return true;
     }
-    if (!appView.options().apiModelingOptions().enableApiCallerIdentification) {
+    if (!appView.options().apiModelingOptions().isApiCallerIdentificationEnabled()) {
       // Conservatively bail out if we don't have api modeling.
       return false;
     }

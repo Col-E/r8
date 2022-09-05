@@ -334,6 +334,7 @@ public class VerticalClassMergerTest extends TestBase {
         testForR8(parameters.getBackend())
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
             .allowUnusedProguardConfigurationRules()
+            .apply(ApiModelingTestHelper::enableApiCallerIdentification)
             .apply(ApiModelingTestHelper::disableOutlining),
         main,
         programFiles,

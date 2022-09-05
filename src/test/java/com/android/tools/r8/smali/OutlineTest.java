@@ -1385,7 +1385,7 @@ public class OutlineTest extends SmaliTestBase {
               opts.outline.maxSize = 3;
 
               // Do not allow dead code elimination of the new-instance instructions.
-              opts.apiModelingOptions().enableApiCallerIdentification = false;
+              opts.apiModelingOptions().disableApiModeling();
               // Do not allow dead code elimination of the new-instance instructions. This can be
               // achieved by not assuming that StringBuilder is present.
               DexItemFactory dexItemFactory = opts.itemFactory;

@@ -51,7 +51,6 @@ public class EnumOptimizationTest extends TestBase {
     options.enableEnumValueOptimization = enableOptimization;
     options.enableEnumSwitchMapRemoval = enableOptimization;
     options.enableEnumUnboxing = false;
-    options.apiModelingOptions().enableApiCallerIdentification = true;
   }
 
   @Test
