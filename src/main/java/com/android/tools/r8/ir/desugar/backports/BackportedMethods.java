@@ -73,6 +73,7 @@ public final class BackportedMethods {
     factory.createSynthesizedType("Ljava/lang/NumberFormatException;");
     factory.createSynthesizedType("Ljava/lang/OutOfMemoryError;");
     factory.createSynthesizedType("Ljava/lang/Runnable;");
+    factory.createSynthesizedType("Ljava/lang/RuntimeException;");
     factory.createSynthesizedType("Ljava/lang/SecurityException;");
     factory.createSynthesizedType("Ljava/lang/reflect/Constructor;");
     factory.createSynthesizedType("Ljava/lang/reflect/InvocationTargetException;");
@@ -877,7 +878,7 @@ public final class BackportedMethods {
                             factory.createType("Ljava/lang/Exception;"))))),
             new CfStore(ValueType.OBJECT, 2),
             label6,
-            new CfNew(factory.createType("Ljava/lang/AssertionError;")),
+            new CfNew(factory.createType("Ljava/lang/RuntimeException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfNew(factory.stringBuilderType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
@@ -922,7 +923,7 @@ public final class BackportedMethods {
             new CfInvoke(
                 183,
                 factory.createMethod(
-                    factory.createType("Ljava/lang/AssertionError;"),
+                    factory.createType("Ljava/lang/RuntimeException;"),
                     factory.createProto(
                         factory.voidType, factory.stringType, factory.throwableType),
                     factory.createString("<init>")),
@@ -940,7 +941,7 @@ public final class BackportedMethods {
                     Arrays.asList(FrameType.initializedNonNullReference(factory.throwableType)))),
             new CfStore(ValueType.OBJECT, 2),
             label8,
-            new CfNew(factory.createType("Ljava/lang/AssertionError;")),
+            new CfNew(factory.createType("Ljava/lang/RuntimeException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfNew(factory.stringBuilderType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
@@ -985,7 +986,7 @@ public final class BackportedMethods {
             new CfInvoke(
                 183,
                 factory.createMethod(
-                    factory.createType("Ljava/lang/AssertionError;"),
+                    factory.createType("Ljava/lang/RuntimeException;"),
                     factory.createProto(
                         factory.voidType, factory.stringType, factory.throwableType),
                     factory.createString("<init>")),
