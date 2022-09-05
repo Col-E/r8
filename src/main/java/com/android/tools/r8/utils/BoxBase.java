@@ -6,6 +6,7 @@ package com.android.tools.r8.utils;
 
 import java.util.Comparator;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public abstract class BoxBase<T> {
@@ -37,6 +38,12 @@ public abstract class BoxBase<T> {
     T oldValue = value;
     value = newValue;
     return oldValue;
+  }
+
+  public T getAndCompute(Function<T, T> newValue) {
+    T t = get();
+    set(newValue.apply(t));
+    return t;
   }
 
   void set(T value) {
