@@ -142,7 +142,7 @@ public class JarClassFileReader<T extends DexClass> {
                 CfApplicationWriter.MARKER_STRING_CONSTANT_POOL_INDEX,
                 new char[reader.getMaxStringLength()]);
         if (maybeMarker instanceof String) {
-          application.getFactory().createString((String) maybeMarker);
+          application.getFactory().createMarkerString((String) maybeMarker);
         }
       } catch (IllegalArgumentException e) {
         // Ignore if the type of the constant is not something readConst() allows.

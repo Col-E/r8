@@ -257,9 +257,7 @@ public class Marker {
   // Try to parse str as a marker.
   // Returns null if parsing fails.
   public static Marker parse(DexString dexString) {
-    if (dexString.size > 2
-        && dexString.content[0] == PREFIX_CHAR
-        && dexString.content[1] == PREFIX_CHAR) {
+    if (hasMarkerPrefix(dexString.content)) {
       String str = dexString.toString();
       if (str.startsWith(D8_PREFIX)) {
         return internalParse(Tool.D8, str.substring(D8_PREFIX.length() - 1));
@@ -272,6 +270,10 @@ public class Marker {
       }
     }
     return null;
+  }
+
+  public static boolean hasMarkerPrefix(byte[] content) {
+    return content.length > 2 && content[0] == PREFIX_CHAR && content[1] == PREFIX_CHAR;
   }
 
   private static Marker internalParse(Tool tool, String str) {

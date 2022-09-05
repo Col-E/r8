@@ -81,6 +81,7 @@ public class DexItemFactory {
   /** Set of types that may be synthesized during compilation. */
   private final Set<DexType> possibleCompilerSynthesizedTypes = Sets.newIdentityHashSet();
 
+  private final Map<DexString, DexString> markers = new ConcurrentHashMap<>();
   private final Map<DexString, DexString> strings = new ConcurrentHashMap<>();
   private final Map<DexString, DexType> types = new ConcurrentHashMap<>();
   private final Map<DexField, DexField> fields = new ConcurrentHashMap<>();
@@ -2321,6 +2322,22 @@ public class DexItemFactory {
     return previous == null ? item : previous;
   }
 
+  public DexString createMarkerString(int size, byte[] content) {
+    DexString potentialMarker = createString(size, content);
+    if (Marker.hasMarkerPrefix(potentialMarker.content)) {
+      markers.put(potentialMarker, potentialMarker);
+    }
+    return potentialMarker;
+  }
+
+  public DexString createMarkerString(String marker) {
+    DexString potentialMarker = createString(marker);
+    if (Marker.hasMarkerPrefix(potentialMarker.content)) {
+      markers.put(potentialMarker, potentialMarker);
+    }
+    return potentialMarker;
+  }
+
   public DexString createString(int size, byte[] content) {
     assert !sorted;
     return canonicalize(strings, new DexString(size, content));
@@ -2601,9 +2618,8 @@ public class DexItemFactory {
   // Debugging support to extract marking string.
   // Find all markers.
   public synchronized Collection<Marker> extractMarkers() {
-    // This is slow but it is not needed for any production code yet.
     Set<Marker> markers = new HashSet<>();
-    for (DexString dexString : strings.keySet()) {
+    for (DexString dexString : this.markers.keySet()) {
       Marker marker = Marker.parse(dexString);
       if (marker != null) {
         markers.add(marker);

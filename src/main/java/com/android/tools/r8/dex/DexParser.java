@@ -1296,7 +1296,10 @@ public class DexParser<T extends DexClass> {
       read = dexReader.get();
       os.write(read);
     } while (read != 0);
-    return dexItemFactory.createString(size, os.toByteArray());
+    byte[] content = os.toByteArray();
+    return Marker.hasMarkerPrefix(content)
+        ? dexItemFactory.createMarkerString(size, content)
+        : dexItemFactory.createString(size, content);
   }
 
   private DexType typeAt(int index) {
