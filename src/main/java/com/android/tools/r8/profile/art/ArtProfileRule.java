@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.profile.art;
 
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.function.Consumer;
 
 public abstract class ArtProfileRule {
@@ -27,6 +29,8 @@ public abstract class ArtProfileRule {
   public ArtProfileMethodRule asMethodRule() {
     return null;
   }
+
+  public abstract void writeHumanReadableRuleString(OutputStreamWriter writer) throws IOException;
 
   public abstract static class Builder {
 

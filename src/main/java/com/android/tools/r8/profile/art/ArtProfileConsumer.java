@@ -6,6 +6,7 @@ package com.android.tools.r8.profile.art;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.TextOutputStream;
 
 /**
  * API for consuming an ART profile provided by the compiler, which has been rewritten to match the
@@ -13,6 +14,19 @@ import com.android.tools.r8.Keep;
  */
 @Keep
 public interface ArtProfileConsumer {
+
+  /**
+   * Returns a {@link TextOutputStream} that will receive the rules of the residual ART profile in
+   * the human-readable ART baseline profile format. This may return <code>null</code> to specify
+   * that the compiler should not emit the residual ART profile in the human-readable ART baseline
+   * profile format.
+   *
+   * @see <a href="https://developer.android.com/topic/performance/baselineprofiles">ART Baseline
+   *     Profiles</a>
+   */
+  default TextOutputStream getHumanReadableArtProfileConsumer() {
+    return null;
+  }
 
   /**
    * Returns an {@link ArtProfileRuleConsumer} that will receive the rules of the residual ART

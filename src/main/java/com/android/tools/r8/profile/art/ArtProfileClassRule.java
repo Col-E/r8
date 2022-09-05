@@ -8,6 +8,8 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.function.Consumer;
 
 public class ArtProfileClassRule extends ArtProfileRule {
@@ -56,6 +58,11 @@ public class ArtProfileClassRule extends ArtProfileRule {
   }
 
   @Override
+  public void writeHumanReadableRuleString(OutputStreamWriter writer) throws IOException {
+    writer.write(type.toDescriptorString());
+  }
+
+  @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;
@@ -74,7 +81,7 @@ public class ArtProfileClassRule extends ArtProfileRule {
 
   @Override
   public String toString() {
-    return type.toSmaliString();
+    return type.toDescriptorString();
   }
 
   public static class Builder extends ArtProfileRule.Builder implements ArtProfileClassRuleBuilder {

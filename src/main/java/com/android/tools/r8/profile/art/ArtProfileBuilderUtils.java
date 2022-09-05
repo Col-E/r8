@@ -13,6 +13,9 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.startup.StartupProfileBuilder;
+import com.android.tools.r8.utils.MethodReferenceUtils;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.function.Consumer;
 
 public class ArtProfileBuilderUtils {
@@ -144,12 +147,16 @@ public class ArtProfileBuilderUtils {
     public ArtProfileClassRuleInfo getClassRuleInfo() {
       return ArtProfileClassRuleInfoImpl.empty();
     }
+
+    public void writeHumanReadableRuleString(OutputStreamWriter writer) throws IOException {
+      writer.write(classReference.getDescriptor());
+    }
   }
 
   static class MutableArtProfileMethodRule implements ArtProfileMethodRuleBuilder {
 
     private MethodReference methodReference;
-    private ArtProfileMethodRuleInfo methodRuleInfo = ArtProfileMethodRuleInfoImpl.empty();
+    private ArtProfileMethodRuleInfoImpl methodRuleInfo = ArtProfileMethodRuleInfoImpl.empty();
 
     MutableArtProfileMethodRule() {}
 
@@ -175,6 +182,11 @@ public class ArtProfileBuilderUtils {
       methodRuleInfoBuilderConsumer.accept(methodRuleInfoBuilder);
       methodRuleInfo = methodRuleInfoBuilder.build();
       return this;
+    }
+
+    public void writeHumanReadableRuleString(OutputStreamWriter writer) throws IOException {
+      methodRuleInfo.writeHumanReadableFlags(writer);
+      writer.write(MethodReferenceUtils.toSmaliString(methodReference));
     }
   }
 }

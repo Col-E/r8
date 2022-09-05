@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.profile.art;
 
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+
 public class ArtProfileMethodRuleInfoImpl implements ArtProfileMethodRuleInfo {
 
   private static final ArtProfileMethodRuleInfoImpl EMPTY = new ArtProfileMethodRuleInfoImpl(0);
@@ -39,6 +42,18 @@ public class ArtProfileMethodRuleInfoImpl implements ArtProfileMethodRuleInfo {
   @Override
   public boolean isPostStartup() {
     return ArtProfileMethodRuleFlagsUtils.isPostStartup(flags);
+  }
+
+  public void writeHumanReadableFlags(OutputStreamWriter writer) throws IOException {
+    if (isHot()) {
+      writer.write('H');
+    }
+    if (isStartup()) {
+      writer.write('S');
+    }
+    if (isPostStartup()) {
+      writer.write('P');
+    }
   }
 
   @Override

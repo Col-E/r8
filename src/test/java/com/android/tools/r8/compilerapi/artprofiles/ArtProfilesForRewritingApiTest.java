@@ -14,6 +14,7 @@ import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TextInputStream;
+import com.android.tools.r8.TextOutputStream;
 import com.android.tools.r8.compilerapi.CompilerApiTest;
 import com.android.tools.r8.compilerapi.CompilerApiTestRunner;
 import com.android.tools.r8.compilerapi.artprofiles.ArtProfilesForRewritingApiTest.ApiTest.ArtProfileConsumerForTesting;
@@ -30,8 +31,11 @@ import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.ThrowingBiConsumer;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -75,7 +79,11 @@ public class ArtProfilesForRewritingApiTest extends CompilerApiTestRunner {
     for (ArtProfileConsumerForTesting artProfileConsumer :
         new ArtProfileConsumerForTesting[] {apiArtProfileConsumer, textualArtProfileConsumer}) {
       assertTrue(artProfileConsumer.isFinished());
+      assertTrue(artProfileConsumer.isOutputStreamClosed());
       assertEquals(ApiTest.textualArtProfileLines, artProfileConsumer.getResidualArtProfileRules());
+      assertEquals(
+          ApiTest.textualArtProfileLines,
+          artProfileConsumer.getResidualArtProfileRulesFromOutputStream());
     }
   }
 
@@ -216,6 +224,24 @@ public class ArtProfilesForRewritingApiTest extends CompilerApiTestRunner {
 
       private boolean finished;
       private final List<String> residualArtProfileRules = new ArrayList<>();
+      private final ClosableByteArrayOutputStream outputStream =
+          new ClosableByteArrayOutputStream();
+
+      @Override
+      public TextOutputStream getHumanReadableArtProfileConsumer() {
+        return new TextOutputStream() {
+
+          @Override
+          public OutputStream getOutputStream() {
+            return outputStream;
+          }
+
+          @Override
+          public Charset getCharset() {
+            return StandardCharsets.UTF_8;
+          }
+        };
+      }
 
       @Override
       public ArtProfileRuleConsumer getRuleConsumer() {
@@ -256,12 +282,21 @@ public class ArtProfilesForRewritingApiTest extends CompilerApiTestRunner {
         finished = true;
       }
 
+      List<String> getResidualArtProfileRulesFromOutputStream()
+          throws UnsupportedEncodingException {
+        return Arrays.asList(outputStream.toString(StandardCharsets.UTF_8.name()).split("\n"));
+      }
+
       List<String> getResidualArtProfileRules() {
         return residualArtProfileRules;
       }
 
       boolean isFinished() {
         return finished;
+      }
+
+      boolean isOutputStreamClosed() {
+        return outputStream.isClosed();
       }
     }
 
@@ -272,6 +307,21 @@ public class ArtProfilesForRewritingApiTest extends CompilerApiTestRunner {
       public ClosableByteArrayInputStream(byte[] buf) {
         super(buf);
       }
+
+      @Override
+      public void close() throws IOException {
+        super.close();
+        closed = true;
+      }
+
+      public boolean isClosed() {
+        return closed;
+      }
+    }
+
+    private static class ClosableByteArrayOutputStream extends ByteArrayOutputStream {
+
+      private boolean closed;
 
       @Override
       public void close() throws IOException {

@@ -8,14 +8,16 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.MethodReferenceUtils;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.function.Consumer;
 
 public class ArtProfileMethodRule extends ArtProfileRule {
 
   private final DexMethod method;
-  private final ArtProfileMethodRuleInfo info;
+  private final ArtProfileMethodRuleInfoImpl info;
 
-  ArtProfileMethodRule(DexMethod method, ArtProfileMethodRuleInfo info) {
+  ArtProfileMethodRule(DexMethod method, ArtProfileMethodRuleInfoImpl info) {
     this.method = method;
     this.info = info;
   }
@@ -55,6 +57,12 @@ public class ArtProfileMethodRule extends ArtProfileRule {
   @Override
   public ArtProfileMethodRule asMethodRule() {
     return this;
+  }
+
+  @Override
+  public void writeHumanReadableRuleString(OutputStreamWriter writer) throws IOException {
+    info.writeHumanReadableFlags(writer);
+    writer.write(method.toSmaliString());
   }
 
   @Override

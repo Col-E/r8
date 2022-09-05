@@ -7,6 +7,7 @@ package com.android.tools.r8.profile.art;
 import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
 import com.android.tools.r8.TextInputStream;
+import com.android.tools.r8.TextOutputStream;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
@@ -17,6 +18,9 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -120,19 +124,42 @@ public class ArtProfile {
 
   public void supplyConsumer(ArtProfileConsumer consumer, Reporter reporter) {
     if (consumer != null) {
+      TextOutputStream textOutputStream = consumer.getHumanReadableArtProfileConsumer();
+      if (textOutputStream != null) {
+        supplyHumanReadableArtProfileConsumer(textOutputStream);
+      }
       ArtProfileRuleConsumer ruleConsumer = consumer.getRuleConsumer();
       if (ruleConsumer != null) {
-        for (ArtProfileRule rule : rules) {
-          rule.accept(
-              classRule ->
-                  ruleConsumer.acceptClassRule(
-                      classRule.getClassReference(), classRule.getClassRuleInfo()),
-              methodRule ->
-                  ruleConsumer.acceptMethodRule(
-                      methodRule.getMethodReference(), methodRule.getMethodRuleInfo()));
-        }
+        supplyRuleConsumer(ruleConsumer);
       }
       consumer.finished(reporter);
+    }
+  }
+
+  private void supplyHumanReadableArtProfileConsumer(TextOutputStream textOutputStream) {
+    try {
+      try (OutputStreamWriter outputStreamWriter =
+          new OutputStreamWriter(
+              textOutputStream.getOutputStream(), textOutputStream.getCharset())) {
+        for (ArtProfileRule rule : rules) {
+          rule.writeHumanReadableRuleString(outputStreamWriter);
+          outputStreamWriter.write('\n');
+        }
+      }
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+  private void supplyRuleConsumer(ArtProfileRuleConsumer ruleConsumer) {
+    for (ArtProfileRule rule : rules) {
+      rule.accept(
+          classRule ->
+              ruleConsumer.acceptClassRule(
+                  classRule.getClassReference(), classRule.getClassRuleInfo()),
+          methodRule ->
+              ruleConsumer.acceptMethodRule(
+                  methodRule.getMethodReference(), methodRule.getMethodRuleInfo()));
     }
   }
 

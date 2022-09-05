@@ -5,6 +5,7 @@
 package com.android.tools.r8.profile.art;
 
 import com.android.tools.r8.TextInputStream;
+import com.android.tools.r8.TextOutputStream;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.GraphLens;
@@ -12,6 +13,9 @@ import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.profile.art.ArtProfileBuilderUtils.MutableArtProfileClassRule;
 import com.android.tools.r8.profile.art.ArtProfileBuilderUtils.MutableArtProfileMethodRule;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.UncheckedIOException;
 import java.util.function.Consumer;
 
 public class PassthroughArtProfileCollection extends ArtProfileCollection {
@@ -42,6 +46,18 @@ public class PassthroughArtProfileCollection extends ArtProfileCollection {
       ArtProfileProvider artProfileProvider = artProfileForRewriting.getArtProfileProvider();
       ArtProfileConsumer artProfileConsumer =
           EmptyArtProfileConsumer.orEmpty(artProfileForRewriting.getResidualArtProfileConsumer());
+      supplyArtProfileConsumer(appView, artProfileConsumer, artProfileProvider);
+      artProfileConsumer.finished(appView.reporter());
+    }
+  }
+
+  private void supplyArtProfileConsumer(
+      AppView<?> appView,
+      ArtProfileConsumer artProfileConsumer,
+      ArtProfileProvider artProfileProvider) {
+    ArtProfileConsumerSupplier artProfileConsumerSupplier =
+        new ArtProfileConsumerSupplier(artProfileConsumer);
+    try {
       ArtProfileRuleConsumer ruleConsumer =
           EmptyArtProfileRuleConsumer.orEmpty(artProfileConsumer.getRuleConsumer());
       artProfileProvider.getArtProfile(
@@ -54,6 +70,7 @@ public class PassthroughArtProfileCollection extends ArtProfileCollection {
               classRuleBuilderConsumer.accept(classRule);
               ruleConsumer.acceptClassRule(
                   classRule.getClassReference(), classRule.getClassRuleInfo());
+              artProfileConsumerSupplier.supply(classRule);
               return this;
             }
 
@@ -64,6 +81,7 @@ public class PassthroughArtProfileCollection extends ArtProfileCollection {
               methodRuleBuilderConsumer.accept(methodRule);
               ruleConsumer.acceptMethodRule(
                   methodRule.getMethodReference(), methodRule.getMethodRuleInfo());
+              artProfileConsumerSupplier.supply(methodRule);
               return this;
             }
 
@@ -81,13 +99,60 @@ public class PassthroughArtProfileCollection extends ArtProfileCollection {
               return this;
             }
           });
-
-      artProfileConsumer.finished(appView.reporter());
+    } finally {
+      artProfileConsumerSupplier.close();
     }
   }
 
   @Override
   public ArtProfileCollection withoutPrunedItems(PrunedItems prunedItems) {
     return this;
+  }
+
+  private static class ArtProfileConsumerSupplier {
+
+    private final OutputStreamWriter outputStreamWriter;
+
+    ArtProfileConsumerSupplier(ArtProfileConsumer artProfileConsumer) {
+      TextOutputStream textOutputStream = artProfileConsumer.getHumanReadableArtProfileConsumer();
+      this.outputStreamWriter =
+          textOutputStream != null
+              ? new OutputStreamWriter(
+                  textOutputStream.getOutputStream(), textOutputStream.getCharset())
+              : null;
+      ;
+    }
+
+    void supply(MutableArtProfileClassRule classRule) {
+      if (outputStreamWriter != null) {
+        try {
+          classRule.writeHumanReadableRuleString(outputStreamWriter);
+          outputStreamWriter.write('\n');
+        } catch (IOException e) {
+          throw new UncheckedIOException(e);
+        }
+      }
+    }
+
+    void supply(MutableArtProfileMethodRule methodRule) {
+      if (outputStreamWriter != null) {
+        try {
+          methodRule.writeHumanReadableRuleString(outputStreamWriter);
+          outputStreamWriter.write('\n');
+        } catch (IOException e) {
+          throw new UncheckedIOException(e);
+        }
+      }
+    }
+
+    void close() {
+      if (outputStreamWriter != null) {
+        try {
+          outputStreamWriter.close();
+        } catch (IOException e) {
+          throw new UncheckedIOException(e);
+        }
+      }
+    }
   }
 }
