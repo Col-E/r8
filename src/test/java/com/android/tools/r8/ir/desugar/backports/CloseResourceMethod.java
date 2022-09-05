@@ -39,11 +39,11 @@ public class CloseResourceMethod {
           Method method = resource.getClass().getMethod("close");
           method.invoke(resource);
         } catch (NoSuchMethodException | SecurityException e) {
-          throw new AssertionError(resource.getClass() + " does not have a close() method.", e);
+          throw new RuntimeException(resource.getClass() + " does not have a close() method.", e);
         } catch (IllegalAccessException
             | IllegalArgumentException
             | ExceptionInInitializerError e) {
-          throw new AssertionError("Fail to call close() on " + resource.getClass(), e);
+          throw new RuntimeException("Fail to call close() on " + resource.getClass(), e);
         } catch (InvocationTargetException e) {
           throw e.getCause();
         }
