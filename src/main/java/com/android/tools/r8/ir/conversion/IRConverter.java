@@ -49,6 +49,7 @@ import com.android.tools.r8.ir.desugar.itf.InterfaceProcessor;
 import com.android.tools.r8.ir.desugar.itf.L8InnerOuterAttributeEraser;
 import com.android.tools.r8.ir.desugar.lambda.LambdaDeserializationMethodRemover;
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
+import com.android.tools.r8.ir.optimize.AssertionErrorTwoArgsConstructorRewriter;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.AssumeInserter;
 import com.android.tools.r8.ir.optimize.CheckNotNullConverter;
@@ -132,6 +133,7 @@ public class IRConverter {
   private final InternalOptions options;
   private final CfgPrinter printer;
   public final CodeRewriter codeRewriter;
+  public final AssertionErrorTwoArgsConstructorRewriter assertionErrorTwoArgsConstructorRewriter;
   private final NaturalIntLoopRemover naturalIntLoopRemover = new NaturalIntLoopRemover();
   public final MemberValuePropagation<?> memberValuePropagation;
   private final LensCodeRewriter lensCodeRewriter;
@@ -181,6 +183,8 @@ public class IRConverter {
     this.options = appView.options();
     this.printer = printer;
     this.codeRewriter = new CodeRewriter(appView);
+    this.assertionErrorTwoArgsConstructorRewriter =
+        new AssertionErrorTwoArgsConstructorRewriter(appView);
     this.classInitializerDefaultsOptimization =
         new ClassInitializerDefaultsOptimization(appView, this);
     this.stringOptimizer = new StringOptimizer(appView);
@@ -369,6 +373,10 @@ public class IRConverter {
 
     if (instanceInitializerOutliner != null) {
       processSimpleSynthesizeMethods(instanceInitializerOutliner.getSynthesizedMethods(), executor);
+    }
+    if (assertionErrorTwoArgsConstructorRewriter != null) {
+      processSimpleSynthesizeMethods(
+          assertionErrorTwoArgsConstructorRewriter.getSynthesizedMethods(), executor);
     }
 
     application = commitPendingSyntheticItemsD8(appView, application);
@@ -800,6 +808,10 @@ public class IRConverter {
     if (instanceInitializerOutliner != null) {
       processSimpleSynthesizeMethods(
           instanceInitializerOutliner.getSynthesizedMethods(), executorService);
+    }
+    if (assertionErrorTwoArgsConstructorRewriter != null) {
+      processSimpleSynthesizeMethods(
+          assertionErrorTwoArgsConstructorRewriter.getSynthesizedMethods(), executorService);
     }
 
     // Update optimization info for all synthesized methods at once.
@@ -1333,7 +1345,7 @@ public class IRConverter {
     naturalIntLoopRemover.run(appView, code);
     timing.end();
     timing.begin("Rewrite AssertionError");
-    codeRewriter.rewriteAssertionErrorTwoArgumentConstructor(code, options);
+    assertionErrorTwoArgsConstructorRewriter.rewrite(code, methodProcessingContext);
     timing.end();
     timing.begin("Run CSE");
     codeRewriter.commonSubexpressionElimination(code);

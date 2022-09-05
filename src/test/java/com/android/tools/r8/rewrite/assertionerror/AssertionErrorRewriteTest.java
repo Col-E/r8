@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.rewrite.assertionerror;
 
-import static com.android.tools.r8.ToolHelper.getDefaultAndroidJar;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
@@ -38,46 +37,33 @@ public class AssertionErrorRewriteTest extends TestBase {
   @Test public void d8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
     testForD8()
-        .addLibraryFiles(getDefaultAndroidJar())
         .addProgramClasses(Main.class)
         .setMinApi(parameters.getApiLevel())
-        .run(parameters.getRuntime(), Main.class, String.valueOf(expectCause))
-        .assertSuccessWithOutputLines("OK", "OK");
+        .run(parameters.getRuntime(), Main.class)
+        // None of the VMs we have for testing is missing the two args constructor.
+        .assertSuccessWithOutputLines("message", "java.lang.RuntimeException: cause message");
   }
 
   @Test public void r8() throws Exception {
     testForR8(parameters.getBackend())
-        .addLibraryFiles(getDefaultAndroidJar())
         .addProgramClasses(Main.class)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class, String.valueOf(expectCause))
-        .assertSuccessWithOutputLines("OK", "OK");
+        // None of the VMs we have for testing is missing the two args constructor.
+        .assertSuccessWithOutputLines("message", "java.lang.RuntimeException: cause message");
   }
 
   public static final class Main {
     public static void main(String[] args) {
-      boolean expectCause = Boolean.parseBoolean(args[0]);
-
       Throwable expectedCause = new RuntimeException("cause message");
       try {
         throwAssertionError(expectedCause);
         System.out.println("unreachable");
       } catch (AssertionError e) {
-        String message = e.getMessage();
-        if (!message.equals("message")) {
-          throw new RuntimeException("Incorrect AssertionError message: " + message);
-        } else {
-          System.out.println("OK");
-        }
-
-        Throwable cause = e.getCause();
-        if (expectCause && cause != expectedCause) {
-          throw new RuntimeException("Incorrect AssertionError cause", cause);
-        } else {
-          System.out.println("OK");
-        }
+        System.out.println(e.getMessage());
+        System.out.println(e.getCause());
       }
     }
 

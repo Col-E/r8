@@ -74,6 +74,7 @@ public final class BackportedMethods {
     factory.createSynthesizedType("Ljava/lang/OutOfMemoryError;");
     factory.createSynthesizedType("Ljava/lang/Runnable;");
     factory.createSynthesizedType("Ljava/lang/SecurityException;");
+    factory.createSynthesizedType("Ljava/lang/reflect/Constructor;");
     factory.createSynthesizedType("Ljava/lang/reflect/InvocationTargetException;");
     factory.createSynthesizedType("Ljava/lang/reflect/Method;");
     factory.createSynthesizedType("Ljava/util/AbstractMap$SimpleImmutableEntry;");
@@ -115,6 +116,101 @@ public final class BackportedMethods {
     factory.createSynthesizedType("[Ljava/lang/Object;");
     factory.createSynthesizedType("[Ljava/lang/Throwable;");
     factory.createSynthesizedType("[Ljava/util/Map$Entry;");
+  }
+
+  public static CfCode AssertionErrorMethods_createAssertionError(
+      DexItemFactory factory, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    CfLabel label4 = new CfLabel();
+    CfLabel label5 = new CfLabel();
+    CfLabel label6 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        5,
+        3,
+        ImmutableList.of(
+            label0,
+            new CfConstClass(factory.createType("Ljava/lang/AssertionError;")),
+            new CfConstNumber(2, ValueType.INT),
+            new CfNewArray(factory.createType("[Ljava/lang/Class;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfConstNumber(0, ValueType.INT),
+            new CfConstClass(factory.stringType),
+            new CfArrayStore(MemberType.OBJECT),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfConstNumber(1, ValueType.INT),
+            new CfConstClass(factory.throwableType),
+            new CfArrayStore(MemberType.OBJECT),
+            label1,
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.classType,
+                    factory.createProto(
+                        factory.createType("Ljava/lang/reflect/Constructor;"),
+                        factory.createType("[Ljava/lang/Class;")),
+                    factory.createString("getDeclaredConstructor")),
+                false),
+            new CfStore(ValueType.OBJECT, 2),
+            label2,
+            new CfLoad(ValueType.OBJECT, 2),
+            new CfConstNumber(2, ValueType.INT),
+            new CfNewArray(factory.createType("[Ljava/lang/Object;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfConstNumber(0, ValueType.INT),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfArrayStore(MemberType.OBJECT),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfConstNumber(1, ValueType.INT),
+            new CfLoad(ValueType.OBJECT, 1),
+            new CfArrayStore(MemberType.OBJECT),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.createType("Ljava/lang/reflect/Constructor;"),
+                    factory.createProto(
+                        factory.objectType, factory.createType("[Ljava/lang/Object;")),
+                    factory.createString("newInstance")),
+                false),
+            new CfCheckCast(factory.createType("Ljava/lang/AssertionError;")),
+            label3,
+            new CfReturn(ValueType.OBJECT),
+            label4,
+            new CfFrame(
+                new Int2ObjectAVLTreeMap<>(
+                    new int[] {0, 1},
+                    new FrameType[] {
+                      FrameType.initializedNonNullReference(factory.stringType),
+                      FrameType.initializedNonNullReference(factory.throwableType)
+                    }),
+                new ArrayDeque<>(
+                    Arrays.asList(
+                        FrameType.initializedNonNullReference(
+                            factory.createType("Ljava/lang/Exception;"))))),
+            new CfStore(ValueType.OBJECT, 2),
+            label5,
+            new CfNew(factory.createType("Ljava/lang/AssertionError;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                183,
+                factory.createMethod(
+                    factory.createType("Ljava/lang/AssertionError;"),
+                    factory.createProto(factory.voidType, factory.objectType),
+                    factory.createString("<init>")),
+                false),
+            new CfReturn(ValueType.OBJECT),
+            label6),
+        ImmutableList.of(
+            new CfTryCatch(
+                label0,
+                label3,
+                ImmutableList.of(factory.createType("Ljava/lang/Exception;")),
+                ImmutableList.of(label4))),
+        ImmutableList.of());
   }
 
   public static CfCode AtomicReferenceArrayMethods_compareAndSet(

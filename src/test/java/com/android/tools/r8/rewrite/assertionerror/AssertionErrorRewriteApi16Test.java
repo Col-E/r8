@@ -44,6 +44,6 @@ public class AssertionErrorRewriteApi16Test extends TestBase {
         .enableInliningAnnotations()
         .setMinApi(AndroidApiLevel.J)
         .run(parameters.getRuntime(), Main.class, String.valueOf(false))
-        .assertSuccessWithOutputLines("OK", "OK");
+        .assertSuccessWithOutputLines("message", "java.lang.RuntimeException: cause message");
   }
 }

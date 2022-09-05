@@ -138,7 +138,6 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
@@ -3420,55 +3419,6 @@ public class CodeRewriter {
       }
 
       phiUsers.forEach(Phi::removeTrivialPhi);
-    }
-    assert code.isConsistentSSA(appView);
-  }
-
-  public void rewriteAssertionErrorTwoArgumentConstructor(IRCode code, InternalOptions options) {
-    if (options.canUseAssertionErrorTwoArgumentConstructor()) {
-      return;
-    }
-
-    ListIterator<BasicBlock> blockIterator = code.listIterator();
-    while (blockIterator.hasNext()) {
-      BasicBlock block = blockIterator.next();
-      InstructionListIterator insnIterator = block.listIterator(code);
-      while (insnIterator.hasNext()) {
-        Instruction current = insnIterator.next();
-        if (current.isInvokeMethod()) {
-          DexMethod invokedMethod = current.asInvokeMethod().getInvokedMethod();
-          if (invokedMethod == dexItemFactory.assertionErrorMethods.initMessageAndCause) {
-            // Rewrite calls to new AssertionError(message, cause) to new AssertionError(message)
-            // and then initCause(cause).
-            List<Value> inValues = current.inValues();
-            assert inValues.size() == 3; // receiver, message, cause
-
-            // Remove cause from the constructor call
-            List<Value> newInitInValues = inValues.subList(0, 2);
-            insnIterator.replaceCurrentInstruction(
-                new InvokeDirect(
-                    dexItemFactory.assertionErrorMethods.initMessage, null, newInitInValues));
-
-            // On API 15 and older we cannot use initCause because of a bug in AssertionError.
-            if (options.canInitCauseAfterAssertionErrorObjectConstructor()) {
-              // Add a call to Throwable.initCause(cause)
-              if (block.hasCatchHandlers()) {
-                insnIterator = insnIterator.split(code, blockIterator).listIterator(code);
-              }
-              List<Value> initCauseArguments = Arrays.asList(inValues.get(0), inValues.get(2));
-              InvokeVirtual initCause =
-                  new InvokeVirtual(
-                      dexItemFactory.throwableMethods.initCause,
-                      code.createValue(
-                          TypeElement.fromDexType(
-                              dexItemFactory.throwableType, maybeNull(), appView)),
-                      initCauseArguments);
-              initCause.setPosition(current.getPosition());
-              insnIterator.add(initCause);
-            }
-          }
-        }
-      }
     }
     assert code.isConsistentSSA(appView);
   }
