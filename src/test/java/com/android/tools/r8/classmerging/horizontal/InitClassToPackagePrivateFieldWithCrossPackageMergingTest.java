@@ -9,7 +9,7 @@ import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
+import com.android.tools.r8.references.Reference;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
@@ -47,13 +47,16 @@ public class InitClassToPackagePrivateFieldWithCrossPackageMergingTest extends T
         .addProgramClassFileData(getProgramClassFileData())
         .addKeepMainRule(Main.class)
         .addHorizontallyMergedClassesInspector(
-            HorizontallyMergedClassesInspector::assertNoClassesMerged)
+            inspector ->
+                inspector.assertMergedInto(
+                    Reference.classFromClass(A.class),
+                    Reference.classFromDescriptor(NEW_B_DESCRIPTOR)))
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("Hello, world!");
+        .assertFailureWithErrorThatThrows(IllegalAccessError.class);
   }
 
   private List<byte[]> getProgramClassFileData() throws Exception {

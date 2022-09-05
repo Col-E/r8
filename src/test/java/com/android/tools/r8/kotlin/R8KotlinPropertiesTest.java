@@ -11,7 +11,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.kotlin.TestKotlinClass.Visibility;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -510,9 +509,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             inspector -> {
               checkClassIsRemoved(inspector, testedClass.getClassName());
 
-              if (allowAccessModification
-                  || (testParameters.isDexRuntime()
-                      && testParameters.getApiLevel().isGreaterThan(AndroidApiLevel.B))) {
+              if (allowAccessModification) {
                 checkClassIsRemoved(inspector, testedClass.getOuterClassName());
                 return;
               }
