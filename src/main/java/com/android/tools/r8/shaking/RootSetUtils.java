@@ -1706,7 +1706,8 @@ public class RootSetUtils {
     }
 
     private boolean isInterfaceMethodNeedingDesugaring(ProgramDefinition item) {
-      return options.isInterfaceMethodDesugaringEnabled()
+      return !isMainDexRootSetBuilder()
+          && options.isInterfaceMethodDesugaringEnabled()
           && item.isMethod()
           && item.asMethod().getHolder().isInterface()
           && !item.asMethod().getDefinition().isClassInitializer()

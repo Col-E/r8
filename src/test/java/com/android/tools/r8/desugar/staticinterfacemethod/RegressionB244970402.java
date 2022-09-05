@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.staticinterfacemethod;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -27,8 +26,7 @@ public class RegressionB244970402 extends TestBase {
     this.parameters = parameters;
   }
 
-  // TODO(b/244970402): This should not fail.
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(I.class, TestClass.class)
