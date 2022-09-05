@@ -22,6 +22,7 @@ import com.android.tools.r8.ExtractMarker;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
@@ -76,18 +77,16 @@ public class MergingWithDesugaredLibraryTest extends DesugaredLibraryTestBase {
     compileResult
         .run(parameters.getRuntime(), Part1.class)
         .assertSuccessWithOutputLines(getExpected());
+    boolean expectNoSuchMethodError =
+        parameters.isDexRuntime() && parameters.getDexRuntimeVersion().isOlderThan(Version.V7_0_0);
     compileResult
         .run(parameters.getRuntime(), Part2.class)
-        .assertFailureWithErrorThatThrowsIf(!isApiAvailable(), NoSuchMethodError.class)
-        .assertSuccessWithOutputLinesIf(isApiAvailable(), JAVA_RESULT);
-  }
-
-  private boolean isApiAvailable() {
-    return parameters.getApiLevel().getLevel() >= AndroidApiLevel.N.getLevel();
+        .assertFailureWithErrorThatThrowsIf(expectNoSuchMethodError, NoSuchMethodError.class)
+        .assertSuccessWithOutputLinesIf(!expectNoSuchMethodError, JAVA_RESULT);
   }
 
   private String getExpected() {
-    if (isApiAvailable()) {
+    if (parameters.getApiLevel().getLevel() >= AndroidApiLevel.N.getLevel()) {
       return JAVA_RESULT;
     } else {
       return J$_RESULT;
