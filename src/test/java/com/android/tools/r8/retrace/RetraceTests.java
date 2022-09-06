@@ -74,6 +74,7 @@ import com.android.tools.r8.retrace.stacktraces.StackTraceForTest;
 import com.android.tools.r8.retrace.stacktraces.SuppressedStackTrace;
 import com.android.tools.r8.retrace.stacktraces.SyntheticLambdaMethodStackTrace;
 import com.android.tools.r8.retrace.stacktraces.SyntheticLambdaMethodWithInliningStackTrace;
+import com.android.tools.r8.retrace.stacktraces.TrailingWhitespaceStackTrace;
 import com.android.tools.r8.retrace.stacktraces.UnicodeInFileNameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.UnknownSourceStackTrace;
 import com.android.tools.r8.retrace.stacktraces.VerboseUnknownStackTrace;
@@ -437,6 +438,11 @@ public class RetraceTests extends TestBase {
         .assertWarningsMatch(
             DiagnosticsMatcher.diagnosticMessage(containsString("98.0")),
             DiagnosticsMatcher.diagnosticMessage(containsString("99.0")));
+  }
+
+  @Test
+  public void testTrailingWhitespaceStackTrace() throws Exception {
+    runRetraceTest(new TrailingWhitespaceStackTrace());
   }
 
   private void inspectRetraceTest(

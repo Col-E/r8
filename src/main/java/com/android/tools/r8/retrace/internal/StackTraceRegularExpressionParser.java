@@ -20,7 +20,7 @@ public class StackTraceRegularExpressionParser
   // that allow for retracing classes in the form <class>: lorem ipsum...
   // Seems like Proguard retrace is expecting the form "Caused by: <class>".
   public static final String DEFAULT_REGULAR_EXPRESSION =
-      "(?:.*?\\bat\\s+%c\\.%m\\s*\\(%S\\)\\s*(?:~\\[.*\\])?)"
+      "(?:.*?\\bat\\s+%c\\.%m\\s*\\(%S\\)\\p{Z}*(?:~\\[.*\\])?)"
           + "|(?:(?:(?:%c|.*)?[:\"]\\s+)?%c(?::.*)?)";
 
   private final Pattern compiledPattern;
