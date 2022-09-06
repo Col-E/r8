@@ -77,7 +77,11 @@ public class InstanceInitializerOutliner {
       if (!invokedConstructor.isInstanceInitializer(factory)) {
         continue;
       }
-      NewInstance newInstance = invokeDirect.getFirstOperand().getDefinition().asNewInstance();
+      Value firstOperand = invokeDirect.getFirstOperand();
+      if (firstOperand.isPhi()) {
+        continue;
+      }
+      NewInstance newInstance = firstOperand.getDefinition().asNewInstance();
       if (newInstance == null) {
         // We could not find a new instance call associated with the init, this is probably a
         // constructor call to the super class.
