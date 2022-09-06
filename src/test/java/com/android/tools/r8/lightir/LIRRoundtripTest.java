@@ -5,17 +5,17 @@ package com.android.tools.r8.lightir;
 
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.debug.DebugTestBase;
+import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class LIRRoundtripTest extends TestBase {
+public class LIRRoundtripTest extends DebugTestBase {
 
   static class TestClass {
     public static void main(String[] args) {
@@ -64,9 +64,8 @@ public class LIRRoundtripTest extends TestBase {
         .assertSuccessWithOutputLines("Hello, world!");
   }
 
-  // TODO(b/225838009): Support debug local info.
-  @Test(expected = CompilationFailedException.class)
-  public void testRoundtripDebug() throws Exception {
+  @Test
+  public void testRoundtripDebug() throws Throwable {
     testForD8(parameters.getBackend())
         .debug()
         .setMinApi(AndroidApiLevel.B)
@@ -77,6 +76,17 @@ public class LIRRoundtripTest extends TestBase {
               o.testing.roundtripThroughLIR = true;
             })
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("Hello, world!");
+        .assertSuccessWithOutputLines("Hello, world!")
+        .debugger(this::runDebugger);
+  }
+
+  private void runDebugger(DebugTestConfig config) throws Throwable {
+    runDebugTest(
+        config,
+        TestClass.class,
+        breakOnException(typeName(TestClass.class), "main", true, true),
+        run(),
+        checkLocals("args", "message"),
+        run());
   }
 }

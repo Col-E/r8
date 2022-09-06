@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
+import com.android.tools.r8.ir.code.DebugLocalWrite;
 import com.android.tools.r8.ir.code.DebugPosition;
 import com.android.tools.r8.ir.code.Div;
 import com.android.tools.r8.ir.code.Goto;
@@ -192,18 +193,21 @@ public class LIR2IRConverter {
       return arguments;
     }
 
+    public int toInstructionIndexInIR(int lirIndex) {
+      return lirIndex + code.getArgumentCount();
+    }
+
     public int peekNextInstructionIndex() {
       return nextInstructionIndex;
     }
 
     public Value getOutValueForNextInstruction(TypeElement type) {
-      // TODO(b/225838009): Support debug locals.
-      DebugLocalInfo localInfo = null;
-      int index = peekNextInstructionIndex() + code.getArgumentCount();
-      Value value = values[index];
+      int valueIndex = toInstructionIndexInIR(peekNextInstructionIndex());
+      DebugLocalInfo localInfo = code.getDebugLocalInfo(valueIndex);
+      Value value = values[valueIndex];
       if (value == null) {
         value = new Value(valueNumberGenerator.next(), type, localInfo);
-        values[index] = value;
+        values[valueIndex] = value;
       } else {
         value.setType(type);
         if (localInfo != null) {
@@ -214,17 +218,17 @@ public class LIR2IRConverter {
     }
 
     public Phi getPhiForNextInstructionAndAdvanceState(TypeElement type) {
-      int index = peekNextInstructionIndex() + code.getArgumentCount();
+      int valueIndex = toInstructionIndexInIR(peekNextInstructionIndex());
+      DebugLocalInfo localInfo = code.getDebugLocalInfo(valueIndex);
       // TODO(b/225838009): The phi constructor implicitly adds to the block, so we need to ensure
       //  the block. However, we must grab the index above. Find a way to clean this up so it is
       //  uniform with instructions.
       advanceInstructionState();
       // Creating the phi implicitly adds it to currentBlock.
-      DebugLocalInfo localInfo = null;
       Phi phi =
           new Phi(
               valueNumberGenerator.next(), currentBlock, type, localInfo, RegisterReadType.NORMAL);
-      Value value = values[index];
+      Value value = values[valueIndex];
       if (value != null) {
         // A fake ssa value has already been created, replace the users by the actual phi.
         // TODO(b/225838009): We could consider encoding the value type as a bit in the value index
@@ -232,7 +236,7 @@ public class LIR2IRConverter {
         assert !value.isPhi();
         value.replaceUsers(phi);
       }
-      values[index] = phi;
+      values[valueIndex] = phi;
       return phi;
     }
 
@@ -243,10 +247,18 @@ public class LIR2IRConverter {
     }
 
     private void addInstruction(Instruction instruction) {
+      int index = toInstructionIndexInIR(peekNextInstructionIndex());
       advanceInstructionState();
       instruction.setPosition(currentPosition);
       currentBlock.getInstructions().add(instruction);
       instruction.setBlock(currentBlock);
+      int[] debugEndIndices = code.getDebugLocalEnds(index);
+      if (debugEndIndices != null) {
+        for (int debugEndIndex : debugEndIndices) {
+          Value debugValue = getValue(debugEndIndex);
+          debugValue.addDebugLocalEnd(instruction);
+        }
+      }
     }
 
     private void addThisArgument(DexType type) {
@@ -259,6 +271,10 @@ public class LIR2IRConverter {
       // which would otherwise advance the state.
       Value dest = getValue(index);
       dest.setType(type.toTypeElement(appView));
+      DebugLocalInfo localInfo = code.getDebugLocalInfo(index);
+      if (localInfo != null) {
+        dest.setLocalInfo(localInfo);
+      }
       Argument argument = new Argument(dest, index, type.isBooleanType());
       assert currentBlock != null;
       assert currentPosition.isSyntheticPosition();
@@ -379,6 +395,16 @@ public class LIR2IRConverter {
     public void onMoveException(DexType exceptionType) {
       Value dest = getOutValueForNextInstruction(exceptionType.toTypeElement(appView));
       addInstruction(new MoveException(dest, exceptionType, appView.options()));
+    }
+
+    @Override
+    public void onDebugLocalWrite(int srcIndex) {
+      Value src = getValue(srcIndex);
+      // The type is in the local table, so initialize it with bottom and reset with the local info.
+      Value dest = getOutValueForNextInstruction(TypeElement.getBottom());
+      TypeElement type = dest.getLocalInfo().type.toTypeElement(appView);
+      dest.setType(type);
+      addInstruction(new DebugLocalWrite(dest, src));
     }
   }
 }

@@ -186,6 +186,7 @@ public interface LIROpcodes {
   int PHI = 206;
   int FALLTHROUGH = 207;
   int MOVEEXCEPTION = 208;
+  int DEBUGLOCALWRITE = 209;
 
   static String toString(int opcode) {
     switch (opcode) {
@@ -498,6 +499,8 @@ public interface LIROpcodes {
         return "FALLTHROUGH";
       case MOVEEXCEPTION:
         return "MOVEEXCEPTION";
+      case DEBUGLOCALWRITE:
+        return "DEBUGLOCALWRITE";
 
       default:
         throw new Unreachable("Unexpected LIR opcode: " + opcode);

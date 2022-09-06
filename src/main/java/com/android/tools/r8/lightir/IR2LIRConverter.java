@@ -27,35 +27,45 @@ import java.util.List;
 
 public class IR2LIRConverter {
 
-  private IR2LIRConverter() {}
+  private final DexItemFactory factory;
+  private final IRCode irCode;
+  private final Reference2IntMap<BasicBlock> blocks = new Reference2IntOpenHashMap<>();
+  private final Reference2IntMap<Value> values = new Reference2IntOpenHashMap<>();
+  private final LIRBuilder<Value, BasicBlock> builder;
 
-  public static LIRCode translate(IRCode irCode, DexItemFactory factory) {
-    irCode.traceBlocks();
-    Reference2IntMap<BasicBlock> blocks = new Reference2IntOpenHashMap<>();
-    Reference2IntMap<Value> values = new Reference2IntOpenHashMap<>();
-    int instructionIndex = 0;
-    int valueIndex = 0;
-    for (BasicBlock block : irCode.blocks) {
-      blocks.put(block, instructionIndex);
-      for (Phi phi : block.getPhis()) {
-        values.put(phi, valueIndex);
-        valueIndex++;
-        instructionIndex++;
-      }
-      for (Instruction instruction : block.getInstructions()) {
-        if (instruction.hasOutValue()) {
-          values.put(instruction.outValue(), valueIndex);
-        }
-        valueIndex++;
-        if (!instruction.isArgument()) {
-          instructionIndex++;
-        }
-      }
-    }
-    LIRBuilder<Value, BasicBlock> builder =
+  private IR2LIRConverter(DexItemFactory factory, IRCode irCode) {
+    this.factory = factory;
+    this.irCode = irCode;
+    this.builder =
         new LIRBuilder<Value, BasicBlock>(
                 irCode.context().getReference(), values::getInt, blocks::getInt, factory)
             .setMetadata(irCode.metadata());
+  }
+
+  public static LIRCode translate(IRCode irCode, DexItemFactory factory) {
+    return new IR2LIRConverter(factory, irCode).internalTranslate();
+  }
+
+  private void recordBlock(BasicBlock block, int blockIndex) {
+    blocks.put(block, blockIndex);
+  }
+
+  private void recordValue(Value value, int valueIndex) {
+    values.put(value, valueIndex);
+    if (value.hasLocalInfo()) {
+      builder.setDebugValue(value.getLocalInfo(), valueIndex);
+    }
+  }
+
+  private LIRCode internalTranslate() {
+    irCode.traceBlocks();
+    computeBlockAndValueTables();
+    computeInstructions();
+    return builder.build();
+  }
+
+  private void computeInstructions() {
+    int currentInstructionIndex = 0;
     BasicBlockIterator blockIt = irCode.listIterator();
     while (blockIt.hasNext()) {
       BasicBlock block = blockIt.next();
@@ -67,6 +77,7 @@ public class IR2LIRConverter {
         for (Phi phi : block.getPhis()) {
           permuteOperands(phi.getOperands(), permutation, operands);
           builder.addPhi(phi.getType(), Arrays.asList(operands));
+          currentInstructionIndex++;
         }
       }
       if (block.hasCatchHandlers()) {
@@ -79,20 +90,47 @@ public class IR2LIRConverter {
       InstructionIterator it = block.iterator();
       while (it.hasNext()) {
         Instruction instruction = it.next();
+        assert !instruction.hasOutValue()
+            || currentInstructionIndex == values.getInt(instruction.outValue());
         builder.setCurrentPosition(instruction.getPosition());
+        if (!instruction.getDebugValues().isEmpty()) {
+          builder.setDebugLocalEnds(currentInstructionIndex, instruction.getDebugValues());
+        }
+
         if (instruction.isGoto()) {
           BasicBlock nextBlock = blockIt.peekNext();
           if (instruction.asGoto().getTarget() == nextBlock) {
             builder.addFallthrough();
-          } else {
-            instruction.buildLIR(builder);
+            currentInstructionIndex++;
+            continue;
           }
-        } else {
-          instruction.buildLIR(builder);
+        }
+        instruction.buildLIR(builder);
+        currentInstructionIndex++;
+      }
+    }
+  }
+
+  private void computeBlockAndValueTables() {
+    int instructionIndex = 0;
+    int valueIndex = 0;
+    for (BasicBlock block : irCode.blocks) {
+      recordBlock(block, instructionIndex);
+      for (Phi phi : block.getPhis()) {
+        recordValue(phi, valueIndex);
+        valueIndex++;
+        instructionIndex++;
+      }
+      for (Instruction instruction : block.getInstructions()) {
+        if (instruction.hasOutValue()) {
+          recordValue(instruction.outValue(), valueIndex);
+        }
+        valueIndex++;
+        if (!instruction.isArgument()) {
+          instructionIndex++;
         }
       }
     }
-    return builder.build();
   }
 
   private static void permuteOperands(List<Value> operands, int[] permutation, Value[] output) {

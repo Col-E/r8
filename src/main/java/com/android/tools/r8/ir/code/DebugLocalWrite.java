@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.conversion.CfBuilder;
+import com.android.tools.r8.lightir.LIRBuilder;
 
 /**
  * Instruction introducing an SSA value with attached local information.
@@ -86,5 +87,10 @@ public class DebugLocalWrite extends Move {
     super.verifyTypes(appView, verifyTypesHelper);
     assert verifyTypesHelper.isAssignable(src().getType(), getOutType());
     return true;
+  }
+
+  @Override
+  public void buildLIR(LIRBuilder<Value, BasicBlock> builder) {
+    builder.addDebugLocalWrite(src());
   }
 }

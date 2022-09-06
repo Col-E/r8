@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.lightir;
 
+import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -40,6 +41,20 @@ public class LIRCode implements Iterable<LIRInstructionView> {
     }
   }
 
+  public static class DebugLocalInfoTable {
+    private final Int2ReferenceMap<DebugLocalInfo> valueToLocalMap;
+    private final Int2ReferenceMap<int[]> instructionToEndUseMap;
+
+    public DebugLocalInfoTable(
+        Int2ReferenceMap<DebugLocalInfo> valueToLocalMap,
+        Int2ReferenceMap<int[]> instructionToEndUseMap) {
+      assert !valueToLocalMap.isEmpty();
+      assert !instructionToEndUseMap.isEmpty();
+      this.valueToLocalMap = valueToLocalMap;
+      this.instructionToEndUseMap = instructionToEndUseMap;
+    }
+  }
+
   private final IRMetadata metadata;
 
   /** Constant pool of items. */
@@ -59,6 +74,9 @@ public class LIRCode implements Iterable<LIRInstructionView> {
   /** Table of try-catch handlers for each basic block. */
   private final TryCatchTable tryCatchTable;
 
+  /** Table of debug local information for each SSA value (if present). */
+  private final DebugLocalInfoTable debugLocalInfoTable;
+
   public static <V, B> LIRBuilder<V, B> builder(
       DexMethod method,
       ValueIndexGetter<V> valueIndexGetter,
@@ -75,7 +93,8 @@ public class LIRCode implements Iterable<LIRInstructionView> {
       int argumentCount,
       byte[] instructions,
       int instructionCount,
-      TryCatchTable tryCatchTable) {
+      TryCatchTable tryCatchTable,
+      DebugLocalInfoTable debugLocalInfoTable) {
     this.metadata = metadata;
     this.constants = constants;
     this.positionTable = positions;
@@ -83,6 +102,7 @@ public class LIRCode implements Iterable<LIRInstructionView> {
     this.instructions = instructions;
     this.instructionCount = instructionCount;
     this.tryCatchTable = tryCatchTable;
+    this.debugLocalInfoTable = debugLocalInfoTable;
   }
 
   public int getArgumentCount() {
@@ -111,6 +131,20 @@ public class LIRCode implements Iterable<LIRInstructionView> {
 
   public TryCatchTable getTryCatchTable() {
     return tryCatchTable;
+  }
+
+  public DebugLocalInfoTable getDebugLocalInfoTable() {
+    return debugLocalInfoTable;
+  }
+
+  public DebugLocalInfo getDebugLocalInfo(int valueIndex) {
+    return debugLocalInfoTable == null ? null : debugLocalInfoTable.valueToLocalMap.get(valueIndex);
+  }
+
+  public int[] getDebugLocalEnds(int instructionIndex) {
+    return debugLocalInfoTable == null
+        ? null
+        : debugLocalInfoTable.instructionToEndUseMap.get(instructionIndex);
   }
 
   @Override

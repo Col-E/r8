@@ -57,6 +57,8 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
 
   public void onMoveException(DexType exceptionType) {}
 
+  public void onDebugLocalWrite(int srcIndex) {}
+
   public void onInvokeMethodInstruction(DexMethod method, IntList arguments) {}
 
   public void onInvokeDirect(DexMethod method, IntList arguments) {
@@ -197,6 +199,12 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
         {
           DexType type = (DexType) getConstantItem(view.getNextConstantOperand());
           onMoveException(type);
+          return;
+        }
+      case LIROpcodes.DEBUGLOCALWRITE:
+        {
+          int srcIndex = view.getNextValueOperand();
+          onDebugLocalWrite(srcIndex);
           return;
         }
       default:

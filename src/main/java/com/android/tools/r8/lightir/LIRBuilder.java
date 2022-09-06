@@ -5,6 +5,7 @@ package com.android.tools.r8.lightir;
 
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -19,6 +20,7 @@ import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.lightir.LIRCode.DebugLocalInfoTable;
 import com.android.tools.r8.lightir.LIRCode.PositionEntry;
 import com.android.tools.r8.lightir.LIRCode.TryCatchTable;
 import com.android.tools.r8.utils.ListUtils;
@@ -29,7 +31,9 @@ import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Builder for constructing LIR code from IR.
@@ -68,6 +72,11 @@ public class LIRBuilder<V, B> {
   private final Int2ReferenceMap<CatchHandlers<Integer>> tryCatchRanges =
       new Int2ReferenceOpenHashMap<>();
 
+  // Mapping from SSA value definition to the local name index in the constant pool.
+  private final Int2ReferenceMap<DebugLocalInfo> debugLocals = new Int2ReferenceOpenHashMap<>();
+  // Mapping from instruction to the end usage of SSA values with debug local info.
+  private final Int2ReferenceMap<int[]> debugLocalEnds = new Int2ReferenceOpenHashMap();
+
   // TODO(b/225838009): Reconsider this fixed space as the operand count for phis is much larger.
   // Pre-allocated space for caching value indexes when writing instructions.
   private static final int MAX_VALUE_COUNT = 10;
@@ -85,6 +94,16 @@ public class LIRBuilder<V, B> {
     this.blockIndexGetter = blockIndexGetter;
     currentPosition = SyntheticPosition.builder().setLine(0).setMethod(method).build();
     flushedPosition = currentPosition;
+  }
+
+  public DexType toDexType(TypeElement typeElement) {
+    if (typeElement.isPrimitiveType()) {
+      return typeElement.asPrimitiveType().toDexType(factory);
+    }
+    if (typeElement.isReferenceType()) {
+      return typeElement.asReferenceType().toDexType(factory);
+    }
+    throw new Unreachable("Unexpected type element: " + typeElement);
   }
 
   public void addTryCatchHanders(int blockIndex, CatchHandlers<Integer> handlers) {
@@ -146,6 +165,23 @@ public class LIRBuilder<V, B> {
 
   public LIRBuilder<V, B> setMetadata(IRMetadata metadata) {
     this.metadata = metadata;
+    return this;
+  }
+
+  public LIRBuilder<V, B> setDebugValue(DebugLocalInfo debugInfo, int valueIndex) {
+    DebugLocalInfo old = debugLocals.put(valueIndex, debugInfo);
+    assert old == null;
+    return this;
+  }
+
+  public LIRBuilder<V, B> setDebugLocalEnds(int instructionIndex, Set<V> endValues) {
+    int size = endValues.size();
+    int[] indices = new int[size];
+    Iterator<V> iterator = endValues.iterator();
+    for (int i = 0; i < size; i++) {
+      indices[i] = getValueIndex(iterator.next());
+    }
+    debugLocalEnds.put(instructionIndex, indices);
     return this;
   }
 
@@ -387,11 +423,12 @@ public class LIRBuilder<V, B> {
   }
 
   public LIRBuilder<V, B> addPhi(TypeElement type, List<V> operands) {
-    DexType dexType =
-        type.isPrimitiveType()
-            ? type.asPrimitiveType().toDexType(factory)
-            : type.asReferenceType().toDexType(factory);
+    DexType dexType = toDexType(type);
     return addInstructionTemplate(LIROpcodes.PHI, Collections.singletonList(dexType), operands);
+  }
+
+  public LIRBuilder<V, B> addDebugLocalWrite(V src) {
+    return addOneValueInstruction(LIROpcodes.DEBUGLOCALWRITE, src);
   }
 
   public LIRCode build() {
@@ -399,6 +436,8 @@ public class LIRBuilder<V, B> {
     int constantsCount = constants.size();
     DexItem[] constantTable = new DexItem[constantsCount];
     constants.forEach((item, index) -> constantTable[index] = item);
+    DebugLocalInfoTable debugTable =
+        debugLocals.isEmpty() ? null : new DebugLocalInfoTable(debugLocals, debugLocalEnds);
     return new LIRCode(
         metadata,
         constantTable,
@@ -406,6 +445,7 @@ public class LIRBuilder<V, B> {
         argumentCount,
         byteWriter.toByteArray(),
         instructionCount,
-        new TryCatchTable(tryCatchRanges));
+        new TryCatchTable(tryCatchRanges),
+        debugTable);
   }
 }
