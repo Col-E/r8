@@ -7,6 +7,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -234,16 +235,15 @@ public class TypeVerificationHelper {
         if (!instruction.isArgument()) {
           break;
         }
+        DexMethod reference = code.context().getReference();
         TypeInfo argumentType;
         if (argumentIndex < 0) {
           argumentType =
-              code.method().isInstanceInitializer()
-                  ? new ThisInstanceInfo(instruction.asArgument(), code.method().getHolderType())
-                  : createInitializedType(code.method().getHolderType());
+              reference.isInstanceInitializerInlineIntoOrMerged(appView)
+                  ? new ThisInstanceInfo(instruction.asArgument(), reference.getHolderType())
+                  : createInitializedType(reference.getHolderType());
         } else {
-          argumentType =
-              createInitializedType(
-                  code.method().getReference().proto.parameters.values[argumentIndex]);
+          argumentType = createInitializedType(reference.proto.parameters.values[argumentIndex]);
         }
         Value outValue = instruction.outValue();
         if (outValue.outType().isObject()) {

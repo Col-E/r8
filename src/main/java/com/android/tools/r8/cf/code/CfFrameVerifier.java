@@ -293,9 +293,7 @@ public class CfFrameVerifier {
       state =
           state.storeLocal(
               localIndex,
-              context.isInstanceInitializer(dexItemFactory)
-                      || context.mustBeInlinedIntoInstanceInitializer(appView)
-                      || context.isHorizontallyMergedInstanceInitializer(dexItemFactory)
+              context.isInstanceInitializerInlineIntoOrMerged(appView)
                   ? FrameType.uninitializedThis()
                   : FrameType.initializedNonNullReference(context.getHolderType()),
               config);

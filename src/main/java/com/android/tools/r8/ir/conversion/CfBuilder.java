@@ -199,7 +199,7 @@ public class CfBuilder {
   }
 
   private Set<UninitializedThisLocalRead> insertUninitializedThisLocalReads() {
-    if (!method.getDefinition().isInstanceInitializer()) {
+    if (!method.getReference().isInstanceInitializerInlineIntoOrMerged(appView)) {
       return Collections.emptySet();
     }
     // Find all non-normal exit blocks.
@@ -246,11 +246,13 @@ public class CfBuilder {
     assert initializers == null;
     assert thisInitializers == null;
     initializers = new HashMap<>();
+    boolean isInstanceInitializer =
+        method.getReference().isInstanceInitializerInlineIntoOrMerged(appView);
     for (BasicBlock block : code.blocks) {
       for (Instruction insn : block.getInstructions()) {
         if (insn.isNewInstance()) {
           initializers.put(insn.asNewInstance(), computeInitializers(insn.outValue()));
-        } else if (insn.isArgument() && method.getDefinition().isInstanceInitializer()) {
+        } else if (insn.isArgument() && isInstanceInitializer) {
           if (insn.outValue().isThis()) {
             // By JVM8 §4.10.1.9 (invokespecial), a this() or super() call in a constructor
             // changes the type of `this` from uninitializedThis
@@ -260,7 +262,7 @@ public class CfBuilder {
         }
       }
     }
-    assert !(method.getDefinition().isInstanceInitializer() && thisInitializers == null);
+    assert !(isInstanceInitializer && thisInitializers == null);
   }
 
   private List<InvokeDirect> computeInitializers(Value value) {
