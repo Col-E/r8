@@ -125,7 +125,7 @@ class EnumUnboxingTreeFixer {
         localUtilityClass.getDefinition().setDirectMethods(localUtilityMethods);
         localUtilityClass.getDefinition().setStaticFields(localUtilityFields);
       } else {
-        clazz.getMethodCollection().replaceMethods(method -> fixupEncodedMethod(clazz, method));
+        clazz.getMethodCollection().replaceMethods(this::fixupEncodedMethod);
         fixupFields(clazz.staticFields(), clazz::setStaticField);
         fixupFields(clazz.instanceFields(), clazz::setInstanceField);
       }
@@ -561,7 +561,7 @@ class EnumUnboxingTreeFixer {
             && !field.getDefinition().getOptimizationInfo().isDead());
   }
 
-  private DexEncodedMethod fixupEncodedMethod(DexProgramClass holder, DexEncodedMethod method) {
+  private DexEncodedMethod fixupEncodedMethod(DexEncodedMethod method) {
     DexProto oldProto = method.getProto();
     DexProto newProto = fixupProto(oldProto);
     if (newProto == method.getProto()) {

@@ -116,6 +116,10 @@ public abstract class Invoke extends Instruction {
 
       MethodLookupResult lookupResult =
           graphLens.lookupMethod(invokedMethod, context.getReference(), Type.DIRECT);
+      if (lookupResult.getType().isStatic()) {
+        // This method has been staticized. The original invoke-type is DIRECT.
+        return Type.DIRECT;
+      }
       if (lookupResult.getType().isVirtual()) {
         // This method has been publicized. The original invoke-type is DIRECT.
         return Type.DIRECT;
