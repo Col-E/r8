@@ -9,15 +9,18 @@ import subprocess
 import sys
 import utils
 
+VERSION_FILE = 'src/main/java/com/android/tools/r8/Version.java'
+VERSION_PREFIX = 'String LABEL = "'
+
 def parse_options():
   parser = argparse.ArgumentParser(description='Release r8')
   parser.add_argument('--branch',
                       metavar=('<branch>'),
                       help='Branch to cherry-pick to')
-  parser.add_argument('--clean-checkout', '--clean_checkout',
+  parser.add_argument('--current-checkout', '--current_checkout',
                       default=False,
                       action='store_true',
-                      help='Perform cherry picks in a clean checkout')
+                      help='Perform cherry picks into the current checkout')
   parser.add_argument('--no-upload', '--no_upload',
                       default=False,
                       action='store_true',
@@ -32,11 +35,13 @@ def run(args):
   # Checkout the branch.
   subprocess.check_output(['git', 'checkout', args.branch])
 
-  if (not args.clean_checkout):
+  if (args.current_checkout):
     for i in range(len(args.hashes) + 1):
       branch = 'cherry-%d' % (i + 1)
       print('Deleting branch %s' % branch)
       subprocess.run(['git', 'branch', branch, '-D'])
+
+  bugs = set()
 
   count = 1
   for hash in args.hashes:
@@ -49,39 +54,67 @@ def run(args):
 
     subprocess.run(['git', 'cherry-pick', hash])
 
-    question = ('Ready to continue (cwd %s, will not upload to Gerrit)' % os.getcwd()
-      if args.no_upload else
-      'Ready to upload %s (cwd %s)' % (branch, os.getcwd()))
-    answer = input(question + ' [y/N]?')
-    if answer != 'y':
-      print('Aborting new branch for %s' % branch_version)
-      sys.exit(1)
-
-    if (not args.no_upload):
-      subprocess.run(['git', 'cl', 'upload'])
+    commit_message = subprocess.check_output(['git', 'log', '--format=%B', '-n', '1', 'HEAD'])
+    commit_lines = [l.strip() for l in commit_message.decode('UTF-8').split('\n')]
+    for line in commit_lines:
+      if line.startswith('Bug: '):
+        normalized = line.replace('Bug: ', '').replace('b/', '')
+        if len(normalized) > 0:
+          bugs.add(normalized)
+    confirm_and_upload(branch, args)
     count = count + 1
 
   branch = 'cherry-%d' % count
   subprocess.run(['git', 'new-branch', branch, '--upstream-current'])
-  editor = os.environ.get('VISUAL')
-  if not editor:
-    editor = os.environ.get('EDITOR')
-  if not editor:
-    editor = 'vi'
+
+  old_version = 'unknown'
+  for line in open(VERSION_FILE, 'r'):
+    index = line.find(VERSION_PREFIX)
+    if index > 0:
+      index += len(VERSION_PREFIX)
+      subline = line[index:]
+      old_version = subline[:subline.index('"')]
+      break
+
+  new_version = 'unknown'
+  if old_version.find('.') > 0:
+    split_version = old_version.split('.')
+    new_version = '.'.join(split_version[:-1] + [str(int(split_version[-1]) + 1)])
+    subprocess.run(['sed', '-i', 's/%s/%s/' % (old_version, new_version), VERSION_FILE])
   else:
-    print("Opening src/main/java/com/android/tools/r8/Version.java" +
-      " for version update with %" % editor)
-  subprocess.run([editor, 'src/main/java/com/android/tools/r8/Version.java'])
-  subprocess.run(['git', 'commit', '-a'])
-  if (not args.no_upload):
-    subprocess.run(['git', 'cl', 'upload'])
-  if (args.clean_checkout):
+    editor = os.environ.get('VISUAL')
+    if not editor:
+      editor = os.environ.get('EDITOR')
+    if not editor:
+      editor = 'vi'
+    else:
+      print("Opening %s for version update with %s" % (VERSION_FILE, editor))
+      subprocess.run([editor, VERSION_FILE])
+
+  message = ("Version %s\n\n" % new_version)
+  for bug in sorted(bugs):
+    message += 'Bug: b/%s\n' % bug
+
+  subprocess.run(['git', 'commit', '-a', '-m', message])
+  confirm_and_upload(branch, args)
+  if (not args.current_checkout):
     answer = input('Done, press enter to delete checkout in %s' % os.getcwd())
+
+def confirm_and_upload(branch, args):
+  question = ('Ready to continue (cwd %s, will not upload to Gerrit)' % os.getcwd()
+    if args.no_upload else
+        'Ready to upload %s (cwd %s)' % (branch, os.getcwd()))
+  answer = input(question + ' [y/N]?')
+  if answer != 'y':
+    print('Aborting new branch for %s' % branch_version)
+    sys.exit(1)
+  if (not args.no_upload):
+    subprocess.run(['git', 'cl', 'upload', '--bypass-hooks'])
 
 def main():
   args = parse_options()
 
-  if (args.clean_checkout):
+  if (not args.current_checkout):
     with utils.TempDir() as temp:
       print("Performing cherry-picking in %s" % temp)
       subprocess.check_call(['git', 'clone', utils.REPO_SOURCE, temp])
