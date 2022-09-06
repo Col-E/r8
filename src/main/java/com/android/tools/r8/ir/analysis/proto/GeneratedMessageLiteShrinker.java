@@ -42,6 +42,7 @@ import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.DependentMinimumKeepInfoCollection;
+import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
@@ -87,9 +88,10 @@ public class GeneratedMessageLiteShrinker {
       ProgramMethod dynamicMethod =
           generatedMessageLiteClass.lookupProgramMethod(references.dynamicMethod);
       if (dynamicMethod != null) {
-        dependentMinimumKeepInfo
-            .getOrCreateUnconditionalMinimumKeepInfoFor(dynamicMethod.getReference())
-            .disallowOptimization();
+        disallowSignatureOptimizations(
+            dependentMinimumKeepInfo
+                .getOrCreateUnconditionalMinimumKeepInfoFor(dynamicMethod.getReference())
+                .asMethodJoiner());
       }
 
       references.forEachMethodReference(
@@ -98,12 +100,25 @@ public class GeneratedMessageLiteShrinker {
                 asProgramClassOrNull(appView.definitionFor(reference.getHolderType()));
             ProgramMethod method = reference.lookupOnProgramClass(holder);
             if (method != null) {
-              dependentMinimumKeepInfo
-                  .getOrCreateUnconditionalMinimumKeepInfoFor(method.getReference())
-                  .disallowOptimization();
+              disallowSignatureOptimizations(
+                  dependentMinimumKeepInfo
+                      .getOrCreateUnconditionalMinimumKeepInfoFor(method.getReference())
+                      .asMethodJoiner());
             }
           });
     }
+  }
+
+  private void disallowSignatureOptimizations(KeepMethodInfo.Joiner methodJoiner) {
+    methodJoiner
+        .disallowConstantArgumentOptimization()
+        .disallowMethodStaticizing()
+        .disallowParameterRemoval()
+        .disallowParameterReordering()
+        .disallowParameterTypeStrengthening()
+        .disallowReturnTypeStrengthening()
+        .disallowUnusedArgumentOptimization()
+        .disallowUnusedReturnValueOptimization();
   }
 
   public void run(IRCode code) {

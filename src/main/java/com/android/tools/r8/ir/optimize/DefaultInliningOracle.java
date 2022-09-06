@@ -446,26 +446,6 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   }
 
   @Override
-  public boolean allowInliningOfInvokeInInlinee(
-      InlineAction action,
-      int inliningDepth,
-      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    assert inliningDepth > 0;
-
-    if (action.reason.mustBeInlined()) {
-      return true;
-    }
-
-    int threshold = inlinerOptions.applyInliningToInlineeMaxDepth;
-    if (inliningDepth <= threshold) {
-      return true;
-    }
-
-    whyAreYouNotInliningReporter.reportWillExceedMaxInliningDepth(inliningDepth, threshold);
-    return false;
-  }
-
-  @Override
   public boolean canInlineInstanceInitializer(
       IRCode code,
       InvokeDirect invoke,

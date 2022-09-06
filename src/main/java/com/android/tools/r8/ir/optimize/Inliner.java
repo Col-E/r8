@@ -1014,13 +1014,6 @@ public class Inliner {
             continue;
           }
 
-          if (!inlineeStack.isEmpty()
-              && !strategy.allowInliningOfInvokeInInlinee(
-                  action, inlineeStack.size(), whyAreYouNotInliningReporter)) {
-            assert whyAreYouNotInliningReporter.unsetReasonHasBeenReportedFlag();
-            continue;
-          }
-
           if (!strategy.stillHasBudget(action, whyAreYouNotInliningReporter)) {
             assert whyAreYouNotInliningReporter.unsetReasonHasBeenReportedFlag();
             continue;
@@ -1084,17 +1077,16 @@ public class Inliner {
 
           context.getDefinition().copyMetadata(appView, singleTargetMethod);
 
-          if (inlineeMayHaveInvokeMethod && options.applyInliningToInlinee) {
-            if (inlineeStack.size() + 1 > options.applyInliningToInlineeMaxDepth
-                && appView.appInfo().hasNoAlwaysInlineMethods()) {
-              continue;
+          if (inlineeMayHaveInvokeMethod) {
+            int inliningDepth = inlineeStack.size() + 1;
+            if (options.shouldApplyInliningToInlinee(appView, singleTarget, inliningDepth)) {
+              // Record that we will be inside the inlinee until the next block.
+              BasicBlock inlineeEnd = IteratorUtils.peekNext(blockIterator);
+              inlineeStack.push(inlineeEnd);
+              // Move the cursor back to where the first inlinee block was added.
+              IteratorUtils.previousUntil(blockIterator, previous -> previous == block);
+              blockIterator.next();
             }
-            // Record that we will be inside the inlinee until the next block.
-            BasicBlock inlineeEnd = IteratorUtils.peekNext(blockIterator);
-            inlineeStack.push(inlineeEnd);
-            // Move the cursor back to where the first inlinee block was added.
-            IteratorUtils.previousUntil(blockIterator, previous -> previous == block);
-            blockIterator.next();
           }
         } else if (current.isAssume()) {
           assumeRemover.removeIfMarked(current.asAssume(), iterator);

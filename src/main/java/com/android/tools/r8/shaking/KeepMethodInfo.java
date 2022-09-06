@@ -29,6 +29,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
   private final boolean allowConstantArgumentOptimization;
   private final boolean allowInlining;
   private final boolean allowMethodStaticizing;
+  private final boolean allowParameterRemoval;
   private final boolean allowParameterReordering;
   private final boolean allowParameterTypeStrengthening;
   private final boolean allowReturnTypeStrengthening;
@@ -42,6 +43,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     this.allowConstantArgumentOptimization = builder.isConstantArgumentOptimizationAllowed();
     this.allowInlining = builder.isInliningAllowed();
     this.allowMethodStaticizing = builder.isMethodStaticizingAllowed();
+    this.allowParameterRemoval = builder.isParameterRemovalAllowed();
     this.allowParameterReordering = builder.isParameterReorderingAllowed();
     this.allowParameterTypeStrengthening = builder.isParameterTypeStrengtheningAllowed();
     this.allowReturnTypeStrengthening = builder.isReturnTypeStrengtheningAllowed();
@@ -58,13 +60,6 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
   public boolean isArgumentPropagationAllowed(GlobalKeepInfoConfiguration configuration) {
     return isParameterRemovalAllowed(configuration);
-  }
-
-  public boolean isParameterRemovalAllowed(GlobalKeepInfoConfiguration configuration) {
-    return isClosedWorldReasoningAllowed(configuration)
-        && isOptimizationAllowed(configuration)
-        && isShrinkingAllowed(configuration)
-        && !isCheckDiscardedEnabled(configuration);
   }
 
   public boolean isClassInliningAllowed(GlobalKeepInfoConfiguration configuration) {
@@ -109,6 +104,18 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
   boolean internalIsMethodStaticizingAllowed() {
     return allowMethodStaticizing;
+  }
+
+  public boolean isParameterRemovalAllowed(GlobalKeepInfoConfiguration configuration) {
+    return isClosedWorldReasoningAllowed(configuration)
+        && isOptimizationAllowed(configuration)
+        && isShrinkingAllowed(configuration)
+        && !isCheckDiscardedEnabled(configuration)
+        && internalIsParameterRemovalAllowed();
+  }
+
+  boolean internalIsParameterRemovalAllowed() {
+    return allowParameterRemoval;
   }
 
   public boolean isParameterReorderingAllowed(GlobalKeepInfoConfiguration configuration) {
@@ -188,6 +195,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     private boolean allowConstantArgumentOptimization;
     private boolean allowInlining;
     private boolean allowMethodStaticizing;
+    private boolean allowParameterRemoval;
     private boolean allowParameterReordering;
     private boolean allowParameterTypeStrengthening;
     private boolean allowReturnTypeStrengthening;
@@ -205,6 +213,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
       allowConstantArgumentOptimization = original.internalIsConstantArgumentOptimizationAllowed();
       allowInlining = original.internalIsInliningAllowed();
       allowMethodStaticizing = original.internalIsMethodStaticizingAllowed();
+      allowParameterRemoval = original.internalIsParameterRemovalAllowed();
       allowParameterReordering = original.internalIsParameterReorderingAllowed();
       allowParameterTypeStrengthening = original.internalIsParameterTypeStrengtheningAllowed();
       allowReturnTypeStrengthening = original.internalIsReturnTypeStrengtheningAllowed();
@@ -306,6 +315,25 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
     public Builder disallowMethodStaticizing() {
       return setAllowMethodStaticizing(false);
+    }
+
+    // Parameter removal.
+
+    public boolean isParameterRemovalAllowed() {
+      return allowParameterRemoval;
+    }
+
+    public Builder setAllowParameterRemoval(boolean allowParameterRemoval) {
+      this.allowParameterRemoval = allowParameterRemoval;
+      return self();
+    }
+
+    public Builder allowParameterRemoval() {
+      return setAllowParameterRemoval(true);
+    }
+
+    public Builder disallowParameterRemoval() {
+      return setAllowParameterRemoval(false);
     }
 
     // Parameter reordering.
@@ -433,6 +461,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
               == other.internalIsConstantArgumentOptimizationAllowed()
           && isInliningAllowed() == other.internalIsInliningAllowed()
           && isMethodStaticizingAllowed() == other.internalIsMethodStaticizingAllowed()
+          && isParameterRemovalAllowed() == other.internalIsParameterRemovalAllowed()
           && isParameterReorderingAllowed() == other.internalIsParameterReorderingAllowed()
           && isParameterTypeStrengtheningAllowed()
               == other.internalIsParameterTypeStrengtheningAllowed()
@@ -456,6 +485,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
           .disallowConstantArgumentOptimization()
           .disallowInlining()
           .disallowMethodStaticizing()
+          .disallowParameterRemoval()
           .disallowParameterReordering()
           .disallowParameterTypeStrengthening()
           .disallowReturnTypeStrengthening()
@@ -471,6 +501,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
           .allowConstantArgumentOptimization()
           .allowInlining()
           .allowMethodStaticizing()
+          .allowParameterRemoval()
           .allowParameterReordering()
           .allowParameterTypeStrengthening()
           .allowReturnTypeStrengthening()
@@ -507,6 +538,11 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
     public Joiner disallowMethodStaticizing() {
       builder.disallowMethodStaticizing();
+      return self();
+    }
+
+    public Joiner disallowParameterRemoval() {
+      builder.disallowParameterRemoval();
       return self();
     }
 
@@ -552,6 +588,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
               Joiner::disallowConstantArgumentOptimization)
           .applyIf(!joiner.builder.isInliningAllowed(), Joiner::disallowInlining)
           .applyIf(!joiner.builder.isMethodStaticizingAllowed(), Joiner::disallowMethodStaticizing)
+          .applyIf(!joiner.builder.isParameterRemovalAllowed(), Joiner::disallowParameterRemoval)
           .applyIf(
               !joiner.builder.isParameterReorderingAllowed(), Joiner::disallowParameterReordering)
           .applyIf(

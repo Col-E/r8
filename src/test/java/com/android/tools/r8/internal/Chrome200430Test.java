@@ -34,6 +34,10 @@ public class Chrome200430Test extends ChromeCompilationBase {
         .addProgramFiles(getProgramFiles())
         .addLibraryFiles(getLibraryFiles())
         .addKeepRuleFiles(getKeepRuleFiles())
+        .addOptionsModification(
+            options -> options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
+        .allowUnnecessaryDontWarnWildcards()
+        .allowUnusedDontWarnPatterns()
         .allowUnusedProguardConfigurationRules()
         .setMinApi(AndroidApiLevel.N)
         .compile();

@@ -24,11 +24,6 @@ interface InliningStrategy {
 
   AppView<AppInfoWithLiveness> appView();
 
-  boolean allowInliningOfInvokeInInlinee(
-      InlineAction action,
-      int inliningDepth,
-      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter);
-
   boolean canInlineInstanceInitializer(
       IRCode code,
       InvokeDirect invoke,

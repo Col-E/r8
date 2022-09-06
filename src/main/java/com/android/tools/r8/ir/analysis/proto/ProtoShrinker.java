@@ -78,6 +78,10 @@ public class ProtoShrinker {
     return deadProtoTypes;
   }
 
+  public ProtoReferences getProtoReferences() {
+    return references;
+  }
+
   public void setDeadProtoTypes(Set<DexType> deadProtoTypes) {
     // We should only need to keep track of the dead proto types for assertion purposes.
     InternalOptions.checkAssertionsEnabled();

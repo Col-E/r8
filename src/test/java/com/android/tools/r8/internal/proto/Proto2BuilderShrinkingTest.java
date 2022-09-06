@@ -15,6 +15,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -24,9 +25,9 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
-// TODO(b/112437944): Strengthen test to ensure that builder inlining succeeds even without single-
-//  and double-caller inlining.
 @RunWith(Parameterized.class)
 public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
 
@@ -36,10 +37,13 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
   private static List<Path> PROGRAM_FILES =
       ImmutableList.of(PROTO2_EXAMPLES_JAR, PROTO2_PROTO_JAR, PROTOBUF_LITE_JAR);
 
-  private final List<String> mains;
-  private final TestParameters parameters;
+  @Parameter(0)
+  public List<String> mains;
 
-  @Parameterized.Parameters(name = "{1}, {0}")
+  @Parameter(1)
+  public TestParameters parameters;
+
+  @Parameters(name = "{1}, {0}")
   public static List<Object[]> data() {
     return buildParameters(
         ImmutableList.of(
@@ -57,11 +61,6 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
                 "proto2.BuilderWithReusedSettersTestClass",
                 "proto2.HasFlaggedOffExtensionBuilderTestClass")),
         getTestParameters().withDefaultDexRuntime().withAllApiLevels().build());
-  }
-
-  public Proto2BuilderShrinkingTest(List<String> mains, TestParameters parameters) {
-    this.mains = mains;
-    this.parameters = parameters;
   }
 
   @Test
@@ -187,18 +186,46 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
   }
 
   private void verifyMethodToInvokeValuesAreAbsent(CodeInspector outputInspector) {
+    ClassSubject generatedMessageLiteClassSubject =
+        outputInspector.clazz("com.google.protobuf.GeneratedMessageLite");
+    assertThat(generatedMessageLiteClassSubject, isPresent());
+
+    MethodSubject isInitializedMethodSubject =
+        generatedMessageLiteClassSubject.uniqueMethodWithName("isInitialized");
+
     DexType methodToInvokeType =
-        outputInspector.clazz(METHOD_TO_INVOKE_ENUM).getDexProgramClass().type;
+        outputInspector.clazz(METHOD_TO_INVOKE_ENUM).getDexProgramClass().getType();
     for (String main : mains) {
       MethodSubject mainMethodSubject = outputInspector.clazz(main).mainMethod();
       assertThat(mainMethodSubject, isPresent());
+
+      // Verify that the calls to GeneratedMessageLite.createBuilder() have been inlined.
+      assertTrue(
+          mainMethodSubject
+              .streamInstructions()
+              .filter(InstructionSubject::isInvoke)
+              .map(InstructionSubject::getMethod)
+              .allMatch(
+                  method ->
+                      method.getHolderType()
+                              != generatedMessageLiteClassSubject.getDexProgramClass().getType()
+                          || (isInitializedMethodSubject.isPresent()
+                              && method
+                                  == isInitializedMethodSubject
+                                      .getProgramMethod()
+                                      .getReference())));
+
+      // Verify that there are no accesses to MethodToInvoke after inlining createBuilder() -- and
+      // specifically no accesses to MethodToInvoke.NEW_BUILDER.
       assertTrue(
           main,
           mainMethodSubject
               .streamInstructions()
               .filter(InstructionSubject::isStaticGet)
-              .map(instruction -> instruction.getField().type)
+              .map(instruction -> instruction.getField().getType())
               .noneMatch(methodToInvokeType::equals));
+
+      // Verify that there is no switches on the ordinal of a MethodToInvoke instance.
       assertTrue(mainMethodSubject.streamInstructions().noneMatch(InstructionSubject::isSwitch));
     }
   }
