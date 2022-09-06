@@ -1125,6 +1125,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return syntheticBuilder(this)
         .setMethod(newMethod)
         .modifyAccessFlags(MethodAccessFlags::setSynthetic)
+        .setGenericSignature(MethodTypeSignature.noSignature())
         // If the forwarding target is abstract, we can just create an abstract method. While it
         // will not actually forward, it will create the same exception when hit at runtime.
         // Otherwise, we need to create code that forwards the call to the target.
@@ -1132,7 +1133,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
             !isAbstract(),
             builder ->
                 builder
-                    .setGenericSignature(MethodTypeSignature.noSignature())
                     .setCode(
                         ForwardMethodBuilder.builder(definitions.dexItemFactory())
                             .setStaticSource(newMethod)
