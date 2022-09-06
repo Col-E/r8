@@ -73,7 +73,7 @@ public class IR2LIRConverter {
         CatchHandlers<BasicBlock> handlers = block.getCatchHandlers();
         builder.addTryCatchHanders(
             blocks.getInt(block),
-            new CatchHandlers(
+            new CatchHandlers<>(
                 handlers.getGuards(), ListUtils.map(handlers.getAllTargets(), blocks::getInt)));
       }
       InstructionIterator it = block.iterator();
