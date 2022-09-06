@@ -85,10 +85,23 @@ def create_adb_cmd(arguments, device_id=None):
   return cmd
 
 def capture_app_profile_data(app_id, device_id=None):
-  cmd = create_adb_cmd(
-      'shell killall -s SIGUSR1 %s' % app_id, device_id)
-  subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
-  time.sleep(5)
+  ps_cmd = create_adb_cmd('shell ps -o NAME', device_id)
+  stdout = subprocess.check_output(ps_cmd).decode('utf-8').strip()
+  killed_any = False
+  for process_name in stdout.splitlines():
+    if process_name.startswith(app_id):
+      print('Flushing profile for process %s' % process_name)
+      killall_cmd = create_adb_cmd(
+          'shell killall -s SIGUSR1 %s' % process_name, device_id)
+      killall_result = subprocess.run(killall_cmd, capture_output=True)
+      stdout = killall_result.stdout.decode('utf-8')
+      stderr = killall_result.stderr.decode('utf-8')
+      if killall_result.returncode == 0:
+        killed_any = True
+      else:
+        print('Error: stdout: %s, stderr: %s' % (stdout, stderr))
+      time.sleep(5)
+  assert killed_any, 'Expected to find at least one process'
 
 def check_app_has_profile_data(app_id, device_id=None):
   profile_path = get_profile_path(app_id)
