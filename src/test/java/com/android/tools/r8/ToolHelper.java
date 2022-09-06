@@ -268,7 +268,7 @@ public class ToolHelper {
       V6_0_1("6.0.1"),
       V7_0_0("7.0.0"),
       V8_1_0("8.1.0"),
-      // TODO(b//204855476): Remove DEFAULT.
+      // TODO(b/204855476): Remove DEFAULT.
       DEFAULT("default"),
       V9_0_0("9.0.0"),
       V10_0_0("10.0.0"),

@@ -5,10 +5,8 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
-import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -18,7 +16,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
-import com.android.tools.r8.errors.DesugaredLibraryMismatchDiagnostic;
 import com.android.tools.r8.origin.Origin;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -40,8 +37,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
     return buildParameters(
         getTestParameters()
             .withDexRuntime(Version.first())
-            .withDexRuntime(Version.V7_0_0)
-            .withDexRuntime(Version.V8_1_0)
+            .withDefaultDexRuntime()
             .withDexRuntime(Version.last())
             .withOnlyDexRuntimeApiLevel()
             .build(),
@@ -82,8 +78,6 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
                           containsString(
                               "The compilation is slowed down due to a mix of class file and dex"
                                   + " file inputs in the context of desugared library.")));
-                  diagnostics.assertErrorsMatch(
-                      diagnosticType(DesugaredLibraryMismatchDiagnostic.class));
                 } else {
                   diagnostics.assertNoMessages();
                 }
@@ -149,23 +143,11 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
             .writeToZip();
 
     // Combine CF input with library desugaring with dexing without library desugaring.
-    try {
-      testForD8()
-          .addProgramFiles(desugaredLibrary)
-          .addProgramClasses(TestRunner.class)
-          .setMinApi(parameters.getApiLevel())
-          .compileWithExpectedDiagnostics(
-              diagnostics -> {
-                if (libraryDesugaringSpecification.hasAnyDesugaring(parameters)) {
-                  diagnostics.assertOnlyErrors();
-                  diagnostics.assertErrorsMatch(
-                      diagnosticType(DesugaredLibraryMismatchDiagnostic.class));
-                } else {
-                  diagnostics.assertNoMessages();
-                }
-              });
-    } catch (CompilationFailedException e) {
-    }
+    testForD8()
+        .addProgramFiles(desugaredLibrary)
+        .addProgramClasses(TestRunner.class)
+        .setMinApi(parameters.getApiLevel())
+        .compile();
   }
 
   @Test
@@ -186,23 +168,11 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
             .compile()
             .writeToZip();
 
-    try {
-      testForD8()
-          .addProgramFiles(libraryDex)
-          .addProgramFiles(programDex)
-          .setMinApi(parameters.getApiLevel())
-          .compileWithExpectedDiagnostics(
-              diagnostics -> {
-                if (libraryDesugaringSpecification.hasAnyDesugaring(parameters)) {
-                  diagnostics.assertOnlyErrors();
-                  diagnostics.assertErrorsMatch(
-                      diagnosticType(DesugaredLibraryMismatchDiagnostic.class));
-                } else {
-                  diagnostics.assertNoMessages();
-                }
-              });
-    } catch (CompilationFailedException e) {
-    }
+    testForD8()
+        .addProgramFiles(libraryDex)
+        .addProgramFiles(programDex)
+        .setMinApi(parameters.getApiLevel())
+        .compile();
   }
 
   @Test
@@ -247,21 +217,11 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
             .compile()
             .writeToZip();
 
-    try {
-      testForD8()
-          .addProgramFiles(libraryDex)
-          .addProgramFiles(programDex)
-          .setMinApi(parameters.getApiLevel())
-          .compileWithExpectedDiagnostics(
-              diagnostics -> {
-                diagnostics.assertOnlyErrors();
-                diagnostics.assertErrorsMatch(
-                    allOf(
-                        diagnosticType(DesugaredLibraryMismatchDiagnostic.class),
-                        diagnosticMessage(containsString("my_group:my_artifact:1.0.9"))));
-              });
-    } catch (CompilationFailedException e) {
-    }
+    testForD8()
+        .addProgramFiles(libraryDex)
+        .addProgramFiles(programDex)
+        .setMinApi(parameters.getApiLevel())
+        .compile();
   }
 
   static class Library {}
