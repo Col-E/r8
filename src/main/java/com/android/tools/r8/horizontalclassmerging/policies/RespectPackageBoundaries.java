@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -59,6 +60,18 @@ public class RespectPackageBoundaries extends MultiClassPolicy {
     for (DexEncodedMember<?, ?> member : clazz.members()) {
       if (member.getAccessFlags().isPackagePrivateOrProtected()) {
         return true;
+      }
+    }
+
+    // If any field has a non-public type, then field merging may lead to check-cast instructions
+    // being synthesized. These synthesized accesses depends on the package.
+    for (DexEncodedField field : clazz.fields()) {
+      DexType fieldBaseType = field.getType().toBaseType(appView.dexItemFactory());
+      if (fieldBaseType.isClassType()) {
+        DexClass fieldBaseClass = appView.definitionFor(fieldBaseType);
+        if (fieldBaseClass == null || !fieldBaseClass.isPublic()) {
+          return true;
+        }
       }
     }
 
