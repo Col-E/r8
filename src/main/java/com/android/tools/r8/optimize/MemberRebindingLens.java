@@ -144,16 +144,20 @@ public class MemberRebindingLens extends NonIdentityGraphLens {
   }
 
   public FieldRebindingIdentityLens toRewrittenFieldRebindingLens(
-      AppView<? extends AppInfoWithClassHierarchy> appView, GraphLens lens) {
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      GraphLens lens,
+      NonIdentityGraphLens appliedMemberRebindingLens) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     FieldRebindingIdentityLens.Builder builder = FieldRebindingIdentityLens.builder();
     nonReboundFieldReferenceToDefinitionMap.forEach(
         (nonReboundFieldReference, reboundFieldReference) -> {
           DexField rewrittenReboundFieldReference =
-              lens.getRenamedFieldSignature(reboundFieldReference);
+              lens.getRenamedFieldSignature(reboundFieldReference, appliedMemberRebindingLens);
           DexField rewrittenNonReboundFieldReference =
               rewrittenReboundFieldReference.withHolder(
-                  lens.lookupType(nonReboundFieldReference.getHolderType()), dexItemFactory);
+                  lens.lookupType(
+                      nonReboundFieldReference.getHolderType(), appliedMemberRebindingLens),
+                  dexItemFactory);
           builder.recordDefinitionForNonReboundFieldReference(
               rewrittenNonReboundFieldReference, rewrittenReboundFieldReference);
         });

@@ -109,6 +109,9 @@ public class MemberRebindingIdentityLens extends NonIdentityGraphLens {
 
   @Override
   public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLens applied) {
+    if (this == applied) {
+      return originalMethod;
+    }
     return getPrevious().getRenamedMethodSignature(originalMethod, applied);
   }
 
@@ -152,25 +155,32 @@ public class MemberRebindingIdentityLens extends NonIdentityGraphLens {
   }
 
   public MemberRebindingIdentityLens toRewrittenMemberRebindingIdentityLens(
-      AppView<? extends AppInfoWithClassHierarchy> appView, GraphLens lens) {
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      GraphLens lens,
+      NonIdentityGraphLens appliedMemberRebindingLens) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     Builder builder = builder(appView, getIdentityLens());
     nonReboundFieldReferenceToDefinitionMap.forEach(
         (nonReboundFieldReference, reboundFieldReference) -> {
-          DexField rewrittenReboundFieldReference = lens.lookupField(reboundFieldReference);
+          DexField rewrittenReboundFieldReference =
+              lens.lookupField(reboundFieldReference, appliedMemberRebindingLens);
           DexField rewrittenNonReboundFieldReference =
               rewrittenReboundFieldReference.withHolder(
-                  lens.lookupType(nonReboundFieldReference.getHolderType()), dexItemFactory);
+                  lens.lookupType(
+                      nonReboundFieldReference.getHolderType(), appliedMemberRebindingLens),
+                  dexItemFactory);
           builder.recordNonReboundFieldAccess(
               rewrittenNonReboundFieldReference, rewrittenReboundFieldReference);
         });
     nonReboundMethodReferenceToDefinitionMap.forEach(
         (nonReboundMethodReference, reboundMethodReference) -> {
           DexMethod rewrittenReboundMethodReference =
-              lens.getRenamedMethodSignature(reboundMethodReference);
+              lens.getRenamedMethodSignature(reboundMethodReference, appliedMemberRebindingLens);
           DexMethod rewrittenNonReboundMethodReference =
               rewrittenReboundMethodReference.withHolder(
-                  lens.lookupType(nonReboundMethodReference.getHolderType()), dexItemFactory);
+                  lens.lookupType(
+                      nonReboundMethodReference.getHolderType(), appliedMemberRebindingLens),
+                  dexItemFactory);
           builder.recordNonReboundMethodAccess(
               rewrittenNonReboundMethodReference, rewrittenReboundMethodReference);
         });

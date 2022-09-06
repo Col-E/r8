@@ -14,7 +14,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.codeinspector.AssertUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.Iterables;
@@ -38,32 +37,27 @@ public class ForwardingConstructorShakingOnDexWithClassMergingTest extends TestB
 
   @Test
   public void test() throws Exception {
-    AssertUtils.assertFailsCompilationIf(
-        canHaveNonReboundConstructorInvoke(),
-        () ->
-            testForR8(parameters.getBackend())
-                .addInnerClasses(getClass())
-                .addKeepMainRule(Main.class)
-                .addOptionsModification(
-                    options -> {
-                      options.testing.enableRedundantConstructorBridgeRemoval = true;
-                      options.testing.horizontalClassMergingTarget =
-                          (appView, candidates, target) ->
-                              Iterables.find(
-                                  candidates,
-                                  candidate ->
-                                      candidate.getTypeName().equals(B.class.getTypeName()));
-                    })
-                .addHorizontallyMergedClassesInspector(
-                    inspector ->
-                        inspector.assertMergedInto(A.class, B.class).assertNoOtherClassesMerged())
-                .enableInliningAnnotations()
-                .enableNoVerticalClassMergingAnnotations()
-                .setMinApi(parameters.getApiLevel())
-                .compile()
-                .inspect(this::inspect)
-                .run(parameters.getRuntime(), Main.class)
-                .assertSuccessWithOutputLines("Hello, world!"));
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Main.class)
+        .addOptionsModification(
+            options -> {
+              options.testing.enableRedundantConstructorBridgeRemoval = true;
+              options.testing.horizontalClassMergingTarget =
+                  (appView, candidates, target) ->
+                      Iterables.find(
+                          candidates,
+                          candidate -> candidate.getTypeName().equals(B.class.getTypeName()));
+            })
+        .addHorizontallyMergedClassesInspector(
+            inspector -> inspector.assertMergedInto(A.class, B.class).assertNoOtherClassesMerged())
+        .enableInliningAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(this::inspect)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("Hello, world!");
   }
 
   private boolean canHaveNonReboundConstructorInvoke() {

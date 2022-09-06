@@ -902,10 +902,11 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
             appliedMemberRebindingLens.isMemberRebindingLens()
                 ? appliedMemberRebindingLens
                     .asMemberRebindingLens()
-                    .toRewrittenFieldRebindingLens(appView, appliedLens)
+                    .toRewrittenFieldRebindingLens(appView, appliedLens, appliedMemberRebindingLens)
                 : appliedMemberRebindingLens
                     .asMemberRebindingIdentityLens()
-                    .toRewrittenMemberRebindingIdentityLens(appView, appliedLens);
+                    .toRewrittenMemberRebindingIdentityLens(
+                        appView, appliedLens, appliedMemberRebindingLens);
       }
     }
 
