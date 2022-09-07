@@ -11,7 +11,6 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -29,7 +28,8 @@ import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Simple test that compiles framework.jar with D8 a number of times with various number of threads
- * available to the compiler. This test also tests the hidden marker inserted into classes.dex.
+ * available to the compiler. This test also tests that no hidden marker is inserted into
+ * classes.dex.
  */
 @RunWith(Parameterized.class)
 public class D8FrameworkDexPassthroughMarkerTest {
@@ -62,15 +62,10 @@ public class D8FrameworkDexPassthroughMarkerTest {
     Marker marker = new Marker(Tool.D8)
         .setVersion("1.0.0")
         .setMinApi(minApi);
-    InternalOptions options = new InternalOptions();
-    DexString markerDexString = options.itemFactory.createString(marker.toString());
-    Marker selfie = Marker.parse(markerDexString);
-    assert marker.equals(selfie);
     AndroidApp app = ToolHelper.runD8(command, opts -> opts.setMarker(marker));
-    DexApplication dexApp = new ApplicationReader(app, options, Timing.empty()).read();
+    DexApplication dexApp =
+        new ApplicationReader(app, new InternalOptions(), Timing.empty()).read();
     Collection<Marker> markers = dexApp.dexItemFactory.extractMarkers();
-    assertEquals(1, markers.size());
-    Marker readMarker = markers.iterator().next();
-    assertEquals(marker, readMarker);
+    assertEquals(0, markers.size());
   }
 }
