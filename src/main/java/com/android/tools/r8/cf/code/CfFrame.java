@@ -260,8 +260,18 @@ public class CfFrame extends CfInstruction implements Cloneable {
   @Override
   void internalRegisterUse(
       UseRegistry<?> registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
-    locals.values().forEach(frameType -> internalRegisterUse(registry, frameType));
-    stack.forEach(frameType -> internalRegisterUse(registry, frameType));
+    for (FrameType frameType : locals.values()) {
+      internalRegisterUse(registry, frameType);
+      if (registry.getTraversalContinuation().shouldBreak()) {
+        return;
+      }
+    }
+    for (FrameType frameType : stack) {
+      internalRegisterUse(registry, frameType);
+      if (registry.getTraversalContinuation().shouldBreak()) {
+        return;
+      }
+    }
   }
 
   private void internalRegisterUse(UseRegistry<?> registry, FrameType frameType) {
