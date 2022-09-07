@@ -6,10 +6,7 @@ package com.android.tools.r8.graph.invokespecial;
 
 import static com.android.tools.r8.graph.invokespecial.InvokeSpecialToEnumUnboxedMethodTest.MyEnum.TEST_1;
 import static com.android.tools.r8.graph.invokespecial.InvokeSpecialToEnumUnboxedMethodTest.MyEnum.TEST_2;
-import static org.junit.Assert.assertThrows;
 
-import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.DiagnosticsMatcher;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -32,19 +29,13 @@ public class InvokeSpecialToEnumUnboxedMethodTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    assertThrows(
-        CompilationFailedException.class,
-        () ->
-            testForR8Compat(parameters.getBackend())
-                .addInnerClasses(getClass())
-                .setMinApi(parameters.getApiLevel())
-                .addKeepMainRule(Main.class)
-                .enableInliningAnnotations()
-                // TODO(b/235817866): Should not have invalid assert.
-                .compileWithExpectedDiagnostics(
-                    diagnostics ->
-                        diagnostics.assertErrorThatMatches(
-                            DiagnosticsMatcher.diagnosticException(AssertionError.class))));
+    testForR8Compat(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Main.class)
+        .enableInliningAnnotations()
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("Foo");
   }
 
   public enum MyEnum {
@@ -63,6 +54,8 @@ public class InvokeSpecialToEnumUnboxedMethodTest extends TestBase {
     }
   }
 
+  // This is similar to PrivateEnumWithPrivateInvokeSpecialTest by invoking a private method on an
+  // enum that is unboxed.
   public static class Main {
 
     public static void main(String[] args) {
