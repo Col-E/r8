@@ -283,7 +283,7 @@ public class PolicyScheduler {
         new SameNestHost(appView),
         new SameParentClass(),
         new SyntheticItemsPolicy(appView, mode),
-        new RespectPackageBoundaries(appView),
+        new RespectPackageBoundaries(appView, mode),
         new NoDifferentApiReferenceLevel(appView),
         new NoIndirectRuntimeTypeChecks(appView, runtimeTypeCheckInfo),
         new NoWeakerAccessPrivileges(appView, immediateSubtypingInfo),

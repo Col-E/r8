@@ -7,11 +7,13 @@ package com.android.tools.r8.horizontalclassmerging.policies;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
 import com.android.tools.r8.shaking.VerticalClassMerger.IllegalAccessDetector;
@@ -25,9 +27,11 @@ import java.util.Map;
 public class RespectPackageBoundaries extends MultiClassPolicy {
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
+  private final Mode mode;
 
-  public RespectPackageBoundaries(AppView<? extends AppInfoWithClassHierarchy> appView) {
+  public RespectPackageBoundaries(AppView<? extends AppInfoWithClassHierarchy> appView, Mode mode) {
     this.appView = appView;
+    this.mode = mode;
   }
 
   boolean shouldRestrictMergingAcrossPackageBoundary(DexProgramClass clazz) {
@@ -83,7 +87,29 @@ public class RespectPackageBoundaries extends MultiClassPolicy {
             method -> {
               boolean foundIllegalAccess =
                   method.registerCodeReferencesWithResult(
-                      new IllegalAccessDetector(appView, method));
+                      new IllegalAccessDetector(appView, method) {
+
+                        @Override
+                        protected boolean checkRewrittenFieldType(DexClassAndField field) {
+                          if (mode.isInitial()) {
+                            // If the type of the field is package private, we need to keep the
+                            // current class in its package in case we end up synthesizing a
+                            // check-cast for the field type after relaxing the type of the field
+                            // after instance field merging.
+                            DexType fieldBaseType = field.getType().toBaseType(dexItemFactory());
+                            if (fieldBaseType.isClassType()) {
+                              DexClass fieldBaseClass = appView.definitionFor(fieldBaseType);
+                              if (fieldBaseClass == null || !fieldBaseClass.isPublic()) {
+                                return setFoundPackagePrivateAccess();
+                              }
+                            }
+                          } else {
+                            // No relaxing of field types, hence no insertion of casts where we need
+                            // to guarantee visibility.
+                          }
+                          return continueSearchForPackagePrivateAccess();
+                        }
+                      });
               if (foundIllegalAccess) {
                 return TraversalContinuation.doBreak();
               }

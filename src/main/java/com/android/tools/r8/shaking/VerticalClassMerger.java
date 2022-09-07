@@ -24,6 +24,7 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DefaultInstanceInitializerCode;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMember;
@@ -2106,8 +2107,8 @@ public class VerticalClassMerger {
     }
   }
 
-  // Searches for a reference to a non-public class, field or method declared in the same package
-  // as [source].
+  // Searches for a reference to a non-private, non-public class, field or method declared in the
+  // same package as [source].
   public static class IllegalAccessDetector extends UseRegistryWithResult<Boolean, ProgramMethod> {
 
     private final AppView<? extends AppInfoWithClassHierarchy> appView;
@@ -2118,106 +2119,144 @@ public class VerticalClassMerger {
       this.appView = appView;
     }
 
-    private boolean checkFieldReference(DexField field) {
-      DexType baseType =
-          appView.graphLens().lookupType(field.holder.toBaseType(appView.dexItemFactory()));
-      if (baseType.isClassType() && baseType.isSamePackage(getContext().getHolderType())) {
-        if (checkTypeReference(field.holder) || checkTypeReference(field.type)) {
-          return true;
-        }
+    protected boolean checkFoundPackagePrivateAccess() {
+      assert getResult();
+      return true;
+    }
 
-        DexEncodedField definition = appView.appInfo().resolveField(field).getResolvedField();
-        if (definition == null || !definition.accessFlags.isPublic()) {
-          setResult(true);
-          return true;
-        }
-      }
+    protected boolean setFoundPackagePrivateAccess() {
+      setResult(true);
+      return true;
+    }
+
+    protected static boolean continueSearchForPackagePrivateAccess() {
       return false;
     }
 
-    private boolean checkMethodReference(DexMethod method, OptionalBool isInterface) {
-      DexType baseType =
-          appView.graphLens().lookupType(method.holder.toBaseType(appView.dexItemFactory()));
-      if (baseType.isClassType() && baseType.isSamePackage(getContext().getHolderType())) {
-        if (checkTypeReference(method.holder)
-            || checkTypeReference(method.proto.returnType)
-            || Iterables.any(method.getParameters(), this::checkTypeReference)) {
-          return true;
-        }
+    private boolean checkFieldReference(DexField field) {
+      return checkRewrittenFieldReference(appView.graphLens().lookupField(field));
+    }
 
-        MethodResolutionResult resolutionResult =
-            isInterface.isUnknown()
-                ? appView.appInfo().unsafeResolveMethodDueToDexFormatLegacy(method)
-                : appView.appInfo().resolveMethodLegacy(method, isInterface.isTrue());
-        if (!resolutionResult.isSingleResolution()
-            || !resolutionResult.asSingleResolution().getResolvedMethod().isPublic()) {
-          setResult(true);
-          return true;
+    private boolean checkRewrittenFieldReference(DexField field) {
+      assert field.getHolderType().isClassType();
+      DexType fieldHolder = field.getHolderType();
+      if (fieldHolder.isSamePackage(getContext().getHolderType())) {
+        if (checkRewrittenTypeReference(fieldHolder)) {
+          return checkFoundPackagePrivateAccess();
+        }
+        DexClassAndField resolvedField = appView.appInfo().resolveField(field).getResolutionPair();
+        if (resolvedField == null) {
+          return setFoundPackagePrivateAccess();
+        }
+        if (resolvedField.getHolder() != getContext().getHolder()
+            && !resolvedField.getAccessFlags().isPublic()) {
+          return setFoundPackagePrivateAccess();
+        }
+        if (checkRewrittenFieldType(resolvedField)) {
+          return checkFoundPackagePrivateAccess();
         }
       }
-      return false;
+      return continueSearchForPackagePrivateAccess();
+    }
+
+    protected boolean checkRewrittenFieldType(DexClassAndField field) {
+      return continueSearchForPackagePrivateAccess();
+    }
+
+    private boolean checkRewrittenMethodReference(
+        DexMethod rewrittenMethod, OptionalBool isInterface) {
+      DexType baseType = rewrittenMethod.getHolderType().toBaseType(appView.dexItemFactory());
+      if (baseType.isClassType() && baseType.isSamePackage(getContext().getHolderType())) {
+        if (checkTypeReference(rewrittenMethod.getHolderType())) {
+          return checkFoundPackagePrivateAccess();
+        }
+        MethodResolutionResult resolutionResult =
+            isInterface.isUnknown()
+                ? appView.appInfo().unsafeResolveMethodDueToDexFormat(rewrittenMethod)
+                : appView.appInfo().resolveMethod(rewrittenMethod, isInterface.isTrue());
+        if (!resolutionResult.isSingleResolution()) {
+          return setFoundPackagePrivateAccess();
+        }
+        DexClassAndMethod resolvedMethod =
+            resolutionResult.asSingleResolution().getResolutionPair();
+        if (resolvedMethod.getHolder() != getContext().getHolder()
+            && !resolvedMethod.getAccessFlags().isPublic()) {
+          return setFoundPackagePrivateAccess();
+        }
+      }
+      return continueSearchForPackagePrivateAccess();
     }
 
     private boolean checkTypeReference(DexType type) {
-      DexType baseType = appView.graphLens().lookupType(type.toBaseType(appView.dexItemFactory()));
+      return internalCheckTypeReference(type, appView.graphLens());
+    }
+
+    private boolean checkRewrittenTypeReference(DexType type) {
+      return internalCheckTypeReference(type, GraphLens.getIdentityLens());
+    }
+
+    private boolean internalCheckTypeReference(DexType type, GraphLens graphLens) {
+      DexType baseType = graphLens.lookupType(type.toBaseType(appView.dexItemFactory()));
       if (baseType.isClassType() && baseType.isSamePackage(getContext().getHolderType())) {
         DexClass clazz = appView.definitionFor(baseType);
-        if (clazz == null || !clazz.accessFlags.isPublic()) {
-          setResult(true);
-          return true;
+        if (clazz == null || !clazz.isPublic()) {
+          return setFoundPackagePrivateAccess();
         }
       }
-      return false;
+      return continueSearchForPackagePrivateAccess();
     }
 
     @Override
     public void registerInitClass(DexType clazz) {
-      checkTypeReference(clazz);
+      if (appView.initClassLens().isFinal()) {
+        // The InitClass lens is always rewritten up until the most recent graph lens, so first map
+        // the class type to the most recent graph lens.
+        DexType rewrittenType = appView.graphLens().lookupType(clazz);
+        DexField initClassField = appView.initClassLens().getInitClassField(rewrittenType);
+        checkRewrittenFieldReference(initClassField);
+      } else {
+        checkTypeReference(clazz);
+      }
     }
 
     @Override
     public void registerInvokeVirtual(DexMethod method) {
-      MethodLookupResult lookup =
-          appView.graphLens().lookupMethod(method, getContext().getReference(), VIRTUAL);
-      checkMethodReference(lookup.getReference(), OptionalBool.FALSE);
+      MethodLookupResult lookup = appView.graphLens().lookupInvokeVirtual(method, getContext());
+      checkRewrittenMethodReference(lookup.getReference(), OptionalBool.FALSE);
     }
 
     @Override
     public void registerInvokeDirect(DexMethod method) {
-      MethodLookupResult lookup =
-          appView.graphLens().lookupMethod(method, getContext().getReference(), DIRECT);
-      checkMethodReference(lookup.getReference(), OptionalBool.UNKNOWN);
+      MethodLookupResult lookup = appView.graphLens().lookupInvokeDirect(method, getContext());
+      checkRewrittenMethodReference(lookup.getReference(), OptionalBool.UNKNOWN);
     }
 
     @Override
     public void registerInvokeStatic(DexMethod method) {
-      MethodLookupResult lookup =
-          appView.graphLens().lookupMethod(method, getContext().getReference(), Type.STATIC);
-      checkMethodReference(lookup.getReference(), OptionalBool.UNKNOWN);
+      MethodLookupResult lookup = appView.graphLens().lookupInvokeStatic(method, getContext());
+      checkRewrittenMethodReference(lookup.getReference(), OptionalBool.UNKNOWN);
     }
 
     @Override
     public void registerInvokeInterface(DexMethod method) {
-      MethodLookupResult lookup =
-          appView.graphLens().lookupMethod(method, getContext().getReference(), Type.INTERFACE);
-      checkMethodReference(lookup.getReference(), OptionalBool.TRUE);
+      MethodLookupResult lookup = appView.graphLens().lookupInvokeInterface(method, getContext());
+      checkRewrittenMethodReference(lookup.getReference(), OptionalBool.TRUE);
     }
 
     @Override
     public void registerInvokeSuper(DexMethod method) {
-      MethodLookupResult lookup =
-          appView.graphLens().lookupMethod(method, getContext().getReference(), Type.SUPER);
-      checkMethodReference(lookup.getReference(), OptionalBool.UNKNOWN);
+      MethodLookupResult lookup = appView.graphLens().lookupInvokeSuper(method, getContext());
+      checkRewrittenMethodReference(lookup.getReference(), OptionalBool.UNKNOWN);
     }
 
     @Override
     public void registerInstanceFieldWrite(DexField field) {
-      checkFieldReference(appView.graphLens().lookupField(field));
+      checkFieldReference(field);
     }
 
     @Override
     public void registerInstanceFieldRead(DexField field) {
-      checkFieldReference(appView.graphLens().lookupField(field));
+      checkFieldReference(field);
     }
 
     @Override
@@ -2227,12 +2266,12 @@ public class VerticalClassMerger {
 
     @Override
     public void registerStaticFieldRead(DexField field) {
-      checkFieldReference(appView.graphLens().lookupField(field));
+      checkFieldReference(field);
     }
 
     @Override
     public void registerStaticFieldWrite(DexField field) {
-      checkFieldReference(appView.graphLens().lookupField(field));
+      checkFieldReference(field);
     }
 
     @Override
