@@ -53,15 +53,7 @@ def run(args):
       subprocess.run(['git', 'new-branch', branch, '--upstream-current'])
 
     subprocess.run(['git', 'cherry-pick', hash])
-
-    commit_message = subprocess.check_output(['git', 'log', '--format=%B', '-n', '1', 'HEAD'])
-    commit_lines = [l.strip() for l in commit_message.decode('UTF-8').split('\n')]
-    for line in commit_lines:
-      if line.startswith('Bug: '):
-        normalized = line.replace('Bug: ', '').replace('b/', '')
-        if len(normalized) > 0:
-          bugs.add(normalized)
-    confirm_and_upload(branch, args)
+    confirm_and_upload(branch, args, bugs)
     count = count + 1
 
   branch = 'cherry-%d' % count
@@ -96,18 +88,44 @@ def run(args):
     message += 'Bug: b/%s\n' % bug
 
   subprocess.run(['git', 'commit', '-a', '-m', message])
-  confirm_and_upload(branch, args)
+  confirm_and_upload(branch, args, None)
   if (not args.current_checkout):
-    answer = input('Done, press enter to delete checkout in %s' % os.getcwd())
+    while True:
+      try:
+        answer = input("Type 'delete' to finish and delete checkout in %s: " % os.getcwd())
+        if answer == 'delete':
+          break
+      except KeyboardInterrupt:
+        pass
 
-def confirm_and_upload(branch, args):
+def confirm_and_upload(branch, args, bugs):
   question = ('Ready to continue (cwd %s, will not upload to Gerrit)' % os.getcwd()
     if args.no_upload else
         'Ready to upload %s (cwd %s)' % (branch, os.getcwd()))
-  answer = input(question + ' [y/N]?')
-  if answer != 'y':
-    print('Aborting new branch for %s' % branch_version)
-    sys.exit(1)
+
+  while True:
+    try:
+      answer = input(question + ' [yes/abort]? ')
+      if answer == 'yes':
+        break
+      if answer == 'abort':
+        print('Aborting new branch for %s' % branch)
+        sys.exit(1)
+    except KeyboardInterrupt:
+      pass
+
+  # Compute the set of bug refs from the commit message after confirmation.
+  # If done before a conflicting cherry-pick status will potentially include
+  # references that are orthogonal to the pick.
+  if bugs != None:
+    commit_message = subprocess.check_output(['git', 'log', '--format=%B', '-n', '1', 'HEAD'])
+    commit_lines = [l.strip() for l in commit_message.decode('UTF-8').split('\n')]
+    for line in commit_lines:
+      if line.startswith('Bug: '):
+        normalized = line.replace('Bug: ', '').replace('b/', '')
+        if len(normalized) > 0:
+          bugs.add(normalized)
+
   if (not args.no_upload):
     subprocess.run(['git', 'cl', 'upload', '--bypass-hooks'])
 
