@@ -5,10 +5,19 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.androidapi.ComputedApiLevel;
+import com.android.tools.r8.cf.code.CfInstanceFieldRead;
+import com.android.tools.r8.cf.code.CfInstanceFieldWrite;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.cf.code.CfLoad;
+import com.android.tools.r8.cf.code.CfNew;
+import com.android.tools.r8.cf.code.CfReturn;
+import com.android.tools.r8.cf.code.CfReturnVoid;
+import com.android.tools.r8.cf.code.CfStackInstruction;
+import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
@@ -17,13 +26,19 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
+import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.backports.BackportedMethodDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.backports.BackportedMethods;
 import com.android.tools.r8.ir.desugar.backports.BooleanMethodRewrites;
@@ -39,6 +54,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibr
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+import com.android.tools.r8.synthesis.SyntheticProgramClassBuilder;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -186,6 +202,9 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       }
       if (options.getMinApiLevel().isLessThan(AndroidApiLevel.O)) {
         initializeAndroidOMethodProviders(factory);
+        if (typeIsPresent(factory.supplierType)) {
+          initializeAndroidOThreadLocalMethodProviderWithSupplier(factory);
+        }
       }
       if (options.getMinApiLevel().isLessThan(AndroidApiLevel.R)) {
         if (typeIsPresentWithoutBackportsFrom(factory.setType, AndroidApiLevel.R)) {
@@ -1617,6 +1636,17 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
           new MethodGenerator(method, BackportedMethods::ObjectsMethods_requireNonNullSupplier));
     }
 
+    private void initializeAndroidOThreadLocalMethodProviderWithSupplier(DexItemFactory factory) {
+      // ThreadLocal
+      DexType type = factory.threadLocalType;
+
+      // ThreadLocal.withInitial(Supplier)
+      DexString name = factory.createString("withInitial");
+      DexProto proto = factory.createProto(type, factory.supplierType);
+      DexMethod method = factory.createMethod(type, proto, name);
+      addProvider(new ThreadLocalWithInitialWithSupplierGenerator(method));
+    }
+
     private void addProvider(MethodProvider generator) {
       MethodProvider replaced = rewritable.put(generator.method, generator);
       assert replaced == null;
@@ -1751,6 +1781,174 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     @Override
     protected SyntheticKind getSyntheticKind(SyntheticNaming naming) {
       return naming.BACKPORT_WITH_FORWARDING;
+    }
+  }
+
+  /*
+    Generate code for the SynthesizedThreadLocalSubClass class below, and rewrite
+
+      ThreadLocal.withInitial(someSupplier);
+
+    to
+
+      new SynthesizedThreadLocalSubClass(someSupplier);
+
+    class SynthesizedThreadLocalSubClass extends ThreadLocal<Object> {
+      private Supplier<Object> supplier;
+
+      SynthesizedThreadLocalSubClass(Supplier<Object> supplier) {
+        this.supplier = supplier;
+      }
+
+      protected Object initialValue() {
+        return supplier.get();
+      }
+    }
+  */
+  private static class ThreadLocalWithInitialWithSupplierGenerator extends MethodGenerator {
+
+    ThreadLocalWithInitialWithSupplierGenerator(DexMethod method) {
+      super(method, null, method.name.toString());
+    }
+
+    @Override
+    protected SyntheticKind getSyntheticKind(SyntheticNaming naming) {
+      return naming.THREAD_LOCAL;
+    }
+
+    @Override
+    public Collection<CfInstruction> rewriteInvoke(
+        CfInvoke invoke,
+        AppView<?> appView,
+        BackportedMethodDesugaringEventConsumer eventConsumer,
+        MethodProcessingContext methodProcessingContext,
+        LocalStackAllocator localStackAllocator) {
+      DexItemFactory factory = appView.dexItemFactory();
+      DexProgramClass threadLocalSubclass =
+          appView
+              .getSyntheticItems()
+              .createClass(
+                  kinds -> kinds.THREAD_LOCAL,
+                  methodProcessingContext.createUniqueContext(),
+                  appView,
+                  builder -> new ThreadLocalSubclassGenerator(builder, appView));
+      eventConsumer.acceptBackportedClass(
+          threadLocalSubclass, methodProcessingContext.getMethodContext());
+      return ImmutableList.of(
+          new CfNew(threadLocalSubclass.type),
+          // Massage the stack with dup_x1 and swap:
+          //   ..., SomeSupplier, ThreadLocalSubClass ->
+          //      ..., ThreadLocalSubClass, ThreadLocalSubClass, SomeSupplier
+          new CfStackInstruction(Opcode.DupX1),
+          new CfStackInstruction(Opcode.Swap),
+          new CfInvoke(
+              Opcodes.INVOKESPECIAL,
+              factory.createMethod(
+                  threadLocalSubclass.type,
+                  factory.createProto(factory.voidType, factory.supplierType),
+                  factory.constructorMethodName),
+              false));
+    }
+  }
+
+  private static class ThreadLocalSubclassGenerator {
+    private final DexItemFactory factory;
+    private final DexType type;
+    private final DexField supplierField;
+    private final DexMethod constructor;
+    private final DexMethod initialValueMethod;
+
+    ThreadLocalSubclassGenerator(SyntheticProgramClassBuilder builder, AppView<?> appView) {
+      this.factory = appView.dexItemFactory();
+      this.type = builder.getType();
+      this.supplierField =
+          factory.createField(
+              builder.getType(),
+              factory.supplierType,
+              factory.createString("initialValueSupplier"));
+      this.constructor =
+          factory.createMethod(
+              type,
+              factory.createProto(factory.voidType, factory.supplierType),
+              factory.constructorMethodName);
+      this.initialValueMethod =
+          factory.createMethod(
+              type, factory.createProto(factory.objectType), factory.createString("initialValue"));
+
+      builder.setSuperType(factory.threadLocalType);
+      synthesizeInstanceFields(builder);
+      synthesizeDirectMethods(builder);
+      synthesizeVirtualMethods(builder);
+    }
+
+    private void synthesizeInstanceFields(SyntheticProgramClassBuilder builder) {
+      // Instance field:
+      //
+      // private Supplier<Object> supplier
+      builder.setInstanceFields(
+          ImmutableList.of(
+              DexEncodedField.syntheticBuilder()
+                  .setField(supplierField)
+                  .setAccessFlags(FieldAccessFlags.createPublicFinalSynthetic())
+                  .disableAndroidApiLevelCheck()
+                  .build()));
+    }
+
+    private void synthesizeDirectMethods(SyntheticProgramClassBuilder builder) {
+      // Code for:
+      //
+      //  SynthesizedThreadLocalSubClass(Supplier<Object> supplier) {
+      //    this.supplier = supplier;
+      //  }
+      List<CfInstruction> instructions = new ArrayList<>();
+      instructions.add(new CfLoad(ValueType.OBJECT, 0));
+      instructions.add(new CfStackInstruction(Opcode.Dup));
+      instructions.add(
+          new CfInvoke(
+              Opcodes.INVOKESPECIAL,
+              factory.createMethod(
+                  factory.threadLocalType,
+                  factory.createProto(factory.voidType),
+                  factory.constructorMethodName),
+              false));
+      instructions.add(new CfLoad(ValueType.fromDexType(factory.supplierType), 1));
+      instructions.add(new CfInstanceFieldWrite(supplierField));
+      instructions.add(new CfReturnVoid());
+
+      builder.setDirectMethods(
+          ImmutableList.of(
+              DexEncodedMethod.syntheticBuilder()
+                  .setMethod(constructor)
+                  .setAccessFlags(
+                      MethodAccessFlags.fromSharedAccessFlags(
+                          Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, true))
+                  .setCode(new CfCode(type, 2, 2, instructions))
+                  .disableAndroidApiLevelCheck()
+                  .build()));
+    }
+
+    private void synthesizeVirtualMethods(SyntheticProgramClassBuilder builder) {
+      // Code for:
+      //
+      // protected Object initialValue() {
+      //   return supplier.get();
+      // }
+      List<CfInstruction> instructions = new ArrayList<>();
+      instructions.add(new CfLoad(ValueType.OBJECT, 0));
+      instructions.add(new CfInstanceFieldRead(supplierField));
+      instructions.add(new CfInvoke(Opcodes.INVOKEINTERFACE, factory.supplierMembers.get, true));
+      instructions.add(new CfReturn(ValueType.OBJECT));
+
+      builder.setVirtualMethods(
+          ImmutableList.of(
+              DexEncodedMethod.syntheticBuilder()
+                  .setMethod(initialValueMethod)
+                  .setAccessFlags(
+                      MethodAccessFlags.fromSharedAccessFlags(
+                          Constants.ACC_PROTECTED | Constants.ACC_SYNTHETIC, false))
+                  .setCode(new CfCode(type, 1, 1, instructions))
+                  .disableAndroidApiLevelCheck()
+                  .build()));
     }
   }
 

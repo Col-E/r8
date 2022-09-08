@@ -57,6 +57,7 @@ public class SyntheticNaming {
 
   // Locally generated synthetic classes.
   public final SyntheticKind LAMBDA = generator.forInstanceClass("Lambda");
+  public final SyntheticKind THREAD_LOCAL = generator.forInstanceClass("ThreadLocal");
 
   // TODO(b/214901256): Sharing of synthetic classes may lead to duplicate method errors.
   public final SyntheticKind NON_FIXED_INIT_TYPE_ARGUMENT =

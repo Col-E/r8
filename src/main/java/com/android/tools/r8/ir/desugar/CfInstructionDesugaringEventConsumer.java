@@ -127,6 +127,13 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
+    public void acceptBackportedClass(DexProgramClass backportedClass, ProgramMethod context) {
+      backportedClass
+          .programMethods()
+          .forEach(method -> methodProcessor.scheduleMethodForProcessing(method, this));
+    }
+
+    @Override
     public void acceptRecordMethod(ProgramMethod method) {
       methodProcessor.scheduleDesugaredMethodForProcessing(method);
     }
@@ -394,6 +401,11 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptBackportedMethod(ProgramMethod backportedMethod, ProgramMethod context) {
+      // Intentionally empty. The method will be hit by tracing if required.
+    }
+
+    @Override
+    public void acceptBackportedClass(DexProgramClass backportedClass, ProgramMethod context) {
       // Intentionally empty. The method will be hit by tracing if required.
     }
 
