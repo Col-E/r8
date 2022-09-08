@@ -11,19 +11,24 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.backports.BackportedMethods;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Set;
 
 public class AssertionErrorTwoArgsConstructorRewriter {
 
@@ -41,11 +46,12 @@ public class AssertionErrorTwoArgsConstructorRewriter {
     if (options.canUseAssertionErrorTwoArgumentConstructor()) {
       return;
     }
-
+    Set<Value> newOutValues = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       InstructionListIterator insnIterator = block.listIterator(code);
+      List<NewInstance> newInstancesToRemove = new ArrayList<>();
       while (insnIterator.hasNext()) {
         Instruction current = insnIterator.next();
         if (current.isInvokeMethod()) {
@@ -53,24 +59,31 @@ public class AssertionErrorTwoArgsConstructorRewriter {
           if (invokedMethod == dexItemFactory.assertionErrorMethods.initMessageAndCause) {
             List<Value> inValues = current.inValues();
             assert inValues.size() == 3; // receiver, message, cause
-
-            Value assertionError =
-                code.createValue(
-                    TypeElement.fromDexType(
-                        dexItemFactory.assertionErrorType,
-                        Nullability.definitelyNotNull(),
-                        appView));
-            Instruction invoke =
-                new InvokeStatic(
-                    createSynthetic(methodProcessingContext).getReference(),
-                    assertionError,
-                    inValues.subList(1, 3));
+            Value newInstanceValue = current.getFirstOperand();
+            Instruction definition = newInstanceValue.getDefinition();
+            if (!definition.isNewInstance()) {
+              continue;
+            }
+            InvokeStatic invoke =
+                InvokeStatic.builder()
+                    .setMethod(createSynthetic(methodProcessingContext).getReference())
+                    .setFreshOutValue(
+                        code, dexItemFactory.assertionErrorType.toTypeElement(appView))
+                    .setPosition(current)
+                    .setArguments(inValues.subList(1, 3))
+                    .build();
             insnIterator.replaceCurrentInstruction(invoke);
-            inValues.get(0).replaceUsers(assertionError);
-            inValues.get(0).definition.removeOrReplaceByDebugLocalRead(code);
+            newInstanceValue.replaceUsers(invoke.outValue());
+            newOutValues.add(invoke.outValue());
+            newInstancesToRemove.add(definition.asNewInstance());
           }
         }
       }
+      newInstancesToRemove.forEach(
+          newInstance -> newInstance.removeOrReplaceByDebugLocalRead(code));
+    }
+    if (!newOutValues.isEmpty()) {
+      new TypeAnalysis(appView).widening(newOutValues);
     }
     assert code.isConsistentSSA(appView);
   }
@@ -103,6 +116,15 @@ public class AssertionErrorTwoArgsConstructorRewriter {
                                     factory, methodSig)));
     synchronized (synthesizedMethods) {
       synthesizedMethods.add(method);
+      OptimizationFeedback.getSimpleFeedback()
+          .setDynamicReturnType(
+              method,
+              appView,
+              DynamicType.createExact(
+                  dexItemFactory
+                      .assertionErrorType
+                      .toTypeElement(appView, Nullability.definitelyNotNull())
+                      .asClassType()));
     }
     return method;
   }
