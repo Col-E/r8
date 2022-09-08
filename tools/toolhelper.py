@@ -63,10 +63,10 @@ def run(tool, args, build=None, debug=True,
       stdout, stderr = proc.communicate()
     finally:
       timer.cancel()
-    result = stdout if return_stdout else proc.returncode
+    result = stdout.decode('utf-8') if return_stdout else proc.returncode
   else:
     result = (
-        subprocess.check_output(cmd)
+        subprocess.check_output(cmd).decode('utf-8')
         if return_stdout
         else subprocess.call(cmd, stdout=stdout, stderr=stderr))
   duration = int((time.time() - start) * 1000)

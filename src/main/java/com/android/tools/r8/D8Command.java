@@ -702,7 +702,9 @@ public final class D8Command extends BaseCompilerCommand {
         .getArtProfileOptions()
         .setArtProfilesForRewriting(getArtProfilesForRewriting())
         .setPassthrough(true);
-    internal.getStartupOptions().setStartupProfileProviders(getStartupProfileProviders());
+    if (!getStartupProfileProviders().isEmpty()) {
+      internal.getStartupOptions().setStartupProfileProviders(getStartupProfileProviders());
+    }
 
     internal.programClassConflictResolver =
         ProgramClassCollection.wrappedConflictResolver(

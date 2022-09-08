@@ -1077,7 +1077,9 @@ public final class R8Command extends BaseCompilerCommand {
     internal.configureAndroidPlatformBuild(getAndroidPlatformBuild());
 
     internal.getArtProfileOptions().setArtProfilesForRewriting(getArtProfilesForRewriting());
-    internal.getStartupOptions().setStartupProfileProviders(getStartupProfileProviders());
+    if (!getStartupProfileProviders().isEmpty()) {
+      internal.getStartupOptions().setStartupProfileProviders(getStartupProfileProviders());
+    }
 
     internal.programClassConflictResolver =
         ProgramClassCollection.wrappedConflictResolver(

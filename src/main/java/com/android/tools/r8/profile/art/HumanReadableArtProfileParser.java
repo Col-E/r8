@@ -9,8 +9,9 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.profile.art.diagnostic.HumanReadableArtProfileParserErrorDiagnostic;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.utils.Action;
-import com.android.tools.r8.utils.ClassReferenceUtils;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.Reporter;
 import java.io.BufferedReader;
@@ -65,12 +66,16 @@ public class HumanReadableArtProfileParser {
   }
 
   public boolean parseRule(String rule) {
-    ArtProfileMethodRuleInfoImpl.Builder methodRuleInfoBuilder =
-        ArtProfileMethodRuleInfoImpl.builder();
-    rule = parseFlag(rule, 'H', methodRuleInfoBuilder::setIsHot);
-    rule = parseFlag(rule, 'S', methodRuleInfoBuilder::setIsStartup);
-    rule = parseFlag(rule, 'P', methodRuleInfoBuilder::setIsPostStartup);
-    return parseClassOrMethodDescriptor(rule, methodRuleInfoBuilder.build());
+    try {
+      ArtProfileMethodRuleInfoImpl.Builder methodRuleInfoBuilder =
+          ArtProfileMethodRuleInfoImpl.builder();
+      rule = parseFlag(rule, 'H', methodRuleInfoBuilder::setIsHot);
+      rule = parseFlag(rule, 'S', methodRuleInfoBuilder::setIsStartup);
+      rule = parseFlag(rule, 'P', methodRuleInfoBuilder::setIsPostStartup);
+      return parseClassOrMethodRule(rule, methodRuleInfoBuilder.build());
+    } catch (Throwable t) {
+      return false;
+    }
   }
 
   private static String parseFlag(String rule, char c, Action action) {
@@ -81,23 +86,30 @@ public class HumanReadableArtProfileParser {
     return rule;
   }
 
-  private boolean parseClassOrMethodDescriptor(
-      String descriptor, ArtProfileMethodRuleInfoImpl methodRuleInfo) {
-    int arrowStartIndex = descriptor.indexOf("->");
+  private boolean parseClassOrMethodRule(String rule, ArtProfileMethodRuleInfoImpl methodRuleInfo) {
+    int arrowStartIndex = rule.indexOf("->");
     if (arrowStartIndex >= 0) {
-      return parseMethodRule(descriptor, methodRuleInfo, arrowStartIndex);
+      return parseMethodRule(rule, methodRuleInfo, arrowStartIndex);
     } else if (methodRuleInfo.isEmpty()) {
-      return parseClassRule(descriptor);
+      return parseClassRule(rule);
     } else {
       return false;
     }
   }
 
   private boolean parseClassRule(String descriptor) {
-    ClassReference classReference = ClassReferenceUtils.parseClassDescriptor(descriptor);
-    if (classReference == null) {
+    TypeReference typeReference = Reference.typeFromDescriptor(descriptor);
+    if (typeReference == null) {
       return false;
     }
+    if (typeReference.isArray()) {
+      typeReference = typeReference.asArray().getBaseType();
+    }
+    if (typeReference.isPrimitive()) {
+      return false;
+    }
+    assert typeReference.isClass();
+    ClassReference classReference = typeReference.asClass();
     if (rulePredicate.testClassRule(classReference, ArtProfileClassRuleInfoImpl.empty())) {
       profileBuilder.addClassRule(
           classRuleBuilder -> classRuleBuilder.setClassReference(classReference));
@@ -106,7 +118,9 @@ public class HumanReadableArtProfileParser {
   }
 
   private boolean parseMethodRule(
-      String descriptor, ArtProfileMethodRuleInfoImpl methodRuleInfo, int arrowStartIndex) {
+      String rule, ArtProfileMethodRuleInfoImpl methodRuleInfo, int arrowStartIndex) {
+    int inlineCacheStartIndex = rule.indexOf('+', arrowStartIndex + 2);
+    String descriptor = inlineCacheStartIndex > 0 ? rule.substring(0, inlineCacheStartIndex) : rule;
     MethodReference methodReference =
         MethodReferenceUtils.parseSmaliString(descriptor, arrowStartIndex);
     if (methodReference == null) {
