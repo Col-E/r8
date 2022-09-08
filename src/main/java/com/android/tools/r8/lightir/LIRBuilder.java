@@ -75,7 +75,7 @@ public class LIRBuilder<V, B> {
   // Mapping from SSA value definition to the local name index in the constant pool.
   private final Int2ReferenceMap<DebugLocalInfo> debugLocals = new Int2ReferenceOpenHashMap<>();
   // Mapping from instruction to the end usage of SSA values with debug local info.
-  private final Int2ReferenceMap<int[]> debugLocalEnds = new Int2ReferenceOpenHashMap();
+  private final Int2ReferenceMap<int[]> debugLocalEnds = new Int2ReferenceOpenHashMap<>();
 
   // TODO(b/225838009): Reconsider this fixed space as the operand count for phis is much larger.
   // Pre-allocated space for caching value indexes when writing instructions.
