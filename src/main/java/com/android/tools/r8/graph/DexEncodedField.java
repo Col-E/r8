@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.kotlin.KotlinFieldLevelInfo;
+import com.android.tools.r8.kotlin.KotlinMetadataUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.structural.StructuralItem;
@@ -397,6 +398,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     private DexAnnotationSet annotations = DexAnnotationSet.empty();
     private FieldAccessFlags accessFlags;
     private FieldTypeSignature genericSignature = FieldTypeSignature.noSignature();
+    private KotlinFieldLevelInfo kotlinInfo = KotlinMetadataUtils.getNoKotlinInfo();
     private DexValue staticValue = null;
     private ComputedApiLevel apiLevel = ComputedApiLevel.notSet();
     private FieldOptimizationInfo optimizationInfo = DefaultFieldOptimizationInfo.getInstance();
@@ -416,8 +418,8 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
       // Copy all the mutable state of a DexEncodedField here.
       field = from.getReference();
       accessFlags = from.accessFlags.copy();
-      // TODO(b/169923358): Consider removing the fieldSignature here.
       genericSignature = from.getGenericSignature();
+      kotlinInfo = from.getKotlinInfo();
       annotations = from.annotations();
       staticValue = from.staticValue;
       apiLevel = from.getApiLevel();
@@ -518,6 +520,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
               apiLevel,
               deprecated,
               d8R8Synthesized);
+      dexEncodedField.setKotlinMemberInfo(kotlinInfo);
       dexEncodedField.optimizationInfo = optimizationInfo;
       buildConsumer.accept(dexEncodedField);
       return dexEncodedField;
