@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import static com.android.tools.r8.graph.DexApplication.classesWithDeterministicOrder;
 import static com.android.tools.r8.utils.StringUtils.EMPTY_CHAR_ARRAY;
 import static com.android.tools.r8.utils.SymbolGenerationUtils.RESERVED_NAMES;
 
@@ -26,7 +25,6 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.SymbolGenerationUtils;
 import com.android.tools.r8.utils.SymbolGenerationUtils.MixedCasing;
 import com.android.tools.r8.utils.Timing;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -45,9 +43,9 @@ public class Minifier {
 
   public NamingLens run(ExecutorService executorService, Timing timing) throws ExecutionException {
     assert appView.options().isMinifying();
-    SubtypingInfo subtypingInfo = appView.appInfo().computeSubtypingInfo();
+    SubtypingInfo subtypingInfo = MinifierUtils.createSubtypingInfo(appView);
     timing.begin("ComputeInterfaces");
-    List<DexClass> interfaces = computeReachableInterfacesWithDeterministicOrder(subtypingInfo);
+    List<DexClass> interfaces = subtypingInfo.computeReachableInterfacesWithDeterministicOrder();
     timing.end();
     timing.begin("MinifyClasses");
     ClassNameMinifier classNameMinifier =
@@ -97,19 +95,6 @@ public class Minifier {
     new IdentifierMinifier(appView, NamingLens.getIdentityLens())
         .replaceDexItemBasedConstString(executorService);
     timing.end();
-  }
-
-  private List<DexClass> computeReachableInterfacesWithDeterministicOrder(
-      SubtypingInfo subtypingInfo) {
-    List<DexClass> interfaces = new ArrayList<>();
-    subtypingInfo.forAllInterfaceRoots(
-        type -> {
-          DexClass clazz = appView.contextIndependentDefinitionFor(type);
-          if (clazz != null) {
-            interfaces.add(clazz);
-          }
-        });
-    return classesWithDeterministicOrder(interfaces);
   }
 
   abstract static class BaseMinificationNamingStrategy {

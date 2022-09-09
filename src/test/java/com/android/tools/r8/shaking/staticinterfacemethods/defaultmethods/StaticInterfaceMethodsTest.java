@@ -180,7 +180,7 @@ public class StaticInterfaceMethodsTest extends TestBase {
     if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
       // TODO(160142903): @NeverInline does not seem to work on static interface methods.
       // TODO(160144053): Using -keepclassmembers for this cause InterfaceWithStaticMethods to
-      // be renamed.
+      //  be renamed.
       if (allowObfuscation) {
         builder.add(
             "-if class " + InterfaceWithStaticMethods.class.getTypeName(),

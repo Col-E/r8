@@ -35,14 +35,12 @@ import com.android.tools.r8.naming.Minifier.MinifierMemberNamingStrategy;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
-import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,7 +48,6 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiPredicate;
@@ -96,37 +93,15 @@ public class ProguardMapMinifier {
   public NamingLens run(ExecutorService executorService, Timing timing) throws ExecutionException {
     ArrayDeque<Map<DexReference, MemberNaming>> nonPrivateMembers = new ArrayDeque<>();
     Set<DexReference> notMappedReferences = new HashSet<>();
+    SubtypingInfo subtypingInfo = MinifierUtils.createSubtypingInfo(appView);
     timing.begin("MappingInterfaces");
-    Set<DexClass> classesToBuildSubtypeInformationFor =
-        SetUtils.newIdentityHashSet(appView.app().classes());
-    appView
-        .appInfo()
-        .getObjectAllocationInfoCollection()
-        .forEachInstantiatedLambdaInterfaces(
-            type -> {
-              DexClass lambdaInterface = appView.contextIndependentDefinitionFor(type);
-              if (lambdaInterface != null) {
-                classesToBuildSubtypeInformationFor.add(lambdaInterface);
-              }
-            });
-    appView.appInfo().forEachReferencedClasspathClass(classesToBuildSubtypeInformationFor::add);
-    SubtypingInfo subtypingInfo =
-        SubtypingInfo.create(classesToBuildSubtypeInformationFor, appView);
-    timing.begin("MappingInterfaces");
-    Set<DexClass> interfaces = new TreeSet<>(Comparator.comparing(DexClass::getType));
-    subtypingInfo.forAllInterfaceRoots(
-        iFace -> {
-          DexClass iFaceDefinition = appView.definitionFor(iFace);
-          if (iFaceDefinition != null) {
-            interfaces.add(iFaceDefinition);
-            computeMapping(iFace, nonPrivateMembers, notMappedReferences, subtypingInfo);
-          }
-        });
-
-    assert nonPrivateMembers.isEmpty();
+    List<DexClass> interfaces = subtypingInfo.computeReachableInterfacesWithDeterministicOrder();
+    interfaces.forEach(
+        iface ->
+            computeMapping(iface.getType(), nonPrivateMembers, notMappedReferences, subtypingInfo));
     timing.end();
-
     timing.begin("MappingClasses");
+    mappedClasses.addAll(appView.appInfo().classes());
     subtypingInfo.forAllImmediateExtendsSubtypes(
         factory.objectType,
         subType -> {
@@ -193,13 +168,9 @@ public class ProguardMapMinifier {
     ClassNamingForMapApplier classNaming = seedMapper.getClassNaming(type);
     DexClass clazz = appView.definitionFor(type);
 
-    // Keep track of classes that needs to get renamed.
-    if (clazz != null) {
-      if (clazz.isClasspathClass() && classNaming != null) {
-        mappedClasses.add(clazz.asClasspathClass());
-      } else if (clazz.isProgramClass()) {
-        mappedClasses.add(clazz.asProgramClass());
-      }
+    // Keep track of classpath classes that needs to get renamed.
+    if (clazz != null && clazz.isClasspathClass() && classNaming != null) {
+      mappedClasses.add(clazz.asClasspathClass());
     }
 
     Map<DexReference, MemberNaming> nonPrivateMembers = new IdentityHashMap<>();

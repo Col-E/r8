@@ -3,15 +3,19 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.graph.DexApplication.classesWithDeterministicOrder;
+
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -32,15 +36,17 @@ public class SubtypingInfo {
 
   private final Map<DexType, TypeInfo> typeInfo;
 
+  private final DexDefinitionSupplier definitionSupplier;
   private final DexItemFactory factory;
 
   private SubtypingInfo(
       Map<DexType, TypeInfo> typeInfo,
       Map<DexType, Set<DexType>> subtypeMap,
-      DexItemFactory factory) {
+      DexDefinitionSupplier definitionSupplier) {
     this.typeInfo = typeInfo;
     this.subtypeMap = subtypeMap;
-    this.factory = factory;
+    this.definitionSupplier = definitionSupplier;
+    factory = definitionSupplier.dexItemFactory();
   }
 
   public static SubtypingInfo create(AppView<? extends AppInfoWithClassHierarchy> appView) {
@@ -60,7 +66,7 @@ public class SubtypingInfo {
     Map<DexType, TypeInfo> typeInfo = new ConcurrentHashMap<>();
     Map<DexType, Set<DexType>> subtypeMap = new IdentityHashMap<>();
     populateSubtypeMap(classes, subtypeMap, typeInfo, definitions);
-    return new SubtypingInfo(typeInfo, subtypeMap, definitions.dexItemFactory());
+    return new SubtypingInfo(typeInfo, subtypeMap, definitions);
   }
 
   private static void populateSuperType(
@@ -243,6 +249,16 @@ public class SubtypingInfo {
             getTypeInfo(factory.objectType).directSubtypes,
             subtype -> getTypeInfo(subtype).isInterface())
         .forEach(fn);
+  }
+
+  public List<DexClass> computeReachableInterfacesWithDeterministicOrder() {
+    List<DexClass> interfaces = new ArrayList<>();
+    forAllInterfaceRoots(
+        type ->
+            definitionSupplier
+                .contextIndependentDefinitionForWithResolutionResult(type)
+                .forEachClassResolutionResult(interfaces::add));
+    return classesWithDeterministicOrder(interfaces);
   }
 
   private static class TypeInfo {

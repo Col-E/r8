@@ -8,6 +8,9 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import java.io.IOException;
@@ -15,8 +18,20 @@ import java.nio.file.Path;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
-public class B79498926 {
+@RunWith(Parameterized.class)
+public class B79498926 extends TestBase {
+
+  @Parameter() public TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimes().build();
+  }
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
@@ -33,6 +48,6 @@ public class B79498926 {
             .setProgramConsumer(consumer)
             .setDisableDesugaring(true)
             .build());
-    ToolHelper.runDex2Oat(outDex, outOat);
+    ToolHelper.runDex2Oat(outDex, outOat, parameters.getRuntime().asDex().getVm());
   }
 }
