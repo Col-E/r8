@@ -124,7 +124,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   // Set to true to run compilation in a single thread and without randomly shuffling the input.
   // This makes life easier when running R8 in a debugger.
-  public static final boolean DETERMINISTIC_DEBUGGING = false;
+  public static final boolean DETERMINISTIC_DEBUGGING =
+      System.getProperty("com.android.tools.r8.deterministicdebugging") != null;
 
   // Use a MethodCollection where most interleavings between reading and mutating is caught.
   public static final boolean USE_METHOD_COLLECTION_CONCURRENCY_CHECKED = false;
