@@ -248,7 +248,9 @@ public class BackportDuplicationTest extends TestBase {
                   @Override
                   public void accept(
                       ByteDataView data, String descriptor, DiagnosticsHandler handler) {
-                    outputsRoundOne.add(data.copyByteData());
+                    byte[] bytes = data.copyByteData();
+                    assert bytes != null;
+                    outputsRoundOne.add(bytes);
                   }
                 }
                 : new DexFilePerClassFileConsumer.ForwardingConsumer(null) {
@@ -258,7 +260,9 @@ public class BackportDuplicationTest extends TestBase {
                       ByteDataView data,
                       Set<String> descriptors,
                       DiagnosticsHandler handler) {
-                    outputsRoundOne.add(data.copyByteData());
+                    byte[] bytes = data.copyByteData();
+                    assert bytes != null;
+                    outputsRoundOne.add(bytes);
                   }
 
                   @Override
@@ -270,6 +274,7 @@ public class BackportDuplicationTest extends TestBase {
 
     List<Path> outputsRoundTwo = new ArrayList<>();
     for (byte[] bytes : outputsRoundOne) {
+      assert bytes != null;
       outputsRoundTwo.add(
           testForD8(parameters.getBackend())
               .applyIf(
