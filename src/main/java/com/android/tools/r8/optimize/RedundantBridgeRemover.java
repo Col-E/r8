@@ -157,7 +157,10 @@ public class RedundantBridgeRemover {
                   // TODO(b/173751869): Consider enabling this for constructors as well.
                   // TODO(b/245882297): Refine these visibility checks so that we also rewrite when
                   //  the target is not public, but still accessible to call sites.
-                  if (!method.getDefinition().isInstanceInitializer()
+                  boolean isEligibleForRetargeting =
+                      appView.testing().enableRetargetingConstructorBridgeCalls
+                          || !method.getDefinition().isInstanceInitializer();
+                  if (isEligibleForRetargeting
                       && target.getAccessFlags().isPublic()
                       && target.getHolder().isPublic()) {
                     lensBuilder.map(method, target);

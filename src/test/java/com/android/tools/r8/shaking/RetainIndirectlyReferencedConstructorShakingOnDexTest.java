@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -11,11 +12,14 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -26,11 +30,15 @@ import org.junit.runners.Parameterized.Parameters;
 public class RetainIndirectlyReferencedConstructorShakingOnDexTest extends TestBase {
 
   @Parameter(0)
+  public boolean enableRetargetingConstructorBridgeCalls;
+
+  @Parameter(1)
   public TestParameters parameters;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  @Parameters(name = "{1}, enable retargeting: {0}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   @Test
@@ -38,6 +46,10 @@ public class RetainIndirectlyReferencedConstructorShakingOnDexTest extends TestB
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
+        .addOptionsModification(
+            options ->
+                options.testing.enableRetargetingConstructorBridgeCalls =
+                    enableRetargetingConstructorBridgeCalls)
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -47,9 +59,8 @@ public class RetainIndirectlyReferencedConstructorShakingOnDexTest extends TestB
   }
 
   private void inspect(CodeInspector inspector) {
-    boolean canHaveNonReboundConstructorInvoke =
-        parameters.isDexRuntime()
-            && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L);
+    ClassSubject mainClassSubject = inspector.clazz(Main.class);
+    assertThat(mainClassSubject, isPresent());
 
     // A.<init> should be retained despite the fact that there is no invoke-direct in the program
     // that directly targets A.<init> when B.<init> is removed.
@@ -60,8 +71,18 @@ public class RetainIndirectlyReferencedConstructorShakingOnDexTest extends TestB
     ClassSubject bClassSubject = inspector.clazz(B.class);
     assertThat(bClassSubject, isPresent());
     assertEquals(
-        canHaveNonReboundConstructorInvoke ? 0 : 1,
+        parameters.canHaveNonReboundConstructorInvoke() ? 0 : 1,
         bClassSubject.allMethods(FoundMethodSubject::isInstanceInitializer).size());
+
+    MethodSubject mainMethodSubject = mainClassSubject.mainMethod();
+    assertThat(
+        mainMethodSubject,
+        invokesMethod(
+            MethodReferenceUtils.instanceConstructor(
+                parameters.canHaveNonReboundConstructorInvoke()
+                        && enableRetargetingConstructorBridgeCalls
+                    ? Reference.classFromDescriptor(aClassSubject.getFinalDescriptor())
+                    : Reference.classFromDescriptor(bClassSubject.getFinalDescriptor()))));
   }
 
   static class Main {
@@ -77,19 +98,19 @@ public class RetainIndirectlyReferencedConstructorShakingOnDexTest extends TestB
   }
 
   @NoVerticalClassMerging
-  abstract static class A {
+  public abstract static class A {
 
-    A() {
+    public A() {
       System.out.println("A");
     }
   }
 
   @NoVerticalClassMerging
-  static class B extends A {
+  public static class B extends A {
 
     // This constructor simply forward the arguments to the parent constructor.
     // It can be removed when compiling for dex and the API is above Dalvik.
-    B() {}
+    public B() {}
 
     @Override
     public String toString() {

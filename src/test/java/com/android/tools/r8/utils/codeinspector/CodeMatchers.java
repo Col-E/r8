@@ -6,6 +6,8 @@ package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.references.FieldReference;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.utils.MethodReferenceUtils;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
@@ -104,7 +106,10 @@ public class CodeMatchers {
     if (!targetSubject.isPresent()) {
       throw new IllegalArgumentException();
     }
-    DexMethod target = targetSubject.getMethod().getReference();
+    return invokesMethod(targetSubject.getFinalReference());
+  }
+
+  public static Matcher<MethodSubject> invokesMethod(MethodReference targetReference) {
     return new TypeSafeMatcher<MethodSubject>() {
       @Override
       protected boolean matchesSafely(MethodSubject subject) {
@@ -114,12 +119,13 @@ public class CodeMatchers {
         if (!subject.getMethod().hasCode()) {
           return false;
         }
-        return subject.streamInstructions().anyMatch(isInvokeWithTarget(target));
+        return subject.streamInstructions().anyMatch(isInvokeWithTarget(targetReference));
       }
 
       @Override
       public void describeTo(Description description) {
-        description.appendText("invokes method `" + target.toSourceString() + "`");
+        description.appendText(
+            "invokes method `" + MethodReferenceUtils.toSourceString(targetReference) + "`");
       }
 
       @Override
@@ -183,12 +189,17 @@ public class CodeMatchers {
     return invokesMethod(null, null, name, null);
   }
 
+  public static Predicate<InstructionSubject> isInvokeWithTarget(MethodReference target) {
+    return instruction ->
+        instruction.isInvoke() && instruction.getMethod().asMethodReference().equals(target);
+  }
+
   public static Predicate<InstructionSubject> isInvokeWithTarget(MethodSubject target) {
     return isInvokeWithTarget(target.getMethod().getReference());
   }
 
   public static Predicate<InstructionSubject> isInvokeWithTarget(DexMethod target) {
-    return instruction -> instruction.isInvoke() && instruction.getMethod() == target;
+    return isInvokeWithTarget(target.asMethodReference());
   }
 
   public static Predicate<InstructionSubject> isInvokeWithTarget(
