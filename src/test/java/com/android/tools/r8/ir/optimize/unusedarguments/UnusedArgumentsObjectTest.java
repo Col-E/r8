@@ -136,7 +136,8 @@ public class UnusedArgumentsObjectTest extends UnusedArgumentsTestBase {
 
   @Override
   public void inspectTestClass(ClassSubject clazz) {
-    assertEquals(11, clazz.allMethods().size());
+    assertEquals(
+        parameters.canHaveNonReboundConstructorInvoke() ? 10 : 11, clazz.allMethods().size());
     clazz.forAllMethods(
         method ->
             Assert.assertTrue(

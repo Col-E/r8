@@ -38,8 +38,6 @@ public class RetainIndirectlyReferencedConstructorShakingOnDexTest extends TestB
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options -> options.testing.enableRedundantConstructorBridgeRemoval = true)
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()

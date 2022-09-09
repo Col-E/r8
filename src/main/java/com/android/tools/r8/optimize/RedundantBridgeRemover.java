@@ -89,7 +89,6 @@ public class RedundantBridgeRemover {
     if (kind == InvokeKind.DIRECT) {
       return method.getDefinition().isInstanceInitializer()
           && appView.options().canHaveNonReboundConstructorInvoke()
-          && appView.testing().enableRedundantConstructorBridgeRemoval
           && appView.appInfo().isStrictSubtypeOf(method.getHolderType(), target.getHolderType());
     }
     assert !method.getAccessFlags().isPrivate();

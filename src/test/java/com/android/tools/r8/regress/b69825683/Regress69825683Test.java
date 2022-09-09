@@ -5,6 +5,7 @@
 package com.android.tools.r8.regress.b69825683;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -19,18 +20,18 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class Regress69825683Test extends TestBase {
-  private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
-  }
-
-  public Regress69825683Test(TestParameters parameters) {
-    this.parameters = parameters;
   }
 
   @Test
@@ -52,7 +53,7 @@ public class Regress69825683Test extends TestBase {
                 "  synthetic void <init>(...);",
                 "}",
                 "-keepunusedarguments class " + inner.getName() + " {",
-                "  synthetic void <init>(...);",
+                "  void <init>(...);",
                 "}")
             .addOptionsModification(options -> options.enableClassInlining = false)
             .addDontObfuscate()
@@ -87,7 +88,10 @@ public class Regress69825683Test extends TestBase {
             .setMinApi(parameters.getApiLevel())
             // Run code to check that the constructor with synthetic class as argument is present.
             .run(parameters.getRuntime(), clazz)
-            .assertSuccessWithOutputThatMatches(startsWith(clazz.getName()))
+            .assertSuccessWithOutputThatMatches(
+                parameters.canHaveNonReboundConstructorInvoke()
+                    ? equalTo("")
+                    : startsWith(clazz.getName()))
             .inspector();
 
     List<FoundClassSubject> classes = inspector.allClasses();

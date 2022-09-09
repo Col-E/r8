@@ -41,14 +41,12 @@ public class ForwardingConstructorShakingOnDexWithClassMergingTest extends TestB
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addOptionsModification(
-            options -> {
-              options.testing.enableRedundantConstructorBridgeRemoval = true;
-              options.testing.horizontalClassMergingTarget =
-                  (appView, candidates, target) ->
-                      Iterables.find(
-                          candidates,
-                          candidate -> candidate.getTypeName().equals(B.class.getTypeName()));
-            })
+            options ->
+                options.testing.horizontalClassMergingTarget =
+                    (appView, candidates, target) ->
+                        Iterables.find(
+                            candidates,
+                            candidate -> candidate.getTypeName().equals(B.class.getTypeName())))
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertMergedInto(A.class, B.class).assertNoOtherClassesMerged())
         .enableInliningAnnotations()

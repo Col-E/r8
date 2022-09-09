@@ -9,7 +9,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -228,7 +227,9 @@ public class ClassStaticizerTest extends TestBase {
         references(clazz, "testSimpleWithLazyInit", "void"));
 
     ClassSubject simpleWithLazyInit = inspector.clazz(SimpleWithLazyInit.class);
-    assertFalse(instanceMethods(simpleWithLazyInit).isEmpty());
+    assertEquals(
+        parameters.canHaveNonReboundConstructorInvoke(),
+        instanceMethods(simpleWithLazyInit).isEmpty());
     assertThat(simpleWithLazyInit.clinit(), isPresent());
   }
 

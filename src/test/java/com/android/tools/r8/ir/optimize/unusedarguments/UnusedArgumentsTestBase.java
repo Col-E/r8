@@ -24,8 +24,8 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public abstract class UnusedArgumentsTestBase extends TestBase {
 
-  private final TestParameters parameters;
-  private final boolean minification;
+  protected final TestParameters parameters;
+  protected final boolean minification;
 
   public UnusedArgumentsTestBase(TestParameters parameters, boolean minification) {
     this.parameters = parameters;

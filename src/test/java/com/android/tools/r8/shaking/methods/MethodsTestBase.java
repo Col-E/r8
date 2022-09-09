@@ -19,7 +19,15 @@ public abstract class MethodsTestBase extends TestBase {
   public enum Shrinker {
     Proguard,
     R8Full,
-    R8Compat
+    R8Compat;
+
+    public boolean isProguard() {
+      return this == Proguard;
+    }
+
+    public boolean isR8Full() {
+      return this == R8Full;
+    }
   }
 
   public abstract Collection<Class<?>> getClasses();

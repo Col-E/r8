@@ -39,6 +39,19 @@ public class TestParameters {
     return builder().withNoneRuntime().build();
   }
 
+  /**
+   * Returns true if the runtime uses resolution to lookup the constructor targeted by a given
+   * invoke, so that it is valid to have non-rebound constructor invokes.
+   *
+   * <p>Example: If value `v` is an uninitialized instanceof type `T`, then calling `T.<init>()`
+   * succeeds on ART even if `T.<init>()` does not exists, as ART will resolve the constructor, find
+   * `Object.<init>()`, and use this method to initialize `v`. On the JVM and on Dalvik, this is a
+   * runtime error.
+   */
+  public boolean canHaveNonReboundConstructorInvoke() {
+    return isDexRuntime() && getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L);
+  }
+
   public boolean canUseDefaultAndStaticInterfaceMethods() {
     assert isCfRuntime() || isDexRuntime();
     assert !isCfRuntime() || apiLevel == null
