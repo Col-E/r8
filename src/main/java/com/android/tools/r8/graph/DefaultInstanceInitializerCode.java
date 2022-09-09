@@ -16,6 +16,7 @@ import com.android.tools.r8.dex.code.DexInvokeDirect;
 import com.android.tools.r8.dex.code.DexReturnVoid;
 import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexCode.TryHandler;
+import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumberGenerator;
@@ -178,8 +179,10 @@ public class DefaultInstanceInitializerCode extends Code
       IndexedItemCollection indexedItems,
       ProgramMethod context,
       LensCodeRewriterUtils rewriter) {
-    getParentConstructor(context, rewriter.dexItemFactory())
-        .collectIndexedItems(appView, indexedItems);
+    DexMethod parentConstructor = getParentConstructor(context, rewriter.dexItemFactory());
+    MethodLookupResult lookupResult =
+        appView.graphLens().lookupInvokeDirect(parentConstructor, context);
+    lookupResult.getReference().collectIndexedItems(appView, indexedItems);
   }
 
   @Override
@@ -370,7 +373,9 @@ public class DefaultInstanceInitializerCode extends Code
       GraphLens graphLens,
       LensCodeRewriterUtils lensCodeRewriter,
       ObjectToOffsetMapping mapping) {
-    new DexInvokeDirect(1, getParentConstructor(context, mapping.dexItemFactory()), 0, 0, 0, 0, 0)
+    DexMethod parentConstructor = getParentConstructor(context, mapping.dexItemFactory());
+    MethodLookupResult lookupResult = graphLens.lookupInvokeDirect(parentConstructor, context);
+    new DexInvokeDirect(1, lookupResult.getReference(), 0, 0, 0, 0, 0)
         .write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
     new DexReturnVoid().write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
   }

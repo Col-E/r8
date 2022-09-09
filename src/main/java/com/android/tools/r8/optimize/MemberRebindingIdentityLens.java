@@ -49,6 +49,11 @@ public class MemberRebindingIdentityLens extends NonIdentityGraphLens {
     return new Builder(appView, previousLens);
   }
 
+  public void addNonReboundMethodReference(
+      DexMethod nonReboundMethodReference, DexMethod reboundMethodReference) {
+    nonReboundMethodReferenceToDefinitionMap.put(nonReboundMethodReference, reboundMethodReference);
+  }
+
   @Override
   public boolean hasCodeRewritings() {
     return false;

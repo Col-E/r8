@@ -6,6 +6,7 @@ package com.android.tools.r8.optimize;
 import static com.android.tools.r8.utils.ThreadUtils.processItems;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -13,6 +14,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.optimize.InvokeSingleTargetExtractor.InvokeKind;
+import com.android.tools.r8.optimize.redundantbridgeremoval.RedundantBridgeRemovalLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.Map;
@@ -28,17 +30,17 @@ public class RedundantBridgeRemover {
     this.appView = appView;
   }
 
-  private boolean isRedundantBridge(ProgramMethod method) {
+  private DexClassAndMethod getTargetForRedundantBridge(ProgramMethod method) {
     // Clean-up the predicate check.
     if (appView.appInfo().isPinned(method.getReference())) {
-      return false;
+      return null;
     }
     DexEncodedMethod definition = method.getDefinition();
     // TODO(b/197490164): Remove if method is abstract.
     BridgeInfo bridgeInfo = definition.getOptimizationInfo().getBridgeInfo();
     boolean isBridge = definition.isBridge() || bridgeInfo != null;
     if (!isBridge || definition.isAbstract()) {
-      return false;
+      return null;
     }
     InvokeSingleTargetExtractor targetExtractor = new InvokeSingleTargetExtractor(appView, method);
     method.registerCodeReferences(targetExtractor);
@@ -46,31 +48,28 @@ public class RedundantBridgeRemover {
     // javac-generated visibility forward bridge method has same descriptor (name, signature and
     // return type).
     if (target == null || !target.match(method.getReference())) {
-      return false;
+      return null;
     }
     if (!isTargetingSuperMethod(method, targetExtractor.getKind(), target)) {
-      return false;
+      return null;
     }
     // This is a visibility forward, so check for the direct target.
-    ProgramMethod targetMethod =
-        appView
-            .appInfo()
-            .unsafeResolveMethodDueToDexFormatLegacy(target)
-            .getResolvedProgramMethod();
+    DexClassAndMethod targetMethod =
+        appView.appInfo().unsafeResolveMethodDueToDexFormatLegacy(target).getResolutionPair();
     if (targetMethod == null) {
-      return false;
+      return null;
     }
     if (method.getAccessFlags().isPublic()) {
       if (!targetMethod.getAccessFlags().isPublic()) {
-        return false;
+        return null;
       }
     } else {
       if (targetMethod.getAccessFlags().isProtected()
           && !targetMethod.getHolderType().isSamePackage(method.getHolderType())) {
-        return false;
+        return null;
       }
       if (targetMethod.getAccessFlags().isPrivate()) {
-        return false;
+        return null;
       }
     }
     if (definition.isStatic()
@@ -78,9 +77,9 @@ public class RedundantBridgeRemover {
         && method
             .getHolder()
             .classInitializationMayHaveSideEffectsInContext(appView, targetMethod)) {
-      return false;
+      return null;
     }
-    return true;
+    return targetMethod;
   }
 
   private boolean isTargetingSuperMethod(ProgramMethod method, InvokeKind kind, DexMethod target) {
@@ -105,15 +104,44 @@ public class RedundantBridgeRemover {
     return false;
   }
 
-  public void run(ExecutorService executorService) throws ExecutionException {
+  public void run(
+      MemberRebindingIdentityLens memberRebindingIdentityLens, ExecutorService executorService)
+      throws ExecutionException {
+    assert memberRebindingIdentityLens == null
+        || memberRebindingIdentityLens == appView.graphLens();
+
     // Collect all redundant bridges to remove.
+    RedundantBridgeRemovalLens.Builder lensBuilder = new RedundantBridgeRemovalLens.Builder();
     Map<DexProgramClass, ProgramMethodSet> bridgesToRemove =
-        computeBridgesToRemove(executorService);
+        computeBridgesToRemove(lensBuilder, executorService);
+    if (bridgesToRemove.isEmpty()) {
+      return;
+    }
+
     pruneApp(bridgesToRemove, executorService);
+
+    if (!lensBuilder.isEmpty()) {
+      appView.setGraphLens(lensBuilder.build(appView));
+    }
+
+    if (memberRebindingIdentityLens != null) {
+      for (ProgramMethodSet bridgesToRemoveFromClass : bridgesToRemove.values()) {
+        for (ProgramMethod bridgeToRemove : bridgesToRemoveFromClass) {
+          DexClassAndMethod resolvedMethod =
+              appView
+                  .appInfo()
+                  .resolveMethodOn(bridgeToRemove.getHolder(), bridgeToRemove.getReference())
+                  .getResolutionPair();
+          memberRebindingIdentityLens.addNonReboundMethodReference(
+              bridgeToRemove.getReference(), resolvedMethod.getReference());
+        }
+      }
+    }
   }
 
   private Map<DexProgramClass, ProgramMethodSet> computeBridgesToRemove(
-      ExecutorService executorService) throws ExecutionException {
+      RedundantBridgeRemovalLens.Builder lensBuilder, ExecutorService executorService)
+      throws ExecutionException {
     Map<DexProgramClass, ProgramMethodSet> bridgesToRemove = new ConcurrentHashMap<>();
     processItems(
         appView.appInfo().classes(),
@@ -121,8 +149,20 @@ public class RedundantBridgeRemover {
           ProgramMethodSet bridgesToRemoveForClass = ProgramMethodSet.create();
           clazz.forEachProgramMethod(
               method -> {
-                if (isRedundantBridge(method)) {
+                DexClassAndMethod target = getTargetForRedundantBridge(method);
+                if (target != null) {
+                  // Record that the redundant bridge should be removed.
                   bridgesToRemoveForClass.add(method);
+
+                  // Rewrite invokes to the bridge to the target if it is accessible.
+                  // TODO(b/173751869): Consider enabling this for constructors as well.
+                  // TODO(b/245882297): Refine these visibility checks so that we also rewrite when
+                  //  the target is not public, but still accessible to call sites.
+                  if (!method.getDefinition().isInstanceInitializer()
+                      && target.getAccessFlags().isPublic()
+                      && target.getHolder().isPublic()) {
+                    lensBuilder.map(method, target);
+                  }
                 }
               });
           if (!bridgesToRemoveForClass.isEmpty()) {

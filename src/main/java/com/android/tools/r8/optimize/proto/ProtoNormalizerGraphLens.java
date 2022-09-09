@@ -105,7 +105,8 @@ public class ProtoNormalizerGraphLens extends NonIdentityGraphLens {
     if (methodSignature == newMethodSignature) {
       return previous;
     }
-    assert !previous.hasReboundReference();
+    assert !previous.hasReboundReference()
+        || previous.getReference() == previous.getReboundReference();
     return MethodLookupResult.builder(this)
         .setPrototypeChanges(
             previous

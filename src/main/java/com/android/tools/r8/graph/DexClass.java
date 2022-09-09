@@ -893,7 +893,7 @@ public abstract class DexClass extends DexDefinition
   }
 
   public final boolean classInitializationMayHaveSideEffectsInContext(
-      AppView<?> appView, ProgramDefinition context) {
+      AppView<?> appView, Definition context) {
     // Types that are a super type of the current context are guaranteed to be initialized already.
     return classInitializationMayHaveSideEffects(
         appView, type -> appView.isSubtype(context.getContextType(), type).isTrue());

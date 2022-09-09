@@ -688,6 +688,13 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return resolveMethodOnLegacy(invokedMethod.getHolderType(), invokedMethod, isInterface);
   }
 
+  public MethodResolutionResult resolveMethodOn(DexClass clazz, DexMethod method) {
+    assert checkIfObsolete();
+    return clazz.isInterface()
+        ? resolveMethodOnInterface(clazz, method)
+        : resolveMethodOnClass(clazz, method);
+  }
+
   public MethodResolutionResult resolveMethodOnLegacy(DexClass clazz, DexMethod method) {
     assert checkIfObsolete();
     return clazz.isInterface()
