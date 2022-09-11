@@ -9,47 +9,43 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.lang.reflect.Method;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
-@NoVerticalClassMerging
-interface I {
-  default void m() {
-    System.out.println("I::m");
-  }
-}
-
-class C implements I {
-}
-
-class BridgeInliningTestRunner {
-  public static void main(String[] args) throws Exception {
-    C obj = new C();
-    for (Method m : obj.getClass().getDeclaredMethods()) {
-      m.invoke(obj);
-    }
-  }
-}
-
+@RunWith(Parameterized.class)
 public class BridgeInliningTest extends TestBase {
-  private static final Class<?> MAIN = BridgeInliningTestRunner.class;
-  private static final String EXPECTED_OUTPUT = StringUtils.lines("I::m");
+
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters()
+        .withDexRuntimes()
+        .withApiLevelsEndingAtExcluding(AndroidApiLevel.N)
+        .build();
+  }
 
   @Test
   public void test() throws Exception {
-    testForR8(Backend.DEX)
-        .addProgramClasses(I.class, C.class, MAIN)
-        .setMinApi(AndroidApiLevel.L)
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Main.class)
+        .addKeepRules("-keep interface " + I.class.getTypeName() + " { m(); }")
         .enableNoVerticalClassMergingAnnotations()
-        .addKeepMainRule(MAIN)
-        .addKeepRules("-keep interface **.I { m(); }")
-        .run(MAIN)
-        .assertSuccessWithOutput(EXPECTED_OUTPUT)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("I::m")
         .inspect(this::inspect);
   }
 
@@ -67,4 +63,21 @@ public class BridgeInliningTest extends TestBase {
     //});
   }
 
+  static class Main {
+    public static void main(String[] args) throws Exception {
+      C obj = new C();
+      for (Method m : obj.getClass().getDeclaredMethods()) {
+        m.invoke(obj);
+      }
+    }
+  }
+
+  @NoVerticalClassMerging
+  interface I {
+    default void m() {
+      System.out.println("I::m");
+    }
+  }
+
+  static class C implements I {}
 }
