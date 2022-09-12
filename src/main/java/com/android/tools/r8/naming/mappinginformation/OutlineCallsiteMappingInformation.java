@@ -88,12 +88,12 @@ public class OutlineCallsiteMappingInformation extends MappingInformation {
   public static void deserialize(
       MapVersion version, JsonObject object, Consumer<MappingInformation> onMappingInfo) {
     if (isSupported(version)) {
-      JsonObject postionsMapObject = object.getAsJsonObject(POSITIONS_KEY);
-      if (postionsMapObject == null) {
+      JsonObject positionsMapObject = object.getAsJsonObject(POSITIONS_KEY);
+      if (positionsMapObject == null) {
         throw new CompilationError("Expected '" + POSITIONS_KEY + "' to be present: " + object);
       }
       Int2IntSortedMap positionsMap = new Int2IntLinkedOpenHashMap();
-      postionsMapObject
+      positionsMapObject
           .entrySet()
           .forEach(
               entry -> {

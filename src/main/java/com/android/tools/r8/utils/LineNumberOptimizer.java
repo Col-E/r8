@@ -54,6 +54,7 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNaming;
 import com.android.tools.r8.naming.ClassNaming.Builder;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
+import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -69,6 +70,7 @@ import com.android.tools.r8.naming.mappinginformation.FileNameInformation;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.naming.mappinginformation.OutlineCallsiteMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.OutlineMappingInformation;
+import com.android.tools.r8.naming.mappinginformation.ResidualSignatureMappingInformation.ResidualMethodSignatureMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation.RemoveInnerFramesAction;
 import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation.ThrowsCondition;
@@ -640,15 +642,25 @@ public class LineNumberOptimizer {
             methodMappingInfo.add(CompilerSynthesizedMappingInformation.builder().build());
           }
 
-          // Don't emit pure identity mappings.
-          if (mappedPositions.isEmpty()
-              && methodMappingInfo.isEmpty()
-              && obfuscatedNameDexString == originalMethod.name
-              && originalMethod.holder == originalType) {
+          MapVersion mapFileVersion = appView.options().getMapFileVersion();
+          if (isIdentityMapping(
+              mapFileVersion,
+              mappedPositions,
+              methodMappingInfo,
+              method,
+              obfuscatedNameDexString,
+              originalMethod,
+              originalType)) {
             assert appView.options().lineNumberOptimization == LineNumberOptimization.OFF
                 || hasAtMostOnePosition(definition, appView.options())
                 || appView.isCfByteCodePassThrough(definition);
             continue;
+          }
+          // TODO(b/169953605): Ensure we emit the residual signature information.
+          if (mapFileVersion.isGreaterThan(MapVersion.MAP_VERSION_2_1)
+              && originalMethod != method.getReference()) {
+            methodMappingInfo.add(
+                ResidualMethodSignatureMappingInformation.fromDexMethod(method.getReference()));
           }
 
           MemberNaming memberNaming = new MemberNaming(originalSignature, obfuscatedName);
@@ -810,6 +822,28 @@ public class LineNumberOptimizer {
         });
 
     return classNameMapperBuilder.build();
+  }
+
+  private static boolean isIdentityMapping(
+      MapVersion mapFileVersion,
+      List<MappedPosition> mappedPositions,
+      List<MappingInformation> methodMappingInfo,
+      ProgramMethod method,
+      DexString obfuscatedNameDexString,
+      DexMethod originalMethod,
+      DexType originalType) {
+    if (mapFileVersion.isGreaterThan(MapVersion.MAP_VERSION_2_1)) {
+      // Don't emit pure identity mappings.
+      return mappedPositions.isEmpty()
+          && methodMappingInfo.isEmpty()
+          && originalMethod == method.getReference();
+    } else {
+      // Don't emit pure identity mappings.
+      return mappedPositions.isEmpty()
+          && methodMappingInfo.isEmpty()
+          && obfuscatedNameDexString == originalMethod.name
+          && originalMethod.holder == originalType;
+    }
   }
 
   private static boolean hasAtMostOnePosition(

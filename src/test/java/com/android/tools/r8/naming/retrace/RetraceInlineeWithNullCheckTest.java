@@ -59,7 +59,6 @@ public class RetraceInlineeWithNullCheckTest extends TestBase {
         .addKeepAttributeSourceFile()
         .setMinApi(parameters.getApiLevel())
         .enableInliningAnnotations()
-        .enableExperimentalMapFileVersion()
         .run(parameters.getRuntime(), Caller.class, getArgs())
         .assertFailureWithErrorThatThrows(NullPointerException.class)
         .inspectStackTrace(

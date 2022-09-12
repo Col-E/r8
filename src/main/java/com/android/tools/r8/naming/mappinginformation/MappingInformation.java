@@ -46,6 +46,10 @@ public abstract class MappingInformation {
     return false;
   }
 
+  public boolean isResidualSignatureMappingInformation() {
+    return false;
+  }
+
   public MapVersionMappingInformation asMapVersionMappingInformation() {
     return null;
   }
@@ -71,6 +75,10 @@ public abstract class MappingInformation {
   }
 
   public OutlineCallsiteMappingInformation asOutlineCallsiteInformation() {
+    return null;
+  }
+
+  public ResidualSignatureMappingInformation asResidualSignatureMappingInformation() {
     return null;
   }
 
@@ -137,6 +145,9 @@ public abstract class MappingInformation {
         return;
       case OutlineCallsiteMappingInformation.ID:
         OutlineCallsiteMappingInformation.deserialize(version, object, onMappingInfo);
+        return;
+      case ResidualSignatureMappingInformation.ID:
+        ResidualSignatureMappingInformation.deserialize(version, object, onMappingInfo);
         return;
       default:
         diagnosticsHandler.info(MappingInformationDiagnostics.noHandlerFor(lineNumber, id));

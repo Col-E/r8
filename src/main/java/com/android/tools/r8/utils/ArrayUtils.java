@@ -98,6 +98,15 @@ public class ArrayUtils {
     return results != null ? results.toArray(emptyArray) : original;
   }
 
+  /** Rewrites the input array to the output array unconditionally. */
+  public static <T, S> S[] mapAll(T[] original, Function<T, S> mapper, S[] emptyArray) {
+    ArrayList<S> results = new ArrayList<>(original.length);
+    for (T t : original) {
+      results.add(mapper.apply(t));
+    }
+    return results.toArray(emptyArray);
+  }
+
   public static <T> T[] filter(T[] original, Predicate<T> predicate, T[] emptyArray) {
     return map(original, e -> predicate.test(e) ? e : null, emptyArray);
   }
