@@ -63,9 +63,6 @@ public class KotlinStdLibCompilationTest extends TestBase {
         .setMode(CompilationMode.DEBUG)
         .setMinApi(parameters.getApiLevel())
         .applyIf(
-            kotlinTestParameters.isKotlinDev(),
-            TestShrinkerBuilder::addDontWarnJavaLangReflectAnnotatedType)
-        .applyIf(
             parameters.isCfRuntime() && kotlinTestParameters.isKotlinDev(),
             TestShrinkerBuilder::addDontWarnJavaLangInvokeLambdaMetadataFactory)
         .compile()

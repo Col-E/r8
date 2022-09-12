@@ -173,10 +173,6 @@ public abstract class TestShrinkerBuilder<
     return addDontWarn("javax.annotation.Nullable");
   }
 
-  public T addDontWarnJavaLangReflectAnnotatedType() {
-    return addDontWarn("java.lang.reflect.AnnotatedType");
-  }
-
   public T addDontWarnJavaLangInvokeLambdaMetadataFactory() {
     return addDontWarn("java.lang.invoke.LambdaMetafactory");
   }

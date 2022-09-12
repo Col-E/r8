@@ -41,9 +41,6 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.LATEST))
         .addKeepRules(rules)
         .applyIf(
-            notShrinking && kotlinParameters.isKotlinDev(),
-            TestShrinkerBuilder::addDontWarnJavaLangReflectAnnotatedType)
-        .applyIf(
             notShrinking && kotlinParameters.isKotlinDev() && parameters.isCfRuntime(),
             TestShrinkerBuilder::addDontWarnJavaLangInvokeLambdaMetadataFactory)
         .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)

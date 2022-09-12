@@ -99,12 +99,6 @@ public class KotlinMetadataTest extends DesugaredLibraryTestBase {
         .allowDiagnosticMessages()
         .allowUnusedDontWarnKotlinReflectJvmInternal(
             kotlinParameters.getCompiler().isNot(KOTLINC_1_3_72))
-        .applyIfR8TestBuilder(
-            b -> {
-              if (kotlinParameters.isKotlinDev()) {
-                b.addDontWarnJavaLangReflectAnnotatedType();
-              }
-            })
         .compile()
         .inspect(
             i -> {
