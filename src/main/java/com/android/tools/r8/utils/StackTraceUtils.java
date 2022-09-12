@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.Keep;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 
+@Keep
 public class StackTraceUtils {
 
   private static final String pathToWriteStacktrace =
