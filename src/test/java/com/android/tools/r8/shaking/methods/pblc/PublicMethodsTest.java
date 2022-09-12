@@ -10,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.shaking.methods.MethodsTestBase;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -63,6 +64,11 @@ public class PublicMethodsTest extends MethodsTestBase {
   @Override
   public Class<?> getMainClass() {
     return Main.class;
+  }
+
+  private boolean willShrinkConstructors(Shrinker shrinker) {
+    return shrinker.isR8Full()
+        && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L);
   }
 
   private static BiConsumer<CodeInspector, Shrinker> applyInspectorIf(
@@ -175,7 +181,7 @@ public class PublicMethodsTest extends MethodsTestBase {
     runTest(
         "-keep class **.SubSub { *; }",
         applyInspectorIf(
-            Shrinker::isR8Full,
+            this::willShrinkConstructors,
             this::checkAllMethodsAndSubSubConstructor,
             this::checkAllMethodsAndAllConstructors),
         allMethodsOutput());
@@ -186,7 +192,7 @@ public class PublicMethodsTest extends MethodsTestBase {
     runTest(
         "-keep class **.SubSub { <methods>; }",
         applyInspectorIf(
-            Shrinker::isR8Full,
+            this::willShrinkConstructors,
             this::checkAllMethodsAndSubSubConstructor,
             this::checkAllMethodsAndAllConstructors),
         allMethodsOutput());
@@ -205,7 +211,7 @@ public class PublicMethodsTest extends MethodsTestBase {
     runTest(
         "-keep class **.SubSub { <init>(); void m*(); }",
         applyInspectorIf(
-            Shrinker::isR8Full,
+            this::willShrinkConstructors,
             this::checkAllMethodsAndSubSubConstructor,
             this::checkAllMethodsAndAllConstructors),
         allMethodsOutput());
@@ -221,7 +227,9 @@ public class PublicMethodsTest extends MethodsTestBase {
     runTest(
         "-keep class **.SubSub { <init>(); void m1(); }",
         applyInspectorIf(
-            Shrinker::isR8Full, this::checkM1AndSubSubConstructor, this::checkM1AndAllConstructors),
+            this::willShrinkConstructors,
+            this::checkM1AndSubSubConstructor,
+            this::checkM1AndAllConstructors),
         onlyM1Output());
   }
 
@@ -235,7 +243,9 @@ public class PublicMethodsTest extends MethodsTestBase {
     runTest(
         "-keep class **.SubSub { <init>(); void m2(); }",
         applyInspectorIf(
-            Shrinker::isR8Full, this::checkM2AndSubSubConstructor, this::checkM2AndAllConstructors),
+            this::willShrinkConstructors,
+            this::checkM2AndSubSubConstructor,
+            this::checkM2AndAllConstructors),
         onlyM2Output());
   }
 
@@ -249,7 +259,9 @@ public class PublicMethodsTest extends MethodsTestBase {
     runTest(
         "-keep class **.SubSub { <init>(); void m3(); }",
         applyInspectorIf(
-            Shrinker::isR8Full, this::checkM3AndSubSubConstructor, this::checkM3AndAllConstructors),
+            this::willShrinkConstructors,
+            this::checkM3AndSubSubConstructor,
+            this::checkM3AndAllConstructors),
         onlyM3Output());
   }
 

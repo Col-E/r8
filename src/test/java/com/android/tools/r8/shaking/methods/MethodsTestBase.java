@@ -6,6 +6,8 @@ package com.android.tools.r8.shaking.methods;
 
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -13,8 +15,21 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public abstract class MethodsTestBase extends TestBase {
+
+  @Parameter(0)
+  public static TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimesAndAllApiLevels().build();
+  }
 
   public enum Shrinker {
     Proguard,
@@ -37,7 +52,8 @@ public abstract class MethodsTestBase extends TestBase {
   public void testOnR8(
       List<String> keepRules, BiConsumer<CodeInspector, Shrinker> inspector, String expected)
       throws Throwable {
-    testForR8(Backend.DEX)
+    testForR8(parameters.getBackend())
+        .setMinApi(parameters.getApiLevel())
         .enableNoVerticalClassMergingAnnotations()
         .addProgramClasses(getClasses())
         .addKeepRules(keepRules)
@@ -50,7 +66,7 @@ public abstract class MethodsTestBase extends TestBase {
   public void testOnR8Compat(
       List<String> keepRules, BiConsumer<CodeInspector, Shrinker> inspector, String expected)
       throws Throwable {
-    testForR8Compat(Backend.DEX)
+    testForR8Compat(parameters.getBackend())
         .enableNoVerticalClassMergingAnnotations()
         .addProgramClasses(getClasses())
         .addKeepRules(keepRules)
