@@ -36,6 +36,7 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -237,7 +238,7 @@ public class BackportDuplicationTest extends TestBase {
 
   public ProcessResult runDoublePerFileCompilation(Backend firstRoundOutput, boolean intermediate)
       throws Exception {
-    List<byte[]> outputsRoundOne = new ArrayList<>();
+    List<byte[]> outputsRoundOne = Collections.synchronizedList(new ArrayList<>());
     testForD8(firstRoundOutput)
         .addProgramClasses(CLASSES)
         .setMinApi(parameters.getApiLevel())
