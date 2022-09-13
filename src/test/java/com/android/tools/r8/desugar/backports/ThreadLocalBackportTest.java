@@ -4,8 +4,11 @@
 
 package com.android.tools.r8.desugar.backports;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.utils.AndroidApiLevel.LATEST;
+import static org.hamcrest.CoreMatchers.containsString;
 
+import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
@@ -13,6 +16,7 @@ import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.List;
+import java.util.function.Supplier;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -31,13 +35,23 @@ public class ThreadLocalBackportTest extends DesugaredLibraryTestBase {
         getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build());
   }
 
-  private static final String EXPECTED_OUTPUT = StringUtils.lines("Hello, world!");
+  private static final String EXPECTED_OUTPUT = StringUtils.lines("Hello, ", "world!");
+
+  private void checkDiagnostics(TestDiagnosticMessages diagnostics) {
+    if (parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.N)) {
+      diagnostics.assertWarningsMatch(
+          diagnosticMessage(containsString("Type `java.util.function.Supplier` was not found")));
+    } else {
+      diagnostics.assertNoMessages();
+    }
+  }
 
   @Test
   public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
         .setMinApi(parameters.getApiLevel())
+        .compileWithExpectedDiagnostics(this::checkDiagnostics)
         .run(parameters.getRuntime(), TestClass.class)
         .apply(this::checkExpected);
   }
@@ -80,9 +94,14 @@ public class ThreadLocalBackportTest extends DesugaredLibraryTestBase {
 
   static class TestClass {
 
+    public static ThreadLocal<String> createThreadLocalWithInitial(Supplier<String> supplier) {
+      return ThreadLocal.withInitial(supplier);
+    }
+
     public static void main(String[] args) {
-      ThreadLocal<String> threadLocal = ThreadLocal.withInitial(() -> "Hello, world!");
+      ThreadLocal<String> threadLocal = ThreadLocal.withInitial(() -> "Hello, ");
       System.out.println(threadLocal.get());
+      System.out.println(createThreadLocalWithInitial(() -> "world!").get());
     }
   }
 }

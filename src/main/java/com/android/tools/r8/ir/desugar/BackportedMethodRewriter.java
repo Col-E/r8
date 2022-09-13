@@ -1834,6 +1834,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
                   builder -> new ThreadLocalSubclassGenerator(builder, appView));
       eventConsumer.acceptBackportedClass(
           threadLocalSubclass, methodProcessingContext.getMethodContext());
+      localStackAllocator.allocateLocalStack(2);
       return ImmutableList.of(
           new CfNew(threadLocalSubclass.type),
           // Massage the stack with dup_x1 and swap:
