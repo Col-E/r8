@@ -23,16 +23,19 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
   private final RetraceClassResultImpl classResult;
   private final List<Pair<RetraceClassElementImpl, List<MemberNaming>>> memberNamings;
   private final FieldDefinition fieldDefinition;
+  private final FieldSignature originalFieldSignature;
   private final Retracer retracer;
 
   RetraceFieldResultImpl(
       RetraceClassResultImpl classResult,
       List<Pair<RetraceClassElementImpl, List<MemberNaming>>> memberNamings,
       FieldDefinition fieldDefinition,
+      FieldSignature originalFieldSignature,
       Retracer retracer) {
     this.classResult = classResult;
     this.memberNamings = memberNamings;
     this.fieldDefinition = fieldDefinition;
+    this.originalFieldSignature = originalFieldSignature;
     this.retracer = retracer;
     assert classResult != null;
     assert !memberNamings.isEmpty();

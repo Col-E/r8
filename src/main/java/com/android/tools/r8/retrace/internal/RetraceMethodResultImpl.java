@@ -7,6 +7,7 @@ package com.android.tools.r8.retrace.internal;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
+import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.mappinginformation.OutlineCallsiteMappingInformation;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.RetraceMethodElement;
@@ -27,6 +28,7 @@ import java.util.stream.Stream;
 public class RetraceMethodResultImpl implements RetraceMethodResult {
 
   private final MethodDefinition methodDefinition;
+  private final MethodSignature originalMethodSignature;
   private final RetraceClassResultImpl classResult;
   private final List<Pair<RetraceClassElementImpl, List<MappedRange>>> mappedRanges;
   private final RetracerImpl retracer;
@@ -35,10 +37,12 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
       RetraceClassResultImpl classResult,
       List<Pair<RetraceClassElementImpl, List<MappedRange>>> mappedRanges,
       MethodDefinition methodDefinition,
+      MethodSignature originalMethodSignature,
       RetracerImpl retracer) {
     this.classResult = classResult;
     this.mappedRanges = mappedRanges;
     this.methodDefinition = methodDefinition;
+    this.originalMethodSignature = originalMethodSignature;
     this.retracer = retracer;
     assert classResult != null;
     assert !mappedRanges.isEmpty();
@@ -48,6 +52,9 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
   public boolean isAmbiguous() {
     if (mappedRanges.size() > 1) {
       return true;
+    }
+    if (originalMethodSignature != null) {
+      return false;
     }
     List<MappedRange> methodRanges = mappedRanges.get(0).getSecond();
     if (methodRanges == null || methodRanges.isEmpty()) {
@@ -125,6 +132,21 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
 
   @Override
   public Stream<RetraceMethodElement> stream() {
+    if (originalMethodSignature != null) {
+      // Even if we know exactly the retraced residual definition, the class element
+      // may still be ambiguous.
+      return mappedRanges.stream()
+          .map(
+              mappedRangePair -> {
+                RetraceClassElementImpl classElement = mappedRangePair.getFirst();
+                MethodReference methodReference =
+                    RetraceUtils.methodReferenceFromMethodSignature(
+                        originalMethodSignature,
+                        classElement.getRetracedClass().getClassReference());
+                return new ElementImpl(
+                    this, classElement, RetracedMethodReferenceImpl.create(methodReference));
+              });
+    }
     return mappedRanges.stream()
         .flatMap(
             mappedRangePair -> {

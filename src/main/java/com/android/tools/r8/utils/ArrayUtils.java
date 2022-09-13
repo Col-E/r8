@@ -99,12 +99,12 @@ public class ArrayUtils {
   }
 
   /** Rewrites the input array to the output array unconditionally. */
-  public static <T, S> S[] mapAll(T[] original, Function<T, S> mapper, S[] emptyArray) {
-    ArrayList<S> results = new ArrayList<>(original.length);
-    for (T t : original) {
-      results.add(mapper.apply(t));
+  public static <T> String[] mapToStringArray(T[] original, Function<T, String> mapper) {
+    String[] returnArr = new String[original.length];
+    for (int i = 0; i < original.length; i++) {
+      returnArr[i] = mapper.apply(original[i]);
     }
-    return results.toArray(emptyArray);
+    return returnArr;
   }
 
   public static <T> T[] filter(T[] original, Predicate<T> predicate, T[] emptyArray) {

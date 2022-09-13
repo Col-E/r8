@@ -11,6 +11,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.ProguardMapProducer;
+import com.android.tools.r8.retrace.ProguardMappingSupplier;
 import com.android.tools.r8.retrace.RetraceFieldElement;
 import com.android.tools.r8.retrace.RetraceMethodElement;
 import com.android.tools.r8.retrace.Retracer;
@@ -34,7 +35,7 @@ public class RetraceApiResidualSignatureTest extends RetraceApiTestBase {
 
   public static class ApiTest implements RetraceApiBinaryTest {
 
-    private final String mapping =
+    private static final String mapping =
         "# { id: 'com.android.tools.r8.mapping', version: 'experimental' }\n"
             + "some.Class -> a:\n"
             + "  some.SuperType field -> a\n"
@@ -51,19 +52,26 @@ public class RetraceApiResidualSignatureTest extends RetraceApiTestBase {
     @Test
     public void testResidualSignature() {
       Retracer retracer =
-          Retracer.createDefault(
-              ProguardMapProducer.fromString(mapping), new DiagnosticsHandler() {});
+          ProguardMappingSupplier.builder()
+              .setProguardMapProducer(ProguardMapProducer.fromString(mapping))
+              .setAllowExperimental(true)
+              .build()
+              .createRetracer(new DiagnosticsHandler() {});
       ClassReference aClass = Reference.classFromTypeName("a");
       List<RetraceMethodElement> fooWithTwoArgs =
           retracer.retraceMethod(Reference.methodFromDescriptor(aClass, "x", "(I)V")).stream()
               .collect(Collectors.toList());
-      // TODO(b/169953605): Use the residual signature information to prune the result.
-      assertEquals(2, fooWithTwoArgs.size());
+      assertEquals(1, fooWithTwoArgs.size());
+      assertEquals(
+          "Lsome/Class;foo(II)V",
+          fooWithTwoArgs.get(0).getRetracedMethod().asKnown().getMethodReference().toString());
       List<RetraceMethodElement> fooWithOneArg =
           retracer.retraceMethod(Reference.methodFromDescriptor(aClass, "x", "()V")).stream()
               .collect(Collectors.toList());
-      // TODO(b/169953605): Use the residual signature information to prune the result.
-      assertEquals(2, fooWithOneArg.size());
+      assertEquals(1, fooWithOneArg.size());
+      assertEquals(
+          "Lsome/Class;foo(I)V",
+          fooWithOneArg.get(0).getRetracedMethod().asKnown().getMethodReference().toString());
       List<RetraceFieldElement> fieldWithSuperType =
           retracer
               .retraceField(

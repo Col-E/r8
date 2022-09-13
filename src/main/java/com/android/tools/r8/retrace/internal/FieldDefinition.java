@@ -22,6 +22,14 @@ abstract class FieldDefinition implements Definition {
 
   abstract FieldDefinition substituteHolder(ClassReference newHolder);
 
+  public boolean isFullFieldDefinition() {
+    return false;
+  }
+
+  public FullFieldDefinition asFullFieldDefinition() {
+    return null;
+  }
+
   static class BaseFieldDefinition extends FieldDefinition {
     private final ClassReference classReference;
     private final String name;
@@ -73,6 +81,16 @@ abstract class FieldDefinition implements Definition {
     }
 
     @Override
+    public boolean isFullFieldDefinition() {
+      return true;
+    }
+
+    @Override
+    public FullFieldDefinition asFullFieldDefinition() {
+      return this;
+    }
+
+    @Override
     public String getName() {
       return fieldReference.getFieldName();
     }
@@ -86,6 +104,10 @@ abstract class FieldDefinition implements Definition {
     FieldDefinition substituteHolder(ClassReference newHolder) {
       return create(
           Reference.field(newHolder, fieldReference.getFieldName(), fieldReference.getFieldType()));
+    }
+
+    public FieldReference getFieldReference() {
+      return fieldReference;
     }
 
     @Override

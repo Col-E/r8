@@ -95,7 +95,11 @@ public class RetraceUtils {
 
   static MethodReference methodReferenceFromMappedRange(
       MappedRange mappedRange, ClassReference classReference) {
-    MethodSignature signature = mappedRange.signature;
+    return methodReferenceFromMethodSignature(mappedRange.signature, classReference);
+  }
+
+  static MethodReference methodReferenceFromMethodSignature(
+      MethodSignature signature, ClassReference classReference) {
     ClassReference holder =
         signature.isQualified()
             ? Reference.classFromDescriptor(

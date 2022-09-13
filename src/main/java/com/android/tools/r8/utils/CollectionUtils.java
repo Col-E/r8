@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class CollectionUtils {
 
@@ -36,5 +37,14 @@ public class CollectionUtils {
     ArrayList<T> ts = new ArrayList<>(items);
     ts.sort(comparator);
     return ts;
+  }
+
+  public static <T> String[] mapToStringArray(Collection<T> items, Function<T, String> mapper) {
+    String[] returnArr = new String[items.size()];
+    int index = 0;
+    for (T item : items) {
+      returnArr[index++] = mapper.apply(item);
+    }
+    return returnArr;
   }
 }

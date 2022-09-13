@@ -14,6 +14,11 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.Signature.SignatureKind;
 import com.android.tools.r8.position.Position;
+import com.android.tools.r8.references.FieldReference;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.TypeReference;
+import com.android.tools.r8.utils.ArrayUtils;
+import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
@@ -52,8 +57,8 @@ public class MemberNaming {
 
   /** Original signature of the member. */
   final Signature signature;
-  /** Renamed signature where the name (but not the types) have been renamed. */
-  final Signature renamedSignature;
+  /** Renamed signature where types and names could be changed. */
+  Signature renamedSignature;
   /** Position of the member in the file. */
   final Position position;
 
@@ -98,6 +103,10 @@ public class MemberNaming {
   @Override
   public String toString() {
     return signature.toString() + " -> " + renamedSignature.name;
+  }
+
+  public void setRenamedSignatureInternal(Signature signature) {
+    this.renamedSignature = signature;
   }
 
   public abstract static class Signature {
@@ -191,6 +200,11 @@ public class MemberNaming {
           field.type.toSourceString());
     }
 
+    public static FieldSignature fromFieldReference(FieldReference fieldReference) {
+      return new FieldSignature(
+          fieldReference.getFieldName(), fieldReference.getFieldType().getTypeName());
+    }
+
     public DexField toDexField(DexItemFactory factory, DexType clazz) {
       return factory.createField(
           clazz,
@@ -282,17 +296,21 @@ public class MemberNaming {
     }
 
     public static MethodSignature fromSignature(String name, String signature) {
-      Type[] parameterDescriptors = Type.getArgumentTypes(signature);
       Type returnDescriptor = Type.getReturnType(signature);
-      String[] parameterTypes = new String[parameterDescriptors.length];
-      for (int i = 0; i < parameterDescriptors.length; i++) {
-        parameterTypes[i] =
-            DescriptorUtils.descriptorToJavaType(parameterDescriptors[i].getDescriptor());
-      }
       return new MethodSignature(
           name,
           DescriptorUtils.descriptorToJavaType(returnDescriptor.getDescriptor()),
-          parameterTypes);
+          ArrayUtils.mapToStringArray(
+              Type.getArgumentTypes(signature),
+              param -> DescriptorUtils.descriptorToJavaType(param.getDescriptor())));
+    }
+
+    public static MethodSignature fromMethodReference(MethodReference reference) {
+      TypeReference returnType = reference.getReturnType();
+      return new MethodSignature(
+          reference.getMethodName(),
+          returnType == null ? "void" : returnType.getTypeName(),
+          CollectionUtils.mapToStringArray(reference.getFormalTypes(), TypeReference::getTypeName));
     }
 
     public MethodSignature toUnqualified() {

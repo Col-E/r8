@@ -13,6 +13,7 @@ import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import java.util.Arrays;
@@ -50,11 +51,11 @@ public abstract class ResidualSignatureMappingInformation extends MappingInforma
   public static void deserialize(
       MapVersion version, JsonObject object, Consumer<MappingInformation> onMappingInfo) {
     if (isSupported(version)) {
-      JsonObject signatureObject = object.getAsJsonObject(SIGNATURE_KEY);
-      if (signatureObject == null) {
+      JsonElement signature = object.get(SIGNATURE_KEY);
+      if (signature == null) {
         throw new CompilationError("Expected '" + SIGNATURE_KEY + "' to be present: " + object);
       }
-      String signatureString = signatureObject.getAsString();
+      String signatureString = signature.getAsString();
       if (signatureString.contains("(")) {
         onMappingInfo.accept(
             ResidualMethodSignatureMappingInformation.deserialize(signatureString));
@@ -66,8 +67,6 @@ public abstract class ResidualSignatureMappingInformation extends MappingInforma
 
   public static class ResidualMethodSignatureMappingInformation
       extends ResidualSignatureMappingInformation {
-
-    private static final String[] EMPTY_ARRAY = new String[0];
 
     private final String returnType;
     private final String[] parameters;
@@ -81,8 +80,7 @@ public abstract class ResidualSignatureMappingInformation extends MappingInforma
 
     public static ResidualMethodSignatureMappingInformation fromDexMethod(DexMethod method) {
       String[] parameters =
-          ArrayUtils.mapAll(
-              method.getParameters().values, DexType::toDescriptorString, EMPTY_ARRAY);
+          ArrayUtils.mapToStringArray(method.getParameters().values, DexType::toDescriptorString);
       return new ResidualMethodSignatureMappingInformation(
           parameters, method.getReturnType().toDescriptorString());
     }
@@ -96,6 +94,24 @@ public abstract class ResidualSignatureMappingInformation extends MappingInforma
       return new ResidualMethodSignatureMappingInformation(
           DescriptorUtils.getArgumentTypeDescriptors(signature),
           DescriptorUtils.getReturnTypeDescriptor(signature));
+    }
+
+    public String getReturnType() {
+      return returnType;
+    }
+
+    public String[] getParameters() {
+      return parameters;
+    }
+
+    @Override
+    public boolean isResidualMethodSignatureMappingInformation() {
+      return true;
+    }
+
+    @Override
+    public ResidualMethodSignatureMappingInformation asResidualMethodSignatureMappingInformation() {
+      return this;
     }
   }
 
@@ -120,6 +136,16 @@ public abstract class ResidualSignatureMappingInformation extends MappingInforma
 
     public static ResidualFieldSignatureMappingInformation deserialize(String signature) {
       return new ResidualFieldSignatureMappingInformation(signature);
+    }
+
+    @Override
+    public boolean isResidualFieldSignatureMappingInformation() {
+      return true;
+    }
+
+    @Override
+    public ResidualFieldSignatureMappingInformation asResidualFieldSignatureMappingInformation() {
+      return this;
     }
   }
 }

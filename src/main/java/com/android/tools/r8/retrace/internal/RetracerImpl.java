@@ -33,8 +33,7 @@ public class RetracerImpl implements Retracer {
 
   @Override
   public RetraceMethodResultImpl retraceMethod(MethodReference methodReference) {
-    return retraceClass(methodReference.getHolderClass())
-        .lookupMethod(methodReference.getMethodName());
+    return retraceClass(methodReference.getHolderClass()).lookupMethodInternal(methodReference);
   }
 
   @Override
@@ -60,7 +59,7 @@ public class RetracerImpl implements Retracer {
 
   @Override
   public RetraceFieldResultImpl retraceField(FieldReference fieldReference) {
-    return retraceClass(fieldReference.getHolderClass()).lookupField(fieldReference.getFieldName());
+    return retraceClass(fieldReference.getHolderClass()).lookupFieldInternal(fieldReference);
   }
 
   @Override

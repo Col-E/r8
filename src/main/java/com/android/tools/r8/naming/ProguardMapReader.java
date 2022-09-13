@@ -13,8 +13,11 @@ import com.android.tools.r8.naming.PositionRangeAllocator.NonCardinalPositionRan
 import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.naming.mappinginformation.MappingInformationDiagnostics;
+import com.android.tools.r8.naming.mappinginformation.ResidualSignatureMappingInformation.ResidualMethodSignatureMappingInformation;
 import com.android.tools.r8.position.Position;
+import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.BooleanBox;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.IdentifierUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.gson.JsonObject;
@@ -346,6 +349,7 @@ public class ProguardMapReader implements AutoCloseable {
         parseMappingInformation(
             info -> {
               readGlobalInfo.set(info.isGlobalMappingInformation());
+              // TODO(b/242673239): Support additional information for fields.
               if (currentMember == null) {
                 classNamingBuilder.addMappingInformation(
                     info,
@@ -360,6 +364,17 @@ public class ProguardMapReader implements AutoCloseable {
                         diagnosticsHandler.warning(
                             MappingInformationDiagnostics.notAllowedCombination(
                                 info, conflictingInfo, lineNo)));
+                if (info.isResidualMethodSignatureMappingInformation()) {
+                  ResidualMethodSignatureMappingInformation residualSignature =
+                      info.asResidualMethodSignatureMappingInformation();
+                  currentMember.setRenamedSignatureInternal(
+                      new MethodSignature(
+                          currentMember.getRenamedName(),
+                          DescriptorUtils.descriptorToJavaType(residualSignature.getReturnType()),
+                          ArrayUtils.mapToStringArray(
+                              residualSignature.getParameters(),
+                              DescriptorUtils::descriptorToJavaType)));
+                }
               }
             });
         if (readGlobalInfo.isTrue()) {

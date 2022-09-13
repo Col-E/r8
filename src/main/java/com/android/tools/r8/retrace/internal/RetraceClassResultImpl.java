@@ -8,8 +8,12 @@ package com.android.tools.r8.retrace.internal;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
 import com.android.tools.r8.naming.MemberNaming;
+import com.android.tools.r8.naming.MemberNaming.FieldSignature;
+import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
@@ -52,8 +56,11 @@ public class RetraceClassResultImpl implements RetraceClassResult {
 
   @Override
   public RetraceFieldResultImpl lookupField(String fieldName, TypeReference fieldType) {
-    return lookupField(
-        FieldDefinition.create(Reference.field(obfuscatedReference, fieldName, fieldType)));
+    return lookupFieldInternal(Reference.field(obfuscatedReference, fieldName, fieldType));
+  }
+
+  RetraceFieldResultImpl lookupFieldInternal(FieldReference fieldReference) {
+    return lookupField(FieldDefinition.create(fieldReference));
   }
 
   @Override
@@ -64,14 +71,46 @@ public class RetraceClassResultImpl implements RetraceClassResult {
   @Override
   public RetraceMethodResultImpl lookupMethod(
       String methodName, List<TypeReference> formalTypes, TypeReference returnType) {
-    return lookupMethod(
-        MethodDefinition.create(
-            Reference.method(obfuscatedReference, methodName, formalTypes, returnType)));
+    return lookupMethodInternal(
+        Reference.method(obfuscatedReference, methodName, formalTypes, returnType));
+  }
+
+  RetraceMethodResultImpl lookupMethodInternal(MethodReference reference) {
+    return lookupMethod(MethodDefinition.create(reference));
+  }
+
+  private static MethodSignature getSignature(
+      ClassNamingForNameMapper mapper, MethodDefinition definition) {
+    if (definition.isFullMethodDefinition()) {
+      MemberNaming lookup =
+          mapper.lookup(
+              MethodSignature.fromMethodReference(
+                  definition.asFullMethodDefinition().getMethodReference()));
+      if (lookup != null) {
+        return lookup.getOriginalSignature().asMethodSignature();
+      }
+    }
+    return null;
+  }
+
+  private static FieldSignature getSignature(
+      ClassNamingForNameMapper mapper, FieldDefinition definition) {
+    if (definition.isFullFieldDefinition()) {
+      MemberNaming lookup =
+          mapper.lookup(
+              FieldSignature.fromFieldReference(
+                  definition.asFullFieldDefinition().getFieldReference()));
+      if (lookup != null) {
+        return lookup.getOriginalSignature().asFieldSignature();
+      }
+    }
+    return null;
   }
 
   private RetraceFieldResultImpl lookupField(FieldDefinition fieldDefinition) {
     return lookup(
         fieldDefinition,
+        getSignature(mapper, fieldDefinition),
         (mapper, name) -> {
           List<MemberNaming> memberNamings = mapper.mappedFieldNamingsByName.get(name);
           if (memberNamings == null || memberNamings.isEmpty()) {
@@ -85,6 +124,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
   private RetraceMethodResultImpl lookupMethod(MethodDefinition methodDefinition) {
     return lookup(
         methodDefinition,
+        getSignature(mapper, methodDefinition),
         (mapper, name) -> {
           MappedRangesOfName mappedRanges = mapper.mappedRangesByRenamedName.get(name);
           if (mappedRanges == null || mappedRanges.getMappedRanges().isEmpty()) {
@@ -95,10 +135,11 @@ public class RetraceClassResultImpl implements RetraceClassResult {
         RetraceMethodResultImpl::new);
   }
 
-  private <T, R, D extends Definition> R lookup(
+  private <T, R, D extends Definition, S extends Signature> R lookup(
       D definition,
+      S originalSignature,
       BiFunction<ClassNamingForNameMapper, String, T> lookupFunction,
-      ResultConstructor<T, R, D> constructor) {
+      ResultConstructor<T, R, D, S> constructor) {
     List<Pair<RetraceClassElementImpl, T>> mappings = new ArrayList<>();
     internalStream()
         .forEach(
@@ -113,7 +154,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
               }
               mappings.add(new Pair<>(element, null));
             });
-    return constructor.create(this, mappings, definition, retracer);
+    return constructor.create(this, mappings, definition, originalSignature, retracer);
   }
 
   @Override
@@ -171,11 +212,12 @@ public class RetraceClassResultImpl implements RetraceClassResult {
         mapper);
   }
 
-  private interface ResultConstructor<T, R, D> {
+  private interface ResultConstructor<T, R, D, S> {
     R create(
         RetraceClassResultImpl classResult,
         List<Pair<RetraceClassElementImpl, T>> mappings,
         D definition,
+        S originalSignature,
         RetracerImpl retracer);
   }
 
@@ -229,6 +271,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
     private RetraceFieldResultImpl lookupField(FieldDefinition fieldDefinition) {
       return lookup(
           fieldDefinition,
+          getSignature(mapper, fieldDefinition),
           (mapper, name) -> {
             List<MemberNaming> memberNamings = mapper.mappedFieldNamingsByName.get(name);
             if (memberNamings == null || memberNamings.isEmpty()) {
@@ -247,6 +290,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
     private RetraceMethodResultImpl lookupMethod(MethodDefinition methodDefinition) {
       return lookup(
           methodDefinition,
+          getSignature(mapper, methodDefinition),
           (mapper, name) -> {
             MappedRangesOfName mappedRanges = mapper.mappedRangesByRenamedName.get(name);
             if (mappedRanges == null || mappedRanges.getMappedRanges().isEmpty()) {
@@ -257,10 +301,11 @@ public class RetraceClassResultImpl implements RetraceClassResult {
           RetraceMethodResultImpl::new);
     }
 
-    private <T, R, D extends Definition> R lookup(
+    private <T, R, D extends Definition, S extends Signature> R lookup(
         D definition,
+        S originalSignature,
         BiFunction<ClassNamingForNameMapper, String, T> lookupFunction,
-        ResultConstructor<T, R, D> constructor) {
+        ResultConstructor<T, R, D, S> constructor) {
       List<Pair<RetraceClassElementImpl, T>> mappings = ImmutableList.of();
       if (mapper != null) {
         T result = lookupFunction.apply(mapper, definition.getName());
@@ -271,7 +316,8 @@ public class RetraceClassResultImpl implements RetraceClassResult {
       if (mappings.isEmpty()) {
         mappings = ImmutableList.of(new Pair<>(this, null));
       }
-      return constructor.create(classResult, mappings, definition, classResult.retracer);
+      return constructor.create(
+          classResult, mappings, definition, originalSignature, classResult.retracer);
     }
 
     @Override

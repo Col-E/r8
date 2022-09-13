@@ -6,6 +6,8 @@ package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MapVersion;
+import com.android.tools.r8.naming.mappinginformation.ResidualSignatureMappingInformation.ResidualFieldSignatureMappingInformation;
+import com.android.tools.r8.naming.mappinginformation.ResidualSignatureMappingInformation.ResidualMethodSignatureMappingInformation;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import java.util.function.Consumer;
@@ -50,6 +52,14 @@ public abstract class MappingInformation {
     return false;
   }
 
+  public boolean isResidualMethodSignatureMappingInformation() {
+    return false;
+  }
+
+  public boolean isResidualFieldSignatureMappingInformation() {
+    return false;
+  }
+
   public MapVersionMappingInformation asMapVersionMappingInformation() {
     return null;
   }
@@ -78,7 +88,11 @@ public abstract class MappingInformation {
     return null;
   }
 
-  public ResidualSignatureMappingInformation asResidualSignatureMappingInformation() {
+  public ResidualMethodSignatureMappingInformation asResidualMethodSignatureMappingInformation() {
+    return null;
+  }
+
+  public ResidualFieldSignatureMappingInformation asResidualFieldSignatureMappingInformation() {
     return null;
   }
 
