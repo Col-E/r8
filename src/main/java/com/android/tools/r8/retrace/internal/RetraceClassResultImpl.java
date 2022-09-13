@@ -81,7 +81,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
 
   private static MethodSignature getSignature(
       ClassNamingForNameMapper mapper, MethodDefinition definition) {
-    if (definition.isFullMethodDefinition()) {
+    if (mapper != null && definition.isFullMethodDefinition()) {
       MemberNaming lookup =
           mapper.lookup(
               MethodSignature.fromMethodReference(
@@ -95,7 +95,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
 
   private static FieldSignature getSignature(
       ClassNamingForNameMapper mapper, FieldDefinition definition) {
-    if (definition.isFullFieldDefinition()) {
+    if (mapper != null && definition.isFullFieldDefinition()) {
       MemberNaming lookup =
           mapper.lookup(
               FieldSignature.fromFieldReference(
