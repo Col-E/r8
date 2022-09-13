@@ -12,10 +12,7 @@ import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.lightir.LIRBuilder.BlockIndexGetter;
 import com.android.tools.r8.lightir.LIRBuilder.ValueIndexGetter;
-import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.StringUtils.BraceType;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
-import java.util.Arrays;
 
 public class LIRCode implements Iterable<LIRInstructionView> {
 
@@ -141,10 +138,10 @@ public class LIRCode implements Iterable<LIRInstructionView> {
     return debugLocalInfoTable == null ? null : debugLocalInfoTable.valueToLocalMap.get(valueIndex);
   }
 
-  public int[] getDebugLocalEnds(int instructionIndex) {
+  public int[] getDebugLocalEnds(int instructionValueIndex) {
     return debugLocalInfoTable == null
         ? null
-        : debugLocalInfoTable.instructionToEndUseMap.get(instructionIndex);
+        : debugLocalInfoTable.instructionToEndUseMap.get(instructionValueIndex);
   }
 
   @Override
@@ -154,29 +151,6 @@ public class LIRCode implements Iterable<LIRInstructionView> {
 
   @Override
   public String toString() {
-    StringBuilder builder = new StringBuilder("LIRCode{");
-    builder
-        .append("args:")
-        .append(argumentCount)
-        .append(", insn(num:")
-        .append(instructionCount)
-        .append(", size:")
-        .append(instructions.length)
-        .append("):{");
-    int index = 0;
-    for (LIRInstructionView view : this) {
-      builder.append(index).append(':');
-      builder.append(LIROpcodes.toString(view.getOpcode()));
-      if (view.getRemainingOperandSizeInBytes() > 0) {
-        builder.append("(size:").append(1 + view.getRemainingOperandSizeInBytes()).append(")");
-      }
-      if (++index < instructionCount) {
-        builder.append(", ");
-      }
-    }
-    builder.append("}, pool(size:").append(constants.length).append("):");
-    StringUtils.append(builder, Arrays.asList(constants), ", ", BraceType.TUBORG);
-    builder.append("}");
-    return builder.toString();
+    return new LIRPrinter(this).prettyPrint();
   }
 }

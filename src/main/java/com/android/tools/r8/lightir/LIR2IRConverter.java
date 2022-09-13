@@ -93,6 +93,11 @@ public class LIR2IRConverter {
       currentPosition = SyntheticPosition.builder().setLine(0).setMethod(method).build();
     }
 
+    @Override
+    public int getCurrentValueIndex() {
+      return nextInstructionIndex + code.getArgumentCount();
+    }
+
     private void closeCurrentBlock() {
       currentBlock = null;
     }
@@ -154,6 +159,9 @@ public class LIR2IRConverter {
         block.setFilled();
         blockList.add(block);
       }
+      for (int i = 0; i < peekNextInstructionIndex(); ++i) {
+        valueNumberGenerator.next();
+      }
       return new IRCode(
           appView.options(),
           method,
@@ -179,7 +187,7 @@ public class LIR2IRConverter {
     public Value getValue(int index) {
       Value value = values[index];
       if (value == null) {
-        value = new Value(valueNumberGenerator.next(), TypeElement.getBottom(), null);
+        value = new Value(index, TypeElement.getBottom(), null);
         values[index] = value;
       }
       return value;
@@ -206,7 +214,7 @@ public class LIR2IRConverter {
       DebugLocalInfo localInfo = code.getDebugLocalInfo(valueIndex);
       Value value = values[valueIndex];
       if (value == null) {
-        value = new Value(valueNumberGenerator.next(), type, localInfo);
+        value = new Value(valueIndex, type, localInfo);
         values[valueIndex] = value;
       } else {
         value.setType(type);
@@ -225,9 +233,7 @@ public class LIR2IRConverter {
       //  uniform with instructions.
       advanceInstructionState();
       // Creating the phi implicitly adds it to currentBlock.
-      Phi phi =
-          new Phi(
-              valueNumberGenerator.next(), currentBlock, type, localInfo, RegisterReadType.NORMAL);
+      Phi phi = new Phi(valueIndex, currentBlock, type, localInfo, RegisterReadType.NORMAL);
       Value value = values[valueIndex];
       if (value != null) {
         // A fake ssa value has already been created, replace the users by the actual phi.
@@ -269,12 +275,11 @@ public class LIR2IRConverter {
     private Argument addArgument(DexType type, int index) {
       // Arguments are not included in the "instructions" so this does not call "addInstruction"
       // which would otherwise advance the state.
-      Value dest = getValue(index);
-      dest.setType(type.toTypeElement(appView));
+      TypeElement typeElement = type.toTypeElement(appView);
       DebugLocalInfo localInfo = code.getDebugLocalInfo(index);
-      if (localInfo != null) {
-        dest.setLocalInfo(localInfo);
-      }
+      Value dest = new Value(index, typeElement, localInfo);
+      assert values[index] == null;
+      values[index] = dest;
       Argument argument = new Argument(dest, index, type.isBooleanType());
       assert currentBlock != null;
       assert currentPosition.isSyntheticPosition();
@@ -370,9 +375,9 @@ public class LIR2IRConverter {
     }
 
     @Override
-    public void onArrayLength(int arrayIndex) {
+    public void onArrayLength(int arrayValueIndex) {
       Value dest = getOutValueForNextInstruction(TypeElement.getInt());
-      Value arrayValue = getValue(arrayIndex);
+      Value arrayValue = getValue(arrayValueIndex);
       addInstruction(new ArrayLength(dest, arrayValue));
     }
 

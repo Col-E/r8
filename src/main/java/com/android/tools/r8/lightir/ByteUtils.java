@@ -40,10 +40,10 @@ public class ByteUtils {
 
   public static int readEncodedInt(ByteIterator iterator) {
     assert 4 == intEncodingSize(0);
-    int value = ensureU1(iterator.nextByte()) << 24;
-    value |= ensureU1(iterator.nextByte()) << 16;
-    value |= ensureU1(iterator.nextByte()) << 8;
-    value |= ensureU1(iterator.nextByte());
+    int value = truncateToU1(iterator.nextByte()) << 24;
+    value |= truncateToU1(iterator.nextByte()) << 16;
+    value |= truncateToU1(iterator.nextByte()) << 8;
+    value |= truncateToU1(iterator.nextByte());
     return value;
   }
 

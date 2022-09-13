@@ -96,6 +96,11 @@ public class LIRBuilder<V, B> {
     flushedPosition = currentPosition;
   }
 
+  public boolean verifyCurrentValueIndex(int valueIndex) {
+    assert instructionCount + argumentCount == valueIndex;
+    return true;
+  }
+
   public DexType toDexType(TypeElement typeElement) {
     if (typeElement.isPrimitiveType()) {
       return typeElement.asPrimitiveType().toDexType(factory);
@@ -143,12 +148,16 @@ public class LIRBuilder<V, B> {
     return valueIndexGetter.getValueIndex(value);
   }
 
-  private int valueIndexSize(int index) {
-    return ByteUtils.intEncodingSize(index);
+  private int valueIndexSize(int valueIndex, int referencingInstructionIndex) {
+    int referencingValueIndex = referencingInstructionIndex + argumentCount;
+    int encodedValueIndex = LIRUtils.encodeValueIndex(valueIndex, referencingValueIndex);
+    return ByteUtils.intEncodingSize(encodedValueIndex);
   }
 
-  private void writeValueIndex(int index) {
-    ByteUtils.writeEncodedInt(index, writer::writeOperand);
+  private void writeValueIndex(int valueIndex, int referencingInstructionIndex) {
+    int referencingValueIndex = referencingInstructionIndex + argumentCount;
+    int encodedValueIndex = LIRUtils.encodeValueIndex(valueIndex, referencingValueIndex);
+    ByteUtils.writeEncodedInt(encodedValueIndex, writer::writeOperand);
   }
 
   private int getBlockIndex(B block) {
@@ -174,14 +183,14 @@ public class LIRBuilder<V, B> {
     return this;
   }
 
-  public LIRBuilder<V, B> setDebugLocalEnds(int instructionIndex, Set<V> endValues) {
+  public LIRBuilder<V, B> setDebugLocalEnds(int instructionValueIndex, Set<V> endValues) {
     int size = endValues.size();
     int[] indices = new int[size];
     Iterator<V> iterator = endValues.iterator();
     for (int i = 0; i < size; i++) {
       indices[i] = getValueIndex(iterator.next());
     }
-    debugLocalEnds.put(instructionIndex, indices);
+    debugLocalEnds.put(instructionValueIndex, indices);
     return this;
   }
 
@@ -192,12 +201,12 @@ public class LIRBuilder<V, B> {
     return this;
   }
 
-  private void advanceInstructionState() {
+  private int advanceInstructionState() {
     if (!currentPosition.equals(flushedPosition)) {
       setPositionIndex(instructionCount, currentPosition);
       flushedPosition = currentPosition;
     }
-    ++instructionCount;
+    return instructionCount++;
   }
 
   private LIRBuilder<V, B> addNoOperandInstruction(int opcode) {
@@ -217,7 +226,7 @@ public class LIRBuilder<V, B> {
 
   private LIRBuilder<V, B> addInstructionTemplate(int opcode, List<DexItem> items, List<V> values) {
     assert values.size() < MAX_VALUE_COUNT;
-    advanceInstructionState();
+    int instructionIndex = advanceInstructionState();
     int operandSize = 0;
     for (DexItem item : items) {
       operandSize += constantIndexSize(item);
@@ -225,7 +234,7 @@ public class LIRBuilder<V, B> {
     for (int i = 0; i < values.size(); i++) {
       V value = values.get(i);
       int valueIndex = getValueIndex(value);
-      operandSize += valueIndexSize(valueIndex);
+      operandSize += valueIndexSize(valueIndex, instructionIndex);
       valueIndexBuffer[i] = valueIndex;
     }
     writer.writeInstruction(opcode, operandSize);
@@ -233,7 +242,7 @@ public class LIRBuilder<V, B> {
       writeConstantIndex(item);
     }
     for (int i = 0; i < values.size(); i++) {
-      writeValueIndex(valueIndexBuffer[i]);
+      writeValueIndex(valueIndexBuffer[i], instructionIndex);
     }
     return this;
   }
@@ -243,7 +252,7 @@ public class LIRBuilder<V, B> {
   }
 
   public LIRBuilder<V, B> addConstInt(int value) {
-    if (0 <= value && value <= 5) {
+    if (-1 <= value && value <= 5) {
       addNoOperandInstruction(LIROpcodes.ICONST_0 + value);
     } else {
       advanceInstructionState();
@@ -258,18 +267,7 @@ public class LIRBuilder<V, B> {
       case OBJECT:
         return addConstNull();
       case INT:
-        {
-          int intValue = (int) value;
-          if (-1 <= intValue && intValue <= 5) {
-            int opcode = LIROpcodes.ICONST_0 + intValue;
-            return addNoOperandInstruction(opcode);
-          }
-          int opcode = LIROpcodes.ICONST;
-          int size = ByteUtils.intEncodingSize(intValue);
-          writer.writeInstruction(opcode, size);
-          ByteUtils.writeEncodedInt(intValue, writer::writeOperand);
-          return this;
-        }
+        return addConstInt((int) value);
       case FLOAT:
       case LONG:
       case DOUBLE:
@@ -372,11 +370,11 @@ public class LIRBuilder<V, B> {
     }
     int targetIndex = getBlockIndex(trueTarget);
     int valueIndex = getValueIndex(value);
-    int operandSize = blockIndexSize(targetIndex) + valueIndexSize(valueIndex);
-    advanceInstructionState();
+    int operandSize = blockIndexSize(targetIndex) + valueIndexSize(valueIndex, instructionCount);
+    int instructionIndex = advanceInstructionState();
     writer.writeInstruction(opcode, operandSize);
     writeBlockIndex(targetIndex);
-    writeValueIndex(valueIndex);
+    writeValueIndex(valueIndex, instructionIndex);
     return this;
   }
 
@@ -405,16 +403,18 @@ public class LIRBuilder<V, B> {
       default:
         throw new Unreachable("Unexpected if kind " + ifKind);
     }
+    int instructionIndex = advanceInstructionState();
     int targetIndex = getBlockIndex(trueTarget);
     int valueOneIndex = getValueIndex(inValues.get(0));
     int valueTwoIndex = getValueIndex(inValues.get(1));
     int operandSize =
-        blockIndexSize(targetIndex) + valueIndexSize(valueOneIndex) + valueIndexSize(valueTwoIndex);
-    advanceInstructionState();
+        blockIndexSize(targetIndex)
+            + valueIndexSize(valueOneIndex, instructionIndex)
+            + valueIndexSize(valueTwoIndex, instructionIndex);
     writer.writeInstruction(opcode, operandSize);
     writeBlockIndex(targetIndex);
-    writeValueIndex(valueOneIndex);
-    writeValueIndex(valueTwoIndex);
+    writeValueIndex(valueOneIndex, instructionIndex);
+    writeValueIndex(valueTwoIndex, instructionIndex);
     return this;
   }
 

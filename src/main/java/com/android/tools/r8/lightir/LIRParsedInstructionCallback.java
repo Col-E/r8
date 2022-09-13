@@ -25,7 +25,7 @@ import it.unimi.dsi.fastutil.ints.IntList;
  * <p>Due to the parsing of the individual instructions, this parser has a higher overhead than
  * using the basic {@code LIRInstructionView}.
  */
-public class LIRParsedInstructionCallback implements LIRInstructionCallback {
+public abstract class LIRParsedInstructionCallback implements LIRInstructionCallback {
 
   private final LIRCode code;
 
@@ -33,33 +33,70 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
     this.code = code;
   }
 
-  public void onConstNull() {}
+  /** Returns the index for the value associated with the current argument/instruction. */
+  public abstract int getCurrentValueIndex();
 
-  public void onConstNumber(NumericType type, long value) {}
+  public final int getCurrentInstructionIndex() {
+    return getCurrentValueIndex() - code.getArgumentCount();
+  }
+
+  private int getActualValueIndex(int relativeValueIndex) {
+    return LIRUtils.decodeValueIndex(relativeValueIndex, getCurrentValueIndex());
+  }
+
+  private int getNextValueOperand(LIRInstructionView view) {
+    return getActualValueIndex(view.getNextValueOperand());
+  }
+
+  public void onInstruction() {}
+
+  public void onConstNull() {
+    onInstruction();
+  }
+
+  public void onConstNumber(NumericType type, long value) {
+    onInstruction();
+  }
 
   public void onConstInt(int value) {
     onConstNumber(NumericType.INT, value);
   }
 
-  public void onConstString(DexString string) {}
+  public void onConstString(DexString string) {
+    onInstruction();
+  }
 
-  public void onDiv(NumericType type, int leftValueIndex, int rightValueIndex) {}
+  public void onDiv(NumericType type, int leftValueIndex, int rightValueIndex) {
+    onInstruction();
+  }
 
   public void onDivInt(int leftValueIndex, int rightValueIndex) {
     onDiv(NumericType.INT, leftValueIndex, rightValueIndex);
   }
 
-  public void onIf(If.Type ifKind, int blockIndex, int valueIndex) {}
+  public void onIf(If.Type ifKind, int blockIndex, int valueIndex) {
+    onInstruction();
+  }
 
-  public void onGoto(int blockIndex) {}
+  public void onGoto(int blockIndex) {
+    onInstruction();
+  }
 
-  public void onFallthrough() {}
+  public void onFallthrough() {
+    onInstruction();
+  }
 
-  public void onMoveException(DexType exceptionType) {}
+  public void onMoveException(DexType exceptionType) {
+    onInstruction();
+  }
 
-  public void onDebugLocalWrite(int srcIndex) {}
+  public void onDebugLocalWrite(int srcIndex) {
+    onInstruction();
+  }
 
-  public void onInvokeMethodInstruction(DexMethod method, IntList arguments) {}
+  public void onInvokeMethodInstruction(DexMethod method, IntList arguments) {
+    onInstruction();
+  }
 
   public void onInvokeDirect(DexMethod method, IntList arguments) {
     onInvokeMethodInstruction(method, arguments);
@@ -70,27 +107,35 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
   }
 
   public void onFieldInstruction(DexField field) {
-    onFieldInstruction(field);
+    onInstruction();
   }
 
   public void onStaticGet(DexField field) {
     onFieldInstruction(field);
   }
 
-  public void onReturnVoid() {}
+  public void onReturnVoid() {
+    onInstruction();
+  }
 
-  public void onArrayLength(int arrayIndex) {}
+  public void onArrayLength(int arrayValueIndex) {
+    onInstruction();
+  }
 
-  public void onDebugPosition() {}
+  public void onDebugPosition() {
+    onInstruction();
+  }
 
-  public void onPhi(DexType type, IntList operands) {}
+  public void onPhi(DexType type, IntList operands) {
+    onInstruction();
+  }
 
   private DexItem getConstantItem(int index) {
     return code.getConstantItem(index);
   }
 
   @Override
-  public final void onInstructionView(LIRInstructionView view) {
+  public void onInstructionView(LIRInstructionView view) {
     int opcode = view.getOpcode();
     switch (opcode) {
       case LIROpcodes.ACONST_NULL:
@@ -127,15 +172,15 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
         }
       case LIROpcodes.IDIV:
         {
-          int leftValueIndex = view.getNextValueOperand();
-          int rightValueIndex = view.getNextValueOperand();
+          int leftValueIndex = getNextValueOperand(view);
+          int rightValueIndex = getNextValueOperand(view);
           onDivInt(leftValueIndex, rightValueIndex);
           return;
         }
       case LIROpcodes.IFNE:
         {
           int blockIndex = view.getNextBlockOperand();
-          int valueIndex = view.getNextValueOperand();
+          int valueIndex = getNextValueOperand(view);
           onIf(If.Type.NE, blockIndex, valueIndex);
           return;
         }
@@ -172,7 +217,7 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
         }
       case LIROpcodes.ARRAYLENGTH:
         {
-          onArrayLength(view.getNextValueOperand());
+          onArrayLength(getNextValueOperand(view));
           return;
         }
       case LIROpcodes.DEBUGPOS:
@@ -185,7 +230,7 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
           DexType type = (DexType) getConstantItem(view.getNextConstantOperand());
           IntList operands = new IntArrayList();
           while (view.hasMoreOperands()) {
-            operands.add(view.getNextValueOperand());
+            operands.add(getNextValueOperand(view));
           }
           onPhi(type, operands);
           return;
@@ -203,7 +248,7 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
         }
       case LIROpcodes.DEBUGLOCALWRITE:
         {
-          int srcIndex = view.getNextValueOperand();
+          int srcIndex = getNextValueOperand(view);
           onDebugLocalWrite(srcIndex);
           return;
         }
@@ -219,7 +264,7 @@ public class LIRParsedInstructionCallback implements LIRInstructionCallback {
   private IntList getInvokeInstructionArguments(LIRInstructionView view) {
     IntList arguments = new IntArrayList();
     while (view.hasMoreOperands()) {
-      arguments.add(view.getNextValueOperand());
+      arguments.add(getNextValueOperand(view));
     }
     return arguments;
   }

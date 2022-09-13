@@ -65,7 +65,9 @@ public class IR2LIRConverter {
   }
 
   private void computeInstructions() {
-    int currentInstructionIndex = 0;
+    // The IR instruction index corresponds to the LIR value index which includes arguments and
+    // all instructions.
+    int currentValueIndex = 0;
     BasicBlockIterator blockIt = irCode.listIterator();
     while (blockIt.hasNext()) {
       BasicBlock block = blockIt.next();
@@ -77,7 +79,7 @@ public class IR2LIRConverter {
         for (Phi phi : block.getPhis()) {
           permuteOperands(phi.getOperands(), permutation, operands);
           builder.addPhi(phi.getType(), Arrays.asList(operands));
-          currentInstructionIndex++;
+          currentValueIndex++;
         }
       }
       if (block.hasCatchHandlers()) {
@@ -89,25 +91,27 @@ public class IR2LIRConverter {
       }
       InstructionIterator it = block.iterator();
       while (it.hasNext()) {
+        assert builder.verifyCurrentValueIndex(currentValueIndex);
         Instruction instruction = it.next();
         assert !instruction.hasOutValue()
-            || currentInstructionIndex == values.getInt(instruction.outValue());
+            || currentValueIndex == values.getInt(instruction.outValue());
         builder.setCurrentPosition(instruction.getPosition());
         if (!instruction.getDebugValues().isEmpty()) {
-          builder.setDebugLocalEnds(currentInstructionIndex, instruction.getDebugValues());
+          builder.setDebugLocalEnds(currentValueIndex, instruction.getDebugValues());
         }
 
         if (instruction.isGoto()) {
           BasicBlock nextBlock = blockIt.peekNext();
           if (instruction.asGoto().getTarget() == nextBlock) {
             builder.addFallthrough();
-            currentInstructionIndex++;
+            currentValueIndex++;
             continue;
           }
         }
         instruction.buildLIR(builder);
-        currentInstructionIndex++;
+        currentValueIndex++;
       }
+      assert builder.verifyCurrentValueIndex(currentValueIndex);
     }
   }
 
