@@ -1343,11 +1343,16 @@ public class ClassFileTransformer {
 
   public ClassFileTransformer transformTryCatchBlock(
       String methodName, TryCatchBlockTransform transform) {
+    return transformTryCatchBlock(MethodPredicate.onName(methodName), transform);
+  }
+
+  public ClassFileTransformer transformTryCatchBlock(
+      MethodPredicate predicate, TryCatchBlockTransform transform) {
     return addMethodTransformer(
         new MethodTransformer() {
           @Override
           public void visitTryCatchBlock(Label start, Label end, Label handler, String type) {
-            if (getContext().method.getMethodName().equals(methodName)) {
+            if (MethodPredicate.testContext(predicate, getContext())) {
               transform.visitTryCatchBlock(
                   start,
                   end,
