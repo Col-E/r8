@@ -166,7 +166,7 @@ public class InterfaceInvokePrivateTest extends TestBase implements Opcodes {
   public static class TestRunner implements I {
 
     public static void main(String[] args) {
-      System.out.println(new TestRunner().hello());
+      System.out.print(new TestRunner().hello());
     }
   }
 }
