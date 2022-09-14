@@ -152,7 +152,9 @@ public class InstanceInitializerOutliner {
     // since all other soft verification issues has been outlined. To ensure that we do not inline
     // the outline again in R8 - but allow inlining of other calls to min api level methods, we have
     // to recompute the api level.
-    recomputeApiLevel(context, code);
+    if (appView.enableWholeProgramOptimizations()) {
+      recomputeApiLevel(context, code);
+    }
   }
 
   private void recomputeApiLevel(ProgramMethod context, IRCode code) {
