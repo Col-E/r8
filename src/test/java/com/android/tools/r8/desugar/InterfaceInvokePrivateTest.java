@@ -36,7 +36,7 @@ public class InterfaceInvokePrivateTest extends TestBase implements Opcodes {
         CfVersion.rangeInclusive(CfVersion.V1_8, CfVersion.V15));
   }
 
-  private static final String EXPECTED_OUTPUT = StringUtils.lines("Hello, world!", "21", "6");
+  private static final String EXPECTED_OUTPUT = StringUtils.unixLines("Hello, world!", "21", "6");
 
   private boolean isInputCfVersionSupported() {
     return inputCfVersion.isLessThanOrEqualTo(
