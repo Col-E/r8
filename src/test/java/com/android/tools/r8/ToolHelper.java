@@ -379,7 +379,7 @@ public class ToolHelper {
     }
 
     public boolean isEqualTo(DexVm other) {
-      return version.isNewerThanOrEqual(other.version);
+      return version.isEqualTo(other.version);
     }
 
     public boolean isNewerThan(DexVm other) {

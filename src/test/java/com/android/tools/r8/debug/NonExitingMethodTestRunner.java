@@ -61,7 +61,7 @@ public class NonExitingMethodTestRunner extends DebugTestBase {
     // fixed.
     Assume.assumeTrue(
         "Skipping test " + testName.getMethodName() + " because debugging not enabled in 12.0.0",
-        !ToolHelper.getDexVm().isEqualTo(DexVm.ART_12_0_0_HOST));
+        !ToolHelper.getDexVm().isNewerThanOrEqual(DexVm.ART_12_0_0_HOST));
     Assume.assumeTrue(
         "Skipping test "
             + testName.getMethodName()

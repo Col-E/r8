@@ -55,7 +55,7 @@ public class ArrayDimensionGreaterThanSevenTestRunner extends DebugTestBase {
     // fixed.
     Assume.assumeTrue(
         "Skipping test " + testName.getMethodName() + " because debugging not enabled in 12.0.0",
-        !ToolHelper.getDexVm().isEqualTo(DexVm.ART_12_0_0_HOST));
+        !ToolHelper.getDexVm().isNewerThanOrEqual(DexVm.ART_12_0_0_HOST));
     Assume.assumeTrue(ToolHelper.getDexVm().isNewerThan(DexVm.ART_5_1_1_HOST)
         && !ToolHelper.isWindows());
     DebugTestConfig cfConfig = new CfDebugTestConfig().addPaths(ToolHelper.getClassPathForTests());

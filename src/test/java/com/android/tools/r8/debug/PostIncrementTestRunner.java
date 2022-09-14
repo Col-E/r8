@@ -28,7 +28,7 @@ public class PostIncrementTestRunner extends DebugTestBase {
     // fixed.
     Assume.assumeTrue(
         "Skipping test " + testName.getMethodName() + " because debugging not enabled in 12.0.0",
-        !ToolHelper.getDexVm().isEqualTo(DexVm.ART_12_0_0_HOST));
+        !ToolHelper.getDexVm().isNewerThanOrEqual(DexVm.ART_12_0_0_HOST));
     Assume.assumeTrue("Older runtimes cause some kind of debug streaming issues",
         ToolHelper.getDexVm().isNewerThan(DexVm.ART_5_1_1_HOST));
     DebugTestConfig cfConfig = new CfDebugTestConfig().addPaths(ToolHelper.getClassPathForTests());
