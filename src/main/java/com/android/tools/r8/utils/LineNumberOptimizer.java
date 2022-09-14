@@ -633,14 +633,13 @@ public class LineNumberOptimizer {
           MethodSignature originalSignature =
               MethodSignature.fromDexMethod(originalMethod, originalMethod.holder != originalType);
 
-          DexString obfuscatedNameDexString =
-              appView.getNamingLens().lookupName(method.getReference());
-          String obfuscatedName = obfuscatedNameDexString.toString();
-
           List<MappingInformation> methodMappingInfo = new ArrayList<>();
           if (definition.isD8R8Synthesized()) {
             methodMappingInfo.add(CompilerSynthesizedMappingInformation.builder().build());
           }
+
+          DexMethod residualMethod =
+              appView.getNamingLens().lookupMethod(method.getReference(), appView.dexItemFactory());
 
           MapVersion mapFileVersion = appView.options().getMapFileVersion();
           if (isIdentityMapping(
@@ -648,7 +647,7 @@ public class LineNumberOptimizer {
               mappedPositions,
               methodMappingInfo,
               method,
-              obfuscatedNameDexString,
+              residualMethod.getName(),
               originalMethod,
               originalType)) {
             assert appView.options().lineNumberOptimization == LineNumberOptimization.OFF
@@ -660,10 +659,12 @@ public class LineNumberOptimizer {
           if (mapFileVersion.isGreaterThan(MapVersion.MAP_VERSION_2_1)
               && originalMethod != method.getReference()) {
             methodMappingInfo.add(
-                ResidualMethodSignatureMappingInformation.fromDexMethod(method.getReference()));
+                ResidualMethodSignatureMappingInformation.fromDexMethod(residualMethod));
           }
 
-          MemberNaming memberNaming = new MemberNaming(originalSignature, obfuscatedName);
+          MethodSignature residualSignature = MethodSignature.fromDexMethod(residualMethod);
+
+          MemberNaming memberNaming = new MemberNaming(originalSignature, residualSignature);
           onDemandClassNamingBuilder.computeIfAbsent().addMemberEntry(memberNaming);
 
           // Add simple "a() -> b" mapping if we won't have any other with concrete line numbers
@@ -671,7 +672,7 @@ public class LineNumberOptimizer {
             MappedRange range =
                 onDemandClassNamingBuilder
                     .computeIfAbsent()
-                    .addMappedRange(null, originalSignature, null, obfuscatedName);
+                    .addMappedRange(null, originalSignature, null, residualSignature);
             methodMappingInfo.forEach(
                 info -> range.addMappingInformation(info, Unreachable::raise));
             continue;
@@ -745,7 +746,7 @@ public class LineNumberOptimizer {
                     getOriginalMethodSignature,
                     classNamingBuilder,
                     firstPosition.method,
-                    obfuscatedName,
+                    residualSignature,
                     obfuscatedRange,
                     nonCardinalRangeCache.get(
                         firstPosition.originalLine, lastPosition.originalLine),
@@ -774,7 +775,7 @@ public class LineNumberOptimizer {
                         getOriginalMethodSignature,
                         classNamingBuilder,
                         position.getMethod(),
-                        obfuscatedName,
+                        residualSignature,
                         nonCardinalRangeCache.get(
                             placeHolderLineToBeFixed, placeHolderLineToBeFixed),
                         nonCardinalRangeCache.get(position.getLine(), position.getLine()),
@@ -884,7 +885,7 @@ public class LineNumberOptimizer {
       Function<DexMethod, MethodSignature> getOriginalMethodSignature,
       Builder classNamingBuilder,
       DexMethod method,
-      String obfuscatedName,
+      MethodSignature residualSignature,
       Range obfuscatedRange,
       Range originalLine,
       Position caller,
@@ -895,7 +896,7 @@ public class LineNumberOptimizer {
             obfuscatedRange,
             getOriginalMethodSignature.apply(method),
             originalLine,
-            obfuscatedName);
+            residualSignature);
     int inlineFramesCount = 0;
     while (caller != null) {
       inlineFramesCount += 1;
@@ -912,7 +913,7 @@ public class LineNumberOptimizer {
               getOriginalMethodSignature.apply(caller.getMethod()),
               cardinalRangeCache.get(
                   Math.max(caller.getLine(), 0)), // Prevent against "no-position".
-              obfuscatedName);
+              residualSignature);
       if (caller.isRemoveInnerFramesIfThrowingNpe()) {
         lastMappedRange.addMappingInformation(
             RewriteFrameMappingInformation.builder()
@@ -1025,11 +1026,13 @@ public class LineNumberOptimizer {
         dexEncodedField -> {
           DexField dexField = dexEncodedField.getReference();
           DexField originalField = appView.graphLens().getOriginalFieldSignature(dexField);
-          DexString renamedName = appView.getNamingLens().lookupName(dexField);
-          if (renamedName != originalField.name || originalField.holder != originalType) {
+          DexField residualField =
+              appView.getNamingLens().lookupField(dexField, appView.dexItemFactory());
+          if (residualField.name != originalField.name || originalField.holder != originalType) {
             FieldSignature originalSignature =
                 FieldSignature.fromDexField(originalField, originalField.holder != originalType);
-            MemberNaming memberNaming = new MemberNaming(originalSignature, renamedName.toString());
+            MemberNaming memberNaming =
+                new MemberNaming(originalSignature, FieldSignature.fromDexField(residualField));
             onDemandClassNamingBuilder.computeIfAbsent().addMemberEntry(memberNaming);
           }
         });

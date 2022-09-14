@@ -365,15 +365,18 @@ public class ProguardMapReader implements AutoCloseable {
                             MappingInformationDiagnostics.notAllowedCombination(
                                 info, conflictingInfo, lineNo)));
                 if (info.isResidualMethodSignatureMappingInformation()) {
-                  ResidualMethodSignatureMappingInformation residualSignature =
+                  ResidualMethodSignatureMappingInformation residualSignatureInfo =
                       info.asResidualMethodSignatureMappingInformation();
-                  currentMember.setRenamedSignatureInternal(
+                  MethodSignature residualSignature =
                       new MethodSignature(
                           currentMember.getRenamedName(),
-                          DescriptorUtils.descriptorToJavaType(residualSignature.getReturnType()),
+                          DescriptorUtils.descriptorToJavaType(
+                              residualSignatureInfo.getReturnType()),
                           ArrayUtils.mapToStringArray(
-                              residualSignature.getParameters(),
-                              DescriptorUtils::descriptorToJavaType)));
+                              residualSignatureInfo.getParameters(),
+                              DescriptorUtils::descriptorToJavaType));
+                  currentMember.setResidualSignatureInternal(residualSignature);
+                  currentRange.setResidualSignatureInternal(residualSignature);
                 }
               }
             });
@@ -419,13 +422,21 @@ public class ProguardMapReader implements AutoCloseable {
       skipWhitespace();
       String renamedName = parseMethodName();
 
-      if (signature instanceof MethodSignature) {
+      if (signature.isMethodSignature()) {
+        MethodSignature residualSignature;
+        if (activeMappedRange != null
+            && activeMappedRange.signature == signature
+            && activeMappedRange.getResidualSignature().getName().equals(renamedName)) {
+          residualSignature = activeMappedRange.getResidualSignature();
+        } else {
+          residualSignature = signature.asMethodSignature().asRenamed(renamedName);
+        }
         activeMappedRange =
             classNamingBuilder.addMappedRange(
-                mappedRange, (MethodSignature) signature, originalRange, renamedName);
+                mappedRange, signature.asMethodSignature(), originalRange, residualSignature);
       }
 
-      assert mappedRange == null || signature instanceof MethodSignature;
+      assert mappedRange == null || signature.isMethodSignature();
 
       // If this line refers to a member that should be added to classNamingBuilder (as opposed to
       // an inner inlined callee) and it's different from the the previous activeMemberNaming, then

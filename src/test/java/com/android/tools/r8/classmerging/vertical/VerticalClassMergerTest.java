@@ -61,7 +61,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 // TODO(christofferqa): Add tests to check that statically typed invocations on method handles
-// continue to work after class merging.
+//  continue to work after class merging.
 @RunWith(Parameterized.class)
 public class VerticalClassMergerTest extends TestBase {
 
@@ -539,7 +539,7 @@ public class VerticalClassMergerTest extends TestBase {
                             .toString()
                             .equals("java.lang.String classmerging.ProguardFieldMapTest$A.f")
                         && fieldNaming
-                            .getRenamedSignature()
+                            .getResidualSignature()
                             .toString()
                             .equals("java.lang.String f")));
   }
@@ -587,7 +587,7 @@ public class VerticalClassMergerTest extends TestBase {
                     methodNaming
                         .getOriginalSignature()
                         .toString()
-                        .equals(methodNaming.getRenamedSignature().toString())));
+                        .equals(methodNaming.getResidualSignature().toString())));
 
     // Try with vertical class merging.
     Set<String> preservedClassNames =
@@ -620,7 +620,7 @@ public class VerticalClassMergerTest extends TestBase {
                             .toString()
                             .equals("void classmerging.ProguardMethodMapTest$A.method()")
                         && methodNaming
-                            .getRenamedSignature()
+                            .getResidualSignature()
                             .toString()
                             .equals("void method$classmerging$ProguardMethodMapTest$A()")));
   }
@@ -677,7 +677,7 @@ public class VerticalClassMergerTest extends TestBase {
                             .signature
                             .toString()
                             .equals("void classmerging.ProguardMethodMapTest$A.method()")
-                        && mappedRange.renamedName.equals("method")));
+                        && mappedRange.getResidualSignature().getName().equals("method")));
 
     // Try with vertical class merging.
     Set<String> preservedClassNames =
@@ -717,7 +717,7 @@ public class VerticalClassMergerTest extends TestBase {
                             .signature
                             .toString()
                             .equals("void classmerging.ProguardMethodMapTest$A.method()")
-                        && mappedRange.renamedName.equals("method")));
+                        && mappedRange.getResidualSignature().getName().equals("method")));
   }
 
   @Test

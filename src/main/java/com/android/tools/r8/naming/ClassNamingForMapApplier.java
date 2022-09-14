@@ -89,7 +89,7 @@ public class ClassNamingForMapApplier implements ClassNaming {
         Range obfuscatedRange,
         MemberNaming.MethodSignature originalSignature,
         Range originalRange,
-        String obfuscatedName) {
+        MemberNaming.MethodSignature residualSignature) {
       return null;
     }
 
@@ -172,7 +172,7 @@ public class ClassNamingForMapApplier implements ClassNaming {
     //   {@link ClassNamingForNameMapper#lookupByOriginalSignature}.
     if (renamedSignature.kind() == SignatureKind.METHOD) {
       for (MemberNaming memberNaming : methodMembers.values()) {
-        if (memberNaming.getRenamedSignature().equals(renamedSignature)) {
+        if (memberNaming.getResidualSignature().equals(renamedSignature)) {
           return memberNaming;
         }
       }
@@ -180,7 +180,7 @@ public class ClassNamingForMapApplier implements ClassNaming {
     } else {
       assert renamedSignature.kind() == SignatureKind.FIELD;
       for (MemberNaming memberNaming : fieldMembers.values()) {
-        if (memberNaming.getRenamedSignature().equals(renamedSignature)) {
+        if (memberNaming.getResidualSignature().equals(renamedSignature)) {
           return memberNaming;
         }
       }

@@ -447,11 +447,11 @@ public class ComposingBuilder {
             for (int i = 0; i < memberNamings.size(); i++) {
               MemberNaming memberNaming = memberNamings.get(i);
               assert memberNaming.getRenamedName().equals(fieldNaming.getOriginalName());
-              if (memberNaming.renamedSignature.equals(fieldNaming.getOriginalSignature())) {
+              if (memberNaming.residualSignature.equals(fieldNaming.getOriginalSignature())) {
                 memberNamings.set(
                     i,
                     new MemberNaming(
-                        memberNaming.getOriginalSignature(), fieldNaming.getRenamedName()));
+                        memberNaming.getOriginalSignature(), fieldNaming.getResidualSignature()));
                 return;
               }
             }
@@ -488,7 +488,9 @@ public class ComposingBuilder {
           Range minifiedRange = mappedRangeResult.lastRange.minifiedRange;
           int endMinifiedPosition = minifiedRange == null ? NO_RANGE_FROM : minifiedRange.to;
           methodMembers
-              .computeIfAbsent(newMappedRange.renamedName, ignored -> new SegmentTree<>(false))
+              .computeIfAbsent(
+                  newMappedRange.getResidualSignature().getName(),
+                  ignored -> new SegmentTree<>(false))
               .add(
                   mappedRangeResult.startMinifiedPosition,
                   endMinifiedPosition,
@@ -619,7 +621,7 @@ public class ComposingBuilder {
                     newRange.minifiedRange,
                     existingRange.signature,
                     existingRange.originalRange,
-                    newRange.renamedName));
+                    newRange.getResidualSignature()));
           }
         } else {
           // First check if the original range matches the existing minified range.
@@ -683,7 +685,7 @@ public class ComposingBuilder {
             .getUpdateOutlineCallsiteInformation(
                 currentOriginalName,
                 ListUtils.last(newRanges).signature.getName(),
-                lastComposedRange.renamedName)
+                lastComposedRange.getResidualSignature().getName())
             .setNewMappedRanges(newRanges);
         lastComposedRange.addMappingInformation(
             computedOutlineInformation.seenOutlineMappingInformation,
@@ -770,7 +772,7 @@ public class ComposingBuilder {
                 newMinifiedRange,
                 existingMappedRange.signature,
                 newOriginalRange,
-                newMappedRange.renamedName);
+                newMappedRange.getResidualSignature());
         existingMappedRange
             .getAdditionalMappingInfo()
             .forEach(

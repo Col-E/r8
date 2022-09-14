@@ -27,7 +27,7 @@ public interface ClassNaming {
         Range obfuscatedRange,
         MemberNaming.MethodSignature originalSignature,
         Range originalRange,
-        String obfuscatedName);
+        MemberNaming.MethodSignature residualSignature);
 
     public abstract void addMappingInformation(
         MappingInformation info, Consumer<MappingInformation> onProhibitedAddition);

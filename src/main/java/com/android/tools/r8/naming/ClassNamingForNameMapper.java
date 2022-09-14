@@ -60,11 +60,11 @@ public class ClassNamingForNameMapper implements ClassNaming {
     @Override
     public ClassNaming.Builder addMemberEntry(MemberNaming entry) {
       if (entry.isMethodNaming()) {
-        methodMembers.put(entry.getRenamedSignature().asMethodSignature(), entry);
+        methodMembers.put(entry.getResidualSignature().asMethodSignature(), entry);
       } else {
-        fieldMembers.put(entry.getRenamedSignature().asFieldSignature(), entry);
+        fieldMembers.put(entry.getResidualSignature().asFieldSignature(), entry);
         mappedFieldNamingsByName
-            .computeIfAbsent(entry.getRenamedName(), m -> new ArrayList<>())
+            .computeIfAbsent(entry.getRenamedName(), ignored -> new ArrayList<>())
             .add(entry);
       }
       return this;
@@ -99,10 +99,12 @@ public class ClassNamingForNameMapper implements ClassNaming {
         Range minifiedRange,
         MemberNaming.MethodSignature originalSignature,
         Range originalRange,
-        String renamedName) {
+        MemberNaming.MethodSignature residualSignature) {
       MappedRange range =
-          new MappedRange(minifiedRange, originalSignature, originalRange, renamedName);
-      mappedRangesByName.computeIfAbsent(renamedName, k -> new ArrayList<>()).add(range);
+          new MappedRange(minifiedRange, originalSignature, originalRange, residualSignature);
+      mappedRangesByName
+          .computeIfAbsent(residualSignature.getName(), ignored -> new ArrayList<>())
+          .add(range);
       return range;
     }
 
@@ -377,8 +379,8 @@ public class ClassNamingForNameMapper implements ClassNaming {
             mappedFields ->
                 mappedFields.forEach(
                     mappedField -> {
-                      if (mappedField.renamedSignature.isQualified()) {
-                        consumer.accept(mappedField.renamedSignature.toHolderFromQualified());
+                      if (mappedField.residualSignature.isQualified()) {
+                        consumer.accept(mappedField.residualSignature.toHolderFromQualified());
                       }
                     }));
     mappedRangesByRenamedName
@@ -494,7 +496,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
     public final Range minifiedRange; // Can be null, if so then originalRange must also be null.
     public final MethodSignature signature;
     public final Range originalRange;
-    public final String renamedName;
+    private MethodSignature residualSignature;
 
     /**
      * The sole purpose of {@link #sequenceNumber} is to preserve the order of members read from a
@@ -505,11 +507,14 @@ public class ClassNamingForNameMapper implements ClassNaming {
     private List<MappingInformation> additionalMappingInfo = EMPTY_MAPPING_INFORMATION;
 
     MappedRange(
-        Range minifiedRange, MethodSignature signature, Range originalRange, String renamedName) {
+        Range minifiedRange,
+        MethodSignature signature,
+        Range originalRange,
+        MethodSignature residualSignature) {
       this.minifiedRange = minifiedRange;
       this.signature = signature;
       this.originalRange = originalRange;
-      this.renamedName = renamedName;
+      this.residualSignature = residualSignature;
     }
 
     public void addMappingInformation(
@@ -594,6 +599,14 @@ public class ClassNamingForNameMapper implements ClassNaming {
       }
     }
 
+    public MethodSignature getResidualSignature() {
+      return residualSignature;
+    }
+
+    public void setResidualSignatureInternal(MethodSignature residualSignature) {
+      this.residualSignature = residualSignature;
+    }
+
     @Override
     public String toString() {
       StringBuilder builder = new StringBuilder();
@@ -604,7 +617,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
       if (originalRange != null && !originalRange.equals(minifiedRange)) {
         builder.append(":").append(originalRange);
       }
-      builder.append(" -> ").append(renamedName);
+      builder.append(" -> ").append(residualSignature.name);
       return builder.toString();
     }
 
@@ -624,7 +637,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
       return Objects.equals(minifiedRange, that.minifiedRange)
           && Objects.equals(originalRange, that.originalRange)
           && signature.equals(that.signature)
-          && renamedName.equals(that.renamedName);
+          && residualSignature.equals(that.residualSignature);
     }
 
     @Override
@@ -633,7 +646,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
       int result = Objects.hashCode(minifiedRange);
       result = 31 * result + Objects.hashCode(originalRange);
       result = 31 * result + signature.hashCode();
-      result = 31 * result + renamedName.hashCode();
+      result = 31 * result + residualSignature.hashCode();
       return result;
     }
 

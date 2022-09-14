@@ -45,30 +45,30 @@ public class MemberNaming {
     }
 
     MemberNaming that = (MemberNaming) o;
-    return signature.equals(that.signature) && renamedSignature.equals(that.renamedSignature);
+    return signature.equals(that.signature) && residualSignature.equals(that.residualSignature);
   }
 
   @Override
   public int hashCode() {
     int result = signature.hashCode();
-    result = 31 * result + renamedSignature.hashCode();
+    result = 31 * result + residualSignature.hashCode();
     return result;
   }
 
   /** Original signature of the member. */
   final Signature signature;
-  /** Renamed signature where types and names could be changed. */
-  Signature renamedSignature;
+  /** Residual signature where types and names could be changed. */
+  Signature residualSignature;
   /** Position of the member in the file. */
   final Position position;
 
-  public MemberNaming(Signature signature, String renamedName) {
-    this(signature, signature.asRenamed(renamedName), Position.UNKNOWN);
+  public MemberNaming(Signature signature, Signature residualSignature) {
+    this(signature, residualSignature, Position.UNKNOWN);
   }
 
-  public MemberNaming(Signature signature, Signature renamedSignature, Position position) {
+  public MemberNaming(Signature signature, Signature residualSignature, Position position) {
     this.signature = signature;
-    this.renamedSignature = renamedSignature;
+    this.residualSignature = residualSignature;
     this.position = position;
   }
 
@@ -80,12 +80,12 @@ public class MemberNaming {
     return signature.name;
   }
 
-  public Signature getRenamedSignature() {
-    return renamedSignature;
+  public Signature getResidualSignature() {
+    return residualSignature;
   }
 
   public String getRenamedName() {
-    return renamedSignature.name;
+    return residualSignature.name;
   }
 
   public boolean isMethodNaming() {
@@ -102,11 +102,11 @@ public class MemberNaming {
 
   @Override
   public String toString() {
-    return signature.toString() + " -> " + renamedSignature.name;
+    return signature.toString() + " -> " + residualSignature.name;
   }
 
-  public void setRenamedSignatureInternal(Signature signature) {
-    this.renamedSignature = signature;
+  public void setResidualSignatureInternal(Signature signature) {
+    this.residualSignature = signature;
   }
 
   public abstract static class Signature {
@@ -335,7 +335,7 @@ public class MemberNaming {
     }
 
     @Override
-    Signature asRenamed(String renamedName) {
+    MethodSignature asRenamed(String renamedName) {
       return new MethodSignature(renamedName, type, parameters);
     }
 
