@@ -7,6 +7,8 @@ import static com.android.tools.r8.graph.DexEncodedMethod.asDexClassAndMethodOrN
 
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexInvokeDirect;
+import com.android.tools.r8.dex.code.DexInvokeDirectRange;
 import com.android.tools.r8.dex.code.DexInvokeVirtual;
 import com.android.tools.r8.dex.code.DexInvokeVirtualRange;
 import com.android.tools.r8.graph.AppView;
@@ -72,19 +74,37 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
     if (needsRangedInvoke(builder)) {
       assert argumentsConsecutive(builder);
       int firstRegister = argumentRegisterValue(0, builder);
-      instruction = new DexInvokeVirtualRange(firstRegister, argumentRegisters, getInvokedMethod());
+      if (isPrivateMethodInvokedOnSelf(builder)) {
+        instruction =
+            new DexInvokeDirectRange(firstRegister, argumentRegisters, getInvokedMethod());
+      } else {
+        instruction =
+            new DexInvokeVirtualRange(firstRegister, argumentRegisters, getInvokedMethod());
+      }
     } else {
       int[] individualArgumentRegisters = new int[5];
       int argumentRegistersCount = fillArgumentRegisters(builder, individualArgumentRegisters);
-      instruction =
-          new DexInvokeVirtual(
-              argumentRegistersCount,
-              getInvokedMethod(),
-              individualArgumentRegisters[0], // C
-              individualArgumentRegisters[1], // D
-              individualArgumentRegisters[2], // E
-              individualArgumentRegisters[3], // F
-              individualArgumentRegisters[4]); // G
+      if (isPrivateMethodInvokedOnSelf(builder)) {
+        instruction =
+            new DexInvokeDirect(
+                argumentRegistersCount,
+                getInvokedMethod(),
+                individualArgumentRegisters[0], // C
+                individualArgumentRegisters[1], // D
+                individualArgumentRegisters[2], // E
+                individualArgumentRegisters[3], // F
+                individualArgumentRegisters[4]); // G
+      } else {
+        instruction =
+            new DexInvokeVirtual(
+                argumentRegistersCount,
+                getInvokedMethod(),
+                individualArgumentRegisters[0], // C
+                individualArgumentRegisters[1], // D
+                individualArgumentRegisters[2], // E
+                individualArgumentRegisters[3], // F
+                individualArgumentRegisters[4]); // G
+      }
     }
     addInvokeAndMoveResult(instruction, builder);
   }

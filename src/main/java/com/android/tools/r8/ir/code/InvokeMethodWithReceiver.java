@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
@@ -81,6 +82,32 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
       AppView<?> appView, ProgramMethod context, DynamicType dynamicReceiverType) {
     return DexClassAndMethod.asProgramMethodOrNull(
         lookupSingleTarget(appView, context, dynamicReceiverType));
+  }
+
+  /**
+   * If an invoke-virtual targets a private method in the current class overriding will not apply
+   * (see JVM 11 spec on method selection 5.4.6. In previous jvm specs this was not explicitly
+   * stated, but derived from method resolution 5.4.3.3 and overriding 5.4.5).
+   *
+   * <p>An invoke-interface can in the same way target a private method.
+   *
+   * <p>For desugaring we use invoke-direct instead. We need to do this as the Android Runtime will
+   * not allow invoke-virtual of a private method.
+   */
+  protected boolean isPrivateMethodInvokedOnSelf(DexBuilder builder) {
+    DexMethod method = getInvokedMethod();
+    if (method.getHolderType()
+        != builder.getRegisterAllocator().getProgramMethod().getHolderType()) {
+      return false;
+    }
+    DexEncodedMethod directTarget =
+        builder.getRegisterAllocator().getProgramMethod().getHolder().lookupDirectMethod(method);
+    if (directTarget != null && !directTarget.isStatic()) {
+      assert method.holder == directTarget.getHolderType();
+      assert directTarget.getReference() == method;
+      return true;
+    }
+    return false;
   }
 
   @Override

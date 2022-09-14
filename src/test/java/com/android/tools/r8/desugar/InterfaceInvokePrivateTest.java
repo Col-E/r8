@@ -12,17 +12,22 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.objectweb.asm.Opcodes;
 
 @RunWith(Parameterized.class)
 public class InterfaceInvokePrivateTest extends TestBase implements Opcodes {
 
-  private final TestParameters parameters;
-  private final CfVersion inputCfVersion;
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameter(1)
+  public CfVersion inputCfVersion;
 
   @Parameterized.Parameters(name = "{0}, Input CfVersion = {1}")
   public static Iterable<?> data() {
@@ -31,16 +36,7 @@ public class InterfaceInvokePrivateTest extends TestBase implements Opcodes {
         CfVersion.rangeInclusive(CfVersion.V1_8, CfVersion.V15));
   }
 
-  public InterfaceInvokePrivateTest(TestParameters parameters, CfVersion inputCfVersion) {
-    this.parameters = parameters;
-    this.inputCfVersion = inputCfVersion;
-  }
-
-  private boolean isNotDesugaredAndCfRuntimeOlderThanJDK11(DesugarTestConfiguration configuration) {
-    return DesugarTestConfiguration.isNotDesugared(configuration)
-        && parameters.getRuntime().isCf()
-        && parameters.getRuntime().asCf().isOlderThan(CfVm.JDK11);
-  }
+  private static final String EXPECTED_OUTPUT = StringUtils.lines("Hello, world!", "21", "6");
 
   private boolean isInputCfVersionSupported() {
     return inputCfVersion.isLessThanOrEqualTo(
@@ -68,7 +64,7 @@ public class InterfaceInvokePrivateTest extends TestBase implements Opcodes {
             parameters.getRuntime().asCf().isOlderThan(CfVm.JDK11),
             r -> r.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class),
             // Succeeds on VMs from JDK 11 regardless of the CF version of the input.
-            r -> r.assertSuccessWithOutputLines("Hello, world!"));
+            r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT));
   }
 
   @Test
@@ -88,12 +84,17 @@ public class InterfaceInvokePrivateTest extends TestBase implements Opcodes {
                     containsString(
                         "more recent version of the Java Runtime (class file version "
                             + inputCfVersion.toString())),
-            // Running un-desugared on a JVM with a supported CF version fails on pre JVM 11. On
-            // JVM 11 and above this succeeds even of the input CF version is below 55.
-            this::isNotDesugaredAndCfRuntimeOlderThanJDK11,
+            // Running without interface method desugaring on a JVM with a supported CF version
+            // fails on pre JVM 11. On JVM 11 and above this succeeds even of the input CF version
+            // is below 55.
+            c ->
+                parameters.getRuntime().isCf()
+                    && parameters.getRuntime().asCf().isOlderThan(CfVm.JDK11)
+                    && (DesugarTestConfiguration.isNotDesugared(c)
+                        || parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N)),
             r -> r.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class),
             // All other conditions succeed.
-            r -> r.assertSuccessWithOutputLines("Hello, world!"));
+            r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT));
   }
 
   @Test
@@ -121,7 +122,7 @@ public class InterfaceInvokePrivateTest extends TestBase implements Opcodes {
                 && parameters.getRuntime().asCf().isOlderThan(CfVm.JDK11),
             r -> r.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class),
             // All other conditions succeed.
-            r -> r.assertSuccessWithOutputLines("Hello, world!"));
+            r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT));
   }
 
   private byte[] transformIToPrivate(CfVersion version) throws NoSuchMethodException, IOException {
@@ -145,10 +146,20 @@ public class InterfaceInvokePrivateTest extends TestBase implements Opcodes {
     /* private */ default String privateHello() {
       return "Hello, world!";
     }
+    /* private */ default String privateHello(int i1, int i2, int i3, int i4, int i5, int i6) {
+      return "" + (i1 + i2 + i3 + i4 + i5 + i6);
+    }
+    /* private */ default String privateHello(long l1, long l2, long l3) {
+      return "" + (l1 + l2 + l3);
+    }
 
     default String hello() {
       // The private method "privateHello" is called with invokeinterface.
-      return privateHello();
+      return privateHello()
+          + "\n"
+          + privateHello(1, 2, 3, 4, 5, 6)
+          + "\n"
+          + privateHello(1L, 2L, 3L);
     }
   }
 

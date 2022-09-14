@@ -8,6 +8,7 @@ import static com.android.tools.r8.ir.regalloc.LiveIntervals.NO_REGISTER;
 import com.android.tools.r8.cf.TypeVerificationHelper.TypeInfo;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DebugLocalWrite;
 import com.android.tools.r8.ir.code.Dup;
@@ -116,6 +117,11 @@ public class CfRegisterAllocator implements RegisterAllocator {
     this.appView = appView;
     this.code = code;
     this.typeHelper = typeHelper;
+  }
+
+  @Override
+  public ProgramMethod getProgramMethod() {
+    return code.context();
   }
 
   @Override

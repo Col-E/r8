@@ -121,7 +121,6 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     desugarings.add(new LambdaInstructionDesugaring(appView));
     desugarings.add(new ConstantDynamicInstructionDesugaring(appView));
     desugarings.add(new InvokeSpecialToSelfDesugaring(appView));
-    desugarings.add(new InvokeToPrivateRewriter());
     desugarings.add(new StringConcatInstructionDesugaring(appView));
     desugarings.add(new BufferCovariantReturnTypeRewriter(appView));
     if (backportedMethodRewriter.hasBackports()) {
@@ -154,7 +153,6 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     NonEmptyCfInstructionDesugaringCollection desugaringCollection =
         new NonEmptyCfInstructionDesugaringCollection(appView, noAndroidApiLevelCompute());
     desugaringCollection.desugarings.add(new InvokeSpecialToSelfDesugaring(appView));
-    desugaringCollection.desugarings.add(new InvokeToPrivateRewriter());
     desugaringCollection.yieldingDesugarings.add(
         new UnrepresentableInDexInstructionRemover(appView));
     return desugaringCollection;
@@ -360,8 +358,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
           //  identification is explicitly non-overlapping and remove the exceptions below.
           assert !alsoApplicable
                   || (appliedDesugaring instanceof InterfaceMethodRewriter
-                      && (desugaring instanceof InvokeToPrivateRewriter
-                          || desugaring instanceof NestBasedAccessDesugaring))
+                      && desugaring instanceof NestBasedAccessDesugaring)
                   || (appliedDesugaring instanceof TwrInstructionDesugaring
                       && desugaring instanceof InterfaceMethodRewriter)
               : "Desugaring of "

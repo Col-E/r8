@@ -6,6 +6,12 @@ package com.android.tools.r8.ir.regalloc;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -21,6 +27,31 @@ import org.junit.Test;
 public class IdenticalAfterRegisterAllocationTest {
 
   private static class MockRegisterAllocator implements RegisterAllocator {
+    private final ProgramMethod mockMethod;
+
+    MockRegisterAllocator() {
+      DexItemFactory dexItemFactory = new DexItemFactory();
+      DexProgramClass clazz = DexProgramClass.createMockClassForTesting(new DexItemFactory());
+      DexMethod signature =
+          dexItemFactory.createMethod(
+              clazz.type,
+              dexItemFactory.createProto(dexItemFactory.voidType),
+              dexItemFactory.createString("mock"));
+      mockMethod =
+          new ProgramMethod(
+              clazz,
+              DexEncodedMethod.builder()
+                  .setMethod(signature)
+                  .setAccessFlags(MethodAccessFlags.fromDexAccessFlags(0))
+                  .disableAndroidApiLevelCheck()
+                  .build());
+    }
+
+    @Override
+    public ProgramMethod getProgramMethod() {
+      return mockMethod;
+    }
+
     @Override
     public void allocateRegisters() {
     }

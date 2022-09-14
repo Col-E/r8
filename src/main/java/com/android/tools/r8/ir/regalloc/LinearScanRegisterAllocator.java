@@ -12,6 +12,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.And;
@@ -198,6 +199,11 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       }
     }
     numberOfArgumentRegisters = argumentRegisters;
+  }
+
+  @Override
+  public ProgramMethod getProgramMethod() {
+    return code.context();
   }
 
   /**

@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -146,6 +147,29 @@ public class DexProgramClass extends DexClass
         skipNameValidationForTesting,
         checksumSupplier,
         null);
+  }
+
+  public static DexProgramClass createMockClassForTesting(DexItemFactory dexItemFactory) {
+    return new DexProgramClass(
+        dexItemFactory.createType("LMock;"),
+        null,
+        Origin.unknown(),
+        ClassAccessFlags.fromSharedAccessFlags(0),
+        dexItemFactory.objectType,
+        DexTypeList.empty(),
+        null,
+        null,
+        Collections.emptyList(),
+        Collections.emptyList(),
+        null,
+        Collections.emptyList(),
+        ClassSignature.noSignature(),
+        DexAnnotationSet.empty(),
+        DexEncodedField.EMPTY_ARRAY,
+        DexEncodedField.EMPTY_ARRAY,
+        MethodCollectionFactory.empty(),
+        false,
+        DexProgramClass::invalidChecksumRequest);
   }
 
   @Override
