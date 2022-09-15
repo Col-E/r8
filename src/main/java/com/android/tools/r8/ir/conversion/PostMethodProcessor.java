@@ -67,7 +67,7 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
 
     Builder(GraphLens graphLensForPrimaryOptimizationPass) {
       this.methodsToReprocessBuilder =
-          LongLivedProgramMethodSetBuilder.createForIdentitySet(
+          LongLivedProgramMethodSetBuilder.createConcurrentForIdentitySet(
               graphLensForPrimaryOptimizationPass);
     }
 
