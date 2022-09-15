@@ -159,7 +159,8 @@ public class InterfaceInvokePrivateTest extends TestBase implements Opcodes {
           + "\n"
           + privateHello(1, 2, 3, 4, 5, 6)
           + "\n"
-          + privateHello(1L, 2L, 3L);
+          + privateHello(1L, 2L, 3L)
+          + "\n";
     }
   }
 
