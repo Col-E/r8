@@ -6,14 +6,19 @@ package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
@@ -27,7 +32,7 @@ public class ApiModelMockClassLoadingTest extends TestBase {
 
   private final AndroidApiLevel mockLevel = AndroidApiLevel.M;
 
-  @Parameter() public TestParameters parameters;
+  @Parameter public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -40,7 +45,7 @@ public class ApiModelMockClassLoadingTest extends TestBase {
 
   private void setupTestBuilder(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) {
     testBuilder
-        .addProgramClasses(Main.class)
+        .addProgramClasses(Main.class, TestClass.class)
         .addLibraryClasses(LibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
         .setMinApi(parameters.getApiLevel())
@@ -55,10 +60,10 @@ public class ApiModelMockClassLoadingTest extends TestBase {
         .setMode(CompilationMode.DEBUG)
         .apply(this::setupTestBuilder)
         .compile()
-        .inspect(this::inspect)
         .applyIf(isGreaterOrEqualToMockLevel(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
-        .apply(this::checkOutput);
+        .apply(this::checkOutput)
+        .inspect(this::inspect);
   }
 
   @Test
@@ -68,10 +73,10 @@ public class ApiModelMockClassLoadingTest extends TestBase {
         .setMode(CompilationMode.RELEASE)
         .apply(this::setupTestBuilder)
         .compile()
-        .inspect(this::inspect)
         .applyIf(isGreaterOrEqualToMockLevel(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
-        .apply(this::checkOutput);
+        .apply(this::checkOutput)
+        .inspect(this::inspect);
   }
 
   @Test
@@ -79,35 +84,56 @@ public class ApiModelMockClassLoadingTest extends TestBase {
     testForR8(parameters.getBackend())
         .apply(this::setupTestBuilder)
         .addKeepMainRule(Main.class)
+        .enableInliningAnnotations()
         .compile()
-        .inspect(this::inspect)
         .applyIf(isGreaterOrEqualToMockLevel(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
-        .apply(this::checkOutput);
+        .apply(this::checkOutput)
+        .inspect(this::inspect);
+  }
+
+  private void checkOutput(SingleTestRunResult<?> runResult) {
+    if (isGreaterOrEqualToMockLevel()) {
+      runResult.assertSuccessWithOutputLines("Hello World!");
+    } else if (parameters.isDexRuntime()
+        && parameters.asDexRuntime().getVm().isEqualTo(DexVm.ART_4_4_4_HOST)) {
+      runResult.assertSuccessWithOutputLines("ClassNotFoundException");
+    } else {
+      runResult.assertSuccessWithOutputLines("NoClassDefFoundError");
+    }
+    runResult.applyIf(
+        !isGreaterOrEqualToMockLevel()
+            && parameters.isDexRuntime()
+            && parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V7_0_0),
+        result -> result.assertStderrMatches(not(containsString("This dex file is invalid"))));
   }
 
   private void inspect(CodeInspector inspector) {
     verifyThat(inspector, parameters, LibraryClass.class).stubbedUntil(mockLevel);
   }
 
-  private void checkOutput(SingleTestRunResult<?> runResult) {
-    runResult.assertSuccessWithOutputLinesIf(isGreaterOrEqualToMockLevel(), "Hello World");
-    runResult.assertFailureWithErrorThatThrowsIf(
-        !isGreaterOrEqualToMockLevel(), NoClassDefFoundError.class);
-  }
+  // Only present from api level 23.
+  public static class LibraryClass {}
 
-  // Only present form api level 23.
-  public static class LibraryClass {
+  public static class TestClass {
 
-    public void foo() {
-      System.out.println("Hello World");
+    @NeverInline
+    public static void test() {
+      try {
+        Class.forName(LibraryClass.class.getName());
+        System.out.println("Hello World!");
+      } catch (ExceptionInInitializerError | NoClassDefFoundError er) {
+        System.out.println("NoClassDefFoundError");
+      } catch (ClassNotFoundException e) {
+        System.out.println("ClassNotFoundException");
+      }
     }
   }
 
   public static class Main {
 
     public static void main(String[] args) {
-      new LibraryClass().foo();
+      TestClass.test();
     }
   }
 }
