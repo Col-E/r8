@@ -6,6 +6,7 @@ package com.android.tools.r8.androidapi;
 
 import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
+import com.android.tools.r8.dex.code.CfOrDexInstruction;
 import com.android.tools.r8.errors.MissingGlobalSyntheticsConsumerDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
@@ -30,12 +31,18 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
 import java.util.Arrays;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
+/**
+ * The only instructions we do not outline is constant classes, instance-of/checkcast and exception
+ * guards. For program classes we also visit super types if these are library otherwise we will
+ * visit the program super type's super types when visiting that program class.
+ */
 public class ApiReferenceStubber {
 
   private class ReferencesToApiLevelUseRegistry extends UseRegistry<ProgramMethod> {
@@ -46,57 +53,80 @@ public class ApiReferenceStubber {
 
     @Override
     public void registerInitClass(DexType type) {
-      checkReferenceToLibraryClass(type);
+      // Intentionally empty.
     }
 
     @Override
     public void registerInvokeVirtual(DexMethod method) {
-      checkReferenceToLibraryClass(method);
+      // Intentionally empty.
     }
 
     @Override
     public void registerInvokeDirect(DexMethod method) {
-      checkReferenceToLibraryClass(method);
+      // Intentionally empty.
     }
 
     @Override
     public void registerInvokeStatic(DexMethod method) {
-      checkReferenceToLibraryClass(method);
+      // Intentionally empty.
     }
 
     @Override
     public void registerInvokeInterface(DexMethod method) {
-      checkReferenceToLibraryClass(method);
+      // Intentionally empty.
     }
 
     @Override
     public void registerInvokeSuper(DexMethod method) {
-      checkReferenceToLibraryClass(method);
+      // Intentionally empty.
     }
 
     @Override
     public void registerInstanceFieldRead(DexField field) {
-      checkReferenceToLibraryClass(field);
+      // Intentionally empty.
     }
 
     @Override
     public void registerInstanceFieldWrite(DexField field) {
-      checkReferenceToLibraryClass(field);
+      // Intentionally empty.
     }
 
     @Override
     public void registerStaticFieldRead(DexField field) {
-      checkReferenceToLibraryClass(field);
+      // Intentionally empty.
     }
 
     @Override
     public void registerStaticFieldWrite(DexField field) {
-      checkReferenceToLibraryClass(field);
+      // Intentionally empty.
     }
 
     @Override
     public void registerTypeReference(DexType type) {
       checkReferenceToLibraryClass(type);
+    }
+
+    @Override
+    public void registerInstanceOf(DexType type) {
+      checkReferenceToLibraryClass(type);
+    }
+
+    @Override
+    public void registerConstClass(
+        DexType type,
+        ListIterator<? extends CfOrDexInstruction> iterator,
+        boolean ignoreCompatRules) {
+      checkReferenceToLibraryClass(type);
+    }
+
+    @Override
+    public void registerCheckCast(DexType type, boolean ignoreCompatRules) {
+      checkReferenceToLibraryClass(type);
+    }
+
+    @Override
+    public void registerExceptionGuard(DexType guard) {
+      checkReferenceToLibraryClass(guard);
     }
 
     private void checkReferenceToLibraryClass(DexReference reference) {
@@ -158,7 +188,9 @@ public class ApiReferenceStubber {
         .isSyntheticOfKind(clazz.getType(), kinds -> kinds.API_MODEL_OUTLINE)) {
       return;
     }
-    findReferencedLibraryClasses(clazz.type, clazz);
+    clazz
+        .allImmediateSupertypes()
+        .forEach(superType -> findReferencedLibraryClasses(superType, clazz));
     clazz.forEachProgramMethodMatching(
         DexEncodedMethod::hasCode,
         method -> method.registerCodeReferences(new ReferencesToApiLevelUseRegistry(method)));
@@ -171,22 +203,20 @@ public class ApiReferenceStubber {
     WorkList<DexType> workList = WorkList.newIdentityWorkList(type, seenTypes);
     while (workList.hasNext()) {
       DexClass clazz = appView.definitionFor(workList.next());
-      if (clazz == null) {
+      if (clazz == null || !clazz.isLibraryClass()) {
         continue;
       }
-      if (clazz.isLibraryClass()) {
-        ComputedApiLevel androidApiLevel =
-            apiLevelCompute.computeApiLevelForLibraryReference(
-                clazz.type, ComputedApiLevel.unknown());
-        if (androidApiLevel.isGreaterThan(appView.computedMinApiLevel())
-            && !androidApiLevel.isUnknownApiLevel()) {
-          libraryClassesToMock.add(clazz.asLibraryClass());
-          referencingContexts
-              .computeIfAbsent(clazz.asLibraryClass(), ignoreKey(Sets::newConcurrentHashSet))
-              .add(context);
-        }
+      ComputedApiLevel androidApiLevel =
+          apiLevelCompute.computeApiLevelForLibraryReference(
+              clazz.type, ComputedApiLevel.unknown());
+      if (androidApiLevel.isGreaterThan(appView.computedMinApiLevel())
+          && androidApiLevel.isKnownApiLevel()) {
+        workList.addIfNotSeen(clazz.allImmediateSupertypes());
+        libraryClassesToMock.add(clazz.asLibraryClass());
+        referencingContexts
+            .computeIfAbsent(clazz.asLibraryClass(), ignoreKey(Sets::newConcurrentHashSet))
+            .add(context);
       }
-      workList.addIfNotSeen(clazz.allImmediateSupertypes());
     }
   }
 
