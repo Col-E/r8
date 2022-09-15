@@ -49,7 +49,8 @@ public class TestParameters {
    * runtime error.
    */
   public boolean canHaveNonReboundConstructorInvoke() {
-    return isDexRuntime() && getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L);
+    // TODO(b/246679983): Turned off while diagnosing b/246679983.
+    return false && isDexRuntime() && getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L);
   }
 
   public boolean canUseDefaultAndStaticInterfaceMethods() {
