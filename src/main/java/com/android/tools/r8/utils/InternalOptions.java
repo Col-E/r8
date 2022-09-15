@@ -2758,6 +2758,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean canHaveNonReboundConstructorInvoke() {
-    return isGeneratingDex() && minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.L);
+    // TODO(b/246679983): Turned off while diagnosing b/246679983.
+    return false && isGeneratingDex() && minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.L);
   }
 }
