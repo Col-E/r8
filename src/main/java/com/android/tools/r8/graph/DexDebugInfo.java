@@ -290,6 +290,14 @@ public abstract class DexDebugInfo extends CachedHashValueDexItem
     }
   }
 
+  public static EventBasedDebugInfo createEventBasedInfoForMethodWithoutDebugInfo(
+      DexEncodedMethod method, DexItemFactory factory) {
+    return new EventBasedDebugInfo(
+        0,
+        new DexString[method.getParameters().size()],
+        new DexDebugEvent[] {factory.zeroChangeDefaultEvent});
+  }
+
   public static EventBasedDebugInfo convertToEventBased(DexCode code, DexItemFactory factory) {
     if (code.getDebugInfo() == null) {
       return null;

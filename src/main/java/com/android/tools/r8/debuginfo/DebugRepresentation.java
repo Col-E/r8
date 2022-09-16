@@ -16,8 +16,9 @@ import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.LebUtils;
-import com.android.tools.r8.utils.LineNumberOptimizer;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.positions.LineNumberOptimizer;
+import com.android.tools.r8.utils.positions.PositionUtils;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
@@ -110,7 +111,7 @@ public class DebugRepresentation {
           // If debug info is "null" then the cost of representing it as normal events will be a
           // single default event to ensure its source file content is active.
           debugInfo =
-              LineNumberOptimizer.createEventBasedInfoForMethodWithoutDebugInfo(
+              DexDebugInfo.createEventBasedInfoForMethodWithoutDebugInfo(
                   definition, options.dexItemFactory());
         }
         assert debugInfo.getParameterCount() == method.getParameters().size();
@@ -179,8 +180,7 @@ public class DebugRepresentation {
     if (!method.hasCode() || !method.getCode().isDexCode()) {
       return false;
     }
-    DexCode code = method.getCode().asDexCode();
-    return LineNumberOptimizer.mustHaveResidualDebugInfo(code, options);
+    return PositionUtils.mustHaveResidualDebugInfo(options, method);
   }
 
   /** Cost information for debug info at a given PC. */

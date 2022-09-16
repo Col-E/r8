@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
-import static com.android.tools.r8.utils.LineNumberOptimizer.runAndWriteMap;
+import static com.android.tools.r8.utils.positions.LineNumberOptimizer.runAndWriteMap;
 
 import com.android.tools.r8.ByteBufferProvider;
 import com.android.tools.r8.ByteDataView;

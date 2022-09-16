@@ -4,7 +4,7 @@
 package com.android.tools.r8.jar;
 
 import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
-import static com.android.tools.r8.utils.LineNumberOptimizer.runAndWriteMap;
+import static com.android.tools.r8.utils.positions.LineNumberOptimizer.runAndWriteMap;
 
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
