@@ -4,14 +4,13 @@
 
 package com.android.tools.r8.mappingcompose;
 
+import static com.android.tools.r8.mappingcompose.ComposeTestHelpers.doubleToSingleQuote;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.naming.MappingComposeException;
 import com.android.tools.r8.naming.MappingComposer;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
@@ -31,19 +30,28 @@ public class ComposeFieldWithAmbiguousTypeTest extends TestBase {
   }
 
   private static final String mappingFoo =
-      StringUtils.unixLines("com.foo -> a:", "    int f1 -> f2");
-  private static final String mappingBar = StringUtils.unixLines("a -> b:", "    bool f2 -> f3");
+      StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
+          "com.foo -> a:",
+          "    int f1 -> f2");
+  private static final String mappingBar =
+      StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
+          "a -> b:",
+          "    bool f2 -> f3");
+  // TODO(b/169953605,b/242673239): This changes when we support mapping information for fields.
+  private static final String mappingResult =
+      StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
+          "com.foo -> b:",
+          "    int f1 -> f2",
+          "    bool f2 -> f3");
 
   @Test
   public void testCompose() throws Exception {
     ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromString(mappingFoo);
     ClassNameMapper mappingForBar = ClassNameMapper.mapperFromString(mappingBar);
-    MappingComposeException mappingComposeException =
-        assertThrows(
-            MappingComposeException.class,
-            () -> MappingComposer.compose(mappingForFoo, mappingForBar));
-    assertEquals(
-        "Unable to compose field naming 'bool f2 -> f3' since the original type has changed.",
-        mappingComposeException.getMessage());
+    String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
+    assertEquals(mappingResult, doubleToSingleQuote(composed));
   }
 }

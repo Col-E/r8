@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.mappingcompose;
 
-import static com.android.tools.r8.mappingcompose.ComposeHelpers.doubleToSingleQuote;
+import static com.android.tools.r8.mappingcompose.ComposeTestHelpers.doubleToSingleQuote;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
@@ -33,7 +33,7 @@ public class ComposePreambleCommentTest extends TestBase {
       StringUtils.unixLines(
           "# This is a multi line ",
           "# preamble, with custom information",
-          "# {'id':'com.android.tools.r8.mapping','version':'2.1'}",
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
           "# foo bar",
           "# {'id':'this is invalid json due to no comma' neededInfo:'foobar' }",
           "com.A -> a:",
@@ -44,7 +44,7 @@ public class ComposePreambleCommentTest extends TestBase {
           "# Additional multiline ",
           "# second preamble, with custom information",
           "# {'id':'bar',neededInfo:'barbaz'}",
-          "# {'id':'com.android.tools.r8.mapping','version':'2.1'}",
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
           "a -> b:",
           "# This is another comment that will be removed.",
           "c -> d:");
@@ -57,7 +57,7 @@ public class ComposePreambleCommentTest extends TestBase {
           "# Additional multiline ",
           "# second preamble, with custom information",
           "# {'id':'bar',neededInfo:'barbaz'}",
-          "# {'id':'com.android.tools.r8.mapping','version':'2.1'}",
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
           "com.A -> b:",
           "com.B -> d:");
 

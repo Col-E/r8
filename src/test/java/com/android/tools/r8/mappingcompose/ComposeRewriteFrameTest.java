@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.mappingcompose;
 
-import static com.android.tools.r8.mappingcompose.ComposeHelpers.doubleToSingleQuote;
+import static com.android.tools.r8.mappingcompose.ComposeTestHelpers.doubleToSingleQuote;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
@@ -31,33 +31,33 @@ public class ComposeRewriteFrameTest extends TestBase {
 
   private static final String mappingFoo =
       StringUtils.unixLines(
-          "# { id: 'com.android.tools.r8.mapping', version: '2.1' }",
+          "# { id: 'com.android.tools.r8.mapping', version: 'experimental' }",
           "my.CustomException -> a:",
           "foo.Bar -> x:",
           "    4:4:void other.Class.inlinee():23:23 -> a",
-          "    4:4:void caller(other.Class):7 -> a",
+          "    4:4:void caller(Other.Class):7 -> a",
           "    # { id: 'com.android.tools.r8.rewriteFrame', "
               + "conditions: ['throws(La;)'], actions: ['removeInnerFrames(1)'] }");
   private static final String mappingBar =
       StringUtils.unixLines(
-          "# { id: 'com.android.tools.r8.mapping', version: '2.1' }",
+          "# { id: 'com.android.tools.r8.mapping', version: 'experimental' }",
           "a -> b:",
           "x -> c:",
           "    8:8:void a(Other.Class):4:4 -> m");
   private static final String mappingResult =
       StringUtils.unixLines(
-          "# {'id':'com.android.tools.r8.mapping','version':'2.1'}",
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
           "foo.Bar -> c:",
           "    8:8:void other.Class.inlinee():23:23 -> m",
-          "    8:8:void caller(other.Class):7 -> m",
+          "    8:8:void caller(Other.Class):7 -> m",
           "    # {'id':'com.android.tools.r8.rewriteFrame','conditions':['throws(Lb;)'],"
               + "'actions':['removeInnerFrames(1)']}",
           "my.CustomException -> b:");
 
   @Test
   public void testCompose() throws Exception {
-    ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromString(mappingFoo);
-    ClassNameMapper mappingForBar = ClassNameMapper.mapperFromString(mappingBar);
+    ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromStringWithExperimental(mappingFoo);
+    ClassNameMapper mappingForBar = ClassNameMapper.mapperFromStringWithExperimental(mappingBar);
     String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
     assertEquals(mappingResult, doubleToSingleQuote(composed));
   }

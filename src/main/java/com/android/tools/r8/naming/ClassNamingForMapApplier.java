@@ -55,24 +55,24 @@ public class ClassNamingForMapApplier implements ClassNaming {
     }
 
     @Override
-    public ClassNaming.Builder addMemberEntry(MemberNaming entry) {
+    public ClassNaming.Builder addMemberEntry(MemberNaming entry, Signature residualSignature) {
       // Unlike {@link ClassNamingForNameMapper.Builder#addMemberEntry},
       // the key is original signature.
       if (entry.isMethodNaming()) {
-        MethodSignature signature = (MethodSignature) entry.getOriginalSignature();
+        MethodSignature signature = entry.getOriginalSignature().asMethodSignature();
         if (signature.isQualified()) {
           qualifiedMethodMembers.computeIfAbsent(signature, k -> new ArrayList<>(2)).add(entry);
         } else if (methodMembers.put(signature, entry) != null) {
           reporter.error(
               ProguardMapError.duplicateSourceMember(
-                  signature.toString(), this.originalName, entry.position));
+                  signature.toString(), this.originalName, entry.getPosition()));
         }
       } else {
-        FieldSignature signature = (FieldSignature) entry.getOriginalSignature();
+        FieldSignature signature = entry.getOriginalSignature().asFieldSignature();
         if (!signature.isQualified() && fieldMembers.put(signature, entry) != null) {
           reporter.error(
               ProguardMapError.duplicateSourceMember(
-                  signature.toString(), this.originalName, entry.position));
+                  signature.toString(), this.originalName, entry.getPosition()));
         }
       }
       return this;
@@ -86,10 +86,10 @@ public class ClassNamingForMapApplier implements ClassNaming {
 
     @Override
     public MappedRange addMappedRange(
-        Range obfuscatedRange,
+        Range minifiedRange,
         MemberNaming.MethodSignature originalSignature,
         Range originalRange,
-        MemberNaming.MethodSignature residualSignature) {
+        String renamedName) {
       return null;
     }
 
@@ -172,7 +172,7 @@ public class ClassNamingForMapApplier implements ClassNaming {
     //   {@link ClassNamingForNameMapper#lookupByOriginalSignature}.
     if (renamedSignature.kind() == SignatureKind.METHOD) {
       for (MemberNaming memberNaming : methodMembers.values()) {
-        if (memberNaming.getResidualSignature().equals(renamedSignature)) {
+        if (memberNaming.getResidualSignatureInternal().equals(renamedSignature)) {
           return memberNaming;
         }
       }
@@ -180,7 +180,7 @@ public class ClassNamingForMapApplier implements ClassNaming {
     } else {
       assert renamedSignature.kind() == SignatureKind.FIELD;
       for (MemberNaming memberNaming : fieldMembers.values()) {
-        if (memberNaming.getResidualSignature().equals(renamedSignature)) {
+        if (memberNaming.getResidualSignatureInternal().equals(renamedSignature)) {
           return memberNaming;
         }
       }

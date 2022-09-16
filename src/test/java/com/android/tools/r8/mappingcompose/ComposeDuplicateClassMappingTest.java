@@ -30,8 +30,12 @@ public class ComposeDuplicateClassMappingTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  private static final String mappingFoo = StringUtils.unixLines("com.foo -> b:");
-  private static final String mappingBar = StringUtils.unixLines("a -> b:");
+  private static final String mappingFoo =
+      StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}", "com.foo -> b:");
+  private static final String mappingBar =
+      StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}", "a -> b:");
 
   @Test
   public void testCompose() throws Exception {

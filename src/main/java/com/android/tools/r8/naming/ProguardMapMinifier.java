@@ -527,7 +527,7 @@ public class ProguardMapMinifier {
           ApplyMappingError.mapToExistingMember(
               source.toSourceString(),
               name.toString(),
-              memberNaming == null ? Position.UNKNOWN : memberNaming.position);
+              memberNaming == null ? Position.UNKNOWN : memberNaming.getPosition());
       // TODO(b/136694827) Enable when we have proper support
       // reporter.error(applyMappingError);
     }

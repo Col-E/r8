@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.mappingcompose;
 
-public class ComposeHelpers {
+public class ComposeTestHelpers {
 
   public static String doubleToSingleQuote(String str) {
     return str.replace("\"", "'");

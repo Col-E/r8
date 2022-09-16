@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.mappingcompose;
 
+import static com.android.tools.r8.mappingcompose.ComposeTestHelpers.doubleToSingleQuote;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
@@ -30,9 +31,13 @@ public class ComposeSplitRangeStartTest extends TestBase {
 
   private static final String mappingFoo =
       StringUtils.unixLines(
-          "com.foo -> a:", "    1:5:void m():41:45 -> x", "    6:10:void m():56:60 -> x");
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
+          "com.foo -> a:",
+          "    1:5:void m():41:45 -> x",
+          "    6:10:void m():56:60 -> x");
   private static final String mappingBar =
       StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
           "a -> b:",
           "    11:12:void x():1:2 -> y",
           "    13:17:void x():3:7 -> y",
@@ -40,6 +45,7 @@ public class ComposeSplitRangeStartTest extends TestBase {
           "    25:26:void x():9:10 -> y");
   private static final String mappingResult =
       StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
           "com.foo -> b:",
           "    11:12:void m():41:42 -> y",
           "    13:15:void m():43:45 -> y",
@@ -52,6 +58,6 @@ public class ComposeSplitRangeStartTest extends TestBase {
     ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromString(mappingFoo);
     ClassNameMapper mappingForBar = ClassNameMapper.mapperFromString(mappingBar);
     String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
-    assertEquals(mappingResult, composed);
+    assertEquals(mappingResult, doubleToSingleQuote(composed));
   }
 }

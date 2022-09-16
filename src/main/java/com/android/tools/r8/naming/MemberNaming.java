@@ -26,6 +26,8 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Objects;
+import java.util.function.Function;
 import org.objectweb.asm.Type;
 
 /**
@@ -33,7 +35,7 @@ import org.objectweb.asm.Type;
  *
  * <p>This includes the signature and the original name.
  */
-public class MemberNaming {
+public class MemberNaming implements MappingWithResidualInfo {
 
   @Override
   public boolean equals(Object o) {
@@ -45,33 +47,47 @@ public class MemberNaming {
     }
 
     MemberNaming that = (MemberNaming) o;
-    return signature.equals(that.signature) && residualSignature.equals(that.residualSignature);
+    return signature.equals(that.signature)
+        && renamedName.equals(that.renamedName)
+        && Objects.equals(residualSignature, that.residualSignature);
   }
 
   @Override
   public int hashCode() {
     int result = signature.hashCode();
-    result = 31 * result + residualSignature.hashCode();
+    result = 31 * result + renamedName.hashCode();
+    result = 31 * result + Objects.hashCode(residualSignature);
     return result;
   }
 
   /** Original signature of the member. */
-  final Signature signature;
+  private final Signature signature;
   /** Residual signature where types and names could be changed. */
-  Signature residualSignature;
+  private Signature residualSignature = null;
+  /**
+   * Renamed name in the mapping file. This value will always be present even if the residual
+   * signature is not.
+   */
+  private final String renamedName;
   /** Position of the member in the file. */
-  final Position position;
+  private final Position position;
 
-  public MemberNaming(Signature signature, Signature residualSignature) {
-    this(signature, residualSignature, Position.UNKNOWN);
+  public MemberNaming(Signature signature, String renamedName) {
+    this(signature, renamedName, Position.UNKNOWN);
   }
 
-  public MemberNaming(Signature signature, Signature residualSignature, Position position) {
-    this.signature = signature;
+  public MemberNaming(Signature signature, Signature residualSignature) {
+    this(signature, residualSignature.getName(), Position.UNKNOWN);
     this.residualSignature = residualSignature;
+  }
+
+  public MemberNaming(Signature signature, String renamedName, Position position) {
+    this.signature = signature;
+    this.renamedName = renamedName;
     this.position = position;
   }
 
+  @Override
   public Signature getOriginalSignature() {
     return signature;
   }
@@ -80,12 +96,14 @@ public class MemberNaming {
     return signature.name;
   }
 
-  public Signature getResidualSignature() {
-    return residualSignature;
+  @Override
+  public boolean hasResidualSignature() {
+    return residualSignature != null;
   }
 
+  @Override
   public String getRenamedName() {
-    return residualSignature.name;
+    return renamedName;
   }
 
   public boolean isMethodNaming() {
@@ -102,9 +120,15 @@ public class MemberNaming {
 
   @Override
   public String toString() {
-    return signature.toString() + " -> " + residualSignature.name;
+    return signature.toString() + " -> " + renamedName;
   }
 
+  @Override
+  public Signature getResidualSignatureInternal() {
+    return residualSignature;
+  }
+
+  @Override
   public void setResidualSignatureInternal(Signature signature) {
     this.residualSignature = signature;
   }
@@ -128,6 +152,9 @@ public class MemberNaming {
     abstract public int hashCode();
 
     abstract void write(Writer builder) throws IOException;
+
+    public abstract Signature computeResidualSignature(
+        String renamedName, Function<String, String> typeNameMapper);
 
     public boolean isQualified() {
       return name.indexOf(JAVA_PACKAGE_SEPARATOR) != -1;
@@ -220,6 +247,12 @@ public class MemberNaming {
     @Override
     public SignatureKind kind() {
       return SignatureKind.FIELD;
+    }
+
+    @Override
+    public FieldSignature computeResidualSignature(
+        String renamedName, Function<String, String> typeNameMapper) {
+      return new FieldSignature(renamedName, DescriptorUtils.mapTypeName(type, typeNameMapper));
     }
 
     @Override
@@ -395,6 +428,17 @@ public class MemberNaming {
       sb.append(')');
       sb.append(javaTypeToDescriptor(type));
       return sb.toString();
+    }
+
+    @Override
+    public MethodSignature computeResidualSignature(
+        String renamedName, Function<String, String> typeNameMapper) {
+      return new MethodSignature(
+          renamedName,
+          DescriptorUtils.mapTypeName(type, typeNameMapper),
+          ArrayUtils.mapToStringArray(
+              parameters,
+              parameterTypeName -> DescriptorUtils.mapTypeName(parameterTypeName, typeNameMapper)));
     }
 
     @Override

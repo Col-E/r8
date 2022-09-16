@@ -375,6 +375,10 @@ public class ProguardMapReader implements AutoCloseable {
                           ArrayUtils.mapToStringArray(
                               residualSignatureInfo.getParameters(),
                               DescriptorUtils::descriptorToJavaType));
+                  residualSignature =
+                      signatureCache
+                          .computeIfAbsent(residualSignature, Function.identity())
+                          .asMethodSignature();
                   currentMember.setResidualSignatureInternal(residualSignature);
                   currentRange.setResidualSignatureInternal(residualSignature);
                 }
@@ -423,17 +427,18 @@ public class ProguardMapReader implements AutoCloseable {
       String renamedName = parseMethodName();
 
       if (signature.isMethodSignature()) {
-        MethodSignature residualSignature;
+        MethodSignature residualSignature = null;
         if (activeMappedRange != null
             && activeMappedRange.signature == signature
-            && activeMappedRange.getResidualSignature().getName().equals(renamedName)) {
-          residualSignature = activeMappedRange.getResidualSignature();
-        } else {
-          residualSignature = signature.asMethodSignature().asRenamed(renamedName);
+            && activeMappedRange.renamedName.equals(renamedName)) {
+          residualSignature = activeMappedRange.getResidualSignatureInternal();
         }
         activeMappedRange =
             classNamingBuilder.addMappedRange(
-                mappedRange, signature.asMethodSignature(), originalRange, residualSignature);
+                mappedRange, signature.asMethodSignature(), originalRange, renamedName);
+        if (residualSignature != null) {
+          activeMappedRange.setResidualSignatureInternal(residualSignature);
+        }
       }
 
       assert mappedRange == null || signature.isMethodSignature();
@@ -450,25 +455,40 @@ public class ProguardMapReader implements AutoCloseable {
             || changedMappedRange
             || originalRangeChange) {
           if (lastAddedNaming == null
-              || !lastAddedNaming.getOriginalSignature().equals(activeMemberNaming.signature)) {
-            classNamingBuilder.addMemberEntry(activeMemberNaming);
+              || !lastAddedNaming
+                  .getOriginalSignature()
+                  .equals(activeMemberNaming.getOriginalSignature())) {
+            classNamingBuilder.addMemberEntry(
+                activeMemberNaming, getResidualSignatureForMemberNaming(activeMemberNaming));
             lastAddedNaming = activeMemberNaming;
           }
         }
       }
-      activeMemberNaming =
-          new MemberNaming(signature, signature.asRenamed(renamedName), getPosition());
+      activeMemberNaming = new MemberNaming(signature, renamedName, getPosition());
       previousMappedRange = mappedRange;
     } while (nextLine(mapBuilder));
 
     if (activeMemberNaming != null) {
       boolean notAdded =
           lastAddedNaming == null
-              || !lastAddedNaming.getOriginalSignature().equals(activeMemberNaming.signature);
+              || !lastAddedNaming
+                  .getOriginalSignature()
+                  .equals(activeMemberNaming.getOriginalSignature());
       if (previousMappedRange == null || notAdded) {
-        classNamingBuilder.addMemberEntry(activeMemberNaming);
+        classNamingBuilder.addMemberEntry(
+            activeMemberNaming, getResidualSignatureForMemberNaming(activeMemberNaming));
       }
     }
+  }
+
+  private Signature getResidualSignatureForMemberNaming(MemberNaming memberNaming) {
+    if (memberNaming.hasResidualSignature()) {
+      return memberNaming.getResidualSignatureInternal();
+    }
+    Signature signature =
+        memberNaming.getOriginalSignature().asRenamed(memberNaming.getRenamedName());
+    signature = signatureCache.computeIfAbsent(signature, Function.identity());
+    return signature;
   }
 
   private Position getPosition() {

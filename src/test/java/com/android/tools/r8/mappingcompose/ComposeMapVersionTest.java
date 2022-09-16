@@ -33,8 +33,7 @@ public class ComposeMapVersionTest extends TestBase {
   private static final String mappingFoo =
       StringUtils.unixLines(
           "# { id: 'com.android.tools.r8.mapping', version: '2.1' }", "com.foo -> a:");
-  private static final String mappingBar =
-      StringUtils.unixLines("# { id: 'com.android.tools.r8.mapping', version: '2.2' }", "a -> b:");
+  private static final String mappingBar = StringUtils.unixLines("a -> b:");
 
   @Test
   public void testCompose() throws Exception {
@@ -45,7 +44,7 @@ public class ComposeMapVersionTest extends TestBase {
             MappingComposeException.class,
             () -> MappingComposer.compose(mappingForFoo, mappingForBar));
     assertEquals(
-        "Composition of mapping files supported from map version 2.1.",
+        "Composition of mapping files supported from map version 2.2.",
         mappingComposeException.getMessage());
   }
 }

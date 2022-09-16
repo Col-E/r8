@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.mappingcompose;
 
-import static com.android.tools.r8.mappingcompose.ComposeHelpers.doubleToSingleQuote;
+import static com.android.tools.r8.mappingcompose.ComposeTestHelpers.doubleToSingleQuote;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
@@ -30,12 +30,19 @@ public class ComposeSourceFileTest extends TestBase {
   }
 
   private static final String mappingFoo =
-      StringUtils.unixLines("com.foo -> a:", "    # {'id':'sourceFile','fileName':'Foo.kt'}");
+      StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
+          "com.foo -> a:",
+          "    # {'id':'sourceFile','fileName':'Foo.kt'}");
   private static final String mappingBar =
       StringUtils.unixLines(
-          "com.bar -> c:", "    # {'id':'sourceFile','fileName':'Bar.kt'}", "a -> b:");
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
+          "com.bar -> c:",
+          "    # {'id':'sourceFile','fileName':'Bar.kt'}",
+          "a -> b:");
   private static final String mappingResult =
       StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
           "com.bar -> c:",
           "# {'id':'sourceFile','fileName':'Bar.kt'}",
           "com.foo -> b:",

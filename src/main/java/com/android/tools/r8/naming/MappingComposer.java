@@ -12,9 +12,6 @@ public class MappingComposer {
 
   public static String compose(ClassNameMapper... classNameMappers) throws MappingComposeException {
     assert classNameMappers.length > 0;
-    if (classNameMappers.length == 1) {
-      return classNameMappers[0].toString();
-    }
     ComposingBuilder builder = new ComposingBuilder();
     for (ClassNameMapper classNameMapper : classNameMappers) {
       builder.compose(classNameMapper);

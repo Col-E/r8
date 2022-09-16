@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.mappingcompose;
 
+import static com.android.tools.r8.mappingcompose.ComposeTestHelpers.doubleToSingleQuote;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
@@ -29,17 +30,26 @@ public class ComposeChangeLineNumberTest extends TestBase {
   }
 
   private static final String mappingFoo =
-      StringUtils.unixLines("com.foo -> a:", "    1:1:void m():42:42 -> m");
+      StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
+          "com.foo -> a:",
+          "    1:1:void m():42:42 -> m");
   private static final String mappingBar =
-      StringUtils.unixLines("a -> b:", "    2:2:void m():1:1 -> m");
+      StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
+          "a -> b:",
+          "    2:2:void m():1:1 -> m");
   private static final String mappingResult =
-      StringUtils.unixLines("com.foo -> b:", "    2:2:void m():42:42 -> m");
+      StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
+          "com.foo -> b:",
+          "    2:2:void m():42:42 -> m");
 
   @Test
   public void testCompose() throws Exception {
     ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromString(mappingFoo);
     ClassNameMapper mappingForBar = ClassNameMapper.mapperFromString(mappingBar);
     String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
-    assertEquals(mappingResult, composed);
+    assertEquals(mappingResult, doubleToSingleQuote(composed));
   }
 }

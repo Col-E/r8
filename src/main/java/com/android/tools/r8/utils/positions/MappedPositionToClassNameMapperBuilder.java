@@ -82,6 +82,10 @@ public class MappedPositionToClassNameMapperBuilder {
     this.originalSourceFiles = originalSourceFiles;
   }
 
+  public static int getMaxLineNumber() {
+    return MAX_LINE_NUMBER;
+  }
+
   public static MappedPositionToClassNameMapperBuilder builder(
       AppView<?> appView, OriginalSourceFiles originalSourceFiles) {
     return new MappedPositionToClassNameMapperBuilder(appView, originalSourceFiles);
@@ -174,9 +178,9 @@ public class MappedPositionToClassNameMapperBuilder {
             if (residualField.name != originalField.name || originalField.holder != originalType) {
               FieldSignature originalSignature =
                   FieldSignature.fromDexField(originalField, originalField.holder != originalType);
-              MemberNaming memberNaming =
-                  new MemberNaming(originalSignature, FieldSignature.fromDexField(residualField));
-              getBuilder().addMemberEntry(memberNaming);
+              FieldSignature residualSignature = FieldSignature.fromDexField(residualField);
+              MemberNaming memberNaming = new MemberNaming(originalSignature, residualSignature);
+              getBuilder().addMemberEntry(memberNaming, residualSignature);
             }
           });
       return this;
@@ -225,12 +229,14 @@ public class MappedPositionToClassNameMapperBuilder {
       MethodSignature residualSignature = MethodSignature.fromDexMethod(residualMethod);
 
       MemberNaming memberNaming = new MemberNaming(originalSignature, residualSignature);
-      getBuilder().addMemberEntry(memberNaming);
+      getBuilder().addMemberEntry(memberNaming, residualSignature);
 
       // Add simple "a() -> b" mapping if we won't have any other with concrete line numbers
       if (mappedPositions.isEmpty()) {
         MappedRange range =
-            getBuilder().addMappedRange(null, originalSignature, null, residualSignature);
+            getBuilder()
+                .addMappedRange(
+                    null, originalSignature, null, residualSignature.getName().toString());
         methodMappingInfo.forEach(info -> range.addMappingInformation(info, Unreachable::raise));
         return this;
       }
@@ -376,7 +382,7 @@ public class MappedPositionToClassNameMapperBuilder {
               obfuscatedRange,
               getOriginalMethodSignature.apply(method),
               originalLine,
-              residualSignature);
+              residualSignature.getName());
       int inlineFramesCount = 0;
       while (caller != null) {
         inlineFramesCount += 1;
@@ -393,7 +399,7 @@ public class MappedPositionToClassNameMapperBuilder {
                 getOriginalMethodSignature.apply(caller.getMethod()),
                 cardinalRangeCache.get(
                     Math.max(caller.getLine(), 0)), // Prevent against "no-position".
-                residualSignature);
+                residualSignature.getName());
         if (caller.isRemoveInnerFramesIfThrowingNpe()) {
           lastMappedRange.addMappingInformation(
               RewriteFrameMappingInformation.builder()

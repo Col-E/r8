@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.mappingcompose;
 
+import static com.android.tools.r8.mappingcompose.ComposeTestHelpers.doubleToSingleQuote;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
@@ -30,14 +31,19 @@ public class ComposeInlineFollowedByLineNumberChangeTest extends TestBase {
 
   private static final String mappingFoo =
       StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
           "com.foo -> a:",
           "    1:1:void inlinee2():42:42 -> x",
           "    1:1:void foo.bar.baz.inlinee1():41 -> x",
           "    1:1:void caller():40 -> x");
   private static final String mappingBar =
-      StringUtils.unixLines("a -> b:", "    2:2:void x():1:1 -> y");
+      StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
+          "a -> b:",
+          "    2:2:void x():1:1 -> y");
   private static final String mappingResult =
       StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
           "com.foo -> b:",
           "    2:2:void inlinee2():42:42 -> y",
           "    2:2:void foo.bar.baz.inlinee1():41 -> y",
@@ -48,6 +54,6 @@ public class ComposeInlineFollowedByLineNumberChangeTest extends TestBase {
     ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromString(mappingFoo);
     ClassNameMapper mappingForBar = ClassNameMapper.mapperFromString(mappingBar);
     String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
-    assertEquals(mappingResult, composed);
+    assertEquals(mappingResult, doubleToSingleQuote(composed));
   }
 }

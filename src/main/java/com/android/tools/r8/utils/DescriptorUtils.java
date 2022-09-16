@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableMap;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.function.Function;
 
 public class DescriptorUtils {
 
@@ -55,6 +56,32 @@ public class DescriptorUtils {
     }
     // Must be an object type.
     return "L" + typeName.replace(JAVA_PACKAGE_SEPARATOR, DESCRIPTOR_PACKAGE_SEPARATOR) + ";";
+  }
+
+  public static String mapTypeName(String typeName, Function<String, String> typeNameMapper) {
+    int arrayDimensions = computeArrayDimensionForTypeName(typeName);
+    if (arrayDimensions > 0) {
+      typeName = typeName.substring(0, typeName.length() - (arrayDimensions * 2));
+    }
+    String mappedTypeName = typeNameMapper.apply(typeName);
+    if (arrayDimensions == 0) {
+      return mappedTypeName;
+    }
+    StringBuilder builder = new StringBuilder(mappedTypeName);
+    for (int i = 0; i < arrayDimensions; i++) {
+      builder.append("[]");
+    }
+    return builder.toString();
+  }
+
+  private static int computeArrayDimensionForTypeName(String typeName) {
+    int arrayDim = 0;
+    for (int i = typeName.length() - 2; i > 0; i -= 2) {
+      if (typeName.charAt(i) == '[' && typeName.charAt(i + 1) == ']') {
+        arrayDim += 1;
+      }
+    }
+    return arrayDim;
   }
 
   /**

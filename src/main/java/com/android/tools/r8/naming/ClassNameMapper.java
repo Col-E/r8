@@ -124,10 +124,30 @@ public class ClassNameMapper implements ProguardMap {
         CharSource.wrap(contents).openBufferedStream(), null, false, false, true);
   }
 
+  public static ClassNameMapper mapperFromFileWithPreamble(
+      Path path, MissingFileAction missingFileAction) throws Exception {
+    assert missingFileAction == MissingFileAction.MISSING_FILE_IS_EMPTY_MAP
+        || missingFileAction == MISSING_FILE_IS_ERROR;
+    if (missingFileAction == MissingFileAction.MISSING_FILE_IS_EMPTY_MAP
+        && !path.toFile().exists()) {
+      return mapperFromString("");
+    }
+    return mapperFromBufferedReader(
+        Files.newBufferedReader(path, StandardCharsets.UTF_8), null, false, false, true);
+  }
+
   public static ClassNameMapper mapperFromString(
       String contents, DiagnosticsHandler diagnosticsHandler) throws IOException {
     return mapperFromBufferedReader(
         CharSource.wrap(contents).openBufferedStream(), diagnosticsHandler);
+  }
+
+  // TODO(b/241763080): Remove when 2.2 is stable.
+  @Deprecated
+  public static ClassNameMapper mapperFromStringWithExperimental(String contents)
+      throws IOException {
+    return mapperFromBufferedReader(
+        CharSource.wrap(contents).openBufferedStream(), null, false, true, true);
   }
 
   public static ClassNameMapper mapperFromString(
@@ -420,9 +440,9 @@ public class ClassNameMapper implements ProguardMap {
     }
     MemberNaming memberNaming = classNaming.lookup(signature);
     if (memberNaming == null) {
-      return classNaming.originalName + " " + signature.toString();
+      return classNaming.originalName + " " + signature;
     }
-    return classNaming.originalName + " " + memberNaming.signature.toString();
+    return classNaming.originalName + " " + memberNaming.getOriginalSignature().toString();
   }
 
   public MethodSignature originalSignatureOf(DexMethod method) {
@@ -436,7 +456,7 @@ public class ClassNameMapper implements ProguardMap {
     if (memberNaming == null) {
       return memberSignature;
     }
-    return (MethodSignature) memberNaming.signature;
+    return memberNaming.getOriginalSignature().asMethodSignature();
   }
 
   public FieldSignature originalSignatureOf(DexField field) {
@@ -450,7 +470,7 @@ public class ClassNameMapper implements ProguardMap {
     if (memberNaming == null) {
       return memberSignature;
     }
-    return (FieldSignature) memberNaming.signature;
+    return memberNaming.getOriginalSignature().asFieldSignature();
   }
 
   public String originalNameOf(DexType clazz) {

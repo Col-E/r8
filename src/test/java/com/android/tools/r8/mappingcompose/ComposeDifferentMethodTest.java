@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.mappingcompose;
 
+import static com.android.tools.r8.mappingcompose.ComposeTestHelpers.doubleToSingleQuote;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
@@ -28,21 +29,29 @@ public class ComposeDifferentMethodTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  // Here we are testing that a shrinker could have changed the method signature. Since we have no
-  // right hand side mapping we have no other choice than to map the naming through. This would not
-  // be ok if we had overloads but any shrinker should put in line numbering for those.
   private static final String mappingFoo =
-      StringUtils.unixLines("com.foo -> a:", "    void f1(int) -> f2");
+      StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
+          "com.foo -> a:",
+          "    void f1(int) -> f2",
+          "    # { id: 'com.android.tools.r8.residualsignature', signature:'(Z)I' }");
   private static final String mappingBar =
-      StringUtils.unixLines("a -> b:", "    int f2(boolean) -> f3");
+      StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
+          "a -> b:",
+          "    int f2(boolean) -> f3");
   private static final String mappingResult =
-      StringUtils.unixLines("com.foo -> b:", "    void f1(int) -> f3");
+      StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
+          "com.foo -> b:",
+          "    void f1(int) -> f3",
+          "    # {'id':'com.android.tools.r8.residualsignature','signature':'(Z)I'}");
 
   @Test
   public void testCompose() throws Exception {
-    ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromString(mappingFoo);
-    ClassNameMapper mappingForBar = ClassNameMapper.mapperFromString(mappingBar);
+    ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromStringWithExperimental(mappingFoo);
+    ClassNameMapper mappingForBar = ClassNameMapper.mapperFromStringWithExperimental(mappingBar);
     String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
-    assertEquals(mappingResult, composed);
+    assertEquals(mappingResult, doubleToSingleQuote(composed));
   }
 }

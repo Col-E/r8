@@ -33,6 +33,7 @@ public abstract class ResidualSignatureMappingInformation extends MappingInforma
   @Override
   public String serialize() {
     JsonObject object = new JsonObject();
+    object.add(MAPPING_ID_KEY, new JsonPrimitive(ID));
     object.add(SIGNATURE_KEY, new JsonPrimitive(serializeInternal()));
     return object.toString();
   }

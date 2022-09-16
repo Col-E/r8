@@ -199,7 +199,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     OptionalInt originalPosition = mappedRangeForFrame.position;
     if (!isAmbiguous()
         && (mappedRange.minifiedRange == null || obfuscatedPosition.orElse(-1) == -1)) {
-      int originalLineNumber = mappedRange.getFirstLineNumberOfOriginalRange();
+      int originalLineNumber = mappedRange.getFirstPositionOfOriginalRange(0);
       if (originalLineNumber > 0) {
         return RetracedMethodReferenceImpl.create(
             methodReference, OptionalUtils.orElse(originalPosition, originalLineNumber));

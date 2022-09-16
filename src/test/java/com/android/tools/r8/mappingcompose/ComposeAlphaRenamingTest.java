@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.mappingcompose;
 
+import static com.android.tools.r8.mappingcompose.ComposeTestHelpers.doubleToSingleQuote;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
@@ -30,6 +31,7 @@ public class ComposeAlphaRenamingTest extends TestBase {
 
   private static final String mapping =
       StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
           "a -> b:",
           "    int a -> b",
           "    void a() -> b",
@@ -38,6 +40,7 @@ public class ComposeAlphaRenamingTest extends TestBase {
           "    void b() -> a");
   private static final String mappingResult =
       StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
           "a -> a:",
           "    int a -> a",
           "    void a() -> a",
@@ -50,6 +53,6 @@ public class ComposeAlphaRenamingTest extends TestBase {
     ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromString(mapping);
     ClassNameMapper mappingForBar = ClassNameMapper.mapperFromString(mapping);
     String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
-    assertEquals(mappingResult, composed);
+    assertEquals(mappingResult, doubleToSingleQuote(composed));
   }
 }

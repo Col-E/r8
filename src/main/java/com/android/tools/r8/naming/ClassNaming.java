@@ -18,16 +18,16 @@ public interface ClassNaming {
 
   abstract class Builder {
 
-    public abstract Builder addMemberEntry(MemberNaming entry);
+    public abstract Builder addMemberEntry(MemberNaming entry, Signature residualSignature);
 
     public abstract ClassNaming build();
 
     /** This is an optional method, may be implemented as no-op */
     public abstract MappedRange addMappedRange(
-        Range obfuscatedRange,
+        Range minifiedRange,
         MemberNaming.MethodSignature originalSignature,
         Range originalRange,
-        MemberNaming.MethodSignature residualSignature);
+        String renamedName);
 
     public abstract void addMappingInformation(
         MappingInformation info, Consumer<MappingInformation> onProhibitedAddition);

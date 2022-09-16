@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.utils.positions.MappedPositionToClassNameMapperBuilder.getMaxLineNumber;
+
 import java.util.Objects;
 
 /** Represents a line number range. */
@@ -59,5 +61,13 @@ public class Range {
   @Override
   public int hashCode() {
     return Objects.hash(from, to, isCardinal);
+  }
+
+  public boolean isCatchAll() {
+    return from == 0 && to == getMaxLineNumber();
+  }
+
+  public boolean isPreamble() {
+    return from == 0 && to == 0;
   }
 }
