@@ -85,6 +85,9 @@ public class SegmentTree<V> {
     if (internalTree.remove(start) != null) {
       size = size - 1;
     }
+    if (size == 0) {
+      internalTree.clear();
+    }
   }
 
   public void visitSegments(Consumer<V> consumer) {
