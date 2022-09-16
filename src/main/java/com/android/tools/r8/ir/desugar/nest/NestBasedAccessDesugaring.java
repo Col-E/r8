@@ -102,6 +102,21 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
     }
   }
 
+  static void forEachNest(
+      Consumer<Nest> consumer, Consumer<DexClass> missingHostConsumer, AppView<?> appView) {
+    Set<DexType> seenNestHosts = Sets.newIdentityHashSet();
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      if (!clazz.isInANest() || !seenNestHosts.add(clazz.getNestHost())) {
+        continue;
+      }
+
+      Nest nest = Nest.create(appView, clazz, missingHostConsumer);
+      if (nest != null) {
+        consumer.accept(nest);
+      }
+    }
+  }
+
   private static class BridgeAndTarget<T extends DexClassAndMember<?, ?>> {
     private final DexMethod bridge;
     private final T target;

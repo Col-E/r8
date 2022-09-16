@@ -110,6 +110,26 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
     return false;
   }
 
+  protected boolean isPrivateNestMethodInvoke(DexBuilder builder) {
+    if (!builder.getOptions().emitNestAnnotationsInDex) {
+      return false;
+    }
+    DexProgramClass holder = builder.getProgramMethod().getHolder();
+    if (!holder.isInANest()) {
+      return false;
+    }
+    DexClassAndMethod target = builder.appView.appInfo().definitionFor(getInvokedMethod());
+    // Nest completeness for input is checked before starting to write DEX, so if target is null
+    // it is not in a nest with the holder of the method with this invoke.
+    if (target == null || target.getHolder().isLibraryClass()) {
+      return false;
+    }
+    if (!target.getAccessFlags().isPrivate()) {
+      return false;
+    }
+    return holder.isInSameNest(target.getHolder());
+  }
+
   @Override
   public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, ProgramMethod context) {
     return value == getReceiver() || super.throwsNpeIfValueIsNull(value, appView, context);

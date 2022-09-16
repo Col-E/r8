@@ -55,6 +55,19 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
         });
   }
 
+  public static void checkAndFailOnIncompleteNests(AppView<?> appView) {
+    forEachNest(
+        nest -> {
+          if (nest.hasMissingMembers()) {
+            throw appView.options().errorMissingNestMember(nest);
+          }
+        },
+        classWithoutHost -> {
+          throw appView.options().errorMissingNestHost(classWithoutHost);
+        },
+        appView);
+  }
+
   public void clearNestAttributes() {
     forEachNest(
         nest -> {

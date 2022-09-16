@@ -68,7 +68,7 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
     if (needsRangedInvoke(builder)) {
       assert argumentsConsecutive(builder);
       int firstRegister = argumentRegisterValue(0, builder);
-      if (isPrivateMethodInvokedOnSelf(builder)) {
+      if (isPrivateMethodInvokedOnSelf(builder) || isPrivateNestMethodInvoke(builder)) {
         instruction =
             new DexInvokeDirectRange(firstRegister, argumentRegisters, getInvokedMethod());
       } else {
@@ -78,7 +78,7 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
     } else {
       int[] individualArgumentRegisters = new int[5];
       int argumentRegistersCount = fillArgumentRegisters(builder, individualArgumentRegisters);
-      if (isPrivateMethodInvokedOnSelf(builder)) {
+      if (isPrivateMethodInvokedOnSelf(builder) || isPrivateNestMethodInvoke(builder)) {
         instruction =
             new DexInvokeDirect(
                 argumentRegistersCount,

@@ -1189,6 +1189,10 @@ public abstract class DexClass extends DexDefinition
     return null;
   }
 
+  public boolean isInSameNest(DexClass other) {
+    return isInANest() && other.isInANest() && getNestHost() == other.getNestHost();
+  }
+
   public void forEachNestMember(Consumer<DexType> consumer) {
     assert isNestHost();
     getNestMembersClassAttributes().forEach(member -> consumer.accept(member.getNestMember()));

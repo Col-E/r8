@@ -36,6 +36,7 @@ import com.android.tools.r8.dex.code.DexMoveWideFrom16;
 import com.android.tools.r8.dex.code.DexNop;
 import com.android.tools.r8.dex.code.DexThrow;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexCode.Try;
@@ -43,6 +44,7 @@ import com.android.tools.r8.graph.DexCode.TryHandler;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
 import com.android.tools.r8.graph.DexDebugEventBuilder;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadata;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -83,6 +85,8 @@ import java.util.Set;
  * Builder object for constructing dex bytecode from the high-level IR.
  */
 public class DexBuilder {
+
+  public final AppView<?> appView;
 
   // The IR representation of the code to build.
   private final IRCode ir;
@@ -128,20 +132,29 @@ public class DexBuilder {
   BasicBlock nextBlock;
 
   public DexBuilder(
+      AppView<?> appView,
       IRCode ir,
       BytecodeMetadataProvider bytecodeMetadataProvider,
       RegisterAllocator registerAllocator,
       InternalOptions options) {
-    this(ir, bytecodeMetadataProvider, registerAllocator, options, ir.getConversionOptions());
+    this(
+        appView,
+        ir,
+        bytecodeMetadataProvider,
+        registerAllocator,
+        options,
+        ir.getConversionOptions());
   }
 
   public DexBuilder(
+      AppView<?> appView,
       IRCode ir,
       BytecodeMetadataProvider bytecodeMetadataProvider,
       RegisterAllocator registerAllocator,
       InternalOptions options,
       MethodConversionOptions conversionOptions) {
     assert ir == null || conversionOptions == ir.getConversionOptions();
+    this.appView = appView;
     this.ir = ir;
     this.bytecodeMetadataBuilder = BytecodeMetadata.builder(bytecodeMetadataProvider);
     this.registerAllocator = registerAllocator;
@@ -159,6 +172,7 @@ public class DexBuilder {
       MethodConversionOptions conversionOptions) {
     DexBuilder builder =
         new DexBuilder(
+            null,
             null,
             BytecodeMetadataProvider.empty(),
             allocator,
@@ -958,6 +972,10 @@ public class DexBuilder {
 
   public RegisterAllocator getRegisterAllocator() {
     return registerAllocator;
+  }
+
+  public ProgramMethod getProgramMethod() {
+    return registerAllocator.getProgramMethod();
   }
 
   // Dex instruction wrapper with information to compute instruction sizes and offsets for jumps.

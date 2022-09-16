@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
 import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
@@ -35,6 +36,9 @@ public class IRToDexFinalizer extends IRFinalizer<DexCode> {
   @Override
   public DexCode finalizeCode(
       IRCode code, BytecodeMetadataProvider bytecodeMetadataProvider, Timing timing) {
+    if (options.emitNestAnnotationsInDex) {
+      D8NestBasedAccessDesugaring.checkAndFailOnIncompleteNests(appView);
+    }
     DexEncodedMethod method = code.method();
     code.traceBlocks();
     RuntimeWorkaroundCodeRewriter.workaroundNumberConversionRegisterAllocationBug(code, options);
@@ -47,7 +51,8 @@ public class IRToDexFinalizer extends IRFinalizer<DexCode> {
     RuntimeWorkaroundCodeRewriter.workaroundExceptionTargetingLoopHeaderBug(code, options);
     // Perform register allocation.
     RegisterAllocator registerAllocator = performRegisterAllocation(code, method, timing);
-    return new DexBuilder(code, bytecodeMetadataProvider, registerAllocator, options).build();
+    return new DexBuilder(appView, code, bytecodeMetadataProvider, registerAllocator, options)
+        .build();
   }
 
   private RegisterAllocator performRegisterAllocation(
