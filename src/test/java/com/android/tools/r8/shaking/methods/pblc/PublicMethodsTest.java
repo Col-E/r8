@@ -10,7 +10,6 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.shaking.methods.MethodsTestBase;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -67,8 +66,7 @@ public class PublicMethodsTest extends MethodsTestBase {
   }
 
   private boolean willShrinkConstructors(Shrinker shrinker) {
-    return shrinker.isR8Full()
-        && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L);
+    return shrinker.isR8Full() && parameters.canHaveNonReboundConstructorInvoke();
   }
 
   private static BiConsumer<CodeInspector, Shrinker> applyInspectorIf(

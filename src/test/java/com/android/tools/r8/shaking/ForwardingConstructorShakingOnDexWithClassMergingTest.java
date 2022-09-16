@@ -13,7 +13,6 @@ import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.Iterables;
@@ -58,16 +57,12 @@ public class ForwardingConstructorShakingOnDexWithClassMergingTest extends TestB
         .assertSuccessWithOutputLines("Hello, world!");
   }
 
-  private boolean canHaveNonReboundConstructorInvoke() {
-    return parameters.isDexRuntime()
-        && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L);
-  }
-
   private void inspect(CodeInspector inspector) {
     ClassSubject aSubClassSubject = inspector.clazz(ASub.class);
     assertThat(aSubClassSubject, isPresent());
     assertEquals(
-        canHaveNonReboundConstructorInvoke() ? 0 : 1, aSubClassSubject.allMethods().size());
+        parameters.canHaveNonReboundConstructorInvoke() ? 0 : 1,
+        aSubClassSubject.allMethods().size());
   }
 
   public static class Main {
