@@ -272,18 +272,24 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public void configureAndroidPlatformBuild(boolean isAndroidPlatformBuild) {
     assert !androidPlatformBuild;
+    if (isAndroidPlatformBuildOrMinApiPlatform()) {
+      apiModelingOptions().disableApiModeling();
+    }
     if (!isAndroidPlatformBuild) {
       return;
     }
-    androidPlatformBuild = isAndroidPlatformBuild;
     // Configure options according to platform build assumptions.
     // See go/r8platformflag and b/232073181.
-    apiModelingOptions().disableApiModeling();
+    androidPlatformBuild = isAndroidPlatformBuild;
     enableBackportMethods = false;
   }
 
   public boolean isAndroidPlatformBuild() {
     return androidPlatformBuild;
+  }
+
+  public boolean isAndroidPlatformBuildOrMinApiPlatform() {
+    return androidPlatformBuild || minApiLevel.isPlatform();
   }
 
   public boolean printTimes = System.getProperty("com.android.tools.r8.printtimes") != null;

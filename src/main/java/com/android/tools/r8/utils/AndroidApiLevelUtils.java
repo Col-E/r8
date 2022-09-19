@@ -94,7 +94,7 @@ public class AndroidApiLevelUtils {
     // running with boot class path as min api and all definitions are accessible at runtime.
     if (!androidApiLevelCompute.isEnabled()) {
       assert !options.apiModelingOptions().enableLibraryApiModeling;
-      return options.isAndroidPlatformBuild();
+      return options.isAndroidPlatformBuildOrMinApiPlatform();
     }
     assert options.apiModelingOptions().enableLibraryApiModeling;
     ComputedApiLevel apiLevel =
@@ -113,7 +113,7 @@ public class AndroidApiLevelUtils {
   }
 
   public static boolean isApiSafeForReference(LibraryDefinition definition, AppView<?> appView) {
-    if (appView.options().isAndroidPlatformBuild()) {
+    if (appView.options().isAndroidPlatformBuildOrMinApiPlatform()) {
       assert definition != null;
       return true;
     }
@@ -177,7 +177,7 @@ public class AndroidApiLevelUtils {
     }
     if (!appView.options().apiModelingOptions().isApiCallerIdentificationEnabled()) {
       // Conservatively bail out if we don't have api modeling.
-      return false;
+      return appView.options().isAndroidPlatformBuildOrMinApiPlatform();
     }
     LibraryClass newBaseLibraryClass = newBaseClass.asLibraryClass();
     if (isApiSafeForReference(newBaseLibraryClass, appView)) {

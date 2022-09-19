@@ -77,6 +77,10 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
     return DexVersion.getDexVersion(this);
   }
 
+  public boolean isPlatform() {
+    return this == ANDROID_PLATFORM;
+  }
+
   public static List<AndroidApiLevel> getAndroidApiLevelsSorted() {
     return Arrays.asList(AndroidApiLevel.values());
   }
