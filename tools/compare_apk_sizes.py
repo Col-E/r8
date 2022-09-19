@@ -25,6 +25,10 @@ MAX_THREADS=40
 
 def parse_options():
   result = optparse.OptionParser(usage=USAGE)
+  result.add_option('--no-build',
+                    help='Run without building first',
+                    default=False,
+                    action='store_true')
   result.add_option('--temp',
                     help='Temporary directory to store extracted classes in')
   result.add_option('--use_code_size',
@@ -47,12 +51,14 @@ def ensure_exists(files):
     if not os.path.exists(f):
       raise Exception('%s does not exist' % f)
 
-def extract_classes(input, output):
+def extract_classes(input, output, options):
   if os.path.exists(output):
     shutil.rmtree(output)
   os.makedirs(output)
   args = ['--file-per-class',
           '--output', output]
+  if options.no_build:
+    args.extend(['--no-build'])
   args.extend(input)
   if toolhelper.run('d8', args) is not 0:
     raise Exception('Failed running d8')
@@ -183,8 +189,8 @@ def Main():
     app1_classes_dir = os.path.join(output, 'app1_classes')
     app2_classes_dir = os.path.join(output, 'app2_classes')
 
-    extract_classes(app1_input, app1_classes_dir)
-    extract_classes(app2_input, app2_classes_dir)
+    extract_classes(app1_input, app1_classes_dir, options)
+    extract_classes(app2_input, app2_classes_dir, options)
     compare(app1_classes_dir, app2_classes_dir, app1, app2, options)
 
 if __name__ == '__main__':
