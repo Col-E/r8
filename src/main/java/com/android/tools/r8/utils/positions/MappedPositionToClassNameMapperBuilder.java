@@ -495,6 +495,10 @@ public class MappedPositionToClassNameMapperBuilder {
       return this == OUT_OF_RANGE;
     }
 
+    private boolean isSameDelta() {
+      return this == SAME_DELTA;
+    }
+
     public MappedPositionRange canAddNextMappingToRange(
         MappedPosition lastPosition, MappedPosition currentPosition) {
       if (isOutOfRange()) {
@@ -508,9 +512,12 @@ public class MappedPositionToClassNameMapperBuilder {
       boolean hasSameRightHandSide =
           lastPosition.getOriginalLine() == currentPosition.getOriginalLine();
       if (hasSameRightHandSide) {
+        if (isSameDelta()) {
+          return OUT_OF_RANGE;
+        }
         boolean hasSameLeftHandSide =
             lastPosition.getObfuscatedLine() == currentPosition.getObfuscatedLine();
-        return hasSameLeftHandSide ? SINGLE_LINE : RANGE_TO_SINGLE;
+        return (hasSameLeftHandSide && isSingleLine()) ? SINGLE_LINE : RANGE_TO_SINGLE;
       }
       if (isRangeToSingle()) {
         // We cannot recover a delta encoding if we have had range to single encoding.
