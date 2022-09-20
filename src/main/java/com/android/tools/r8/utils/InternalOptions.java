@@ -1862,6 +1862,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean roundtripThroughLIR = false;
     private boolean hasReadCheckDeterminism = false;
     private DeterminismChecker determinismChecker = null;
+    public boolean usePcEncodingInCfForTesting = false;
 
     // Testing options to analyse locality of items in DEX files when they are generated.
     public boolean calculateItemUseCountInDex = false;
