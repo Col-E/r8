@@ -6,6 +6,7 @@ package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.naming.MapVersion;
+import com.android.tools.r8.naming.MappingComposeException;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.google.gson.JsonElement;
@@ -66,6 +67,11 @@ public class OutlineCallsiteMappingInformation extends MappingInformation {
   @Override
   public OutlineCallsiteMappingInformation asOutlineCallsiteInformation() {
     return this;
+  }
+
+  @Override
+  public MappingInformation compose(MappingInformation existing) throws MappingComposeException {
+    throw new MappingComposeException("Unable to compose " + ID);
   }
 
   public int rewritePosition(int originalPosition) {

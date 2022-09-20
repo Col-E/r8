@@ -6,6 +6,7 @@ package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MapVersion;
+import com.android.tools.r8.naming.MappingComposeException;
 import com.android.tools.r8.naming.mappinginformation.ResidualSignatureMappingInformation.ResidualFieldSignatureMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.ResidualSignatureMappingInformation.ResidualMethodSignatureMappingInformation;
 import com.google.gson.JsonElement;
@@ -95,6 +96,13 @@ public abstract class MappingInformation {
   public ResidualFieldSignatureMappingInformation asResidualFieldSignatureMappingInformation() {
     return null;
   }
+
+  public boolean shouldCompose(MappingInformation existing) {
+    return !allowOther(existing);
+  }
+
+  public abstract MappingInformation compose(MappingInformation existing)
+      throws MappingComposeException;
 
   public boolean isGlobalMappingInformation() {
     return false;

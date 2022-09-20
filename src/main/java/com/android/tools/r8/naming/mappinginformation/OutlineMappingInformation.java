@@ -5,6 +5,7 @@
 package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.naming.MapVersion;
+import com.android.tools.r8.naming.MappingComposeException;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import java.util.function.Consumer;
@@ -32,8 +33,14 @@ public class OutlineMappingInformation extends MappingInformation {
   }
 
   @Override
+  public MappingInformation compose(MappingInformation existing) throws MappingComposeException {
+    // It does not matter which one we take so just take the first one.
+    return existing;
+  }
+
+  @Override
   public boolean allowOther(MappingInformation information) {
-    return true;
+    return !information.isOutlineMappingInformation();
   }
 
   @Override

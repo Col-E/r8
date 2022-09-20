@@ -5,6 +5,7 @@
 package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.naming.MappingComposeException;
 import com.google.gson.JsonObject;
 import java.util.function.Consumer;
 
@@ -45,6 +46,11 @@ public class UnknownJsonMappingInformation extends MappingInformation {
   @Override
   public UnknownJsonMappingInformation asUnknownJsonMappingInformation() {
     return this;
+  }
+
+  @Override
+  public MappingInformation compose(MappingInformation existing) throws MappingComposeException {
+    throw new MappingComposeException("Unable to compose unknown json mapping information");
   }
 
   public static void deserialize(

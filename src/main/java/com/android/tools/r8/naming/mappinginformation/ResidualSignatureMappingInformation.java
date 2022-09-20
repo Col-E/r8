@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MapVersion;
+import com.android.tools.r8.naming.MappingComposeException;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -114,6 +115,13 @@ public abstract class ResidualSignatureMappingInformation extends MappingInforma
     public ResidualMethodSignatureMappingInformation asResidualMethodSignatureMappingInformation() {
       return this;
     }
+
+    @Override
+    public MappingInformation compose(MappingInformation existing) throws MappingComposeException {
+      // Always take the newest residual mapping
+      assert existing.isResidualMethodSignatureMappingInformation();
+      return this;
+    }
   }
 
   public static class ResidualFieldSignatureMappingInformation
@@ -146,6 +154,13 @@ public abstract class ResidualSignatureMappingInformation extends MappingInforma
 
     @Override
     public ResidualFieldSignatureMappingInformation asResidualFieldSignatureMappingInformation() {
+      return this;
+    }
+
+    @Override
+    public MappingInformation compose(MappingInformation existing) throws MappingComposeException {
+      // Always take the newest residual mapping.
+      assert existing.isResidualFieldSignatureMappingInformation();
       return this;
     }
   }

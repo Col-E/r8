@@ -9,6 +9,7 @@ import static com.android.tools.r8.naming.mappinginformation.RewriteFrameMapping
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.naming.MapVersion;
+import com.android.tools.r8.naming.MappingComposeException;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.internal.RetraceStackTraceContextImpl;
@@ -103,6 +104,11 @@ public class RewriteFrameMappingInformation extends MappingInformation {
   @Override
   public RewriteFrameMappingInformation asRewriteFrameMappingInformation() {
     return this;
+  }
+
+  @Override
+  public MappingInformation compose(MappingInformation existing) throws MappingComposeException {
+    throw new MappingComposeException("Unable to compose " + ID);
   }
 
   public static RewriteFrameMappingInformation.Builder builder() {

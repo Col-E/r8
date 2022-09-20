@@ -7,6 +7,7 @@ package com.android.tools.r8.naming.mappinginformation;
 import static com.android.tools.r8.naming.mappinginformation.MappingInformationDiagnostics.noKeyForObjectWithId;
 
 import com.android.tools.r8.naming.MapVersion;
+import com.android.tools.r8.naming.MappingComposeException;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import java.util.function.Consumer;
@@ -37,6 +38,13 @@ public class MapVersionMappingInformation extends MappingInformation {
   @Override
   public MapVersionMappingInformation asMapVersionMappingInformation() {
     return this;
+  }
+
+  @Override
+  public MappingInformation compose(MappingInformation existing) throws MappingComposeException {
+    assert existing.isMapVersionMappingInformation();
+    MapVersionMappingInformation existingMapVersionInfo = existing.asMapVersionMappingInformation();
+    return mapVersion.isLessThanOrEqualTo(existingMapVersionInfo.getMapVersion()) ? existing : this;
   }
 
   @Override

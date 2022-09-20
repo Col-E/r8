@@ -88,8 +88,11 @@ public class ComposingBuilder {
       throw new MappingComposeException(
           "Composition of mapping files supported from map version 2.2.");
     }
-    if (currentMapVersion == null || currentMapVersion.getMapVersion().isLessThan(newMapVersion)) {
+    if (currentMapVersion == null) {
       currentMapVersion = newMapVersionInfo;
+    } else {
+      currentMapVersion =
+          newMapVersionInfo.compose(currentMapVersion).asMapVersionMappingInformation();
     }
     for (ClassNamingForNameMapper classMapping : classNameMapper.getClassNameMappings().values()) {
       compose(classNameMapper, classMapping);
@@ -829,7 +832,8 @@ public class ComposingBuilder {
         List<MappedRange> existingMappedRanges,
         ComputedOutlineInformation computedOutlineInformation,
         int lastStartingMinifiedFrom,
-        int position) {
+        int position)
+        throws MappingComposeException {
       Range existingRange = existingMappedRanges.get(0).minifiedRange;
       assert existingMappedRanges.stream().allMatch(x -> x.minifiedRange.equals(existingRange));
       Range newMinifiedRange = new Range(lastStartingMinifiedFrom, position);
@@ -883,19 +887,33 @@ public class ComposingBuilder {
     }
 
     /***
-     * Populates newMappingInformation with existingMappingInformation, prioritizing new mapping
-     * information if new mapping information does not allow existing information.
+     * Populates newMappingInformation with existingMappingInformation.
      */
     private void composeMappingInformation(
         List<MappingInformation> newMappingInformation,
         List<MappingInformation> existingMappingInformation,
-        Consumer<MappingInformation> consumer) {
-      List<MappingInformation> existingMappingCopy = new ArrayList<>(existingMappingInformation);
-      for (MappingInformation newMappingInfo : newMappingInformation) {
-        existingMappingCopy.removeIf(otherInfo -> !newMappingInfo.allowOther(otherInfo));
+        Consumer<MappingInformation> consumer)
+        throws MappingComposeException {
+      Set<MappingInformation> nonCompasableNewInfos = Sets.newIdentityHashSet();
+      for (MappingInformation existingInfo : existingMappingInformation) {
+        boolean hasBeenComposed = false;
+        for (MappingInformation newInfo : newMappingInformation) {
+          if (newInfo.shouldCompose(existingInfo)) {
+            nonCompasableNewInfos.add(newInfo);
+            consumer.accept(newInfo.compose(existingInfo));
+            hasBeenComposed = true;
+          }
+        }
+        if (!hasBeenComposed) {
+          consumer.accept(existingInfo);
+        }
       }
-      existingMappingCopy.forEach(consumer);
-      newMappingInformation.forEach(consumer);
+      newMappingInformation.forEach(
+          info -> {
+            if (!nonCompasableNewInfos.contains(info)) {
+              consumer.accept(info);
+            }
+          });
     }
 
     private boolean isInlineMappedRange(List<MappedRange> mappedRanges, int index) {
