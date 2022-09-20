@@ -25,6 +25,7 @@ import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ChainableStringConsumer;
 import com.android.tools.r8.utils.ConsumerUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SegmentTree;
 import com.android.tools.r8.utils.ThrowingBiFunction;
@@ -72,6 +73,11 @@ public class ComposingBuilder {
   private final ComposingData committed = new ComposingData();
 
   private ComposingData current;
+  private final InternalOptions options;
+
+  public ComposingBuilder(InternalOptions options) {
+    this.options = options;
+  }
 
   public void compose(ClassNameMapper classNameMapper) throws MappingComposeException {
     current = new ComposingData();
@@ -105,7 +111,7 @@ public class ComposingBuilder {
     String originalName = classMapping.originalName;
     String renamedName = classMapping.renamedName;
     ComposingClassBuilder composingClassBuilder =
-        new ComposingClassBuilder(originalName, renamedName, committed, current);
+        new ComposingClassBuilder(originalName, renamedName, committed, current, options);
     ComposingClassBuilder duplicateMapping =
         current.classBuilders.put(renamedName, composingClassBuilder);
     if (duplicateMapping != null) {
@@ -411,13 +417,19 @@ public class ComposingBuilder {
     private final ComposingData current;
 
     private final ComposingClassBuilder committedPreviousClassBuilder;
+    private final InternalOptions options;
 
     private ComposingClassBuilder(
-        String originalName, String renamedName, ComposingData committed, ComposingData current) {
+        String originalName,
+        String renamedName,
+        ComposingData committed,
+        ComposingData current,
+        InternalOptions options) {
       this.originalName = originalName;
       this.renamedName = renamedName;
       this.current = current;
       this.committed = committed;
+      this.options = options;
       committedPreviousClassBuilder = committed.classBuilders.get(originalName);
     }
 
@@ -502,7 +514,8 @@ public class ComposingBuilder {
                 // The original can be discarded if it no longer exists or if the method is
                 // non-throwing.
                 if (mappedRangeResult.startOriginalPosition > 0
-                    && (originalRange == null || !newMappedRange.originalRange.isPreamble())) {
+                    && (originalRange == null || !newMappedRange.originalRange.isPreamble())
+                    && !options.mappingComposeOptions().allowNonExistingOriginalRanges) {
                   throw new MappingComposeException(
                       "Could not find original starting position of '"
                           + mappedRangeResult.lastRange
@@ -700,8 +713,11 @@ public class ComposingBuilder {
                   "Unexpected missing original position for '" + newRange + "'.");
             }
           }
-          // Otherwise, we have found an existing range for the original position.
-          if (ListUtils.last(existingMappedRanges).minifiedRange.equals(newRange.originalRange)) {
+          // We have found an existing range for the original position.
+          MappedRange lastExistingMappedRange = ListUtils.last(existingMappedRanges);
+          // If the existing mapped minified range is equal to the original range of the new range
+          // then we have a perfect mapping that we can translate directly.
+          if (lastExistingMappedRange.minifiedRange.equals(newRange.originalRange)) {
             computeComposedMappedRange(
                 newComposedRanges,
                 newRange,
@@ -722,12 +738,26 @@ public class ComposingBuilder {
               List<MappedRange> existingMappedRangesForPosition =
                   mappedRangesForPosition.apply(newRange.getOriginalLineNumber(position));
               if (existingMappedRangesForPosition == null) {
-                throw new MappingComposeException(
-                    "Unexpected missing original position for '" + newRange + "'.");
+                if (!options.mappingComposeOptions().allowNonExistingOriginalRanges) {
+                  throw new MappingComposeException(
+                      "Unexpected missing original position for '" + newRange + "'.");
+                }
+                Range identityRange = new Range(position, position);
+                MappedRange nonExistingMappedRange =
+                    new MappedRange(
+                        identityRange,
+                        lastExistingMappedRange.getOriginalSignature().asMethodSignature(),
+                        identityRange,
+                        lastExistingMappedRange.renamedName);
+                nonExistingMappedRange.setResidualSignatureInternal(
+                    lastExistingRange.getResidualSignatureInternal());
+                existingMappedRangesForPosition = Collections.singletonList(nonExistingMappedRange);
               }
-              if (!ListUtils.last(existingMappedRanges)
-                  .minifiedRange
-                  .equals(ListUtils.last(existingMappedRangesForPosition).minifiedRange)) {
+              MappedRange lastExistingMappedRangeForPosition =
+                  ListUtils.last(existingMappedRangesForPosition);
+              if (!lastExistingMappedRange.minifiedRange.equals(
+                  lastExistingMappedRangeForPosition.minifiedRange)) {
+                // We have seen an existing range we have to compute a splitting for.
                 computeComposedMappedRange(
                     newComposedRanges,
                     newRange,
@@ -735,8 +765,11 @@ public class ComposingBuilder {
                     computedOutlineInformation,
                     lastStartingMinifiedFrom,
                     position - 1);
+                // Advance the last starting position to this point and advance the existing mapped
+                // ranges for this position.
                 lastStartingMinifiedFrom = position;
                 existingMappedRanges = existingMappedRangesForPosition;
+                lastExistingMappedRange = lastExistingMappedRangeForPosition;
               }
             }
             computeComposedMappedRange(
@@ -980,7 +1013,8 @@ public class ComposingBuilder {
     public ComposingClassBuilder commit(ComposingClassBuilder classBuilder)
         throws MappingComposeException {
       ComposingClassBuilder newClassBuilder =
-          new ComposingClassBuilder(originalName, classBuilder.renamedName, committed, null);
+          new ComposingClassBuilder(
+              originalName, classBuilder.renamedName, committed, null, options);
       composeMappingInformation(
           classBuilder.additionalMappingInfo,
           additionalMappingInfo,

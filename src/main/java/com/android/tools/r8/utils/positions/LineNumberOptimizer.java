@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.positions.PositionUtils.mustHaveResidua
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.debuginfo.DebugRepresentation.DebugRepresentationPredicate;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
@@ -19,6 +20,8 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.naming.MappingComposeException;
+import com.android.tools.r8.naming.MappingComposer;
 import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapId;
 import com.android.tools.r8.shaking.KeepInfoCollection;
@@ -27,6 +30,7 @@ import com.android.tools.r8.utils.CfLineToMethodMapper;
 import com.android.tools.r8.utils.OriginalSourceFiles;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.positions.MappedPositionToClassNameMapperBuilder.MappedPositionToClassNamingBuilder;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -46,6 +50,21 @@ public class LineNumberOptimizer {
     timing.begin("Line number remapping");
     ClassNameMapper mapper = run(appView, inputApp, originalSourceFiles, representation);
     timing.end();
+    if (appView.options().mappingComposeOptions().generatedClassNameMapperConsumer != null) {
+      appView.options().mappingComposeOptions().generatedClassNameMapperConsumer.accept(mapper);
+    }
+    if (appView.options().mappingComposeOptions().enableExperimentalMappingComposition) {
+      timing.begin("Proguard map composition");
+      try {
+        mapper =
+            ClassNameMapper.mapperFromStringWithExperimental(
+                MappingComposer.compose(
+                    appView.options(), appView.appInfo().app().getProguardMap(), mapper));
+      } catch (IOException | MappingComposeException e) {
+        throw new CompilationError(e.getMessage(), e);
+      }
+      timing.end();
+    }
     timing.begin("Write proguard map");
     ProguardMapId mapId = ProguardMapSupplier.create(mapper, appView.options()).writeProguardMap();
     timing.end();

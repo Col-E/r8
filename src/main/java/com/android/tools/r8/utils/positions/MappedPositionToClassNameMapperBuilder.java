@@ -66,7 +66,7 @@ public class MappedPositionToClassNameMapperBuilder {
   private final OriginalSourceFiles originalSourceFiles;
   private final AppView<?> appView;
 
-  private final ClassNameMapper.Builder classNameMapperBuilder = ClassNameMapper.builder();
+  private final ClassNameMapper.Builder classNameMapperBuilder;
   private final Map<DexMethod, OutlineFixupBuilder> outlinesToFix = new IdentityHashMap<>();
   private final Map<DexType, String> prunedInlinedClasses = new IdentityHashMap<>();
 
@@ -79,6 +79,9 @@ public class MappedPositionToClassNameMapperBuilder {
       AppView<?> appView, OriginalSourceFiles originalSourceFiles) {
     this.appView = appView;
     this.originalSourceFiles = originalSourceFiles;
+    classNameMapperBuilder = ClassNameMapper.builder();
+    classNameMapperBuilder.setCurrentMapVersion(
+        appView.options().getMapFileVersion().toMapVersionMappingInformation());
   }
 
   public static int getMaxLineNumber() {

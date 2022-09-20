@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.naming;
 
+import com.android.tools.r8.utils.InternalOptions;
+
 /**
  * MappingComposer is a utility to do composition of mapping files to map line numbers correctly
  * when having shrunken input that will end up using DEX PC mappings.
@@ -11,11 +13,18 @@ package com.android.tools.r8.naming;
 public class MappingComposer {
 
   public static String compose(ClassNameMapper... classNameMappers) throws MappingComposeException {
+    return compose(new InternalOptions(), classNameMappers);
+  }
+
+  public static String compose(InternalOptions options, ClassNameMapper... classNameMappers)
+      throws MappingComposeException {
     assert classNameMappers.length > 0;
-    ComposingBuilder builder = new ComposingBuilder();
+    ComposingBuilder builder = new ComposingBuilder(options);
     for (ClassNameMapper classNameMapper : classNameMappers) {
       builder.compose(classNameMapper);
     }
+    // TODO(b/241763080): The line positions are fully expanded. This should be fixed either by
+    //  optimizing after we've applied all mappers or when computing new ranges.
     return builder.toString();
   }
 }

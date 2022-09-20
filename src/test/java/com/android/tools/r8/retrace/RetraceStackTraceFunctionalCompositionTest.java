@@ -168,22 +168,36 @@ public class RetraceStackTraceFunctionalCompositionTest extends TestBase {
 
     // Compile rewritten R8 with R8 to obtain first level
     Pair<Path, Path> r8OfR8 = compileR8WithR8(rewrittenR8Jar);
-    List<String> firstLevelStackTraces = generateStackTraces(r8OfR8.getFirst());
 
     // If we retrace the entire file we should get the same result as the original.
-    List<String> retracedFirstLevelStackTraces = new ArrayList<>();
-    Retrace.run(
-        RetraceCommand.builder()
-            .setRetracedStackTraceConsumer(retracedFirstLevelStackTraces::addAll)
-            .setStackTrace(firstLevelStackTraces)
-            .setMappingSupplier(
-                ProguardMappingSupplier.builder()
-                    .setProguardMapProducer(ProguardMapProducer.fromPath(r8OfR8.getSecond()))
-                    .build())
-            .build());
+    List<String> retracedFirstLevelStackTraces =
+        retrace(r8OfR8.getSecond(), generateStackTraces(r8OfR8.getFirst()));
     Map<String, List<String>> firstRoundPartitions =
         partitionStacktraces(retracedFirstLevelStackTraces);
     comparePartitionedStackTraces(originalPartitions, firstRoundPartitions);
+
+    Pair<Path, Path> d8OfR8ofR8 = compileWithD8(r8OfR8.getFirst(), r8OfR8.getSecond());
+    List<String> retracedSecondLevelStackTraces =
+        retrace(d8OfR8ofR8.getSecond(), generateStackTraces(d8OfR8ofR8.getFirst()));
+    Map<String, List<String>> secondRoundPartitions =
+        partitionStacktraces(retracedSecondLevelStackTraces);
+    comparePartitionedStackTraces(originalPartitions, secondRoundPartitions);
+  }
+
+  private List<String> retrace(Path mappingFile, List<String> stacktraces) {
+    List<String> retracedLines = new ArrayList<>();
+    Retrace.run(
+        RetraceCommand.builder()
+            .setRetracedStackTraceConsumer(retracedLines::addAll)
+            .setStackTrace(stacktraces)
+            .setMappingSupplier(
+                ProguardMappingSupplier.builder()
+                    .setProguardMapProducer(ProguardMapProducer.fromPath(mappingFile))
+                    // TODO(b/241763080): Remove when stable.
+                    .setAllowExperimental(true)
+                    .build())
+            .build());
+    return retracedLines;
   }
 
   private void comparePartitionedStackTraces(
@@ -231,11 +245,35 @@ public class RetraceStackTraceFunctionalCompositionTest extends TestBase {
         .setMode(CompilationMode.RELEASE)
         .addProgramFiles(r8Input)
         .addKeepRuleFiles(MAIN_KEEP)
+        // TODO(b/241763080): Remove when stable version is default.
+        .enableExperimentalMapFileVersion()
         .allowUnusedProguardConfigurationRules()
         .addDontObfuscate()
         .compile()
         .apply(c -> FileUtils.writeTextFile(map, c.getProguardMap()))
         .writeToZip(jar);
+    return Pair.create(jar, map);
+  }
+
+  private Pair<Path, Path> compileWithD8(Path r8Input, Path previousMappingFile) throws Exception {
+    StringBuilder mappingComposed = new StringBuilder();
+    Path jar = temp.newFolder().toPath().resolve("out.jar");
+    Path map = temp.newFolder().toPath().resolve("out.map");
+    testForD8(Backend.CF)
+        .setMode(CompilationMode.RELEASE)
+        .addProgramFiles(r8Input)
+        .enableExperimentalMapFileVersion()
+        // TODO(b/241763080): Enable CF PC test mapping for this compilation.
+        .addOptionsModification(
+            options -> options.mappingComposeOptions().enableExperimentalMappingComposition = true)
+        .apply(
+            b ->
+                b.getBuilder()
+                    .setProguardInputMapFile(previousMappingFile)
+                    .setProguardMapConsumer((string, handler) -> mappingComposed.append(string)))
+        .compile()
+        .writeToZip(jar);
+    FileUtils.writeTextFile(map, mappingComposed.toString());
     return Pair.create(jar, map);
   }
 

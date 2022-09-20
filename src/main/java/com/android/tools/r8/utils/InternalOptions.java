@@ -69,6 +69,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.Mac
 import com.android.tools.r8.ir.desugar.nest.Nest;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
+import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorEventConsumer;
 import com.android.tools.r8.origin.Origin;
@@ -832,6 +833,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       new KotlinOptimizationOptions();
   private final ApiModelTestingOptions apiModelTestingOptions = new ApiModelTestingOptions();
   private final DesugarSpecificOptions desugarSpecificOptions = new DesugarSpecificOptions();
+  private final MappingComposeOptions mappingComposeOptions = new MappingComposeOptions();
   private final ArtProfileOptions artProfileOptions = new ArtProfileOptions();
   private final StartupOptions startupOptions = new StartupOptions();
   private final StartupInstrumentationOptions startupInstrumentationOptions =
@@ -877,6 +879,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public ApiModelTestingOptions apiModelingOptions() {
     return apiModelTestingOptions;
+  }
+
+  public MappingComposeOptions mappingComposeOptions() {
+    return mappingComposeOptions;
   }
 
   public DesugarSpecificOptions desugarSpecificOptions() {
@@ -1730,6 +1736,14 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
           || suppressions.stream()
               .anyMatch(suppression -> suppression.isSuppressed(appView, valueType, openInterface));
     }
+  }
+
+  public static class MappingComposeOptions {
+    // TODO(b/241763080): Remove when enabled.
+    public boolean enableExperimentalMappingComposition = false;
+    // TODO(b/247136434): Disable for internal builds.
+    public boolean allowNonExistingOriginalRanges = true;
+    public Consumer<ClassNameMapper> generatedClassNameMapperConsumer = null;
   }
 
   public static class ApiModelTestingOptions {

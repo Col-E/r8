@@ -90,7 +90,7 @@ public class ClassNameMapper implements ProguardMap {
     }
 
     @Override
-    ProguardMap.Builder setCurrentMapVersion(MapVersionMappingInformation mapVersion) {
+    public ProguardMap.Builder setCurrentMapVersion(MapVersionMappingInformation mapVersion) {
       mapVersions.add(mapVersion);
       return this;
     }
