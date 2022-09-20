@@ -219,13 +219,12 @@ public class MappedPositionToClassNameMapperBuilder {
             || appView.isCfByteCodePassThrough(definition);
         return this;
       }
-      // TODO(b/169953605): Ensure we emit the residual signature information.
       if (mapFileVersion.isGreaterThan(MapVersion.MAP_VERSION_2_1)
-          && originalMethod != method.getReference()) {
+          && originalMethod != method.getReference()
+          && !appView.graphLens().isSimpleRenaming(residualMethod)) {
         methodMappingInfo.add(
             ResidualMethodSignatureMappingInformation.fromDexMethod(residualMethod));
       }
-
       MethodSignature residualSignature = MethodSignature.fromDexMethod(residualMethod);
 
       MemberNaming memberNaming = new MemberNaming(originalSignature, residualSignature);
@@ -234,9 +233,7 @@ public class MappedPositionToClassNameMapperBuilder {
       // Add simple "a() -> b" mapping if we won't have any other with concrete line numbers
       if (mappedPositions.isEmpty()) {
         MappedRange range =
-            getBuilder()
-                .addMappedRange(
-                    null, originalSignature, null, residualSignature.getName().toString());
+            getBuilder().addMappedRange(null, originalSignature, null, residualSignature.getName());
         methodMappingInfo.forEach(info -> range.addMappingInformation(info, Unreachable::raise));
         return this;
       }

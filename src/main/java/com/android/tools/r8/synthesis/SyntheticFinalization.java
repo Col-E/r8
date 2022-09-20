@@ -101,6 +101,11 @@ public class SyntheticFinalization {
     public boolean isSyntheticFinalizationGraphLens() {
       return true;
     }
+
+    @Override
+    public boolean isSimpleRenamingLens() {
+      return true;
+    }
   }
 
   private static class Builder {
