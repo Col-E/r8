@@ -121,6 +121,9 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     desugarings.add(new LambdaInstructionDesugaring(appView));
     desugarings.add(new ConstantDynamicInstructionDesugaring(appView));
     desugarings.add(new InvokeSpecialToSelfDesugaring(appView));
+    if (appView.options().rewriteInvokeToPrivateInDesugar) {
+      desugarings.add(new InvokeToPrivateRewriter());
+    }
     desugarings.add(new StringConcatInstructionDesugaring(appView));
     desugarings.add(new BufferCovariantReturnTypeRewriter(appView));
     if (backportedMethodRewriter.hasBackports()) {
@@ -358,7 +361,8 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
           //  identification is explicitly non-overlapping and remove the exceptions below.
           assert !alsoApplicable
                   || (appliedDesugaring instanceof InterfaceMethodRewriter
-                      && desugaring instanceof NestBasedAccessDesugaring)
+                      && (desugaring instanceof InvokeToPrivateRewriter
+                          || desugaring instanceof NestBasedAccessDesugaring))
                   || (appliedDesugaring instanceof TwrInstructionDesugaring
                       && desugaring instanceof InterfaceMethodRewriter)
               : "Desugaring of "

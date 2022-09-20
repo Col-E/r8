@@ -422,6 +422,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean createSingletonsForStatelessLambdas =
       System.getProperty("com.android.tools.r8.createSingletonsForStatelessLambdas") != null;
 
+  // Flag to control the representation of stateless lambdas.
+  // See b/222081665 for context.
+  public boolean rewriteInvokeToPrivateInDesugar =
+      System.getProperty("com.android.tools.r8.rewriteInvokeToPrivateInDesugar") != null;
+
   // Flag to allow record annotations in DEX. See b/231930852 for context.
   public boolean emitRecordAnnotationsInDex =
       System.getProperty("com.android.tools.r8.emitRecordAnnotationsInDex") != null;
