@@ -41,7 +41,6 @@ import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInforma
 import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation.ThrowsCondition;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.retrace.internal.RetraceUtils;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
@@ -108,7 +107,6 @@ public class MappedPositionToClassNameMapperBuilder {
           assert appView.appInfo().definitionForWithoutExistenceAssert(holder) == null;
           String typeName = holder.toSourceString();
           String sourceFile = entry.getValue();
-          assert !RetraceUtils.hasPredictableSourceFileName(typeName, sourceFile);
           classNameMapperBuilder
               .classNamingBuilder(
                   typeName, typeName, com.android.tools.r8.position.Position.UNKNOWN)
@@ -150,11 +148,9 @@ public class MappedPositionToClassNameMapperBuilder {
       // Check if source file should be added to the map
       DexString originalSourceFile = originalSourceFiles.getOriginalSourceFile(clazz);
       if (originalSourceFile != null) {
-        String sourceFile = originalSourceFile.toString();
-        if (!RetraceUtils.hasPredictableSourceFileName(clazz.toSourceString(), sourceFile)) {
-          getBuilder()
-              .addMappingInformation(FileNameInformation.build(sourceFile), Unreachable::raise);
-        }
+        getBuilder()
+            .addMappingInformation(
+                FileNameInformation.build(originalSourceFile.toSourceString()), Unreachable::raise);
       }
       return this;
     }

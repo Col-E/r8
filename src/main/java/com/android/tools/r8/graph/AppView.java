@@ -35,7 +35,6 @@ import com.android.tools.r8.naming.SeedMapper;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
 import com.android.tools.r8.optimize.interfaces.collection.OpenClosedInterfacesCollection;
 import com.android.tools.r8.profile.art.ArtProfileCollection;
-import com.android.tools.r8.retrace.internal.RetraceUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.AssumeInfoCollection;
 import com.android.tools.r8.shaking.KeepClassInfo;
@@ -983,9 +982,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public void addPrunedClassSourceFile(DexType prunedType, String sourceFile) {
-    if (!RetraceUtils.hasPredictableSourceFileName(prunedType.toSourceString(), sourceFile)) {
-      sourceFileForPrunedTypes.put(prunedType, sourceFile);
-    }
+    sourceFileForPrunedTypes.put(prunedType, sourceFile);
   }
 
   public String getPrunedClassSourceFileInfo(DexType dexType) {

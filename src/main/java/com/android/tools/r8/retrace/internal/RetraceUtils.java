@@ -56,11 +56,6 @@ public class RetraceUtils {
     return sb.toString();
   }
 
-  public static boolean hasPredictableSourceFileName(String originalClassName, String sourceFile) {
-    String synthesizedSourceFileName = getOuterClassSimpleName(originalClassName) + ".java";
-    return synthesizedSourceFileName.equals(sourceFile);
-  }
-
   private static String getOuterClassSimpleName(String clazz) {
     int lastIndexOfPeriod = clazz.lastIndexOf(DescriptorUtils.JAVA_PACKAGE_SEPARATOR);
     // Check if we can find a subclass separator.
