@@ -9,6 +9,13 @@ import com.android.tools.r8.graph.DexType;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * An EmulatedInterfaceDescriptor describes how emulated interfaces are desugared. The
+ * emulatedMethods encode the emulated dispatch logic for default methods. Note that there is an
+ * implicit decision here: If interface method desugaring is enabled (< 24), the static methods in
+ * the emulated interface are going to be desugared, else they are left in place. This means static
+ * methods need to be manually retargeted when interface method desugaring is not enabled.
+ */
 public class EmulatedInterfaceDescriptor implements SpecificationDescriptor {
   private final DexType rewrittenType;
   private final Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedMethods;

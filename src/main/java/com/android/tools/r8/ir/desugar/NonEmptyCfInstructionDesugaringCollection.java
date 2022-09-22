@@ -93,17 +93,15 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     if (appView.options().enableTryWithResourcesDesugaring()) {
       desugarings.add(new TwrInstructionDesugaring(appView));
     }
-    if (appView.options().isInterfaceMethodDesugaringEnabled()) {
-      interfaceMethodRewriter =
-          new InterfaceMethodRewriter(
-              appView,
-              SetUtils.newImmutableSetExcludingNullItems(
-                  alwaysThrowingInstructionDesugaring,
-                  backportedMethodRewriter,
-                  desugaredLibraryRetargeter));
+    interfaceMethodRewriter =
+        InterfaceMethodRewriter.create(
+            appView,
+            SetUtils.newImmutableSetExcludingNullItems(
+                alwaysThrowingInstructionDesugaring,
+                backportedMethodRewriter,
+                desugaredLibraryRetargeter));
+    if (interfaceMethodRewriter != null) {
       desugarings.add(interfaceMethodRewriter);
-    } else {
-      interfaceMethodRewriter = null;
     }
     desugaredLibraryAPIConverter =
         appView.typeRewriter.isRewriting()

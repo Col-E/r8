@@ -72,6 +72,23 @@ public class InterfaceDesugaringSyntheticHelper {
     this.shouldIgnoreFromReportsPredicate = getShouldIgnoreFromReportsPredicate(appView);
   }
 
+  public enum InterfaceMethodDesugaringMode {
+    ALL,
+    EMULATED_INTERFACE_ONLY,
+    NONE
+  }
+
+  public static InterfaceMethodDesugaringMode getInterfaceMethodDesugaringMode(
+      InternalOptions options) {
+    if (options.isInterfaceMethodDesugaringEnabled()) {
+      return InterfaceMethodDesugaringMode.ALL;
+    }
+    if (options.machineDesugaredLibrarySpecification.getEmulatedInterfaces().isEmpty()) {
+      return InterfaceMethodDesugaringMode.NONE;
+    }
+    return InterfaceMethodDesugaringMode.EMULATED_INTERFACE_ONLY;
+  }
+
   boolean isEmulatedInterface(DexType itf) {
     return appView
         .options()

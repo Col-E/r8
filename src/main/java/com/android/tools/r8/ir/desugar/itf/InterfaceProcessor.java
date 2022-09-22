@@ -4,6 +4,10 @@
 
 package com.android.tools.r8.ir.desugar.itf;
 
+import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.InterfaceMethodDesugaringMode.EMULATED_INTERFACE_ONLY;
+import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.InterfaceMethodDesugaringMode.NONE;
+import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.getInterfaceMethodDesugaringMode;
+
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.dex.code.DexInstruction;
@@ -25,6 +29,8 @@ import com.android.tools.r8.graph.InvalidCode;
 import com.android.tools.r8.graph.MethodCollection;
 import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedDispatchMethodDescriptor;
+import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.InterfaceMethodDesugaringMode;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.collections.BidirectionalManyToManyRepresentativeMap;
@@ -56,10 +62,21 @@ public final class InterfaceProcessor {
   private final InterfaceDesugaringSyntheticHelper helper;
   private final Map<DexProgramClass, PostProcessingInterfaceInfo> postProcessingInterfaceInfos =
       new ConcurrentHashMap<>();
+  private final InterfaceMethodDesugaringMode desugaringMode;
 
-  public InterfaceProcessor(AppView<?> appView) {
+  public static InterfaceProcessor create(AppView<?> appView) {
+    InterfaceMethodDesugaringMode desugaringMode =
+        getInterfaceMethodDesugaringMode(appView.options());
+    if (desugaringMode == NONE) {
+      return null;
+    }
+    return new InterfaceProcessor(appView, desugaringMode);
+  }
+
+  public InterfaceProcessor(AppView<?> appView, InterfaceMethodDesugaringMode desugaringMode) {
     this.appView = appView;
     helper = new InterfaceDesugaringSyntheticHelper(appView);
+    this.desugaringMode = desugaringMode;
   }
 
   public InterfaceDesugaringSyntheticHelper getHelper() {
@@ -72,6 +89,10 @@ public final class InterfaceProcessor {
     if (!method.getHolder().isInterface()) {
       return;
     }
+    if (desugaringMode == EMULATED_INTERFACE_ONLY) {
+      processEmulatedInterfaceOnly(method);
+      return;
+    }
     if (method.getDefinition().belongsToDirectPool()) {
       processDirectInterfaceMethod(method, eventConsumer);
     } else {
@@ -79,6 +100,25 @@ public final class InterfaceProcessor {
       processVirtualInterfaceMethod(method);
       if (!interfaceMethodRemovalChangesApi(method)) {
         getPostProcessingInterfaceInfo(method.getHolder()).setHasBridgesToRemove();
+      }
+    }
+  }
+
+  private void processEmulatedInterfaceOnly(ProgramMethod method) {
+    if (!appView.options().isDesugaredLibraryCompilation()) {
+      return;
+    }
+    if (method.getDefinition().belongsToDirectPool()) {
+      return;
+    }
+    if (helper.isEmulatedInterface(method.getHolderType())) {
+      EmulatedDispatchMethodDescriptor emulatedDispatchDescriptor =
+          helper.getEmulatedDispatchDescriptor(method.getHolder(), method);
+      if (emulatedDispatchDescriptor != null) {
+        processVirtualInterfaceMethod(method);
+        if (!interfaceMethodRemovalChangesApi(method)) {
+          getPostProcessingInterfaceInfo(method.getHolder()).setHasBridgesToRemove();
+        }
       }
     }
   }

@@ -1,5 +1,5 @@
 {
-  "identifier": "com.tools.android:desugar_jdk_libs_configuration:2.0.1",
+  "identifier": "com.tools.android:desugar_jdk_libs_configuration:2.0.2",
   "configuration_format_version": 100,
   "required_compilation_api_level": 30,
   "synthesized_library_classes_package_prefix": "j$.",
@@ -43,6 +43,20 @@
         "java.util.concurrent.Flow$Publisher",
         "java.util.concurrent.Flow$Subscriber",
         "java.util.concurrent.Flow$Subscription"
+      ]
+    },
+    {
+      "api_level_below_or_equal": 33,
+      "api_level_greater_or_equal": 24,
+      "emulate_interface": {
+        "java.util.Collection": "j$.util.Collection"
+      },
+      "dont_rewrite": [
+        "boolean java.util.Collection#removeIf(java.util.function.Predicate)",
+        "java.util.Spliterator java.util.Collection#spliterator()",
+        "java.util.stream.Stream java.util.Collection#parallelStream()",
+        "java.util.stream.Stream java.util.Collection#stream()",
+        "void java.util.Collection#forEach(java.util.function.Consumer)"
       ]
     },
     {
@@ -146,6 +160,12 @@
     }
   ],
   "program_flags": [
+    {
+      "api_level_below_or_equal": 33,
+      "amend_library_method": [
+        "public java.lang.Object[] java.util.Collection#toArray(java.util.function.IntFunction)"
+      ]
+    },
     {
       "api_level_below_or_equal": 32,
       "api_level_greater_or_equal": 26,
