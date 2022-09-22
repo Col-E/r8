@@ -8,13 +8,14 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.DiagnosticsMatcher;
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.List;
 import org.junit.Test;
@@ -47,7 +48,12 @@ public class KotlinStdLibCompilationTest extends TestBase {
     testForD8()
         .addProgramFiles(kotlinTestParameters.getCompiler().getKotlinStdlibJar())
         .setMinApi(parameters.getApiLevel())
-        .compileWithExpectedDiagnostics(TestDiagnosticMessages::assertNoMessages);
+        // TODO(b/248244467): Remove if fixed.
+        .compileWithExpectedDiagnostics(
+            diagnostics ->
+                diagnostics.assertAllWarningsMatch(
+                    DiagnosticsMatcher.diagnosticType(
+                        InterfaceDesugarMissingTypeDiagnostic.class)));
   }
 
   @Test
