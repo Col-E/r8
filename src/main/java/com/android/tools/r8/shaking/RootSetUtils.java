@@ -13,6 +13,7 @@ import com.android.tools.r8.errors.AssumeNoSideEffectsRuleForObjectMembersDiagno
 import com.android.tools.r8.errors.AssumeValuesMissingStaticFieldDiagnostic;
 import com.android.tools.r8.errors.InlinableStaticFinalFieldPreconditionDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.errors.UnusedProguardKeepRuleDiagnostic;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.BottomUpClassHierarchyTraversal;
@@ -1884,9 +1885,7 @@ public class RootSetUtils {
           }
         }
         if (!rule.isUsed() && options.testing.reportUnusedProguardConfigurationRules) {
-          String message = "Proguard configuration rule does not match anything: `" + rule + "`";
-          StringDiagnostic diagnostic = new StringDiagnostic(message, rule.getOrigin());
-          options.reporter.info(diagnostic);
+          options.reporter.info(new UnusedProguardKeepRuleDiagnostic(rule));
         }
       }
     }
