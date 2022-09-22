@@ -23,8 +23,6 @@ public class MappingComposer {
     for (ClassNameMapper classNameMapper : classNameMappers) {
       builder.compose(classNameMapper);
     }
-    // TODO(b/241763080): The line positions are fully expanded. This should be fixed either by
-    //  optimizing after we've applied all mappers or when computing new ranges.
     return builder.toString();
   }
 }
