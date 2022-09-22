@@ -12,7 +12,9 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import java.util.List;
+import java.util.Set;
 import java.util.function.BiConsumer;
 
 public class AndroidApiReferenceLevelCache {
@@ -21,6 +23,10 @@ public class AndroidApiReferenceLevelCache {
   private final AndroidApiLevelDatabase androidApiLevelDatabase;
   private final AppView<?> appView;
   private final DexItemFactory factory;
+
+  // Collection of unknown references attempteed to be looked up.
+  private final Set<DexReference> unknownReferencesToReport = Sets.newConcurrentHashSet();
+  private final boolean reportUnknownReferences;
 
   private AndroidApiReferenceLevelCache(
       AppView<?> appView,
@@ -32,6 +38,7 @@ public class AndroidApiReferenceLevelCache {
     androidApiLevelDatabase =
         new AndroidApiLevelHashingDatabaseImpl(
             predefinedApiTypeLookupForHashing, appView.options(), appView.reporter());
+    reportUnknownReferences = appView.options().apiModelingOptions().reportUnknownApiReferences;
   }
 
   public static AndroidApiReferenceLevelCache create(
@@ -47,6 +54,10 @@ public class AndroidApiReferenceLevelCache {
         .apiModelingOptions()
         .visitMockedApiLevelsForReferences(appView.dexItemFactory(), addItemToList);
     return new AndroidApiReferenceLevelCache(appView, apiLevelCompute, builder.build());
+  }
+
+  public Set<DexReference> getUnknownReferencesToReport() {
+    return unknownReferencesToReport;
   }
 
   public ComputedApiLevel lookupMax(
@@ -98,8 +109,12 @@ public class AndroidApiReferenceLevelCache {
             androidApiLevelDatabase::getTypeApiLevel,
             androidApiLevelDatabase::getFieldApiLevel,
             androidApiLevelDatabase::getMethodApiLevel);
-    return (foundApiLevel == null)
-        ? unknownValue
-        : apiLevelCompute.of(foundApiLevel.max(appView.options().getMinApiLevel()));
+    if (foundApiLevel == null) {
+      if (reportUnknownReferences) {
+        unknownReferencesToReport.add(reference);
+      }
+      return unknownValue;
+    }
+    return apiLevelCompute.of(foundApiLevel.max(appView.options().getMinApiLevel()));
   }
 }

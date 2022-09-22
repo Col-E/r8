@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.androidapi;
 
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.androidapi.ComputedApiLevel.KnownApiLevel;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -43,6 +44,10 @@ public abstract class AndroidApiLevelCompute {
       Iterable<DexType> types, ComputedApiLevel unknownValue);
 
   public abstract boolean isEnabled();
+
+  public void reportUnknownApiReferences() {
+    // Do nothing here.
+  }
 
   public ComputedApiLevel computeApiLevelForDefinition(
       DexMember<?, ?> reference, DexItemFactory factory, ComputedApiLevel unknownValue) {
@@ -105,10 +110,12 @@ public abstract class AndroidApiLevelCompute {
 
     private final AndroidApiReferenceLevelCache cache;
     private final ComputedApiLevel minApiLevel;
+    private final DiagnosticsHandler diagnosticsHandler;
 
     public DefaultAndroidApiLevelCompute(AppView<?> appView) {
       this.cache = AndroidApiReferenceLevelCache.create(appView, this);
       this.minApiLevel = of(appView.options().getMinApiLevel());
+      this.diagnosticsHandler = appView.reporter();
     }
 
     @Override
@@ -130,6 +137,15 @@ public abstract class AndroidApiLevelCompute {
     public ComputedApiLevel computeApiLevelForLibraryReference(
         DexReference reference, ComputedApiLevel unknownValue) {
       return cache.lookup(reference, unknownValue);
+    }
+
+    @Override
+    public void reportUnknownApiReferences() {
+      cache
+          .getUnknownReferencesToReport()
+          .forEach(
+              reference ->
+                  diagnosticsHandler.warning(new AndroidApiUnknownReferenceDiagnostic(reference)));
     }
   }
 }

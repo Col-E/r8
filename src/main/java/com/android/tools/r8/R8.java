@@ -370,6 +370,10 @@ public class R8 {
         assert appView.rootSet().verifyKeptItemsAreKept(appView);
         appView.rootSet().checkAllRulesAreUsed(options);
 
+        if (options.apiModelingOptions().reportUnknownApiReferences) {
+          appView.apiLevelCompute().reportUnknownApiReferences();
+        }
+
         if (options.proguardSeedsConsumer != null) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();
           PrintStream out = new PrintStream(bytes);
