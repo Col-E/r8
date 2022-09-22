@@ -87,6 +87,15 @@ public class MemberNaming implements MappingWithResidualInfo {
     this.position = position;
   }
 
+  /** This is used internally in google3. */
+  @Deprecated
+  public Signature getRenamedSignature() {
+    if (residualSignature != null) {
+      return residualSignature;
+    }
+    return getOriginalSignature().asRenamed(renamedName);
+  }
+
   @Override
   public Signature getOriginalSignature() {
     return signature;
