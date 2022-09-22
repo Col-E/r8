@@ -106,7 +106,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   public DesugaredLibraryTestBuilder<T> setCustomLibrarySpecification(
       CustomLibrarySpecification customLibrarySpecification) {
     this.customLibrarySpecification = customLibrarySpecification;
-    builder.addLibraryClasses(customLibrarySpecification.getClasses());
+    customLibrarySpecification.addLibraryClasses(builder);
     return this;
   }
 
@@ -376,10 +376,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     if (customLibrarySpecification == null) {
       return null;
     }
-    return test.testForD8(parameters.getBackend())
-        .addProgramClasses(customLibrarySpecification.getClasses())
-        .setMinApi(customLibrarySpecification.getMinApi())
-        .compile();
+    return customLibrarySpecification.compileCustomLibrary(test.testForD8(parameters.getBackend()));
   }
 
   private L8TestCompileResult compileDesugaredLibrary(

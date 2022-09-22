@@ -4,29 +4,44 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.test;
 
+import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.D8TestBuilder;
+import com.android.tools.r8.D8TestCompileResult;
+import com.android.tools.r8.SingleTestRunResult;
+import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
+import java.nio.file.Path;
 import java.util.Collection;
 
 public class CustomLibrarySpecification {
 
+  private final Collection<Path> jars;
   private final Collection<Class<?>> classes;
   private final AndroidApiLevel minApi;
 
-  public CustomLibrarySpecification(Class<?> clazz, AndroidApiLevel minApi) {
-    this(ImmutableList.of(clazz), minApi);
+  public CustomLibrarySpecification(Path jar, AndroidApiLevel minApi) {
+    this(ImmutableList.of(jar), ImmutableList.of(), minApi);
   }
 
-  public CustomLibrarySpecification(Collection<Class<?>> classes, AndroidApiLevel minApi) {
+  public CustomLibrarySpecification(Class<?> clazz, AndroidApiLevel minApi) {
+    this(ImmutableList.of(), ImmutableList.of(clazz), minApi);
+  }
+
+  public CustomLibrarySpecification(
+      Collection<Path> jars, Collection<Class<?>> classes, AndroidApiLevel minApi) {
+    this.jars = jars;
     this.classes = classes;
     this.minApi = minApi;
   }
 
-  public Collection<Class<?>> getClasses() {
-    return classes;
+  public D8TestCompileResult compileCustomLibrary(D8TestBuilder builder)
+      throws CompilationFailedException {
+    return builder.addProgramClasses(classes).addProgramFiles(jars).setMinApi(minApi).compile();
   }
 
-  public AndroidApiLevel getMinApi() {
-    return minApi;
+  public void addLibraryClasses(
+      TestCompilerBuilder<?, ?, ?, ? extends SingleTestRunResult<?>, ?> builder) {
+    builder.addLibraryClasses(classes).addLibraryFiles(jars);
   }
 }

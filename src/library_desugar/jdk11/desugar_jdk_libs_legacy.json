@@ -2,7 +2,7 @@
   "configuration_format_version": 5,
   "group_id" : "com.tools.android",
   "artifact_id" : "desugar_jdk_libs",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "required_compilation_api_level": 30,
   "synthesized_library_classes_package_prefix": "j$.",
   "support_all_callbacks_from_library": true,
@@ -37,7 +37,12 @@
       "api_level_below_or_equal": 29,
       "rewrite_prefix": {
         "java.util.concurrent.Flow": "j$.util.concurrent.Flow"
-      }
+      },
+      "wrapper_conversion": [
+        "java.util.concurrent.Flow$Publisher",
+        "java.util.concurrent.Flow$Subscriber",
+        "java.util.concurrent.Flow$Subscription"
+      ]
     },
     {
       "api_level_below_or_equal": 23,

@@ -131,6 +131,17 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
               + " java.nio.file.spi.FileSystemProvider.newDirectoryStream(java.nio.file.Path,"
               + " java.nio.file.DirectoryStream$Filter)");
 
+  // TODO(b/238179854): Investigate how to fix these.
+  private static final Set<String> MISSING_GENERIC_TYPE_CONVERSION_FLOW =
+      ImmutableSet.of(
+          "int java.util.concurrent.SubmissionPublisher.offer(java.lang.Object,"
+              + " java.util.function.BiPredicate)",
+          "java.util.List java.util.concurrent.SubmissionPublisher.getSubscribers()",
+          "void java.util.concurrent.SubmissionPublisher.<init>(java.util.concurrent.Executor, int,"
+              + " java.util.function.BiConsumer)",
+          "int java.util.concurrent.SubmissionPublisher.offer(java.lang.Object, long,"
+              + " java.util.concurrent.TimeUnit, java.util.function.BiPredicate)");
+
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
 
   @Parameters(name = "{0}, spec: {1}")
@@ -157,6 +168,9 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
     }
     if (libraryDesugaringSpecification == JDK11_PATH) {
       missing.addAll(MISSING_GENERIC_TYPE_CONVERSION_PATH);
+    }
+    if (libraryDesugaringSpecification != JDK8) {
+      missing.addAll(MISSING_GENERIC_TYPE_CONVERSION_FLOW);
     }
     return missing;
   }
@@ -194,7 +208,9 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
         || type.startsWith("java.security.")
         || type.startsWith("java.net.")
         || type.startsWith("java.awt.")
-        || type.startsWith("java.util.concurrent.")
+        || (type.startsWith("java.util.concurrent.")
+            && (!type.startsWith("java.util.concurrent.Flow")
+                || libraryDesugaringSpecification == JDK8))
         || (!libraryDesugaringSpecification.hasNioFileDesugaring(AndroidApiLevel.B)
             && type.startsWith("java.nio."));
   }

@@ -21,7 +21,7 @@ public class FlowExample {
     oneShotPublisher.awaitPublishing();
   }
 
-  static class OneShotPublisher implements Publisher<Boolean> {
+  public static class OneShotPublisher implements Publisher<Boolean> {
 
     private final ForkJoinPool executor = new ForkJoinPool(); // daemon-based
 
