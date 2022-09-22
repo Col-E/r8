@@ -12,7 +12,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import org.junit.Test;
@@ -30,16 +29,11 @@ public class InterfaceInvokePrivateTest extends TestBase implements Opcodes {
   @Parameter(1)
   public CfVersion inputCfVersion;
 
-  @Parameter(2)
-  public boolean rewriteInvokeToPrivateInDesugar;
-
-  @Parameterized.Parameters(
-      name = "{0}, Input CfVersion = {1}, rewriteInvokeToPrivateInDesugar = {2}")
+  @Parameterized.Parameters(name = "{0}, Input CfVersion = {1})")
   public static Iterable<?> data() {
     return buildParameters(
         getTestParameters().withCfRuntimes().withDexRuntimes().withAllApiLevelsAlsoForCf().build(),
-        CfVersion.rangeInclusive(CfVersion.V1_8, CfVersion.V15),
-        BooleanUtils.values());
+        CfVersion.rangeInclusive(CfVersion.V1_8, CfVersion.V15));
   }
 
   private static final String EXPECTED_OUTPUT = StringUtils.unixLines("Hello, world!", "21", "6");
@@ -53,7 +47,6 @@ public class InterfaceInvokePrivateTest extends TestBase implements Opcodes {
   public void testReference() throws Exception {
     assumeTrue(parameters.getRuntime().isCf());
     assumeTrue(parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
-    assumeTrue(rewriteInvokeToPrivateInDesugar);
 
     testForJvm()
         .addProgramClassFileData(transformIToPrivate(inputCfVersion))
@@ -76,9 +69,7 @@ public class InterfaceInvokePrivateTest extends TestBase implements Opcodes {
 
   @Test
   public void testDesugar() throws Exception {
-    testForDesugaring(
-            parameters,
-            options -> options.rewriteInvokeToPrivateInDesugar = rewriteInvokeToPrivateInDesugar)
+    testForDesugaring(parameters)
         .addProgramClassFileData(transformIToPrivate(inputCfVersion))
         .addProgramClasses(TestRunner.class)
         .run(parameters.getRuntime(), TestRunner.class)
@@ -101,7 +92,7 @@ public class InterfaceInvokePrivateTest extends TestBase implements Opcodes {
                     && parameters.getRuntime().asCf().isOlderThan(CfVm.JDK11)
                     && (DesugarTestConfiguration.isNotDesugared(c)
                         || (parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N)
-                            && !rewriteInvokeToPrivateInDesugar)),
+                            && c == DesugarTestConfiguration.D8_DEX)),
             r -> r.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class),
             // All other conditions succeed.
             r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT));
