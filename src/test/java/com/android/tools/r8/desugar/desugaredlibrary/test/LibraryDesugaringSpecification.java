@@ -34,7 +34,7 @@ import org.junit.rules.TemporaryFolder;
 public class LibraryDesugaringSpecification {
 
   public static Descriptor JDK8_DESCRIPTOR = new Descriptor(24, 26, -1, 26, 24);
-  public static Descriptor JDK11_DESCRIPTOR = new Descriptor(24, 30, -1, 30, -1);
+  public static Descriptor JDK11_DESCRIPTOR = new Descriptor(24, 30, -1, 32, -1);
   public static Descriptor EMPTY_DESCRIPTOR_24 = new Descriptor(-1, -1, -1, 24, -1);
   public static Descriptor JDK11_PATH_DESCRIPTOR = new Descriptor(24, 30, 26, 32, -1);
   public static Descriptor JDK11_LEGACY_DESCRIPTOR = new Descriptor(24, 10000, -1, 10000, 24);

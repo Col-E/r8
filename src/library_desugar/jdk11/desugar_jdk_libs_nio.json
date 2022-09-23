@@ -60,7 +60,7 @@
       ]
     },
     {
-      "api_level_below_or_equal": 33,
+      "api_level_below_or_equal": 32,
       "api_level_greater_or_equal": 24,
       "emulate_interface": {
         "java.util.Collection": "j$.util.Collection"
