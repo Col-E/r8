@@ -9,7 +9,7 @@ import com.android.tools.r8.position.Position;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 
 @Keep
-public class UnusedProguardKeepRuleDiagnostic extends ProguardKeepRuleDiagnostic {
+public class UnusedProguardKeepRuleDiagnostic implements ProguardKeepRuleDiagnostic {
 
   private final ProguardConfigurationRule rule;
 

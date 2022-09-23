@@ -5,6 +5,7 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8SHRINK;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
@@ -14,6 +15,7 @@ import static org.hamcrest.core.StringContains.containsString;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.android.tools.r8.errors.UnusedProguardKeepRuleDiagnostic;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
@@ -64,14 +66,16 @@ public class DesugaredLibraryWarningTest extends DesugaredLibraryTestBase {
         .compile()
         .inspectDiagnosticMessages(
             diagnosticsHandler -> {
+              diagnosticsHandler.assertNoErrors();
               if (libraryDesugaringSpecification != JDK8) {
-                diagnosticsHandler.assertNoErrors();
                 diagnosticsHandler.assertAllWarningsMatch(
                     diagnosticMessage(containsString("Specification conversion")));
               } else {
-
-                diagnosticsHandler.assertNoMessages();
+                diagnosticsHandler.assertNoWarnings();
               }
+              // TODO(b/248371950): Should we have L8 shinking builds with these?
+              diagnosticsHandler.assertAllInfosMatch(
+                  diagnosticType(UnusedProguardKeepRuleDiagnostic.class));
             });
   }
 }

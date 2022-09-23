@@ -4,6 +4,8 @@
 package com.android.tools.r8.errors;
 
 import com.android.tools.r8.Diagnostic;
+import com.android.tools.r8.Keep;
 
-/** Base class for diagnostics related to proguard keep rules. */
-public abstract class ProguardKeepRuleDiagnostic implements Diagnostic {}
+/** Base interface for diagnostics related to proguard keep rules. */
+@Keep
+public interface ProguardKeepRuleDiagnostic extends Diagnostic {}

@@ -6,8 +6,10 @@ package com.android.tools.r8;
 
 import static junit.framework.Assert.assertNull;
 import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.fail;
 
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.errors.UnusedProguardKeepRuleDiagnostic;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.origin.Origin;
@@ -249,14 +251,20 @@ public class L8TestBuilder {
             || warnings.stream()
                 .allMatch(warn -> warn.getDiagnosticMessage().contains("org.testng.Assert")));
     List<Diagnostic> infos = diagnosticsMessages.getInfos();
-    // The rewriting confuses the generic signatures in some methods. Such signatures are never
-    // used by tools (they use the non library desugared version) and are stripped when compiling
-    // with R8 anyway.
-    // TODO(b/243483320): Investigate the Invalid signature.
-    assertTrue(
-        infos.isEmpty()
-            || infos.stream()
-                .allMatch(info -> info.getDiagnosticMessage().contains("Invalid signature ")));
+    for (Diagnostic info : infos) {
+      // The rewriting confuses the generic signatures in some methods. Such signatures are never
+      // used by tools (they use the non library desugared version) and are stripped when compiling
+      // with R8 anyway.
+      // TODO(b/243483320): Investigate the Invalid signature.
+      if (info.getDiagnosticMessage().contains("Invalid signature ")) {
+        continue;
+      }
+      // TODO(b/248371950): Should we have L8 shinking builds with these?
+      if (info instanceof UnusedProguardKeepRuleDiagnostic) {
+        continue;
+      }
+      fail("Unexpected info diagnostic: " + info);
+    }
   }
 
   private L8Command.Builder addProgramClassFileData(L8Command.Builder builder) {
