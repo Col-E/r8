@@ -7,7 +7,6 @@ import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.benchmarks.BenchmarkResults;
-import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
@@ -119,7 +118,8 @@ public class ProguardTestBuilder
       }
       String proguardMap =
           Files.exists(mapFile) ? FileUtils.readTextFile(mapFile, Charsets.UTF_8) : "";
-      return new ProguardTestCompileResult(getState(), outJar, getMinApiLevel(), proguardMap);
+      return new ProguardTestCompileResult(
+          result, getState(), outJar, getMinApiLevel(), proguardMap);
     } catch (IOException e) {
       throw new CompilationFailedException(e);
     }

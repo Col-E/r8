@@ -14,15 +14,18 @@ import java.util.Set;
 public class ProguardTestCompileResult
     extends TestCompileResult<ProguardTestCompileResult, ProguardTestRunResult> {
 
+  private final ProcessResult result;
   private final Path outputJar;
   private final String proguardMap;
 
-  ProguardTestCompileResult(TestState state, Path outputJar, int minApiLevel, String proguardMap) {
+  ProguardTestCompileResult(
+      ProcessResult result, TestState state, Path outputJar, int minApiLevel, String proguardMap) {
     super(
         state,
         AndroidApp.builder().addProgramFiles(outputJar).build(),
         minApiLevel,
         OutputMode.ClassFile);
+    this.result = result;
     this.outputJar = outputJar;
     this.proguardMap = proguardMap;
   }
@@ -48,12 +51,12 @@ public class ProguardTestCompileResult
 
   @Override
   public String getStdout() {
-    throw new Unimplemented("Unexpected attempt to access stdout from Proguard");
+    return result.stdout;
   }
 
   @Override
   public String getStderr() {
-    throw new Unimplemented("Unexpected attempt to access stderr from Proguard");
+    return result.stderr;
   }
 
   @Override
