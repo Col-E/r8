@@ -54,6 +54,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
   private final String inlineClassUnderlyingPropertyName;
   private final KotlinTypeInfo inlineClassUnderlyingType;
   private final int jvmFlags;
+  private final String companionObjectName;
 
   // List of tracked assignments of kotlin metadata.
   private final KotlinMetadataMembersTracker originalMembersWithKotlinInfo;
@@ -78,7 +79,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       String inlineClassUnderlyingPropertyName,
       KotlinTypeInfo inlineClassUnderlyingType,
       KotlinMetadataMembersTracker originalMembersWithKotlinInfo,
-      int jvmFlags) {
+      int jvmFlags,
+      String companionObjectName) {
     this.flags = flags;
     this.name = name;
     this.nameCanBeSynthesizedFromClassOrAnonymousObjectOrigin =
@@ -100,6 +102,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     this.inlineClassUnderlyingType = inlineClassUnderlyingType;
     this.originalMembersWithKotlinInfo = originalMembersWithKotlinInfo;
     this.jvmFlags = jvmFlags;
+    this.companionObjectName = companionObjectName;
   }
 
   public static KotlinClassInfo create(
@@ -154,7 +157,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
             keepByteCode,
             extensionInformation,
             originalMembersWithKotlinInfo);
-    setCompanionObject(kmClass, hostClass, reporter);
+    String companionObjectName = setCompanionObject(kmClass, hostClass, reporter);
     KotlinTypeReference anonymousObjectOrigin = getAnonymousObjectOrigin(kmClass, factory);
     boolean nameCanBeDeducedFromClassOrOrigin =
         kmClass.name.equals(
@@ -183,7 +186,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
         kmClass.getInlineClassUnderlyingPropertyName(),
         KotlinTypeInfo.create(kmClass.getInlineClassUnderlyingType(), factory, reporter),
         originalMembersWithKotlinInfo,
-        JvmExtensionsKt.getJvmFlags(kmClass));
+        JvmExtensionsKt.getJvmFlags(kmClass),
+        companionObjectName);
   }
 
   private static KotlinTypeReference getAnonymousObjectOrigin(
@@ -228,19 +232,20 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     return superTypeInfos.build();
   }
 
-  private static void setCompanionObject(KmClass kmClass, DexClass hostClass, Reporter reporter) {
+  private static String setCompanionObject(KmClass kmClass, DexClass hostClass, Reporter reporter) {
     String companionObjectName = kmClass.getCompanionObject();
     if (companionObjectName == null) {
-      return;
+      return companionObjectName;
     }
     for (DexEncodedField field : hostClass.fields()) {
       if (field.getReference().name.toString().equals(companionObjectName)) {
         field.setKotlinMemberInfo(new KotlinCompanionInfo(companionObjectName));
-        return;
+        return companionObjectName;
       }
     }
     reporter.warning(
         KotlinMetadataDiagnostic.missingCompanionObject(hostClass, companionObjectName));
+    return companionObjectName;
   }
 
   @Override
@@ -284,6 +289,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       rewritten |= !name.equals(rewrittenName);
     }
     // Find a companion object.
+    boolean foundCompanion = false;
     for (DexEncodedField field : clazz.fields()) {
       if (field.getKotlinInfo().isCompanion()) {
         rewritten |=
@@ -291,7 +297,13 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
                 .getKotlinInfo()
                 .asCompanion()
                 .rewrite(kmClass, field.getReference(), appView.getNamingLens());
+        foundCompanion = true;
       }
+    }
+    // If we did not find a companion but it was there on input we have to emit a new metadata
+    // object.
+    if (!foundCompanion && companionObjectName != null) {
+      rewritten = true;
     }
     // Take all not backed constructors because we will never find them in definitions.
     for (KotlinConstructorInfo constructorInfo : constructorsWithNoBacking) {
