@@ -4,6 +4,7 @@
 package com.android.tools.r8.shaking.forceproguardcompatibility.defaultctor;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.ProguardVersion;
@@ -18,7 +19,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class KeepClassMembersDefaultCtorTest extends TestBase {
+public class KeepClassesWithMembersDefaultCtorTest extends TestBase {
 
   static final String EXPECTED = StringUtils.lines("A()");
 
@@ -29,44 +30,51 @@ public class KeepClassMembersDefaultCtorTest extends TestBase {
     return getTestParameters().withDefaultCfRuntime().build();
   }
 
-  public KeepClassMembersDefaultCtorTest(TestParameters parameters) {
+  public KeepClassesWithMembersDefaultCtorTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void testReference() throws Exception {
     testForRuntime(parameters)
-        .addInnerClasses(KeepClassMembersDefaultCtorTest.class)
+        .addInnerClasses(KeepClassesWithMembersDefaultCtorTest.class)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
   public void testCompatR8() throws Exception {
-    run(testForR8Compat(parameters.getBackend()));
+    checkInitKept(run(testForR8Compat(parameters.getBackend())));
   }
 
   @Test
   public void testR8() throws Exception {
-    run(testForR8(parameters.getBackend()));
+    checkInitNotKept(run(testForR8(parameters.getBackend())));
   }
 
   @Test
   public void testPG() throws Exception {
-    run(testForProguard(ProguardVersion.getLatest()).addDontWarn(getClass()));
+    checkInitKept(run(testForProguard(ProguardVersion.getLatest()).addDontWarn(getClass())));
   }
 
   private TestRunResult<?> run(TestShrinkerBuilder<?, ?, ?, ?, ?> builder) throws Exception {
     return builder
-        .addInnerClasses(KeepClassMembersDefaultCtorTest.class)
-        .addKeepRules("-keepclassmembers class * { <fields>; }")
+        .addInnerClasses(KeepClassesWithMembersDefaultCtorTest.class)
+        .addKeepRules("-keepclasseswithmembers class * { <fields>; }")
         .addKeepClassAndMembersRules(TestClass.class)
         .addDontObfuscate()
-        .run(parameters.getRuntime(), TestClass.class)
-        .inspectFailure(
-            inspector -> {
-              assertThat(inspector.clazz(A.class).init(), isAbsent());
-            })
+        .run(parameters.getRuntime(), TestClass.class);
+  }
+
+  private TestRunResult<?> checkInitKept(TestRunResult<?> result) throws Exception {
+    return result
+        .inspect(inspector -> assertThat(inspector.clazz(A.class).init(), isPresent()))
+        .assertSuccessWithOutput(EXPECTED);
+  }
+
+  private TestRunResult<?> checkInitNotKept(TestRunResult<?> result) throws Exception {
+    return result
+        .inspectFailure(inspector -> assertThat(inspector.clazz(A.class).init(), isAbsent()))
         .assertFailureWithErrorThatThrows(NoSuchMethodException.class);
   }
 
@@ -90,7 +98,9 @@ public class KeepClassMembersDefaultCtorTest extends TestBase {
       String name = args.length == 0 ? "A" : null;
       Class<?> clazz =
           Class.forName(
-              TestClass.class.getPackage().getName() + ".KeepClassMembersDefaultCtorTest$" + name);
+              TestClass.class.getPackage().getName()
+                  + ".KeepClassesWithMembersDefaultCtorTest$"
+                  + name);
       Object obj = clazz.getConstructor().newInstance();
       if (args.length > 0) {
         // Use the field so we are sure that the keep rule triggers.

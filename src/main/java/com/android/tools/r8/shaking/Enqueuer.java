@@ -137,6 +137,7 @@ import com.android.tools.r8.shaking.EnqueuerWorklist.TraceStaticFieldReadAction;
 import com.android.tools.r8.shaking.EnqueuerWorklist.TraceStaticFieldWriteAction;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
 import com.android.tools.r8.shaking.KeepInfoCollection.MutableKeepInfoCollection;
+import com.android.tools.r8.shaking.KeepMethodInfo.Joiner;
 import com.android.tools.r8.shaking.RootSetUtils.ConsequentRootSet;
 import com.android.tools.r8.shaking.RootSetUtils.ConsequentRootSetBuilder;
 import com.android.tools.r8.shaking.RootSetUtils.RootSet;
@@ -943,9 +944,19 @@ public class Enqueuer {
       if (clazz.hasDefaultInitializer()) {
         ProgramMethod defaultInitializer = clazz.getProgramDefaultInitializer();
         if (forceProguardCompatibility) {
-          workList.enqueueMarkMethodKeptAction(
-              defaultInitializer,
-              graphReporter.reportCompatKeepDefaultInitializer(defaultInitializer));
+          Joiner joiner = KeepMethodInfo.newEmptyJoiner();
+          for (ProguardKeepRuleBase rule : rules) {
+            if (!rule.getType().equals(ProguardKeepRuleType.KEEP_CLASS_MEMBERS)) {
+              joiner.addRule(rule);
+            }
+          }
+          if (!joiner.getRules().isEmpty()) {
+            workList.enqueueMarkMethodKeptAction(
+                defaultInitializer,
+                graphReporter.reportCompatKeepDefaultInitializer(defaultInitializer));
+            applyMinimumKeepInfoWhenLiveOrTargeted(
+                defaultInitializer, joiner.disallowOptimization());
+          }
         }
         if (clazz.isExternalizable(appView)) {
           workList.enqueueMarkMethodLiveAction(defaultInitializer, defaultInitializer, witness);
