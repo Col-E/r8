@@ -221,6 +221,12 @@ public class EnumValueOptimizer {
 
       int fallthroughBlockIndex = switchInsn.getFallthroughBlockIndex();
       if (ordinalToTargetMap.size() < switchInsn.numberOfKeys()) {
+        if (block.numberOfNormalSuccessors() != switchInsn.numberOfKeys() + 1) {
+          // This can happen in extremely rare cases where several switch targets are the same
+          // block (See b/231804008).
+          // TODO(b/249052389): Support removing switch map for such switches.
+          continue;
+        }
         // There is at least one dead switch case. This can happen when some dependencies use
         // different versions of the same enum.
         int numberOfNormalSuccessors = switchInsn.numberOfKeys() + 1;
