@@ -40,6 +40,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.NoInterfaces;
 import com.android.tools.r8.horizontalclassmerging.policies.NoKeepRules;
 import com.android.tools.r8.horizontalclassmerging.policies.NoKotlinMetadata;
 import com.android.tools.r8.horizontalclassmerging.policies.NoNativeMethods;
+import com.android.tools.r8.horizontalclassmerging.policies.NoResourceClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.NoServiceLoaders;
 import com.android.tools.r8.horizontalclassmerging.policies.NoVerticallyMergedClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.NoVirtualMethodMerging;
@@ -161,6 +162,7 @@ public class PolicyScheduler {
       RuntimeTypeCheckInfo runtimeTypeCheckInfo,
       ImmutableList.Builder<SingleClassPolicy> builder) {
     builder.add(
+        new NoResourceClasses(),
         new NotMatchedByNoHorizontalClassMerging(appView),
         new NoAnnotationClasses(),
         new NoDirectRuntimeTypeChecks(appView, mode, runtimeTypeCheckInfo),
@@ -180,6 +182,7 @@ public class PolicyScheduler {
       ImmutableList.Builder<SingleClassPolicy> builder) {
     List<SingleClassPolicy> policies =
         ImmutableList.of(
+            new NoResourceClasses(),
             new NoAnnotationClasses(),
             new NoDirectRuntimeTypeChecks(appView, mode),
             new NoEnums(appView),
@@ -197,6 +200,7 @@ public class PolicyScheduler {
       AppView<AppInfo> appView, Mode mode, ImmutableList.Builder<SingleClassPolicy> builder) {
     List<SingleClassPolicy> policies =
         ImmutableList.of(
+            new NoResourceClasses(),
             new NoAnnotationClasses(),
             new NoDirectRuntimeTypeChecks(appView, mode),
             new NoInterfaces(appView, mode),
