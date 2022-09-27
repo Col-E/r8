@@ -255,15 +255,23 @@ public class L8TestBuilder {
       // The rewriting confuses the generic signatures in some methods. Such signatures are never
       // used by tools (they use the non library desugared version) and are stripped when compiling
       // with R8 anyway.
+      if (info instanceof UnusedProguardKeepRuleDiagnostic) {
+        // The default keep rules on desugared library may be unused. They should all be defined
+        // with keepclassmembers.
+        if (info.getDiagnosticMessage().contains("keepclassmembers")) {
+          continue;
+        }
+        // We allow info regarding the extended version of desugared library for JDK11 testing.
+        if (info.getDiagnosticMessage().contains("org.testng.")) {
+          continue;
+        }
+        fail("Unexpected unused proguard keep rule diagnostic: " + info.getDiagnosticMessage());
+      }
       // TODO(b/243483320): Investigate the Invalid signature.
       if (info.getDiagnosticMessage().contains("Invalid signature ")) {
         continue;
       }
-      // TODO(b/248371950): Should we have L8 shinking builds with these?
-      if (info instanceof UnusedProguardKeepRuleDiagnostic) {
-        continue;
-      }
-      fail("Unexpected info diagnostic: " + info);
+      fail("Unexpected info diagnostic: " + info.getDiagnosticMessage());
     }
   }
 

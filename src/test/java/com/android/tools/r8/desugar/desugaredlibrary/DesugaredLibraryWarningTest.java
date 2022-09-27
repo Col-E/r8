@@ -5,7 +5,6 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8SHRINK;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
@@ -15,7 +14,6 @@ import static org.hamcrest.core.StringContains.containsString;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
-import com.android.tools.r8.errors.UnusedProguardKeepRuleDiagnostic;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
@@ -26,14 +24,32 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class DesugaredLibraryWarningTest extends DesugaredLibraryTestBase {
 
-  private static final String FUNCTION_KEEP =
-      "-keep class j$.util.function.Function$-CC {\n"
-          + "    j$.util.function.Function $default$compose(j$.util.function.Function,"
-          + " j$.util.function.Function);\n"
-          + "    j$.util.function.Function $default$andThen(j$.util.function.Function,"
-          + " j$.util.function.Function);\n"
-          + "}\n"
-          + "-keep class j$.util.function.Function { *; }";
+  private static final String getFunctionKeep(String prefix) {
+    return "-keep class j$.util.function.Function$-CC {\n"
+        + "    "
+        + prefix
+        + ".util.function.Function $default$compose("
+        + prefix
+        + ".util.function.Function,"
+        + " "
+        + prefix
+        + ".util.function.Function);\n"
+        + "    "
+        + prefix
+        + ".util.function.Function $default$andThen("
+        + prefix
+        + ".util.function.Function,"
+        + " "
+        + prefix
+        + ".util.function.Function);\n"
+        + "}\n"
+        + "-keep class "
+        + prefix
+        + ".util.function.Function { *; }";
+  }
+
+  private static final String FUNCTION_KEEP_J$ = getFunctionKeep("j$");
+  private static final String FUNCTION_KEEP_JAVA = getFunctionKeep("java");
 
   private final TestParameters parameters;
   private final CompilationSpecification compilationSpecification;
@@ -62,7 +78,13 @@ public class DesugaredLibraryWarningTest extends DesugaredLibraryTestBase {
         .apply(
             l8TestBuilder ->
                 libraryDesugaringSpecification.configureL8TestBuilder(
-                    l8TestBuilder, compilationSpecification.isL8Shrink(), FUNCTION_KEEP))
+                    l8TestBuilder,
+                    compilationSpecification.isL8Shrink(),
+                    libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters)
+                        ? libraryDesugaringSpecification.hasJDollarFunction(parameters)
+                            ? FUNCTION_KEEP_J$
+                            : FUNCTION_KEEP_JAVA
+                        : ""))
         .compile()
         .inspectDiagnosticMessages(
             diagnosticsHandler -> {
@@ -73,9 +95,7 @@ public class DesugaredLibraryWarningTest extends DesugaredLibraryTestBase {
               } else {
                 diagnosticsHandler.assertNoWarnings();
               }
-              // TODO(b/248371950): Should we have L8 shinking builds with these?
-              diagnosticsHandler.assertAllInfosMatch(
-                  diagnosticType(UnusedProguardKeepRuleDiagnostic.class));
+              diagnosticsHandler.assertNoInfos();
             });
   }
 }

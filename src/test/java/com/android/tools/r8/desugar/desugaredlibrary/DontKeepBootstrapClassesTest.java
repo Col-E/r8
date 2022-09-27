@@ -61,9 +61,6 @@ public class DontKeepBootstrapClassesTest extends DesugaredLibraryTestBase {
                         .anyMatch(
                             kr ->
                                 kr.contains("-keep class " + prefix + ".util.function.Consumer")));
-                // TODO(b/158635415): Don't generate keep rules targeting items outside desugared
-                // library.
-                assertTrue(keepRule.stream().anyMatch(kr -> kr.contains("-keep class java.util")));
               }
             });
   }
