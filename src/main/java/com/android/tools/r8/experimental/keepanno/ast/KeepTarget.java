@@ -45,4 +45,12 @@ public class KeepTarget {
   public static Builder builder() {
     return new Builder();
   }
+
+  public KeepItemPattern getItem() {
+    return item;
+  }
+
+  public KeepOptions getOptions() {
+    return options;
+  }
 }

@@ -39,11 +39,19 @@ public final class KeepEdge {
     return new Builder();
   }
 
-  private final KeepPreconditions precondition;
+  private final KeepPreconditions preconditions;
   private final KeepConsequences consequences;
 
-  private KeepEdge(KeepPreconditions precondition, KeepConsequences consequences) {
-    this.precondition = precondition;
+  private KeepEdge(KeepPreconditions preconditions, KeepConsequences consequences) {
+    this.preconditions = preconditions;
     this.consequences = consequences;
+  }
+
+  public KeepPreconditions getPreconditions() {
+    return preconditions;
+  }
+
+  public KeepConsequences getConsequences() {
+    return consequences;
   }
 }

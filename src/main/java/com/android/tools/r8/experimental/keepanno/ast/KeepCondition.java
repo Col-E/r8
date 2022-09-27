@@ -11,12 +11,7 @@ package com.android.tools.r8.experimental.keepanno.ast;
  * the extent of the item for which it is predicated on. The extent is given by a "usage kind" that
  * can be either its "symbolic reference" or its "actual use".
  */
-public abstract class KeepCondition {
-
-  /** A condition that is unconditionally true. */
-  public static KeepCondition trueCondition() {
-    return KeepConditionTrue.getInstance();
-  }
+public final class KeepCondition {
 
   public static Builder builder() {
     return new Builder();
@@ -40,42 +35,23 @@ public abstract class KeepCondition {
     }
 
     public KeepCondition build() {
-      return new KeepConditionItem(itemPattern);
+      return new KeepCondition(usageKind, itemPattern);
     }
   }
 
-  private static class KeepConditionTrue extends KeepCondition {
+  private final KeepUsageKind usageKind;
+  private final KeepItemPattern itemPattern;
 
-    private static KeepConditionTrue INSTANCE = null;
-
-    public static KeepConditionTrue getInstance() {
-      if (INSTANCE == null) {
-        INSTANCE = new KeepConditionTrue();
-      }
-      return INSTANCE;
+  private KeepCondition(KeepUsageKind usageKind, KeepItemPattern itemPattern) {
+    this.usageKind = usageKind;
+    this.itemPattern = itemPattern;
     }
-  }
 
-  private static class KeepConditionFalse extends KeepCondition {
-
-    private static KeepConditionFalse INSTANCE = null;
-
-    public static KeepConditionFalse getInstance() {
-      if (INSTANCE == null) {
-        INSTANCE = new KeepConditionFalse();
-      }
-      return INSTANCE;
+  public KeepUsageKind getUsageKind() {
+    return usageKind;
     }
-  }
 
-  private static class KeepConditionItem extends KeepCondition {
-
-    private final KeepItemPattern itemPattern;
-
-    private KeepConditionItem(KeepItemPattern itemPattern) {
-      this.itemPattern = itemPattern;
+  public KeepItemPattern getItemPattern() {
+    return itemPattern;
     }
-  }
-
-  private KeepCondition() {}
 }

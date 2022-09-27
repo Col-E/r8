@@ -5,29 +5,11 @@ package com.android.tools.r8.experimental.keepanno.ast;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public abstract class KeepPreconditions {
 
-  private static class KeepPreconditionsAlways extends KeepPreconditions {
-
-    private static KeepPreconditionsAlways INSTANCE = null;
-
-    public static KeepPreconditionsAlways getInstance() {
-      if (INSTANCE == null) {
-        INSTANCE = new KeepPreconditionsAlways();
-      }
-      return INSTANCE;
-    }
-  }
-
-  private static class KeepPreconditionsSome extends KeepPreconditions {
-
-    private final List<KeepCondition> preconditions;
-
-    private KeepPreconditionsSome(List<KeepCondition> preconditions) {
-      this.preconditions = preconditions;
-    }
-  }
+  public abstract void forEach(Consumer<KeepCondition> fn);
 
   public static class Builder {
 
@@ -41,7 +23,9 @@ public abstract class KeepPreconditions {
     }
 
     public KeepPreconditions build() {
-      return new KeepPreconditionsSome(preconditions);
+      return preconditions.isEmpty()
+          ? KeepPreconditions.always()
+          : new KeepPreconditionsSome(preconditions);
     }
   }
 
@@ -51,5 +35,48 @@ public abstract class KeepPreconditions {
 
   public static KeepPreconditions always() {
     return KeepPreconditionsAlways.getInstance();
+  }
+
+  public abstract boolean isAlways();
+
+  private static class KeepPreconditionsAlways extends KeepPreconditions {
+
+    private static KeepPreconditionsAlways INSTANCE = null;
+
+    public static KeepPreconditionsAlways getInstance() {
+      if (INSTANCE == null) {
+        INSTANCE = new KeepPreconditionsAlways();
+      }
+      return INSTANCE;
+    }
+
+    @Override
+    public boolean isAlways() {
+      return true;
+    }
+
+    @Override
+    public void forEach(Consumer<KeepCondition> fn) {
+      // Empty.
+    }
+  }
+
+  private static class KeepPreconditionsSome extends KeepPreconditions {
+
+    private final List<KeepCondition> preconditions;
+
+    private KeepPreconditionsSome(List<KeepCondition> preconditions) {
+      this.preconditions = preconditions;
+    }
+
+    @Override
+    public boolean isAlways() {
+      return false;
+    }
+
+    @Override
+    public void forEach(Consumer<KeepCondition> fn) {
+      preconditions.forEach(fn);
+    }
   }
 }

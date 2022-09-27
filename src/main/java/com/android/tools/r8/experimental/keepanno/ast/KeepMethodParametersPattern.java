@@ -3,6 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.experimental.keepanno.ast;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
 public abstract class KeepMethodParametersPattern {
 
   public static KeepMethodParametersPattern any() {
@@ -13,6 +18,10 @@ public abstract class KeepMethodParametersPattern {
     return None.getInstance();
   }
 
+  private KeepMethodParametersPattern() {}
+
+  public abstract <T> T match(Supplier<T> onAny, Function<List<KeepTypePattern>, T> onList);
+
   private static class None extends KeepMethodParametersPattern {
     private static None INSTANCE = null;
 
@@ -21,6 +30,11 @@ public abstract class KeepMethodParametersPattern {
         INSTANCE = new None();
       }
       return INSTANCE;
+    }
+
+    @Override
+    public <T> T match(Supplier<T> onAny, Function<List<KeepTypePattern>, T> onList) {
+      return onList.apply(Collections.emptyList());
     }
   }
 
@@ -32,6 +46,11 @@ public abstract class KeepMethodParametersPattern {
         INSTANCE = new Any();
       }
       return INSTANCE;
+    }
+
+    @Override
+    public <T> T match(Supplier<T> onAny, Function<List<KeepTypePattern>, T> onList) {
+      return onAny.get();
     }
   }
 }

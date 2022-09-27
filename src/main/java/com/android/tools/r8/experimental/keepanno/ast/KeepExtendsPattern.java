@@ -32,6 +32,9 @@ public abstract class KeepExtendsPattern {
     private static KeepExtendsAnyPattern INSTANCE = null;
 
     public static KeepExtendsAnyPattern getInstance() {
+      if (INSTANCE == null) {
+        INSTANCE = new KeepExtendsAnyPattern();
+      }
       return INSTANCE;
     }
 

@@ -5,6 +5,7 @@ package com.android.tools.r8.experimental.keepanno.ast;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Set of consequences of a keep edge.
@@ -44,5 +45,9 @@ public final class KeepConsequences {
 
   public boolean isEmpty() {
     return targets.isEmpty();
+  }
+
+  public void forEachTarget(Consumer<KeepTarget> fn) {
+    targets.forEach(fn);
   }
 }

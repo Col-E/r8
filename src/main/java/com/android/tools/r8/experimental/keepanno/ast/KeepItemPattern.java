@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.experimental.keepanno.ast;
 
+import java.util.function.Function;
+import java.util.function.Supplier;
+
 /**
  * A pattern for matching items in the program.
  *
@@ -74,9 +77,19 @@ public abstract class KeepItemPattern {
       }
       return INSTANCE;
     }
+
+    @Override
+    public boolean isAny() {
+      return true;
+    }
+
+    @Override
+    public <T> T match(Supplier<T> onAny, Function<KeepClassPattern, T> onItem) {
+      return onAny.get();
+    }
   }
 
-  private static class KeepClassPattern extends KeepItemPattern {
+  public static class KeepClassPattern extends KeepItemPattern {
 
     private final KeepQualifiedClassNamePattern qualifiedClassPattern;
     private final KeepExtendsPattern extendsPattern;
@@ -91,5 +104,35 @@ public abstract class KeepItemPattern {
       this.extendsPattern = extendsPattern;
       this.membersPattern = membersPattern;
     }
+
+    @Override
+    public boolean isAny() {
+      return qualifiedClassPattern.isAny() && extendsPattern.isAny() && membersPattern.isAll();
+    }
+
+    @Override
+    public <T> T match(Supplier<T> onAny, Function<KeepClassPattern, T> onItem) {
+      if (isAny()) {
+        return onAny.get();
+      } else {
+        return onItem.apply(this);
+      }
+    }
+
+    public KeepQualifiedClassNamePattern getClassNamePattern() {
+      return qualifiedClassPattern;
+    }
+
+    public KeepExtendsPattern getExtendsPattern() {
+      return extendsPattern;
+    }
+
+    public KeepMembersPattern getMembersPattern() {
+      return membersPattern;
+    }
   }
+
+  public abstract boolean isAny();
+
+  public abstract <T> T match(Supplier<T> onAny, Function<KeepClassPattern, T> onItem);
 }

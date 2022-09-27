@@ -69,4 +69,12 @@ public class KeepQualifiedClassNamePattern {
   public boolean isAny() {
     return packagePattern.isAny() && namePattern.isAny();
   }
+
+  public KeepPackagePattern getPackagePattern() {
+    return packagePattern;
+  }
+
+  public KeepUnqualfiedClassNamePattern getNamePattern() {
+    return namePattern;
+  }
 }

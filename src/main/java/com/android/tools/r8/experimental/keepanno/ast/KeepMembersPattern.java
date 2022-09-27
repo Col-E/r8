@@ -3,8 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.experimental.keepanno.ast;
 
+import com.android.tools.r8.errors.Unimplemented;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public abstract class KeepMembersPattern {
 
@@ -82,6 +84,11 @@ public abstract class KeepMembersPattern {
     public boolean isNone() {
       return true;
     }
+
+    @Override
+    public void forEach(Consumer<KeepFieldPattern> onField, Consumer<KeepMethodPattern> onMethod) {
+      throw new Unimplemented("Should this include all and none?");
+    }
   }
 
   private static class KeepMembersNonePattern extends KeepMembersPattern {
@@ -103,6 +110,11 @@ public abstract class KeepMembersPattern {
     @Override
     public boolean isNone() {
       return true;
+    }
+
+    @Override
+    public void forEach(Consumer<KeepFieldPattern> onField, Consumer<KeepMethodPattern> onMethod) {
+      throw new Unimplemented("Should this include all and none?");
     }
   }
 
@@ -128,6 +140,12 @@ public abstract class KeepMembersPattern {
       // Since there is at least one field or method this is not a match none.
       return false;
     }
+
+    @Override
+    public void forEach(Consumer<KeepFieldPattern> onField, Consumer<KeepMethodPattern> onMethod) {
+      fields.forEach(onField);
+      methods.forEach(onMethod);
+    }
   }
 
   private KeepMembersPattern() {}
@@ -135,4 +153,7 @@ public abstract class KeepMembersPattern {
   public abstract boolean isAll();
 
   public abstract boolean isNone();
+
+  public abstract void forEach(
+      Consumer<KeepFieldPattern> onField, Consumer<KeepMethodPattern> onMethod);
 }

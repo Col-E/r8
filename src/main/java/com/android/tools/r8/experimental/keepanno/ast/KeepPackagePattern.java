@@ -68,9 +68,19 @@ public abstract class KeepPackagePattern {
     public boolean isAny() {
       return true;
     }
+
+    @Override
+    public boolean isTop() {
+      return false;
+    }
+
+    @Override
+    public boolean isExact() {
+      return false;
+    }
   }
 
-  private static final class KeepPackageTopPattern extends KeepPackagePattern {
+  private static final class KeepPackageTopPattern extends KeepPackageExactPattern {
 
     private static KeepPackageTopPattern INSTANCE = null;
 
@@ -81,15 +91,22 @@ public abstract class KeepPackagePattern {
       return INSTANCE;
     }
 
-    private KeepPackageTopPattern() {}
+    private KeepPackageTopPattern() {
+      super("");
+    }
 
     @Override
     public boolean isAny() {
       return false;
     }
+
+    @Override
+    public boolean isTop() {
+      return true;
+    }
   }
 
-  private static final class KeepPackageExactPattern extends KeepPackagePattern {
+  public static class KeepPackageExactPattern extends KeepPackagePattern {
 
     private final String fullPackage;
 
@@ -102,7 +119,34 @@ public abstract class KeepPackagePattern {
     public boolean isAny() {
       return false;
     }
+
+    @Override
+    public boolean isTop() {
+      return fullPackage.equals("");
+    }
+
+    @Override
+    public boolean isExact() {
+      return true;
+    }
+
+    @Override
+    public KeepPackageExactPattern asExact() {
+      return this;
+    }
+
+    public String getExactPackageAsString() {
+      return fullPackage;
+    }
   }
 
   public abstract boolean isAny();
+
+  public abstract boolean isTop();
+
+  public abstract boolean isExact();
+
+  public KeepPackageExactPattern asExact() {
+    return null;
+  }
 }

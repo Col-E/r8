@@ -11,6 +11,7 @@ public final class KeepMethodPattern extends KeepMemberPattern {
 
   public static class Builder extends KeepMemberPattern.Builder<Builder> {
 
+    private KeepMethodAccessPattern accessPattern = KeepMethodAccessPattern.any();
     private KeepMethodNamePattern namePattern = null;
     private KeepMethodReturnTypePattern returnTypePattern = KeepMethodReturnTypePattern.any();
     private KeepMethodParametersPattern parametersPattern = KeepMethodParametersPattern.any();
@@ -20,6 +21,11 @@ public final class KeepMethodPattern extends KeepMemberPattern {
     @Override
     public Builder self() {
       return this;
+    }
+
+    public Builder setAccessPattern(KeepMethodAccessPattern accessPattern) {
+      this.accessPattern = accessPattern;
+      return self();
     }
 
     public Builder setNamePattern(KeepMethodNamePattern namePattern) {
@@ -41,18 +47,22 @@ public final class KeepMethodPattern extends KeepMemberPattern {
       if (namePattern == null) {
         throw new KeepEdgeException("Method pattern must declar a name pattern");
       }
-      return new KeepMethodPattern(namePattern, returnTypePattern, parametersPattern);
+      return new KeepMethodPattern(
+          accessPattern, namePattern, returnTypePattern, parametersPattern);
     }
   }
 
+  private final KeepMethodAccessPattern accessPattern;
   private final KeepMethodNamePattern namePattern;
   private final KeepMethodReturnTypePattern returnTypePattern;
   private final KeepMethodParametersPattern parametersPattern;
 
   private KeepMethodPattern(
+      KeepMethodAccessPattern accessPattern,
       KeepMethodNamePattern namePattern,
       KeepMethodReturnTypePattern returnTypePattern,
       KeepMethodParametersPattern parametersPattern) {
+    this.accessPattern = accessPattern;
     this.namePattern = namePattern;
     this.returnTypePattern = returnTypePattern;
     this.parametersPattern = parametersPattern;
@@ -60,5 +70,21 @@ public final class KeepMethodPattern extends KeepMemberPattern {
 
   public boolean isAnyMethod() {
     return false;
+  }
+
+  public KeepMethodAccessPattern getAccessPattern() {
+    return accessPattern;
+  }
+
+  public KeepMethodNamePattern getNamePattern() {
+    return namePattern;
+  }
+
+  public KeepMethodReturnTypePattern getReturnTypePattern() {
+    return returnTypePattern;
+  }
+
+  public KeepMethodParametersPattern getParametersPattern() {
+    return parametersPattern;
   }
 }

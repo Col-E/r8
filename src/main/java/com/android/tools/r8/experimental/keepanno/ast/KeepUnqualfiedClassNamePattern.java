@@ -56,9 +56,14 @@ public abstract class KeepUnqualfiedClassNamePattern {
     public boolean isAny() {
       return true;
     }
+
+    @Override
+    public boolean isExact() {
+      return false;
+    }
   }
 
-  private static class KeepClassNameExactPattern extends KeepUnqualfiedClassNamePattern {
+  public static class KeepClassNameExactPattern extends KeepUnqualfiedClassNamePattern {
 
     private final String className;
 
@@ -70,7 +75,27 @@ public abstract class KeepUnqualfiedClassNamePattern {
     public boolean isAny() {
       return false;
     }
+
+    @Override
+    public boolean isExact() {
+      return true;
+    }
+
+    @Override
+    public KeepClassNameExactPattern asExact() {
+      return this;
+    }
+
+    public String getExactNameAsString() {
+      return className;
+    }
   }
 
   public abstract boolean isAny();
+
+  public abstract boolean isExact();
+
+  public KeepClassNameExactPattern asExact() {
+    return null;
+  }
 }

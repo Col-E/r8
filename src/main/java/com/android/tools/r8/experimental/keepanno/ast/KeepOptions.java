@@ -11,7 +11,8 @@ public final class KeepOptions {
   public enum KeepOption {
     SHRINKING,
     OPTIMIZING,
-    OBFUSCATING
+    OBFUSCATING,
+    ACCESS_MODIFING,
   }
 
   public static KeepOptions keepAll() {
