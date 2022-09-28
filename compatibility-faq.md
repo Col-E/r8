@@ -129,7 +129,7 @@ Both the use of `transient` and the use of the annotation `SerializedName` allow
 the fields to be renamed by R8 to the same name, but GSON serialization will
 work as expected.
 
-### GSON with full mode
+### GSON
 
 GSON uses type tokens to serialize and deserialize generic types.
 
@@ -138,13 +138,16 @@ GSON uses type tokens to serialize and deserialize generic types.
 The anonymous class will have a generic signature argument of `List<String>` to
 the super type `TypeToken` that is reflective read for serialization. It
 is therefore necessary to keep both the `Signature` attribute, the
-`com.google.gson.reflect.TypeToken` class and all sub-types:
+`com.google.gson.reflect.TypeToken` class and all sub-types.
 
 ```
 -keepattributes Signature
 -keep class com.google.gson.reflect.TypeToken { *; }
 -keep class * extends com.google.gson.reflect.TypeToken
 ```
+
+This is also needed for R8 in compat mode since multiple optimizations will
+remove the generic signature such as class merging and argument removal.
 
 ## Retrofit
 
