@@ -66,8 +66,11 @@ public class PathTest extends DesugaredLibraryTestBase {
   @Test
   public void test() throws Throwable {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
-        .addL8KeepRules("-keepnames class j$.desugar.sun.nio.fs.**")
-        .addL8KeepRules("-keepnames class j$.nio.file.FileSystem**")
+        .applyIf(
+            libraryDesugaringSpecification.hasNioFileDesugaring(parameters),
+            b ->
+                b.addL8KeepRules("-keepnames class j$.desugar.sun.nio.fs.**")
+                    .addL8KeepRules("-keepnames class j$.nio.file.FileSystem**"))
         .addInnerClasses(PathTest.class)
         .addKeepMainRule(TestClass.class)
         .compile()
