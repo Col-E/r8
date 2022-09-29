@@ -63,7 +63,6 @@ public class KeepEdgeApiTest extends TestBase {
                 KeepPreconditions.builder()
                     .addCondition(
                         KeepCondition.builder()
-                            .setUsageKind(KeepUsageKind.symbolicReference())
                             .setItem(classItem(CLASS))
                             .build())
                     .build())
@@ -89,7 +88,6 @@ public class KeepEdgeApiTest extends TestBase {
                 KeepPreconditions.builder()
                     .addCondition(
                         KeepCondition.builder()
-                            .setUsageKind(KeepUsageKind.symbolicReference())
                             .setItem(classItem(CLASS))
                             .build())
                     .build())
@@ -107,7 +105,6 @@ public class KeepEdgeApiTest extends TestBase {
                 KeepPreconditions.builder()
                     .addCondition(
                         KeepCondition.builder()
-                            .setUsageKind(KeepUsageKind.symbolicReference())
                             .setItem(classItem(CLASS))
                             .build())
                     .build())

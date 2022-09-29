@@ -19,15 +19,9 @@ public final class KeepCondition {
 
   public static class Builder {
 
-    private KeepUsageKind usageKind = KeepUsageKind.symbolicReference();
     private KeepItemPattern itemPattern;
 
     private Builder() {}
-
-    public Builder setUsageKind(KeepUsageKind usageKind) {
-      this.usageKind = usageKind;
-      return this;
-    }
 
     public Builder setItem(KeepItemPattern itemPattern) {
       this.itemPattern = itemPattern;
@@ -35,21 +29,15 @@ public final class KeepCondition {
     }
 
     public KeepCondition build() {
-      return new KeepCondition(usageKind, itemPattern);
+      return new KeepCondition(itemPattern);
     }
   }
 
-  private final KeepUsageKind usageKind;
   private final KeepItemPattern itemPattern;
 
-  private KeepCondition(KeepUsageKind usageKind, KeepItemPattern itemPattern) {
-    this.usageKind = usageKind;
+  private KeepCondition(KeepItemPattern itemPattern) {
     this.itemPattern = itemPattern;
-    }
-
-  public KeepUsageKind getUsageKind() {
-    return usageKind;
-    }
+  }
 
   public KeepItemPattern getItemPattern() {
     return itemPattern;
