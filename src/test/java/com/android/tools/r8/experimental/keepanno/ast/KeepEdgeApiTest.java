@@ -17,6 +17,8 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class KeepEdgeApiTest extends TestBase {
 
+  private static String CLASS = "com.example.Foo";
+
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withNoneRuntime().build();
@@ -47,19 +49,14 @@ public class KeepEdgeApiTest extends TestBase {
 
   @Test
   public void testKeepClass() throws Exception {
-    KeepQualifiedClassNamePattern clazz = KeepQualifiedClassNamePattern.exact("com.example.Foo");
-    KeepItemPattern item = KeepItemPattern.builder().setClassPattern(clazz).build();
-    KeepTarget target = KeepTarget.builder().setItem(item).build();
+    KeepTarget target = target(classItem(CLASS));
     KeepConsequences consequences = KeepConsequences.builder().addTarget(target).build();
     KeepEdge edge = KeepEdge.builder().setConsequences(consequences).build();
-    assertEquals(StringUtils.unixLines("-keep class com.example.Foo"), extract(edge));
+    assertEquals(StringUtils.unixLines("-keep class " + CLASS), extract(edge));
   }
 
   @Test
   public void testKeepInitIfReferenced() throws Exception {
-    // Equivalent of: -if class com.example.Foo -keep class com.example.Foo { void <init>(); }
-    KeepQualifiedClassNamePattern classPattern =
-        KeepQualifiedClassNamePattern.exact("com.example.Foo");
     KeepEdge edge =
         KeepEdge.builder()
             .setPreconditions(
@@ -67,35 +64,90 @@ public class KeepEdgeApiTest extends TestBase {
                     .addCondition(
                         KeepCondition.builder()
                             .setUsageKind(KeepUsageKind.symbolicReference())
-                            .setItem(
-                                KeepItemPattern.builder().setClassPattern(classPattern).build())
+                            .setItem(classItem(CLASS))
                             .build())
                     .build())
             .setConsequences(
                 KeepConsequences.builder()
                     .addTarget(
-                        KeepTarget.builder()
-                            .setItem(
-                                KeepItemPattern.builder()
-                                    .setClassPattern(classPattern)
-                                    .setMembersPattern(
-                                        KeepMembersPattern.builder()
-                                            .addMethodPattern(
-                                                KeepMethodPattern.builder()
-                                                    .setNamePattern(
-                                                        KeepMethodNamePattern.initializer())
-                                                    .setParametersPattern(
-                                                        KeepMethodParametersPattern.none())
-                                                    .setReturnTypeVoid()
-                                                    .build())
-                                            .build())
-                                    .build())
+                        target(
+                            buildClassItem(CLASS)
+                                .setMembersPattern(defaultInitializerPattern())
+                                .build()))
+                    .build())
+            .build();
+    assertEquals(
+        StringUtils.unixLines("-keepclassmembers class " + CLASS + " { void <init>(); }"),
+        extract(edge));
+  }
+
+  @Test
+  public void testKeepInstanceIfReferenced() throws Exception {
+    KeepEdge edge =
+        KeepEdge.builder()
+            .setPreconditions(
+                KeepPreconditions.builder()
+                    .addCondition(
+                        KeepCondition.builder()
+                            .setUsageKind(KeepUsageKind.symbolicReference())
+                            .setItem(classItem(CLASS))
                             .build())
+                    .build())
+            .setConsequences(KeepConsequences.builder().addTarget(target(classItem(CLASS))).build())
+            .build();
+    assertEquals(
+        StringUtils.unixLines("-if class " + CLASS + " -keep class " + CLASS), extract(edge));
+  }
+
+  @Test
+  public void testKeepInstanceAndInitIfReferenced() throws Exception {
+    KeepEdge edge =
+        KeepEdge.builder()
+            .setPreconditions(
+                KeepPreconditions.builder()
+                    .addCondition(
+                        KeepCondition.builder()
+                            .setUsageKind(KeepUsageKind.symbolicReference())
+                            .setItem(classItem(CLASS))
+                            .build())
+                    .build())
+            .setConsequences(
+                KeepConsequences.builder()
+                    .addTarget(target(classItem(CLASS)))
+                    .addTarget(
+                        target(
+                            buildClassItem(CLASS)
+                                .setMembersPattern(defaultInitializerPattern())
+                                .build()))
                     .build())
             .build();
     assertEquals(
         StringUtils.unixLines(
-            "-if class com.example.Foo -keep class com.example.Foo { void <init>(); }"),
+            "-if class " + CLASS + " -keep class " + CLASS,
+            "-keepclassmembers class " + CLASS + " { void <init>(); }"),
         extract(edge));
+  }
+
+  private KeepTarget target(KeepItemPattern item) {
+    return KeepTarget.builder().setItem(item).build();
+  }
+
+  private KeepItemPattern classItem(String typeName) {
+    return buildClassItem(typeName).build();
+  }
+
+  private KeepItemPattern.Builder buildClassItem(String typeName) {
+    return KeepItemPattern.builder().setClassPattern(KeepQualifiedClassNamePattern.exact(typeName));
+  }
+
+  private KeepMembersPattern defaultInitializerPattern() {
+    return KeepMembersPattern.builder()
+        .addMethodPattern(
+            KeepMethodPattern.builder()
+                .setNamePattern(KeepMethodNamePattern.initializer())
+                .setParametersPattern(KeepMethodParametersPattern.none())
+                .setReturnTypeVoid()
+                .build())
+        .build();
   }
 }

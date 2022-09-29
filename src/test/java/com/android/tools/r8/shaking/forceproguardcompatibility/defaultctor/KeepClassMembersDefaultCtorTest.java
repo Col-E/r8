@@ -4,6 +4,7 @@
 package com.android.tools.r8.shaking.forceproguardcompatibility.defaultctor;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.ProguardVersion;
@@ -43,20 +44,21 @@ public class KeepClassMembersDefaultCtorTest extends TestBase {
 
   @Test
   public void testCompatR8() throws Exception {
-    run(testForR8Compat(parameters.getBackend()));
+    run(testForR8Compat(parameters.getBackend()), false);
   }
 
   @Test
   public void testR8() throws Exception {
-    run(testForR8(parameters.getBackend()));
+    run(testForR8(parameters.getBackend()), true);
   }
 
   @Test
   public void testPG() throws Exception {
-    run(testForProguard(ProguardVersion.getLatest()).addDontWarn(getClass()));
+    run(testForProguard(ProguardVersion.getLatest()).addDontWarn(getClass()), false);
   }
 
-  private TestRunResult<?> run(TestShrinkerBuilder<?, ?, ?, ?, ?> builder) throws Exception {
+  private TestRunResult<?> run(TestShrinkerBuilder<?, ?, ?, ?, ?> builder, boolean fullMode)
+      throws Exception {
     return builder
         .addInnerClasses(KeepClassMembersDefaultCtorTest.class)
         .addKeepRules("-keepclassmembers class * { <fields>; }")
@@ -65,7 +67,12 @@ public class KeepClassMembersDefaultCtorTest extends TestBase {
         .run(parameters.getRuntime(), TestClass.class)
         .inspectFailure(
             inspector -> {
+              assertThat(inspector.clazz(A.class), isPresent());
               assertThat(inspector.clazz(A.class).init(), isAbsent());
+              assertThat(inspector.clazz(A.class).uniqueFieldWithName("y"), isPresent());
+              assertThat(
+                  inspector.clazz(A.class).uniqueFieldWithName("x"),
+                  fullMode ? isAbsent() : isPresent());
             })
         .assertFailureWithErrorThatThrows(NoSuchMethodException.class);
   }
@@ -73,6 +80,7 @@ public class KeepClassMembersDefaultCtorTest extends TestBase {
   static class A {
 
     public long x = System.nanoTime();
+    public static long y = System.nanoTime();
 
     public A() {
       System.out.println("A()");
@@ -95,6 +103,7 @@ public class KeepClassMembersDefaultCtorTest extends TestBase {
       if (args.length > 0) {
         // Use the field so we are sure that the keep rule triggers.
         A a = getA();
+        System.out.println(a.y);
         System.out.println(a.x);
       }
     }

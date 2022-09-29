@@ -78,6 +78,16 @@ public abstract class KeepPackagePattern {
     public boolean isExact() {
       return false;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj == this;
+    }
+
+    @Override
+    public int hashCode() {
+      return System.identityHashCode(this);
+    }
   }
 
   private static final class KeepPackageTopPattern extends KeepPackageExactPattern {
@@ -111,6 +121,7 @@ public abstract class KeepPackagePattern {
     private final String fullPackage;
 
     private KeepPackageExactPattern(String fullPackage) {
+      assert fullPackage != null;
       this.fullPackage = fullPackage;
       // TODO: Verify valid package identifiers.
     }
@@ -137,6 +148,23 @@ public abstract class KeepPackagePattern {
 
     public String getExactPackageAsString() {
       return fullPackage;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      KeepPackageExactPattern that = (KeepPackageExactPattern) o;
+      return fullPackage.equals(that.fullPackage);
+    }
+
+    @Override
+    public int hashCode() {
+      return fullPackage.hashCode();
     }
   }
 

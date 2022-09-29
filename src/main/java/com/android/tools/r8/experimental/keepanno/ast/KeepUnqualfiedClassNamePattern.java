@@ -61,6 +61,16 @@ public abstract class KeepUnqualfiedClassNamePattern {
     public boolean isExact() {
       return false;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+      return this == obj;
+    }
+
+    @Override
+    public int hashCode() {
+      return System.identityHashCode(this);
+    }
   }
 
   public static class KeepClassNameExactPattern extends KeepUnqualfiedClassNamePattern {
@@ -68,6 +78,7 @@ public abstract class KeepUnqualfiedClassNamePattern {
     private final String className;
 
     private KeepClassNameExactPattern(String className) {
+      assert className != null;
       this.className = className;
     }
 
@@ -88,6 +99,23 @@ public abstract class KeepUnqualfiedClassNamePattern {
 
     public String getExactNameAsString() {
       return className;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      KeepClassNameExactPattern that = (KeepClassNameExactPattern) o;
+      return className.equals(that.className);
+    }
+
+    @Override
+    public int hashCode() {
+      return className.hashCode();
     }
   }
 

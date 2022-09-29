@@ -3,7 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.experimental.keepanno.ast;
 
-public class KeepQualifiedClassNamePattern {
+import java.util.Objects;
+
+public final class KeepQualifiedClassNamePattern {
 
   public static Builder builder() {
     return new Builder();
@@ -62,6 +64,8 @@ public class KeepQualifiedClassNamePattern {
 
   public KeepQualifiedClassNamePattern(
       KeepPackagePattern packagePattern, KeepUnqualfiedClassNamePattern namePattern) {
+    assert packagePattern != null;
+    assert namePattern != null;
     this.packagePattern = packagePattern;
     this.namePattern = namePattern;
   }
@@ -76,5 +80,22 @@ public class KeepQualifiedClassNamePattern {
 
   public KeepUnqualfiedClassNamePattern getNamePattern() {
     return namePattern;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    KeepQualifiedClassNamePattern that = (KeepQualifiedClassNamePattern) o;
+    return packagePattern.equals(that.packagePattern) && namePattern.equals(that.namePattern);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(packagePattern.hashCode(), namePattern.hashCode());
   }
 }
