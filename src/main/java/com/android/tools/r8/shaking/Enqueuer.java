@@ -2060,7 +2060,9 @@ public class Enqueuer {
             || appView.appInfo().getMainDexInfo().isTracedRoot(clazz, appView.getSyntheticItems())
         : "Class " + clazz.toSourceString() + " was not a main dex root in the first round";
 
-    assert !appView.unboxedEnums().isUnboxedEnum(clazz);
+    assert appView.options().testing.allowNotPrunedUnboxedEnums
+            || !appView.unboxedEnums().isUnboxedEnum(clazz)
+        : "Enum " + clazz.toSourceString() + " has been unboxed but is still in the program.";
 
     if (options.isGeneratingClassFiles() && clazz.hasPermittedSubclassAttributes()) {
       throw new CompilationError(

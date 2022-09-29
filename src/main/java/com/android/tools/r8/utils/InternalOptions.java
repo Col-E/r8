@@ -2043,6 +2043,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         System.getProperty("com.android.tools.r8.disableMarkingClassesFinal") != null;
     public boolean testEnableTestAssertions = false;
     public boolean keepMetadataInR8IfNotRewritten = true;
+    public boolean allowNotPrunedUnboxedEnums = false;
 
     // If set, pruned record fields are not used in hashCode/equals/toString and toString prints
     // minified field names instead of original field names.
