@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.experimental.keepanno.ast.KeepOptions.KeepOption;
 import com.android.tools.r8.experimental.keepanno.keeprules.KeepRuleExtractor;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
@@ -45,6 +46,46 @@ public class KeepEdgeApiTest extends TestBase {
                     .build())
             .build();
     assertEquals(StringUtils.unixLines("-keep class * { *; }"), extract(edge));
+  }
+
+  @Test
+  public void testSoftPinViaDisallow() {
+    KeepEdge edge =
+        KeepEdge.builder()
+            .setConsequences(
+                KeepConsequences.builder()
+                    .addTarget(
+                        KeepTarget.builder()
+                            .setItem(KeepItemPattern.any())
+                            .setOptions(KeepOptions.disallow(KeepOption.OPTIMIZING))
+                            .build())
+                    .build())
+            .build();
+    // Disallow will issue the full inverse of the known options, e.g., 'allowaccessmodification'.
+    assertEquals(
+        StringUtils.unixLines(
+            "-keep,allowshrinking,allowobfuscation,allowaccessmodification class * { *; }"),
+        extract(edge));
+  }
+
+  @Test
+  public void testSoftPinViaAllow() {
+    KeepEdge edge =
+        KeepEdge.builder()
+            .setConsequences(
+                KeepConsequences.builder()
+                    .addTarget(
+                        KeepTarget.builder()
+                            .setItem(KeepItemPattern.any())
+                            .setOptions(
+                                KeepOptions.allow(KeepOption.OBFUSCATING, KeepOption.SHRINKING))
+                            .build())
+                    .build())
+            .build();
+    // Allow is just the ordered list of options.
+    assertEquals(
+        StringUtils.unixLines("-keep,allowshrinking,allowobfuscation class * { *; }"),
+        extract(edge));
   }
 
   @Test

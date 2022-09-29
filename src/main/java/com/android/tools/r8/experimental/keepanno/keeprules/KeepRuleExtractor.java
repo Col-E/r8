@@ -99,7 +99,7 @@ public class KeepRuleExtractor {
       builder.append("-keep");
     }
     for (KeepOption option : KeepOption.values()) {
-      if (rule.options.allow(option)) {
+      if (rule.options.isAllowed(option)) {
         builder.append(",allow").append(getOptionString(option));
       }
     }
