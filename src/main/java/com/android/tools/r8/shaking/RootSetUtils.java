@@ -1884,7 +1884,7 @@ public class RootSetUtils {
             continue;
           }
         }
-        if (!rule.isUsed() && options.testing.reportUnusedProguardConfigurationRules) {
+        if (!rule.isUsed()) {
           options.reporter.info(new UnusedProguardKeepRuleDiagnostic(rule));
         }
       }

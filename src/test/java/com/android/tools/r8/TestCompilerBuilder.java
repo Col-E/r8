@@ -55,7 +55,6 @@ public abstract class TestCompilerBuilder<
         options.testing.enableTestAssertions = true;
         options.testing.allowUnusedDontWarnRules = false;
         options.testing.allowUnnecessaryDontWarnWildcards = false;
-        options.testing.reportUnusedProguardConfigurationRules = true;
         options.horizontalClassMergerOptions().enable();
         options.horizontalClassMergerOptions().setEnableInterfaceMerging();
         options
