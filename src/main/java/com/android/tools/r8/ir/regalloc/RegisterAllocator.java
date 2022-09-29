@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.regalloc;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.Value;
@@ -18,6 +19,8 @@ public interface RegisterAllocator {
   int getArgumentOrAllocateRegisterForValue(Value value, int instructionNumber);
 
   InternalOptions options();
+
+  AppView<?> getAppView();
 
   void mergeBlocks(BasicBlock kept, BasicBlock removed);
 

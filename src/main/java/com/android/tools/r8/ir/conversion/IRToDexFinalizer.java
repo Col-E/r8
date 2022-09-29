@@ -51,8 +51,7 @@ public class IRToDexFinalizer extends IRFinalizer<DexCode> {
     RuntimeWorkaroundCodeRewriter.workaroundExceptionTargetingLoopHeaderBug(code, options);
     // Perform register allocation.
     RegisterAllocator registerAllocator = performRegisterAllocation(code, method, timing);
-    return new DexBuilder(appView, code, bytecodeMetadataProvider, registerAllocator, options)
-        .build();
+    return new DexBuilder(code, bytecodeMetadataProvider, registerAllocator, options).build();
   }
 
   private RegisterAllocator performRegisterAllocation(

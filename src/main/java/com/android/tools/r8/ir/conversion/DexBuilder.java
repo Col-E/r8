@@ -132,13 +132,11 @@ public class DexBuilder {
   BasicBlock nextBlock;
 
   public DexBuilder(
-      AppView<?> appView,
       IRCode ir,
       BytecodeMetadataProvider bytecodeMetadataProvider,
       RegisterAllocator registerAllocator,
       InternalOptions options) {
     this(
-        appView,
         ir,
         bytecodeMetadataProvider,
         registerAllocator,
@@ -147,14 +145,13 @@ public class DexBuilder {
   }
 
   public DexBuilder(
-      AppView<?> appView,
       IRCode ir,
       BytecodeMetadataProvider bytecodeMetadataProvider,
       RegisterAllocator registerAllocator,
       InternalOptions options,
       MethodConversionOptions conversionOptions) {
     assert ir == null || conversionOptions == ir.getConversionOptions();
-    this.appView = appView;
+    this.appView = registerAllocator.getAppView();
     this.ir = ir;
     this.bytecodeMetadataBuilder = BytecodeMetadata.builder(bytecodeMetadataProvider);
     this.registerAllocator = registerAllocator;
@@ -172,7 +169,6 @@ public class DexBuilder {
       MethodConversionOptions conversionOptions) {
     DexBuilder builder =
         new DexBuilder(
-            null,
             null,
             BytecodeMetadataProvider.empty(),
             allocator,

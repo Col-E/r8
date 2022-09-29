@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.regalloc;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -75,6 +76,11 @@ public class IdenticalAfterRegisterAllocationTest {
     @Override
     public InternalOptions options() {
       return new InternalOptions();
+    }
+
+    @Override
+    public AppView<?> getAppView() {
+      return null;
     }
 
     @Override

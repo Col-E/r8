@@ -640,6 +640,11 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return appView.options();
   }
 
+  @Override
+  public AppView<?> getAppView() {
+    return appView;
+  }
+
   private ImmutableList<BasicBlock> computeLivenessInformation() {
     ImmutableList<BasicBlock> blocks = code.numberInstructions();
     liveAtEntrySets = code.computeLiveAtEntrySets();

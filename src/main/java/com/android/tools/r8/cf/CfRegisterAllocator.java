@@ -153,6 +153,11 @@ public class CfRegisterAllocator implements RegisterAllocator {
   }
 
   @Override
+  public AppView<?> getAppView() {
+    return appView;
+  }
+
+  @Override
   public void allocateRegisters() {
     computeNeedsRegister();
     ImmutableList<BasicBlock> blocks = computeLivenessInformation();
