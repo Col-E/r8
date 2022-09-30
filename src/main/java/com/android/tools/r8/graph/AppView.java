@@ -736,9 +736,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public boolean validateUnboxedEnumsHaveBeenPruned() {
-    if (app().options.testing.allowNotPrunedUnboxedEnums) {
-      return true;
-    }
     for (DexType unboxedEnum : unboxedEnums.getUnboxedEnums()) {
       assert appInfo.definitionForWithoutExistenceAssert(unboxedEnum) == null
           : "Enum " + unboxedEnum + " has been unboxed but is still in the program.";

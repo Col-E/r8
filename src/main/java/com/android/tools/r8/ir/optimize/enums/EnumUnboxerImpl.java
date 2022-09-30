@@ -1155,12 +1155,17 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     if (field == null) {
       return Reason.INVALID_FIELD_PUT;
     }
-    DexProgramClass dexClass = appView.programDefinitionFor(field.getHolderType(), code.context());
-    if (dexClass == null) {
+    DexProgramClass holderClass =
+        appView.programDefinitionFor(field.getHolderType(), code.context());
+    if (holderClass == null) {
       return Reason.INVALID_FIELD_PUT;
     }
     if (fieldPut.isInstancePut() && fieldPut.asInstancePut().object() == enumValue) {
-      return Reason.ELIGIBLE;
+      // TODO(b/249752942): The requirement to be inside an initializer of the enum can be relaxed
+      //  if we support puts.
+      return context.getHolder() == enumClass && context.getDefinition().isInstanceInitializer()
+          ? Reason.ELIGIBLE
+          : Reason.ASSIGNMENT_OUTSIDE_INIT;
     }
     // The put value has to be of the field type.
     if (field.getReference().type.toBaseType(factory) != enumClass.type) {

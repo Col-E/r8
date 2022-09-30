@@ -34,6 +34,7 @@ public abstract class Reason {
   public static final Reason INVALID_ARRAY_PUT = new StringReason("INVALID_ARRAY_PUT");
   public static final Reason TYPE_MISMATCH_FIELD_PUT = new StringReason("TYPE_MISMATCH_FIELD_PUT");
   public static final Reason INVALID_IF_TYPES = new StringReason("INVALID_IF_TYPES");
+  public static final Reason ASSIGNMENT_OUTSIDE_INIT = new StringReason("ASSIGNMENT_OUTSIDE_INIT");
   public static final Reason ENUM_METHOD_CALLED_WITH_NULL_RECEIVER =
       new StringReason("ENUM_METHOD_CALLED_WITH_NULL_RECEIVER");
   public static final Reason OTHER_UNSUPPORTED_INSTRUCTION =

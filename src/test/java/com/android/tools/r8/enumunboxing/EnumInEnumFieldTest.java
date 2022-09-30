@@ -4,13 +4,7 @@
 
 package com.android.tools.r8.enumunboxing;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThrows;
-
-import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.DiagnosticsMatcher;
 import com.android.tools.r8.NeverClassInline;
-import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
 import java.util.List;
 import org.junit.Test;
@@ -48,36 +42,16 @@ public class EnumInEnumFieldTest extends EnumUnboxingTestBase {
 
   @Test
   public void testEnumUnboxing() throws Exception {
-    // TODO(b/247146910): Should not throw compilation error.
-    assertThrows(CompilationFailedException.class, setupTest()::compile);
-  }
-
-  @Test
-  public void testEnumUnboxingAllowingTypeErrors() throws Exception {
-    // TODO(b/247146910): Should not insert throw null.
-    setupTest()
-        .addOptionsModification(options -> options.testing.allowTypeErrors = true)
-        .allowDiagnosticWarningMessages()
-        .compileWithExpectedDiagnostics(
-            diagnostics ->
-                diagnostics.assertAllWarningsMatch(
-                    DiagnosticsMatcher.diagnosticMessage(
-                        containsString(
-                            "does not type check and will be assumed to be unreachable."))))
-        .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatThrows(NullPointerException.class);
-  }
-
-  private R8FullTestBuilder setupTest() throws Exception {
-    return testForR8(parameters.getBackend())
+    testForR8(parameters.getBackend())
         .addInnerClasses(EnumInEnumFieldTest.class)
         .addKeepMainRule(Main.class)
         .addKeepRules(enumKeepRules.getKeepRules())
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .addEnumUnboxingInspector(
-            inspector -> inspector.assertUnboxed(MyEnum.class, OtherEnum.class))
+        .addEnumUnboxingInspector(inspector -> inspector.assertNotUnboxed(OtherEnum.class))
         .addNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel());
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("0");
   }
 
   @NeverClassInline
