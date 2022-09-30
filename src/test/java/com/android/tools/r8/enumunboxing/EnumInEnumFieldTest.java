@@ -47,7 +47,11 @@ public class EnumInEnumFieldTest extends EnumUnboxingTestBase {
         .addKeepMainRule(Main.class)
         .addKeepRules(enumKeepRules.getKeepRules())
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .addEnumUnboxingInspector(inspector -> inspector.assertNotUnboxed(OtherEnum.class))
+        .addEnumUnboxingInspector(
+            inspector -> {
+              inspector.assertNotUnboxed(MyEnum.class);
+              inspector.assertUnboxed(OtherEnum.class);
+            })
         .addNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
