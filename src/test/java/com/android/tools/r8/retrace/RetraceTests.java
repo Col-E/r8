@@ -210,7 +210,7 @@ public class RetraceTests extends TestBase {
   }
 
   @Test
-  public void testAmbiguousMissingLine() throws Exception {
+  public void testAmbiguousWithSignatureStackTrace() throws Exception {
     runRetraceTest(new AmbiguousWithSignatureStackTrace());
   }
 
