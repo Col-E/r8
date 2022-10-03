@@ -18,7 +18,7 @@ public interface ClassNaming {
 
   abstract class Builder {
 
-    public abstract Builder addMemberEntry(MemberNaming entry, Signature residualSignature);
+    public abstract Builder addMemberEntry(MemberNaming entry);
 
     public abstract ClassNaming build();
 

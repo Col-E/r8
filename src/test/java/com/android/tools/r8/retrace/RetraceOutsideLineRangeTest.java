@@ -57,7 +57,7 @@ public class RetraceOutsideLineRangeTest extends TestBase {
     Retracer retracer =
         Retracer.createDefault(
             ProguardMapProducer.fromString(mapping), new DiagnosticsHandler() {});
-    retraceClassMethodAndPosition(retracer, someClassRenamed, someClassOriginal, 2, 0);
+    retraceClassMethodAndPosition(retracer, someClassRenamed, someClassOriginal, 2, 1);
     retraceClassMethodAndPosition(retracer, someOtherClassRenamed, someOtherClassOriginal, 1, 1);
   }
 

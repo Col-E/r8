@@ -19,6 +19,7 @@ import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +56,7 @@ public class ClassNamingForMapApplier implements ClassNaming {
     }
 
     @Override
-    public ClassNaming.Builder addMemberEntry(MemberNaming entry, Signature residualSignature) {
+    public ClassNaming.Builder addMemberEntry(MemberNaming entry) {
       // Unlike {@link ClassNamingForNameMapper.Builder#addMemberEntry},
       // the key is original signature.
       if (entry.isMethodNaming()) {
@@ -170,32 +171,26 @@ public class ClassNamingForMapApplier implements ClassNaming {
   public MemberNaming lookup(Signature renamedSignature) {
     // As the key is inverted, this looks a lot like
     //   {@link ClassNamingForNameMapper#lookupByOriginalSignature}.
-    if (renamedSignature.kind() == SignatureKind.METHOD) {
-      for (MemberNaming memberNaming : methodMembers.values()) {
-        if (memberNaming.getResidualSignatureInternal().equals(renamedSignature)) {
-          return memberNaming;
-        }
+    Collection<MemberNaming> memberNamings =
+        renamedSignature.kind() == SignatureKind.METHOD
+            ? methodMembers.values()
+            : fieldMembers.values();
+    for (MemberNaming memberNaming : memberNamings) {
+      if (memberNaming.getResidualSignature().equals(renamedSignature)) {
+        return memberNaming;
       }
-      return null;
-    } else {
-      assert renamedSignature.kind() == SignatureKind.FIELD;
-      for (MemberNaming memberNaming : fieldMembers.values()) {
-        if (memberNaming.getResidualSignatureInternal().equals(renamedSignature)) {
-          return memberNaming;
-        }
-      }
-      return null;
     }
+    return null;
   }
 
   @Override
   public MemberNaming lookupByOriginalSignature(Signature original) {
     // As the key is inverted, this looks a lot like {@link ClassNamingForNameMapper#lookup}.
     if (original.kind() == SignatureKind.METHOD) {
-      return methodMembers.get(original);
+      return methodMembers.get(original.asMethodSignature());
     } else {
       assert original.kind() == SignatureKind.FIELD;
-      return fieldMembers.get(original);
+      return fieldMembers.get(original.asFieldSignature());
     }
   }
 

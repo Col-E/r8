@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.naming.MappedRangeUtils.addAllInlineFramesUntilOutermostCaller;
+
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
@@ -11,9 +13,11 @@ import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.naming.mappinginformation.OutlineCallsiteMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation;
 import com.android.tools.r8.utils.ChainableStringConsumer;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -59,11 +63,11 @@ public class ClassNamingForNameMapper implements ClassNaming {
     }
 
     @Override
-    public ClassNaming.Builder addMemberEntry(MemberNaming entry, Signature residualSignature) {
+    public ClassNaming.Builder addMemberEntry(MemberNaming entry) {
       if (entry.isMethodNaming()) {
-        methodMembers.put(residualSignature.asMethodSignature(), entry);
+        methodMembers.put(entry.getResidualSignature().asMethodSignature(), entry);
       } else {
-        fieldMembers.put(residualSignature.asFieldSignature(), entry);
+        fieldMembers.put(entry.getResidualSignature().asFieldSignature(), entry);
         mappedFieldNamingsByName
             .computeIfAbsent(entry.getRenamedName(), ignored -> new ArrayList<>())
             .add(entry);
@@ -217,6 +221,48 @@ public class ClassNamingForNameMapper implements ClassNaming {
     @Override
     public int hashCode() {
       return mappedRanges.hashCode();
+    }
+
+    public List<MappedRangesOfName> partitionOnMethodSignature() {
+      if (mappedRanges.size() <= 1) {
+        return Collections.singletonList(this);
+      }
+      List<MappedRangesOfName> partitionedMappings = new ArrayList<>();
+      int index = 0;
+      List<MappedRange> currentMappedRanges = new ArrayList<>();
+      index = addAllInlineFramesUntilOutermostCaller(mappedRanges, index, currentMappedRanges);
+      // Do a fast check to see if the last one is the same signature as the first one.
+      if (ListUtils.last(currentMappedRanges)
+          .getOriginalSignature()
+          .equals(ListUtils.last(mappedRanges).getOriginalSignature())) {
+        return Collections.singletonList(this);
+      }
+      // Otherwise the signature changes which means we have overloads.
+      while (index < mappedRanges.size()) {
+        List<MappedRange> newMappedRanges = new ArrayList<>();
+        index = addAllInlineFramesUntilOutermostCaller(mappedRanges, index, newMappedRanges);
+        if (!ListUtils.last(currentMappedRanges)
+            .getOriginalSignature()
+            .equals(ListUtils.last(newMappedRanges).getOriginalSignature())) {
+          partitionedMappings.add(new MappedRangesOfName(currentMappedRanges));
+          currentMappedRanges = new ArrayList<>();
+        }
+        currentMappedRanges.addAll(newMappedRanges);
+      }
+      partitionedMappings.add(new MappedRangesOfName(currentMappedRanges));
+      return partitionedMappings;
+    }
+
+    public MemberNaming getMemberNaming(
+        ClassNamingForNameMapper classNamingForNameMapper, boolean hasMultipleResults) {
+      MappedRange lastMappedRange = ListUtils.last(mappedRanges);
+      if (hasMultipleResults) {
+        return null;
+      }
+      MethodSignature signature = lastMappedRange.getResidualSignature();
+      MemberNaming memberNaming = classNamingForNameMapper.methodMembers.get(signature);
+      assert memberNaming != null;
+      return memberNaming;
     }
   }
 
@@ -425,7 +471,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
     mappedRangesSorted.sort(Comparator.comparingInt(range -> range.sequenceNumber));
     for (MappedRange range : mappedRangesSorted) {
       consumer.accept("    ").accept(range.toString()).accept("\n");
-      for (MappingInformation info : range.additionalMappingInfo) {
+      for (MappingInformation info : range.getAdditionalMappingInformation()) {
         consumer.accept("      # ").accept(info.serialize()).accept("\n");
       }
     }
@@ -499,13 +545,19 @@ public class ClassNamingForNameMapper implements ClassNaming {
 
     private MethodSignature residualSignature = null;
 
+    private boolean hasComputedHashCode = false;
+
     /**
      * The sole purpose of {@link #sequenceNumber} is to preserve the order of members read from a
      * Proguard-map.
      */
     private final int sequenceNumber = getNextSequenceNumber();
 
-    private List<MappingInformation> additionalMappingInfo = EMPTY_MAPPING_INFORMATION;
+    /**
+     * We never emit member namings for methods so mapped ranges has to account for both positional
+     * and referential mapping information.
+     */
+    private List<MappingInformation> additionalMappingInformation = EMPTY_MAPPING_INFORMATION;
 
     MappedRange(
         Range minifiedRange, MethodSignature signature, Range originalRange, String renamedName) {
@@ -522,40 +574,17 @@ public class ClassNamingForNameMapper implements ClassNaming {
 
     public void addMappingInformation(
         MappingInformation info, Consumer<MappingInformation> onProhibitedAddition) {
-      if (additionalMappingInfo == EMPTY_MAPPING_INFORMATION) {
-        additionalMappingInfo = new ArrayList<>();
+      if (additionalMappingInformation == EMPTY_MAPPING_INFORMATION) {
+        additionalMappingInformation = new ArrayList<>();
       }
-      for (MappingInformation existing : additionalMappingInfo) {
-        if (!existing.allowOther(info)) {
-          onProhibitedAddition.accept(existing);
-          return;
-        }
-      }
-      additionalMappingInfo.add(info);
+      MappingInformation.addMappingInformation(
+          additionalMappingInformation, info, onProhibitedAddition);
     }
 
-    public boolean isCompilerSynthesized() {
-      for (MappingInformation info : additionalMappingInfo) {
-        if (info.isCompilerSynthesizedMappingInformation() || info.isOutlineMappingInformation()) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    public boolean isOutlineFrame() {
-      for (MappingInformation info : additionalMappingInfo) {
-        if (info.isOutlineMappingInformation()) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    public <T> List<T> filter(
+    private <T> List<T> filter(
         Predicate<MappingInformation> predicate, Function<MappingInformation, T> mapper) {
       ImmutableList.Builder<T> builder = ImmutableList.builder();
-      for (MappingInformation mappingInformation : additionalMappingInfo) {
+      for (MappingInformation mappingInformation : additionalMappingInformation) {
         if (predicate.test(mappingInformation)) {
           builder.add(mapper.apply(mappingInformation));
         }
@@ -607,20 +636,41 @@ public class ClassNamingForNameMapper implements ClassNaming {
       return signature;
     }
 
-    @Override
-    public boolean hasResidualSignature() {
-      return residualSignature != null;
+    public boolean isCompilerSynthesized() {
+      for (MappingInformation info : additionalMappingInformation) {
+        if (info.isCompilerSynthesizedMappingInformation() || info.isOutlineMappingInformation()) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    public boolean isOutlineFrame() {
+      for (MappingInformation info : additionalMappingInformation) {
+        if (info.isOutlineMappingInformation()) {
+          return true;
+        }
+      }
+      return false;
     }
 
     @Override
-    public MethodSignature getResidualSignatureInternal() {
-      return residualSignature;
+    public boolean hasResidualSignatureMappingInformation() {
+      return Iterables.any(
+          additionalMappingInformation, MappingInformation::isResidualSignatureMappingInformation);
+    }
+
+    public void setResidualSignatureInternal(MethodSignature signature) {
+      assert !hasComputedHashCode;
+      this.residualSignature = signature;
     }
 
     @Override
-    public void setResidualSignatureInternal(Signature residualSignature) {
-      assert residualSignature.isMethodSignature();
-      this.residualSignature = residualSignature.asMethodSignature();
+    public MethodSignature getResidualSignature() {
+      if (residualSignature != null) {
+        return residualSignature;
+      }
+      return signature.asRenamed(renamedName).asMethodSignature();
     }
 
     public int getLastPositionOfOriginalRange() {
@@ -662,7 +712,8 @@ public class ClassNamingForNameMapper implements ClassNaming {
           && Objects.equals(originalRange, that.originalRange)
           && signature.equals(that.signature)
           && renamedName.equals(that.renamedName)
-          && Objects.equals(residualSignature, that.residualSignature);
+          && Objects.equals(residualSignature, that.residualSignature)
+          && Objects.equals(additionalMappingInformation, that.additionalMappingInformation);
     }
 
     @Override
@@ -673,11 +724,13 @@ public class ClassNamingForNameMapper implements ClassNaming {
       result = 31 * result + signature.hashCode();
       result = 31 * result + renamedName.hashCode();
       result = 31 * result + Objects.hashCode(residualSignature);
+      result = 31 * result + Objects.hashCode(additionalMappingInformation);
+      hasComputedHashCode = true;
       return result;
     }
 
-    public List<MappingInformation> getAdditionalMappingInfo() {
-      return Collections.unmodifiableList(additionalMappingInfo);
+    public List<MappingInformation> getAdditionalMappingInformation() {
+      return Collections.unmodifiableList(additionalMappingInformation);
     }
   }
 }

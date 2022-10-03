@@ -15,7 +15,10 @@ import com.android.tools.r8.retrace.ProguardMappingSupplier;
 import com.android.tools.r8.retrace.RetraceFieldElement;
 import com.android.tools.r8.retrace.RetraceMethodElement;
 import com.android.tools.r8.retrace.Retracer;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,11 +42,9 @@ public class RetraceApiResidualSignatureTest extends RetraceApiTestBase {
         "# { id: 'com.android.tools.r8.mapping', version: 'experimental' }\n"
             + "some.Class -> a:\n"
             + "  some.SuperType field -> a\n"
-            + "  # { id: 'com.android.tools.r8.residualsignature', signature: 'Ljava/lang/Object;'"
-            + " }\n"
+            + "  # { id:'com.android.tools.r8.residualsignature',signature:'Ljava/lang/Object;' }\n"
             + "  some.SubType field -> a\n"
-            + "  # { id: 'com.android.tools.r8.residualsignature', signature: 'Lsome/SuperType;'"
-            + " }\n"
+            + "  # { id:'com.android.tools.r8.residualsignature',signature:'Lsome/SuperType;' }\n"
             + "  void foo(int, int) -> x\n"
             + "  # { id: 'com.android.tools.r8.residualsignature', signature: '(I)V' }\n"
             + "  void foo(int) -> x\n"
@@ -61,17 +62,22 @@ public class RetraceApiResidualSignatureTest extends RetraceApiTestBase {
       List<RetraceMethodElement> fooWithTwoArgs =
           retracer.retraceMethod(Reference.methodFromDescriptor(aClass, "x", "(I)V")).stream()
               .collect(Collectors.toList());
-      assertEquals(1, fooWithTwoArgs.size());
+      // TODO(b/169953605): Use the residual signature information to prune the result.
+      assertEquals(2, fooWithTwoArgs.size());
       assertEquals(
-          "Lsome/Class;foo(II)V",
-          fooWithTwoArgs.get(0).getRetracedMethod().asKnown().getMethodReference().toString());
+          setOf("Lsome/Class;foo(II)V", "Lsome/Class;foo(I)V"),
+          fooWithTwoArgs.stream()
+              .map(result -> result.getRetracedMethod().asKnown().getMethodReference().toString())
+              .collect(Collectors.toSet()));
       List<RetraceMethodElement> fooWithOneArg =
           retracer.retraceMethod(Reference.methodFromDescriptor(aClass, "x", "()V")).stream()
               .collect(Collectors.toList());
-      assertEquals(1, fooWithOneArg.size());
+      assertEquals(2, fooWithOneArg.size());
       assertEquals(
-          "Lsome/Class;foo(I)V",
-          fooWithOneArg.get(0).getRetracedMethod().asKnown().getMethodReference().toString());
+          setOf("Lsome/Class;foo(II)V", "Lsome/Class;foo(I)V"),
+          fooWithOneArg.stream()
+              .map(result -> result.getRetracedMethod().asKnown().getMethodReference().toString())
+              .collect(Collectors.toSet()));
       List<RetraceFieldElement> fieldWithSuperType =
           retracer
               .retraceField(
@@ -80,14 +86,29 @@ public class RetraceApiResidualSignatureTest extends RetraceApiTestBase {
               .collect(Collectors.toList());
       // TODO(b/169953605): Use the residual signature information to prune the result.
       assertEquals(2, fieldWithSuperType.size());
+      assertEquals(
+          setOf("Lsome/Class;field:Lsome/SuperType;", "Lsome/Class;field:Lsome/SubType;"),
+          fieldWithSuperType.stream()
+              .map(result -> result.getField().asKnown().getFieldReference().toString())
+              .collect(Collectors.toSet()));
       List<RetraceFieldElement> fieldWithSubType =
           retracer
               .retraceField(
                   Reference.field(aClass, "a", Reference.typeFromTypeName("some.SuperType")))
               .stream()
               .collect(Collectors.toList());
-      // TODO(b/169953605): Use the residual signature information to prune the result.
       assertEquals(2, fieldWithSubType.size());
+      assertEquals(
+          setOf("Lsome/Class;field:Lsome/SuperType;", "Lsome/Class;field:Lsome/SubType;"),
+          fieldWithSubType.stream()
+              .map(result -> result.getField().asKnown().getFieldReference().toString())
+              .collect(Collectors.toSet()));
+    }
+
+    private Set<Object> setOf(Object... objects) {
+      Set<Object> result = new HashSet<>();
+      Collections.addAll(result, objects);
+      return result;
     }
   }
 }

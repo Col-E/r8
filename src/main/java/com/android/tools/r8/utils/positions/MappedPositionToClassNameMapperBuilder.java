@@ -179,7 +179,7 @@ public class MappedPositionToClassNameMapperBuilder {
                   FieldSignature.fromDexField(originalField, originalField.holder != originalType);
               FieldSignature residualSignature = FieldSignature.fromDexField(residualField);
               MemberNaming memberNaming = new MemberNaming(originalSignature, residualSignature);
-              getBuilder().addMemberEntry(memberNaming, residualSignature);
+              getBuilder().addMemberEntry(memberNaming);
             }
           });
       return this;
@@ -227,7 +227,7 @@ public class MappedPositionToClassNameMapperBuilder {
       MethodSignature residualSignature = MethodSignature.fromDexMethod(residualMethod);
 
       MemberNaming memberNaming = new MemberNaming(originalSignature, residualSignature);
-      getBuilder().addMemberEntry(memberNaming, residualSignature);
+      getBuilder().addMemberEntry(memberNaming);
 
       // Add simple "a() -> b" mapping if we won't have any other with concrete line numbers
       if (mappedPositions.isEmpty()) {

@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.naming.MappingComposeException;
+import com.android.tools.r8.naming.mappinginformation.MappingInformation.ReferentialMappingInformation;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -20,7 +21,7 @@ import com.google.gson.JsonPrimitive;
 import java.util.Arrays;
 import java.util.function.Consumer;
 
-public abstract class ResidualSignatureMappingInformation extends MappingInformation {
+public abstract class ResidualSignatureMappingInformation extends ReferentialMappingInformation {
 
   public static final MapVersion SUPPORTED_VERSION = MapVersion.MAP_VERSION_EXPERIMENTAL;
   public static final String ID = "com.android.tools.r8.residualsignature";
@@ -41,11 +42,6 @@ public abstract class ResidualSignatureMappingInformation extends MappingInforma
 
   protected abstract String serializeInternal();
 
-  @Override
-  public boolean allowOther(MappingInformation information) {
-    return !information.isResidualSignatureMappingInformation();
-  }
-
   public static boolean isSupported(MapVersion version) {
     return version.isGreaterThanOrEqualTo(SUPPORTED_VERSION);
   }
@@ -65,6 +61,16 @@ public abstract class ResidualSignatureMappingInformation extends MappingInforma
         onMappingInfo.accept(ResidualFieldSignatureMappingInformation.deserialize(signatureString));
       }
     }
+  }
+
+  @Override
+  public boolean isResidualSignatureMappingInformation() {
+    return true;
+  }
+
+  @Override
+  public ResidualSignatureMappingInformation asResidualSignatureMappingInformation() {
+    return this;
   }
 
   public static class ResidualMethodSignatureMappingInformation
@@ -122,6 +128,16 @@ public abstract class ResidualSignatureMappingInformation extends MappingInforma
       assert existing.isResidualMethodSignatureMappingInformation();
       return this;
     }
+
+    @Override
+    public boolean allowOther(MappingInformation information) {
+      if (!information.isResidualMethodSignatureMappingInformation()) {
+        return true;
+      }
+      ResidualMethodSignatureMappingInformation other =
+          information.asResidualMethodSignatureMappingInformation();
+      return returnType.equals(other.returnType) && Arrays.equals(parameters, other.parameters);
+    }
   }
 
   public static class ResidualFieldSignatureMappingInformation
@@ -136,6 +152,10 @@ public abstract class ResidualSignatureMappingInformation extends MappingInforma
 
     public static ResidualFieldSignatureMappingInformation fromDexField(DexField field) {
       return new ResidualFieldSignatureMappingInformation(field.getType().toDescriptorString());
+    }
+
+    public String getType() {
+      return type;
     }
 
     @Override
@@ -162,6 +182,12 @@ public abstract class ResidualSignatureMappingInformation extends MappingInforma
       // Always take the newest residual mapping.
       assert existing.isResidualFieldSignatureMappingInformation();
       return this;
+    }
+
+    @Override
+    public boolean allowOther(MappingInformation information) {
+      return !information.isResidualFieldSignatureMappingInformation()
+          || type.equals(information.asResidualFieldSignatureMappingInformation().getType());
     }
   }
 }

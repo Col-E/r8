@@ -11,6 +11,7 @@ import com.android.tools.r8.naming.mappinginformation.ResidualSignatureMappingIn
 import com.android.tools.r8.naming.mappinginformation.ResidualSignatureMappingInformation.ResidualMethodSignatureMappingInformation;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import java.util.List;
 import java.util.function.Consumer;
 
 public abstract class MappingInformation {
@@ -86,6 +87,10 @@ public abstract class MappingInformation {
   }
 
   public OutlineCallsiteMappingInformation asOutlineCallsiteInformation() {
+    return null;
+  }
+
+  public ResidualSignatureMappingInformation asResidualSignatureMappingInformation() {
     return null;
   }
 
@@ -177,6 +182,39 @@ public abstract class MappingInformation {
     }
   }
 
+  public boolean isPositionalMappingInformation() {
+    return false;
+  }
+
+  public boolean isReferentialMappingInformation() {
+    return false;
+  }
+
+  public ReferentialMappingInformation asReferentialMappingInformation() {
+    return null;
+  }
+
+  public abstract static class ReferentialMappingInformation extends MappingInformation {
+
+    @Override
+    public boolean isReferentialMappingInformation() {
+      return true;
+    }
+
+    @Override
+    public ReferentialMappingInformation asReferentialMappingInformation() {
+      return this;
+    }
+  }
+
+  public abstract static class PositionalMappingInformation extends MappingInformation {
+
+    @Override
+    public boolean isPositionalMappingInformation() {
+      return true;
+    }
+  }
+
   static JsonElement getJsonElementFromObject(
       JsonObject object,
       DiagnosticsHandler diagnosticsHandler,
@@ -189,5 +227,16 @@ public abstract class MappingInformation {
           MappingInformationDiagnostics.noKeyForObjectWithId(lineNumber, key, MAPPING_ID_KEY, id));
     }
     return element;
+  }
+
+  public static <T extends MappingInformation> void addMappingInformation(
+      List<T> existingInfos, T newInfo, Consumer<MappingInformation> onProhibitedAddition) {
+    for (MappingInformation existing : existingInfos) {
+      if (!existing.allowOther(newInfo)) {
+        onProhibitedAddition.accept(existing);
+        return;
+      }
+    }
+    existingInfos.add(newInfo);
   }
 }

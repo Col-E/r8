@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.naming.MappedRangeUtils.addAllInlineFramesUntilOutermostCaller;
+import static com.android.tools.r8.naming.MappedRangeUtils.isInlineMappedRange;
 import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
 
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
@@ -595,7 +597,8 @@ public class ComposingBuilder {
         // Register mapping information that is dependent on the residual naming to allow updating
         // later on.
         for (MappedRange mappedRange : mappedRangesForThisInterval) {
-          for (MappingInformation mappingInformation : mappedRange.getAdditionalMappingInfo()) {
+          for (MappingInformation mappingInformation :
+              mappedRange.getAdditionalMappingInformation()) {
             if (mappingInformation.isRewriteFrameMappingInformation()) {
               RewriteFrameMappingInformation rewriteFrameMappingInformation =
                   mappingInformation.asRewriteFrameMappingInformation();
@@ -629,16 +632,6 @@ public class ComposingBuilder {
           startIndex + seenMappedRanges.size(),
           lastOutermost,
           seenMappedRanges);
-    }
-
-    private int addAllInlineFramesUntilOutermostCaller(
-        List<MappedRange> mappedRanges, int index, List<MappedRange> seenMappedRanges) {
-      assert index < mappedRanges.size();
-      while (isInlineMappedRange(mappedRanges, index)) {
-        seenMappedRanges.add(mappedRanges.get(index++));
-      }
-      seenMappedRanges.add(mappedRanges.get(index++));
-      return index;
     }
 
     private List<MappedRange> composeMappedRangesForMethod(
@@ -687,8 +680,8 @@ public class ComposingBuilder {
               new MappedRange(
                   null, lastExistingRange.signature, originalRange.get(), newRange.renamedName);
           composeMappingInformation(
-              newComposedRange.getAdditionalMappingInfo(),
-              lastExistingRange.getAdditionalMappingInfo(),
+              newComposedRange.getAdditionalMappingInformation(),
+              lastExistingRange.getAdditionalMappingInformation(),
               info -> newComposedRange.addMappingInformation(info, ConsumerUtils.emptyConsumer()));
           newComposedRanges.add(newComposedRange);
         } else {
@@ -789,7 +782,7 @@ public class ComposingBuilder {
                           newOriginalRange,
                           lastExistingMappedRange.renamedName);
                   nonExistingMappedRange.setResidualSignatureInternal(
-                      lastExistingRange.getResidualSignatureInternal());
+                      lastExistingRange.getResidualSignature());
                   lastExistingMappedRange = nonExistingMappedRange;
                   existingMappedRanges = Collections.singletonList(nonExistingMappedRange);
                   position += (endOriginalPosition - startOriginalPosition) - 1;
@@ -938,7 +931,7 @@ public class ComposingBuilder {
                 newMappedRange.renamedName);
         List<MappingInformation> mappingInformationToCompose = new ArrayList<>();
         existingMappedRange
-            .getAdditionalMappingInfo()
+            .getAdditionalMappingInformation()
             .forEach(
                 info -> {
                   if (info.isOutlineMappingInformation()) {
@@ -952,7 +945,7 @@ public class ComposingBuilder {
                   }
                 });
         composeMappingInformation(
-            computedRange.getAdditionalMappingInfo(),
+            computedRange.getAdditionalMappingInformation(),
             mappingInformationToCompose,
             info -> computedRange.addMappingInformation(info, ConsumerUtils.emptyConsumer()));
         newComposedRanges.add(computedRange);
@@ -989,16 +982,6 @@ public class ComposingBuilder {
           });
     }
 
-    private boolean isInlineMappedRange(List<MappedRange> mappedRanges, int index) {
-      // We are comparing against the next entry so we need a buffer of one.
-      if (index + 1 >= mappedRanges.size()) {
-        return false;
-      }
-      MappedRange mappedRange = mappedRanges.get(index);
-      return mappedRange.minifiedRange != null
-          && mappedRange.minifiedRange.equals(mappedRanges.get(index + 1).minifiedRange);
-    }
-
     public void write(ChainableStringConsumer consumer) {
       consumer.accept(originalName).accept(" -> ").accept(renamedName).accept(":\n");
       additionalMappingInfo.forEach(info -> consumer.accept("# " + info.serialize()).accept("\n"));
@@ -1018,7 +1001,7 @@ public class ComposingBuilder {
       methodsWithoutPosition.forEach(
           (ignored, mapped) -> {
             consumer.accept(INDENTATION).accept(mapped.toString()).accept("\n");
-            for (MappingInformation info : mapped.getAdditionalMappingInfo()) {
+            for (MappingInformation info : mapped.getAdditionalMappingInformation()) {
               consumer.accept(INDENTATION).accept("# ").accept(info.serialize()).accept("\n");
             }
           });
@@ -1043,7 +1026,7 @@ public class ComposingBuilder {
             .forEach(
                 mappedRange -> {
                   consumer.accept(INDENTATION).accept(mappedRange.toString()).accept("\n");
-                  for (MappingInformation info : mappedRange.getAdditionalMappingInfo()) {
+                  for (MappingInformation info : mappedRange.getAdditionalMappingInformation()) {
                     consumer.accept(INDENTATION).accept("# ").accept(info.serialize()).accept("\n");
                   }
                 });

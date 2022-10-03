@@ -10,6 +10,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.naming.MappingComposeException;
+import com.android.tools.r8.naming.mappinginformation.MappingInformation.PositionalMappingInformation;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.internal.RetraceStackTraceContextImpl;
@@ -25,7 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class RewriteFrameMappingInformation extends MappingInformation {
+public class RewriteFrameMappingInformation extends PositionalMappingInformation {
 
   public static final MapVersion SUPPORTED_VERSION = MapVersion.MAP_VERSION_2_0;
   public static final String ID = "com.android.tools.r8.rewriteFrame";

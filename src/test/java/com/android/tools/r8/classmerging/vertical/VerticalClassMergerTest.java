@@ -53,7 +53,6 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import org.junit.Assume;
 import org.junit.Test;
@@ -540,7 +539,7 @@ public class VerticalClassMergerTest extends TestBase {
                             .toString()
                             .equals("java.lang.String classmerging.ProguardFieldMapTest$A.f")
                         && fieldNaming
-                            .computeResidualSignature(Function.identity())
+                            .getResidualSignature()
                             .toString()
                             .equals("java.lang.String f")));
   }
@@ -588,10 +587,7 @@ public class VerticalClassMergerTest extends TestBase {
                     methodNaming
                         .getOriginalSignature()
                         .toString()
-                        .equals(
-                            methodNaming
-                                .computeResidualSignature(Function.identity())
-                                .toString())));
+                        .equals(methodNaming.getResidualSignature().toString())));
 
     // Try with vertical class merging.
     Set<String> preservedClassNames =
@@ -624,7 +620,7 @@ public class VerticalClassMergerTest extends TestBase {
                             .toString()
                             .equals("void classmerging.ProguardMethodMapTest$A.method()")
                         && methodNaming
-                            .computeResidualSignature(Function.identity())
+                            .getResidualSignature()
                             .toString()
                             .equals("void method$classmerging$ProguardMethodMapTest$A()")));
   }

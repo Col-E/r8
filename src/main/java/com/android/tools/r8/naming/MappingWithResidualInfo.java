@@ -13,19 +13,16 @@ public interface MappingWithResidualInfo {
 
   Signature getOriginalSignature();
 
-  boolean hasResidualSignature();
+  boolean hasResidualSignatureMappingInformation();
 
-  Signature getResidualSignatureInternal();
+  Signature getResidualSignature();
 
-  void setResidualSignatureInternal(Signature signature);
-
+  /** Should be removed when R8 emits residual information for alpha renamed signatures. */
+  @Deprecated()
   default Signature computeResidualSignature(Function<String, String> typeNameMapper) {
-    if (hasResidualSignature()) {
-      return getResidualSignatureInternal();
+    if (hasResidualSignatureMappingInformation()) {
+      return getResidualSignature();
     }
-    Signature residualSignature =
-        getOriginalSignature().computeResidualSignature(getRenamedName(), typeNameMapper);
-    setResidualSignatureInternal(residualSignature);
-    return residualSignature;
+    return getOriginalSignature().computeResidualSignature(getRenamedName(), typeNameMapper);
   }
 }

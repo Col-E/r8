@@ -7,6 +7,7 @@ package com.android.tools.r8.naming.mappinginformation;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.naming.MappingComposeException;
+import com.android.tools.r8.naming.mappinginformation.MappingInformation.PositionalMappingInformation;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.google.gson.JsonElement;
@@ -16,7 +17,7 @@ import it.unimi.dsi.fastutil.ints.Int2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2IntSortedMap;
 import java.util.function.Consumer;
 
-public class OutlineCallsiteMappingInformation extends MappingInformation {
+public class OutlineCallsiteMappingInformation extends PositionalMappingInformation {
 
   public static final MapVersion SUPPORTED_VERSION = MapVersion.MAP_VERSION_2_0;
   public static final MapVersion SUPPORTED_WITH_OUTLINE_VERSION = MapVersion.MAP_VERSION_2_1;

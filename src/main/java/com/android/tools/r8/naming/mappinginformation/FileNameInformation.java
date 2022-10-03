@@ -7,12 +7,13 @@ package com.android.tools.r8.naming.mappinginformation;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.naming.MappingComposeException;
+import com.android.tools.r8.naming.mappinginformation.MappingInformation.ReferentialMappingInformation;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import java.util.function.Consumer;
 
-public class FileNameInformation extends MappingInformation {
+public class FileNameInformation extends ReferentialMappingInformation {
 
   private final String fileName;
 

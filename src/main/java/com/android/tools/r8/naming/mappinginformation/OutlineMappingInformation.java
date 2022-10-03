@@ -6,11 +6,12 @@ package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.naming.MappingComposeException;
+import com.android.tools.r8.naming.mappinginformation.MappingInformation.ReferentialMappingInformation;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import java.util.function.Consumer;
 
-public class OutlineMappingInformation extends MappingInformation {
+public class OutlineMappingInformation extends ReferentialMappingInformation {
 
   public static final MapVersion SUPPORTED_VERSION = MapVersion.MAP_VERSION_2_0;
   public static final String ID = "com.android.tools.r8.outline";
@@ -40,7 +41,7 @@ public class OutlineMappingInformation extends MappingInformation {
 
   @Override
   public boolean allowOther(MappingInformation information) {
-    return !information.isOutlineMappingInformation();
+    return true;
   }
 
   @Override

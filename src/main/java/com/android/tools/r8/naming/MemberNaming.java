@@ -13,6 +13,8 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.Signature.SignatureKind;
+import com.android.tools.r8.naming.mappinginformation.MappingInformation;
+import com.android.tools.r8.naming.mappinginformation.MappingInformation.ReferentialMappingInformation;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -21,12 +23,16 @@ import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Objects;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import org.objectweb.asm.Type;
 
@@ -37,6 +43,9 @@ import org.objectweb.asm.Type;
  */
 public class MemberNaming implements MappingWithResidualInfo {
 
+  private static final List<ReferentialMappingInformation> EMPTY_MAPPING_INFORMATION =
+      Collections.emptyList();
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -45,55 +54,41 @@ public class MemberNaming implements MappingWithResidualInfo {
     if (!(o instanceof MemberNaming)) {
       return false;
     }
-
     MemberNaming that = (MemberNaming) o;
-    return signature.equals(that.signature)
-        && renamedName.equals(that.renamedName)
-        && Objects.equals(residualSignature, that.residualSignature);
+    return signature.equals(that.signature) && residualSignature.equals(that.residualSignature);
   }
 
   @Override
   public int hashCode() {
     int result = signature.hashCode();
-    result = 31 * result + renamedName.hashCode();
-    result = 31 * result + Objects.hashCode(residualSignature);
+    result = 31 * result + residualSignature.hashCode();
     return result;
   }
 
   /** Original signature of the member. */
   private final Signature signature;
   /** Residual signature where types and names could be changed. */
-  private Signature residualSignature = null;
-  /**
-   * Renamed name in the mapping file. This value will always be present even if the residual
-   * signature is not.
-   */
-  private final String renamedName;
+  private final Signature residualSignature;
   /** Position of the member in the file. */
   private final Position position;
 
-  public MemberNaming(Signature signature, String renamedName) {
-    this(signature, renamedName, Position.UNKNOWN);
-  }
+  private List<ReferentialMappingInformation> additionalMappingInformation =
+      EMPTY_MAPPING_INFORMATION;
 
   public MemberNaming(Signature signature, Signature residualSignature) {
-    this(signature, residualSignature.getName(), Position.UNKNOWN);
-    this.residualSignature = residualSignature;
+    this(signature, residualSignature, Position.UNKNOWN);
   }
 
-  public MemberNaming(Signature signature, String renamedName, Position position) {
+  public MemberNaming(Signature signature, Signature residualSignature, Position position) {
     this.signature = signature;
-    this.renamedName = renamedName;
+    this.residualSignature = residualSignature;
     this.position = position;
   }
 
   /** This is used internally in google3. */
   @Deprecated
   public Signature getRenamedSignature() {
-    if (residualSignature != null) {
-      return residualSignature;
-    }
-    return getOriginalSignature().asRenamed(renamedName);
+    return residualSignature;
   }
 
   @Override
@@ -106,13 +101,14 @@ public class MemberNaming implements MappingWithResidualInfo {
   }
 
   @Override
-  public boolean hasResidualSignature() {
-    return residualSignature != null;
+  public boolean hasResidualSignatureMappingInformation() {
+    return Iterables.any(
+        additionalMappingInformation, MappingInformation::isResidualSignatureMappingInformation);
   }
 
   @Override
   public String getRenamedName() {
-    return renamedName;
+    return residualSignature.getName();
   }
 
   public boolean isMethodNaming() {
@@ -129,17 +125,50 @@ public class MemberNaming implements MappingWithResidualInfo {
 
   @Override
   public String toString() {
-    return signature.toString() + " -> " + renamedName;
+    return signature.toString() + " -> " + residualSignature.getName();
   }
 
   @Override
-  public Signature getResidualSignatureInternal() {
+  public Signature getResidualSignature() {
     return residualSignature;
   }
 
-  @Override
-  public void setResidualSignatureInternal(Signature signature) {
-    this.residualSignature = signature;
+  public void addMappingInformation(
+      ReferentialMappingInformation info, Consumer<MappingInformation> onProhibitedAddition) {
+    if (additionalMappingInformation == EMPTY_MAPPING_INFORMATION) {
+      additionalMappingInformation = new ArrayList<>();
+    }
+    MappingInformation.addMappingInformation(
+        additionalMappingInformation, info, onProhibitedAddition);
+  }
+
+  void addAllMappingInformationInternal(List<ReferentialMappingInformation> otherInfo) {
+    if (additionalMappingInformation == EMPTY_MAPPING_INFORMATION) {
+      additionalMappingInformation = new ArrayList<>();
+    }
+    additionalMappingInformation.addAll(otherInfo);
+  }
+
+  public boolean isCompilerSynthesized() {
+    for (MappingInformation info : additionalMappingInformation) {
+      if (info.isCompilerSynthesizedMappingInformation() || info.isOutlineMappingInformation()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public boolean isOutlineFrame() {
+    for (MappingInformation info : additionalMappingInformation) {
+      if (info.isOutlineMappingInformation()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public List<ReferentialMappingInformation> getAdditionalMappingInformation() {
+    return additionalMappingInformation;
   }
 
   public abstract static class Signature {

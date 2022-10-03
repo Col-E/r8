@@ -12,11 +12,15 @@ import com.android.tools.r8.naming.PositionRangeAllocator.CardinalPositionRangeA
 import com.android.tools.r8.naming.PositionRangeAllocator.NonCardinalPositionRangeAllocator;
 import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
+import com.android.tools.r8.naming.mappinginformation.MappingInformation.ReferentialMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.MappingInformationDiagnostics;
+import com.android.tools.r8.naming.mappinginformation.ResidualSignatureMappingInformation;
+import com.android.tools.r8.naming.mappinginformation.ResidualSignatureMappingInformation.ResidualFieldSignatureMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.ResidualSignatureMappingInformation.ResidualMethodSignatureMappingInformation;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.BooleanBox;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.IdentifierUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -334,14 +338,20 @@ public class ProguardMapReader implements AutoCloseable {
   private void parseMemberMappings(
       ProguardMap.Builder mapBuilder, ClassNaming.Builder classNamingBuilder) throws IOException {
     MemberNaming lastAddedNaming = null;
-    MemberNaming activeMemberNaming = null;
+    // To ensure we only commit a member if we have the residual signature, we delay creating the
+    // object and have the variables out here.
+    Signature previousOriginalSignature = null;
+    String previousRenamedName = null;
+    int previousLineNumber = -1;
+    Range previousRange = null;
+    Box<Signature> currentResidualSignature = new Box<>();
+    Box<List<ReferentialMappingInformation>> currentMappingInfoForMemberNaming = new Box<>();
     MappedRange activeMappedRange = null;
-    Range previousMappedRange = null;
     do {
       Range originalRange = null;
       // Try to parse any information added in comments above member namings
       if (isCommentLineWithJsonBrace()) {
-        final MemberNaming currentMember = activeMemberNaming;
+        final String currentRenamedNameFinal = previousRenamedName;
         final MappedRange currentRange = activeMappedRange;
         // Reading global info should cause member mapping to return since we are now reading
         // headers pertaining to what could be a concatinated file.
@@ -349,38 +359,44 @@ public class ProguardMapReader implements AutoCloseable {
         parseMappingInformation(
             info -> {
               readGlobalInfo.set(info.isGlobalMappingInformation());
-              // TODO(b/242673239): Support additional information for fields.
-              if (currentMember == null) {
+              if (currentRenamedNameFinal == null) {
                 classNamingBuilder.addMappingInformation(
                     info,
                     conflictingInfo ->
                         diagnosticsHandler.warning(
                             MappingInformationDiagnostics.notAllowedCombination(
                                 info, conflictingInfo, lineNo)));
-              } else if (currentRange != null) {
+                return;
+              }
+              // Always add information to the current range, this will ensure that additional
+              // information is always placed the same place.
+              if (currentRange != null) {
                 currentRange.addMappingInformation(
                     info,
                     conflictingInfo ->
                         diagnosticsHandler.warning(
                             MappingInformationDiagnostics.notAllowedCombination(
                                 info, conflictingInfo, lineNo)));
-                if (info.isResidualMethodSignatureMappingInformation()) {
-                  ResidualMethodSignatureMappingInformation residualSignatureInfo =
-                      info.asResidualMethodSignatureMappingInformation();
-                  MethodSignature residualSignature =
-                      new MethodSignature(
-                          currentMember.getRenamedName(),
-                          DescriptorUtils.descriptorToJavaType(
-                              residualSignatureInfo.getReturnType()),
-                          ArrayUtils.mapToStringArray(
-                              residualSignatureInfo.getParameters(),
-                              DescriptorUtils::descriptorToJavaType));
-                  residualSignature =
-                      signatureCache
-                          .computeIfAbsent(residualSignature, Function.identity())
-                          .asMethodSignature();
-                  currentMember.setResidualSignatureInternal(residualSignature);
-                  currentRange.setResidualSignatureInternal(residualSignature);
+              }
+              if (info.isReferentialMappingInformation()) {
+                ReferentialMappingInformation referentialMappingInformation =
+                    info.asReferentialMappingInformation();
+                MappingInformation.addMappingInformation(
+                    currentMappingInfoForMemberNaming.computeIfAbsent(ArrayList::new),
+                    referentialMappingInformation,
+                    conflictingInfo ->
+                        diagnosticsHandler.warning(
+                            MappingInformationDiagnostics.notAllowedCombination(
+                                info, conflictingInfo, lineNo)));
+                if (info.isResidualSignatureMappingInformation()) {
+                  Signature residualSignature =
+                      getResidualSignatureFromMappingInformation(
+                          info.asResidualSignatureMappingInformation(), currentRenamedNameFinal);
+                  currentResidualSignature.set(residualSignature);
+                  if (currentRange != null) {
+                    currentRange.setResidualSignatureInternal(
+                        residualSignature.asMethodSignature());
+                  }
                 }
               }
             });
@@ -431,7 +447,7 @@ public class ProguardMapReader implements AutoCloseable {
         if (activeMappedRange != null
             && activeMappedRange.signature == signature
             && activeMappedRange.renamedName.equals(renamedName)) {
-          residualSignature = activeMappedRange.getResidualSignatureInternal();
+          residualSignature = activeMappedRange.getResidualSignature();
         }
         activeMappedRange =
             classNamingBuilder.addMappedRange(
@@ -442,51 +458,114 @@ public class ProguardMapReader implements AutoCloseable {
       }
 
       assert mappedRange == null || signature.isMethodSignature();
-
-      // If this line refers to a member that should be added to classNamingBuilder (as opposed to
-      // an inner inlined callee) and it's different from the the previous activeMemberNaming, then
-      // flush (add) the current activeMemberNaming.
-      if (activeMemberNaming != null) {
-        boolean changedName = !activeMemberNaming.getRenamedName().equals(renamedName);
-        boolean changedMappedRange = !Objects.equals(previousMappedRange, mappedRange);
+      if (previousOriginalSignature != null) {
+        boolean changedName = !previousRenamedName.equals(renamedName);
+        boolean changedMappedRange =
+            previousRange == null || !Objects.equals(previousRange, mappedRange);
         boolean originalRangeChange = originalRange == null || !originalRange.isCardinal;
-        if (changedName
-            || previousMappedRange == null
-            || changedMappedRange
-            || originalRangeChange) {
-          if (lastAddedNaming == null
-              || !lastAddedNaming
-                  .getOriginalSignature()
-                  .equals(activeMemberNaming.getOriginalSignature())) {
-            classNamingBuilder.addMemberEntry(
-                activeMemberNaming, getResidualSignatureForMemberNaming(activeMemberNaming));
-            lastAddedNaming = activeMemberNaming;
-          }
+        if (changedName || changedMappedRange || originalRangeChange) {
+          lastAddedNaming =
+              addMemberEntryOrCopyInformation(
+                  lastAddedNaming,
+                  previousOriginalSignature,
+                  previousRenamedName,
+                  previousLineNumber,
+                  currentResidualSignature,
+                  currentMappingInfoForMemberNaming,
+                  previousRange,
+                  classNamingBuilder);
         }
       }
-      activeMemberNaming = new MemberNaming(signature, renamedName, getPosition());
-      previousMappedRange = mappedRange;
+      previousOriginalSignature = signature;
+      previousRenamedName = renamedName;
+      previousLineNumber = lineNo;
+      previousRange = mappedRange;
     } while (nextLine(mapBuilder));
 
-    if (activeMemberNaming != null) {
-      boolean notAdded =
-          lastAddedNaming == null
-              || !lastAddedNaming
-                  .getOriginalSignature()
-                  .equals(activeMemberNaming.getOriginalSignature());
-      if (previousMappedRange == null || notAdded) {
-        classNamingBuilder.addMemberEntry(
-            activeMemberNaming, getResidualSignatureForMemberNaming(activeMemberNaming));
-      }
+    if (previousOriginalSignature != null) {
+      addMemberEntryOrCopyInformation(
+          lastAddedNaming,
+          previousOriginalSignature,
+          previousRenamedName,
+          previousLineNumber,
+          currentResidualSignature,
+          currentMappingInfoForMemberNaming,
+          previousRange,
+          classNamingBuilder);
     }
   }
 
-  private Signature getResidualSignatureForMemberNaming(MemberNaming memberNaming) {
-    if (memberNaming.hasResidualSignature()) {
-      return memberNaming.getResidualSignatureInternal();
+  private MemberNaming addMemberEntryOrCopyInformation(
+      MemberNaming lastAddedNaming,
+      Signature originalSignature,
+      String renamedName,
+      int lineNumber,
+      Box<Signature> residualSignature,
+      Box<List<ReferentialMappingInformation>> additionalMappingInformation,
+      Range previousMappedRange,
+      ClassNaming.Builder classNamingBuilder) {
+    // If this line refers to a member that should be added to classNamingBuilder (as opposed to
+    // an inner inlined callee) and it's different from the the previous activeMemberNaming, then
+    // flush (add) the current activeMemberNaming.
+    if (previousMappedRange == null
+        || lastAddedNaming == null
+        || !lastAddedNaming.getRenamedName().equals(renamedName)
+        || !lastAddedNaming.getOriginalSignature().equals(originalSignature)) {
+      MemberNaming newMemberNaming =
+          new MemberNaming(
+              originalSignature,
+              getResidualSignatureForMemberNaming(
+                  residualSignature, originalSignature, renamedName),
+              new LinePosition(lineNumber));
+      if (additionalMappingInformation.isSet()) {
+        newMemberNaming.addAllMappingInformationInternal(additionalMappingInformation.get());
+      }
+      classNamingBuilder.addMemberEntry(newMemberNaming);
+      residualSignature.clear();
+      additionalMappingInformation.clear();
+      return newMemberNaming;
     }
-    Signature signature =
-        memberNaming.getOriginalSignature().asRenamed(memberNaming.getRenamedName());
+    if (additionalMappingInformation.isSet()) {
+      lastAddedNaming.addAllMappingInformationInternal(additionalMappingInformation.get());
+      additionalMappingInformation.clear();
+    }
+    residualSignature.clear();
+    return lastAddedNaming;
+  }
+
+  private Signature getResidualSignatureFromMappingInformation(
+      ResidualSignatureMappingInformation mappingInformation, String renamedName) {
+    if (mappingInformation.isResidualMethodSignatureMappingInformation()) {
+      ResidualMethodSignatureMappingInformation residualSignatureInfo =
+          mappingInformation.asResidualMethodSignatureMappingInformation();
+      MethodSignature residualSignature =
+          new MethodSignature(
+              renamedName,
+              DescriptorUtils.descriptorToJavaType(residualSignatureInfo.getReturnType()),
+              ArrayUtils.mapToStringArray(
+                  residualSignatureInfo.getParameters(), DescriptorUtils::descriptorToJavaType));
+      return signatureCache
+          .computeIfAbsent(residualSignature, Function.identity())
+          .asMethodSignature();
+    } else {
+      assert mappingInformation.isResidualFieldSignatureMappingInformation();
+      ResidualFieldSignatureMappingInformation residualSignatureInfo =
+          mappingInformation.asResidualFieldSignatureMappingInformation();
+      FieldSignature residualSignature =
+          new FieldSignature(
+              renamedName, DescriptorUtils.descriptorToJavaType(residualSignatureInfo.getType()));
+      return signatureCache
+          .computeIfAbsent(residualSignature, Function.identity())
+          .asFieldSignature();
+    }
+  }
+
+  private Signature getResidualSignatureForMemberNaming(
+      Box<Signature> residualSignature, Signature originalSignature, String renamedName) {
+    if (residualSignature.isSet()) {
+      return residualSignature.get();
+    }
+    Signature signature = originalSignature.asRenamed(renamedName);
     signature = signatureCache.computeIfAbsent(signature, Function.identity());
     return signature;
   }

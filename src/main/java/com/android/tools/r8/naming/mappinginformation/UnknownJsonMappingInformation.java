@@ -6,10 +6,11 @@ package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.MappingComposeException;
+import com.android.tools.r8.naming.mappinginformation.MappingInformation.PositionalMappingInformation;
 import com.google.gson.JsonObject;
 import java.util.function.Consumer;
 
-public class UnknownJsonMappingInformation extends MappingInformation {
+public class UnknownJsonMappingInformation extends PositionalMappingInformation {
 
   private final String id;
   private final String payload;

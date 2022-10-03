@@ -23,19 +23,16 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
   private final RetraceClassResultImpl classResult;
   private final List<Pair<RetraceClassElementImpl, List<MemberNaming>>> memberNamings;
   private final FieldDefinition fieldDefinition;
-  private final FieldSignature originalFieldSignature;
   private final Retracer retracer;
 
   RetraceFieldResultImpl(
       RetraceClassResultImpl classResult,
       List<Pair<RetraceClassElementImpl, List<MemberNaming>>> memberNamings,
       FieldDefinition fieldDefinition,
-      FieldSignature originalFieldSignature,
       Retracer retracer) {
     this.classResult = classResult;
     this.memberNamings = memberNamings;
     this.fieldDefinition = fieldDefinition;
-    this.originalFieldSignature = originalFieldSignature;
     this.retracer = retracer;
     assert classResult != null;
     assert !memberNamings.isEmpty();
@@ -55,7 +52,8 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
                         classElement,
                         RetracedFieldReferenceImpl.create(
                             fieldDefinition.substituteHolder(
-                                classElement.getRetracedClass().getClassReference()))));
+                                classElement.getRetracedClass().getClassReference())),
+                        null));
               }
               return memberNamings.stream()
                   .map(
@@ -78,7 +76,8 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
                                     fieldSignature.isQualified()
                                         ? fieldSignature.toUnqualifiedName()
                                         : fieldSignature.name,
-                                    Reference.typeFromTypeName(fieldSignature.type))));
+                                    Reference.typeFromTypeName(fieldSignature.type))),
+                            memberNaming);
                       });
             });
   }
@@ -105,14 +104,17 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
     private final RetracedFieldReferenceImpl fieldReference;
     private final RetraceFieldResultImpl retraceFieldResult;
     private final RetraceClassElementImpl classElement;
+    private final MemberNaming memberNaming;
 
     private ElementImpl(
         RetraceFieldResultImpl retraceFieldResult,
         RetraceClassElementImpl classElement,
-        RetracedFieldReferenceImpl fieldReference) {
+        RetracedFieldReferenceImpl fieldReference,
+        MemberNaming memberNaming) {
       this.classElement = classElement;
       this.fieldReference = fieldReference;
       this.retraceFieldResult = retraceFieldResult;
+      this.memberNaming = memberNaming;
     }
 
     @Override
@@ -122,6 +124,7 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
 
     @Override
     public boolean isUnknown() {
+      assert (memberNaming == null) == fieldReference.isUnknown();
       return fieldReference.isUnknown();
     }
 
