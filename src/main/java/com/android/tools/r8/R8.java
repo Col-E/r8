@@ -217,7 +217,7 @@ public class R8 {
       if (options.isGeneratingClassFiles()) {
         new CfApplicationWriter(appView, marker).write(options.getClassFileConsumer(), inputApp);
       } else {
-        new ApplicationWriter(appView, marker).write(executorService, inputApp);
+        ApplicationWriter.create(appView, marker).write(executorService, inputApp);
       }
     } catch (IOException e) {
       throw new RuntimeException("Cannot write application", e);

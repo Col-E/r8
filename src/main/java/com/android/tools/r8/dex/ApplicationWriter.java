@@ -174,11 +174,7 @@ public class ApplicationWriter {
     }
   }
 
-  public ApplicationWriter(AppView<?> appView, Marker marker) {
-    this(appView, marker, null);
-  }
-
-  public ApplicationWriter(AppView<?> appView, Marker marker, DexIndexedConsumer consumer) {
+  private ApplicationWriter(AppView<?> appView, Marker marker, DexIndexedConsumer consumer) {
     this.appView = appView;
     this.options = appView.options();
     this.desugaredLibraryCodeToKeep = CodeToKeep.createCodeToKeep(appView);
@@ -187,6 +183,15 @@ public class ApplicationWriter {
     this.isTypeMissing =
         PredicateUtils.isNull(appView.appInfo()::definitionForWithoutExistenceAssert);
     this.previousMarkers = appView.dexItemFactory().extractMarkers();
+  }
+
+  public static ApplicationWriter create(AppView<?> appView, Marker marker) {
+    return ApplicationWriter.create(appView, marker, null);
+  }
+
+  public static ApplicationWriter create(
+      AppView<?> appView, Marker marker, DexIndexedConsumer consumer) {
+    return new ApplicationWriter(appView, marker, consumer);
   }
 
   private NamingLens getNamingLens() {

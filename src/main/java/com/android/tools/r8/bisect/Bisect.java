@@ -187,7 +187,7 @@ public class Bisect {
     StringConsumer proguardMapConsumer = options.proguardMapConsumer;
     AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
     ApplicationWriter writer =
-        new ApplicationWriter(
+        ApplicationWriter.create(
             AppView.createForD8(
                 AppInfo.createInitialAppInfo(app, GlobalSyntheticsStrategy.forNonSynthesizing())),
             null);

@@ -112,7 +112,7 @@ public class Smali {
     try {
       DexApplication dexApp = new ApplicationReader(app, options, Timing.empty()).read(executor);
       ApplicationWriter writer =
-          new ApplicationWriter(
+          ApplicationWriter.create(
               AppView.createForD8(
                   AppInfo.createInitialAppInfo(
                       dexApp, GlobalSyntheticsStrategy.forNonSynthesizing())),

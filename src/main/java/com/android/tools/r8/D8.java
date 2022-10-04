@@ -333,7 +333,7 @@ public final class D8 {
       if (options.isGeneratingClassFiles()) {
         new CfApplicationWriter(appView, marker).write(options.getClassFileConsumer(), inputApp);
       } else {
-        new ApplicationWriter(appView, marker).write(executor, inputApp);
+        ApplicationWriter.create(appView, marker).write(executor, inputApp);
       }
       options.printWarnings();
     } catch (ExecutionException e) {
@@ -428,7 +428,7 @@ public final class D8 {
     ConvertedCfFiles convertedCfFiles = new ConvertedCfFiles();
     new GenericSignatureRewriter(appView).run(appView.appInfo().classes(), executor);
     new KotlinMetadataRewriter(appView).runForD8(executor);
-    new ApplicationWriter(appView, marker, convertedCfFiles).write(executor);
+    ApplicationWriter.create(appView, marker, convertedCfFiles).write(executor);
     AndroidApp.Builder builder = AndroidApp.builder(inputApp);
     builder.getProgramResourceProviders().clear();
     builder.addProgramResourceProvider(convertedCfFiles);
