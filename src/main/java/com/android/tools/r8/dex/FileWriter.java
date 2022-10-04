@@ -84,7 +84,7 @@ public class FileWriter {
     public final CompatByteBuffer buffer;
     public final int length;
 
-    private ByteBufferResult(CompatByteBuffer buffer, int length) {
+    protected ByteBufferResult(CompatByteBuffer buffer, int length) {
       this.buffer = buffer;
       this.length = length;
     }
@@ -135,6 +135,10 @@ public class FileWriter {
 
   private NamingLens getNamingLens() {
     return appView.getNamingLens();
+  }
+
+  public MixedSectionOffsets getMixedSectionOffsets() {
+    return mixedSectionOffsets;
   }
 
   public static void writeEncodedAnnotation(
@@ -915,7 +919,7 @@ public class FileWriter {
     return (value + mask) & ~mask;
   }
 
-  private static class Layout {
+  public static class Layout {
 
     private static final int NOT_SET = -1;
 

@@ -81,6 +81,43 @@ public class DexContainerFormatBasicTest extends TestBase {
     assertEquals(4, unzipContent(outputMerged).size());
   }
 
+  @Test
+  public void testD8Experiment() throws Exception {
+    Path outputFromDexing =
+        testForD8(Backend.DEX)
+            .addProgramFiles(inputA)
+            .setMinApi(AndroidApiLevel.L)
+            .addOptionsModification(
+                options -> options.getTestingOptions().dexContainerExperiment = true)
+            .compile()
+            .writeToZip();
+    List<byte[]> dexFromDexing = unzipContent(outputFromDexing);
+    assertEquals(1, dexFromDexing.size());
+  }
+
+  @Test
+  public void testD8Experiment2() throws Exception {
+    Path outputA =
+        testForD8(Backend.DEX)
+            .addProgramFiles(inputA)
+            .setMinApi(AndroidApiLevel.L)
+            .addOptionsModification(
+                options -> options.getTestingOptions().dexContainerExperiment = true)
+            .compile()
+            .writeToZip();
+    assertEquals(1, unzipContent(outputA).size());
+
+    Path outputB =
+        testForD8(Backend.DEX)
+            .addProgramFiles(inputB)
+            .setMinApi(AndroidApiLevel.L)
+            .addOptionsModification(
+                options -> options.getTestingOptions().dexContainerExperiment = true)
+            .compile()
+            .writeToZip();
+    assertEquals(1, unzipContent(outputB).size());
+  }
+
   private List<byte[]> unzipContent(Path zip) throws IOException {
     List<byte[]> result = new ArrayList<>();
     ZipUtils.iter(zip, (entry, inputStream) -> result.add(ByteStreams.toByteArray(inputStream)));

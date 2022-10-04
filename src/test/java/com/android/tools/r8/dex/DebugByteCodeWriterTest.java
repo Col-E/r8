@@ -51,6 +51,7 @@ public class DebugByteCodeWriterTest {
                 GlobalSyntheticsStrategy.forNonSynthesizing()));
     return new ObjectToOffsetMapping(
         appView,
+        null,
         new LensCodeRewriterUtils(appView),
         Collections.emptyList(),
         Collections.emptyList(),

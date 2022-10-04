@@ -53,6 +53,7 @@ public class ObjectToOffsetMapping {
 
   public ObjectToOffsetMapping(
       AppView<?> appView,
+      ObjectToOffsetMapping sharedMapping,
       LensCodeRewriterUtils lensCodeRewriter,
       Collection<DexProgramClass> classes,
       Collection<DexProto> protos,
@@ -80,9 +81,14 @@ public class ObjectToOffsetMapping {
     this.initClassLens = appView.initClassLens();
     this.lensCodeRewriter = lensCodeRewriter;
     timing.begin("Sort strings");
-    this.strings =
-        createSortedMap(
-            strings, DexString::compareTo, this::setFirstJumboString, lazyDexStringsCount);
+    if (sharedMapping == null) {
+      this.strings =
+          createSortedMap(
+              strings, DexString::compareTo, this::setFirstJumboString, lazyDexStringsCount);
+    } else {
+      this.strings = sharedMapping.strings;
+      this.firstJumboString = sharedMapping.firstJumboString;
+    }
     CompareToVisitor visitor =
         new CompareToVisitorWithStringTable(namingLens, this.strings::getInt);
     timing.end();

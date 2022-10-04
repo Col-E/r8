@@ -95,6 +95,7 @@ public class ApplicationWriter {
 
   public final AppView<?> appView;
   public final InternalOptions options;
+
   private final CodeToKeep desugaredLibraryCodeToKeep;
   private final Predicate<DexType> isTypeMissing;
   private final Optional<Marker> currentMarker;
@@ -174,7 +175,7 @@ public class ApplicationWriter {
     }
   }
 
-  private ApplicationWriter(AppView<?> appView, Marker marker, DexIndexedConsumer consumer) {
+  protected ApplicationWriter(AppView<?> appView, Marker marker, DexIndexedConsumer consumer) {
     this.appView = appView;
     this.options = appView.options();
     this.desugaredLibraryCodeToKeep = CodeToKeep.createCodeToKeep(appView);
@@ -191,11 +192,19 @@ public class ApplicationWriter {
 
   public static ApplicationWriter create(
       AppView<?> appView, Marker marker, DexIndexedConsumer consumer) {
-    return new ApplicationWriter(appView, marker, consumer);
+    if (appView.options().testing.dexContainerExperiment) {
+      return new ApplicationWriterExperimental(appView, marker, consumer);
+    } else {
+      return new ApplicationWriter(appView, marker, consumer);
+    }
   }
 
   private NamingLens getNamingLens() {
     return appView.getNamingLens();
+  }
+
+  public CodeToKeep getDesugaredLibraryCodeToKeep() {
+    return desugaredLibraryCodeToKeep;
   }
 
   private List<VirtualFile> distribute(ExecutorService executorService)
@@ -288,7 +297,7 @@ public class ApplicationWriter {
     write(executorService, null);
   }
 
-  private Timing rewriteJumboStringsAndComputeDebugRepresentation(
+  protected Timing rewriteJumboStringsAndComputeDebugRepresentation(
       VirtualFile virtualFile, List<LazyDexString> lazyDexStrings) {
     Timing fileTiming = Timing.create("VirtualFile " + virtualFile.getId(), options);
     computeOffsetMappingAndRewriteJumboStrings(virtualFile, lazyDexStrings, fileTiming);
@@ -297,7 +306,7 @@ public class ApplicationWriter {
     return fileTiming;
   }
 
-  private Collection<Timing> rewriteJumboStringsAndComputeDebugRepresentation(
+  protected Collection<Timing> rewriteJumboStringsAndComputeDebugRepresentation(
       ExecutorService executorService,
       List<VirtualFile> virtualFiles,
       List<LazyDexString> lazyDexStrings)
@@ -309,7 +318,7 @@ public class ApplicationWriter {
         executorService);
   }
 
-  private void writeVirtualFiles(
+  protected void writeVirtualFiles(
       ExecutorService executorService,
       List<VirtualFile> virtualFiles,
       List<DexString> forcedStrings,
@@ -905,7 +914,7 @@ public class ApplicationWriter {
    * <p>If run multiple times on a class, the lowest index that is required to be a JumboString will
    * be used.
    */
-  private void rewriteCodeWithJumboStrings(
+  protected void rewriteCodeWithJumboStrings(
       ObjectToOffsetMapping mapping,
       Collection<DexProgramClass> classes,
       DexApplication application) {
@@ -980,7 +989,7 @@ public class ApplicationWriter {
     }
   }
 
-  private void printItemUseInfo(VirtualFile virtualFile) {
+  protected void printItemUseInfo(VirtualFile virtualFile) {
     if (options.testing.calculateItemUseCountInDex) {
       synchronized (System.out) {
         System.out.print("\"Item\"");

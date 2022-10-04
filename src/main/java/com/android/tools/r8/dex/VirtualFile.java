@@ -203,11 +203,20 @@ public class VirtualFile {
       AppView<?> appView,
       int lazyDexStringsCount,
       Timing timing) {
+    computeMapping(appView, lazyDexStringsCount, timing, null);
+  }
+
+  public void computeMapping(
+      AppView<?> appView,
+      int lazyDexStringsCount,
+      Timing timing,
+      ObjectToOffsetMapping sharedMapping) {
     assert transaction.isEmpty();
     assert objectMapping == null;
     objectMapping =
         new ObjectToOffsetMapping(
             appView,
+            sharedMapping,
             transaction.rewriter,
             indexedItems.classes,
             indexedItems.protos,
@@ -663,6 +672,10 @@ public class VirtualFile {
       return strings.add(string);
     }
 
+    public boolean addStrings(Collection<DexString> additionalStrings) {
+      return strings.addAll(additionalStrings);
+    }
+
     @Override
     public boolean addProto(DexProto proto) {
       return protos.add(proto);
@@ -690,6 +703,10 @@ public class VirtualFile {
 
     int getNumberOfFields() {
       return fields.size();
+    }
+
+    Collection<DexString> getStrings() {
+      return strings;
     }
   }
 
