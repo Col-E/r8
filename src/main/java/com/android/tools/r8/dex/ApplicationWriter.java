@@ -297,6 +297,43 @@ public class ApplicationWriter {
     return fileTiming;
   }
 
+  private Collection<Timing> rewriteJumboStringsAndComputeDebugRepresentation(
+      ExecutorService executorService,
+      List<VirtualFile> virtualFiles,
+      List<LazyDexString> lazyDexStrings)
+      throws ExecutionException {
+    return ThreadUtils.processItemsWithResults(
+        virtualFiles,
+        virtualFile ->
+            rewriteJumboStringsAndComputeDebugRepresentation(virtualFile, lazyDexStrings),
+        executorService);
+  }
+
+  private void writeVirtualFiles(
+      ExecutorService executorService,
+      List<VirtualFile> virtualFiles,
+      List<DexString> forcedStrings,
+      Timing timing)
+      throws ExecutionException {
+    TimingMerger merger =
+        timing.beginMerger("Write files", ThreadUtils.getNumberOfThreads(executorService));
+    Collection<Timing> timings =
+        ThreadUtils.processItemsWithResults(
+            virtualFiles,
+            virtualFile -> {
+              Timing fileTiming = Timing.create("VirtualFile " + virtualFile.getId(), options);
+              writeVirtualFile(virtualFile, fileTiming, forcedStrings);
+              fileTiming.end();
+              return fileTiming;
+            },
+            executorService);
+    merger.add(timings);
+    merger.end();
+    if (globalsSyntheticsConsumer != null) {
+      globalsSyntheticsConsumer.finished(appView);
+    }
+  }
+
   public void write(ExecutorService executorService, AndroidApp inputApp)
       throws IOException, ExecutionException {
     Timing timing = appView.appInfo().app().timing;
@@ -351,11 +388,8 @@ public class ApplicationWriter {
         TimingMerger merger =
             timing.beginMerger("Pre-write phase", ThreadUtils.getNumberOfThreads(executorService));
         Collection<Timing> timings =
-            ThreadUtils.processItemsWithResults(
-                virtualFiles,
-                virtualFile ->
-                    rewriteJumboStringsAndComputeDebugRepresentation(virtualFile, lazyDexStrings),
-                executorService);
+            rewriteJumboStringsAndComputeDebugRepresentation(
+                executorService, virtualFiles, lazyDexStrings);
         merger.add(timings);
         merger.end();
       }
@@ -378,26 +412,8 @@ public class ApplicationWriter {
       }
       timing.end();
 
-      {
-        // Write the actual dex code.
-        TimingMerger merger =
-            timing.beginMerger("Write files", ThreadUtils.getNumberOfThreads(executorService));
-        Collection<Timing> timings =
-            ThreadUtils.processItemsWithResults(
-                virtualFiles,
-                virtualFile -> {
-                  Timing fileTiming = Timing.create("VirtualFile " + virtualFile.getId(), options);
-                  writeVirtualFile(virtualFile, fileTiming, forcedStrings);
-                  fileTiming.end();
-                  return fileTiming;
-                },
-                executorService);
-        merger.add(timings);
-        merger.end();
-        if (globalsSyntheticsConsumer != null) {
-          globalsSyntheticsConsumer.finished(appView);
-        }
-      }
+      // Write the actual dex code.
+      writeVirtualFiles(executorService, virtualFiles, forcedStrings, timing);
 
       // A consumer can manage the generated keep rules.
       if (options.desugaredLibraryKeepRuleConsumer != null && !desugaredLibraryCodeToKeep.isNop()) {
