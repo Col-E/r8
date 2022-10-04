@@ -126,6 +126,14 @@ public class DexOutputBuffer {
     byteBuffer.putInt(anInteger);
   }
 
+  public boolean assertZero() {
+    int pos = byteBuffer.position();
+    int i = byteBuffer.getInt();
+    assert i == 0;
+    byteBuffer.position(pos);
+    return true;
+  }
+
   /**
    * Moves the position in the bytebuffer forward until it is aligned.
    *

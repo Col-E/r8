@@ -98,6 +98,7 @@ public class FileWriter {
   private final MixedSectionOffsets mixedSectionOffsets;
   private final CodeToKeep desugaredLibraryCodeToKeep;
   private final VirtualFile virtualFile;
+  private final boolean includeStringData;
 
   public FileWriter(
       AppView<?> appView,
@@ -105,14 +106,31 @@ public class FileWriter {
       ObjectToOffsetMapping mapping,
       CodeToKeep desugaredLibraryCodeToKeep,
       VirtualFile virtualFile) {
+    this(
+        appView,
+        new DexOutputBuffer(provider),
+        mapping,
+        desugaredLibraryCodeToKeep,
+        virtualFile,
+        true);
+  }
+
+  public FileWriter(
+      AppView<?> appView,
+      DexOutputBuffer dexOutputBuffer,
+      ObjectToOffsetMapping mapping,
+      CodeToKeep desugaredLibraryCodeToKeep,
+      VirtualFile virtualFile,
+      boolean includeStringData) {
     this.appView = appView;
     this.graphLens = appView.graphLens();
     this.mapping = mapping;
     this.options = appView.options();
-    this.dest = new DexOutputBuffer(provider);
+    this.dest = dexOutputBuffer;
     this.mixedSectionOffsets = new MixedSectionOffsets(options);
     this.desugaredLibraryCodeToKeep = desugaredLibraryCodeToKeep;
     this.virtualFile = virtualFile;
+    this.includeStringData = includeStringData;
   }
 
   private NamingLens getNamingLens() {
@@ -158,14 +176,43 @@ public class FileWriter {
     return this;
   }
 
+  public static class DexContainerSection {
+    private final FileWriter writer;
+    private final DexOutputBuffer buffer;
+    private final Layout layout;
+
+    public DexContainerSection(FileWriter writer, DexOutputBuffer buffer, Layout layout) {
+      this.writer = writer;
+      this.buffer = buffer;
+      this.layout = layout;
+    }
+
+    public FileWriter getFileWriter() {
+      return writer;
+    }
+
+    public DexOutputBuffer getBuffer() {
+      return buffer;
+    }
+
+    public Layout getLayout() {
+      return layout;
+    }
+  }
+
   public ByteBufferResult generate() {
+    DexContainerSection res = generate(0);
+    return new ByteBufferResult(res.getBuffer().stealByteBuffer(), res.getLayout().getEndOfFile());
+  }
+
+  public DexContainerSection generate(int offset) {
     // Check restrictions on interface methods.
     checkInterfaceMethods();
 
     // Check restriction on the names of fields, methods and classes
     assert verifyNames();
 
-    Layout layout = Layout.from(mapping);
+    Layout layout = Layout.from(mapping, offset, includeStringData);
     layout.setCodesOffset(layout.dataSectionOffset);
 
     // Sort the codes first, as their order might impact size due to alignment constraints.
@@ -205,10 +252,14 @@ public class FileWriter {
         mixedSectionLayoutStrategy.getTypeListLayout(),
         layout::alreadySetOffset,
         this::writeTypeList);
-    writeItems(
-        mixedSectionLayoutStrategy.getStringDataLayout(),
-        layout::setStringDataOffsets,
-        this::writeStringData);
+    if (includeStringData) {
+      writeItems(
+          mixedSectionLayoutStrategy.getStringDataLayout(),
+          layout::setStringDataOffsets,
+          this::writeStringData);
+    } else {
+      layout.stringDataOffsets = 0; // Empty string data section.
+    }
     writeItems(
         mixedSectionLayoutStrategy.getAnnotationLayout(),
         layout::setAnnotationsOffset,
@@ -244,7 +295,11 @@ public class FileWriter {
 
     // Now that we have all mixedSectionOffsets, lets write the indexed items.
     dest.moveTo(layout.headerOffset + Constants.TYPE_HEADER_ITEM_SIZE);
-    writeFixedSectionItems(mapping.getStrings(), layout.stringIdsOffset, this::writeStringItem);
+    if (includeStringData) {
+      writeFixedSectionItems(mapping.getStrings(), layout.stringIdsOffset, this::writeStringItem);
+    } else {
+      assert layout.stringIdsOffset == layout.typeIdsOffset;
+    }
     writeFixedSectionItems(mapping.getTypes(), layout.typeIdsOffset, this::writeTypeItem);
     writeFixedSectionItems(mapping.getProtos(), layout.protoIdsOffset, this::writeProtoItem);
     writeFixedSectionItems(mapping.getFields(), layout.fieldIdsOffset, this::writeFieldItem);
@@ -260,7 +315,7 @@ public class FileWriter {
     writeChecksum(layout);
 
     // Wrap backing buffer with actual length.
-    return new ByteBufferResult(dest.stealByteBuffer(), layout.getEndOfFile());
+    return new DexContainerSection(this, dest, layout);
   }
 
   private void checkInterfaceMethods() {
@@ -759,8 +814,11 @@ public class FileWriter {
         mixedSectionOffsets.getDebugInfos().size());
     size += writeMapItem(Constants.TYPE_TYPE_LIST, layout.getTypeListsOffset(),
         mixedSectionOffsets.getTypeLists().size());
-    size += writeMapItem(Constants.TYPE_STRING_DATA_ITEM, layout.getStringDataOffsets(),
-        mixedSectionOffsets.getStringData().size());
+    size +=
+        writeMapItem(
+            Constants.TYPE_STRING_DATA_ITEM,
+            layout.getStringDataOffsets(),
+            layout.getStringDataOffsets() == 0 ? 0 : mixedSectionOffsets.getStringData().size());
     size += writeMapItem(Constants.TYPE_ANNOTATION_ITEM, layout.getAnnotationsOffset(),
         mixedSectionOffsets.getAnnotations().size());
     size += writeMapItem(Constants.TYPE_CLASS_DATA_ITEM, layout.getClassDataOffset(),
