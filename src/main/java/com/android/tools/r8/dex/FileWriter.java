@@ -243,7 +243,7 @@ public class FileWriter {
     layout.setEndOfFile(dest.position());
 
     // Now that we have all mixedSectionOffsets, lets write the indexed items.
-    dest.moveTo(Constants.TYPE_HEADER_ITEM_SIZE);
+    dest.moveTo(layout.headerOffset + Constants.TYPE_HEADER_ITEM_SIZE);
     writeFixedSectionItems(mapping.getStrings(), layout.stringIdsOffset, this::writeStringItem);
     writeFixedSectionItems(mapping.getTypes(), layout.typeIdsOffset, this::writeTypeItem);
     writeFixedSectionItems(mapping.getProtos(), layout.protoIdsOffset, this::writeProtoItem);
@@ -794,12 +794,12 @@ public class FileWriter {
   }
 
   private void writeHeader(Layout layout) {
-    dest.moveTo(0);
+    dest.moveTo(layout.headerOffset);
     dest.putBytes(Constants.DEX_FILE_MAGIC_PREFIX);
     dest.putBytes(dexVersionBytes());
     dest.putByte(Constants.DEX_FILE_MAGIC_SUFFIX);
     // Leave out checksum and signature for now.
-    dest.moveTo(Constants.FILE_SIZE_OFFSET);
+    dest.moveTo(layout.headerOffset + Constants.FILE_SIZE_OFFSET);
     dest.putInt(layout.getEndOfFile());
     dest.putInt(Constants.TYPE_HEADER_ITEM_SIZE);
     dest.putInt(Constants.ENDIAN_CONSTANT);
@@ -832,9 +832,11 @@ public class FileWriter {
   private void writeSignature(Layout layout) {
     try {
       MessageDigest md = MessageDigest.getInstance("SHA-1");
-      md.update(dest.asArray(), Constants.FILE_SIZE_OFFSET,
-          layout.getEndOfFile() - Constants.FILE_SIZE_OFFSET);
-      md.digest(dest.asArray(), Constants.SIGNATURE_OFFSET, 20);
+      md.update(
+          dest.asArray(),
+          layout.headerOffset + Constants.FILE_SIZE_OFFSET,
+          layout.getEndOfFile() - layout.headerOffset - Constants.FILE_SIZE_OFFSET);
+      md.digest(dest.asArray(), layout.headerOffset + Constants.SIGNATURE_OFFSET, 20);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -842,9 +844,11 @@ public class FileWriter {
 
   private void writeChecksum(Layout layout) {
     Adler32 adler = new Adler32();
-    adler.update(dest.asArray(), Constants.SIGNATURE_OFFSET,
-        layout.getEndOfFile() - Constants.SIGNATURE_OFFSET);
-    dest.moveTo(Constants.CHECKSUM_OFFSET);
+    adler.update(
+        dest.asArray(),
+        layout.headerOffset + Constants.SIGNATURE_OFFSET,
+        layout.getEndOfFile() - layout.headerOffset - Constants.SIGNATURE_OFFSET);
+    dest.moveTo(layout.headerOffset + Constants.CHECKSUM_OFFSET);
     dest.putInt((int) adler.getValue());
   }
 
@@ -858,6 +862,7 @@ public class FileWriter {
     private static final int NOT_SET = -1;
 
     // Fixed size constant pool sections
+    final int headerOffset;
     final int stringIdsOffset;
     final int typeIdsOffset;
     final int protoIdsOffset;
@@ -884,6 +889,7 @@ public class FileWriter {
     private int endOfFile = NOT_SET;
 
     private Layout(
+        int headerOffset,
         int stringIdsOffset,
         int typeIdsOffset,
         int protoIdsOffset,
@@ -893,6 +899,7 @@ public class FileWriter {
         int callSiteIdsOffset,
         int methodHandleIdsOffset,
         int dataSectionOffset) {
+      this.headerOffset = headerOffset;
       this.stringIdsOffset = stringIdsOffset;
       this.typeIdsOffset = typeIdsOffset;
       this.protoIdsOffset = protoIdsOffset;
@@ -913,10 +920,17 @@ public class FileWriter {
     }
 
     static Layout from(ObjectToOffsetMapping mapping) {
-      int offset = 0;
+      return from(mapping, 0, true);
+    }
+
+    static Layout from(ObjectToOffsetMapping mapping, int offset, boolean includeStringData) {
       return new Layout(
-          offset = Constants.TYPE_HEADER_ITEM_SIZE,
-          offset += mapping.getStrings().size() * Constants.TYPE_STRING_ID_ITEM_SIZE,
+          offset,
+          offset += Constants.TYPE_HEADER_ITEM_SIZE,
+          offset +=
+              includeStringData
+                  ? mapping.getStrings().size() * Constants.TYPE_STRING_ID_ITEM_SIZE
+                  : 0,
           offset += mapping.getTypes().size() * Constants.TYPE_TYPE_ID_ITEM_SIZE,
           offset += mapping.getProtos().size() * Constants.TYPE_PROTO_ID_ITEM_SIZE,
           offset += mapping.getFields().size() * Constants.TYPE_FIELD_ID_ITEM_SIZE,
@@ -1054,6 +1068,95 @@ public class FileWriter {
 
     public void setEndOfFile(int endOfFile) {
       this.endOfFile = endOfFile;
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder builder = new StringBuilder();
+      if (false) {
+        builder.append("headerOffset: ").append(headerOffset).append("\n");
+        builder.append("stringIdsOffset: ").append(stringIdsOffset).append("\n");
+        builder.append("typeIdsOffset: ").append(typeIdsOffset).append("\n");
+        builder.append("protoIdsOffset: ").append(protoIdsOffset).append("\n");
+        builder.append("fieldIdsOffset: ").append(fieldIdsOffset).append("\n");
+        builder.append("methodIdsOffset: ").append(methodIdsOffset).append("\n");
+        builder.append("classDefsOffset: ").append(classDefsOffset).append("\n");
+        builder.append("callSiteIdsOffset: ").append(callSiteIdsOffset).append("\n");
+        builder.append("methodHandleIdsOffset: ").append(methodHandleIdsOffset).append("\n");
+        builder.append("dataSectionOffset: ").append(dataSectionOffset).append("\n");
+
+        // Mixed size sections
+        builder.append("codesOffset: ").append(codesOffset).append("\n");
+        builder.append("debugInfosOffset: ").append(debugInfosOffset).append("\n");
+
+        builder.append("typeListsOffset: ").append(typeListsOffset).append("\n");
+        builder.append("stringDataOffsets: ").append(stringDataOffsets).append("\n");
+        builder.append("annotationsOffset: ").append(annotationsOffset).append("\n");
+        builder.append("annotationSetsOffset: ").append(annotationSetsOffset).append("\n");
+        builder
+            .append("annotationSetRefListsOffset: ")
+            .append(annotationSetRefListsOffset)
+            .append("\n");
+        builder
+            .append("annotationDirectoriesOffset: ")
+            .append(annotationDirectoriesOffset)
+            .append("\n");
+        builder.append("classDataOffset: ").append(classDataOffset).append("\n");
+        builder.append("encodedArraysOffset: ").append(encodedArraysOffset).append("\n");
+        builder.append("mapOffset: ").append(mapOffset).append("\n");
+        builder.append("endOfFile: ").append(endOfFile).append("\n");
+      } else {
+        builder.append("Header: ").append(stringIdsOffset - headerOffset).append("\n");
+        builder.append("StringIds: ").append(typeIdsOffset - stringIdsOffset).append("\n");
+        builder.append("typeIds: ").append(protoIdsOffset - typeIdsOffset).append("\n");
+        builder.append("protoIds: ").append(fieldIdsOffset - protoIdsOffset).append("\n");
+        builder.append("fieldIds: ").append(methodIdsOffset - fieldIdsOffset).append("\n");
+        builder.append("methodIds: ").append(classDefsOffset - methodIdsOffset).append("\n");
+        builder.append("classDefs: ").append(callSiteIdsOffset - classDefsOffset).append("\n");
+        builder
+            .append("callSiteIds: ")
+            .append(methodHandleIdsOffset - callSiteIdsOffset)
+            .append("\n");
+        builder
+            .append("methodHandleIds: ")
+            .append(dataSectionOffset - methodHandleIdsOffset)
+            .append("\n");
+
+        // Mixed size sections
+        builder.append("code: ").append(debugInfosOffset - codesOffset).append("\n");
+        builder.append("debugInfo: ").append(typeListsOffset - debugInfosOffset).append("\n");
+
+        builder
+            .append("typeList: ")
+            .append(
+                (stringDataOffsets > 0 ? stringDataOffsets : annotationsOffset) - typeListsOffset)
+            .append("\n");
+        builder
+            .append("stringData: ")
+            .append(stringDataOffsets > 0 ? annotationsOffset - stringDataOffsets : 0)
+            .append("\n");
+        builder.append("annotations: ").append(classDataOffset - annotationsOffset).append("\n");
+        builder.append("classData: ").append(encodedArraysOffset - classDataOffset).append("\n");
+        builder
+            .append("encodedArrays: ")
+            .append(mapOffset - annotationSetRefListsOffset)
+            .append("\n");
+        builder
+            .append("annotationSets: ")
+            .append(annotationSetRefListsOffset - annotationSetsOffset)
+            .append("\n");
+        builder
+            .append("annotationSetRefLists: ")
+            .append(annotationDirectoriesOffset - annotationSetRefListsOffset)
+            .append("\n");
+        builder
+            .append("annotationDirectories: ")
+            .append(mapOffset - annotationDirectoriesOffset)
+            .append("\n");
+        builder.append("map: ").append(endOfFile - mapOffset).append("\n");
+        builder.append("endOfFile: ").append(endOfFile).append("\n");
+      }
+      return builder.toString();
     }
   }
 
