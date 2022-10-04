@@ -153,6 +153,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public static final int SUPPORTED_DEX_VERSION =
       AndroidApiLevel.LATEST.getDexVersion().getIntValue();
+  public static final int EXPERIMENTAL_DEX_VERSION = DexVersion.V40.getIntValue();
 
   public static final int ASM_VERSION = Opcodes.ASM9;
 
@@ -1879,6 +1880,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     private boolean hasReadCheckDeterminism = false;
     private DeterminismChecker determinismChecker = null;
     public boolean usePcEncodingInCfForTesting = false;
+    public boolean dexContainerExperiment =
+        System.getProperty("com.android.tools.r8.dexContainerExperiment") != null;
 
     // Testing options to analyse locality of items in DEX files when they are generated.
     public boolean calculateItemUseCountInDex = false;

@@ -95,6 +95,8 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
         return AndroidApiLevel.O;
       case V39:
         return AndroidApiLevel.P;
+      case V40:
+        return AndroidApiLevel.ANDROID_PLATFORM;
       default:
         throw new Unreachable();
     }

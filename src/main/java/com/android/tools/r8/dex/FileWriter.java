@@ -784,13 +784,19 @@ public class FileWriter {
     dest.forward(size * Constants.TYPE_MAP_LIST_ITEM_SIZE);
   }
 
+  private byte[] dexVersionBytes() {
+    if (options.testing.dexContainerExperiment) {
+      return DexVersion.V40.getBytes();
+    }
+    return options.testing.forceDexVersionBytes != null
+        ? options.testing.forceDexVersionBytes
+        : DexVersion.getDexVersion(options.getMinApiLevel()).getBytes();
+  }
+
   private void writeHeader(Layout layout) {
     dest.moveTo(0);
     dest.putBytes(Constants.DEX_FILE_MAGIC_PREFIX);
-    dest.putBytes(
-        options.testing.forceDexVersionBytes != null
-            ? options.testing.forceDexVersionBytes
-            : DexVersion.getDexVersion(options.getMinApiLevel()).getBytes());
+    dest.putBytes(dexVersionBytes());
     dest.putByte(Constants.DEX_FILE_MAGIC_SUFFIX);
     // Leave out checksum and signature for now.
     dest.moveTo(Constants.FILE_SIZE_OFFSET);

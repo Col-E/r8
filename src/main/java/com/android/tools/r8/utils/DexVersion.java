@@ -10,10 +10,11 @@ import java.util.Optional;
  * Android dex version
  */
 public enum DexVersion {
-  V35(35, new byte[]{'0', '3', '5'}),
-  V37(37, new byte[]{'0', '3', '7'}),
-  V38(38, new byte[]{'0', '3', '8'}),
-  V39(39, new byte[]{'0', '3', '9'});
+  V35(35, new byte[] {'0', '3', '5'}),
+  V37(37, new byte[] {'0', '3', '7'}),
+  V38(38, new byte[] {'0', '3', '8'}),
+  V39(39, new byte[] {'0', '3', '9'}),
+  V40(40, new byte[] {'0', '4', '0'});
 
   private final int dexVersion;
 
@@ -94,15 +95,23 @@ public enum DexVersion {
         return Optional.of(V38);
       case 39:
         return Optional.of(V39);
+      case 40:
+        return Optional.of(V40);
       default:
         return Optional.empty();
     }
   }
 
   public static Optional<DexVersion> getDexVersion(char b0, char b1, char b2) {
-    if (b0 != '0' || b1 != '3' || b2 < '5' || '9' < b2) {
+    if (b0 != '0') {
       return Optional.empty();
     }
-    return getDexVersion(100 * (b0 - '0') + 10 * (b1 - '0') + (b2 - '0'));
+    for (DexVersion candidate : DexVersion.values()) {
+      assert candidate.getBytes()[0] == '0';
+      if (candidate.getBytes()[2] == b2 && candidate.getBytes()[1] == b1) {
+        return Optional.of(candidate);
+      }
+    }
+    return Optional.empty();
   }
 }

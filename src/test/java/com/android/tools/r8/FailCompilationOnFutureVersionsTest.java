@@ -22,7 +22,7 @@ import org.objectweb.asm.Opcodes;
 public class FailCompilationOnFutureVersionsTest extends TestBase {
 
   static final int UNSUPPORTED_CF_VERSION = InternalOptions.SUPPORTED_CF_VERSION.major() + 1;
-  static final int UNSUPPORTED_DEX_VERSION = InternalOptions.SUPPORTED_DEX_VERSION + 1;
+  static final int UNSUPPORTED_DEX_VERSION = InternalOptions.EXPERIMENTAL_DEX_VERSION + 1;
 
   private final TestParameters parameters;
 
@@ -60,6 +60,40 @@ public class FailCompilationOnFutureVersionsTest extends TestBase {
                 assertThat(
                     diagnotics.getErrors().get(0).getDiagnosticMessage(),
                     containsString("Unsupported DEX file version: 0" + UNSUPPORTED_DEX_VERSION));
+              });
+    } catch (CompilationFailedException e) {
+      return;
+    }
+    fail("Expected compilation error");
+  }
+
+  @Test
+  public void testExperimentatDexVersion() throws CompilationFailedException, IOException {
+    // Generate a DEX file with a version higher than the supported one.
+    Path out =
+        testForD8()
+            .addProgramClasses(TestClass.class)
+            .setMinApi(parameters.getApiLevel())
+            .addOptionsModification(
+                options ->
+                    options.testing.forceDexVersionBytes =
+                        ("0" + InternalOptions.EXPERIMENTAL_DEX_VERSION).getBytes())
+            .compile()
+            .writeToZip();
+    try {
+      testForD8()
+          .addProgramFiles(out)
+          .setMinApi(parameters.getApiLevel())
+          .compileWithExpectedDiagnostics(
+              diagnotics -> {
+                diagnotics.assertOnlyErrors();
+                diagnotics.assertErrorsCount(1);
+                assertThat(
+                    diagnotics.getErrors().get(0).getDiagnosticMessage(),
+                    containsString(
+                        "Dex file with version '"
+                            + InternalOptions.EXPERIMENTAL_DEX_VERSION
+                            + "' cannot be used with min sdk level "));
               });
     } catch (CompilationFailedException e) {
       return;
