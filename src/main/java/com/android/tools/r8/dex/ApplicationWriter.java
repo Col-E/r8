@@ -288,6 +288,15 @@ public class ApplicationWriter {
     write(executorService, null);
   }
 
+  private Timing rewriteJumboStringsAndComputeDebugRepresentation(
+      VirtualFile virtualFile, List<LazyDexString> lazyDexStrings) {
+    Timing fileTiming = Timing.create("VirtualFile " + virtualFile.getId(), options);
+    computeOffsetMappingAndRewriteJumboStrings(virtualFile, lazyDexStrings, fileTiming);
+    DebugRepresentation.computeForFile(appView, virtualFile);
+    fileTiming.end();
+    return fileTiming;
+  }
+
   public void write(ExecutorService executorService, AndroidApp inputApp)
       throws IOException, ExecutionException {
     Timing timing = appView.appInfo().app().timing;
@@ -344,14 +353,8 @@ public class ApplicationWriter {
         Collection<Timing> timings =
             ThreadUtils.processItemsWithResults(
                 virtualFiles,
-                virtualFile -> {
-                  Timing fileTiming = Timing.create("VirtualFile " + virtualFile.getId(), options);
-                  computeOffsetMappingAndRewriteJumboStrings(
-                      virtualFile, lazyDexStrings, fileTiming);
-                  DebugRepresentation.computeForFile(appView, virtualFile);
-                  fileTiming.end();
-                  return fileTiming;
-                },
+                virtualFile ->
+                    rewriteJumboStringsAndComputeDebugRepresentation(virtualFile, lazyDexStrings),
                 executorService);
         merger.add(timings);
         merger.end();
