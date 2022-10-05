@@ -5,7 +5,7 @@
 package com.android.tools.r8.retrace.api;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestParameters;
@@ -49,8 +49,7 @@ public class RetraceApiSynthesizedFieldTest extends RetraceApiTestBase {
               .flatMap(element -> element.lookupField("a").stream())
               .collect(Collectors.toList());
       assertEquals(1, fieldResults.size());
-      // TODO(b/172014416): Should report if synthesized.
-      assertThrows(RuntimeException.class, () -> fieldResults.get(0).isCompilerSynthesized());
+      assertTrue(fieldResults.get(0).isCompilerSynthesized());
     }
   }
 }

@@ -6,7 +6,7 @@ package com.android.tools.r8.retrace.api;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestParameters;
@@ -52,8 +52,7 @@ public class RetraceApiSynthesizedMethodTest extends RetraceApiTestBase {
       assertEquals(1, methodResults.size());
       RetraceMethodElement retraceMethodElement = methodResults.get(0);
       assertFalse(retraceMethodElement.isUnknown());
-      // TODO(b/172014416): Should report if synthesized.
-      assertThrows(RuntimeException.class, () -> methodResults.get(0).isCompilerSynthesized());
+      assertTrue(methodResults.get(0).isCompilerSynthesized());
     }
   }
 }

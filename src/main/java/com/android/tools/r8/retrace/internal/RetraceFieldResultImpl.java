@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.retrace.internal;
 
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.references.Reference;
@@ -119,7 +118,7 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
 
     @Override
     public boolean isCompilerSynthesized() {
-      throw new Unimplemented("b/172014416");
+      return memberNaming != null && memberNaming.isCompilerSynthesized();
     }
 
     @Override

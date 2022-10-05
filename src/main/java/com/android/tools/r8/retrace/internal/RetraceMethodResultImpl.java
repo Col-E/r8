@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.retrace.internal;
 
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
 import com.android.tools.r8.naming.MemberNaming;
@@ -187,7 +186,7 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
 
     @Override
     public boolean isCompilerSynthesized() {
-      throw new Unimplemented("b/172014416");
+      return memberNaming != null && memberNaming.isCompilerSynthesized();
     }
 
     @Override

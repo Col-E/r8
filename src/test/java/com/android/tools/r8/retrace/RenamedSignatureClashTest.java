@@ -5,14 +5,13 @@
 package com.android.tools.r8.retrace;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
@@ -58,13 +57,12 @@ public class RenamedSignatureClashTest extends TestBase {
             result -> {
               String method = result.getRetracedMethod().asKnown().getMethodReference().toString();
               if (method.equals("Lsome/moved/Method;someMethod(I)V")) {
-                // TODO(b/172014416): Fix when changed.
-                assertThrows(Unimplemented.class, result::isCompilerSynthesized);
+                assertFalse(result.isCompilerSynthesized());
               } else {
-                // TODO(b/172014416): Fix when changed.
                 assertEquals(
                     originalHolder.getDescriptor() + "methodWithRemovedArgument(I)V", method);
-                assertThrows(Unimplemented.class, result::isCompilerSynthesized);
+                // TODO(b/169953605): Should be true.
+                assertFalse(result.isCompilerSynthesized());
               }
             });
   }
