@@ -12,9 +12,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.classmerging.horizontal.EmptyClassTest.A;
-import com.android.tools.r8.classmerging.horizontal.EmptyClassTest.B;
-import com.android.tools.r8.classmerging.horizontal.EmptyClassTest.Main;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -45,23 +42,23 @@ public class ClassesWithDifferentVisibilityFieldsTest extends HorizontalClassMer
               assertThat(codeInspector.clazz(B.class), isAbsent());
               assertThat(codeInspector.clazz(C.class), isPresent());
 
-              FieldSubject v1Subject = aClassSubject.uniqueFieldWithName("v1");
-              FieldSubject v2Subject = aClassSubject.uniqueFieldWithName("v2");
+              FieldSubject v1Subject = aClassSubject.uniqueFieldWithOriginalName("v1");
+              FieldSubject v2Subject = aClassSubject.uniqueFieldWithOriginalName("v2");
 
-              MethodSubject methodSubject = aClassSubject.uniqueMethodWithName("getAV1");
+              MethodSubject methodSubject = aClassSubject.uniqueMethodWithOriginalName("getAV1");
               assertThat(methodSubject, isPresent());
               assertThat(methodSubject, readsInstanceField(v1Subject.getDexField()));
 
-              methodSubject = aClassSubject.uniqueMethodWithName("getAV2");
+              methodSubject = aClassSubject.uniqueMethodWithOriginalName("getAV2");
               assertThat(methodSubject, isPresent());
               assertThat(methodSubject, readsInstanceField(v2Subject.getDexField()));
 
               // The fields v1 and v2 are swapped, because their access modifiers are swapped.
-              methodSubject = aClassSubject.uniqueMethodWithName("getBV1");
+              methodSubject = aClassSubject.uniqueMethodWithOriginalName("getBV1");
               assertThat(methodSubject, isPresent());
               assertThat(methodSubject, readsInstanceField(v2Subject.getDexField()));
 
-              methodSubject = aClassSubject.uniqueMethodWithName("getBV2");
+              methodSubject = aClassSubject.uniqueMethodWithOriginalName("getBV2");
               assertThat(methodSubject, isPresent());
               assertThat(methodSubject, readsInstanceField(v1Subject.getDexField()));
             });

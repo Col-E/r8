@@ -54,7 +54,7 @@ public class AbstractInterfaceMethodsTest extends TestBase {
             inspector -> {
               ClassSubject clazz = inspector.clazz(J.class);
               assertThat(clazz, isPresent());
-              assertThat(clazz.uniqueMethodWithName("foo"), not(isPresent()));
+              assertThat(clazz.uniqueMethodWithOriginalName("foo"), not(isPresent()));
               assertThat(inspector.clazz(I.class), not(isPresent()));
             });
   }

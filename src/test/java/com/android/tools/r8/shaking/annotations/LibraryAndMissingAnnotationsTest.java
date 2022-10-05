@@ -125,7 +125,7 @@ public class LibraryAndMissingAnnotationsTest extends TestBase {
               ClassSubject clazz = inspector.clazz(Foo.class);
               assertThat(clazz, isPresent());
               assertThat(clazz.annotation(LibraryAnnotation.class.getTypeName()), isPresent());
-              MethodSubject foo = clazz.uniqueMethodWithName("foo");
+              MethodSubject foo = clazz.uniqueMethodWithOriginalName("foo");
               assertThat(foo, isPresent());
               assertThat(foo.annotation(LibraryAnnotation.class.getTypeName()), isPresent());
               assertFalse(foo.getMethod().parameterAnnotationsList.isEmpty());
@@ -139,7 +139,7 @@ public class LibraryAndMissingAnnotationsTest extends TestBase {
                       .toSourceString());
               assertThat(
                   clazz
-                      .uniqueFieldWithName("bar")
+                      .uniqueFieldWithOriginalName("bar")
                       .annotation(LibraryAnnotation.class.getTypeName()),
                   isPresent());
             })

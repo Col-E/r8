@@ -141,7 +141,7 @@ public class StringInMonitorTest extends TestBase {
       }
     }
 
-    MethodSubject sync = mainClass.uniqueMethodWithName("sync");
+    MethodSubject sync = mainClass.uniqueMethodWithOriginalName("sync");
     assertThat(sync, isPresent());
     count = Streams.stream(sync.iterateInstructions(
         i -> i.isConstString("", JumboStringMode.ALLOW))).count();
@@ -169,7 +169,7 @@ public class StringInMonitorTest extends TestBase {
       }
     }
 
-    MethodSubject oom = mainClass.uniqueMethodWithName("oom");
+    MethodSubject oom = mainClass.uniqueMethodWithOriginalName("oom");
     assertThat(oom, isPresent());
     count = Streams.stream(oom.iterateInstructions(
         i -> i.isConstString("this-string-will-not-be-loaded.", JumboStringMode.ALLOW))).count();

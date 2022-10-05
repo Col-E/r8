@@ -50,7 +50,7 @@ public class KotlinUnusedArgumentsInLambdasTest extends AbstractR8KotlinTestBase
                         // Arity 2 should appear.
                         assertTrue(init.iterateInstructions(i -> i.isConstNumber(2)).hasNext());
 
-                        MethodSubject invoke = classSubject.uniqueMethodWithName("invoke");
+                        MethodSubject invoke = classSubject.uniqueMethodWithOriginalName("invoke");
                         assertThat(invoke, isPresent());
                         assertEquals(2, invoke.getMethod().getReference().proto.parameters.size());
                       }
@@ -66,7 +66,7 @@ public class KotlinUnusedArgumentsInLambdasTest extends AbstractR8KotlinTestBase
                 inspector.forAllClasses(
                     classSubject -> {
                       if (classSubject.getOriginalDescriptor().contains("$js")) {
-                        MethodSubject get = classSubject.uniqueMethodWithName("get");
+                        MethodSubject get = classSubject.uniqueMethodWithOriginalName("get");
                         assertThat(get, isPresent());
                         assertEquals(3, get.getMethod().getReference().proto.parameters.size());
                       }

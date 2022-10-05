@@ -38,10 +38,10 @@ public class FieldMinificationCollisionTest extends TestBase {
             .assertSuccessWithOutput(expectedOutput)
             .inspector();
 
-    FieldSubject f1Subject = inspector.clazz(A.class).uniqueFieldWithName("f1");
+    FieldSubject f1Subject = inspector.clazz(A.class).uniqueFieldWithOriginalName("f1");
     assertThat(f1Subject, isPresent());
 
-    FieldSubject f3Subject = inspector.clazz(C.class).uniqueFieldWithName("f3");
+    FieldSubject f3Subject = inspector.clazz(C.class).uniqueFieldWithOriginalName("f3");
     assertThat(f3Subject, isPresent());
 
     assertNotEquals(f1Subject.getFinalName(), f3Subject.getFinalName());

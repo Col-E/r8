@@ -57,7 +57,7 @@ public class KeepNonConstructorsTest extends TestBase {
             inspector -> {
               ClassSubject aClassSubject = inspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
-              assertThat(aClassSubject.uniqueMethodWithName("m"), isPresent());
+              assertThat(aClassSubject.uniqueMethodWithOriginalName("m"), isPresent());
               assertEquals(1, aClassSubject.allMethods().size());
             });
   }

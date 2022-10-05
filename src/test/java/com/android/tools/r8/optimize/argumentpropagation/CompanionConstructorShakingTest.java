@@ -51,7 +51,7 @@ public class CompanionConstructorShakingTest extends TestBase {
               assertThat(hostClassSubject, isPresent());
               assertEquals(1, hostClassSubject.allMethods().size());
               assertThat(hostClassSubject.clinit(), isAbsent());
-              assertThat(hostClassSubject.uniqueMethodWithName("keepHost"), isPresent());
+              assertThat(hostClassSubject.uniqueMethodWithOriginalName("keepHost"), isPresent());
 
               ClassSubject companionClassSubject = inspector.clazz(Host.Companion.class);
               assertThat(companionClassSubject, isPresent());
@@ -59,7 +59,7 @@ public class CompanionConstructorShakingTest extends TestBase {
               assertThat(companionClassSubject.init(), isAbsent());
 
               MethodSubject greetMethodSubject =
-                  companionClassSubject.uniqueMethodWithName("greet");
+                  companionClassSubject.uniqueMethodWithOriginalName("greet");
               assertThat(greetMethodSubject, isStatic());
             })
         .run(parameters.getRuntime(), Main.class)

@@ -90,7 +90,7 @@ public class IfThrowNullPointerExceptionTest extends TestBase {
       String methodName,
       boolean isNPEWithMessage,
       boolean shouldBeOptimized) {
-    MethodSubject methodSubject = classSubject.uniqueMethodWithName(methodName);
+    MethodSubject methodSubject = classSubject.uniqueMethodWithOriginalName(methodName);
     assertThat(methodSubject, isPresent());
 
     IRCode code = methodSubject.buildIR();

@@ -130,7 +130,7 @@ public class MoveStringConstantsTest extends TestBase {
 
     ClassSubject utilsClassSubject = inspector.clazz(Utils.class);
     assertThat(utilsClassSubject, isPresent());
-    assertThat(utilsClassSubject.uniqueMethodWithName("throwException"), isPresent());
+    assertThat(utilsClassSubject.uniqueMethodWithOriginalName("throwException"), isPresent());
     assertEquals(1, utilsClassSubject.allMethods().size());
   }
 

@@ -55,12 +55,13 @@ public class ProtoNormalizationWithKeptVirtualMethodTest extends TestBase {
               TypeSubject bTypeSubject = bClassSubject.asTypeSubject();
 
               // A.foo(B, A) is kept.
-              MethodSubject fooMethodSubject = aClassSubject.uniqueMethodWithName("foo");
+              MethodSubject fooMethodSubject = aClassSubject.uniqueMethodWithOriginalName("foo");
               assertThat(fooMethodSubject, isPresent());
               assertThat(fooMethodSubject, hasParameters(bTypeSubject, aTypeSubject));
 
               // B.foo(B, A) overrides kept method.
-              MethodSubject otherFooMethodSubject = bClassSubject.uniqueMethodWithName("foo");
+              MethodSubject otherFooMethodSubject =
+                  bClassSubject.uniqueMethodWithOriginalName("foo");
               assertThat(otherFooMethodSubject, isPresent());
               assertThat(otherFooMethodSubject, hasParameters(bTypeSubject, aTypeSubject));
             })

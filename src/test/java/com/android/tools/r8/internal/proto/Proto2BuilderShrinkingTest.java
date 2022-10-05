@@ -191,7 +191,7 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
     assertThat(generatedMessageLiteClassSubject, isPresent());
 
     MethodSubject isInitializedMethodSubject =
-        generatedMessageLiteClassSubject.uniqueMethodWithName("isInitialized");
+        generatedMessageLiteClassSubject.uniqueMethodWithOriginalName("isInitialized");
 
     DexType methodToInvokeType =
         outputInspector.clazz(METHOD_TO_INVOKE_ENUM).getDexProgramClass().getType();

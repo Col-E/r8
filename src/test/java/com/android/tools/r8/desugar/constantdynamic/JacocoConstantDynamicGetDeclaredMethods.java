@@ -140,7 +140,9 @@ public class JacocoConstantDynamicGetDeclaredMethods extends TestBase {
         .inspect(
             inspector -> {
               assertThat(
-                  inspector.clazz(TestRunner.class).uniqueMethodWithName(jacocoBootstrapMethodName),
+                  inspector
+                      .clazz(TestRunner.class)
+                      .uniqueMethodWithOriginalName(jacocoBootstrapMethodName),
                   isAbsent());
             })
         .assertSuccessWithOutputLines("No " + jacocoBootstrapMethodName + " method");

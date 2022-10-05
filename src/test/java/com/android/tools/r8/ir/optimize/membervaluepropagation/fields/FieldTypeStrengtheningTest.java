@@ -47,7 +47,7 @@ public class FieldTypeStrengtheningTest extends TestBase {
               ClassSubject aClassSubject = inspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
 
-              FieldSubject fieldSubject = mainClassSubject.uniqueFieldWithName("f");
+              FieldSubject fieldSubject = mainClassSubject.uniqueFieldWithOriginalName("f");
               assertEquals(
                   aClassSubject.getFinalName(), fieldSubject.getField().getType().getTypeName());
             })

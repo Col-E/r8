@@ -62,7 +62,7 @@ public class UnusedArgumentRemovalWithOverridingTest extends TestBase {
     ClassSubject classSubject = inspector.clazz(B.class);
     assertThat(classSubject, isPresent());
 
-    MethodSubject methodSubject = classSubject.uniqueMethodWithName("greeting");
+    MethodSubject methodSubject = classSubject.uniqueMethodWithOriginalName("greeting");
     assertThat(methodSubject, isPresent());
     assertEquals(
         "java.lang.String", methodSubject.getMethod().getReference().proto.parameters.toString());

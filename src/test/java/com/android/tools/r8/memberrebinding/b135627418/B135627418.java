@@ -47,7 +47,7 @@ public class B135627418 extends TestBase {
     assertThat(classSubject, isPresent());
     assertTrue(
         classSubject
-            .uniqueMethodWithName("main")
+            .uniqueMethodWithOriginalName("main")
             .streamInstructions()
             .filter(InstructionSubject::isInvokeVirtual)
             .noneMatch(

@@ -80,7 +80,8 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
     if (compilationSpecification.isProgramShrink()) {
       return;
     }
-    MethodSubject direct = inspector.clazz(Executor.class).uniqueMethodWithName("directTypes");
+    MethodSubject direct =
+        inspector.clazz(Executor.class).uniqueMethodWithOriginalName("directTypes");
     if (libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters)) {
       assertTrue(
           direct
@@ -95,7 +96,7 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
       assertTrue(direct.streamInstructions().noneMatch(instr -> instr.toString().contains("$-EL")));
     }
     MethodSubject inherited =
-        inspector.clazz(Executor.class).uniqueMethodWithName("inheritedTypes");
+        inspector.clazz(Executor.class).uniqueMethodWithOriginalName("inheritedTypes");
     if (!libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters)) {
       assertTrue(
           inherited.streamInstructions().noneMatch(instr -> instr.toString().contains("$-EL")));

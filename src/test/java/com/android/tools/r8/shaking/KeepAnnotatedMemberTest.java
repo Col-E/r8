@@ -70,7 +70,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
     assertThat(inspector.clazz(ABSENT_ANNOTATION), not(isPresent()));
     assertThat(inspector.clazz(PRESENT_ANNOTATION), isPresent());
     ClassSubject clazz = inspector.clazz(CLASS_WITH_ANNOTATED_METHOD);
-    MethodSubject method = clazz.uniqueMethodWithName(ANNOTATED_METHOD);
+    MethodSubject method = clazz.uniqueMethodWithOriginalName(ANNOTATED_METHOD);
     assertThat(method, isPresent());
   }
 
@@ -125,7 +125,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
             inspector -> {
               ClassSubject clazz = inspector.clazz(CLASS_WITH_ANNOTATED_METHOD);
               assertThat(clazz, isPresent());
-              assertThat(clazz.uniqueMethodWithName(ANNOTATED_METHOD), isPresent());
+              assertThat(clazz.uniqueMethodWithOriginalName(ANNOTATED_METHOD), isPresent());
             });
   }
 

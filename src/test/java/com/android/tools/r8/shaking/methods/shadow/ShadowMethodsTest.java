@@ -71,13 +71,15 @@ public class ShadowMethodsTest extends MethodsTestBase {
   private void checkAllMethods(CodeInspector inspector, Shrinker shrinker, String name) {
     ClassSubject superSubject = inspector.clazz(Super.class);
     assertThat(superSubject, isPresent());
-    assertEquals(shrinker != Shrinker.R8Full, superSubject.uniqueMethodWithName(name).isPresent());
+    assertEquals(
+        shrinker != Shrinker.R8Full, superSubject.uniqueMethodWithOriginalName(name).isPresent());
     ClassSubject subSubject = inspector.clazz(Sub.class);
     assertThat(subSubject, isPresent());
-    assertEquals(shrinker != Shrinker.R8Full, subSubject.uniqueMethodWithName(name).isPresent());
+    assertEquals(
+        shrinker != Shrinker.R8Full, subSubject.uniqueMethodWithOriginalName(name).isPresent());
     ClassSubject subSubSubject = inspector.clazz(SubSub.class);
     assertThat(subSubSubject, isPresent());
-    assertThat(subSubSubject.uniqueMethodWithName(name), isPresent());
+    assertThat(subSubSubject.uniqueMethodWithOriginalName(name), isPresent());
   }
 
   private void checkAllMethods(CodeInspector inspector, Shrinker shrinker) {

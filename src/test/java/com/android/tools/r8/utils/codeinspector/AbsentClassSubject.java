@@ -46,7 +46,7 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
-  public MethodSubject uniqueMethodWithName(String name) {
+  public MethodSubject uniqueMethodWithOriginalName(String name) {
     return new AbsentMethodSubject();
   }
 
@@ -70,7 +70,7 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
-  public FieldSubject uniqueFieldWithName(String name) {
+  public FieldSubject uniqueFieldWithOriginalName(String name) {
     return new AbsentFieldSubject();
   }
 

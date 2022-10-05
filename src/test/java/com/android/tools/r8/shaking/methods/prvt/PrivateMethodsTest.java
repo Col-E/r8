@@ -66,15 +66,16 @@ public class PrivateMethodsTest extends MethodsTestBase {
     assertThat(superSubject, isPresent());
     assertEquals(
         shrinker != Shrinker.R8Full && expected.contains("m1"),
-        superSubject.uniqueMethodWithName("m1").isPresent());
+        superSubject.uniqueMethodWithOriginalName("m1").isPresent());
     ClassSubject subSubject = inspector.clazz(Sub.class);
     assertThat(subSubject, isPresent());
     assertEquals(
         shrinker != Shrinker.R8Full && expected.contains("m2"),
-        subSubject.uniqueMethodWithName("m2").isPresent());
+        subSubject.uniqueMethodWithOriginalName("m2").isPresent());
     ClassSubject subSubSubject = inspector.clazz(SubSub.class);
     assertThat(subSubSubject, isPresent());
-    assertEquals(expected.contains("m3"), subSubSubject.uniqueMethodWithName("m3").isPresent());
+    assertEquals(
+        expected.contains("m3"), subSubSubject.uniqueMethodWithOriginalName("m3").isPresent());
   }
 
   public String allMethodsOutput(Shrinker shrinker) {

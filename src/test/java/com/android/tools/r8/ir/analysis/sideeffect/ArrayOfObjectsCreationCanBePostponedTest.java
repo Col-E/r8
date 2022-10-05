@@ -49,7 +49,7 @@ public class ArrayOfObjectsCreationCanBePostponedTest extends TestBase {
     assertThat(classSubject, isPresent());
 
     // We should have been able to inline A.inlineable() since A.<clinit>() can safely be postponed.
-    assertThat(classSubject.uniqueMethodWithName("inlineable"), not(isPresent()));
+    assertThat(classSubject.uniqueMethodWithOriginalName("inlineable"), not(isPresent()));
   }
 
   static class TestClass {

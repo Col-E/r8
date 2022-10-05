@@ -59,7 +59,7 @@ public class ReservedFieldNameInSuperClassTest extends TestBase {
     ClassSubject testClassForFieldSubject = inspector.clazz(A.class);
     assertThat(testClassForFieldSubject, isPresent());
 
-    FieldSubject aFieldSubject = testClassForFieldSubject.uniqueFieldWithName("a");
+    FieldSubject aFieldSubject = testClassForFieldSubject.uniqueFieldWithOriginalName("a");
     assertThat(aFieldSubject, isPresent());
 
     // Fields are visited/renamed according to the class hierarchy order. Thus, the field A.a will
@@ -92,14 +92,14 @@ public class ReservedFieldNameInSuperClassTest extends TestBase {
     ClassSubject aSub1ClassSubject = inspector.clazz(ASub1.class);
     assertThat(aSub1ClassSubject, isPresent());
 
-    FieldSubject fooFieldSubject = aSub1ClassSubject.uniqueFieldWithName("foo");
+    FieldSubject fooFieldSubject = aSub1ClassSubject.uniqueFieldWithOriginalName("foo");
     assertThat(fooFieldSubject, isPresentAndRenamed());
     assertNotEquals("a", fooFieldSubject.getFinalName());
 
     ClassSubject aSub2ClassSubject = inspector.clazz(ASub2.class);
     assertThat(aSub2ClassSubject, isPresent());
 
-    FieldSubject barFieldSubject = aSub2ClassSubject.uniqueFieldWithName("bar");
+    FieldSubject barFieldSubject = aSub2ClassSubject.uniqueFieldWithOriginalName("bar");
     assertThat(barFieldSubject, isPresentAndRenamed());
     assertNotEquals("a", barFieldSubject.getFinalName());
 

@@ -69,7 +69,7 @@ public class MainDexUnusedArgumentRewriteWithLensTest extends TestBase {
               assertThat(bSubject, isPresent());
               ClassSubject mainSubject = inspector.clazz(Main.class);
               assertThat(mainSubject, isPresentAndNotRenamed());
-              MethodSubject mainMethodSubject = mainSubject.uniqueMethodWithName("main");
+              MethodSubject mainMethodSubject = mainSubject.uniqueMethodWithOriginalName("main");
               assertThat(mainMethodSubject, isPresentAndNotRenamed());
               assertTrue(
                   mainMethodSubject

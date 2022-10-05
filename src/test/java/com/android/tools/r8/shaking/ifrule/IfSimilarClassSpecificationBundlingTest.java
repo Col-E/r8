@@ -148,13 +148,13 @@ public class IfSimilarClassSpecificationBundlingTest extends TestBase {
             codeInspector -> {
               ClassSubject aSubject = codeInspector.clazz(A.class);
               assertThat(aSubject, isPresent());
-              assertThat(aSubject.uniqueMethodWithName("a"), isPresent());
+              assertThat(aSubject.uniqueMethodWithOriginalName("a"), isPresent());
               ClassSubject bSubject = codeInspector.clazz(B.class);
               assertThat(bSubject, isPresent());
-              assertThat(bSubject.uniqueMethodWithName("b"), isPresent());
+              assertThat(bSubject.uniqueMethodWithOriginalName("b"), isPresent());
               ClassSubject cSubject = codeInspector.clazz(C.class);
               assertThat(cSubject, isPresent());
-              assertThat(cSubject.uniqueMethodWithName("c"), isPresent());
+              assertThat(cSubject.uniqueMethodWithOriginalName("c"), isPresent());
             });
     assertEquals(expectedClassEvaluations, box.data.numberOfProguardIfRuleClassEvaluations);
     assertEquals(expectedMemberEvaluations, box.data.numberOfProguardIfRuleMemberEvaluations);

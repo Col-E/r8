@@ -68,7 +68,7 @@ public class InliningIntoVisibilityBridgeTest extends TestBase {
       ClassSubject classSubject = result.inspector().clazz(getClassA());
       assertThat(classSubject, isPresent());
 
-      MethodSubject methodSubject = classSubject.uniqueMethodWithName("method");
+      MethodSubject methodSubject = classSubject.uniqueMethodWithOriginalName("method");
       assertEquals(neverInline, methodSubject.isPresent());
     }
 
@@ -79,7 +79,7 @@ public class InliningIntoVisibilityBridgeTest extends TestBase {
           result.inspector().clazz(InliningIntoVisibilityBridgeTestClassB.class);
       assertThat(classSubject, isPresent());
 
-      MethodSubject methodSubject = classSubject.uniqueMethodWithName("method");
+      MethodSubject methodSubject = classSubject.uniqueMethodWithOriginalName("method");
       if (!neverInline) {
         assertThat(methodSubject, isPresentAndRenamed());
         assertFalse(methodSubject.isBridge());

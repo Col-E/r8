@@ -56,7 +56,8 @@ public class MixedArgumentRemovalAndEnumUnboxingTest extends TestBase {
                       .streamInstructions()
                       .noneMatch(InstructionSubject::isConstNull));
 
-              MethodSubject testMethodSubject = mainClassSubject.uniqueMethodWithName("test");
+              MethodSubject testMethodSubject =
+                  mainClassSubject.uniqueMethodWithOriginalName("test");
               assertThat(testMethodSubject, isPresent());
               assertEquals(2, testMethodSubject.getProgramMethod().getReference().getArity());
               assertEquals(

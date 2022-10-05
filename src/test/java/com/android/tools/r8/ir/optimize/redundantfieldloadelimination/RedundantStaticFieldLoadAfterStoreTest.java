@@ -46,7 +46,7 @@ public class RedundantStaticFieldLoadAfterStoreTest extends TestBase {
               ClassSubject classSubject = inspector.clazz(TestClass.class);
               assertThat(classSubject, isPresent());
 
-              FieldSubject fieldSubject = classSubject.uniqueFieldWithName("greeting");
+              FieldSubject fieldSubject = classSubject.uniqueFieldWithOriginalName("greeting");
               assertThat(fieldSubject, isAbsent());
 
               MethodSubject methodSubject = classSubject.mainMethod();

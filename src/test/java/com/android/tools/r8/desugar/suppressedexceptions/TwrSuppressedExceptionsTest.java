@@ -84,7 +84,7 @@ public class TwrSuppressedExceptionsTest extends TestBase {
             inspector -> {
               ClassSubject clazz = inspector.clazz(MAIN.typeName());
               hasInvokesTo(
-                  clazz.uniqueMethodWithName("bar"),
+                  clazz.uniqueMethodWithOriginalName("bar"),
                   "$closeResource",
                   apiLevelHasTwrCloseResourceSupport() ? 4 : 0);
               if (apiLevelHasSuppressedExceptionsSupport()) {
@@ -103,7 +103,7 @@ public class TwrSuppressedExceptionsTest extends TestBase {
             DesugarTestConfiguration::isNotDesugared,
             inspector -> {
               ClassSubject clazz = inspector.clazz(MAIN.typeName());
-              hasInvokesTo(clazz.uniqueMethodWithName("bar"), "$closeResource", 4);
+              hasInvokesTo(clazz.uniqueMethodWithOriginalName("bar"), "$closeResource", 4);
               hasInvokesTo(clazz.mainMethod(), "getSuppressed", 1);
             });
   }

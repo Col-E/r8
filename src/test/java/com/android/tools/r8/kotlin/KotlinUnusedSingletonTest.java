@@ -84,7 +84,7 @@ public class KotlinUnusedSingletonTest extends AbstractR8KotlinTestBase {
                       .count());
 
               // The field `INSTANCE` has been removed entirely.
-              FieldSubject instance = module.uniqueFieldWithName("INSTANCE");
+              FieldSubject instance = module.uniqueFieldWithOriginalName("INSTANCE");
               assertThat(instance, not(isPresent()));
 
               // The class initializer is no longer there.

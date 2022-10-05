@@ -66,7 +66,7 @@ public class SwitchEnumUnboxingTest extends EnumUnboxingTestBase {
     }
     assertTrue(
         i.clazz(Switch.class)
-            .uniqueMethodWithName("switchOnEnumManyCases")
+            .uniqueMethodWithOriginalName("switchOnEnumManyCases")
             .streamInstructions()
             .anyMatch(InstructionSubject::isSwitch));
   }

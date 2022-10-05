@@ -81,7 +81,7 @@ public class DalvikAnnotationOptimizationTest extends TestBase {
             : ImmutableSet.of();
     assertEquals(
         expected,
-        inspector.clazz(TestClass.class).uniqueMethodWithName("main").annotations().stream()
+        inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("main").annotations().stream()
             .map(s -> s.getAnnotation().type.getDescriptor().toSourceString())
             .collect(Collectors.toSet()));
   }

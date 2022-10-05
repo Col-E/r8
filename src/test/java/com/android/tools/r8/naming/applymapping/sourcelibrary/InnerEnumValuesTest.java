@@ -74,10 +74,10 @@ public class InnerEnumValuesTest extends TestBase {
         .inspector();
     ClassSubject enumSubject = inspector.clazz(RENAMED_NAME);
     assertThat(enumSubject, isPresent());
-    FieldSubject fieldX = enumSubject.uniqueFieldWithName("STATE_A");
+    FieldSubject fieldX = enumSubject.uniqueFieldWithOriginalName("STATE_A");
     assertThat(fieldX, isPresent());
     assertEquals("state_X", fieldX.getFinalName());
-    FieldSubject fieldY = enumSubject.uniqueFieldWithName("STATE_B");
+    FieldSubject fieldY = enumSubject.uniqueFieldWithOriginalName("STATE_B");
     assertThat(fieldY, isPresent());
     assertEquals("state_Y", fieldY.getFinalName());
   }

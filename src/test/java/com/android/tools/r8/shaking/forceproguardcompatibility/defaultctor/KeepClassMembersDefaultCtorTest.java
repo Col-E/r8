@@ -69,9 +69,9 @@ public class KeepClassMembersDefaultCtorTest extends TestBase {
             inspector -> {
               assertThat(inspector.clazz(A.class), isPresent());
               assertThat(inspector.clazz(A.class).init(), isAbsent());
-              assertThat(inspector.clazz(A.class).uniqueFieldWithName("y"), isPresent());
+              assertThat(inspector.clazz(A.class).uniqueFieldWithOriginalName("y"), isPresent());
               assertThat(
-                  inspector.clazz(A.class).uniqueFieldWithName("x"),
+                  inspector.clazz(A.class).uniqueFieldWithOriginalName("x"),
                   fullMode ? isAbsent() : isPresent());
             })
         .assertFailureWithErrorThatThrows(NoSuchMethodException.class);

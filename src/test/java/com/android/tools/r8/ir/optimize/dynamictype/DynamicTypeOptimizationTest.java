@@ -66,7 +66,7 @@ public class DynamicTypeOptimizationTest extends TestBase {
 
     // Verify that the check-cast instruction is still present in testCheckCastRemoval().
     MethodSubject testCheckCastRemovalMethod =
-        mainClassSubject.uniqueMethodWithName("testCheckCastRemoval");
+        mainClassSubject.uniqueMethodWithOriginalName("testCheckCastRemoval");
     assertThat(testCheckCastRemovalMethod, isPresent());
     assertTrue(
         testCheckCastRemovalMethod
@@ -76,7 +76,7 @@ public class DynamicTypeOptimizationTest extends TestBase {
     // Verify that the instance-of instruction is only present in testInstanceOfRemoval() if the
     // dynamic type optimization is disabled.
     MethodSubject testInstanceOfRemovalMethod =
-        mainClassSubject.uniqueMethodWithName("testInstanceOfRemoval");
+        mainClassSubject.uniqueMethodWithOriginalName("testInstanceOfRemoval");
     assertThat(testInstanceOfRemovalMethod, isPresent());
     assertTrue(
         testInstanceOfRemovalMethod
@@ -86,18 +86,18 @@ public class DynamicTypeOptimizationTest extends TestBase {
     // Verify that world() has been inlined() into testMethodInlining() unless the dynamic type
     // optimization is disabled.
     MethodSubject testMethodInliningMethod =
-        mainClassSubject.uniqueMethodWithName("testMethodInlining");
+        mainClassSubject.uniqueMethodWithOriginalName("testMethodInlining");
     assertThat(testMethodInliningMethod, isPresent());
-    assertTrue(interfaceSubject.uniqueMethodWithName("world").isAbsent());
+    assertTrue(interfaceSubject.uniqueMethodWithOriginalName("world").isAbsent());
 
     // Verify that exclamationMark() has been rebound in testMethodRebinding() unless the dynamic
     // type optimization is disabled.
     MethodSubject testMethodRebindingMethod =
-        mainClassSubject.uniqueMethodWithName("testMethodRebinding");
+        mainClassSubject.uniqueMethodWithOriginalName("testMethodRebinding");
     assertThat(testMethodRebindingMethod, isPresent());
     assertThat(
         testMethodRebindingMethod,
-        invokesMethod(aClassSubject.uniqueMethodWithName("exclamationMark")));
+        invokesMethod(aClassSubject.uniqueMethodWithOriginalName("exclamationMark")));
   }
 
   static class TestClass {

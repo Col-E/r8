@@ -104,13 +104,13 @@ public class MainDexListFromGenerateMainVerticalMergingTest extends TestBase {
     ClassSubject mainClassSubject = inspector.clazz(Main.class);
     assertThat(mainClassSubject, isPresent());
 
-    MethodSubject fooMethodSubject = mainClassSubject.uniqueMethodWithName("foo");
+    MethodSubject fooMethodSubject = mainClassSubject.uniqueMethodWithOriginalName("foo");
     assertThat(fooMethodSubject, isPresent());
 
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
 
-    MethodSubject fooAMethodSubject = aClassSubject.uniqueMethodWithName("foo");
+    MethodSubject fooAMethodSubject = aClassSubject.uniqueMethodWithOriginalName("foo");
     assertThat(fooAMethodSubject, isPresent());
 
     ClassSubject bClassSubject = inspector.clazz(B.class);

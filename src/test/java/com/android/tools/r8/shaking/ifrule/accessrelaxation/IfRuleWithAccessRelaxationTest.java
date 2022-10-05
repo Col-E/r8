@@ -62,11 +62,12 @@ public class IfRuleWithAccessRelaxationTest extends TestBase {
             .inspector();
 
     assertTrue(inspector.clazz(TestClass.class).isPublic());
-    assertThat(inspector.clazz(TestClass.class).uniqueFieldWithName("field"), isPublic());
+    assertThat(inspector.clazz(TestClass.class).uniqueFieldWithOriginalName("field"), isPublic());
     assertThat(
-        inspector.clazz(TestClass.class).uniqueMethodWithName("privateMethod"),
+        inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("privateMethod"),
         allOf(isPublic(), isFinal()));
-    assertThat(inspector.clazz(TestClass.class).uniqueMethodWithName("virtualMethod"), isPublic());
+    assertThat(
+        inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("virtualMethod"), isPublic());
 
     assertThat(inspector.clazz(Unused1.class), isPresent());
     assertThat(inspector.clazz(Unused2.class), isPresent());

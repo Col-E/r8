@@ -56,14 +56,15 @@ public class ReturnTypeStrengtheningTest extends TestBase {
               assertThat(aClassSubject, isPresent());
 
               // Return type of get() should be strengthened to A.
-              MethodSubject getMethodSubject = mainClassSubject.uniqueMethodWithName("get");
+              MethodSubject getMethodSubject = mainClassSubject.uniqueMethodWithOriginalName("get");
               assertThat(getMethodSubject, isPresent());
               assertEquals(
                   aClassSubject.getFinalName(),
                   getMethodSubject.getProgramMethod().getReturnType().getTypeName());
 
               // Method consume(I) should be rewritten to consume(A).
-              MethodSubject testBMethodSubject = mainClassSubject.uniqueMethodWithName("consume");
+              MethodSubject testBMethodSubject =
+                  mainClassSubject.uniqueMethodWithOriginalName("consume");
               assertThat(testBMethodSubject, isPresent());
               assertEquals(
                   aClassSubject.getFinalName(),

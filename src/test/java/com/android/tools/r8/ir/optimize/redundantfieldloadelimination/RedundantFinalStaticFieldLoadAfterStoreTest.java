@@ -53,7 +53,7 @@ public class RedundantFinalStaticFieldLoadAfterStoreTest extends TestBase {
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
 
-    FieldSubject fFieldSubject = aClassSubject.uniqueFieldWithName("f");
+    FieldSubject fFieldSubject = aClassSubject.uniqueFieldWithOriginalName("f");
     assertThat(fFieldSubject, isPresent());
 
     MethodSubject initMethodSubject = aClassSubject.clinit();
@@ -63,7 +63,7 @@ public class RedundantFinalStaticFieldLoadAfterStoreTest extends TestBase {
         countStaticGetInstructions(
             initMethodSubject.asFoundMethodSubject(), fFieldSubject.asFoundFieldSubject()));
 
-    MethodSubject mMethodSubject = aClassSubject.uniqueMethodWithName("m");
+    MethodSubject mMethodSubject = aClassSubject.uniqueMethodWithOriginalName("m");
     assertThat(mMethodSubject, isPresent());
     assertEquals(
         1,

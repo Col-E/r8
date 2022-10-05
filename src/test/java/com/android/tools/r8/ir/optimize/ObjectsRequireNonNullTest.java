@@ -89,12 +89,12 @@ public class ObjectsRequireNonNullTest extends TestBase {
     assertThat(mainMethod, isPresent());
     assertEquals(expectedCountInMain, countObjectsRequireNonNull(mainMethod));
 
-    MethodSubject unknownArg = mainClass.uniqueMethodWithName("unknownArg");
+    MethodSubject unknownArg = mainClass.uniqueMethodWithOriginalName("unknownArg");
     assertThat(unknownArg, isPresent());
     // Due to the nullable argument, requireNonNull should remain.
     assertEquals(1, countObjectsRequireNonNull(unknownArg));
 
-    MethodSubject uninit = mainClass.uniqueMethodWithName("consumeUninitialized");
+    MethodSubject uninit = mainClass.uniqueMethodWithOriginalName("consumeUninitialized");
     assertThat(uninit, isPresent());
     assertEquals(expectedCountInConsumer, countObjectsRequireNonNull(uninit));
     if (expectedCountInConsumer == 0) {

@@ -52,7 +52,7 @@ public class InterfaceRenewalInLoopDebugTestRunner extends DebugTestBase {
     CodeInspector inspector = result.inspector();
     ClassSubject mainSubject = inspector.clazz(MAIN);
     assertThat(mainSubject, isPresent());
-    MethodSubject methodSubject = mainSubject.uniqueMethodWithName("booRunner");
+    MethodSubject methodSubject = mainSubject.uniqueMethodWithOriginalName("booRunner");
     assertThat(methodSubject, isPresent());
     verifyNotDevirtualized(methodSubject);
 

@@ -74,10 +74,10 @@ public class UnusedArgumentsCollisionTest extends TestBase {
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
 
-    MethodSubject methodA1Subject = aClassSubject.uniqueMethodWithName("method1");
+    MethodSubject methodA1Subject = aClassSubject.uniqueMethodWithOriginalName("method1");
     assertThat(methodA1Subject, isPresent());
 
-    MethodSubject methodA2Subject = aClassSubject.uniqueMethodWithName("method2");
+    MethodSubject methodA2Subject = aClassSubject.uniqueMethodWithOriginalName("method2");
     assertThat(methodA2Subject, isPresent());
 
     ClassSubject bClassSubject = inspector.clazz(B.class);

@@ -81,7 +81,7 @@ public class InvokeMethodWithReceiverOptimizationTest extends TestBase {
     assertNotEquals(enableArgumentPropagation, otherClassSubject.isPresent());
 
     // Check that A.method() has been removed.
-    assertThat(otherClassSubject.uniqueMethodWithName("method"), not(isPresent()));
+    assertThat(otherClassSubject.uniqueMethodWithOriginalName("method"), not(isPresent()));
 
     // Check that a throw instruction has been inserted into each of the testRewriteToThrowNull*
     // methods.
@@ -97,12 +97,14 @@ public class InvokeMethodWithReceiverOptimizationTest extends TestBase {
     assertEquals(3, found);
 
     // Check that the method dead() has been removed.
-    assertThat(testClassSubject.uniqueMethodWithName("dead"), not(isPresent()));
+    assertThat(testClassSubject.uniqueMethodWithOriginalName("dead"), not(isPresent()));
 
     // Check that the catch handlers for NullPointerException and RuntimeException have not been
     // removed.
-    assertThat(testClassSubject.uniqueMethodWithName("handleNullPointerException"), isPresent());
-    assertThat(testClassSubject.uniqueMethodWithName("handleRuntimeException"), isPresent());
+    assertThat(
+        testClassSubject.uniqueMethodWithOriginalName("handleNullPointerException"), isPresent());
+    assertThat(
+        testClassSubject.uniqueMethodWithOriginalName("handleRuntimeException"), isPresent());
   }
 
   static class TestClass {

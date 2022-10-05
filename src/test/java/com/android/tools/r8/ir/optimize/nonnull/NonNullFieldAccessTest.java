@@ -49,9 +49,9 @@ public class NonNullFieldAccessTest extends TestBase {
   private void verifyNonNullPropagation(CodeInspector inspector) {
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(classSubject, isPresent());
-    assertThat(classSubject.uniqueMethodWithName("live"), isPresent());
-    assertThat(classSubject.uniqueMethodWithName("dead"), not(isPresent()));
-    assertThat(classSubject.uniqueMethodWithName("inlineable"), not(isPresent()));
+    assertThat(classSubject.uniqueMethodWithOriginalName("live"), isPresent());
+    assertThat(classSubject.uniqueMethodWithOriginalName("dead"), not(isPresent()));
+    assertThat(classSubject.uniqueMethodWithOriginalName("inlineable"), not(isPresent()));
   }
 
   static class TestClass {

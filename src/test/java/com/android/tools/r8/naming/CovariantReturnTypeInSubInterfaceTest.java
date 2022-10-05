@@ -96,7 +96,7 @@ public class CovariantReturnTypeInSubInterfaceTest extends TestBase {
       throws NoSuchMethodException {
     ClassSubject superInterface = inspector.clazz(SuperInterface.class);
     assertThat(superInterface, isPresentAndRenamed());
-    MethodSubject foo1 = superInterface.uniqueMethodWithName("foo");
+    MethodSubject foo1 = superInterface.uniqueMethodWithOriginalName("foo");
     assertThat(foo1, isPresentAndRenamed());
     ClassSubject subInterface = inspector.clazz(SubInterface.class);
     assertThat(subInterface, isPresentAndRenamed());

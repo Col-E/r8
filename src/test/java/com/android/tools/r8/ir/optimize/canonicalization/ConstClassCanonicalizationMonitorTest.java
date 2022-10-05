@@ -52,7 +52,7 @@ public class ConstClassCanonicalizationMonitorTest extends TestBase {
             inspector -> {
               ClassSubject clazz = inspector.clazz(Main.class);
               assertThat(clazz, isPresent());
-              MethodSubject testSubject = clazz.uniqueMethodWithName("test");
+              MethodSubject testSubject = clazz.uniqueMethodWithOriginalName("test");
               assertThat(testSubject, isPresent());
               Optional<InstructionSubject> insertedMonitor =
                   testSubject

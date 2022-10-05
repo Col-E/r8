@@ -51,7 +51,8 @@ public class CompanionClassWithNewInstanceUserTest extends TestBase {
     ClassSubject companionClassSubject = inspector.clazz(Companion.class);
     assertThat(companionClassSubject, isPresent());
 
-    MethodSubject companionMethodSubject = companionClassSubject.uniqueMethodWithName("method");
+    MethodSubject companionMethodSubject =
+        companionClassSubject.uniqueMethodWithOriginalName("method");
     assertThat(companionMethodSubject, isPresent());
     assertThat(companionMethodSubject, isStatic());
   }

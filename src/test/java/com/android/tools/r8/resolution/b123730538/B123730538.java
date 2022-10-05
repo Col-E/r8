@@ -81,14 +81,15 @@ public class B123730538 extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    MethodSubject foo = inspector.clazz(
-        PublicClass.class.getTypeName().replace("PublicClass", "AbstractClass"))
-        .uniqueMethodWithName("foo");
+    MethodSubject foo =
+        inspector
+            .clazz(PublicClass.class.getTypeName().replace("PublicClass", "AbstractClass"))
+            .uniqueMethodWithOriginalName("foo");
     assertThat(foo, isPresent());
 
     ClassSubject main = inspector.clazz(PublicClassExtender.class);
     assertThat(main, isPresent());
-    MethodSubject methodSubject = main.uniqueMethodWithName("delegate");
+    MethodSubject methodSubject = main.uniqueMethodWithOriginalName("delegate");
     assertThat(methodSubject, isPresent());
 
     methodSubject

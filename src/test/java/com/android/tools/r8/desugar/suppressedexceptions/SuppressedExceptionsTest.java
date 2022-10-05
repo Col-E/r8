@@ -60,14 +60,14 @@ public class SuppressedExceptionsTest extends TestBase {
             DesugarTestConfiguration::isDesugared,
             inspector ->
                 hasInvokesTo(
-                    inspector.clazz(TestClass.class).uniqueMethodWithName("main"),
+                    inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("main"),
                     "getSuppressed",
                     apiLevelHasSuppressedExceptionsSupport() ? 1 : 0))
         .inspectIf(
             DesugarTestConfiguration::isNotDesugared,
             inspector ->
                 hasInvokesTo(
-                    inspector.clazz(TestClass.class).uniqueMethodWithName("main"),
+                    inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("main"),
                     "getSuppressed",
                     1));
   }
@@ -87,7 +87,7 @@ public class SuppressedExceptionsTest extends TestBase {
         .inspect(
             inspector -> {
               hasInvokesTo(
-                  inspector.clazz(TestClass.class).uniqueMethodWithName("main"),
+                  inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("main"),
                   "getSuppressed",
                   apiLevelHasSuppressedExceptionsSupport() ? 1 : 0);
               IntBox gets = new IntBox(0);

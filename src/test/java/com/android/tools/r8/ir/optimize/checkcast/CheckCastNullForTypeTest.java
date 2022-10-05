@@ -55,7 +55,7 @@ public class CheckCastNullForTypeTest extends TestBase {
             codeInspector -> {
               ClassSubject main = codeInspector.clazz(Main.class);
               assertThat(main, isPresent());
-              MethodSubject mainMethod = main.uniqueMethodWithName("main");
+              MethodSubject mainMethod = main.uniqueMethodWithOriginalName("main");
               assertThat(mainMethod, isPresent());
               assertEquals(
                   0,

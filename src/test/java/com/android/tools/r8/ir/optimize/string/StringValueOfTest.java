@@ -91,11 +91,11 @@ public class StringValueOfTest extends TestBase {
     expectedCount = isR8 ? (parameters.isCfRuntime() ? 2 : 1) : (isRelease ? 1 : 0);
     assertEquals(expectedCount, countNullStringNumber(mainMethod));
 
-    MethodSubject hideNPE = mainClass.uniqueMethodWithName("hideNPE");
+    MethodSubject hideNPE = mainClass.uniqueMethodWithOriginalName("hideNPE");
     // Due to the nullable argument, valueOf should remain.
     assertEquals(1, countCall(hideNPE, "String", "valueOf"));
 
-    MethodSubject uninit = mainClass.uniqueMethodWithName("consumeUninitialized");
+    MethodSubject uninit = mainClass.uniqueMethodWithOriginalName("consumeUninitialized");
     assertThat(uninit, isPresent());
     expectedCount = isR8 ? 0 : 1;
     assertEquals(expectedCount, countCall(uninit, "String", "valueOf"));
@@ -120,7 +120,7 @@ public class StringValueOfTest extends TestBase {
                 inspector -> {
                   ClassSubject fooClassSubject = inspector.clazz(Foo.class);
                   assertThat(fooClassSubject, isPresent());
-                  assertThat(fooClassSubject.uniqueMethodWithName("getter"), isAbsent());
+                  assertThat(fooClassSubject.uniqueMethodWithOriginalName("getter"), isAbsent());
                 })
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);

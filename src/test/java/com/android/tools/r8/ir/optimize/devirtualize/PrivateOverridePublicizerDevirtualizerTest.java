@@ -60,7 +60,7 @@ public class PrivateOverridePublicizerDevirtualizerTest extends TestBase {
             inspector -> {
               ClassSubject classA = inspector.clazz(A.class);
               assertThat(classA, isPresent());
-              MethodSubject fooA = classA.uniqueMethodWithName("foo");
+              MethodSubject fooA = classA.uniqueMethodWithOriginalName("foo");
               assertThat(fooA, isPresent());
             })
         .run(parameters.getRuntime(), Main.class)

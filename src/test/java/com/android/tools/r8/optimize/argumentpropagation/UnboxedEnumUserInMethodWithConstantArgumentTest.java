@@ -56,7 +56,8 @@ public class UnboxedEnumUserInMethodWithConstantArgumentTest extends TestBase {
                       .streamInstructions()
                       .noneMatch(InstructionSubject::isConstNumber));
 
-              MethodSubject testMethodSubject = mainClassSubject.uniqueMethodWithName("test");
+              MethodSubject testMethodSubject =
+                  mainClassSubject.uniqueMethodWithOriginalName("test");
               assertThat(testMethodSubject, isPresent());
               assertEquals(0, testMethodSubject.getProgramMethod().getReference().getArity());
             })

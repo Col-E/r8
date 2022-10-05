@@ -85,18 +85,18 @@ public class AbstractMethodRenamingTest extends TestBase {
   private void inspect(CodeInspector inspector) {
     ClassSubject base = inspector.clazz(Base.class);
     assertThat(base, isPresentAndRenamed());
-    MethodSubject foo = base.uniqueMethodWithName("foo");
+    MethodSubject foo = base.uniqueMethodWithOriginalName("foo");
     assertThat(foo, isPresentAndRenamed());
 
     ClassSubject sub1 = inspector.clazz(Sub1.class);
     assertThat(sub1, isPresentAndRenamed());
-    MethodSubject fooInSub1 = sub1.uniqueMethodWithName("foo");
+    MethodSubject fooInSub1 = sub1.uniqueMethodWithOriginalName("foo");
     assertThat(fooInSub1, isPresentAndRenamed());
     assertEquals(foo.getFinalName(), fooInSub1.getFinalName());
 
     ClassSubject sub2 = inspector.clazz(Sub1.class);
     assertThat(sub2, isPresentAndRenamed());
-    MethodSubject fooInSub2 = sub2.uniqueMethodWithName("foo");
+    MethodSubject fooInSub2 = sub2.uniqueMethodWithOriginalName("foo");
     assertThat(fooInSub2, isPresentAndRenamed());
     assertEquals(foo.getFinalName(), fooInSub2.getFinalName());
   }

@@ -118,7 +118,7 @@ public class StaticInterfaceMethodsTest extends TestBase {
     } else {
       assertThat(method, not(isPresent()));
       assertThat(companionClass, isPresent());
-      assertThat(companionClass.uniqueMethodWithName("method"), isPresent());
+      assertThat(companionClass.uniqueMethodWithOriginalName("method"), isPresent());
     }
   }
 

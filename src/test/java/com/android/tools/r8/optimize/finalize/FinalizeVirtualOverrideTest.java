@@ -49,16 +49,19 @@ public class FinalizeVirtualOverrideTest extends TestBase {
               ClassSubject aClassSubject = inspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
               assertThat(
-                  aClassSubject.uniqueMethodWithName("m"), allOf(isPresent(), not(isFinal())));
+                  aClassSubject.uniqueMethodWithOriginalName("m"),
+                  allOf(isPresent(), not(isFinal())));
 
               ClassSubject bClassSubject = inspector.clazz(B.class);
               assertThat(bClassSubject, isPresent());
               assertThat(
-                  bClassSubject.uniqueMethodWithName("m"), allOf(isPresent(), not(isFinal())));
+                  bClassSubject.uniqueMethodWithOriginalName("m"),
+                  allOf(isPresent(), not(isFinal())));
 
               ClassSubject cClassSubject = inspector.clazz(C.class);
               assertThat(cClassSubject, isPresent());
-              assertThat(cClassSubject.uniqueMethodWithName("m"), allOf(isPresent(), isFinal()));
+              assertThat(
+                  cClassSubject.uniqueMethodWithOriginalName("m"), allOf(isPresent(), isFinal()));
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A.m()", "B.m()", "C.m()");

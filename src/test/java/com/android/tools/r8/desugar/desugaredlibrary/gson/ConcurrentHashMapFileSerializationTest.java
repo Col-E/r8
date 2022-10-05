@@ -84,7 +84,7 @@ public class ConcurrentHashMapFileSerializationTest extends DesugaredLibraryTest
     ClassSubject mapClass = inspector.clazz("j$.util.concurrent.ConcurrentHashMap");
     if (parameters.getApiLevel().isLessThan(AndroidApiLevel.N)) {
       assertTrue(mapClass.isPresent());
-      FieldSubject serialVersionUID = mapClass.uniqueFieldWithName("serialVersionUID");
+      FieldSubject serialVersionUID = mapClass.uniqueFieldWithOriginalName("serialVersionUID");
       assertTrue(serialVersionUID.isPresent());
     } else {
       assertFalse(mapClass.isPresent());

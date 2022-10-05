@@ -69,10 +69,11 @@ public class SwitchCaseRemovalTest extends TestBase {
   private void verifyOutput(CodeInspector inspector) {
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(classSubject, isPresent());
-    assertThat(classSubject.uniqueMethodWithName("dead"), not(isPresent()));
+    assertThat(classSubject.uniqueMethodWithOriginalName("dead"), not(isPresent()));
 
     {
-      MethodSubject methodSubject = classSubject.uniqueMethodWithName("testSwitchCaseRemoval");
+      MethodSubject methodSubject =
+          classSubject.uniqueMethodWithOriginalName("testSwitchCaseRemoval");
       assertThat(methodSubject, isPresent());
       assertEquals(
           1, methodSubject.streamInstructions().filter(InstructionSubject::isConstNull).count());
@@ -83,14 +84,15 @@ public class SwitchCaseRemovalTest extends TestBase {
 
     {
       MethodSubject methodSubject =
-          classSubject.uniqueMethodWithName("testSwitchReplacementWithExplicitDefaultCase");
+          classSubject.uniqueMethodWithOriginalName("testSwitchReplacementWithExplicitDefaultCase");
       assertThat(methodSubject, isPresent());
       assertTrue(methodSubject.streamInstructions().noneMatch(InstructionSubject::isSwitch));
     }
 
     {
       MethodSubject methodSubject =
-          classSubject.uniqueMethodWithName("testSwitchReplacementWithoutExplicitDefaultCase");
+          classSubject.uniqueMethodWithOriginalName(
+              "testSwitchReplacementWithoutExplicitDefaultCase");
       assertThat(methodSubject, isPresent());
       assertTrue(methodSubject.streamInstructions().noneMatch(InstructionSubject::isSwitch));
     }

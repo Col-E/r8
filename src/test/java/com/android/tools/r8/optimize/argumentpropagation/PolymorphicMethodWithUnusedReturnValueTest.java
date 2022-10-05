@@ -47,7 +47,8 @@ public class PolymorphicMethodWithUnusedReturnValueTest extends TestBase {
             inspector -> {
               // The test() methods have been changed to have return type void.
               for (Class<?> clazz : new Class<?>[] {A.class, B.class}) {
-                MethodSubject testMethodSubject = inspector.clazz(clazz).uniqueMethodWithName("m");
+                MethodSubject testMethodSubject =
+                    inspector.clazz(clazz).uniqueMethodWithOriginalName("m");
                 assertThat(testMethodSubject, isPresent());
                 assertTrue(testMethodSubject.getProgramMethod().getReturnType().isVoidType());
               }

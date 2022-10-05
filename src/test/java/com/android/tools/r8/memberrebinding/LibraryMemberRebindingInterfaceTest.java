@@ -103,7 +103,7 @@ public class LibraryMemberRebindingInterfaceTest extends TestBase {
         .inspect(
             inspector -> {
               MethodSubject testMethodSubject =
-                  inspector.clazz(Main.class).uniqueMethodWithName("test");
+                  inspector.clazz(Main.class).uniqueMethodWithOriginalName("test");
               assertThat(testMethodSubject, isPresent());
               assertThat(
                   testMethodSubject,

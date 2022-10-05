@@ -61,7 +61,7 @@ public class ProtoNormalizationWithParameterAnnotationsTest extends TestBase {
               TypeSubject barTypeSubject = inspector.clazz(Bar.class).asTypeSubject();
 
               // Main.bar() has parameter annotations [@Bar, @Foo].
-              MethodSubject barMethodSubject = mainClassSubject.uniqueMethodWithName("bar");
+              MethodSubject barMethodSubject = mainClassSubject.uniqueMethodWithOriginalName("bar");
               assertThat(barMethodSubject, isPresent());
               assertThat(barMethodSubject, hasParameters(aTypeSubject, bTypeSubject));
               assertThat(
@@ -70,7 +70,7 @@ public class ProtoNormalizationWithParameterAnnotationsTest extends TestBase {
                       ImmutableList.of(barTypeSubject), ImmutableList.of(fooTypeSubject)));
 
               // Main.baz() has parameter annotations [, @Foo].
-              MethodSubject bazMethodSubject = mainClassSubject.uniqueMethodWithName("baz");
+              MethodSubject bazMethodSubject = mainClassSubject.uniqueMethodWithOriginalName("baz");
               assertThat(bazMethodSubject, isPresent());
               assertThat(bazMethodSubject, hasParameters(aTypeSubject, bTypeSubject));
               assertThat(
@@ -79,7 +79,7 @@ public class ProtoNormalizationWithParameterAnnotationsTest extends TestBase {
                       ImmutableList.of(), ImmutableList.of(fooTypeSubject)));
 
               // Main.qux() has parameter annotations [@Foo, ].
-              MethodSubject quxMethodSubject = mainClassSubject.uniqueMethodWithName("qux");
+              MethodSubject quxMethodSubject = mainClassSubject.uniqueMethodWithOriginalName("qux");
               assertThat(quxMethodSubject, isPresent());
               assertThat(quxMethodSubject, hasParameters(aTypeSubject, bTypeSubject));
               assertThat(

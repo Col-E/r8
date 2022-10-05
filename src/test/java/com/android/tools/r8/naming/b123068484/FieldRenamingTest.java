@@ -75,8 +75,10 @@ public class FieldRenamingTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    FieldSubject fld = inspector.clazz(CONCRETE1.getTypeName().replace("Concrete1", "Abs"))
-        .uniqueFieldWithName("strField");
+    FieldSubject fld =
+        inspector
+            .clazz(CONCRETE1.getTypeName().replace("Concrete1", "Abs"))
+            .uniqueFieldWithOriginalName("strField");
     assertThat(fld, isPresent());
 
     ClassSubject main = inspector.clazz(MAIN);

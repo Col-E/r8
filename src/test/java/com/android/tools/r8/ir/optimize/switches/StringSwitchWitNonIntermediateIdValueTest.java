@@ -64,7 +64,8 @@ public class StringSwitchWitNonIntermediateIdValueTest extends TestBase {
   }
 
   private void verifyRewrittenToIfs(CodeInspector inspector) {
-    MethodSubject testMethodSubject = inspector.clazz(Main.class).uniqueMethodWithName("test");
+    MethodSubject testMethodSubject =
+        inspector.clazz(Main.class).uniqueMethodWithOriginalName("test");
     assertThat(testMethodSubject, isPresent());
     assertTrue(testMethodSubject.streamInstructions().noneMatch(InstructionSubject::isSwitch));
     assertEquals(

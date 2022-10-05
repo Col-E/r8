@@ -230,13 +230,13 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
   private void compatCodePresent(CodeInspector inspector) {
     ClassSubject compatLibrary = inspector.clazz(compatLibraryClassName);
     assertThat(compatLibrary, isPresent());
-    assertThat(compatLibrary.uniqueMethodWithName("compatMethod"), isPresent());
+    assertThat(compatLibrary.uniqueMethodWithOriginalName("compatMethod"), isPresent());
   }
 
   private void compatCodeNotPresent(CodeInspector inspector) {
     ClassSubject compatLibrary = inspector.clazz(compatLibraryClassName);
     assertThat(compatLibrary, isPresent());
-    assertThat(compatLibrary.uniqueMethodWithName("compatMethod"), not(isPresent()));
+    assertThat(compatLibrary.uniqueMethodWithOriginalName("compatMethod"), not(isPresent()));
   }
 
   @Test

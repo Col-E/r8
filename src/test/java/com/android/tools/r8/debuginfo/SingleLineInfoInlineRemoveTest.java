@@ -67,9 +67,9 @@ public class SingleLineInfoInlineRemoveTest extends TestBase {
               assertThat(stackTrace, isSame(expectedStackTrace));
               ClassSubject mainSubject = inspector.clazz(Main.class);
               assertThat(mainSubject, isPresent());
-              assertThat(mainSubject.uniqueMethodWithName("inlinee"), not(isPresent()));
+              assertThat(mainSubject.uniqueMethodWithOriginalName("inlinee"), not(isPresent()));
               assertThat(
-                  mainSubject.uniqueMethodWithName("shouldRemoveLineNumberForInline"),
+                  mainSubject.uniqueMethodWithOriginalName("shouldRemoveLineNumberForInline"),
                   notIf(hasLineNumberTable(), parameters.isDexRuntime()));
             });
   }
@@ -91,9 +91,9 @@ public class SingleLineInfoInlineRemoveTest extends TestBase {
               assertThat(stackTrace, isSame(expectedStackTrace));
               ClassSubject mainSubject = inspector.clazz(Main.class);
               assertThat(mainSubject, isPresent());
-              assertThat(mainSubject.uniqueMethodWithName("inlinee"), not(isPresent()));
+              assertThat(mainSubject.uniqueMethodWithOriginalName("inlinee"), not(isPresent()));
               assertThat(
-                  mainSubject.uniqueMethodWithName("shouldRemoveLineNumberForInline"),
+                  mainSubject.uniqueMethodWithOriginalName("shouldRemoveLineNumberForInline"),
                   notIf(hasLineNumberTable(), parameters.isDexRuntime()));
             });
   }
@@ -115,9 +115,9 @@ public class SingleLineInfoInlineRemoveTest extends TestBase {
               assertThat(stackTrace, isSame(expectedStackTrace));
               ClassSubject mainSubject = inspector.clazz(Main.class);
               assertThat(mainSubject, isPresent());
-              assertThat(mainSubject.uniqueMethodWithName("inlinee"), not(isPresent()));
+              assertThat(mainSubject.uniqueMethodWithOriginalName("inlinee"), not(isPresent()));
               assertThat(
-                  mainSubject.uniqueMethodWithName("shouldRemoveLineNumberForInline"),
+                  mainSubject.uniqueMethodWithOriginalName("shouldRemoveLineNumberForInline"),
                   notIf(hasLineNumberTable(), parameters.isDexRuntime()));
             });
   }
@@ -139,9 +139,9 @@ public class SingleLineInfoInlineRemoveTest extends TestBase {
               assertThat(stackTrace, isSame(expectedStackTrace));
               ClassSubject mainSubject = inspector.clazz(Main.class);
               assertThat(mainSubject, isPresent());
-              assertThat(mainSubject.uniqueMethodWithName("inlinee"), not(isPresent()));
+              assertThat(mainSubject.uniqueMethodWithOriginalName("inlinee"), not(isPresent()));
               assertThat(
-                  mainSubject.uniqueMethodWithName("shouldRemoveLineNumberForInline"),
+                  mainSubject.uniqueMethodWithOriginalName("shouldRemoveLineNumberForInline"),
                   // TODO(b/146565491): Update to allow dropping the table once supported by ART.
                   hasLineNumberTable());
             });

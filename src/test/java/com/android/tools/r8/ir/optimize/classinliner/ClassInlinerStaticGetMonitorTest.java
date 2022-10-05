@@ -49,7 +49,8 @@ public class ClassInlinerStaticGetMonitorTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    assertThat(inspector.clazz(Container.class).uniqueMethodWithName("increment"), isPresent());
+    assertThat(
+        inspector.clazz(Container.class).uniqueMethodWithOriginalName("increment"), isPresent());
   }
 
   static class TestClass {

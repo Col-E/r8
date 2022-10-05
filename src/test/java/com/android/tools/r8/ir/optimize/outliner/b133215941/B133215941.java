@@ -51,10 +51,10 @@ public class B133215941 extends TestBase {
     assertThat(outline0Method, isPresent());
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(
-        classSubject.uniqueMethodWithName("ifaceMethod"),
+        classSubject.uniqueMethodWithOriginalName("ifaceMethod"),
         CodeMatchers.invokesMethod(outline0Method));
     assertThat(
-        classSubject.uniqueMethodWithName("methodWithOutlineContent"),
+        classSubject.uniqueMethodWithOriginalName("methodWithOutlineContent"),
         CodeMatchers.invokesMethod(outline0Method));
   }
 

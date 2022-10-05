@@ -57,11 +57,12 @@ public class B135918413 extends TestBase {
     ClassSubject configClassSubject = inspector.clazz(Config.class);
     assertThat(configClassSubject, isPresent());
 
-    FieldSubject alwaysEmptyFieldSubject = configClassSubject.uniqueFieldWithName("alwaysEmpty");
+    FieldSubject alwaysEmptyFieldSubject =
+        configClassSubject.uniqueFieldWithOriginalName("alwaysEmpty");
     assertThat(alwaysEmptyFieldSubject, isPresent());
 
     FieldSubject alwaysNonEmptyFieldSubject =
-        configClassSubject.uniqueFieldWithName("alwaysNonEmpty");
+        configClassSubject.uniqueFieldWithOriginalName("alwaysNonEmpty");
     assertThat(alwaysNonEmptyFieldSubject, isPresent());
 
     MethodSubject mainMethodSubject = classSubject.mainMethod();
@@ -78,7 +79,7 @@ public class B135918413 extends TestBase {
                         || name.equals(alwaysNonEmptyFieldSubject.getFinalName())
                         || name.equals("out")));
 
-    MethodSubject deadMethodSubject = classSubject.uniqueMethodWithName("dead");
+    MethodSubject deadMethodSubject = classSubject.uniqueMethodWithOriginalName("dead");
     assertThat(deadMethodSubject, not(isPresent()));
   }
 

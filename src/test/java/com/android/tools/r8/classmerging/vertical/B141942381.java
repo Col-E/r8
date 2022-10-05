@@ -70,10 +70,10 @@ public class B141942381 extends TestBase {
 
     ClassSubject boxImpl = inspector.clazz(BoxImpl.class);
     assertThat(boxImpl, isPresent());
-    FieldSubject storage = boxImpl.uniqueFieldWithName("_storage");
+    FieldSubject storage = boxImpl.uniqueFieldWithOriginalName("_storage");
     assertThat(storage, isPresent());
 
-    MethodSubject set = boxImpl.uniqueMethodWithName("set");
+    MethodSubject set = boxImpl.uniqueMethodWithOriginalName("set");
     assertThat(set, isPresent());
 
     assertEquals(

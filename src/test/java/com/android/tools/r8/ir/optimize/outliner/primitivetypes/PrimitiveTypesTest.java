@@ -62,9 +62,11 @@ public class PrimitiveTypesTest extends TestBase {
     assertThat(outline0Method, isPresent());
     ClassSubject classSubject = inspector.clazz(testClass);
     assertThat(
-        classSubject.uniqueMethodWithName("method1"), CodeMatchers.invokesMethod(outline0Method));
+        classSubject.uniqueMethodWithOriginalName("method1"),
+        CodeMatchers.invokesMethod(outline0Method));
     assertThat(
-        classSubject.uniqueMethodWithName("method2"), CodeMatchers.invokesMethod(outline0Method));
+        classSubject.uniqueMethodWithOriginalName("method2"),
+        CodeMatchers.invokesMethod(outline0Method));
   }
 
   public void runTest(Class<?> testClass, String argumentType, String expectedOutput)

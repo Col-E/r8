@@ -73,7 +73,7 @@ public class InvokeInterfacePositiveTest extends TestBase {
     ClassSubject a = inspector.clazz(A.class);
     assertThat(a, isPresent());
 
-    MethodSubject a_m = a.uniqueMethodWithName("m");
+    MethodSubject a_m = a.uniqueMethodWithOriginalName("m");
     assertThat(a_m, isPresent());
     // Can optimize branches since `arg` is definitely not null.
     assertTrue(a_m.streamInstructions().noneMatch(InstructionSubject::isIf));
@@ -81,7 +81,7 @@ public class InvokeInterfacePositiveTest extends TestBase {
     ClassSubject b = inspector.clazz(B.class);
     assertThat(b, isPresent());
 
-    MethodSubject b_m = b.uniqueMethodWithName("m");
+    MethodSubject b_m = b.uniqueMethodWithOriginalName("m");
     assertThat(b_m, isPresent());
     // Can optimize branches since `arg` is definitely not null.
     assertTrue(b_m.streamInstructions().noneMatch(InstructionSubject::isIf));

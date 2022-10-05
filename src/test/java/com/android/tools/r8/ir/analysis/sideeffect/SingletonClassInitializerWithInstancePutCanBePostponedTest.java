@@ -15,7 +15,6 @@ import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ir.analysis.sideeffect.SingletonClassInitializerPatternCanBePostponedTest.A;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
@@ -55,10 +54,10 @@ public class SingletonClassInitializerWithInstancePutCanBePostponedTest extends 
   private void inspect(CodeInspector inspector) {
     ClassSubject classSubject = inspector.clazz(A.class);
     assertThat(classSubject, isPresent());
-    assertThat(classSubject.uniqueFieldWithName("INSTANCE"), isPresent());
+    assertThat(classSubject.uniqueFieldWithOriginalName("INSTANCE"), isPresent());
 
     // A.inlineable() should be inlined, but we should not synthesize an $r8$clinit field.
-    assertThat(classSubject.uniqueMethodWithName("inlineable"), not(isPresent()));
+    assertThat(classSubject.uniqueMethodWithOriginalName("inlineable"), not(isPresent()));
     assertEquals(2, classSubject.allStaticFields().size());
   }
 

@@ -70,10 +70,11 @@ public class SingleLineInfoMultipleCallsRemoveTest extends TestBase {
               ClassSubject mainSubject = inspector.clazz(Main.class);
               assertThat(mainSubject, isPresent());
               assertThat(
-                  mainSubject.uniqueMethodWithName("shouldRemoveLineNumberForMultipleInvokes"),
+                  mainSubject.uniqueMethodWithOriginalName(
+                      "shouldRemoveLineNumberForMultipleInvokes"),
                   notIf(hasLineNumberTable(), parameters.isDexRuntime()));
               assertThat(
-                  mainSubject.uniqueMethodWithName("main"),
+                  mainSubject.uniqueMethodWithOriginalName("main"),
                   notIf(hasLineNumberTable(), parameters.isDexRuntime()));
             });
   }

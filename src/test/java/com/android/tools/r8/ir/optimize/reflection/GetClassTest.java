@@ -170,10 +170,11 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
     ClassSubject reflectionClass = codeInspector.clazz(Reflection.class);
     assertThat(reflectionClass, isPresent());
     assertThat(
-        reflectionClass.uniqueMethodWithName("call"), onlyIf(expectCallPresent, isPresent()));
+        reflectionClass.uniqueMethodWithOriginalName("call"),
+        onlyIf(expectCallPresent, isPresent()));
 
     ClassSubject getterClass = codeInspector.clazz(GetClassTestMain.class);
-    MethodSubject getMainClass = getterClass.uniqueMethodWithName("getMainClass");
+    MethodSubject getMainClass = getterClass.uniqueMethodWithOriginalName("getMainClass");
     assertThat(getMainClass, isPresent());
     // Because of nullable argument, getClass() should remain.
     assertEquals(1, countGetClass(getMainClass));

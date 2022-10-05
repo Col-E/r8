@@ -67,7 +67,8 @@ public class PrintSeedsWithDeserializeLambdaMethodTest extends TestBase {
 
   private void checkPresenceOfDeserializedLambdas(CodeInspector inspector) {
     for (Class<?> clazz : getClasses()) {
-      MethodSubject method = inspector.clazz(clazz).uniqueMethodWithName("$deserializeLambda$");
+      MethodSubject method =
+          inspector.clazz(clazz).uniqueMethodWithOriginalName("$deserializeLambda$");
       assertEquals(
           "Unexpected status for $deserializedLambda$ on " + clazz.getSimpleName(),
           parameters.isCfRuntime(),

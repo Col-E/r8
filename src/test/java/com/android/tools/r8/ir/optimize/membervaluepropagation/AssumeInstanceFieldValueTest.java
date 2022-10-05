@@ -58,11 +58,12 @@ public class AssumeInstanceFieldValueTest extends TestBase {
     ClassSubject configClassSubject = inspector.clazz(Config.class);
     assertThat(configClassSubject, isPresent());
 
-    FieldSubject alwaysTrueFieldSubject = configClassSubject.uniqueFieldWithName("alwaysTrue");
+    FieldSubject alwaysTrueFieldSubject =
+        configClassSubject.uniqueFieldWithOriginalName("alwaysTrue");
     assertThat(alwaysTrueFieldSubject, isAbsent());
 
     FieldSubject alwaysTrueNoSideEffectsFieldSubject =
-        configClassSubject.uniqueFieldWithName("alwaysTrueNoSideEffects");
+        configClassSubject.uniqueFieldWithOriginalName("alwaysTrueNoSideEffects");
     assertThat(alwaysTrueNoSideEffectsFieldSubject, not(isPresent()));
 
     ClassSubject testClassSubject = inspector.clazz(TestClass.class);

@@ -60,14 +60,14 @@ public class InvokeSuperToInvokeVirtualTest extends TestBase {
     ClassSubject bClassSubject = inspector.clazz(B.class);
     assertThat(bClassSubject, isPresent());
 
-    MethodSubject negativeTestSubject = bClassSubject.uniqueMethodWithName("negativeTest");
+    MethodSubject negativeTestSubject = bClassSubject.uniqueMethodWithOriginalName("negativeTest");
     assertThat(negativeTestSubject, isPresent());
     assertTrue(negativeTestSubject.streamInstructions().anyMatch(this::isInvokeSuper));
     assertTrue(
         negativeTestSubject.streamInstructions().noneMatch(InstructionSubject::isInvokeVirtual));
 
     // B.positiveTest() is moved to A as a result of bridge hoisting.
-    MethodSubject positiveTestSubject = aClassSubject.uniqueMethodWithName("positiveTest");
+    MethodSubject positiveTestSubject = aClassSubject.uniqueMethodWithOriginalName("positiveTest");
     assertThat(positiveTestSubject, isPresent());
     assertTrue(positiveTestSubject.streamInstructions().noneMatch(this::isInvokeSuper));
     assertTrue(

@@ -145,7 +145,7 @@ public class MetadataRewriteJvmStaticTest extends KotlinMetadataTestBase {
   private void inspectInterfaceWithCompanion(CodeInspector inspector) {
     ClassSubject itf = inspector.clazz(PKG_LIB + ".InterfaceWithCompanion");
     assertThat(itf, isPresent());
-    MethodSubject greet = itf.uniqueMethodWithName("greet");
+    MethodSubject greet = itf.uniqueMethodWithOriginalName("greet");
     assertThat(greet, isPresent());
 
     ClassSubject itfCompanion = inspector.clazz(PKG_LIB + ".InterfaceWithCompanion$Companion");

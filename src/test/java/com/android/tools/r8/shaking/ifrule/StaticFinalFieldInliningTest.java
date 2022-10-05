@@ -69,7 +69,9 @@ public class StaticFinalFieldInliningTest extends TestBase {
   private static void assertHasStaticGet(
       boolean expected, String methodName, CodeInspector inspector) {
     MethodSubject method =
-        inspector.clazz(StaticFinalFieldInliningSource.class).uniqueMethodWithName(methodName);
+        inspector
+            .clazz(StaticFinalFieldInliningSource.class)
+            .uniqueMethodWithOriginalName(methodName);
     assertEquals(
         method.getMethod().codeToString(),
         expected,

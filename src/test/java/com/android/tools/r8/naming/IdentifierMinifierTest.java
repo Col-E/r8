@@ -144,7 +144,7 @@ public class IdentifierMinifierTest extends TestBase {
     assertEquals(countInMain, renamedYetFoundIdentifierCount);
 
     ClassSubject aClass = inspector.clazz("adaptclassstrings.A");
-    MethodSubject bar = aClass.uniqueMethodWithName("bar");
+    MethodSubject bar = aClass.uniqueMethodWithOriginalName("bar");
     assertThat(bar, isPresent());
     verifyPresenceOfConstString(bar);
     renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, bar);
@@ -188,7 +188,7 @@ public class IdentifierMinifierTest extends TestBase {
     assertEquals(2, constStringInstructions.size());
 
     ClassSubject b = inspector.clazz("getmembers.B");
-    MethodSubject inliner = b.uniqueMethodWithName("inliner");
+    MethodSubject inliner = b.uniqueMethodWithOriginalName("inliner");
     assertThat(inliner, isPresent());
     constStringInstructions = getRenamedMemberIdentifierConstStrings(a, inliner);
     assertEquals(1, constStringInstructions.size());

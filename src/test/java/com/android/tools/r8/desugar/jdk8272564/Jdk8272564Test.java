@@ -44,13 +44,13 @@ public class Jdk8272564Test extends TestBase {
     assertTrue(
         inspector
             .clazz(Jdk8272564.Main.typeName())
-            .uniqueMethodWithName("f")
+            .uniqueMethodWithOriginalName("f")
             .streamInstructions()
             .noneMatch(InstructionSubject::isInvokeVirtual));
     assertTrue(
         inspector
             .clazz(Jdk8272564.Main.typeName())
-            .uniqueMethodWithName("g")
+            .uniqueMethodWithOriginalName("g")
             .streamInstructions()
             .noneMatch(InstructionSubject::isInvokeVirtual));
   }
@@ -62,7 +62,7 @@ public class Jdk8272564Test extends TestBase {
         1,
         inspector
             .clazz(Jdk8272564.Main.typeName())
-            .uniqueMethodWithName("f")
+            .uniqueMethodWithOriginalName("f")
             .streamInstructions()
             .filter(InstructionSubject::isInvokeInterface)
             .count());
@@ -70,7 +70,7 @@ public class Jdk8272564Test extends TestBase {
         2,
         inspector
             .clazz(Jdk8272564.Main.typeName())
-            .uniqueMethodWithName("f")
+            .uniqueMethodWithOriginalName("f")
             .streamInstructions()
             .filter(InstructionSubject::isInvokeVirtual)
             .count());
@@ -78,7 +78,7 @@ public class Jdk8272564Test extends TestBase {
         2,
         inspector
             .clazz(Jdk8272564.Main.typeName())
-            .uniqueMethodWithName("g")
+            .uniqueMethodWithOriginalName("g")
             .streamInstructions()
             .filter(InstructionSubject::isInvokeInterface)
             .count());
@@ -86,7 +86,7 @@ public class Jdk8272564Test extends TestBase {
         2,
         inspector
             .clazz(Jdk8272564.Main.typeName())
-            .uniqueMethodWithName("g")
+            .uniqueMethodWithOriginalName("g")
             .streamInstructions()
             .filter(InstructionSubject::isInvokeInterface)
             .count());
@@ -94,7 +94,7 @@ public class Jdk8272564Test extends TestBase {
         invokeVirtualCount,
         inspector
             .clazz(Jdk8272564.Main.typeName())
-            .uniqueMethodWithName("g")
+            .uniqueMethodWithOriginalName("g")
             .streamInstructions()
             .filter(InstructionSubject::isInvokeVirtual)
             .count());
@@ -102,7 +102,7 @@ public class Jdk8272564Test extends TestBase {
         getClassCount,
         inspector
             .clazz(Jdk8272564.Main.typeName())
-            .uniqueMethodWithName("g")
+            .uniqueMethodWithOriginalName("g")
             .streamInstructions()
             .filter(InstructionSubject::isInvoke)
             .filter(instruction -> instruction.getMethod().getName().toString().equals("getClass"))

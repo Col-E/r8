@@ -52,7 +52,10 @@ public class InlineLibraryInterfaceMethodTest extends TestBase {
         .inspect(
             inspector -> {
               MethodSubject methodSubject =
-                  inspector.clazz(TestClass.class).uniqueMethodWithName("main").asMethodSubject();
+                  inspector
+                      .clazz(TestClass.class)
+                      .uniqueMethodWithOriginalName("main")
+                      .asMethodSubject();
 
               counts.run = countInvokesWithName(methodSubject, "run");
               counts.println = countInvokesWithName(methodSubject, "println");

@@ -57,7 +57,7 @@ public class SharedPc2PcDebugInfo extends TestBase {
               // normal encodings.
               DexDebugInfo shared = null;
               for (String name : METHODS) {
-                DexEncodedMethod method = clazz.uniqueMethodWithName(name).getMethod();
+                DexEncodedMethod method = clazz.uniqueMethodWithOriginalName(name).getMethod();
                 DexDebugInfo debugInfo = method.getCode().asDexCode().getDebugInfo();
                 assertTrue(debugInfo.isPcBasedInfo());
                 // The DEX parser should allocate the same shared instance to each method.

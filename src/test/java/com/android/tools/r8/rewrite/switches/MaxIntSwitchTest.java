@@ -67,16 +67,16 @@ public class MaxIntSwitchTest extends TestBase {
 
   public void checkSwitchKeys(CodeInspector inspector) {
     checkSwitch(
-        inspector.clazz(TestClass.class).uniqueMethodWithName("f"),
+        inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("f"),
         parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K));
     checkSwitch(
-        inspector.clazz(TestClass.class).uniqueMethodWithName("g"),
+        inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("g"),
         parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K));
     // Debug mode will not rewrite switch statements except when the MAX_INT key is present.
     assertEquals(
         inspector
             .clazz(TestClass.class)
-            .uniqueMethodWithName("h")
+            .uniqueMethodWithOriginalName("h")
             .streamInstructions()
             .filter(InstructionSubject::isSwitch)
             .count(),
@@ -85,7 +85,7 @@ public class MaxIntSwitchTest extends TestBase {
                 && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K)));
 
     checkStringSwitch(
-        inspector.clazz(TestClass.class).uniqueMethodWithName("s"),
+        inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("s"),
         parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K));
   }
 

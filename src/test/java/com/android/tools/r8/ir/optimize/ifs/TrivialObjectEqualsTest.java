@@ -42,7 +42,7 @@ public class TrivialObjectEqualsTest extends TestBase {
         .inspect(
             inspector ->
                 assertThat(
-                    inspector.clazz(Main.class).uniqueMethodWithName("dead"),
+                    inspector.clazz(Main.class).uniqueMethodWithOriginalName("dead"),
                     not(invokesMethodWithName("dead"))))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello world!");
@@ -58,7 +58,8 @@ public class TrivialObjectEqualsTest extends TestBase {
         .compile()
         .inspect(
             inspector ->
-                assertThat(inspector.clazz(Main.class).uniqueMethodWithName("dead"), isAbsent()))
+                assertThat(
+                    inspector.clazz(Main.class).uniqueMethodWithOriginalName("dead"), isAbsent()))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello world!");
   }

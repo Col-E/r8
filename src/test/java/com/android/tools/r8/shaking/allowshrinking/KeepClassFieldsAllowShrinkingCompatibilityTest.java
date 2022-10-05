@@ -90,10 +90,10 @@ public class KeepClassFieldsAllowShrinkingCompatibilityTest extends TestBase {
               assertThat(aClass, isPresentAndRenamed());
               assertThat(bClass, isPresentAndRenamed());
 
-              FieldSubject aFoo = aClass.uniqueFieldWithName("foo");
-              FieldSubject aBar = aClass.uniqueFieldWithName("bar");
-              FieldSubject bFoo = bClass.uniqueFieldWithName("foo");
-              FieldSubject bBar = bClass.uniqueFieldWithName("bar");
+              FieldSubject aFoo = aClass.uniqueFieldWithOriginalName("foo");
+              FieldSubject aBar = aClass.uniqueFieldWithOriginalName("bar");
+              FieldSubject bFoo = bClass.uniqueFieldWithOriginalName("foo");
+              FieldSubject bBar = bClass.uniqueFieldWithOriginalName("bar");
 
               if (allowOptimization) {
                 // PG fails to optimize out the referenced field.

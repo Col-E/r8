@@ -66,7 +66,7 @@ public class OutlineFromDefaultInterfaceMethodTest extends TestBase {
   private void inspect(CodeInspector inspector) {
     if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
       ClassSubject interfaceSubject = inspector.clazz(I.class);
-      MethodSubject greetMethodSubject = interfaceSubject.uniqueMethodWithName("greet");
+      MethodSubject greetMethodSubject = interfaceSubject.uniqueMethodWithOriginalName("greet");
       assertThat(interfaceSubject, isPresent());
       assertThat(greetMethodSubject, isPresent());
       assertEquals(

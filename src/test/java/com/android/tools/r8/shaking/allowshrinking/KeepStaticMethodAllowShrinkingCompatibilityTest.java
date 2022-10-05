@@ -75,7 +75,8 @@ public class KeepStaticMethodAllowShrinkingCompatibilityTest extends TestBase {
               assertThat(companionClassSubject, notIf(isPresent(), allowOptimization));
 
               MethodSubject mainMethodSubject = testClassSubject.mainMethod();
-              MethodSubject getMethodSubject = companionClassSubject.uniqueMethodWithName("get");
+              MethodSubject getMethodSubject =
+                  companionClassSubject.uniqueMethodWithOriginalName("get");
 
               if (allowOptimization) {
                 assertTrue(

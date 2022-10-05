@@ -55,7 +55,7 @@ public class ObjectsEqualsTest extends TestBase {
               assertThat(mainClassSubject, isPresent());
 
               MethodSubject testNonNullArgumentsMethodSubject =
-                  mainClassSubject.uniqueMethodWithName("testNonNullArguments");
+                  mainClassSubject.uniqueMethodWithOriginalName("testNonNullArguments");
               assertThat(testNonNullArgumentsMethodSubject, isPresent());
               assertThat(
                   testNonNullArgumentsMethodSubject,
@@ -65,19 +65,19 @@ public class ObjectsEqualsTest extends TestBase {
                   invokesMethodWithHolderAndName("java.lang.Object", "equals"));
 
               MethodSubject testNullAndNullArgumentsMethodSubject =
-                  mainClassSubject.uniqueMethodWithName("testNullAndNullArguments");
+                  mainClassSubject.uniqueMethodWithOriginalName("testNullAndNullArguments");
               assertThat(testNullAndNullArgumentsMethodSubject, isPresent());
               assertThat(
                   testNullAndNullArgumentsMethodSubject, not(invokesMethodWithName("equals")));
 
               MethodSubject testNullAndNonNullArgumentsMethodSubject =
-                  mainClassSubject.uniqueMethodWithName("testNullAndNonNullArguments");
+                  mainClassSubject.uniqueMethodWithOriginalName("testNullAndNonNullArguments");
               assertThat(testNullAndNonNullArgumentsMethodSubject, isPresent());
               assertThat(
                   testNullAndNonNullArgumentsMethodSubject, not(invokesMethodWithName("equals")));
 
               MethodSubject testNullAndMaybeNullArgumentsMethodSubject =
-                  mainClassSubject.uniqueMethodWithName("testNullAndMaybeNullArguments");
+                  mainClassSubject.uniqueMethodWithOriginalName("testNullAndMaybeNullArguments");
               assertThat(testNullAndMaybeNullArgumentsMethodSubject, isPresent());
               assertThat(
                   testNullAndMaybeNullArgumentsMethodSubject,

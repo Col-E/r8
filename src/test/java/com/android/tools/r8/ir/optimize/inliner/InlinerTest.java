@@ -61,13 +61,15 @@ public class InlinerTest extends TestBase {
               ClassSubject mainClassSubject = inspector.clazz(ExceptionHandlingTestClass.class);
               assertThat(mainClassSubject, isPresent());
               assertThat(
-                  mainClassSubject.uniqueMethodWithName("inlineeWithNormalExitThatDoesNotThrow"),
+                  mainClassSubject.uniqueMethodWithOriginalName(
+                      "inlineeWithNormalExitThatDoesNotThrow"),
                   isAbsent());
               assertThat(
-                  mainClassSubject.uniqueMethodWithName("inlineeWithNormalExitThatThrows"),
+                  mainClassSubject.uniqueMethodWithOriginalName("inlineeWithNormalExitThatThrows"),
                   isAbsent());
               assertThat(
-                  mainClassSubject.uniqueMethodWithName("inlineeWithoutNormalExit"), isAbsent());
+                  mainClassSubject.uniqueMethodWithOriginalName("inlineeWithoutNormalExit"),
+                  isAbsent());
             })
         .run(ExceptionHandlingTestClass.class)
         .assertSuccessWithOutputLines(

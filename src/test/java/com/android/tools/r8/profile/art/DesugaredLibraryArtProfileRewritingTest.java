@@ -75,7 +75,7 @@ public class DesugaredLibraryArtProfileRewritingTest extends DesugaredLibraryTes
               assertThat(streamClassSubject, isPresentAndNotRenamed());
 
               MethodSubject forEachMethodSubject =
-                  streamClassSubject.uniqueMethodWithName("forEach");
+                  streamClassSubject.uniqueMethodWithOriginalName("forEach");
               assertThat(
                   forEachMethodSubject,
                   isPresentAndRenamed(

@@ -47,7 +47,7 @@ public class LibraryOverrideInliningTest extends TestBase {
               assertThat(greeterClassSubject, isPresent());
 
               MethodSubject toStringMethodSubject =
-                  greeterClassSubject.uniqueMethodWithName("toString");
+                  greeterClassSubject.uniqueMethodWithOriginalName("toString");
               assertThat(toStringMethodSubject, isPresent());
 
               ClassSubject testClassSubject = inspector.clazz(TestClass.class);

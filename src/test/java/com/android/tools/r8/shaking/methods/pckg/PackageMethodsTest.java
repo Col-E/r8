@@ -62,13 +62,16 @@ public class PackageMethodsTest extends MethodsTestBase {
   private void checkMethods(CodeInspector inspector, Set<String> expected) {
     ClassSubject superSubject = inspector.clazz(Super.class);
     assertThat(superSubject, isPresent());
-    assertEquals(expected.contains("m1"), superSubject.uniqueMethodWithName("m1").isPresent());
+    assertEquals(
+        expected.contains("m1"), superSubject.uniqueMethodWithOriginalName("m1").isPresent());
     ClassSubject subSubject = inspector.clazz(Sub.class);
     assertThat(subSubject, isPresent());
-    assertEquals(expected.contains("m2"), subSubject.uniqueMethodWithName("m2").isPresent());
+    assertEquals(
+        expected.contains("m2"), subSubject.uniqueMethodWithOriginalName("m2").isPresent());
     ClassSubject subSubSubject = inspector.clazz(SubSub.class);
     assertThat(subSubSubject, isPresent());
-    assertEquals(expected.contains("m3"), subSubSubject.uniqueMethodWithName("m3").isPresent());
+    assertEquals(
+        expected.contains("m3"), subSubSubject.uniqueMethodWithOriginalName("m3").isPresent());
   }
 
   private void checkAllMethods(CodeInspector inspector, Shrinker shrinker) {

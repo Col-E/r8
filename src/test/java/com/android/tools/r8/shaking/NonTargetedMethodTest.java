@@ -55,7 +55,7 @@ public class NonTargetedMethodTest extends TestBase {
   private void checkIsFooPresent(CodeInspector inspector) {
     ClassSubject classSubject = inspector.clazz(C.class);
     assertThat(classSubject, isPresent());
-    assertThat(classSubject.uniqueMethodWithName("foo"), not(isPresent()));
+    assertThat(classSubject.uniqueMethodWithOriginalName("foo"), not(isPresent()));
   }
 
   @NoVerticalClassMerging

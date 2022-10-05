@@ -45,10 +45,10 @@ public class Regress142682636Runner extends TestBase {
         .inspector();
     ClassSubject clazz = inspector.clazz(testClass);
     assertThat(clazz, isPresent());
-    MethodSubject foo = clazz.uniqueMethodWithName("foo");
+    MethodSubject foo = clazz.uniqueMethodWithOriginalName("foo");
     assertThat(foo, isPresent());
     checkNoMoveWide(foo);
-    MethodSubject bar = clazz.uniqueMethodWithName("bar");
+    MethodSubject bar = clazz.uniqueMethodWithOriginalName("bar");
     assertThat(bar, isPresent());
     checkNoMoveWide(bar);
   }

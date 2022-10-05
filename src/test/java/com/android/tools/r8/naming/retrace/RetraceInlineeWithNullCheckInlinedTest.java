@@ -67,7 +67,7 @@ public class RetraceInlineeWithNullCheckInlinedTest extends TestBase {
             (stackTrace, inspector) -> {
               ClassSubject callerClass = inspector.clazz(Caller.class);
               assertThat(callerClass, isPresent());
-              MethodSubject outerCaller = callerClass.uniqueMethodWithName("outerCaller");
+              MethodSubject outerCaller = callerClass.uniqueMethodWithOriginalName("outerCaller");
               assertThat(outerCaller, isPresentAndRenamed());
               assertThat(stackTrace, isSame(expectedStackTrace));
             });

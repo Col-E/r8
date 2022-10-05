@@ -50,7 +50,7 @@ public class UninitializedInstantiatedTypeShakingTest extends TestBase {
     ClassSubject classSubject = inspector.clazz(A.class);
     assertThat(classSubject.init(), not(isPresent()));
     // TODO(b/132669230): A.method() should be pruned.
-    assertThat(classSubject.uniqueMethodWithName("method"), isPresent());
+    assertThat(classSubject.uniqueMethodWithOriginalName("method"), isPresent());
   }
 
   static class TestClass {

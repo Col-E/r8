@@ -87,26 +87,26 @@ public class ArrayLengthRewriteTest extends TestBase {
     ClassSubject mainClass = inspector.clazz(Main.class);
     assertTrue(mainClass.isPresent());
 
-    MethodSubject primitives = mainClass.uniqueMethodWithName("primitives");
+    MethodSubject primitives = mainClass.uniqueMethodWithOriginalName("primitives");
     assertArrayLengthCallCount(primitives, debugMode ? 8 : 0);
 
-    MethodSubject nonNullReferences = mainClass.uniqueMethodWithName("nonNullReferences");
+    MethodSubject nonNullReferences = mainClass.uniqueMethodWithOriginalName("nonNullReferences");
     assertArrayLengthCallCount(nonNullReferences, debugMode ? 3 : 0);
 
     // No assertion on nullReference() because it's seen as always throwing an NPE and
     // the array-length instruction is removed. The output check validates behavior.
 
-    MethodSubject argument = mainClass.uniqueMethodWithName("argument");
+    MethodSubject argument = mainClass.uniqueMethodWithOriginalName("argument");
     assertArrayLengthCallCount(argument, 1);
 
-    MethodSubject phi = mainClass.uniqueMethodWithName("phi");
+    MethodSubject phi = mainClass.uniqueMethodWithOriginalName("phi");
     assertArrayLengthCallCount(phi, 1);
 
     // TODO(139489070): these should be rewritten and result in 0 array-length bytecodes
-    MethodSubject staticConstants = mainClass.uniqueMethodWithName("staticConstants");
+    MethodSubject staticConstants = mainClass.uniqueMethodWithOriginalName("staticConstants");
     assertArrayLengthCallCount(staticConstants, (d8 || debugMode) ? 3 : 0);
 
-    MethodSubject staticNonConstants = mainClass.uniqueMethodWithName("staticNonConstants");
+    MethodSubject staticNonConstants = mainClass.uniqueMethodWithOriginalName("staticNonConstants");
     assertArrayLengthCallCount(staticNonConstants, (d8 || debugMode) ? 2 : 0);
   }
 

@@ -42,9 +42,9 @@ public class FieldSharedParentMinificationTest extends TestBase {
         .assertSuccessWithOutputLines("true", "42", "Hello World!")
         .inspect(
             inspector -> {
-              FieldSubject foo = inspector.clazz(I.class).uniqueFieldWithName("foo");
-              FieldSubject bar = inspector.clazz(J.class).uniqueFieldWithName("bar");
-              FieldSubject baz = inspector.clazz(A.class).uniqueFieldWithName("baz");
+              FieldSubject foo = inspector.clazz(I.class).uniqueFieldWithOriginalName("foo");
+              FieldSubject bar = inspector.clazz(J.class).uniqueFieldWithOriginalName("bar");
+              FieldSubject baz = inspector.clazz(A.class).uniqueFieldWithOriginalName("baz");
               assertThat(foo, isPresentAndRenamed());
               assertThat(bar, isPresentAndRenamed());
               assertThat(baz, isPresentAndRenamed());

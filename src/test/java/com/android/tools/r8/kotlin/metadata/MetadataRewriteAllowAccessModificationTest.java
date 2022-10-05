@@ -131,7 +131,7 @@ public class MetadataRewriteAllowAccessModificationTest extends KotlinMetadataTe
     // TODO(b/154348683): Assert equality between LibReference and Lib.
     // assertEqualMetadata(new CodeInspector(libReferenceJars.get(targetVersion)), inspector);
     ClassSubject lib = inspector.clazz(PKG_LIB + ".Lib");
-    MethodSubject funInline = lib.uniqueMethodWithName("funInline$main");
+    MethodSubject funInline = lib.uniqueMethodWithOriginalName("funInline$main");
     assertThat(funInline, isPresent());
     // TODO(b/154348683): Keep the inline method package private.
     // assertTrue(funInline.isPackagePrivate());

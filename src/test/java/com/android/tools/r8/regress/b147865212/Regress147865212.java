@@ -50,7 +50,7 @@ public class Regress147865212 extends TestBase {
             .inspector();
     ClassSubject clazz = inspector.clazz("FlafKt");
     assertTrue(clazz.isPresent());
-    MethodSubject method = clazz.uniqueMethodWithName("box");
+    MethodSubject method = clazz.uniqueMethodWithOriginalName("box");
     assertTrue(method.isPresent());
     return method;
   }

@@ -55,13 +55,14 @@ public class ProtoNormalizationWithVirtualMethodCollisionTest extends TestBase {
               TypeSubject aTypeSubject = aClassSubject.asTypeSubject();
               TypeSubject bTypeSubject = bClassSubject.asTypeSubject();
 
-              MethodSubject fooMethodSubject = aClassSubject.uniqueMethodWithName("foo");
+              MethodSubject fooMethodSubject = aClassSubject.uniqueMethodWithOriginalName("foo");
               assertThat(fooMethodSubject, isPresent());
               assertThat(fooMethodSubject, hasParameters(aTypeSubject, bTypeSubject));
 
               // TODO(b/173398086): Consider rewriting B.foo(B, A) to B.foo(A, B, C) instead of
               //  B.foo$1(A, B).
-              MethodSubject otherFooMethodSubject = bClassSubject.uniqueMethodWithName("foo$1");
+              MethodSubject otherFooMethodSubject =
+                  bClassSubject.uniqueMethodWithOriginalName("foo$1");
               assertThat(otherFooMethodSubject, isPresent());
               assertThat(otherFooMethodSubject, hasParameters(aTypeSubject, bTypeSubject));
             })

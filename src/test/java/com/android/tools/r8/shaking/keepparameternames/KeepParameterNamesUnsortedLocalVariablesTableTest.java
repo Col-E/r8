@@ -62,7 +62,7 @@ public class KeepParameterNamesUnsortedLocalVariablesTableTest extends TestBase 
     ClassSubject classSubject = inspector.clazz("Api");
     assertThat(classSubject, isPresent());
 
-    MethodSubject method = classSubject.uniqueMethodWithName("api1");
+    MethodSubject method = classSubject.uniqueMethodWithOriginalName("api1");
     assertThat(method, isPresent());
 
     assertEquals(keepParameterNames, method.hasLocalVariableTable());

@@ -189,7 +189,7 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
     ClassSubject sup = inspector.clazz(superClassName);
     assertThat(sup, isPresentAndRenamed());
 
-    MethodSubject foo = sup.uniqueMethodWithName("foo");
+    MethodSubject foo = sup.uniqueMethodWithOriginalName("foo");
     assertThat(foo, isPresentAndRenamed());
 
     KmClassSubject kmClass = sup.getKmClass();

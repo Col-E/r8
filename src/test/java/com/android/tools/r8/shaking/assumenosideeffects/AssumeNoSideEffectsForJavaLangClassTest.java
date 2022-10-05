@@ -55,11 +55,14 @@ public class AssumeNoSideEffectsForJavaLangClassTest extends TestBase {
     ClassSubject testClassSubject = inspector.clazz(TestClass.class);
     assertThat(testClassSubject, isPresent());
 
-    inspectMethod(testClassSubject.uniqueMethodWithName("testModelingOfSideEffects"), false, false);
     inspectMethod(
-        testClassSubject.uniqueMethodWithName("testModelingOfSideEffectsMaybeNull"), true, false);
+        testClassSubject.uniqueMethodWithOriginalName("testModelingOfSideEffects"), false, false);
     inspectMethod(
-        testClassSubject.uniqueMethodWithName("testModelingOfSideEffectsMaybeSubclass"),
+        testClassSubject.uniqueMethodWithOriginalName("testModelingOfSideEffectsMaybeNull"),
+        true,
+        false);
+    inspectMethod(
+        testClassSubject.uniqueMethodWithOriginalName("testModelingOfSideEffectsMaybeSubclass"),
         false,
         true);
   }

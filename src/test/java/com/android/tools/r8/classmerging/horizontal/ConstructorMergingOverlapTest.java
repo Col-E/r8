@@ -40,7 +40,7 @@ public class ConstructorMergingOverlapTest extends HorizontalClassMergingTestBas
               ClassSubject aClassSubject = codeInspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
               FieldSubject classIdFieldSubject =
-                  aClassSubject.uniqueFieldWithName(ClassMerger.CLASS_ID_FIELD_NAME);
+                  aClassSubject.uniqueFieldWithOriginalName(ClassMerger.CLASS_ID_FIELD_NAME);
               assertThat(classIdFieldSubject, isPresent());
 
               MethodSubject firstInitSubject = aClassSubject.init("int");

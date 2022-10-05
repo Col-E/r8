@@ -52,16 +52,16 @@ public class TrivialTypeTestsAfterBranchPruningTest extends TestBase {
   private void inspect(CodeInspector inspector) {
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(classSubject, isPresent());
-    assertThat(classSubject.uniqueMethodWithName("dead"), not(isPresent()));
+    assertThat(classSubject.uniqueMethodWithOriginalName("dead"), not(isPresent()));
 
     MethodSubject trivialCastMethodSubject =
-        classSubject.uniqueMethodWithName("trivialCastAfterBranchPruningTest");
+        classSubject.uniqueMethodWithOriginalName("trivialCastAfterBranchPruningTest");
     assertThat(trivialCastMethodSubject, isPresent());
     assertTrue(
         trivialCastMethodSubject.streamInstructions().noneMatch(InstructionSubject::isCheckCast));
 
     MethodSubject branchPruningMethodSubject =
-        classSubject.uniqueMethodWithName("branchPruningAfterInstanceOfOptimization");
+        classSubject.uniqueMethodWithOriginalName("branchPruningAfterInstanceOfOptimization");
     assertThat(branchPruningMethodSubject, isPresent());
     assertTrue(
         branchPruningMethodSubject

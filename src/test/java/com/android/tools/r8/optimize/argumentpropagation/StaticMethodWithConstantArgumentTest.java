@@ -50,13 +50,14 @@ public class StaticMethodWithConstantArgumentTest extends TestBase {
               assertThat(mainClassSubject, isPresent());
 
               // The test() method has been optimized.
-              MethodSubject testMethodSubject = mainClassSubject.uniqueMethodWithName("test");
+              MethodSubject testMethodSubject =
+                  mainClassSubject.uniqueMethodWithOriginalName("test");
               assertThat(testMethodSubject, isPresent());
               assertEquals(0, testMethodSubject.getProgramMethod().getParameters().size());
               assertTrue(
                   testMethodSubject.streamInstructions().noneMatch(InstructionSubject::isIf));
 
-              assertThat(mainClassSubject.uniqueMethodWithName("dead"), isAbsent());
+              assertThat(mainClassSubject.uniqueMethodWithOriginalName("dead"), isAbsent());
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello", "Hello", "Hello");

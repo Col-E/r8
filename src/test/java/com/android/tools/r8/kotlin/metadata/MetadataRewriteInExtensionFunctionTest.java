@@ -222,7 +222,7 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
     // name by changing the import statement and the actual call.
     String[] methodNames = new String[] {"extension", "csHash", "longArrayHash", "myApply"};
     for (String methodName : methodNames) {
-      MethodSubject method = clazz.uniqueMethodWithName(methodName);
+      MethodSubject method = clazz.uniqueMethodWithOriginalName(methodName);
       assertThat(method, isPresentAndRenamed());
       String finalMethodName = method.getFinalName();
       kotlinSource =

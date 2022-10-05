@@ -95,19 +95,19 @@ public class MainDexListFromGenerateMainDexInliningTest extends TestBase {
     ClassSubject mainClassSubject = inspector.clazz(Main.class);
     assertThat(mainClassSubject, isPresent());
 
-    MethodSubject fooMethodSubject = mainClassSubject.uniqueMethodWithName("foo");
+    MethodSubject fooMethodSubject = mainClassSubject.uniqueMethodWithOriginalName("foo");
     assertThat(fooMethodSubject, isPresent());
 
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
 
-    MethodSubject barMethodSubject = aClassSubject.uniqueMethodWithName("bar");
+    MethodSubject barMethodSubject = aClassSubject.uniqueMethodWithOriginalName("bar");
     assertThat(barMethodSubject, isPresent());
 
     ClassSubject bClassSubject = inspector.clazz(B.class);
     assertThat(bClassSubject, isPresent());
 
-    MethodSubject bazMethodSubject = bClassSubject.uniqueMethodWithName("baz");
+    MethodSubject bazMethodSubject = bClassSubject.uniqueMethodWithOriginalName("baz");
     assertThat(bazMethodSubject, isPresent());
 
     assertThat(fooMethodSubject, invokesMethod(barMethodSubject));

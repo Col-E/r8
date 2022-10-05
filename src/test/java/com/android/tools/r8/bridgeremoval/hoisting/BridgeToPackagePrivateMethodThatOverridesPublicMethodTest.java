@@ -71,7 +71,7 @@ public class BridgeToPackagePrivateMethodThatOverridesPublicMethodTest extends T
               assertThat(baseClassSubject, isPresent());
 
               MethodSubject bridgeOnBaseMethodSubject =
-                  baseClassSubject.uniqueMethodWithName("bridge");
+                  baseClassSubject.uniqueMethodWithOriginalName("bridge");
               assertThat(bridgeOnBaseMethodSubject, isPresent());
 
               // Inspect A. This should have the bridge method unless it is removed by the
@@ -79,7 +79,8 @@ public class BridgeToPackagePrivateMethodThatOverridesPublicMethodTest extends T
               ClassSubject aClassSubject = inspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
 
-              MethodSubject bridgeOnAMethodSubject = aClassSubject.uniqueMethodWithName("bridge");
+              MethodSubject bridgeOnAMethodSubject =
+                  aClassSubject.uniqueMethodWithOriginalName("bridge");
               assertThat(bridgeOnAMethodSubject, notIf(isPresent(), removeBridgeMethodFromA));
 
               // Inspect B. This should not have a bridge method, as the bridge in C is not eligible
@@ -88,17 +89,19 @@ public class BridgeToPackagePrivateMethodThatOverridesPublicMethodTest extends T
                   inspector.clazz(DescriptorUtils.descriptorToJavaType(TRANSFORMED_B_DESCRIPTOR));
               assertThat(bClassSubject, isPresent());
 
-              MethodSubject bridgeMethodSubject = bClassSubject.uniqueMethodWithName("bridge");
+              MethodSubject bridgeMethodSubject =
+                  bClassSubject.uniqueMethodWithOriginalName("bridge");
               assertThat(bridgeMethodSubject, isAbsent());
 
-              MethodSubject testMethodSubject = bClassSubject.uniqueMethodWithName("test");
+              MethodSubject testMethodSubject = bClassSubject.uniqueMethodWithOriginalName("test");
               assertThat(testMethodSubject, isPresent());
 
               // Inspect C. The method C.bridge() is never eligible for hoisting.
               ClassSubject cClassSubject = inspector.clazz(C.class);
               assertThat(cClassSubject, isPresent());
 
-              MethodSubject bridgeOnCMethodSubject = cClassSubject.uniqueMethodWithName("bridge");
+              MethodSubject bridgeOnCMethodSubject =
+                  cClassSubject.uniqueMethodWithOriginalName("bridge");
               assertThat(bridgeOnCMethodSubject, isPresent());
             })
         .run(parameters.getRuntime(), Main.class)

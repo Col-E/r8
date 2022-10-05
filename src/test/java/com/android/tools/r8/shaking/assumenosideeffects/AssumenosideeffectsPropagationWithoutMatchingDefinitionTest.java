@@ -69,7 +69,7 @@ public class AssumenosideeffectsPropagationWithoutMatchingDefinitionTest extends
         mainMethod.streamInstructions().noneMatch(
             i -> i.isInvoke() && i.getMethod().name.toString().equals("debug")));
 
-    MethodSubject testInvokeInterface = main.uniqueMethodWithName("testInvokeInterface");
+    MethodSubject testInvokeInterface = main.uniqueMethodWithOriginalName("testInvokeInterface");
     assertThat(testInvokeInterface, not(isPresent()));
   }
 

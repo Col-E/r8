@@ -47,7 +47,7 @@ public class ConstantReturnAfterArgumentPropagationTest extends TestBase {
               assertThat(mainClassSubject, isPresent());
 
               MethodSubject identityMethodSubject =
-                  mainClassSubject.uniqueMethodWithName("identity");
+                  mainClassSubject.uniqueMethodWithOriginalName("identity");
               assertThat(identityMethodSubject, isPresent());
               assertTrue(identityMethodSubject.getProgramMethod().getParameters().isEmpty());
               assertTrue(identityMethodSubject.getProgramMethod().getReturnType().isVoidType());

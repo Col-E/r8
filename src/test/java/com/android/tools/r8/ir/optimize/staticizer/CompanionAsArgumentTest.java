@@ -53,7 +53,7 @@ public class CompanionAsArgumentTest extends TestBase {
     // Check if the candidate is not staticized.
     ClassSubject companion = inspector.clazz(Host.Companion.class);
     assertThat(companion, isPresent());
-    MethodSubject foo = companion.uniqueMethodWithName("foo");
+    MethodSubject foo = companion.uniqueMethodWithOriginalName("foo");
     assertThat(foo, isPresent());
     assertTrue(
         foo.streamInstructions().anyMatch(
@@ -63,7 +63,7 @@ public class CompanionAsArgumentTest extends TestBase {
     // Nothing migrated from Companion to Host.
     ClassSubject host = inspector.clazz(Host.class);
     assertThat(host, isPresent());
-    MethodSubject migrated_foo = host.uniqueMethodWithName("foo");
+    MethodSubject migrated_foo = host.uniqueMethodWithOriginalName("foo");
     assertThat(migrated_foo, not(isPresent()));
   }
 

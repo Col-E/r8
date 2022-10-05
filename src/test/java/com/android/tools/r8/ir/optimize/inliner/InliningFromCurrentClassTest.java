@@ -69,19 +69,19 @@ public class InliningFromCurrentClassTest extends TestBase {
     ClassSubject classC = inspector.clazz(C.class);
     assertThat(classC, isPresent());
 
-    MethodSubject testMethod = classB.uniqueMethodWithName("test");
+    MethodSubject testMethod = classB.uniqueMethodWithOriginalName("test");
     assertThat(testMethod, isPresent());
 
-    MethodSubject inlineable1Method = classA.uniqueMethodWithName("inlineable1");
+    MethodSubject inlineable1Method = classA.uniqueMethodWithOriginalName("inlineable1");
     assertThat(inlineable1Method, not(isPresent()));
 
-    MethodSubject inlineable2Method = classB.uniqueMethodWithName("inlineable2");
+    MethodSubject inlineable2Method = classB.uniqueMethodWithOriginalName("inlineable2");
     assertThat(inlineable2Method, not(isPresent()));
 
     MethodSubject inlineableWithInitClassMethod =
-        classC.uniqueMethodWithName("inlineableWithInitClass");
+        classC.uniqueMethodWithOriginalName("inlineableWithInitClass");
     assertThat(inlineableWithInitClassMethod, not(isPresent()));
-    assertThat(testMethod, accessesField(classC.uniqueFieldWithName("$r8$clinit")));
+    assertThat(testMethod, accessesField(classC.uniqueFieldWithOriginalName("$r8$clinit")));
   }
 
   static class TestClass {

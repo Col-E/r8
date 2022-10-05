@@ -68,7 +68,7 @@ public class InitializedClassesOnNormalExitAnalysisTest extends TestBase {
       ClassSubject classSubject = inspector.clazz(A.class);
       assertThat(classSubject, isPresent());
 
-      MethodSubject methodSubject = classSubject.uniqueMethodWithName("inlineable");
+      MethodSubject methodSubject = classSubject.uniqueMethodWithOriginalName("inlineable");
       assertThat(methodSubject, not(isPresent()));
     }
   }

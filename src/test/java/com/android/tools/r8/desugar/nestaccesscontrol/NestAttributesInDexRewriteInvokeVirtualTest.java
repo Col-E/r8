@@ -80,19 +80,19 @@ public class NestAttributesInDexRewriteInvokeVirtualTest extends TestBase implem
               assertEquals(
                   1,
                   nonConstructorInvokeDirectCount(
-                      inspector.clazz("Host").uniqueMethodWithName("main")));
+                      inspector.clazz("Host").uniqueMethodWithOriginalName("main")));
               assertEquals(
                   2,
                   nonConstructorInvokeDirectCount(
-                      inspector.clazz("Host").uniqueMethodWithName("h1")));
+                      inspector.clazz("Host").uniqueMethodWithOriginalName("h1")));
               assertEquals(
                   1,
                   nonConstructorInvokeDirectCount(
-                      inspector.clazz("Host$Member1").uniqueMethodWithName("m")));
+                      inspector.clazz("Host$Member1").uniqueMethodWithOriginalName("m")));
               assertEquals(
                   1,
                   nonConstructorInvokeDirectCount(
-                      inspector.clazz("Host$Member2").uniqueMethodWithName("m")));
+                      inspector.clazz("Host$Member2").uniqueMethodWithOriginalName("m")));
             })
         .run(parameters.getRuntime(), "Host")
         .assertFailureWithErrorThatThrows(IllegalAccessError.class);
@@ -116,11 +116,11 @@ public class NestAttributesInDexRewriteInvokeVirtualTest extends TestBase implem
                   assertEquals(
                       1,
                       nonConstructorInvokeDirectCount(
-                          inspector.clazz("Host").uniqueMethodWithName("main")));
+                          inspector.clazz("Host").uniqueMethodWithOriginalName("main")));
                   assertEquals(
                       2,
                       nonConstructorInvokeDirectCount(
-                          inspector.clazz("Host").uniqueMethodWithName("h1")));
+                          inspector.clazz("Host").uniqueMethodWithOriginalName("h1")));
                 })
             .writeToZip();
 
@@ -136,7 +136,7 @@ public class NestAttributesInDexRewriteInvokeVirtualTest extends TestBase implem
                   assertEquals(
                       1,
                       nonConstructorInvokeDirectCount(
-                          inspector.clazz("Host$Member1").uniqueMethodWithName("m")));
+                          inspector.clazz("Host$Member1").uniqueMethodWithOriginalName("m")));
                 })
             .writeToZip();
 
@@ -152,7 +152,7 @@ public class NestAttributesInDexRewriteInvokeVirtualTest extends TestBase implem
                   assertEquals(
                       1,
                       nonConstructorInvokeDirectCount(
-                          inspector.clazz("Host$Member2").uniqueMethodWithName("m")));
+                          inspector.clazz("Host$Member2").uniqueMethodWithOriginalName("m")));
                 })
             .writeToZip();
 
@@ -167,19 +167,19 @@ public class NestAttributesInDexRewriteInvokeVirtualTest extends TestBase implem
               assertEquals(
                   1,
                   nonConstructorInvokeDirectCount(
-                      inspector.clazz("Host").uniqueMethodWithName("main")));
+                      inspector.clazz("Host").uniqueMethodWithOriginalName("main")));
               assertEquals(
                   2,
                   nonConstructorInvokeDirectCount(
-                      inspector.clazz("Host").uniqueMethodWithName("h1")));
+                      inspector.clazz("Host").uniqueMethodWithOriginalName("h1")));
               assertEquals(
                   1,
                   nonConstructorInvokeDirectCount(
-                      inspector.clazz("Host$Member1").uniqueMethodWithName("m")));
+                      inspector.clazz("Host$Member1").uniqueMethodWithOriginalName("m")));
               assertEquals(
                   1,
                   nonConstructorInvokeDirectCount(
-                      inspector.clazz("Host$Member2").uniqueMethodWithName("m")));
+                      inspector.clazz("Host$Member2").uniqueMethodWithOriginalName("m")));
             })
         .run(parameters.getRuntime(), "Host")
         .assertFailureWithErrorThatThrows(IllegalAccessError.class);

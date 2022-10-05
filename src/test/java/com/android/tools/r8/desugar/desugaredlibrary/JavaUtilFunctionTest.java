@@ -69,7 +69,7 @@ public class JavaUtilFunctionTest extends DesugaredLibraryTestBase {
     assertEquals(
         function,
         classSubject
-            .uniqueMethodWithName("applyFunction")
+            .uniqueMethodWithOriginalName("applyFunction")
             .getMethod()
             .getReference()
             .proto

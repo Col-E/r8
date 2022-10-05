@@ -38,7 +38,7 @@ public class InvokeSuperInDefaultMethodResolvingToLibraryTest extends TestBase {
     assertTrue(
         inspector
             .clazz(B.class)
-            .uniqueMethodWithName("compose")
+            .uniqueMethodWithOriginalName("compose")
             .streamInstructions()
             .filter(InstructionSubject::isInvoke)
             .map(invoke -> invoke.getMethod().getHolderType().toString())

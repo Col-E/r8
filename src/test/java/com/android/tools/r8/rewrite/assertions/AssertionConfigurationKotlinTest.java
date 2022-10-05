@@ -197,13 +197,13 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
       assertEquals(
           (isR8 ? 0 : 1),
           subject
-              .uniqueMethodWithName("<clinit>")
+              .uniqueMethodWithOriginalName("<clinit>")
               .streamInstructions()
               .filter(InstructionSubject::isStaticPut)
               .count());
       assertFalse(
           subject
-              .uniqueMethodWithName("<clinit>")
+              .uniqueMethodWithOriginalName("<clinit>")
               .streamInstructions()
               .anyMatch(InstructionSubject::isConstNumber));
     } else {
@@ -211,7 +211,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
       // for the class kotlin._Assertions.
       assertFalse(
           subject
-              .uniqueMethodWithName("m")
+              .uniqueMethodWithOriginalName("m")
               .streamInstructions()
               .anyMatch(InstructionSubject::isThrow));
     }
@@ -229,19 +229,19 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
       assertEquals(
           isR8 ? 1 : 2,
           subject
-              .uniqueMethodWithName("<clinit>")
+              .uniqueMethodWithOriginalName("<clinit>")
               .streamInstructions()
               .filter(InstructionSubject::isStaticPut)
               .count());
       assertTrue(
           subject
-              .uniqueMethodWithName("<clinit>")
+              .uniqueMethodWithOriginalName("<clinit>")
               .streamInstructions()
               .anyMatch(instruction -> instruction.isConstNumber(1)));
     } else {
       assertTrue(
           subject
-              .uniqueMethodWithName("m")
+              .uniqueMethodWithOriginalName("m")
               .streamInstructions()
               .anyMatch(InstructionSubject::isThrow));
     }
@@ -266,18 +266,18 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
       assertEquals(
           isR8 ? 1 : 2,
           subject
-              .uniqueMethodWithName("<clinit>")
+              .uniqueMethodWithOriginalName("<clinit>")
               .streamInstructions()
               .filter(InstructionSubject::isStaticPut)
               .count());
       assertFalse(
           subject
-              .uniqueMethodWithName("<clinit>")
+              .uniqueMethodWithOriginalName("<clinit>")
               .streamInstructions()
               .anyMatch(InstructionSubject::isConstNumber));
     } else {
       assertThat(subject, isPresent());
-      MethodSubject clinit = subject.uniqueMethodWithName("<clinit>");
+      MethodSubject clinit = subject.uniqueMethodWithOriginalName("<clinit>");
       if (useJvmAssertions) {
         assertTrue(clinit.streamInstructions().anyMatch(InstructionSubject::isStaticPut));
       } else {
@@ -285,7 +285,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
       }
       assertTrue(
           subject
-              .uniqueMethodWithName("m")
+              .uniqueMethodWithOriginalName("m")
               .streamInstructions()
               .anyMatch(InstructionSubject::isThrow));
     }

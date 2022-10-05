@@ -15,16 +15,16 @@ public class AssertionsCheckerUtils {
   static void checkAssertionCodeEnabled(ClassSubject subject, String methodName) {
     MatcherAssert.assertThat(subject, Matchers.isPresent());
     // <clinit> is removed by R8.
-    if (subject.uniqueMethodWithName("<clinit>").isPresent()) {
+    if (subject.uniqueMethodWithOriginalName("<clinit>").isPresent()) {
       Assert.assertFalse(
           subject
-              .uniqueMethodWithName("<clinit>")
+              .uniqueMethodWithOriginalName("<clinit>")
               .streamInstructions()
               .anyMatch(InstructionSubject::isStaticPut));
     }
     Assert.assertTrue(
         subject
-            .uniqueMethodWithName(methodName)
+            .uniqueMethodWithOriginalName(methodName)
             .streamInstructions()
             .anyMatch(InstructionSubject::isThrow));
   }

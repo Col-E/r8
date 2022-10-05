@@ -68,7 +68,7 @@ public class BooleanParseBooleanTest extends TestBase {
     assertThat(testClassSubject, isPresent());
 
     MethodSubject testOptimizedMethodSubject =
-        testClassSubject.uniqueMethodWithName("testOptimized");
+        testClassSubject.uniqueMethodWithOriginalName("testOptimized");
     assertThat(testOptimizedMethodSubject, isPresent());
     assertTrue(
         testOptimizedMethodSubject
@@ -79,7 +79,7 @@ public class BooleanParseBooleanTest extends TestBase {
             .noneMatch(method -> method.contains("parseBoolean")));
 
     MethodSubject testNotOptimizedMethodSubject =
-        testClassSubject.uniqueMethodWithName("testNotOptimized");
+        testClassSubject.uniqueMethodWithOriginalName("testNotOptimized");
     assertThat(testNotOptimizedMethodSubject, isPresent());
     assertEquals(
         1,

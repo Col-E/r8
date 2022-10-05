@@ -64,7 +64,7 @@ public class B126592786 extends TestBase {
                 genericTypeDescriptor = genericType.getFinalDescriptor();
               }
               String expectedSignature = "Ljava/util/List<" + genericTypeDescriptor + ">;";
-              FieldSubject list = inspector.clazz(A.class).uniqueFieldWithName("list");
+              FieldSubject list = inspector.clazz(A.class).uniqueFieldWithOriginalName("list");
               assertThat(list, isPresent());
               assertEquals(expectedSignature, list.getFinalSignatureAttribute());
             })

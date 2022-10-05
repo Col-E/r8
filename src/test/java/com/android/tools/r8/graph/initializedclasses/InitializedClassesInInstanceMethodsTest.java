@@ -69,9 +69,9 @@ public class InitializedClassesInInstanceMethodsTest extends TestBase {
 
     // In any case, Outer.hello(), Outer.world(), and Outer.exclamationMark() should be inlined into
     // the accessibility bridges.
-    assertThat(outerClassSubject.uniqueMethodWithName("hello"), not(isPresent()));
-    assertThat(outerClassSubject.uniqueMethodWithName("world"), not(isPresent()));
-    assertThat(outerClassSubject.uniqueMethodWithName("exclamationMark"), not(isPresent()));
+    assertThat(outerClassSubject.uniqueMethodWithOriginalName("hello"), not(isPresent()));
+    assertThat(outerClassSubject.uniqueMethodWithOriginalName("world"), not(isPresent()));
+    assertThat(outerClassSubject.uniqueMethodWithOriginalName("exclamationMark"), not(isPresent()));
 
     int numberOfExpectedAccessibilityBridges = 0;
     assertEquals(
@@ -81,19 +81,19 @@ public class InitializedClassesInInstanceMethodsTest extends TestBase {
             .size());
     assertEquals(
         !enableInitializedClassesInInstanceMethodsAnalysis,
-        outerClassSubject.uniqueFieldWithName("$r8$clinit").isPresent());
+        outerClassSubject.uniqueFieldWithOriginalName("$r8$clinit").isPresent());
 
     ClassSubject aClassSubject = inspector.clazz(Outer.A.class);
     assertThat(aClassSubject, isPresent());
-    assertThat(aClassSubject.uniqueMethodWithName("hello"), isPresent());
+    assertThat(aClassSubject.uniqueMethodWithOriginalName("hello"), isPresent());
 
     ClassSubject bClassSubject = inspector.clazz(Outer.B.class);
     assertThat(bClassSubject, isPresent());
-    assertThat(bClassSubject.uniqueMethodWithName("world"), isPresent());
+    assertThat(bClassSubject.uniqueMethodWithOriginalName("world"), isPresent());
 
     ClassSubject cClassSubject = inspector.clazz(C.class);
     assertThat(cClassSubject, isPresent());
-    assertThat(cClassSubject.uniqueMethodWithName("exclamationMark"), isPresent());
+    assertThat(cClassSubject.uniqueMethodWithOriginalName("exclamationMark"), isPresent());
   }
 
   static class TestClass {

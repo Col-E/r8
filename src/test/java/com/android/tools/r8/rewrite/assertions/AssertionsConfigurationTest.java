@@ -125,16 +125,16 @@ public class AssertionsConfigurationTest extends TestBase implements Opcodes {
   private void checkAssertionCodeRemoved(ClassSubject subject) {
     assertThat(subject, isPresent());
     // <clinit> is removed by R8 as it becomes empty.
-    if (subject.uniqueMethodWithName("<clinit>").isPresent()) {
+    if (subject.uniqueMethodWithOriginalName("<clinit>").isPresent()) {
       assertFalse(
           subject
-              .uniqueMethodWithName("<clinit>")
+              .uniqueMethodWithOriginalName("<clinit>")
               .streamInstructions()
               .anyMatch(InstructionSubject::isStaticPut));
     }
     assertFalse(
         subject
-            .uniqueMethodWithName("m")
+            .uniqueMethodWithOriginalName("m")
             .streamInstructions()
             .anyMatch(InstructionSubject::isThrow));
   }
@@ -152,12 +152,12 @@ public class AssertionsConfigurationTest extends TestBase implements Opcodes {
     assertThat(subject, isPresent());
     assertTrue(
         subject
-            .uniqueMethodWithName("<clinit>")
+            .uniqueMethodWithOriginalName("<clinit>")
             .streamInstructions()
             .anyMatch(InstructionSubject::isStaticPut));
     assertTrue(
         subject
-            .uniqueMethodWithName("m")
+            .uniqueMethodWithOriginalName("m")
             .streamInstructions()
             .anyMatch(InstructionSubject::isThrow));
   }

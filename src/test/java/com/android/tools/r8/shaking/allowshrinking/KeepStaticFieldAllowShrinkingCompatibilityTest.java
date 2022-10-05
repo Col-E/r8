@@ -74,7 +74,7 @@ public class KeepStaticFieldAllowShrinkingCompatibilityTest extends TestBase {
 
               MethodSubject mainMethodSubject = testClassSubject.mainMethod();
               ClassSubject companionClassSubject = inspector.clazz(Companion.class);
-              FieldSubject xFieldSubject = companionClassSubject.uniqueFieldWithName("x");
+              FieldSubject xFieldSubject = companionClassSubject.uniqueFieldWithOriginalName("x");
 
               // PG fails to optimize fields regardless of keep flags.
               if (allowOptimization && shrinker.isR8()) {

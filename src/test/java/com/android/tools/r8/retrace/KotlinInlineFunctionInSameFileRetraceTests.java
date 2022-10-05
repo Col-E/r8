@@ -107,13 +107,14 @@ public class KotlinInlineFunctionInSameFileRetraceTests extends KotlinTestBase {
         .assertFailureWithErrorThatMatches(containsString("main"))
         .inspectStackTrace(
             (stackTrace, codeInspector) -> {
-              MethodSubject mainSubject = codeInspector.clazz(MAIN).uniqueMethodWithName("main");
+              MethodSubject mainSubject =
+                  codeInspector.clazz(MAIN).uniqueMethodWithOriginalName("main");
               LinePosition inlineStack =
                   LinePosition.stack(
                       LinePosition.create(
                           kotlinInspector
                               .clazz("retrace.InlineFunctionsInSameFileKt")
-                              .uniqueMethodWithName("foo")
+                              .uniqueMethodWithOriginalName("foo")
                               .asFoundMethodSubject(),
                           1,
                           8,

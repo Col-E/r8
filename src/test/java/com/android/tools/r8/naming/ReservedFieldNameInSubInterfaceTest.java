@@ -67,11 +67,11 @@ public class ReservedFieldNameInSubInterfaceTest extends TestBase {
     ClassSubject jClassSubject = inspector.clazz(J.class);
     assertThat(jClassSubject, isPresent());
 
-    FieldSubject f1FieldSubject = iClassSubject.uniqueFieldWithName("f1");
+    FieldSubject f1FieldSubject = iClassSubject.uniqueFieldWithOriginalName("f1");
     assertThat(f1FieldSubject, isPresent());
     assertThat(f1FieldSubject, isPresentAndRenamed());
 
-    FieldSubject aFieldSubject = jClassSubject.uniqueFieldWithName("a");
+    FieldSubject aFieldSubject = jClassSubject.uniqueFieldWithOriginalName("a");
     assertThat(aFieldSubject, isPresent());
 
     if (reserveName) {
@@ -119,7 +119,7 @@ public class ReservedFieldNameInSubInterfaceTest extends TestBase {
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
 
-    FieldSubject f2FieldSubject = aClassSubject.uniqueFieldWithName("f2");
+    FieldSubject f2FieldSubject = aClassSubject.uniqueFieldWithOriginalName("f2");
     assertThat(f2FieldSubject, isPresent());
     assertThat(f2FieldSubject, isPresentAndRenamed());
 

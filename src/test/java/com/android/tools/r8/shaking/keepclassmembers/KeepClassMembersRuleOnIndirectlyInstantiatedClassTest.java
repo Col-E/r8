@@ -57,7 +57,7 @@ public class KeepClassMembersRuleOnIndirectlyInstantiatedClassTest extends TestB
     ClassSubject classSubject = inspector.clazz(A.class);
     assertThat(classSubject, isPresent());
 
-    FieldSubject fieldSubject = classSubject.uniqueFieldWithName("greeting");
+    FieldSubject fieldSubject = classSubject.uniqueFieldWithOriginalName("greeting");
     assertThat(fieldSubject, isPresentAndNotRenamed());
   }
 

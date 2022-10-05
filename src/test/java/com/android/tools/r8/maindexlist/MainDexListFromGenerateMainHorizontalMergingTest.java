@@ -112,7 +112,7 @@ public class MainDexListFromGenerateMainHorizontalMergingTest extends TestBase {
     ClassSubject mainClassSubject = inspector.clazz(Main.class);
     assertThat(mainClassSubject, isPresent());
 
-    MethodSubject fooMethodSubject = mainClassSubject.uniqueMethodWithName("foo");
+    MethodSubject fooMethodSubject = mainClassSubject.uniqueMethodWithOriginalName("foo");
     assertThat(fooMethodSubject, isPresent());
 
     ClassSubject aClassSubject = inspector.clazz(A.class);
@@ -121,7 +121,7 @@ public class MainDexListFromGenerateMainHorizontalMergingTest extends TestBase {
     ClassSubject bClassSubject = inspector.clazz(B.class);
     assertThat(bClassSubject, isPresent());
 
-    MethodSubject fooASubject = aClassSubject.uniqueMethodWithName("foo");
+    MethodSubject fooASubject = aClassSubject.uniqueMethodWithOriginalName("foo");
     assertThat(fooASubject, isPresent());
 
     assertThat(fooMethodSubject, invokesMethod(fooASubject));

@@ -93,8 +93,8 @@ public class KeepAllowShrinkingCompatibilityTest extends TestBase {
               // The class constants will force A and B to be retained, but not the foo methods.
               assertThat(bClass, isPresentAndRenamed(allowObfuscation));
               assertThat(aClass, isPresentAndRenamed(allowObfuscation));
-              assertThat(bClass.uniqueMethodWithName("foo"), not(isPresent()));
-              MethodSubject aFoo = aClass.uniqueMethodWithName("foo");
+              assertThat(bClass.uniqueMethodWithOriginalName("foo"), not(isPresent()));
+              MethodSubject aFoo = aClass.uniqueMethodWithOriginalName("foo");
               if (allowOptimization) {
                 assertThat(aFoo, not(isPresent()));
               } else {

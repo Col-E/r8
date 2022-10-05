@@ -77,13 +77,13 @@ public class ApiModelNoInliningOfLambdaTest extends TestBase {
               } else {
                 assertThat(action, isPresent());
                 MethodSubject action$lambda$getAction$0 =
-                    action.uniqueMethodWithName("lambda$getAction$0");
+                    action.uniqueMethodWithOriginalName("lambda$getAction$0");
                 assertThat(action$lambda$getAction$0, isPresent());
                 assertThat(
                     action$lambda$getAction$0, CodeMatchers.invokesMethodWithName("apiLevel22"));
 
                 assertThat(apiCaller, isPresent());
-                MethodSubject callApi = apiCaller.uniqueMethodWithName("callApi");
+                MethodSubject callApi = apiCaller.uniqueMethodWithOriginalName("callApi");
                 assertThat(callApi, isPresent());
                 assertThat(callApi, CodeMatchers.invokesMethodWithName("apiLevel22"));
               }

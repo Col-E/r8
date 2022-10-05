@@ -45,7 +45,7 @@ public class MonomorphicMethodWithUnusedReturnValueTest extends TestBase {
             inspector -> {
               // The test() method has been changed to have return type void.
               MethodSubject testMethodSubject =
-                  inspector.clazz(Main.class).uniqueMethodWithName("test");
+                  inspector.clazz(Main.class).uniqueMethodWithOriginalName("test");
               assertThat(testMethodSubject, isPresent());
               assertTrue(testMethodSubject.getProgramMethod().getReturnType().isVoidType());
 

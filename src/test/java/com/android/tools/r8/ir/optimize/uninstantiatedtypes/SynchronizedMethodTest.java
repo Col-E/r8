@@ -57,7 +57,7 @@ public class SynchronizedMethodTest extends TestBase {
             .inspector();
 
     ClassSubject clazz = inspector.clazz(A.class);
-    MethodSubject method = clazz.uniqueMethodWithName("m");
+    MethodSubject method = clazz.uniqueMethodWithOriginalName("m");
     assertThat(method, isPresent());
 
     // The invoke on the uninstantiated turns into a "throw null", and the synchronized method

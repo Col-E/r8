@@ -71,15 +71,15 @@ public class RedundantConstNumberRemovalTest extends TestBase {
             .assertSuccessWithOutput(expectedOutput);
 
     ClassSubject classSubject = result.inspector().clazz(TestClass.class);
-    verifyBooleanCheckTest(classSubject.uniqueMethodWithName("booleanCheckTest"));
-    verifyBooleanCheckTest(classSubject.uniqueMethodWithName("negateBooleanCheckTest"));
-    verifyIntCheckTest(classSubject.uniqueMethodWithName("intCheckTest"));
-    verifyIntCheckTest(classSubject.uniqueMethodWithName("negateIntCheckTest"));
-    verifyNullCheckTest(classSubject.uniqueMethodWithName("nullCheckTest"));
-    verifyNullCheckTest(classSubject.uniqueMethodWithName("invertedNullCheckTest"));
-    verifyNullCheckTest(classSubject.uniqueMethodWithName("nonNullCheckTest"));
+    verifyBooleanCheckTest(classSubject.uniqueMethodWithOriginalName("booleanCheckTest"));
+    verifyBooleanCheckTest(classSubject.uniqueMethodWithOriginalName("negateBooleanCheckTest"));
+    verifyIntCheckTest(classSubject.uniqueMethodWithOriginalName("intCheckTest"));
+    verifyIntCheckTest(classSubject.uniqueMethodWithOriginalName("negateIntCheckTest"));
+    verifyNullCheckTest(classSubject.uniqueMethodWithOriginalName("nullCheckTest"));
+    verifyNullCheckTest(classSubject.uniqueMethodWithOriginalName("invertedNullCheckTest"));
+    verifyNullCheckTest(classSubject.uniqueMethodWithOriginalName("nonNullCheckTest"));
     verifyNullCheckWithWrongTypeTest(
-        classSubject.uniqueMethodWithName("nullCheckWithWrongTypeTest"));
+        classSubject.uniqueMethodWithOriginalName("nullCheckWithWrongTypeTest"));
   }
 
   private void verifyBooleanCheckTest(MethodSubject methodSubject) {

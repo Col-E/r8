@@ -51,8 +51,8 @@ public class RepackageProtectedInSamePackageTest extends RepackageTestBase {
     ClassSubject clazz = inspector.clazz(Sub.class);
     assertThat(clazz, isPresent());
     assertThat(Sub.class, isNotRepackaged(inspector));
-    assertThat(clazz.uniqueFieldWithName("hashCodeCache"), isPresentAndRenamed());
-    assertThat(clazz.uniqueMethodWithName("calculateHashCode"), isPresentAndRenamed());
+    assertThat(clazz.uniqueFieldWithOriginalName("hashCodeCache"), isPresentAndRenamed());
+    assertThat(clazz.uniqueMethodWithOriginalName("calculateHashCode"), isPresentAndRenamed());
   }
 
   public static class Base {}

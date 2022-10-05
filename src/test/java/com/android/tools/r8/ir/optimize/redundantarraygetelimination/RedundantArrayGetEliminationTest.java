@@ -61,15 +61,23 @@ public class RedundantArrayGetEliminationTest extends TestBase {
 
   private void inspect(CodeInspector inspector) {
     ClassSubject mainClassSubject = inspector.clazz(Main.class);
-    assertArrayGetCountEquals(1, mainClassSubject.uniqueMethodWithName("testRedundantArrayGet"));
     assertArrayGetCountEquals(
-        1, mainClassSubject.uniqueMethodWithName("testRedundantArrayGetAfterPutToUnrelatedArray"));
+        1, mainClassSubject.uniqueMethodWithOriginalName("testRedundantArrayGet"));
     assertArrayGetCountEquals(
-        1, mainClassSubject.uniqueMethodWithName("testRedundantArrayGetAfterPutToUnrelatedIndex"));
+        1,
+        mainClassSubject.uniqueMethodWithOriginalName(
+            "testRedundantArrayGetAfterPutToUnrelatedArray"));
     assertArrayGetCountEquals(
-        2, mainClassSubject.uniqueMethodWithName("testNecessaryArrayGetAfterAliasedArrayPut"));
+        1,
+        mainClassSubject.uniqueMethodWithOriginalName(
+            "testRedundantArrayGetAfterPutToUnrelatedIndex"));
     assertArrayGetCountEquals(
-        2, mainClassSubject.uniqueMethodWithName("testNecessaryArrayGetAfterExternalSideEffect"));
+        2,
+        mainClassSubject.uniqueMethodWithOriginalName("testNecessaryArrayGetAfterAliasedArrayPut"));
+    assertArrayGetCountEquals(
+        2,
+        mainClassSubject.uniqueMethodWithOriginalName(
+            "testNecessaryArrayGetAfterExternalSideEffect"));
   }
 
   static void assertArrayGetCountEquals(int expected, MethodSubject methodSubject) {

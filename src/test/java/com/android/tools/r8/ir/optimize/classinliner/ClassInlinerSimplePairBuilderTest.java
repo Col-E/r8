@@ -82,9 +82,9 @@ public class ClassInlinerSimplePairBuilderTest extends ClassInlinerTestBase {
     assertThat(inspector.clazz(PairBuilder.class), not(isPresent()));
 
     Set<String> expected = ImmutableSet.of(StringBuilder.class.getTypeName());
-    assertEquals(expected, collectTypes(clazz.uniqueMethodWithName("testSimpleBuilder1")));
-    assertEquals(expected, collectTypes(clazz.uniqueMethodWithName("testSimpleBuilder2")));
-    assertEquals(expected, collectTypes(clazz.uniqueMethodWithName("testSimpleBuilder3")));
+    assertEquals(expected, collectTypes(clazz.uniqueMethodWithOriginalName("testSimpleBuilder1")));
+    assertEquals(expected, collectTypes(clazz.uniqueMethodWithOriginalName("testSimpleBuilder2")));
+    assertEquals(expected, collectTypes(clazz.uniqueMethodWithOriginalName("testSimpleBuilder3")));
   }
 
   static class TestClass {

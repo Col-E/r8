@@ -49,8 +49,8 @@ public class SingletonClassInitializerPatternCannotBePostponedTest extends TestB
     assertThat(classSubject, isPresent());
 
     // The field A.INSTANCE has been accessed to allow inlining of A.inlineable().
-    assertThat(classSubject.uniqueFieldWithName("INSTANCE"), isPresent());
-    assertThat(classSubject.uniqueMethodWithName("inlineable"), not(isPresent()));
+    assertThat(classSubject.uniqueFieldWithOriginalName("INSTANCE"), isPresent());
+    assertThat(classSubject.uniqueMethodWithOriginalName("inlineable"), not(isPresent()));
   }
 
   static class TestClass {

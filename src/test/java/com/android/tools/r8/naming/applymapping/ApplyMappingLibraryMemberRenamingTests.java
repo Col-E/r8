@@ -84,7 +84,7 @@ public class ApplyMappingLibraryMemberRenamingTests extends TestBase {
                 codeInspector -> {
                   ClassSubject clazz = codeInspector.clazz(Interface.class);
                   assertThat(clazz, isPresent());
-                  MethodSubject computeSubject = clazz.uniqueMethodWithName("compute");
+                  MethodSubject computeSubject = clazz.uniqueMethodWithOriginalName("compute");
                   assertThat(computeSubject, isPresent());
                   assertTrue(computeSubject.isRenamed());
                 });

@@ -92,7 +92,7 @@ public class SingleLineInfoRemoveTest extends TestBase {
               ClassSubject mainSubject = inspector.clazz(Main.class);
               assertThat(mainSubject, isPresent());
               assertThat(
-                  mainSubject.uniqueMethodWithName("shouldRemoveLineNumber"),
+                  mainSubject.uniqueMethodWithOriginalName("shouldRemoveLineNumber"),
                   notIf(hasLineNumberTable(), canSingleLineDebugInfoBeDiscarded()));
             });
   }

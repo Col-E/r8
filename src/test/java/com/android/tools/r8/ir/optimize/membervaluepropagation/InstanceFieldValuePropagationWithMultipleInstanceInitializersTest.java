@@ -61,7 +61,7 @@ public class InstanceFieldValuePropagationWithMultipleInstanceInitializersTest e
     // Verify that the `greeting` field is still present.
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
-    assertThat(aClassSubject.uniqueFieldWithName("greeting"), isPresent());
+    assertThat(aClassSubject.uniqueFieldWithOriginalName("greeting"), isPresent());
   }
 
   static class TestClass {

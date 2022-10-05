@@ -50,7 +50,7 @@ public class NeverInlineStaticInterfaceMethodTest extends TestBase {
               ClassSubject iClassSubject = inspector.clazz(I.class);
               assertThat(iClassSubject, isPresent());
 
-              MethodSubject iMethodSubject = iClassSubject.uniqueMethodWithName("m");
+              MethodSubject iMethodSubject = iClassSubject.uniqueMethodWithOriginalName("m");
               assertThat(iClassSubject, isPresent());
 
               MethodSubject mainMethodSubject = inspector.clazz(Main.class).mainMethod();

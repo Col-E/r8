@@ -89,24 +89,24 @@ public class NonNullParamTest extends TestBase {
     ClassSubject mainSubject = inspector.clazz(mainClass);
     assertThat(mainSubject, isPresent());
 
-    MethodSubject selfCheck = mainSubject.uniqueMethodWithName("selfCheck");
+    MethodSubject selfCheck = mainSubject.uniqueMethodWithOriginalName("selfCheck");
     assertThat(selfCheck, isPresent());
     assertEquals(0, countCallToParamNullCheck(selfCheck));
     assertEquals(1, countPrintCall(selfCheck));
     assertEquals(0, countThrow(selfCheck));
 
-    MethodSubject checkNull = mainSubject.uniqueMethodWithName("checkNull");
+    MethodSubject checkNull = mainSubject.uniqueMethodWithOriginalName("checkNull");
     assertThat(checkNull, isPresent());
     assertEquals(0, countCallToParamNullCheck(checkNull));
     assertEquals(1, countPrintCall(checkNull));
     assertEquals(1, countThrow(checkNull));
 
-    MethodSubject paramCheck = mainSubject.uniqueMethodWithName("nonNullAfterParamCheck");
+    MethodSubject paramCheck = mainSubject.uniqueMethodWithOriginalName("nonNullAfterParamCheck");
     assertThat(paramCheck, isPresent());
     assertEquals(1, countPrintCall(paramCheck));
     assertEquals(1, countThrow(paramCheck));
 
-    paramCheck = mainSubject.uniqueMethodWithName("nonNullAfterParamCheckDifferently");
+    paramCheck = mainSubject.uniqueMethodWithOriginalName("nonNullAfterParamCheckDifferently");
     assertThat(paramCheck, isPresent());
     assertEquals(1, countPrintCall(paramCheck));
     assertEquals(1, countThrow(paramCheck));
@@ -125,17 +125,18 @@ public class NonNullParamTest extends TestBase {
     ClassSubject mainSubject = inspector.clazz(mainClass);
     assertThat(mainSubject, isPresent());
 
-    MethodSubject checkViaCall = mainSubject.uniqueMethodWithName("checkViaCall");
+    MethodSubject checkViaCall = mainSubject.uniqueMethodWithOriginalName("checkViaCall");
     assertThat(checkViaCall, isPresent());
     assertEquals(0, countActCall(checkViaCall));
     assertEquals(2, countPrintCall(checkViaCall));
 
-    MethodSubject checkViaIntrinsic = mainSubject.uniqueMethodWithName("checkViaIntrinsic");
+    MethodSubject checkViaIntrinsic = mainSubject.uniqueMethodWithOriginalName("checkViaIntrinsic");
     assertThat(checkViaIntrinsic, isPresent());
     assertEquals(0, countCallToParamNullCheck(checkViaIntrinsic));
     assertEquals(1, countPrintCall(checkViaIntrinsic));
 
-    MethodSubject checkAtOneLevelHigher = mainSubject.uniqueMethodWithName("checkAtOneLevelHigher");
+    MethodSubject checkAtOneLevelHigher =
+        mainSubject.uniqueMethodWithOriginalName("checkAtOneLevelHigher");
     assertThat(checkAtOneLevelHigher, isPresent());
     assertEquals(1, countPrintCall(checkAtOneLevelHigher));
     assertEquals(0, countThrow(checkAtOneLevelHigher));
@@ -154,17 +155,18 @@ public class NonNullParamTest extends TestBase {
     ClassSubject mainSubject = inspector.clazz(mainClass);
     assertThat(mainSubject, isPresent());
 
-    MethodSubject checkViaCall = mainSubject.uniqueMethodWithName("checkViaCall");
+    MethodSubject checkViaCall = mainSubject.uniqueMethodWithOriginalName("checkViaCall");
     assertThat(checkViaCall, isPresent());
     assertEquals(0, countActCall(checkViaCall));
     assertEquals(canSharePrintCallInSuccessorBlock() ? 1 : 2, countPrintCall(checkViaCall));
 
-    MethodSubject checkViaIntrinsic = mainSubject.uniqueMethodWithName("checkViaIntrinsic");
+    MethodSubject checkViaIntrinsic = mainSubject.uniqueMethodWithOriginalName("checkViaIntrinsic");
     assertThat(checkViaIntrinsic, isPresent());
     assertEquals(0, countCallToParamNullCheck(checkViaIntrinsic));
     assertEquals(1, countPrintCall(checkViaIntrinsic));
 
-    MethodSubject checkAtOneLevelHigher = mainSubject.uniqueMethodWithName("checkAtOneLevelHigher");
+    MethodSubject checkAtOneLevelHigher =
+        mainSubject.uniqueMethodWithOriginalName("checkAtOneLevelHigher");
     assertThat(checkAtOneLevelHigher, isPresent());
     assertEquals(1, countPrintCall(checkAtOneLevelHigher));
     assertEquals(0, countThrow(checkAtOneLevelHigher));
@@ -190,17 +192,18 @@ public class NonNullParamTest extends TestBase {
     ClassSubject mainSubject = inspector.clazz(NonNullParamAfterInvokeVirtual.class);
     assertThat(mainSubject, isPresent());
 
-    MethodSubject checkViaCall = mainSubject.uniqueMethodWithName("checkViaCall");
+    MethodSubject checkViaCall = mainSubject.uniqueMethodWithOriginalName("checkViaCall");
     assertThat(checkViaCall, isPresent());
     assertEquals(0, countActCall(checkViaCall));
     assertEquals(canSharePrintCallInSuccessorBlock() ? 1 : 2, countPrintCall(checkViaCall));
 
-    MethodSubject checkViaIntrinsic = mainSubject.uniqueMethodWithName("checkViaIntrinsic");
+    MethodSubject checkViaIntrinsic = mainSubject.uniqueMethodWithOriginalName("checkViaIntrinsic");
     assertThat(checkViaIntrinsic, isPresent());
     assertEquals(0, countCallToParamNullCheck(checkViaIntrinsic));
     assertEquals(1, countPrintCall(checkViaIntrinsic));
 
-    MethodSubject checkAtOneLevelHigher = mainSubject.uniqueMethodWithName("checkAtOneLevelHigher");
+    MethodSubject checkAtOneLevelHigher =
+        mainSubject.uniqueMethodWithOriginalName("checkAtOneLevelHigher");
     assertThat(checkAtOneLevelHigher, isPresent());
     assertEquals(1, countPrintCall(checkAtOneLevelHigher));
     assertEquals(0, countThrow(checkAtOneLevelHigher));
@@ -246,7 +249,7 @@ public class NonNullParamTest extends TestBase {
     ClassSubject mainSubject = inspector.clazz(NonNullParamInterfaceImpl.class);
     assertThat(mainSubject, isPresent());
 
-    MethodSubject checkViaCall = mainSubject.uniqueMethodWithName("checkViaCall");
+    MethodSubject checkViaCall = mainSubject.uniqueMethodWithOriginalName("checkViaCall");
     assertThat(checkViaCall, isPresent());
     assertEquals(0, countActCall(checkViaCall));
     // The DEX backend reuses the System.out.println invoke.

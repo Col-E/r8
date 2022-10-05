@@ -78,9 +78,9 @@ public class PackagePrivateOverrideSameMethodNameTest extends TestBase {
     assertThat(viewModel, isPresentAndRenamed(minification));
     ClassSubject subViewModel = inspector.clazz(SubViewModel.class);
     assertThat(subViewModel, isPresentAndRenamed(minification));
-    MethodSubject viewModelClear = viewModel.uniqueMethodWithName("clear");
+    MethodSubject viewModelClear = viewModel.uniqueMethodWithOriginalName("clear");
     assertThat(viewModelClear, isPresentAndRenamed(minification));
-    MethodSubject subViewModelClear = subViewModel.uniqueMethodWithName("clear");
+    MethodSubject subViewModelClear = subViewModel.uniqueMethodWithOriginalName("clear");
     assertThat(subViewModelClear, isPresentAndRenamed(minification));
     assertEquals(viewModelClear.getFinalName(), subViewModelClear.getFinalName());
     if (!minification) {

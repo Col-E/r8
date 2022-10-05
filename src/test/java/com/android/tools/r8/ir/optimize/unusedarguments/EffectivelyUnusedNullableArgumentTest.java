@@ -49,7 +49,7 @@ public class EffectivelyUnusedNullableArgumentTest extends TestBase {
             inspector -> {
               ClassSubject aClassSubject = inspector.clazz(A.class);
 
-              MethodSubject fooMethodSubject = aClassSubject.uniqueMethodWithName("foo");
+              MethodSubject fooMethodSubject = aClassSubject.uniqueMethodWithOriginalName("foo");
               assertThat(fooMethodSubject, isPresent());
               assertEquals(1, fooMethodSubject.getProgramMethod().getParameters().size());
               assertEquals(
@@ -57,7 +57,7 @@ public class EffectivelyUnusedNullableArgumentTest extends TestBase {
                   fooMethodSubject.getProgramMethod().getParameter(0));
               assertThat(fooMethodSubject, invokesMethodWithName("getClass"));
 
-              MethodSubject barMethodSubject = aClassSubject.uniqueMethodWithName("bar");
+              MethodSubject barMethodSubject = aClassSubject.uniqueMethodWithOriginalName("bar");
               assertThat(barMethodSubject, isStatic());
             })
         .run(parameters.getRuntime(), Main.class)

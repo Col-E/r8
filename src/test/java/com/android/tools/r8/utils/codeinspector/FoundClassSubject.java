@@ -148,7 +148,7 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
-  public MethodSubject uniqueMethodWithName(String name) {
+  public MethodSubject uniqueMethodWithOriginalName(String name) {
     MethodSubject methodSubject = null;
     for (FoundMethodSubject candidate : allMethods()) {
       if (candidate.getOriginalName(false).equals(name)) {
@@ -219,7 +219,7 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
-  public FieldSubject uniqueFieldWithName(String name) {
+  public FieldSubject uniqueFieldWithOriginalName(String name) {
     return uniqueFieldWithName(name, null);
   }
 

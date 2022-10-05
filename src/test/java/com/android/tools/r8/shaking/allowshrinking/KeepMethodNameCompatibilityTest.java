@@ -54,7 +54,8 @@ public class KeepMethodNameCompatibilityTest extends TestBase {
         .inspect(
             inspector ->
                 assertThat(
-                    inspector.clazz(TestClass.class).uniqueMethodWithName("test"), isPresent()))
+                    inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("test"),
+                    isPresent()))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("foo");
   }

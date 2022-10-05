@@ -68,7 +68,7 @@ public class OutlineFromStaticInterfaceMethodTest extends TestBase {
             : inspector.clazz(I.class.getTypeName() + getCompanionClassNameSuffix());
     assertThat(interfaceSubject, isPresent());
 
-    MethodSubject greetMethodSubject = interfaceSubject.uniqueMethodWithName("greet");
+    MethodSubject greetMethodSubject = interfaceSubject.uniqueMethodWithOriginalName("greet");
     assertThat(greetMethodSubject, isPresent());
     assertEquals(
         1,

@@ -68,19 +68,25 @@ public class SingleTargetFromExactReceiverTypeTest extends TestBase {
   private void verifyOnlyCanBeInlinedHasBeenInlined(CodeInspector inspector) {
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
-    assertThat(aClassSubject.uniqueMethodWithName("canBeInlined"), not(isPresent()));
-    assertThat(aClassSubject.uniqueMethodWithName("canBeInlinedDueToAssume"), not(isPresent()));
+    assertThat(aClassSubject.uniqueMethodWithOriginalName("canBeInlined"), not(isPresent()));
     assertThat(
-        aClassSubject.uniqueMethodWithName("cannotBeInlinedDueToDynamicDispatch"), isPresent());
-    assertThat(aClassSubject.uniqueMethodWithName("cannotBeInlinedDueToKeepRule"), isPresent());
+        aClassSubject.uniqueMethodWithOriginalName("canBeInlinedDueToAssume"), not(isPresent()));
+    assertThat(
+        aClassSubject.uniqueMethodWithOriginalName("cannotBeInlinedDueToDynamicDispatch"),
+        isPresent());
+    assertThat(
+        aClassSubject.uniqueMethodWithOriginalName("cannotBeInlinedDueToKeepRule"), isPresent());
 
     ClassSubject bClassSubject = inspector.clazz(B.class);
     assertThat(bClassSubject, isPresent());
-    assertThat(bClassSubject.uniqueMethodWithName("canBeInlined"), not(isPresent()));
-    assertThat(bClassSubject.uniqueMethodWithName("canBeInlinedDueToAssume"), not(isPresent()));
+    assertThat(bClassSubject.uniqueMethodWithOriginalName("canBeInlined"), not(isPresent()));
     assertThat(
-        bClassSubject.uniqueMethodWithName("cannotBeInlinedDueToDynamicDispatch"), isPresent());
-    assertThat(bClassSubject.uniqueMethodWithName("cannotBeInlinedDueToKeepRule"), isPresent());
+        bClassSubject.uniqueMethodWithOriginalName("canBeInlinedDueToAssume"), not(isPresent()));
+    assertThat(
+        bClassSubject.uniqueMethodWithOriginalName("cannotBeInlinedDueToDynamicDispatch"),
+        isPresent());
+    assertThat(
+        bClassSubject.uniqueMethodWithOriginalName("cannotBeInlinedDueToKeepRule"), isPresent());
 
     ClassSubject testClassSubject = inspector.clazz(TestClass.class);
     assertThat(testClassSubject, isPresent());
@@ -100,10 +106,11 @@ public class SingleTargetFromExactReceiverTypeTest extends TestBase {
     }
     assertThat(
         mainMethodSubject,
-        invokesMethod(aClassSubject.uniqueMethodWithName("cannotBeInlinedDueToDynamicDispatch")));
+        invokesMethod(
+            aClassSubject.uniqueMethodWithOriginalName("cannotBeInlinedDueToDynamicDispatch")));
     assertThat(
         mainMethodSubject,
-        invokesMethod(aClassSubject.uniqueMethodWithName("cannotBeInlinedDueToKeepRule")));
+        invokesMethod(aClassSubject.uniqueMethodWithOriginalName("cannotBeInlinedDueToKeepRule")));
   }
 
   static class TestClass {

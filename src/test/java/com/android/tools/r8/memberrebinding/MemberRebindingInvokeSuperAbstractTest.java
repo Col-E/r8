@@ -64,7 +64,7 @@ public class MemberRebindingInvokeSuperAbstractTest extends TestBase {
         .inspect(
             inspector -> {
               MethodSubject getSystemService =
-                  inspector.clazz(Main.class).uniqueMethodWithName("getSystemService");
+                  inspector.clazz(Main.class).uniqueMethodWithOriginalName("getSystemService");
               assertThat(getSystemService, isPresent());
               // We should never rebind this call to LibraryBase::getSystemService since this can
               // cause errors when verifying the code on a device where the image has a definition

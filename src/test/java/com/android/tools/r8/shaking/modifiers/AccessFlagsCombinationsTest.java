@@ -59,52 +59,52 @@ public class AccessFlagsCombinationsTest extends TestBase {
 
     assertEquals(
         includePublic && includeNonStatic,
-        classSubject.uniqueMethodWithName("publicMethod").isPresent());
+        classSubject.uniqueMethodWithOriginalName("publicMethod").isPresent());
     assertEquals(
         includeProtected && includeNonStatic,
-        classSubject.uniqueMethodWithName("protectedMethod").isPresent());
+        classSubject.uniqueMethodWithOriginalName("protectedMethod").isPresent());
     assertEquals(
         includePrivate && includeNonStatic,
-        classSubject.uniqueMethodWithName("privateMethod").isPresent());
+        classSubject.uniqueMethodWithOriginalName("privateMethod").isPresent());
     assertEquals(
         includePackagePrivate && includeNonStatic,
-        classSubject.uniqueMethodWithName("packagePrivateMethod").isPresent());
+        classSubject.uniqueMethodWithOriginalName("packagePrivateMethod").isPresent());
     assertEquals(
         includePublic && includeStatic,
-        classSubject.uniqueMethodWithName("publicStaticMethod").isPresent());
+        classSubject.uniqueMethodWithOriginalName("publicStaticMethod").isPresent());
     assertEquals(
         includeProtected && includeStatic,
-        classSubject.uniqueMethodWithName("protectedStaticMethod").isPresent());
+        classSubject.uniqueMethodWithOriginalName("protectedStaticMethod").isPresent());
     assertEquals(
         includePrivate && includeStatic,
-        classSubject.uniqueMethodWithName("privateStaticMethod").isPresent());
+        classSubject.uniqueMethodWithOriginalName("privateStaticMethod").isPresent());
     assertEquals(
         includePackagePrivate && includeStatic,
-        classSubject.uniqueMethodWithName("packagePrivateStaticMethod").isPresent());
+        classSubject.uniqueMethodWithOriginalName("packagePrivateStaticMethod").isPresent());
     assertEquals(
         includePublic && includeNonStatic,
-        classSubject.uniqueFieldWithName("publicField").isPresent());
+        classSubject.uniqueFieldWithOriginalName("publicField").isPresent());
     assertEquals(
         includeProtected && includeNonStatic,
-        classSubject.uniqueFieldWithName("protectedField").isPresent());
+        classSubject.uniqueFieldWithOriginalName("protectedField").isPresent());
     assertEquals(
         includePrivate && includeNonStatic,
-        classSubject.uniqueFieldWithName("privateField").isPresent());
+        classSubject.uniqueFieldWithOriginalName("privateField").isPresent());
     assertEquals(
         includePackagePrivate && includeNonStatic,
-        classSubject.uniqueFieldWithName("packagePrivateField").isPresent());
+        classSubject.uniqueFieldWithOriginalName("packagePrivateField").isPresent());
     assertEquals(
         includePublic && includeStatic,
-        classSubject.uniqueFieldWithName("publicStaticField").isPresent());
+        classSubject.uniqueFieldWithOriginalName("publicStaticField").isPresent());
     assertEquals(
         includeProtected && includeStatic,
-        classSubject.uniqueFieldWithName("protectedStaticField").isPresent());
+        classSubject.uniqueFieldWithOriginalName("protectedStaticField").isPresent());
     assertEquals(
         includePrivate && includeStatic,
-        classSubject.uniqueFieldWithName("privateStaticField").isPresent());
+        classSubject.uniqueFieldWithOriginalName("privateStaticField").isPresent());
     assertEquals(
         includePackagePrivate && includeStatic,
-        classSubject.uniqueFieldWithName("packagePrivateStaticField").isPresent());
+        classSubject.uniqueFieldWithOriginalName("packagePrivateStaticField").isPresent());
   }
 
   public void runTest(

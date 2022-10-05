@@ -360,10 +360,10 @@ public class R8InliningTest extends TestBase {
     CodeInspector inspector =
         new CodeInspector(ImmutableList.of(getGeneratedFile()), getGeneratedProguardMap(), null);
     ClassSubject clazz = inspector.clazz(nullabilityClass);
-    assertThat(clazz.uniqueMethodWithName("conditionalOperator"), isAbsent());
+    assertThat(clazz.uniqueMethodWithOriginalName("conditionalOperator"), isAbsent());
 
     // The enum parameter is unboxed.
-    MethodSubject m = clazz.uniqueMethodWithName("moreControlFlows");
+    MethodSubject m = clazz.uniqueMethodWithOriginalName("moreControlFlows");
     assertTrue(m.isPresent());
 
     // Verify that a.b() is resolved to an inline instance-get.

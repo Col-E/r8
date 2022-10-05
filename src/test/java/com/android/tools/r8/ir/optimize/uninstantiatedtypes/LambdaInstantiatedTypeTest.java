@@ -62,7 +62,7 @@ public class LambdaInstantiatedTypeTest extends TestBase {
     assertThat(classSubject, isPresent());
 
     // Check that the method live() has not been removed.
-    assertThat(classSubject.uniqueMethodWithName("live"), isPresent());
+    assertThat(classSubject.uniqueMethodWithOriginalName("live"), isPresent());
   }
 
   static class TestClass {

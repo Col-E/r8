@@ -57,11 +57,11 @@ public class KeptBridgeHoistingTest extends TestBase {
   private void inspect(CodeInspector inspector) {
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
-    assertThat(aClassSubject.uniqueMethodWithName("m"), isPresent());
+    assertThat(aClassSubject.uniqueMethodWithOriginalName("m"), isPresent());
 
     ClassSubject bClassSubject = inspector.clazz(B.class);
     assertThat(bClassSubject, isPresent());
-    assertThat(bClassSubject.uniqueMethodWithName("bridge"), isPresent());
+    assertThat(bClassSubject.uniqueMethodWithOriginalName("bridge"), isPresent());
   }
 
   static class TestClass {

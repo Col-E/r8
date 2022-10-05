@@ -64,13 +64,14 @@ public class KeepDisallowAnnotationRemovalAllowOptimizationTest extends TestBase
 
               // The annotation on getNonNull() is kept meanwhile it is subject to other
               // optimizations.
-              MethodSubject getNonNullSubject = classSubject.uniqueMethodWithName("getNonNull");
+              MethodSubject getNonNullSubject =
+                  classSubject.uniqueMethodWithOriginalName("getNonNull");
               assertThat(getNonNullSubject, isPresentAndRenamed());
               assertThat(getNonNullSubject.annotation(NeverInline.class), isPresent());
 
               // Check that the code has been optimized using the fact that getNonNull() returns a
               // non-null value.
-              assertThat(classSubject.uniqueMethodWithName("dead"), isAbsent());
+              assertThat(classSubject.uniqueMethodWithOriginalName("dead"), isAbsent());
               assertThat(classSubject.mainMethod(), not(containsThrow()));
             })
         .run(parameters.getRuntime(), Main.class)

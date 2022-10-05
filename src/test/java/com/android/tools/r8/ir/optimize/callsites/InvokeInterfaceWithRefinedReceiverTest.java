@@ -81,7 +81,7 @@ public class InvokeInterfaceWithRefinedReceiverTest extends TestBase {
     ClassSubject b = inspector.clazz(B.class);
     assertThat(b, isPresent());
 
-    MethodSubject b_m = b.uniqueMethodWithName("m");
+    MethodSubject b_m = b.uniqueMethodWithOriginalName("m");
     assertThat(b_m, isPresent());
     // Can optimize branches since `arg` is definitely null.
     assertTrue(b_m.streamInstructions().noneMatch(InstructionSubject::isIf));
@@ -89,7 +89,7 @@ public class InvokeInterfaceWithRefinedReceiverTest extends TestBase {
     ClassSubject bSub = inspector.clazz(BSub.class);
     assertThat(bSub, isPresent());
 
-    MethodSubject bSub_m = bSub.uniqueMethodWithName("m");
+    MethodSubject bSub_m = bSub.uniqueMethodWithOriginalName("m");
     assertThat(bSub_m, isPresent());
     // Can optimize branches since `arg` is definitely null.
     assertTrue(bSub_m.streamInstructions().noneMatch(InstructionSubject::isIf));
@@ -97,7 +97,7 @@ public class InvokeInterfaceWithRefinedReceiverTest extends TestBase {
     ClassSubject c = inspector.clazz(C.class);
     assertThat(c, isPresent());
 
-    MethodSubject c_m = c.uniqueMethodWithName("m");
+    MethodSubject c_m = c.uniqueMethodWithOriginalName("m");
     assertThat(c_m, isPresent());
     // Can optimize branches since `arg` is definitely not null.
     assertTrue(c_m.streamInstructions().noneMatch(InstructionSubject::isIf));

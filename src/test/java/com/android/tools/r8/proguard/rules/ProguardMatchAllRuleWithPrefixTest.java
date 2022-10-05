@@ -32,10 +32,10 @@ public class ProguardMatchAllRuleWithPrefixTest extends TestBase {
 
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(classSubject, isPresent());
-    assertThat(classSubject.uniqueMethodWithName("methodA"), isPresent());
-    assertThat(classSubject.uniqueMethodWithName("methodB"), isPresent());
-    assertThat(classSubject.uniqueMethodWithName("methodC"), isPresent());
-    assertThat(classSubject.uniqueMethodWithName("methodD"), isPresent());
+    assertThat(classSubject.uniqueMethodWithOriginalName("methodA"), isPresent());
+    assertThat(classSubject.uniqueMethodWithOriginalName("methodB"), isPresent());
+    assertThat(classSubject.uniqueMethodWithOriginalName("methodC"), isPresent());
+    assertThat(classSubject.uniqueMethodWithOriginalName("methodD"), isPresent());
   }
 
   static class TestClass {

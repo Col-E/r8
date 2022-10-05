@@ -202,95 +202,95 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
             : "java.util.function.Supplier";
 
     assertThat(
-        testClass.uniqueMethodWithName("objectsCompare"),
+        testClass.uniqueMethodWithOriginalName("objectsCompare"),
         onlyIf(invokeJavaUtilObjects, invokesObjectsCompare("java.util.Objects")));
     assertThat(
-        testClass.uniqueMethodWithName("objectsCompare"),
+        testClass.uniqueMethodWithOriginalName("objectsCompare"),
         onlyIf(invokeJDollarUtilObjects, invokesObjectsCompare("j$.util.Objects")));
 
     assertThat(
-        testClass.uniqueMethodWithName("objectsDeepEquals"),
+        testClass.uniqueMethodWithOriginalName("objectsDeepEquals"),
         onlyIf(invokeJavaUtilObjects, invokesObjectsDeepEquals("java.util.Objects")));
     assertThat(
-        testClass.uniqueMethodWithName("objectsDeepEquals"),
+        testClass.uniqueMethodWithOriginalName("objectsDeepEquals"),
         onlyIf(invokeJDollarUtilObjects, invokesObjectsDeepEquals("j$.util.Objects")));
 
     assertThat(
-        testClass.uniqueMethodWithName("objectsEquals"),
+        testClass.uniqueMethodWithOriginalName("objectsEquals"),
         onlyIf(invokeJavaUtilObjects, invokesObjectsEquals("java.util.Objects")));
     assertThat(
-        testClass.uniqueMethodWithName("objectsEquals"),
+        testClass.uniqueMethodWithOriginalName("objectsEquals"),
         onlyIf(invokeJDollarUtilObjects, invokesObjectsEquals("j$.util.Objects")));
 
     assertThat(
-        testClass.uniqueMethodWithName("objectsHash"),
+        testClass.uniqueMethodWithOriginalName("objectsHash"),
         onlyIf(invokeJavaUtilObjects, invokesObjectsHash("java.util.Objects")));
     assertThat(
-        testClass.uniqueMethodWithName("objectsHash"),
+        testClass.uniqueMethodWithOriginalName("objectsHash"),
         onlyIf(invokeJDollarUtilObjects, invokesObjectsHash("j$.util.Objects")));
 
     assertThat(
-        testClass.uniqueMethodWithName("objectsHashCode"),
+        testClass.uniqueMethodWithOriginalName("objectsHashCode"),
         onlyIf(invokeJavaUtilObjects, invokesObjectsHashCode("java.util.Objects")));
     assertThat(
-        testClass.uniqueMethodWithName("objectsHashCode"),
+        testClass.uniqueMethodWithOriginalName("objectsHashCode"),
         onlyIf(invokeJDollarUtilObjects, invokesObjectsHashCode("j$.util.Objects")));
 
     assertThat(
-        testClass.uniqueMethodWithName("objectsRequireNonNull"),
+        testClass.uniqueMethodWithOriginalName("objectsRequireNonNull"),
         onlyIf(invokeJavaUtilObjects, invokesObjectsRequireNonNull("java.util.Objects")));
     assertThat(
-        testClass.uniqueMethodWithName("objectsRequireNonNull"),
+        testClass.uniqueMethodWithOriginalName("objectsRequireNonNull"),
         onlyIf(invokeJDollarUtilObjects, invokesObjectsRequireNonNull("j$.util.Objects")));
 
     assertThat(
-        testClass.uniqueMethodWithName("objectsRequireNonNullWithMessage"),
+        testClass.uniqueMethodWithOriginalName("objectsRequireNonNullWithMessage"),
         onlyIf(
             invokeJavaUtilObjects, invokesObjectsRequireNonNullWithMessage("java.util.Objects")));
     assertThat(
-        testClass.uniqueMethodWithName("objectsRequireNonNullWithMessage"),
+        testClass.uniqueMethodWithOriginalName("objectsRequireNonNullWithMessage"),
         onlyIf(
             invokeJDollarUtilObjects, invokesObjectsRequireNonNullWithMessage("j$.util.Objects")));
 
     assertThat(
-        testClass.uniqueMethodWithName("objectsRequireNonNullWithSupplier"),
+        testClass.uniqueMethodWithOriginalName("objectsRequireNonNullWithSupplier"),
         onlyIf(
             invokeJavaUtilObjectsWithSupplier,
             invokesObjectsRequireNonNullWithSupplier("java.util.Objects", supplier)));
     assertThat(
-        testClass.uniqueMethodWithName("objectsRequireNonNullWithSupplier"),
+        testClass.uniqueMethodWithOriginalName("objectsRequireNonNullWithSupplier"),
         onlyIf(
             invokeJDollarUtilObjectsWithSupplier,
             invokesObjectsRequireNonNullWithSupplier("j$.util.Objects", supplier)));
 
     assertThat(
-        testClass.uniqueMethodWithName("objectsToString"),
+        testClass.uniqueMethodWithOriginalName("objectsToString"),
         onlyIf(invokeJavaUtilObjects, invokesObjectsToString("java.util.Objects")));
     assertThat(
-        testClass.uniqueMethodWithName("objectsToString"),
+        testClass.uniqueMethodWithOriginalName("objectsToString"),
         onlyIf(invokeJDollarUtilObjects, invokesObjectsToString("j$.util.Objects")));
 
     assertThat(
-        testClass.uniqueMethodWithName("objectsToStringWithNullDefault"),
+        testClass.uniqueMethodWithOriginalName("objectsToStringWithNullDefault"),
         onlyIf(invokeJavaUtilObjects, invokesObjectsToStringWithNullDefault("java.util.Objects")));
     assertThat(
-        testClass.uniqueMethodWithName("objectsToStringWithNullDefault"),
+        testClass.uniqueMethodWithOriginalName("objectsToStringWithNullDefault"),
         onlyIf(invokeJDollarUtilObjects, invokesObjectsToStringWithNullDefault("j$.util.Objects")));
 
     invokeJavaUtilObjects = parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N);
 
     assertThat(
-        testClass.uniqueMethodWithName("objectsIsNull"),
+        testClass.uniqueMethodWithOriginalName("objectsIsNull"),
         onlyIf(invokeJavaUtilObjects, invokesObjectsIsNull("java.util.Objects")));
     assertThat(
-        testClass.uniqueMethodWithName("objectsIsNull"),
+        testClass.uniqueMethodWithOriginalName("objectsIsNull"),
         onlyIf(invokeJDollarUtilObjects, invokesObjectsIsNull("j$.util.Objects")));
 
     assertThat(
-        testClass.uniqueMethodWithName("objectsNonNull"),
+        testClass.uniqueMethodWithOriginalName("objectsNonNull"),
         onlyIf(invokeJavaUtilObjects, invokesObjectsNonNull("java.util.Objects")));
     assertThat(
-        testClass.uniqueMethodWithName("objectsNonNull"),
+        testClass.uniqueMethodWithOriginalName("objectsNonNull"),
         onlyIf(invokeJDollarUtilObjects, invokesObjectsNonNull("j$.util.Objects")));
   }
 

@@ -67,7 +67,7 @@ public class StringIsEmptyTest extends TestBase {
     assertThat(mainMethod, isPresent());
     assertEquals(expectedStringIsEmptyCount, countCall(mainMethod, "String", "isEmpty"));
 
-    MethodSubject wrapper = mainClass.uniqueMethodWithName("wrapper");
+    MethodSubject wrapper = mainClass.uniqueMethodWithOriginalName("wrapper");
     assertThat(wrapper, isPresent());
     // Due to nullable, non-constant argument (w/o call-site optimization), isEmpty() should remain.
     assertEquals(1, countCall(wrapper, "String", "isEmpty"));

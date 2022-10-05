@@ -55,7 +55,7 @@ public class RemoveCallToStaticInitTest extends TestBase {
             inspector -> {
               ClassSubject clazz = inspector.clazz(B.class);
               assertThat(clazz, isPresent());
-              assertThat(clazz.uniqueMethodWithName("foo"), isPresent());
+              assertThat(clazz.uniqueMethodWithOriginalName("foo"), isPresent());
             });
   }
 

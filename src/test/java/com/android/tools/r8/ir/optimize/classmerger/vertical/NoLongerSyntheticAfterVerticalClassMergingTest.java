@@ -57,7 +57,7 @@ public class NoLongerSyntheticAfterVerticalClassMergingTest extends TestBase {
     ClassSubject bClassSubject = inspector.clazz(B.class);
     assertThat(bClassSubject, isPresent());
 
-    MethodSubject mMethodSubject = bClassSubject.uniqueMethodWithName("m");
+    MethodSubject mMethodSubject = bClassSubject.uniqueMethodWithOriginalName("m");
     assertThat(mMethodSubject, isPresent());
     assertFalse(mMethodSubject.getMethod().accessFlags.isSynthetic());
   }

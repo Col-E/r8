@@ -66,7 +66,7 @@ public class RepackageDebugMinificationTest extends RepackageTestBase {
             inspector -> {
               ClassSubject mainClass = inspector.clazz(Main.class);
               assertThat(mainClass, isPresentAndNotRenamed());
-              MethodSubject main = mainClass.uniqueMethodWithName("main");
+              MethodSubject main = mainClass.uniqueMethodWithOriginalName("main");
               assertThat(main, isPresentAndNotRenamed());
               ClassSubject aClass = inspector.clazz(A.class);
               assertThat(aClass, isPresentAndNotRenamed());

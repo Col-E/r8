@@ -105,7 +105,7 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
 
   public abstract MethodSubject uniqueMethodThatMatches(Predicate<FoundMethodSubject> predicate);
 
-  public abstract MethodSubject uniqueMethodWithName(String name);
+  public abstract MethodSubject uniqueMethodWithOriginalName(String name);
 
   public abstract MethodSubject uniqueMethodWithFinalName(String name);
 
@@ -172,7 +172,7 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
 
   public abstract FieldSubject field(String type, String name);
 
-  public abstract FieldSubject uniqueFieldWithName(String name);
+  public abstract FieldSubject uniqueFieldWithOriginalName(String name);
 
   public abstract FieldSubject uniqueFieldWithFinalName(String name);
 

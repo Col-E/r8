@@ -84,13 +84,13 @@ public class NestMethodInlinedTest extends TestBase {
                       method.toString().contains("nestPvtCallToInline")
                           || method.toString().contains("methodWithPvtCallToInline")));
       // Inlining nest access should transform virtual/ift invokes -> direct.
-      MethodSubject methodSubject = subj.uniqueMethodWithName("dispatchInlining");
+      MethodSubject methodSubject = subj.uniqueMethodWithOriginalName("dispatchInlining");
       if (methodSubject.isPresent()) {
         nbDispatchInlining++;
         assertTrue(
             methodSubject.streamInstructions().noneMatch(InstructionSubject::isInvokeVirtual));
       }
-      methodSubject = subj.uniqueMethodWithName("notInlinedPvtCall");
+      methodSubject = subj.uniqueMethodWithOriginalName("notInlinedPvtCall");
       if (methodSubject.isPresent()) {
         nbNotInlinedPvtCall++;
       }

@@ -120,7 +120,7 @@ public class SerializedNameAlternateTest extends TestBase {
             EXPECTED_DEFAULT_VALUE_ANNOTATION, EXPECTED_SERIALIZED_ANNOTATION)
         .inspect(
             codeInspector -> {
-              FieldSubject bar = codeInspector.clazz(Foo.class).uniqueFieldWithName("bar");
+              FieldSubject bar = codeInspector.clazz(Foo.class).uniqueFieldWithOriginalName("bar");
               AnnotationSubject annotation = bar.annotation(SerializedName.class.getTypeName());
               assertThat(annotation, isPresent());
               assertEquals(0, annotation.getAnnotation().elements.length);

@@ -68,7 +68,7 @@ public class ArtProfileRewritingTest extends TestBase {
     ClassSubject greeterClassSubject = inspector.clazz(Greeter.class);
     assertThat(greeterClassSubject, isPresentAndRenamed());
 
-    MethodSubject greetMethodSubject = greeterClassSubject.uniqueMethodWithName("greet");
+    MethodSubject greetMethodSubject = greeterClassSubject.uniqueMethodWithOriginalName("greet");
     assertThat(greetMethodSubject, isPresentAndRenamed());
 
     assertTrue(residualArtProfileConsumer.finished);

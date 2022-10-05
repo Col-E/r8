@@ -69,7 +69,7 @@ public class InlinerShouldNotInlineDefinitelyNullTest extends TestBase {
                   assertTrue(
                       inspector
                           .clazz(Main.class)
-                          .uniqueMethodWithName("main")
+                          .uniqueMethodWithOriginalName("main")
                           .streamInstructions()
                           .anyMatch(InstructionSubject::isThrow));
                 })

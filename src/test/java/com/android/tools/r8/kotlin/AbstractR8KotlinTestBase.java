@@ -150,7 +150,7 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
   }
 
   protected FieldSubject checkFieldIsKept(ClassSubject classSubject, String fieldName) {
-    FieldSubject fieldSubject = classSubject.uniqueFieldWithName(fieldName);
+    FieldSubject fieldSubject = classSubject.uniqueFieldWithOriginalName(fieldName);
     assertThat(fieldSubject, isPresent());
     return fieldSubject;
   }
@@ -175,7 +175,7 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
   }
 
   protected MethodSubject checkMethodIsKept(ClassSubject classSubject, String methodName) {
-    MethodSubject methodSubject = classSubject.uniqueMethodWithName(methodName);
+    MethodSubject methodSubject = classSubject.uniqueMethodWithOriginalName(methodName);
     assertThat(methodSubject, isPresent());
     return methodSubject;
   }

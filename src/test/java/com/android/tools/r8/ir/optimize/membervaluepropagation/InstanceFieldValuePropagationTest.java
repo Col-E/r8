@@ -58,7 +58,7 @@ public class InstanceFieldValuePropagationTest extends TestBase {
     // Verify that all instance-get instructions in testDefinitelyNotNull() has been removed by
     // member value propagation.
     MethodSubject testDefinitelyNotNullMethodSubject =
-        testClassSubject.uniqueMethodWithName("testDefinitelyNotNull");
+        testClassSubject.uniqueMethodWithOriginalName("testDefinitelyNotNull");
     assertThat(testDefinitelyNotNullMethodSubject, isPresent());
     assertTrue(
         testDefinitelyNotNullMethodSubject
@@ -72,7 +72,7 @@ public class InstanceFieldValuePropagationTest extends TestBase {
     // Verify that all instance-get instructions in testMaybeNull() has been removed by member value
     // propagation.
     MethodSubject testMaybeNullMethodSubject =
-        testClassSubject.uniqueMethodWithName("testMaybeNull");
+        testClassSubject.uniqueMethodWithOriginalName("testMaybeNull");
     assertThat(testMaybeNullMethodSubject, isPresent());
     assertTrue(
         testMaybeNullMethodSubject

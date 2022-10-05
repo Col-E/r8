@@ -110,9 +110,9 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
 
     ClassSubject util = inspector.clazz(utilClassName);
     assertThat(util, isPresentAndNotRenamed());
-    MethodSubject commaJoinOfInt = util.uniqueMethodWithName("commaSeparatedJoinOfInt");
+    MethodSubject commaJoinOfInt = util.uniqueMethodWithOriginalName("commaSeparatedJoinOfInt");
     assertThat(commaJoinOfInt, isPresentAndNotRenamed());
-    MethodSubject joinOfInt = util.uniqueMethodWithName("joinOfInt");
+    MethodSubject joinOfInt = util.uniqueMethodWithOriginalName("joinOfInt");
     assertThat(joinOfInt, not(isPresent()));
 
     inspectMetadataForFacade(inspector, util);
@@ -155,9 +155,9 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
 
     ClassSubject util = inspector.clazz(utilClassName);
     assertThat(util, isPresentAndNotRenamed());
-    MethodSubject commaJoinOfInt = util.uniqueMethodWithName("commaSeparatedJoinOfInt");
+    MethodSubject commaJoinOfInt = util.uniqueMethodWithOriginalName("commaSeparatedJoinOfInt");
     assertThat(commaJoinOfInt, isPresentAndNotRenamed());
-    MethodSubject joinOfInt = util.uniqueMethodWithName("joinOfInt");
+    MethodSubject joinOfInt = util.uniqueMethodWithOriginalName("joinOfInt");
     assertThat(joinOfInt, isPresentAndRenamed());
 
     inspectMetadataForFacade(inspector, util);
@@ -187,9 +187,9 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
     String signedClassName = PKG + ".multifileclass_lib.UtilKt__SignedKt";
     ClassSubject signed = inspector.clazz(signedClassName);
     assertThat(signed, isPresentAndRenamed());
-    MethodSubject commaJoinOfInt = signed.uniqueMethodWithName("commaSeparatedJoinOfInt");
+    MethodSubject commaJoinOfInt = signed.uniqueMethodWithOriginalName("commaSeparatedJoinOfInt");
     assertThat(commaJoinOfInt, isPresentAndNotRenamed());
-    MethodSubject joinOfInt = signed.uniqueMethodWithName("joinOfInt");
+    MethodSubject joinOfInt = signed.uniqueMethodWithOriginalName("joinOfInt");
     assertThat(joinOfInt, isPresentAndRenamed());
 
     // API entry is kept, hence the presence of Metadata.

@@ -56,7 +56,7 @@ public class VerticalClassMergingWithMissingTypeArgsSubstitutionTest extends Tes
               assertEquals(
                   "<T:Ljava/lang/Object;>L" + binaryName(A.class) + "<Ljava/lang/Object;>;",
                   classSubject.getFinalSignatureAttribute());
-              MethodSubject bar = classSubject.uniqueMethodWithName("bar");
+              MethodSubject bar = classSubject.uniqueMethodWithOriginalName("bar");
               assertThat(bar, isPresentAndRenamed());
               assertEquals("(TT;)V", bar.getFinalSignatureAttribute());
               // The NeverInline is transferred to the private vertically merged method but also

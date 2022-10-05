@@ -55,14 +55,14 @@ public class InstanceInsideCompanionTest extends TestBase {
     // Check if the instance is gone.
     ClassSubject host = inspector.clazz(Candidate.Host.class);
     assertThat(host, isPresent());
-    FieldSubject instance = host.uniqueFieldWithName("INSTANCE");
+    FieldSubject instance = host.uniqueFieldWithOriginalName("INSTANCE");
     assertThat(instance, not(isPresent()));
 
     ClassSubject candidate = inspector.clazz(Candidate.class);
     assertThat(candidate, not(isPresent()));
 
     // Check if the candidate method is staticized and migrated.
-    MethodSubject foo = host.uniqueMethodWithName("foo");
+    MethodSubject foo = host.uniqueMethodWithOriginalName("foo");
     assertThat(foo, isPresent());
     assertTrue(foo.isStatic());
     assertTrue(

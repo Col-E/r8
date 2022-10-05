@@ -80,10 +80,10 @@ public class SimpleIfTrueOrFalseInliningTest extends ConditionalSimpleInliningTe
     }
 
     assertThat(classSubject, isPresent());
-    assertThat(classSubject.uniqueMethodWithName("simpleIfTrueTest"), isPresent());
-    assertThat(classSubject.uniqueMethodWithName("simpleIfBothTrueTest"), isPresent());
-    assertThat(classSubject.uniqueMethodWithName("simpleIfFalseTest"), isPresent());
-    assertThat(classSubject.uniqueMethodWithName("simpleIfBothFalseTest"), isPresent());
+    assertThat(classSubject.uniqueMethodWithOriginalName("simpleIfTrueTest"), isPresent());
+    assertThat(classSubject.uniqueMethodWithOriginalName("simpleIfBothTrueTest"), isPresent());
+    assertThat(classSubject.uniqueMethodWithOriginalName("simpleIfFalseTest"), isPresent());
+    assertThat(classSubject.uniqueMethodWithOriginalName("simpleIfBothFalseTest"), isPresent());
   }
 
   private boolean shouldBeEligibleForSimpleInlining() {

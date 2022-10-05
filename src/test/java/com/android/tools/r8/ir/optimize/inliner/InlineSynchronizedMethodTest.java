@@ -46,7 +46,7 @@ public class InlineSynchronizedMethodTest extends TestBase {
                   2,
                   inspector
                       .clazz(TestClass.class)
-                      .uniqueMethodWithName("main")
+                      .uniqueMethodWithOriginalName("main")
                       .streamInstructions()
                       .filter(i -> i.isMonitorEnter() || i.isMonitorExit())
                       .count());

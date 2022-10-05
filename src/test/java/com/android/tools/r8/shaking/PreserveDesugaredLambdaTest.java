@@ -78,7 +78,8 @@ public class PreserveDesugaredLambdaTest extends TestBase {
                         .anyMatch(
                             c -> {
                               if (c.isSynthesizedJavaLambdaClass()) {
-                                assertThat(c.uniqueMethodWithName("computeTheFoo"), isPresent());
+                                assertThat(
+                                    c.uniqueMethodWithOriginalName("computeTheFoo"), isPresent());
                                 return true;
                               }
                               return false;

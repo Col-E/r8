@@ -91,20 +91,20 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
   private void inspect(CodeInspector inspector) {
     ClassSubject aClassSubject = inspector.clazz(BridgeHoistingAccessibilityTestClasses.A.class);
     assertThat(aClassSubject, isPresent());
-    assertThat(aClassSubject.uniqueMethodWithName("m"), isPresent());
-    assertThat(aClassSubject.uniqueMethodWithName("bridgeC"), isPresent());
+    assertThat(aClassSubject.uniqueMethodWithOriginalName("m"), isPresent());
+    assertThat(aClassSubject.uniqueMethodWithOriginalName("bridgeC"), isPresent());
 
     ClassSubject bClassSubject = inspector.clazz(B.class);
     assertThat(bClassSubject, isPresent());
-    assertThat(bClassSubject.uniqueMethodWithName("bridgeB"), isPresent());
+    assertThat(bClassSubject.uniqueMethodWithOriginalName("bridgeB"), isPresent());
 
     ClassSubject cClassSubject = inspector.clazz(C.class);
     assertThat(cClassSubject, isPresent());
 
     ClassSubject axClassSubject = inspector.clazz(AWithRangedInvoke.class);
     assertThat(axClassSubject, isPresent());
-    assertThat(axClassSubject.uniqueMethodWithName("m"), isPresent());
-    assertThat(axClassSubject.uniqueMethodWithName("bridgeC"), isPresent());
+    assertThat(axClassSubject.uniqueMethodWithOriginalName("m"), isPresent());
+    assertThat(axClassSubject.uniqueMethodWithOriginalName("bridgeC"), isPresent());
   }
 
   static class TestClass {

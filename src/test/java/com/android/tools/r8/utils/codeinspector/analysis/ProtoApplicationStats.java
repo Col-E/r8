@@ -225,7 +225,7 @@ public class ProtoApplicationStats {
           continue;
         }
         FieldSubject fieldSubject =
-            classSubject.uniqueFieldWithName(extensionField.name.toSourceString());
+            classSubject.uniqueFieldWithOriginalName(extensionField.name.toSourceString());
         if (fieldSubject.isPresent()) {
           generatedExtensionRegistryStats.spuriouslyRetainedExtensionFields.add(extensionField);
         }

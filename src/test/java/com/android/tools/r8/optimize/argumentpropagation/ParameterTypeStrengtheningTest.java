@@ -57,14 +57,16 @@ public class ParameterTypeStrengtheningTest extends TestBase {
               assertThat(bClassSubject, isPresent());
 
               // Method testA(I) should be rewritten to testA(A).
-              MethodSubject testAMethodSubject = mainClassSubject.uniqueMethodWithName("testA");
+              MethodSubject testAMethodSubject =
+                  mainClassSubject.uniqueMethodWithOriginalName("testA");
               assertThat(testAMethodSubject, isPresent());
               assertEquals(
                   aClassSubject.getFinalName(),
                   testAMethodSubject.getProgramMethod().getParameter(0).getTypeName());
 
               // Method testB(I) should be rewritten to testB(B).
-              MethodSubject testBMethodSubject = mainClassSubject.uniqueMethodWithName("testB");
+              MethodSubject testBMethodSubject =
+                  mainClassSubject.uniqueMethodWithOriginalName("testB");
               assertThat(testBMethodSubject, isPresent());
               assertEquals(
                   bClassSubject.getFinalName(),

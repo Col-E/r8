@@ -67,21 +67,22 @@ public class RepackageWithInitClassTest extends RepackageTestBase {
     String clinitFieldName = inspector.getFactory().objectMembers.clinitField.name.toSourceString();
     if (enableMemberValuePropagationAnnotations) {
       // No $r8$clinit field should have been synthesized since we can use the HELLO field.
-      assertThat(repackagedClassSubject.uniqueFieldWithName(clinitFieldName), not(isPresent()));
-      assertThat(repackagedClassSubject.uniqueFieldWithName("HELLO"), isPresent());
+      assertThat(
+          repackagedClassSubject.uniqueFieldWithOriginalName(clinitFieldName), not(isPresent()));
+      assertThat(repackagedClassSubject.uniqueFieldWithOriginalName("HELLO"), isPresent());
 
       // Verify that the WORLD field has been removed.
-      assertThat(repackagedClassSubject.uniqueFieldWithName("WORLD"), not(isPresent()));
+      assertThat(repackagedClassSubject.uniqueFieldWithOriginalName("WORLD"), not(isPresent()));
 
       // Verify that the class was not repackaged.
       assertThat(StaticMemberValuePropagation.class, isNotRepackaged(inspector));
     } else {
       // Verify that a $r8$clinit field was synthesized.
-      assertThat(repackagedClassSubject.uniqueFieldWithName(clinitFieldName), isPresent());
+      assertThat(repackagedClassSubject.uniqueFieldWithOriginalName(clinitFieldName), isPresent());
 
       // Verify that both fields have been removed.
-      assertThat(repackagedClassSubject.uniqueFieldWithName("HELLO"), not(isPresent()));
-      assertThat(repackagedClassSubject.uniqueFieldWithName("WORLD"), not(isPresent()));
+      assertThat(repackagedClassSubject.uniqueFieldWithOriginalName("HELLO"), not(isPresent()));
+      assertThat(repackagedClassSubject.uniqueFieldWithOriginalName("WORLD"), not(isPresent()));
 
       // Verify that the class was repackaged.
       assertThat(StaticMemberValuePropagation.class, isRepackaged(inspector));

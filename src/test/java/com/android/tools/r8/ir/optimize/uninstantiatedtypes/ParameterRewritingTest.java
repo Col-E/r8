@@ -64,14 +64,14 @@ public class ParameterRewritingTest extends TestBase {
 
     ClassSubject factoryClassSubject = inspector.clazz(Factory.class);
     MethodSubject createStaticMethodSubject =
-        factoryClassSubject.uniqueMethodWithName("createStatic");
+        factoryClassSubject.uniqueMethodWithOriginalName("createStatic");
     assertThat(createStaticMethodSubject, isPresent());
     assertEquals(1, createStaticMethodSubject.getMethod().getParameters().size());
 
     for (int i = 1; i <= 3; ++i) {
       String createStaticWithUnusedMethodName = "createStaticWithUnused" + i;
       MethodSubject createStaticWithUnusedMethodSubject =
-          factoryClassSubject.uniqueMethodWithName(createStaticWithUnusedMethodName);
+          factoryClassSubject.uniqueMethodWithOriginalName(createStaticWithUnusedMethodName);
       assertThat(createStaticWithUnusedMethodSubject, isPresent());
 
       DexMethod method = createStaticWithUnusedMethodSubject.getMethod().getReference();
@@ -80,7 +80,7 @@ public class ParameterRewritingTest extends TestBase {
     }
 
     MethodSubject createStaticWithUnusedMethodSubject =
-        factoryClassSubject.uniqueMethodWithName("createStaticWithUnused4");
+        factoryClassSubject.uniqueMethodWithOriginalName("createStaticWithUnused4");
     assertThat(createStaticWithUnusedMethodSubject, isPresent());
 
     DexMethod method = createStaticWithUnusedMethodSubject.getMethod().getReference();

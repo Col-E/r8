@@ -83,22 +83,22 @@ public class ReservedFieldNameInSubClassTest extends TestBase {
     ClassSubject kClassSubject = inspector.clazz(K.class);
     assertThat(kClassSubject, isPresent());
 
-    FieldSubject f1FieldSubject = aClassSubject.uniqueFieldWithName("f1");
+    FieldSubject f1FieldSubject = aClassSubject.uniqueFieldWithOriginalName("f1");
     assertThat(f1FieldSubject, isPresent());
 
-    FieldSubject f2FieldSubject = bClassSubject.uniqueFieldWithName("f2");
+    FieldSubject f2FieldSubject = bClassSubject.uniqueFieldWithOriginalName("f2");
     assertThat(f2FieldSubject, isPresent());
 
-    FieldSubject f3FieldSubject = iClassSubject.uniqueFieldWithName("f3");
+    FieldSubject f3FieldSubject = iClassSubject.uniqueFieldWithOriginalName("f3");
     assertThat(f3FieldSubject, isPresent());
 
-    FieldSubject f4FieldSubject = jClassSubject.uniqueFieldWithName("f4");
+    FieldSubject f4FieldSubject = jClassSubject.uniqueFieldWithOriginalName("f4");
     assertThat(f4FieldSubject, isPresent());
 
-    FieldSubject f5FieldSubject = kClassSubject.uniqueFieldWithName("f5");
+    FieldSubject f5FieldSubject = kClassSubject.uniqueFieldWithOriginalName("f5");
     assertThat(f5FieldSubject, isPresent());
 
-    FieldSubject aFieldSubject = cClassSubject.uniqueFieldWithName("a");
+    FieldSubject aFieldSubject = cClassSubject.uniqueFieldWithOriginalName("a");
     assertThat(aFieldSubject, isPresent());
 
     if (reserveName) {

@@ -137,13 +137,13 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
   private void checkNoDebugInfo(CodeInspector inspector, int expectedMethodsInMain) {
     ClassSubject clazz = inspector.clazz(MAIN);
     assertEquals(expectedMethodsInMain, clazz.allMethods().size());
-    MethodSubject main = clazz.uniqueMethodWithName("main");
+    MethodSubject main = clazz.uniqueMethodWithOriginalName("main");
     assertNull(main.getMethod().getCode().asDexCode().getDebugInfo());
   }
 
   private void checkHasLineNumberInfo(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz(MAIN);
-    MethodSubject main = clazz.uniqueMethodWithName("main");
+    MethodSubject main = clazz.uniqueMethodWithOriginalName("main");
     List<DexDebugEntry> entries =
         new DexDebugEntryBuilder(main.getMethod(), inspector.getFactory()).build();
     Set<Integer> lines = entries.stream().map(e -> e.line).collect(Collectors.toSet());

@@ -117,6 +117,6 @@ public class SubsumedCatchHandlerTest extends TestBase {
       assertEquals("java.lang.Exception", guard.toSourceString());
     }
 
-    assertThat(classSubject.uniqueMethodWithName("foo"), isAbsent());
+    assertThat(classSubject.uniqueMethodWithOriginalName("foo"), isAbsent());
   }
 }

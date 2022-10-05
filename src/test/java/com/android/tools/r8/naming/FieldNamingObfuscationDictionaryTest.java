@@ -108,11 +108,16 @@ public class FieldNamingObfuscationDictionaryTest extends TestBase {
         .assertSuccessWithOutputLines("2HELLO WORLD", "2HELLO WORLD")
         .inspect(
             inspector -> {
-              assertEquals("a", inspector.clazz(A.class).uniqueFieldWithName("f1").getFinalName());
-              assertEquals("a", inspector.clazz(B.class).uniqueFieldWithName("f0").getFinalName());
-              assertEquals("b", inspector.clazz(B.class).uniqueFieldWithName("f2").getFinalName());
-              assertEquals("a", inspector.clazz(C.class).uniqueFieldWithName("f0").getFinalName());
-              assertEquals("b", inspector.clazz(C.class).uniqueFieldWithName("f3").getFinalName());
+              assertEquals(
+                  "a", inspector.clazz(A.class).uniqueFieldWithOriginalName("f1").getFinalName());
+              assertEquals(
+                  "a", inspector.clazz(B.class).uniqueFieldWithOriginalName("f0").getFinalName());
+              assertEquals(
+                  "b", inspector.clazz(B.class).uniqueFieldWithOriginalName("f2").getFinalName());
+              assertEquals(
+                  "a", inspector.clazz(C.class).uniqueFieldWithOriginalName("f0").getFinalName());
+              assertEquals(
+                  "b", inspector.clazz(C.class).uniqueFieldWithOriginalName("f3").getFinalName());
             });
   }
 }

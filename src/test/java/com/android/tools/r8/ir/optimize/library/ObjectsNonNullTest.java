@@ -48,12 +48,12 @@ public class ObjectsNonNullTest extends TestBase {
               assertThat(mainClassSubject, isPresent());
 
               MethodSubject testNonNullArgumentMethodSubject =
-                  mainClassSubject.uniqueMethodWithName("testNonNullArgument");
+                  mainClassSubject.uniqueMethodWithOriginalName("testNonNullArgument");
               assertThat(testNonNullArgumentMethodSubject, isPresent());
               assertThat(testNonNullArgumentMethodSubject, not(invokesMethodWithName("nonNull")));
 
               MethodSubject testNullArgumentMethodSubject =
-                  mainClassSubject.uniqueMethodWithName("testNullArgument");
+                  mainClassSubject.uniqueMethodWithOriginalName("testNullArgument");
               assertThat(testNullArgumentMethodSubject, isPresent());
               assertThat(testNullArgumentMethodSubject, not(invokesMethodWithName("nonNull")));
             })

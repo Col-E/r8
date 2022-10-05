@@ -59,7 +59,7 @@ public class RedundantFinalInstanceFieldLoadAfterStoreTest extends TestBase {
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
 
-    FieldSubject fFieldSubject = aClassSubject.uniqueFieldWithName("f");
+    FieldSubject fFieldSubject = aClassSubject.uniqueFieldWithOriginalName("f");
     assertThat(fFieldSubject, isPresent());
 
     MethodSubject initMethodSubject = aClassSubject.init();
@@ -69,7 +69,7 @@ public class RedundantFinalInstanceFieldLoadAfterStoreTest extends TestBase {
         countInstanceGetInstructions(
             initMethodSubject.asFoundMethodSubject(), fFieldSubject.asFoundFieldSubject()));
 
-    MethodSubject mMethodSubject = aClassSubject.uniqueMethodWithName("m");
+    MethodSubject mMethodSubject = aClassSubject.uniqueMethodWithOriginalName("m");
     assertThat(mMethodSubject, isPresent());
     assertEquals(
         2,

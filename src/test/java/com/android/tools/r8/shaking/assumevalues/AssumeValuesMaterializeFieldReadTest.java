@@ -49,7 +49,7 @@ public class AssumeValuesMaterializeFieldReadTest extends TestBase {
               ClassSubject mainClassSubject = inspector.clazz(Main.class);
               assertThat(mainClassSubject, isPresent());
 
-              MethodSubject getMethodSubject = mainClassSubject.uniqueMethodWithName("get");
+              MethodSubject getMethodSubject = mainClassSubject.uniqueMethodWithOriginalName("get");
               assertThat(getMethodSubject, isAbsent());
             })
         .run(parameters.getRuntime(), Main.class)

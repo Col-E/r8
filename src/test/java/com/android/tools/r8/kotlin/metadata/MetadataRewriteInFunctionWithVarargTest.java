@@ -118,13 +118,13 @@ public class MetadataRewriteInFunctionWithVarargTest extends KotlinMetadataTestB
     ClassSubject cls = inspector.clazz(className);
     assertThat(cls, isPresentAndNotRenamed());
 
-    MethodSubject foo = cls.uniqueMethodWithName("foo");
+    MethodSubject foo = cls.uniqueMethodWithOriginalName("foo");
     assertThat(foo, isPresentAndNotRenamed());
 
     ClassSubject libKt = inspector.clazz(libClassName);
     assertThat(libKt, isPresentAndNotRenamed());
 
-    MethodSubject bar = libKt.uniqueMethodWithName("bar");
+    MethodSubject bar = libKt.uniqueMethodWithOriginalName("bar");
     assertThat(bar, isPresentAndNotRenamed());
 
     KmPackageSubject kmPackage = libKt.getKmPackage();

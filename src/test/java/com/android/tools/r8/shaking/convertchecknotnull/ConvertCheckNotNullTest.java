@@ -76,9 +76,11 @@ public class ConvertCheckNotNullTest extends TestBase {
                       .count());
 
               assertThat(
-                  mainClassSubject.uniqueMethodWithName("requireNonNullWithoutReturn"), isAbsent());
+                  mainClassSubject.uniqueMethodWithOriginalName("requireNonNullWithoutReturn"),
+                  isAbsent());
               assertThat(
-                  mainClassSubject.uniqueMethodWithName("requireNonNullWithReturn"), isAbsent());
+                  mainClassSubject.uniqueMethodWithOriginalName("requireNonNullWithReturn"),
+                  isAbsent());
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(getExpectedOutput());

@@ -84,16 +84,16 @@ public class Proto3ShrinkingTest extends ProtoShrinkingTestBase {
       ClassSubject puClassSubject = inputInspector.clazz(PARTIALLY_USED);
       assertThat(puClassSubject, isPresent());
       assertEquals(2, puClassSubject.allInstanceFields().size());
-      assertThat(puClassSubject.uniqueFieldWithName("used_"), isPresent());
-      assertThat(puClassSubject.uniqueFieldWithName("completelyUnused_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithOriginalName("used_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithOriginalName("completelyUnused_"), isPresent());
     }
 
     // Verify that various proto fields have been removed in the output.
     {
       ClassSubject puClassSubject = outputInspector.clazz(PARTIALLY_USED);
       assertThat(puClassSubject, isPresent());
-      assertThat(puClassSubject.uniqueFieldWithName("used_"), isPresent());
-      assertThat(puClassSubject.uniqueFieldWithName("completelyUnused_"), not(isPresent()));
+      assertThat(puClassSubject.uniqueFieldWithOriginalName("used_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithOriginalName("completelyUnused_"), not(isPresent()));
     }
   }
 

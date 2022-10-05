@@ -172,64 +172,72 @@ public class DefaultMethodsTest extends TestBase {
     assertThat(superIfaceSubject, isPresent());
     if (interfaceMethodsKept) {
       assertEquals(
-          expected.contains("m1"), superIfaceSubject.uniqueMethodWithName("m1").isPresent());
+          expected.contains("m1"),
+          superIfaceSubject.uniqueMethodWithOriginalName("m1").isPresent());
       if (expected.contains("m1")) {
-        assertThat(superIfaceSubject.uniqueMethodWithName("m1"), isAbstract());
+        assertThat(superIfaceSubject.uniqueMethodWithOriginalName("m1"), isAbstract());
       }
     }
     ClassSubject subIfaceSubject = inspector.clazz(SubIface.class);
     assertThat(subIfaceSubject, isPresent());
     if (interfaceMethodsKept) {
-      assertEquals(expected.contains("m2"), subIfaceSubject.uniqueMethodWithName("m2").isPresent());
+      assertEquals(
+          expected.contains("m2"), subIfaceSubject.uniqueMethodWithOriginalName("m2").isPresent());
       if (expected.contains("m2")) {
-        assertThat(subIfaceSubject.uniqueMethodWithName("m2"), isAbstract());
+        assertThat(subIfaceSubject.uniqueMethodWithOriginalName("m2"), isAbstract());
       }
     }
     ClassSubject subSubIfaceSubject = inspector.clazz(SubSubIface.class);
     assertThat(subSubIfaceSubject, isPresent());
     if (interfaceMethodsKept) {
       assertEquals(
-          expected.contains("m3"), subSubIfaceSubject.uniqueMethodWithName("m3").isPresent());
+          expected.contains("m3"),
+          subSubIfaceSubject.uniqueMethodWithOriginalName("m3").isPresent());
       if (expected.contains("m3")) {
-        assertThat(subSubIfaceSubject.uniqueMethodWithName("m3"), isAbstract());
+        assertThat(subSubIfaceSubject.uniqueMethodWithOriginalName("m3"), isAbstract());
       }
     }
     ClassSubject implSubject = inspector.clazz(Impl.class);
     assertThat(implSubject, isPresent());
     if (interfaceMethodsKept) {
-      assertEquals(expected.contains("m1"), implSubject.uniqueMethodWithName("m1").isPresent());
-      assertEquals(expected.contains("m2"), implSubject.uniqueMethodWithName("m2").isPresent());
-      assertEquals(expected.contains("m3"), implSubject.uniqueMethodWithName("m3").isPresent());
+      assertEquals(
+          expected.contains("m1"), implSubject.uniqueMethodWithOriginalName("m1").isPresent());
+      assertEquals(
+          expected.contains("m2"), implSubject.uniqueMethodWithOriginalName("m2").isPresent());
+      assertEquals(
+          expected.contains("m3"), implSubject.uniqueMethodWithOriginalName("m3").isPresent());
     }
-    assertEquals(expected.contains("m4"), implSubject.uniqueMethodWithName("m4").isPresent());
+    assertEquals(
+        expected.contains("m4"), implSubject.uniqueMethodWithOriginalName("m4").isPresent());
     ClassSubject subImplSubject = inspector.clazz(SubImpl.class);
     assertThat(subImplSubject, isPresent());
-    assertThat(subImplSubject.uniqueMethodWithName("m1"), not(isPresent()));
-    assertThat(subImplSubject.uniqueMethodWithName("m2"), not(isPresent()));
-    assertThat(subImplSubject.uniqueMethodWithName("m3"), not(isPresent()));
-    assertThat(subImplSubject.uniqueMethodWithName("m4"), not(isPresent()));
-    assertEquals(expected.contains("m5"), subImplSubject.uniqueMethodWithName("m5").isPresent());
+    assertThat(subImplSubject.uniqueMethodWithOriginalName("m1"), not(isPresent()));
+    assertThat(subImplSubject.uniqueMethodWithOriginalName("m2"), not(isPresent()));
+    assertThat(subImplSubject.uniqueMethodWithOriginalName("m3"), not(isPresent()));
+    assertThat(subImplSubject.uniqueMethodWithOriginalName("m4"), not(isPresent()));
+    assertEquals(
+        expected.contains("m5"), subImplSubject.uniqueMethodWithOriginalName("m5").isPresent());
     ClassSubject subSubImplSubject = inspector.clazz(SubSubImpl.class);
     assertThat(subSubImplSubject, isPresent());
     // FOO
     assertEquals(
         subSubImplExpected.contains("m1"),
-        subSubImplSubject.uniqueMethodWithName("m1").isPresent());
+        subSubImplSubject.uniqueMethodWithOriginalName("m1").isPresent());
     assertEquals(
         subSubImplExpected.contains("m2"),
-        subSubImplSubject.uniqueMethodWithName("m2").isPresent());
+        subSubImplSubject.uniqueMethodWithOriginalName("m2").isPresent());
     assertEquals(
         subSubImplExpected.contains("m3"),
-        subSubImplSubject.uniqueMethodWithName("m3").isPresent());
+        subSubImplSubject.uniqueMethodWithOriginalName("m3").isPresent());
     assertEquals(
         subSubImplExpected.contains("m4"),
-        subSubImplSubject.uniqueMethodWithName("m4").isPresent());
+        subSubImplSubject.uniqueMethodWithOriginalName("m4").isPresent());
     assertEquals(
         subSubImplExpected.contains("m5"),
-        subSubImplSubject.uniqueMethodWithName("m5").isPresent());
+        subSubImplSubject.uniqueMethodWithOriginalName("m5").isPresent());
     assertEquals(
         subSubImplExpected.contains("m6"),
-        subSubImplSubject.uniqueMethodWithName("m6").isPresent());
+        subSubImplSubject.uniqueMethodWithOriginalName("m6").isPresent());
   }
 
   private void checkAllMethodsInterfacesKept(CodeInspector inspector, Shrinker shrinker) {

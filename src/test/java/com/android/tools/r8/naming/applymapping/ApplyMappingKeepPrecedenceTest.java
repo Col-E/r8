@@ -104,10 +104,10 @@ public class ApplyMappingKeepPrecedenceTest extends TestBase {
               ClassSubject clazzB = codeInspector.clazz(B.class);
               assertTrue(clazzB.isPresent());
               assertTrue(clazzB.isRenamed());
-              FieldSubject foo = clazzB.uniqueFieldWithName("foo");
+              FieldSubject foo = clazzB.uniqueFieldWithOriginalName("foo");
               assertTrue(foo.isPresent());
               assertFalse(foo.isRenamed());
-              MethodSubject bar = clazzB.uniqueMethodWithName("bar");
+              MethodSubject bar = clazzB.uniqueMethodWithOriginalName("bar");
               assertTrue(bar.isPresent());
               assertFalse(bar.isRenamed());
             });

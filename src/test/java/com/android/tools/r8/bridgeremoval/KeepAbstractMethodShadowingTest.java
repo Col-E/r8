@@ -57,7 +57,7 @@ public class KeepAbstractMethodShadowingTest extends TestBase {
             inspector -> {
               ClassSubject clazz = inspector.clazz(B.class);
               assertThat(clazz, isPresent());
-              MethodSubject foo = clazz.uniqueMethodWithName("foo");
+              MethodSubject foo = clazz.uniqueMethodWithOriginalName("foo");
               assertThat(foo, isPresent());
             });
   }

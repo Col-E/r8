@@ -74,10 +74,10 @@ public class ArtProfileCollisionAfterClassMergingRewritingTest extends TestBase 
     ClassSubject barClassSubject = inspector.clazz(Bar.class);
     assertThat(barClassSubject, isPresentAndRenamed());
 
-    MethodSubject helloMethodSubject = barClassSubject.uniqueMethodWithName("hello");
+    MethodSubject helloMethodSubject = barClassSubject.uniqueMethodWithOriginalName("hello");
     assertThat(helloMethodSubject, isPresentAndRenamed());
 
-    MethodSubject worldMethodSubject = barClassSubject.uniqueMethodWithName("world");
+    MethodSubject worldMethodSubject = barClassSubject.uniqueMethodWithOriginalName("world");
     assertThat(worldMethodSubject, isPresentAndRenamed());
 
     assertTrue(residualArtProfileConsumer.finished);

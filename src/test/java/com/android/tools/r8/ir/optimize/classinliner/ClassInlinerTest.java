@@ -109,50 +109,52 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
 
     assertEquals(
         Collections.singleton("java.lang.StringBuilder"),
-        collectTypes(clazz.uniqueMethodWithName("testInner")));
+        collectTypes(clazz.uniqueMethodWithOriginalName("testInner")));
 
     assertEquals(
         Collections.emptySet(),
-        collectTypes(clazz.uniqueMethodWithName("testConstructorMapping1")));
+        collectTypes(clazz.uniqueMethodWithOriginalName("testConstructorMapping1")));
 
     assertEquals(
         Collections.emptySet(),
-        collectTypes(clazz.uniqueMethodWithName("testConstructorMapping2")));
+        collectTypes(clazz.uniqueMethodWithOriginalName("testConstructorMapping2")));
 
     assertEquals(
         Collections.singleton("java.lang.StringBuilder"),
-        collectTypes(clazz.uniqueMethodWithName("testConstructorMapping3")));
+        collectTypes(clazz.uniqueMethodWithOriginalName("testConstructorMapping3")));
 
     assertEquals(
-        Collections.emptySet(), collectTypes(clazz.uniqueMethodWithName("testEmptyClass")));
+        Collections.emptySet(), collectTypes(clazz.uniqueMethodWithOriginalName("testEmptyClass")));
 
     assertEquals(
         Collections.singleton(
             "com.android.tools.r8.ir.optimize.classinliner.trivial.EmptyClassWithInitializer"),
-        collectTypes(clazz.uniqueMethodWithName("testEmptyClassWithInitializer")));
+        collectTypes(clazz.uniqueMethodWithOriginalName("testEmptyClassWithInitializer")));
 
     assertEquals(
         Collections.singleton(
             "com.android.tools.r8.ir.optimize.classinliner.trivial.ClassWithFinal"),
-        collectTypes(clazz.uniqueMethodWithName("testClassWithFinalizer")));
+        collectTypes(clazz.uniqueMethodWithOriginalName("testClassWithFinalizer")));
 
     assertEquals(
-        Collections.emptySet(), collectTypes(clazz.uniqueMethodWithName("testCallOnIface1")));
+        Collections.emptySet(),
+        collectTypes(clazz.uniqueMethodWithOriginalName("testCallOnIface1")));
 
     assertEquals(
-        Collections.emptySet(), collectTypes(clazz.uniqueMethodWithName("testCallOnIface2")));
+        Collections.emptySet(),
+        collectTypes(clazz.uniqueMethodWithOriginalName("testCallOnIface2")));
 
     assertEquals(
         Sets.newHashSet(
             "com.android.tools.r8.ir.optimize.classinliner.trivial.CycleReferenceAB",
             "java.lang.StringBuilder"),
-        collectTypes(clazz.uniqueMethodWithName("testCycles")));
+        collectTypes(clazz.uniqueMethodWithOriginalName("testCycles")));
 
     assertEquals(
         Sets.newHashSet(
             "java.lang.StringBuilder",
             "com.android.tools.r8.ir.optimize.classinliner.trivial.CycleReferenceAB"),
-        collectTypes(inspector.clazz(CycleReferenceAB.class).uniqueMethodWithName("foo")));
+        collectTypes(inspector.clazz(CycleReferenceAB.class).uniqueMethodWithOriginalName("foo")));
 
     assertThat(inspector.clazz(CycleReferenceBA.class), isAbsent());
   }
@@ -219,11 +221,14 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
     CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(C.class);
 
-    assertEquals(Collections.emptySet(), collectTypes(clazz.uniqueMethodWithName("method1")));
+    assertEquals(
+        Collections.emptySet(), collectTypes(clazz.uniqueMethodWithOriginalName("method1")));
 
-    assertEquals(Collections.emptySet(), collectTypes(clazz.uniqueMethodWithName("method2")));
+    assertEquals(
+        Collections.emptySet(), collectTypes(clazz.uniqueMethodWithOriginalName("method2")));
 
-    assertEquals(Collections.emptySet(), collectTypes(clazz.uniqueMethodWithName("method3")));
+    assertEquals(
+        Collections.emptySet(), collectTypes(clazz.uniqueMethodWithOriginalName("method3")));
 
     assertFalse(inspector.clazz(C.L.class).isPresent());
     assertFalse(inspector.clazz(C.F.class).isPresent());
@@ -264,15 +269,15 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
     // TODO(b/143129517, 141719453): This expectation relies on the class inlining limits.
     assertEquals(
         Sets.newHashSet("java.lang.StringBuilder", "java.lang.RuntimeException"),
-        collectTypes(clazz.uniqueMethodWithName("testExtraNeverReturnsNormally")));
+        collectTypes(clazz.uniqueMethodWithOriginalName("testExtraNeverReturnsNormally")));
 
     assertEquals(
         Sets.newHashSet("java.lang.StringBuilder", "java.lang.RuntimeException"),
-        collectTypes(clazz.uniqueMethodWithName("testDirectNeverReturnsNormally")));
+        collectTypes(clazz.uniqueMethodWithOriginalName("testDirectNeverReturnsNormally")));
 
     assertEquals(
         Sets.newHashSet("java.lang.StringBuilder", "java.lang.RuntimeException"),
-        collectTypes(clazz.uniqueMethodWithName("testInitNeverReturnsNormally")));
+        collectTypes(clazz.uniqueMethodWithOriginalName("testInitNeverReturnsNormally")));
 
     assertThat(
         inspector.clazz(InvalidRootsTestClass.NeverReturnsNormally.class),
@@ -283,7 +288,7 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
     // TODO(b/143129517, b/141719453): This expectation relies on the class inlining limits.
     assertEquals(
         Sets.newHashSet("java.lang.StringBuilder", "java.lang.RuntimeException"),
-        collectTypes(clazz.uniqueMethodWithName("testRootInvalidatesAfterInlining")));
+        collectTypes(clazz.uniqueMethodWithOriginalName("testRootInvalidatesAfterInlining")));
 
     assertThat(inspector.clazz(InvalidRootsTestClass.A.class), not(isPresent()));
     assertThat(inspector.clazz(InvalidRootsTestClass.B.class), not(isPresent()));
@@ -323,13 +328,13 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
     // TODO(b/120814598): Should only be "java.lang.StringBuilder".
     assertEquals(
         new HashSet<>(synthesizedJavaLambdaClasses),
-        collectTypes(clazz.uniqueMethodWithName("testStatelessLambda")));
+        collectTypes(clazz.uniqueMethodWithOriginalName("testStatelessLambda")));
     assertTrue(
         inspector.allClasses().stream().anyMatch(ClassSubject::isSynthesizedJavaLambdaClass));
 
     assertEquals(
         Sets.newHashSet("java.lang.StringBuilder"),
-        collectTypes(clazz.uniqueMethodWithName("testStatefulLambda")));
+        collectTypes(clazz.uniqueMethodWithOriginalName("testStatefulLambda")));
   }
 
   private String getProguardConfig(String main) {

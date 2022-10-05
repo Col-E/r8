@@ -81,7 +81,7 @@ public class InvokeInterfaceNegativeTest extends TestBase {
     ClassSubject a = inspector.clazz(A.class);
     assertThat(a, isPresent());
 
-    MethodSubject a_m = a.uniqueMethodWithName("m");
+    MethodSubject a_m = a.uniqueMethodWithOriginalName("m");
     assertThat(a_m, isPresent());
     // Should not optimize branches since the nullability of `arg` is unsure.
     assertTrue(a_m.streamInstructions().anyMatch(InstructionSubject::isIf));

@@ -41,7 +41,8 @@ public class NopLineRegression230337727Test extends TestBase implements Opcodes 
         .run(parameters.getRuntime(), TestClass.class)
         .inspect(
             inspector -> {
-              MethodSubject foo = inspector.clazz(TestClass.class).uniqueMethodWithName("foo");
+              MethodSubject foo =
+                  inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("foo");
               assertTrue(
                   foo.getLineNumberTable().getLines().toString(),
                   foo.getLineNumberTable().getLines().contains(11));

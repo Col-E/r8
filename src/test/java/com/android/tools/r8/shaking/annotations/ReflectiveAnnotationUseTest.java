@@ -113,13 +113,13 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
             .inspector();
     ClassSubject clazz = inspector.clazz(ANNOTATION_NAME);
     assertThat(clazz, isPresentAndNotRenamed());
-    MethodSubject f1 = clazz.uniqueMethodWithName("f1");
+    MethodSubject f1 = clazz.uniqueMethodWithOriginalName("f1");
     assertThat(f1, isPresentAndNotRenamed());
-    MethodSubject f2 = clazz.uniqueMethodWithName("f2");
+    MethodSubject f2 = clazz.uniqueMethodWithOriginalName("f2");
     assertThat(f2, isPresentAndNotRenamed());
-    MethodSubject f3 = clazz.uniqueMethodWithName("f3");
+    MethodSubject f3 = clazz.uniqueMethodWithOriginalName("f3");
     assertThat(f3, isPresentAndNotRenamed());
-    MethodSubject f4 = clazz.uniqueMethodWithName("f4");
+    MethodSubject f4 = clazz.uniqueMethodWithOriginalName("f4");
     assertThat(f4, isPresentAndNotRenamed());
 
     ClassSubject impl = inspector.clazz(IMPL_CLASS_NAME);
@@ -155,13 +155,13 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
     ClassSubject clazz = inspector.clazz(ANNOTATION_NAME);
     assertThat(clazz, isPresent());
     assertEquals(minify, clazz.isRenamed());
-    MethodSubject f1 = clazz.uniqueMethodWithName("f1");
+    MethodSubject f1 = clazz.uniqueMethodWithOriginalName("f1");
     assertThat(f1, isPresentAndNotRenamed());
-    MethodSubject f2 = clazz.uniqueMethodWithName("f2");
+    MethodSubject f2 = clazz.uniqueMethodWithOriginalName("f2");
     assertThat(f2, isPresentAndNotRenamed());
-    MethodSubject f3 = clazz.uniqueMethodWithName("f3");
+    MethodSubject f3 = clazz.uniqueMethodWithOriginalName("f3");
     assertThat(f3, not(isPresent()));
-    MethodSubject f4 = clazz.uniqueMethodWithName("f4");
+    MethodSubject f4 = clazz.uniqueMethodWithOriginalName("f4");
     assertThat(f4, not(isPresent()));
 
     ClassSubject impl = inspector.clazz(IMPL_CLASS_NAME);
@@ -193,13 +193,13 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
     ClassSubject clazz = inspector.clazz(ANNOTATION_NAME);
     assertThat(clazz, isPresent());
     assertEquals(minify, clazz.isRenamed());
-    MethodSubject f1 = clazz.uniqueMethodWithName("f1");
+    MethodSubject f1 = clazz.uniqueMethodWithOriginalName("f1");
     assertThat(f1, isPresentAndNotRenamed());
-    MethodSubject f2 = clazz.uniqueMethodWithName("f2");
+    MethodSubject f2 = clazz.uniqueMethodWithOriginalName("f2");
     assertThat(f2, isPresentAndNotRenamed());
-    MethodSubject f3 = clazz.uniqueMethodWithName("f3");
+    MethodSubject f3 = clazz.uniqueMethodWithOriginalName("f3");
     assertThat(f3, not(isPresent()));
-    MethodSubject f4 = clazz.uniqueMethodWithName("f4");
+    MethodSubject f4 = clazz.uniqueMethodWithOriginalName("f4");
     assertThat(f4, not(isPresent()));
 
     ClassSubject impl = inspector.clazz(IMPL_CLASS_NAME);
@@ -230,13 +230,13 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
     ClassSubject clazz = inspector.clazz(ANNOTATION_NAME);
     assertThat(clazz, isPresent());
     assertEquals(minify, clazz.isRenamed());
-    MethodSubject f1 = clazz.uniqueMethodWithName("f1");
+    MethodSubject f1 = clazz.uniqueMethodWithOriginalName("f1");
     assertThat(f1, isPresent());
-    MethodSubject f2 = clazz.uniqueMethodWithName("f2");
+    MethodSubject f2 = clazz.uniqueMethodWithOriginalName("f2");
     assertThat(f2, isPresent());
-    MethodSubject f3 = clazz.uniqueMethodWithName("f3");
+    MethodSubject f3 = clazz.uniqueMethodWithOriginalName("f3");
     assertThat(f3, not(isPresent()));
-    MethodSubject f4 = clazz.uniqueMethodWithName("f4");
+    MethodSubject f4 = clazz.uniqueMethodWithOriginalName("f4");
     assertThat(f4, not(isPresent()));
 
     ClassSubject impl = inspector.clazz(IMPL_CLASS_NAME);

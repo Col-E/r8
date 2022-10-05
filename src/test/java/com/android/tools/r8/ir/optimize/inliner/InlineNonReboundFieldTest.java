@@ -38,11 +38,11 @@ public class InlineNonReboundFieldTest extends TestBase {
 
     // Verify that greet() is not inlined into main() -- that would lead to illegal access errors
     // since main() does not have access to the GreetingBase.greeting field.
-    assertThat(greeterSubject.uniqueMethodWithName("greet"), isPresent());
+    assertThat(greeterSubject.uniqueMethodWithOriginalName("greet"), isPresent());
 
     // The method greetInternal() should be inlined into greet() since it has a single call site and
     // nothing prevents it from being inlined.
-    assertThat(greeterSubject.uniqueMethodWithName("greetInternal"), not(isPresent()));
+    assertThat(greeterSubject.uniqueMethodWithOriginalName("greetInternal"), not(isPresent()));
   }
 
   static class TestClass {

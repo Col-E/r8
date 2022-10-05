@@ -78,7 +78,7 @@ public class DeadFieldAfterAssumevaluesTest extends TestBase {
     assertTrue(mainMethod.streamInstructions()
         .noneMatch(i -> i.isIf() || i.isIfEqz() || i.isIfNez()));
 
-    FieldSubject hasR8 = main.uniqueFieldWithName("HAS_R8");
+    FieldSubject hasR8 = main.uniqueFieldWithOriginalName("HAS_R8");
     assertThat(hasR8, not(isPresent()));
 
     MethodSubject clinit = main.clinit();

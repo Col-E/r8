@@ -70,7 +70,8 @@ public class PackagePrivateOverridePublicizerBottomTest extends TestBase {
               ClassSubject subViewModelSubject =
                   inspector.clazz(DescriptorUtils.descriptorToJavaType(NEW_DESCRIPTOR));
               assertThat(subViewModelSubject, isPresent());
-              MethodSubject clearSubject = subViewModelSubject.uniqueMethodWithName("clear");
+              MethodSubject clearSubject =
+                  subViewModelSubject.uniqueMethodWithOriginalName("clear");
               assertThat(clearSubject, isPresent());
               assertTrue(clearSubject.isPublic());
             });

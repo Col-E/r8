@@ -63,12 +63,12 @@ public class AnnotationsOnFieldsTest extends TestBase {
               assertThat(clazz, isPresent());
               assertThat(clazz, isPresentAndRenamed());
 
-              FieldSubject field = clazz.uniqueFieldWithName("field");
+              FieldSubject field = clazz.uniqueFieldWithOriginalName("field");
               assertThat(field, isPresent());
               assertThat(field.annotation(FieldAnnotation.class.getTypeName()), isPresent());
               assertThat(inspector.clazz(FieldAnnotationUse.class), isPresentAndRenamed());
 
-              FieldSubject staticField = clazz.uniqueFieldWithName("staticField");
+              FieldSubject staticField = clazz.uniqueFieldWithOriginalName("staticField");
               assertThat(staticField, isPresent());
               assertThat(
                   staticField.annotation(StaticFieldAnnotation.class.getTypeName()), isPresent());

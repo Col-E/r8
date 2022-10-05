@@ -47,7 +47,8 @@ public class FinalizeVirtualMethodTest extends TestBase {
             inspector -> {
               ClassSubject aClassSubject = inspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
-              assertThat(aClassSubject.uniqueMethodWithName("m"), allOf(isPresent(), isFinal()));
+              assertThat(
+                  aClassSubject.uniqueMethodWithOriginalName("m"), allOf(isPresent(), isFinal()));
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A.m()");

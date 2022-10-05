@@ -72,7 +72,8 @@ public class InputWithAbstractMethodOnNonAbstractClassTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    MethodSubject methodOfInterest = inspector.clazz(Greeter.class).uniqueMethodWithName("dead");
+    MethodSubject methodOfInterest =
+        inspector.clazz(Greeter.class).uniqueMethodWithOriginalName("dead");
     assertThat(methodOfInterest, isPresent());
     if (parameters.isCfRuntime() || parameters.getApiLevel().isLessThan(AndroidApiLevel.L)) {
       assertThat(methodOfInterest, not(isAbstract()));

@@ -63,7 +63,7 @@ public class ApiModelInlineInSameClassTest extends TestBase {
               if (parameters.isDexRuntime()
                   && parameters.getApiLevel().isGreaterThanOrEqualTo(L_MR1)) {
                 ClassSubject mainSubject = inspector.clazz(Main.class);
-                MethodSubject mainMethodSubject = mainSubject.uniqueMethodWithName("main");
+                MethodSubject mainMethodSubject = mainSubject.uniqueMethodWithOriginalName("main");
                 assertThat(mainMethodSubject, isPresent());
                 assertThat(mainMethodSubject, CodeMatchers.invokesMethodWithName("apiLevel22"));
               }

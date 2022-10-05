@@ -118,7 +118,7 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
     }
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(classSubject, isPresent());
-    MethodSubject main = classSubject.uniqueMethodWithName("main");
+    MethodSubject main = classSubject.uniqueMethodWithOriginalName("main");
     Set<String> foundInvokeHolders =
         main.streamInstructions()
             .filter(InstructionSubject::isInvoke)
@@ -177,7 +177,7 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
             .isGreaterThanOrEqualTo(TestBase.apiLevelWithDefaultInterfaceMethodsSupport())
         || isR8) {
       assertThat(
-          inspector.clazz(TemporalAccessorImpl.class).uniqueMethodWithName("query"),
+          inspector.clazz(TemporalAccessorImpl.class).uniqueMethodWithOriginalName("query"),
           not(isPresent()));
     } else {
       assertThat(

@@ -69,7 +69,7 @@ public class PutObjectWithFinalizeTest extends TestBase {
                       "arrayWithIndirectFinalizer",
                       "otherArrayInstanceWithoutFinalizer");
               for (String name : presentFields) {
-                FieldSubject fieldSubject = classSubject.uniqueFieldWithName(name);
+                FieldSubject fieldSubject = classSubject.uniqueFieldWithOriginalName(name);
                 assertThat(name, fieldSubject, isPresent());
                 assertTrue(
                     mainSubject
@@ -87,7 +87,7 @@ public class PutObjectWithFinalizeTest extends TestBase {
                       "indirectInstanceWithoutFinalizer",
                       "arrayWithoutFinalizer");
               for (String name : absentFields) {
-                assertThat(classSubject.uniqueFieldWithName(name), not(isPresent()));
+                assertThat(classSubject.uniqueFieldWithOriginalName(name), not(isPresent()));
               }
             })
         .run(parameters.getRuntime(), TestClass.class)

@@ -99,7 +99,7 @@ public class RetraceInlineeWithNoSuchMethodErrorTest extends TestBase {
           ClassSubject fooClass = codeInspector.clazz(Foo.class);
           assertThat(fooClass, isPresent());
           // We are not inlining this because resolution fails
-          assertThat(fooClass.uniqueMethodWithName("inlinable"), isPresent());
+          assertThat(fooClass.uniqueMethodWithOriginalName("inlinable"), isPresent());
         });
   }
 

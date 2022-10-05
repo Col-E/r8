@@ -50,16 +50,20 @@ public class LambdaMethodsWithModifiedAccessTest extends TestBase {
         new CodeInspector(ToolHelper.getClassFileForTestClass(LambdaTest.class));
     inspector.forAllClasses(clazz -> clazz.forAllMethods(System.out::println));
     assertThat(
-        inspector.clazz(LambdaTest.class).uniqueMethodWithName(LAMBDA_TO_PUBLIC), isPrivate());
+        inspector.clazz(LambdaTest.class).uniqueMethodWithOriginalName(LAMBDA_TO_PUBLIC),
+        isPrivate());
     assertThat(
-        inspector.clazz(LambdaTest.class).uniqueMethodWithName(LAMBDA_TO_NATIVE), isPrivate());
+        inspector.clazz(LambdaTest.class).uniqueMethodWithOriginalName(LAMBDA_TO_NATIVE),
+        isPrivate());
   }
 
   private void inspect(CodeInspector inspector) {
     assertThat(
-        inspector.clazz(LambdaTest.class).uniqueMethodWithName(LAMBDA_TO_PUBLIC), isPublic());
+        inspector.clazz(LambdaTest.class).uniqueMethodWithOriginalName(LAMBDA_TO_PUBLIC),
+        isPublic());
     assertThat(
-        inspector.clazz(LambdaTest.class).uniqueMethodWithName(LAMBDA_TO_NATIVE), isNative());
+        inspector.clazz(LambdaTest.class).uniqueMethodWithOriginalName(LAMBDA_TO_NATIVE),
+        isNative());
   }
 
   @Test

@@ -88,9 +88,10 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
             inspector -> {
               ClassSubject classSubject = inspector.clazz(ClassForIf.class);
               assertThat(classSubject, isPresent());
-              MethodSubject methodSubject = classSubject.uniqueMethodWithName("publicMethod");
+              MethodSubject methodSubject =
+                  classSubject.uniqueMethodWithOriginalName("publicMethod");
               assertThat(methodSubject, not(isPresent()));
-              methodSubject = classSubject.uniqueMethodWithName("nonPublicMethod");
+              methodSubject = classSubject.uniqueMethodWithOriginalName("nonPublicMethod");
               assertThat(methodSubject, isPresent());
               assertFalse(methodSubject.getMethod().accessFlags.isPublic());
               classSubject = inspector.clazz(ClassForSubsequent.class);
@@ -122,17 +123,18 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
             inspector -> {
               ClassSubject classSubject = inspector.clazz(ClassForIf.class);
               assertThat(classSubject, isPresent());
-              MethodSubject methodSubject = classSubject.uniqueMethodWithName("publicMethod");
+              MethodSubject methodSubject =
+                  classSubject.uniqueMethodWithOriginalName("publicMethod");
               assertThat(methodSubject, not(isPresent()));
-              methodSubject = classSubject.uniqueMethodWithName("nonPublicMethod");
+              methodSubject = classSubject.uniqueMethodWithOriginalName("nonPublicMethod");
               assertThat(methodSubject, isPresent());
               assertTrue(methodSubject.getMethod().accessFlags.isPublic());
 
               classSubject = inspector.clazz(ClassForSubsequent.class);
               assertThat(classSubject, isPresent());
-              methodSubject = classSubject.uniqueMethodWithName("publicMethod");
+              methodSubject = classSubject.uniqueMethodWithOriginalName("publicMethod");
               assertThat(methodSubject, isPresent());
-              methodSubject = classSubject.uniqueMethodWithName("nonPublicMethod");
+              methodSubject = classSubject.uniqueMethodWithOriginalName("nonPublicMethod");
               assertThat(methodSubject, not(isPresent()));
             });
   }
@@ -161,17 +163,18 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
             inspector -> {
               ClassSubject classSubject = inspector.clazz(ClassForIf.class);
               assertThat(classSubject, isPresent());
-              MethodSubject methodSubject = classSubject.uniqueMethodWithName("publicMethod");
+              MethodSubject methodSubject =
+                  classSubject.uniqueMethodWithOriginalName("publicMethod");
               assertThat(methodSubject, not(isPresent()));
-              methodSubject = classSubject.uniqueMethodWithName("nonPublicMethod");
+              methodSubject = classSubject.uniqueMethodWithOriginalName("nonPublicMethod");
               assertThat(methodSubject, isPresent());
               assertTrue(methodSubject.getMethod().accessFlags.isPublic());
 
               classSubject = inspector.clazz(ClassForSubsequent.class);
               assertThat(classSubject, isPresent());
-              methodSubject = classSubject.uniqueMethodWithName("publicMethod");
+              methodSubject = classSubject.uniqueMethodWithOriginalName("publicMethod");
               assertThat(methodSubject, not(isPresent()));
-              methodSubject = classSubject.uniqueMethodWithName("nonPublicMethod");
+              methodSubject = classSubject.uniqueMethodWithOriginalName("nonPublicMethod");
               assertThat(methodSubject, isPresent());
               assertEquals(shrinker.isR8(), methodSubject.getMethod().accessFlags.isPublic());
             });
@@ -201,16 +204,17 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
             inspector -> {
               ClassSubject classSubject = inspector.clazz(ClassForIf.class);
               assertThat(classSubject, isPresent());
-              MethodSubject methodSubject = classSubject.uniqueMethodWithName("publicMethod");
+              MethodSubject methodSubject =
+                  classSubject.uniqueMethodWithOriginalName("publicMethod");
               assertThat(methodSubject, isPresent());
-              methodSubject = classSubject.uniqueMethodWithName("nonPublicMethod");
+              methodSubject = classSubject.uniqueMethodWithOriginalName("nonPublicMethod");
               assertThat(methodSubject, not(isPresent()));
 
               classSubject = inspector.clazz(ClassForSubsequent.class);
               assertThat(classSubject, isPresent());
-              methodSubject = classSubject.uniqueMethodWithName("publicMethod");
+              methodSubject = classSubject.uniqueMethodWithOriginalName("publicMethod");
               assertThat(methodSubject, isPresent());
-              methodSubject = classSubject.uniqueMethodWithName("nonPublicMethod");
+              methodSubject = classSubject.uniqueMethodWithOriginalName("nonPublicMethod");
               assertThat(methodSubject, not(isPresent()));
             });
   }
@@ -239,16 +243,17 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
             inspector -> {
               ClassSubject classSubject = inspector.clazz(ClassForIf.class);
               assertThat(classSubject, isPresent());
-              MethodSubject methodSubject = classSubject.uniqueMethodWithName("publicMethod");
+              MethodSubject methodSubject =
+                  classSubject.uniqueMethodWithOriginalName("publicMethod");
               assertThat(methodSubject, isPresent());
-              methodSubject = classSubject.uniqueMethodWithName("nonPublicMethod");
+              methodSubject = classSubject.uniqueMethodWithOriginalName("nonPublicMethod");
               assertThat(methodSubject, not(isPresent()));
 
               classSubject = inspector.clazz(ClassForSubsequent.class);
               assertThat(classSubject, isPresent());
-              methodSubject = classSubject.uniqueMethodWithName("publicMethod");
+              methodSubject = classSubject.uniqueMethodWithOriginalName("publicMethod");
               assertThat(methodSubject, not(isPresent()));
-              methodSubject = classSubject.uniqueMethodWithName("nonPublicMethod");
+              methodSubject = classSubject.uniqueMethodWithOriginalName("nonPublicMethod");
               assertThat(methodSubject, isPresent());
               assertEquals(shrinker.isR8(), methodSubject.getMethod().accessFlags.isPublic());
             });

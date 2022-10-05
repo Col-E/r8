@@ -94,7 +94,8 @@ public abstract class AnalysisTestBase extends TestBase {
 
   public void buildAndCheckIR(String methodName, Consumer<IRCode> irInspector) {
     CodeInspector inspector = new CodeInspector(appView.appInfo().app());
-    MethodSubject methodSubject = inspector.clazz(className).uniqueMethodWithName(methodName);
+    MethodSubject methodSubject =
+        inspector.clazz(className).uniqueMethodWithOriginalName(methodName);
     irInspector.accept(methodSubject.buildIR(appView));
   }
 

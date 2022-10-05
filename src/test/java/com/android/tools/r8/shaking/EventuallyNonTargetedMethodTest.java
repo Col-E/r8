@@ -55,7 +55,7 @@ public class EventuallyNonTargetedMethodTest extends TestBase {
     ClassSubject classSubject = inspector.clazz(C.class);
     assertThat(classSubject, isPresent());
     // TODO(b/150445487): Member rebinding will rewrite B::foo to A::foo causing C::foo to remain.
-    assertThat(classSubject.uniqueMethodWithName("foo"), isPresent());
+    assertThat(classSubject.uniqueMethodWithOriginalName("foo"), isPresent());
   }
 
   @NoVerticalClassMerging

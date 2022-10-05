@@ -110,10 +110,10 @@ public class MetadataRewriteInFunctionWithDefaultValueTest extends KotlinMetadat
     ClassSubject libKt = inspector.clazz(libClassName);
     assertThat(libKt, isPresentAndNotRenamed());
 
-    MethodSubject methodSubject = libKt.uniqueMethodWithName("applyMap");
+    MethodSubject methodSubject = libKt.uniqueMethodWithOriginalName("applyMap");
     assertThat(methodSubject, isPresentAndNotRenamed());
 
-    methodSubject = libKt.uniqueMethodWithName("applyMap$default");
+    methodSubject = libKt.uniqueMethodWithOriginalName("applyMap$default");
     assertThat(methodSubject, isPresentAndNotRenamed());
 
     KmPackageSubject kmPackage = libKt.getKmPackage();

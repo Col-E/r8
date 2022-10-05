@@ -74,14 +74,14 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
   private FoundMethodSubject inlineExceptionStatic(CodeInspector kotlinInspector) {
     return kotlinInspector
         .clazz("retrace.InlineFunctionKt")
-        .uniqueMethodWithName("inlineExceptionStatic")
+        .uniqueMethodWithOriginalName("inlineExceptionStatic")
         .asFoundMethodSubject();
   }
 
   private FoundMethodSubject inlineExceptionInstance(CodeInspector kotlinInspector) {
     return kotlinInspector
         .clazz("retrace.InlineFunction")
-        .uniqueMethodWithName("inlineExceptionInstance")
+        .uniqueMethodWithOriginalName("inlineExceptionInstance")
         .asFoundMethodSubject();
   }
 
@@ -115,7 +115,8 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
         .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
         .inspectStackTrace(
             (stackTrace, codeInspector) -> {
-              MethodSubject mainSubject = codeInspector.clazz(main).uniqueMethodWithName("main");
+              MethodSubject mainSubject =
+                  codeInspector.clazz(main).uniqueMethodWithOriginalName("main");
               LinePosition inlineStack =
                   LinePosition.stack(
                       LinePosition.create(
@@ -145,7 +146,8 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
         .assertFailureWithErrorThatMatches(containsString("inlineExceptionInstance"))
         .inspectStackTrace(
             (stackTrace, codeInspector) -> {
-              MethodSubject mainSubject = codeInspector.clazz(main).uniqueMethodWithName("main");
+              MethodSubject mainSubject =
+                  codeInspector.clazz(main).uniqueMethodWithOriginalName("main");
               LinePosition inlineStack =
                   LinePosition.stack(
                       LinePosition.create(
@@ -181,7 +183,8 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
         .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
         .inspectStackTrace(
             (stackTrace, codeInspector) -> {
-              MethodSubject mainSubject = codeInspector.clazz(main).uniqueMethodWithName("main");
+              MethodSubject mainSubject =
+                  codeInspector.clazz(main).uniqueMethodWithOriginalName("main");
               LinePosition inlineStack =
                   LinePosition.stack(
                       LinePosition.create(
@@ -213,7 +216,8 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
         .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
         .inspectStackTrace(
             (stackTrace, codeInspector) -> {
-              MethodSubject mainSubject = codeInspector.clazz(main).uniqueMethodWithName("main");
+              MethodSubject mainSubject =
+                  codeInspector.clazz(main).uniqueMethodWithOriginalName("main");
               LinePosition inlineStack =
                   LinePosition.stack(
                       LinePosition.create(

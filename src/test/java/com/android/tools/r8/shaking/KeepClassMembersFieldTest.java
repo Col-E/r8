@@ -46,7 +46,8 @@ public class KeepClassMembersFieldTest extends TestBase {
         .compile()
         .inspect(
             inspector ->
-                assertThat(inspector.clazz(Foo.class).uniqueFieldWithName("value"), isPresent()))
+                assertThat(
+                    inspector.clazz(Foo.class).uniqueFieldWithOriginalName("value"), isPresent()))
         .run(parameters.getRuntime(), Foo.class)
         .assertSuccessWithEmptyOutput();
   }

@@ -90,12 +90,12 @@ public class UnusedAnnotatedArgumentsTest extends TestBase {
 
     List<MethodSubject> methodSubjects =
         ImmutableList.of(
-            testClassSubject.uniqueMethodWithName("testRemoveStaticFromStart"),
-            testClassSubject.uniqueMethodWithName("testRemoveStaticFromMiddle"),
-            testClassSubject.uniqueMethodWithName("testRemoveStaticFromEnd"),
-            testClassSubject.uniqueMethodWithName("testRemoveVirtualFromStart"),
-            testClassSubject.uniqueMethodWithName("testRemoveVirtualFromMiddle"),
-            testClassSubject.uniqueMethodWithName("testRemoveVirtualFromEnd"));
+            testClassSubject.uniqueMethodWithOriginalName("testRemoveStaticFromStart"),
+            testClassSubject.uniqueMethodWithOriginalName("testRemoveStaticFromMiddle"),
+            testClassSubject.uniqueMethodWithOriginalName("testRemoveStaticFromEnd"),
+            testClassSubject.uniqueMethodWithOriginalName("testRemoveVirtualFromStart"),
+            testClassSubject.uniqueMethodWithOriginalName("testRemoveVirtualFromMiddle"),
+            testClassSubject.uniqueMethodWithOriginalName("testRemoveVirtualFromEnd"));
 
     for (MethodSubject methodSubject : methodSubjects) {
       assertThat(methodSubject, isPresent());

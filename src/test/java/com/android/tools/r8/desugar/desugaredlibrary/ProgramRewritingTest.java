@@ -144,7 +144,7 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
     assertThat(classSubject, isPresent());
     List<InstructionSubject> invokes =
         classSubject
-            .uniqueMethodWithName("main")
+            .uniqueMethodWithOriginalName("main")
             .streamInstructions()
             .filter(instr -> instr.isInvokeInterface() || instr.isInvokeStatic())
             .collect(Collectors.toList());

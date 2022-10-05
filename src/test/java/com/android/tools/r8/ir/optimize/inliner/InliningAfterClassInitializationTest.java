@@ -51,10 +51,10 @@ public class InliningAfterClassInitializationTest extends TestBase {
     ClassSubject classA = inspector.clazz(A.class);
     assertThat(classA, isPresent());
 
-    MethodSubject inlineableMethod = classA.uniqueMethodWithName("inlineable");
+    MethodSubject inlineableMethod = classA.uniqueMethodWithOriginalName("inlineable");
     assertThat(inlineableMethod, not(isPresent()));
 
-    MethodSubject notInlineableMethod = classA.uniqueMethodWithName("notInlineable");
+    MethodSubject notInlineableMethod = classA.uniqueMethodWithOriginalName("notInlineable");
     assertThat(notInlineableMethod, isPresent());
 
     MethodSubject testMethod = inspector.clazz(mainClass).mainMethod();
@@ -73,7 +73,7 @@ public class InliningAfterClassInitializationTest extends TestBase {
     ClassSubject classA = inspector.clazz(A.class);
     assertThat(classA, isPresent());
 
-    MethodSubject inlineableMethod = classA.uniqueMethodWithName("inlineable");
+    MethodSubject inlineableMethod = classA.uniqueMethodWithOriginalName("inlineable");
     assertThat(inlineableMethod, not(isPresent()));
   }
 
@@ -86,7 +86,7 @@ public class InliningAfterClassInitializationTest extends TestBase {
     ClassSubject classA = inspector.clazz(A.class);
     assertThat(classA, isPresent());
 
-    MethodSubject inlineableMethod = classA.uniqueMethodWithName("inlineable");
+    MethodSubject inlineableMethod = classA.uniqueMethodWithOriginalName("inlineable");
     assertThat(inlineableMethod, not(isPresent()));
   }
 
@@ -101,7 +101,7 @@ public class InliningAfterClassInitializationTest extends TestBase {
     ClassSubject classA = inspector.clazz(A.class);
     assertThat(classA, isPresent());
 
-    MethodSubject inlineableMethod = classA.uniqueMethodWithName("inlineable");
+    MethodSubject inlineableMethod = classA.uniqueMethodWithOriginalName("inlineable");
     assertThat(inlineableMethod, not(isPresent()));
   }
 
@@ -114,7 +114,7 @@ public class InliningAfterClassInitializationTest extends TestBase {
     ClassSubject classA = inspector.clazz(A.class);
     assertThat(classA, isPresent());
 
-    MethodSubject inlineableMethod = classA.uniqueMethodWithName("inlineable");
+    MethodSubject inlineableMethod = classA.uniqueMethodWithOriginalName("inlineable");
     assertThat(inlineableMethod, not(isPresent()));
   }
 
@@ -127,10 +127,10 @@ public class InliningAfterClassInitializationTest extends TestBase {
     ClassSubject classA = inspector.clazz(A.class);
     assertThat(classA, isPresent());
 
-    MethodSubject notInlineableMethod = classA.uniqueMethodWithName("notInlineable");
+    MethodSubject notInlineableMethod = classA.uniqueMethodWithOriginalName("notInlineable");
     assertThat(notInlineableMethod, isPresent());
 
-    MethodSubject testMethod = inspector.clazz(mainClass).uniqueMethodWithName("test");
+    MethodSubject testMethod = inspector.clazz(mainClass).uniqueMethodWithOriginalName("test");
     assertThat(testMethod, isPresent());
     assertThat(testMethod, invokesMethod(notInlineableMethod));
   }
@@ -150,7 +150,7 @@ public class InliningAfterClassInitializationTest extends TestBase {
     ClassSubject classA = inspector.clazz(A.class);
     assertThat(classA, isPresent());
 
-    MethodSubject inlineableMethod = classA.uniqueMethodWithName("inlineable");
+    MethodSubject inlineableMethod = classA.uniqueMethodWithOriginalName("inlineable");
     assertThat(inlineableMethod, not(isPresent()));
   }
 
@@ -166,10 +166,11 @@ public class InliningAfterClassInitializationTest extends TestBase {
     ClassSubject classA = inspector.clazz(A.class);
     assertThat(classA, isPresent());
 
-    MethodSubject notInlineableMethod = classA.uniqueMethodWithName("notInlineable");
+    MethodSubject notInlineableMethod = classA.uniqueMethodWithOriginalName("notInlineable");
     assertThat(notInlineableMethod, isPresent());
 
-    MethodSubject alsoNotInlineableMethod = classA.uniqueMethodWithName("alsoNotInlineable");
+    MethodSubject alsoNotInlineableMethod =
+        classA.uniqueMethodWithOriginalName("alsoNotInlineable");
     assertThat(alsoNotInlineableMethod, isPresent());
 
     MethodSubject testMethod = inspector.clazz(mainClass).mainMethod();
@@ -189,7 +190,7 @@ public class InliningAfterClassInitializationTest extends TestBase {
     ClassSubject classA = inspector.clazz(A.class);
     assertThat(classA, isPresent());
 
-    MethodSubject notInlineableMethod = classA.uniqueMethodWithName("notInlineable");
+    MethodSubject notInlineableMethod = classA.uniqueMethodWithOriginalName("notInlineable");
     assertThat(notInlineableMethod, isPresent());
 
     MethodSubject testMethod = inspector.clazz(mainClass).mainMethod();
@@ -206,7 +207,7 @@ public class InliningAfterClassInitializationTest extends TestBase {
     ClassSubject classA = inspector.clazz(A.class);
     assertThat(classA, isPresent());
 
-    MethodSubject inlineableMethod = classA.uniqueMethodWithName("inlineable");
+    MethodSubject inlineableMethod = classA.uniqueMethodWithOriginalName("inlineable");
     assertThat(inlineableMethod, not(isPresent()));
   }
 

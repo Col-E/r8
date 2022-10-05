@@ -71,7 +71,7 @@ public class KeepParameterNamesTest extends TestBase {
     assertThat(classSubject, isPresent());
 
     MethodSubject method;
-    method = classSubject.uniqueMethodWithName("apiNoArgs");
+    method = classSubject.uniqueMethodWithOriginalName("apiNoArgs");
     assertThat(method, isPresent());
     assertEquals(keepParameterNames, method.hasLocalVariableTable());
     if (keepParameterNames) {
@@ -83,12 +83,12 @@ public class KeepParameterNamesTest extends TestBase {
       assertTrue(method.getLocalVariableTable().isEmpty());
     }
 
-    method = classSubject.uniqueMethodWithName("apiNoArgsStatic");
+    method = classSubject.uniqueMethodWithOriginalName("apiNoArgsStatic");
     assertThat(method, isPresent());
     assertFalse(method.hasLocalVariableTable());
     assertTrue(method.getLocalVariableTable().isEmpty());
 
-    method = classSubject.uniqueMethodWithName("api1");
+    method = classSubject.uniqueMethodWithOriginalName("api1");
     assertThat(method, isPresent());
     assertEquals(keepParameterNames, method.hasLocalVariableTable());
     if (keepParameterNames) {
@@ -112,7 +112,7 @@ public class KeepParameterNamesTest extends TestBase {
       assertTrue(method.getLocalVariableTable().isEmpty());
     }
 
-    method = classSubject.uniqueMethodWithName("api2");
+    method = classSubject.uniqueMethodWithOriginalName("api2");
     assertThat(method, isPresent());
     assertEquals(keepParameterNames, method.hasLocalVariableTable());
     if (keepParameterNames) {
@@ -132,7 +132,7 @@ public class KeepParameterNamesTest extends TestBase {
       assertTrue(method.getLocalVariableTable().isEmpty());
     }
 
-    method = classSubject.uniqueMethodWithName("api3");
+    method = classSubject.uniqueMethodWithOriginalName("api3");
     assertThat(method, isPresent());
     assertEquals(keepParameterNames, method.hasLocalVariableTable());
     if (keepParameterNames) {
@@ -193,7 +193,7 @@ public class KeepParameterNamesTest extends TestBase {
 
     MethodSubject method;
     for (String name : new String[] {"apiNoArgs", "apiNoArgsStatic", "api1", "api2", "api3"}) {
-      method = classSubject.uniqueMethodWithName(name);
+      method = classSubject.uniqueMethodWithOriginalName(name);
       assertThat(method, isPresent());
       assertEquals(enableMinification, method.isRenamed());
       assertFalse(method.hasLocalVariableTable());

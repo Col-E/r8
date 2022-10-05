@@ -67,9 +67,9 @@ public class CallSiteOptimizationWithInvokeCustomTargetTest extends TestBase {
         .inspect(
             inspector -> {
               ClassSubject clazz = inspector.clazz(TestClass.class);
-              assertThat(clazz.uniqueMethodWithName("bootstrap"), isPresent());
-              assertThat(clazz.uniqueMethodWithName("bar"), isPresent());
-              assertThat(clazz.uniqueMethodWithName("foo"), not(isPresent()));
+              assertThat(clazz.uniqueMethodWithOriginalName("bootstrap"), isPresent());
+              assertThat(clazz.uniqueMethodWithOriginalName("bar"), isPresent());
+              assertThat(clazz.uniqueMethodWithOriginalName("foo"), not(isPresent()));
             });
   }
 

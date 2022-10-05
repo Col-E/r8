@@ -52,7 +52,7 @@ public class SubTypeOverridesInterfaceMethodTest extends TestBase {
             inspector -> {
               ClassSubject clazz = inspector.clazz(A.class);
               assertThat(clazz, isPresent());
-              assertThat(clazz.uniqueMethodWithName("foo"), isPresent());
+              assertThat(clazz.uniqueMethodWithOriginalName("foo"), isPresent());
             });
   }
 

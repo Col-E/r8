@@ -46,7 +46,7 @@ public class B140588497 extends TestBase {
               ClassSubject c = inspector.clazz(TestClass.class);
               assertThat(c, isPresent());
 
-              MethodSubject m = c.uniqueMethodWithName("invokeRangeTest");
+              MethodSubject m = c.uniqueMethodWithOriginalName("invokeRangeTest");
               assertThat(m, isPresent());
               Iterator<InstructionSubject> it =
                   m.iterateInstructions(InstructionSubject::isConstNumber);

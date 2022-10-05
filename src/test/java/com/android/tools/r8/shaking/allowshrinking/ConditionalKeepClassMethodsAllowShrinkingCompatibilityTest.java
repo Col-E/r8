@@ -90,14 +90,14 @@ public class ConditionalKeepClassMethodsAllowShrinkingCompatibilityTest extends 
               ClassSubject bClass = inspector.clazz(B.class);
               // The class constants will force A and B to be retained, but not the methods.
               assertThat(bClass, isPresentAndRenamed());
-              assertThat(bClass.uniqueMethodWithName("foo"), not(isPresent()));
-              assertThat(bClass.uniqueMethodWithName("bar"), not(isPresent()));
+              assertThat(bClass.uniqueMethodWithOriginalName("foo"), not(isPresent()));
+              assertThat(bClass.uniqueMethodWithOriginalName("bar"), not(isPresent()));
 
               assertThat(aClass, isPresentAndRenamed());
               // The dependent rule with soft-pinning of bar never causes A::bar to be retained
               // regardless of A and A::foo being retained.
-              assertThat(aClass.uniqueMethodWithName("bar"), not(isPresent()));
-              MethodSubject aFoo = aClass.uniqueMethodWithName("foo");
+              assertThat(aClass.uniqueMethodWithOriginalName("bar"), not(isPresent()));
+              MethodSubject aFoo = aClass.uniqueMethodWithOriginalName("foo");
               if (allowOptimization) {
                 assertThat(aFoo, not(isPresent()));
               } else {

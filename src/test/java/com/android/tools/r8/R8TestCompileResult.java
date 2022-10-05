@@ -178,7 +178,7 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
         "Did you forget a keep rule for the run method?", mainFeatureClassSubject, isPresent());
     assertThat(
         "Did you forget a keep rule for the run method?",
-        mainFeatureClassSubject.uniqueMethodWithName("run"),
+        mainFeatureClassSubject.uniqueMethodWithOriginalName("run"),
         isPresent());
     String[] args = new String[2 + featureDependencies.length];
     args[0] = mainFeatureClassSubject.getFinalName();

@@ -55,7 +55,7 @@ public class AbstractMethodOnNonAbstractClassTest extends TestBase {
     assertFalse(classSubject.isAbstract());
 
     // A.m() is also not made abstract in compat mode.
-    MethodSubject methodSubject = classSubject.uniqueMethodWithName("m");
+    MethodSubject methodSubject = classSubject.uniqueMethodWithOriginalName("m");
     assertThat(methodSubject, isPresent());
     assertFalse(methodSubject.isAbstract());
 
@@ -86,7 +86,7 @@ public class AbstractMethodOnNonAbstractClassTest extends TestBase {
     assertTrue(classSubject.isAbstract());
 
     // A.m() is also made abstract in full mode.
-    MethodSubject methodSubject = classSubject.uniqueMethodWithName("m");
+    MethodSubject methodSubject = classSubject.uniqueMethodWithOriginalName("m");
     assertThat(methodSubject, isPresent());
     assertTrue(methodSubject.isAbstract());
 

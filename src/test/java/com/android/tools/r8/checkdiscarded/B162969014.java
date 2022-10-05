@@ -88,8 +88,8 @@ public class B162969014 extends TestBase {
   private void inspect(CodeInspector inspector) {
     ClassSubject logClassSubject = inspector.clazz(Log.class);
     assertThat(logClassSubject, isPresent());
-    assertThat(logClassSubject.uniqueMethodWithName("foo"), isPresent());
-    assertThat(logClassSubject.uniqueMethodWithName("bar"), not(isPresent()));
+    assertThat(logClassSubject.uniqueMethodWithOriginalName("foo"), isPresent());
+    assertThat(logClassSubject.uniqueMethodWithOriginalName("bar"), not(isPresent()));
   }
 
   static class TestClass {

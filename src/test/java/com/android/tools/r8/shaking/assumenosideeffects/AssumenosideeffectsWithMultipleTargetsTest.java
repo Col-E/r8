@@ -68,10 +68,10 @@ public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
           mainMethod.streamInstructions().noneMatch(
               i -> i.isInvoke() && i.getMethod().name.toString().equals("info")));
 
-      MethodSubject testInvokeInterface = main.uniqueMethodWithName("testInvokeInterface");
+      MethodSubject testInvokeInterface = main.uniqueMethodWithOriginalName("testInvokeInterface");
       assertThat(testInvokeInterface, not(isPresent()));
 
-      FieldSubject tag = main.uniqueFieldWithName("TAG");
+      FieldSubject tag = main.uniqueFieldWithOriginalName("TAG");
       assertThat(tag, not(isPresent()));
     }
   }

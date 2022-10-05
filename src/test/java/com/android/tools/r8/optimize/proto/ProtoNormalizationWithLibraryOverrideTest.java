@@ -49,12 +49,12 @@ public class ProtoNormalizationWithLibraryOverrideTest extends TestBase {
               TypeSubject bTypeSubject = inspector.getTypeSubject(B.class.getTypeName());
 
               MethodSubject fooMethodSubject =
-                  inspector.clazz(Main.class).uniqueMethodWithName("foo");
+                  inspector.clazz(Main.class).uniqueMethodWithOriginalName("foo");
               assertThat(fooMethodSubject, isPresent());
               assertThat(fooMethodSubject, hasParameters(bTypeSubject, aTypeSubject));
 
               MethodSubject libraryOverrideMethodSubject =
-                  inspector.clazz(Program.class).uniqueMethodWithName("m");
+                  inspector.clazz(Program.class).uniqueMethodWithOriginalName("m");
               assertThat(libraryOverrideMethodSubject, isPresent());
               assertThat(libraryOverrideMethodSubject, hasParameters(bTypeSubject, aTypeSubject));
             })

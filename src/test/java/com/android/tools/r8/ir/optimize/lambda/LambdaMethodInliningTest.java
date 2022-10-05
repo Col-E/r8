@@ -56,7 +56,7 @@ public class LambdaMethodInliningTest extends TestBase {
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(classSubject, isPresent());
 
-    MethodSubject testClassMethodSubject = classSubject.uniqueMethodWithName("testClass");
+    MethodSubject testClassMethodSubject = classSubject.uniqueMethodWithOriginalName("testClass");
     assertThat(testClassMethodSubject, isPresent());
     assertTrue(
         testClassMethodSubject
@@ -70,7 +70,7 @@ public class LambdaMethodInliningTest extends TestBase {
                     instruction.isInvokeVirtual()
                         && instruction.getMethod().toSourceString().contains("println")));
 
-    MethodSubject testLambdaMethodSubject = classSubject.uniqueMethodWithName("testLambda");
+    MethodSubject testLambdaMethodSubject = classSubject.uniqueMethodWithOriginalName("testLambda");
     assertThat(testLambdaMethodSubject, isPresent());
     assertTrue(
         testLambdaMethodSubject

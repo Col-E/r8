@@ -97,10 +97,14 @@ public class InlineWithoutNullCheckTest extends TestBase {
     ClassSubject classSubject = inspector.clazz(Result.class);
     assertThat(classSubject, isPresent());
     assertThat(
-        classSubject.uniqueMethodWithName("methodWhichAccessInstanceMethod"), not(isPresent()));
+        classSubject.uniqueMethodWithOriginalName("methodWhichAccessInstanceMethod"),
+        not(isPresent()));
     assertThat(
-        classSubject.uniqueMethodWithName("methodWhichAccessInstanceField"), not(isPresent()));
-    assertThat(classSubject.uniqueMethodWithName("methodWhichAccessStaticField"), not(isPresent()));
+        classSubject.uniqueMethodWithOriginalName("methodWhichAccessInstanceField"),
+        not(isPresent()));
+    assertThat(
+        classSubject.uniqueMethodWithOriginalName("methodWhichAccessStaticField"),
+        not(isPresent()));
   }
 
   @Test

@@ -69,10 +69,10 @@ public class ReservedFieldNameInInterfacesWithCommonSubClassTest extends TestBas
     ClassSubject bClassSubject = inspector.clazz(B.class);
     assertThat(bClassSubject, isPresent());
 
-    FieldSubject f1FieldSubject = iClassSubject.uniqueFieldWithName("f1");
+    FieldSubject f1FieldSubject = iClassSubject.uniqueFieldWithOriginalName("f1");
     assertThat(f1FieldSubject, isPresent());
 
-    FieldSubject aFieldSubject = jClassSubject.uniqueFieldWithName("a");
+    FieldSubject aFieldSubject = jClassSubject.uniqueFieldWithOriginalName("a");
     assertThat(aFieldSubject, isPresent());
 
     if (reserveName) {

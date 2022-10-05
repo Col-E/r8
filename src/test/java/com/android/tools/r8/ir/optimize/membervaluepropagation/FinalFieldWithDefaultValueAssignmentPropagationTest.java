@@ -52,7 +52,7 @@ public class FinalFieldWithDefaultValueAssignmentPropagationTest extends TestBas
   private void inspect(CodeInspector inspector) {
     ClassSubject testClassSubject = inspector.clazz(TestClass.class);
     assertThat(testClassSubject, isPresent());
-    assertThat(testClassSubject.uniqueMethodWithName("dead"), not(isPresent()));
+    assertThat(testClassSubject.uniqueMethodWithOriginalName("dead"), not(isPresent()));
 
     ClassSubject configClassSubject = inspector.clazz(Config.class);
     assertThat(configClassSubject, isPresent());

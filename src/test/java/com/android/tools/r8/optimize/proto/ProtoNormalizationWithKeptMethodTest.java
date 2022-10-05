@@ -50,13 +50,13 @@ public class ProtoNormalizationWithKeptMethodTest extends TestBase {
               TypeSubject bTypeSubject = inspector.clazz(B.class).asTypeSubject();
 
               MethodSubject fooMethodSubject =
-                  inspector.clazz(Main.class).uniqueMethodWithName("foo");
+                  inspector.clazz(Main.class).uniqueMethodWithOriginalName("foo");
               assertThat(fooMethodSubject, isPresent());
               assertThat(fooMethodSubject, hasParameters(bTypeSubject, aTypeSubject));
 
               for (String methodName : new String[] {"bar", "baz"}) {
                 MethodSubject methodSubject =
-                    inspector.clazz(Main.class).uniqueMethodWithName(methodName);
+                    inspector.clazz(Main.class).uniqueMethodWithOriginalName(methodName);
                 assertThat(methodSubject, isPresent());
                 assertThat(methodSubject, hasParameters(bTypeSubject, aTypeSubject));
               }

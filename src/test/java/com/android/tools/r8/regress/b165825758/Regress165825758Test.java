@@ -68,13 +68,14 @@ public class Regress165825758Test extends TestBase {
   private void checkDeadCodeThrowInTryRange(CodeInspector inspector) {
     ClassSubject classSubject = inspector.clazz(A.class);
     assertThat(classSubject, isPresent());
-    MethodSubject method = classSubject.uniqueMethodWithName("synchronizedMethod");
+    MethodSubject method = classSubject.uniqueMethodWithOriginalName("synchronizedMethod");
     assertThat(method, isPresent());
 
     // Ensure that the "throwNpe" method remains and that it was not inlined by checking that no
     // allocations of NullPointerException are in the method.
     assertTrue(method.streamInstructions().noneMatch(InstructionSubject::isNewInstance));
-    assertThat(inspector.clazz(TestClass.class).uniqueMethodWithName("throwNpe"), isPresent());
+    assertThat(
+        inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("throwNpe"), isPresent());
 
     // Source has 2 catch ranges:
     // 1st try catch is the source range, 2nd is the compiler inserted catch over monitor-exit.

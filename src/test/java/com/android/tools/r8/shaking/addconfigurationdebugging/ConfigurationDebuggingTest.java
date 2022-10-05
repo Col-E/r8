@@ -167,10 +167,10 @@ public class ConfigurationDebuggingTest extends TestBase {
 
     ClassSubject testClass = inspector.clazz(TestClass.class);
     assertThat(testClass, isPresent());
-    MethodSubject foo = testClass.uniqueMethodWithName("foo");
+    MethodSubject foo = testClass.uniqueMethodWithOriginalName("foo");
     assertThat(foo, isPresent());
     assertTrue(hasThrow(foo));
-    MethodSubject bar = testClass.uniqueMethodWithName("bar");
+    MethodSubject bar = testClass.uniqueMethodWithOriginalName("bar");
     assertThat(bar, isPresent());
     assertTrue(hasThrow(bar));
   }

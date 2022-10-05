@@ -47,9 +47,11 @@ public class OutlinesWithPrimitiveArrayTypeArguments extends TestBase {
     assertThat(outline0Method, isPresent());
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(
-        classSubject.uniqueMethodWithName("method1"), CodeMatchers.invokesMethod(outline0Method));
+        classSubject.uniqueMethodWithOriginalName("method1"),
+        CodeMatchers.invokesMethod(outline0Method));
     assertThat(
-        classSubject.uniqueMethodWithName("method2"), CodeMatchers.invokesMethod(outline0Method));
+        classSubject.uniqueMethodWithOriginalName("method2"),
+        CodeMatchers.invokesMethod(outline0Method));
   }
 
   @Test

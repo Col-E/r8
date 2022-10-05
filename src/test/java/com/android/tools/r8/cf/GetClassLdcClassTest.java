@@ -113,7 +113,7 @@ public class GetClassLdcClassTest extends TestBase {
               assertTrue(
                   inspector
                       .clazz(Runner.class)
-                      .uniqueMethodWithName("run")
+                      .uniqueMethodWithOriginalName("run")
                       .streamInstructions()
                       .anyMatch(i -> i.isConstClass(Runner.class.getTypeName())));
             });

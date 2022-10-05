@@ -72,7 +72,7 @@ public class NonFinalFieldWithDefaultValueTest extends TestBase {
 
     // No instructions can read field f1 before it is assigned, and therefore, we can safely
     // remove the static-put instruction and update the static value of the field.
-    FieldSubject f1FieldSubject = testClassSubject.uniqueFieldWithName("f1");
+    FieldSubject f1FieldSubject = testClassSubject.uniqueFieldWithOriginalName("f1");
     assertThat(f1FieldSubject, isPresent());
     assertNotNull(f1FieldSubject.getField().getStaticValue());
     assertTrue(f1FieldSubject.getField().getStaticValue().isDexValueInt());
@@ -80,7 +80,7 @@ public class NonFinalFieldWithDefaultValueTest extends TestBase {
 
     // Field f3 is assigned after an instruction that could read it, and therefore, we cannot safely
     // remove the static-put instruction and update the static value of the field.
-    FieldSubject f3FieldSubject = testClassSubject.uniqueFieldWithName("f3");
+    FieldSubject f3FieldSubject = testClassSubject.uniqueFieldWithOriginalName("f3");
     assertThat(f3FieldSubject, isPresent());
     assertNotNull(f3FieldSubject.getField().getStaticValue());
     assertTrue(f3FieldSubject.getField().getStaticValue().isDexValueInt());

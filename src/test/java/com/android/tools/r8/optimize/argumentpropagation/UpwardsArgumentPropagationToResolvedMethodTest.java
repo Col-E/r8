@@ -53,7 +53,7 @@ public class UpwardsArgumentPropagationToResolvedMethodTest extends TestBase {
             inspector -> {
               ClassSubject aClassSubject = inspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
-              MethodSubject aMethodSubject = aClassSubject.uniqueMethodWithName("m");
+              MethodSubject aMethodSubject = aClassSubject.uniqueMethodWithOriginalName("m");
               assertThat(aMethodSubject, isPresent());
               assertEquals(0, aMethodSubject.getProgramMethod().getReference().getArity());
               assertTrue(
@@ -63,7 +63,8 @@ public class UpwardsArgumentPropagationToResolvedMethodTest extends TestBase {
 
               ClassSubject aSub1ClassSubject = inspector.clazz(ASub1.class);
               assertThat(aSub1ClassSubject, isPresent());
-              MethodSubject aSub1MethodSubject = aSub1ClassSubject.uniqueMethodWithName("m");
+              MethodSubject aSub1MethodSubject =
+                  aSub1ClassSubject.uniqueMethodWithOriginalName("m");
               assertThat(aSub1MethodSubject, isPresent());
               assertEquals(0, aSub1MethodSubject.getProgramMethod().getReference().getArity());
               assertTrue(
@@ -74,7 +75,7 @@ public class UpwardsArgumentPropagationToResolvedMethodTest extends TestBase {
               ClassSubject aSub2Sub1ClassSubject = inspector.clazz(ASub2Sub1.class);
               assertThat(aSub2Sub1ClassSubject, isPresent());
               MethodSubject aSub2Sub1MethodSubject =
-                  aSub2Sub1ClassSubject.uniqueMethodWithName("m");
+                  aSub2Sub1ClassSubject.uniqueMethodWithOriginalName("m");
               assertThat(aSub2Sub1MethodSubject, isPresent());
               assertEquals(0, aSub2Sub1MethodSubject.getProgramMethod().getReference().getArity());
               assertTrue(

@@ -167,14 +167,14 @@ public class InstanceOfRemovalTest extends TestBase {
     ClassSubject testClass = inspector.clazz(TestClass.class);
 
     // With inlining we can prove that all instance-of checks succeed or fail.
-    MethodSubject fooMethodSubject = testClass.uniqueMethodWithName("foo");
+    MethodSubject fooMethodSubject = testClass.uniqueMethodWithOriginalName("foo");
     Iterator<InstructionSubject> fooInstructionIterator =
         fooMethodSubject.iterateInstructions(InstructionSubject::isInstanceOf);
     assertEquals(0, Streams.stream(fooInstructionIterator).count());
 
     // Without inlining we cannot prove any of the instance-of checks to be trivial, but the dynamic
     // type optimization allows us to prove that some are safe.
-    MethodSubject barMethodSubject = testClass.uniqueMethodWithName("bar");
+    MethodSubject barMethodSubject = testClass.uniqueMethodWithOriginalName("bar");
     Iterator<InstructionSubject> barInstructionIterator =
         barMethodSubject.iterateInstructions(InstructionSubject::isInstanceOf);
     assertEquals(2, Streams.stream(barInstructionIterator).count());

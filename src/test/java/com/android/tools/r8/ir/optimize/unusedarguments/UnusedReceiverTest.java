@@ -44,7 +44,8 @@ public class UnusedReceiverTest extends TestBase {
               ClassSubject mainClassSubject = inspector.clazz(Main.class);
               assertThat(mainClassSubject, isPresent());
 
-              MethodSubject testMethodSubject = mainClassSubject.uniqueMethodWithName("test");
+              MethodSubject testMethodSubject =
+                  mainClassSubject.uniqueMethodWithOriginalName("test");
               assertThat(testMethodSubject, isStatic());
             })
         .run(parameters.getRuntime(), Main.class)

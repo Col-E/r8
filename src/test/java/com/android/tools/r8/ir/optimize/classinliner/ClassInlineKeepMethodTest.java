@@ -73,7 +73,7 @@ public class ClassInlineKeepMethodTest extends TestBase {
             .inspector();
     ClassSubject clazz = inspector.clazz(Keeper.class);
     assertThat(clazz, isPresent());
-    MethodSubject main = clazz.uniqueMethodWithName("main");
+    MethodSubject main = clazz.uniqueMethodWithOriginalName("main");
     assertTrue(main.streamInstructions().noneMatch(i -> i.isConstString(JumboStringMode.ALLOW)));
   }
 }

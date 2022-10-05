@@ -66,10 +66,10 @@ public class EnumInAnnotationTest extends TestBase {
                 inspector -> {
                   assertThat(inspector.clazz(Enum.class), isPresentAndRenamed());
                   assertThat(
-                      inspector.clazz(Enum.class).uniqueFieldWithName("TEST_ONE"),
+                      inspector.clazz(Enum.class).uniqueFieldWithOriginalName("TEST_ONE"),
                       isPresentAndNotRenamed());
                   assertThat(
-                      inspector.clazz(Enum.class).uniqueFieldWithName("TEST_TWO"),
+                      inspector.clazz(Enum.class).uniqueFieldWithOriginalName("TEST_TWO"),
                       isPresentAndRenamed());
                   minifiedEnumName.set(inspector.clazz(Enum.class).getFinalName());
                 })
@@ -111,10 +111,10 @@ public class EnumInAnnotationTest extends TestBase {
         .inspect(
             inspector -> {
               assertThat(
-                  inspector.clazz(Enum.class).uniqueFieldWithName("TEST_ONE"),
+                  inspector.clazz(Enum.class).uniqueFieldWithOriginalName("TEST_ONE"),
                   parameters.isCfRuntime() ? isPresentAndNotRenamed() : isPresentAndRenamed());
               assertThat(
-                  inspector.clazz(Enum.class).uniqueFieldWithName("TEST_TWO"),
+                  inspector.clazz(Enum.class).uniqueFieldWithOriginalName("TEST_TWO"),
                   useGenericEnumsRule ? isPresentAndRenamed() : isPresentAndNotRenamed());
             })
         .assertSuccessWithOutput(EXPECTED_RESULT);
@@ -133,7 +133,7 @@ public class EnumInAnnotationTest extends TestBase {
         .inspect(
             inspector -> {
               assertThat(
-                  inspector.clazz(minifiedEnumName.get()).uniqueFieldWithName("TEST_ONE"),
+                  inspector.clazz(minifiedEnumName.get()).uniqueFieldWithOriginalName("TEST_ONE"),
                   parameters.isCfRuntime() ? isPresentAndNotRenamed() : isPresentAndRenamed());
             })
         .assertSuccessWithOutput(EXPECTED_RESULT);

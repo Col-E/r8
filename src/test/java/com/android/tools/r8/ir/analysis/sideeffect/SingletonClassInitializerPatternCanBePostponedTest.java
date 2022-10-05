@@ -53,7 +53,7 @@ public class SingletonClassInitializerPatternCanBePostponedTest extends TestBase
 
     // A.inlineable() should be inlined because we should be able to determine that A.<clinit>() can
     // safely be postponed.
-    assertThat(classSubject.uniqueMethodWithName("inlineable"), not(isPresent()));
+    assertThat(classSubject.uniqueMethodWithOriginalName("inlineable"), not(isPresent()));
   }
 
   static class TestClass {

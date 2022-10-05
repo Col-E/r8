@@ -67,7 +67,8 @@ public class ApiModelNoInliningOfDefaultInterfaceMethodsTest extends TestBase {
                   assert parameters.canUseDefaultAndStaticInterfaceMethods();
                   assertThat(apiCaller, isPresent());
                   assertThat(aSubject, isPresent());
-                  MethodSubject callApiLevel = apiCaller.uniqueMethodWithName("callApiLevel");
+                  MethodSubject callApiLevel =
+                      apiCaller.uniqueMethodWithOriginalName("callApiLevel");
                   assertThat(callApiLevel, CodeMatchers.invokesMethodWithName("apiLevel22"));
                 } else {
                   assert parameters.isDexRuntime();

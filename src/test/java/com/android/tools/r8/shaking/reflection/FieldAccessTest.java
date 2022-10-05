@@ -64,7 +64,7 @@ public class FieldAccessTest extends TestBase {
               Assert.assertTrue(
                   inspector
                       .clazz(testClass)
-                      .uniqueMethodWithName("main")
+                      .uniqueMethodWithOriginalName("main")
                       .streamInstructions()
                       .anyMatch(this::isInvokeGetField));
             })

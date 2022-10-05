@@ -132,8 +132,8 @@ public class InvokeMethodWithNonNullParamCheckTest extends TestBase {
     assertEquals(12, found);
 
     // Check that the method live() has been kept and that dead() has been removed.
-    assertThat(testClassSubject.uniqueMethodWithName("live"), isPresent());
-    assertThat(testClassSubject.uniqueMethodWithName("dead"), not(isPresent()));
+    assertThat(testClassSubject.uniqueMethodWithOriginalName("live"), isPresent());
+    assertThat(testClassSubject.uniqueMethodWithOriginalName("dead"), not(isPresent()));
 
     // Check that the catch handlers for NullPointerException and RuntimeException have not been
     // removed.
@@ -144,7 +144,7 @@ public class InvokeMethodWithNonNullParamCheckTest extends TestBase {
             "handleRuntimeExceptionForInvokeStatic",
             "handleRuntimeExceptionForInvokeVirtual");
     for (String methodName : methodNames) {
-      assertThat(testClassSubject.uniqueMethodWithName(methodName), isPresent());
+      assertThat(testClassSubject.uniqueMethodWithOriginalName(methodName), isPresent());
     }
   }
 

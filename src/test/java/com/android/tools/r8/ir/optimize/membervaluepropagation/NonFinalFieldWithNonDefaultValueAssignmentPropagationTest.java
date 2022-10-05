@@ -54,7 +54,7 @@ public class NonFinalFieldWithNonDefaultValueAssignmentPropagationTest extends T
     ClassSubject testClassSubject = inspector.clazz(TestClass.class);
     assertThat(testClassSubject, isPresent());
     // TODO(b/147799637): Should be absent.
-    assertThat(testClassSubject.uniqueMethodWithName("dead"), isPresent());
+    assertThat(testClassSubject.uniqueMethodWithOriginalName("dead"), isPresent());
 
     ClassSubject configClassSubject = inspector.clazz(Config.class);
     assertThat(configClassSubject, isPresent());

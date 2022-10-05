@@ -190,7 +190,7 @@ public class AlwaysThrowNullTest extends TestBase {
 
     int expectedThrow = hasLiveness ? 1 : 0;
     for (String methodName : METHODS_WITH_NPE_GUARD) {
-      MethodSubject withNPEGuard = mainClass.uniqueMethodWithName(methodName);
+      MethodSubject withNPEGuard = mainClass.uniqueMethodWithOriginalName(methodName);
       assertThat(withNPEGuard, isPresent());
       // catch handlers could be split, and thus not always 1, but some small positive numbers.
       assertTrue(
@@ -205,12 +205,12 @@ public class AlwaysThrowNullTest extends TestBase {
 
     int expectedHandler = hasLiveness ? 0 : 1;
     MethodSubject withOtherGuard =
-        mainClass.uniqueMethodWithName("uninstantiatedInstancePutWithOtherGuard");
+        mainClass.uniqueMethodWithOriginalName("uninstantiatedInstancePutWithOtherGuard");
     assertThat(withOtherGuard, isPresent());
     assertEquals(expectedHandler, Streams.stream(withOtherGuard.iterateTryCatches()).count());
 
     for (String methodName : METHODS_WITHOUT_GUARD) {
-      MethodSubject mtd = mainClass.uniqueMethodWithName(methodName);
+      MethodSubject mtd = mainClass.uniqueMethodWithOriginalName(methodName);
       assertThat(mtd, isPresent());
       assertEquals(
           hasLiveness,

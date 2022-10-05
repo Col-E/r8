@@ -15,8 +15,6 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.checkdiscarded.CheckClassDiscardedEntirelyTest.Main;
-import com.android.tools.r8.checkdiscarded.CheckClassDiscardedEntirelyTest.Secret;
 import com.android.tools.r8.errors.CheckDiscardDiagnostic;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -105,9 +103,11 @@ public class CheckSubclassDiscardedEntirelyTest extends TestBase {
                       ClassSubject publicClassSubject = inspector.clazz(Public.class);
                       assertThat(publicClassSubject, isPresent());
                       assertThat(
-                          publicClassSubject.uniqueMethodWithName("printPublic"), isPresent());
+                          publicClassSubject.uniqueMethodWithOriginalName("printPublic"),
+                          isPresent());
                       assertThat(
-                          publicClassSubject.uniqueMethodWithName("printPublicAllowInlining"),
+                          publicClassSubject.uniqueMethodWithOriginalName(
+                              "printPublicAllowInlining"),
                           isAbsent());
 
                       assertThat(inspector.clazz(Secret.class), isAbsent());

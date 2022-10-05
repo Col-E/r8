@@ -48,7 +48,7 @@ public class ProtoNormalizationWithoutSharingTest extends TestBase {
 
               // Should not be normalized as there is no sharing of protos.
               MethodSubject fooMethodSubject =
-                  inspector.clazz(Main.class).uniqueMethodWithName("foo");
+                  inspector.clazz(Main.class).uniqueMethodWithOriginalName("foo");
               assertThat(fooMethodSubject, isPresent());
               assertThat(fooMethodSubject, hasParameters(bTypeSubject, aTypeSubject));
             })

@@ -51,19 +51,19 @@ public class TestClassForNameWhenSplit extends ReflectionOptimizerTestBase {
         .setMinApi(parameters.getApiLevel())
         .addFeatureSplit(
             builder ->
-                SplitterTestBase.simpleSplitProvider(
-                    builder, featurePath, temp, Foobar.class))
+                SplitterTestBase.simpleSplitProvider(builder, featurePath, temp, Foobar.class))
         .addKeepMainRule(Main.class)
         .addKeepClassRules(Foobar.class)
         .enableInliningAnnotations()
         .compile()
-        .inspect(codeInspector -> {
-          ClassSubject mainClass = codeInspector.clazz(Main.class);
-          MethodSubject foo = mainClass.uniqueMethodWithName("foo");
-          assertThat(foo, isPresent());
-          // Make sure Class#forName is indeed kept.
-          assertEquals(1, countForName(foo));
-        })
+        .inspect(
+            codeInspector -> {
+              ClassSubject mainClass = codeInspector.clazz(Main.class);
+              MethodSubject foo = mainClass.uniqueMethodWithOriginalName("foo");
+              assertThat(foo, isPresent());
+              // Make sure Class#forName is indeed kept.
+              assertEquals(1, countForName(foo));
+            })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);
   }

@@ -84,7 +84,8 @@ public class MinimalStartupDexTest extends TestBase {
               assertTrue(
                   mainMethodSubject.streamInstructions().noneMatch(InstructionSubject::isThrow));
 
-              MethodSubject onClickMethodSubject = mainClassSubject.uniqueMethodWithName("onClick");
+              MethodSubject onClickMethodSubject =
+                  mainClassSubject.uniqueMethodWithOriginalName("onClick");
               assertThat(onClickMethodSubject, isPresent());
               assertTrue(
                   onClickMethodSubject.streamInstructions().anyMatch(InstructionSubject::isThrow));
@@ -93,7 +94,8 @@ public class MinimalStartupDexTest extends TestBase {
               ClassSubject startupClassSubject = primaryDexInspector.clazz(AStartupClass.class);
               assertThat(startupClassSubject, isPresent());
 
-              MethodSubject startupMethodSubject = startupClassSubject.uniqueMethodWithName("foo");
+              MethodSubject startupMethodSubject =
+                  startupClassSubject.uniqueMethodWithOriginalName("foo");
               assertThat(startupMethodSubject, isPresent());
               assertTrue(
                   startupMethodSubject.streamInstructions().noneMatch(InstructionSubject::isThrow));
@@ -113,7 +115,7 @@ public class MinimalStartupDexTest extends TestBase {
                       .anyMatch(InstructionSubject::isThrow));
 
               MethodSubject nonStartupMethodSubject =
-                  nonStartupClassSubject.uniqueMethodWithName("bar");
+                  nonStartupClassSubject.uniqueMethodWithOriginalName("bar");
               assertThat(nonStartupMethodSubject, isPresent());
               assertTrue(
                   nonStartupMethodSubject

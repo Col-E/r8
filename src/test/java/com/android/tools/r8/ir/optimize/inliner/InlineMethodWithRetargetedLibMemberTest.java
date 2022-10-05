@@ -55,7 +55,7 @@ public class InlineMethodWithRetargetedLibMemberTest extends DesugaredLibraryTes
         .inspect(
             inspector ->
                 assertThat(
-                    inspector.clazz(TestClass.class).uniqueMethodWithName("test"),
+                    inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("test"),
                     not(isPresent())));
   }
 

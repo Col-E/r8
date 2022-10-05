@@ -42,11 +42,11 @@ public class FieldTypeMergedTest extends HorizontalClassMergingTestBase {
               ClassSubject cClassSubject = codeInspector.clazz(C.class);
               assertThat(codeInspector.clazz(C.class), isPresent());
 
-              FieldSubject fieldSubject = cClassSubject.uniqueFieldWithName("fieldB");
+              FieldSubject fieldSubject = cClassSubject.uniqueFieldWithOriginalName("fieldB");
               assertThat(fieldSubject, isPresent());
               assertThat(fieldSubject, isFieldOfType(aClassSubject.getDexProgramClass().getType()));
 
-              fieldSubject = cClassSubject.uniqueFieldWithName("fieldArrayB");
+              fieldSubject = cClassSubject.uniqueFieldWithOriginalName("fieldArrayB");
               assertThat(fieldSubject, isPresent());
               assertTrue(fieldSubject.getDexField().type.isArrayType());
               assertThat(

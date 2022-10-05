@@ -52,7 +52,7 @@ public class TreeShaking13Test extends TreeShakingTest {
 
   private static void shaking13EnsureFieldWritesCorrect(CodeInspector inspector) {
     ClassSubject mainClass = inspector.clazz("shaking13.Shaking");
-    MethodSubject testMethod = mainClass.uniqueMethodWithName("fieldTest");
+    MethodSubject testMethod = mainClass.uniqueMethodWithOriginalName("fieldTest");
     Assert.assertTrue(testMethod.isPresent());
     Iterator<FieldAccessInstructionSubject> iterator =
         testMethod.iterateInstructions(InstructionSubject::isFieldAccess);

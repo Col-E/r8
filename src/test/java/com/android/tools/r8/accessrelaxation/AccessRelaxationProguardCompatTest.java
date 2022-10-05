@@ -70,7 +70,7 @@ public class AccessRelaxationProguardCompatTest extends TestBase {
     ClassSubject classSubject = inspector.clazz(clazzWithGetter);
     assertThat(classSubject, isPresent());
 
-    FieldSubject fieldSubject = classSubject.uniqueFieldWithName("field");
+    FieldSubject fieldSubject = classSubject.uniqueFieldWithOriginalName("field");
     assertThat(fieldSubject, isPresent());
 
     // Although this field was explicitly kept, it is no longer private.

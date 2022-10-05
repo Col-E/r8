@@ -59,12 +59,13 @@ public class IllegalSiblingAfterInterfaceMergingTest extends TestBase {
             inspector -> {
               ClassSubject iClassSubject = inspector.clazz(I.class);
               assertThat(iClassSubject, isPresent());
-              assertThat(iClassSubject.uniqueMethodWithName("m"), isAbsent());
+              assertThat(iClassSubject.uniqueMethodWithOriginalName("m"), isAbsent());
 
               ClassSubject a0ClassSubject = inspector.clazz(A0.class);
               assertThat(a0ClassSubject, isPresent());
               assertThat(
-                  a0ClassSubject.uniqueMethodWithName("m"), allOf(isPresent(), isPackagePrivate()));
+                  a0ClassSubject.uniqueMethodWithOriginalName("m"),
+                  allOf(isPresent(), isPackagePrivate()));
 
               ClassSubject aClassSubject = inspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());

@@ -65,7 +65,7 @@ public class JavaUtilOptionalTest extends DesugaredLibraryTestBase {
     assertThat(classSubject, isPresent());
     Iterator<InvokeInstructionSubject> iterator =
         classSubject
-            .uniqueMethodWithName("main")
+            .uniqueMethodWithOriginalName("main")
             .iterateInstructions(InstructionSubject::isInvokeStatic);
     assertTrue(iterator.next().holder().is("j$.util.Optional"));
     assertTrue(iterator.next().holder().is("j$.util.Optional"));

@@ -65,7 +65,7 @@ public class RetraceInlineConditionTest extends TestBase {
                 inspector -> {
                   ClassSubject fooClass = inspector.clazz(Foo.class);
                   assertThat(fooClass, isPresent());
-                  MethodSubject inlineable = fooClass.uniqueMethodWithName("inlineable");
+                  MethodSubject inlineable = fooClass.uniqueMethodWithOriginalName("inlineable");
                   assertThat(inlineable, not(isPresent()));
                 });
     compileResult

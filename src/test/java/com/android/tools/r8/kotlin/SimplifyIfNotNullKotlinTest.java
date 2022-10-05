@@ -65,7 +65,8 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
               checkMethodPresenceInInput(clazz.getOriginalName(), testMethodSignature, true);
 
               // Find forMakeAndModel(...) after parameter removal.
-              MethodSubject testMethod = clazz.uniqueMethodWithName(testMethodSignature.name);
+              MethodSubject testMethod =
+                  clazz.uniqueMethodWithOriginalName(testMethodSignature.name);
               long ifzCount =
                   testMethod
                       .streamInstructions()

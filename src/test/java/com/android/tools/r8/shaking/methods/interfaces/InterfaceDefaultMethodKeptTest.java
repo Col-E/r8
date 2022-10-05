@@ -53,7 +53,8 @@ public class InterfaceDefaultMethodKeptTest extends TestBase {
                 codeInspector -> {
                   assertThat(codeInspector.clazz(A.class), isPresent());
                   assertThat(
-                      codeInspector.clazz(A.class).uniqueMethodWithName("foo"), not(isPresent()));
+                      codeInspector.clazz(A.class).uniqueMethodWithOriginalName("foo"),
+                      not(isPresent()));
                 });
     testForRuntime(parameters)
         .addProgramClasses(Main.class)
@@ -77,7 +78,8 @@ public class InterfaceDefaultMethodKeptTest extends TestBase {
                   assertThat(codeInspector.clazz(A.class), not(isPresent()));
                   assertThat(codeInspector.clazz(B.class), isPresent());
                   assertThat(
-                      codeInspector.clazz(B.class).uniqueMethodWithName("foo"), not(isPresent()));
+                      codeInspector.clazz(B.class).uniqueMethodWithOriginalName("foo"),
+                      not(isPresent()));
                 });
     testForRuntime(parameters)
         .addProgramClasses(Main.class)
@@ -100,12 +102,14 @@ public class InterfaceDefaultMethodKeptTest extends TestBase {
             .inspect(
                 codeInspector -> {
                   assertThat(codeInspector.clazz(A.class), isPresent());
-                  assertThat(codeInspector.clazz(A.class).uniqueMethodWithName("foo"), isPresent());
+                  assertThat(
+                      codeInspector.clazz(A.class).uniqueMethodWithOriginalName("foo"),
+                      isPresent());
                   assertThat(codeInspector.clazz(B.class), isPresent());
                   // TODO(b/144409021): We should be able to remove this.
                   assertEquals(
                       parameters.isDexRuntime(),
-                      codeInspector.clazz(B.class).uniqueMethodWithName("foo").isPresent());
+                      codeInspector.clazz(B.class).uniqueMethodWithOriginalName("foo").isPresent());
                 });
     testForRuntime(parameters)
         .addProgramClasses(Main.class)

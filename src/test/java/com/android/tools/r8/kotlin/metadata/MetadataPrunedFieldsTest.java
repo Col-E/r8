@@ -65,10 +65,10 @@ public class MetadataPrunedFieldsTest extends KotlinMetadataTestBase {
             codeInspector -> {
               final ClassSubject clazz = codeInspector.clazz("kotlin.Metadata");
               assertThat(clazz, isPresent());
-              assertThat(clazz.uniqueMethodWithName("pn"), isPresent());
-              assertThat(clazz.uniqueMethodWithName("d1"), not(isPresent()));
-              assertThat(clazz.uniqueMethodWithName("d2"), not(isPresent()));
-              assertThat(clazz.uniqueMethodWithName("bv"), not(isPresent()));
+              assertThat(clazz.uniqueMethodWithOriginalName("pn"), isPresent());
+              assertThat(clazz.uniqueMethodWithOriginalName("d1"), not(isPresent()));
+              assertThat(clazz.uniqueMethodWithOriginalName("d2"), not(isPresent()));
+              assertThat(clazz.uniqueMethodWithOriginalName("bv"), not(isPresent()));
             })
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .run(parameters.getRuntime(), Main.class)

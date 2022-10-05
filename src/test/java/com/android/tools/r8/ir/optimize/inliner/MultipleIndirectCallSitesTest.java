@@ -71,7 +71,7 @@ public class MultipleIndirectCallSitesTest extends TestBase {
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
 
-    MethodSubject methodSubject = aClassSubject.uniqueMethodWithName("m");
+    MethodSubject methodSubject = aClassSubject.uniqueMethodWithOriginalName("m");
     assertThat(methodSubject, isPresent());
     assertEquals(
         5,

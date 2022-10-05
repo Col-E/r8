@@ -97,7 +97,7 @@ public class KeepInterfaceMethodTest extends TestBase {
   private void checkClassAndMethodIsPresent(CodeInspector inspector, Class<?> clazz) {
     ClassSubject clazzSubject = inspector.clazz(clazz);
     assertThat(clazzSubject, isPresent());
-    MethodSubject foo = clazzSubject.uniqueMethodWithName("foo");
+    MethodSubject foo = clazzSubject.uniqueMethodWithOriginalName("foo");
     assertThat(foo, isPresentAndNotRenamed());
   }
 

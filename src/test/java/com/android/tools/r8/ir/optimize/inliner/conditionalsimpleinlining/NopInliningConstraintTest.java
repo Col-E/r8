@@ -50,11 +50,11 @@ public class NopInliningConstraintTest extends TestBase {
               assertThat(mainClassSubject, isPresent());
 
               // Method doStuff() is inlined into main().
-              assertThat(mainClassSubject.uniqueMethodWithName("doStuff"), isAbsent());
+              assertThat(mainClassSubject.uniqueMethodWithOriginalName("doStuff"), isAbsent());
 
               // Method checkNotNull() is not inlined.
               MethodSubject checkNotNullMethodSubject =
-                  mainClassSubject.uniqueMethodWithName("checkNotNull");
+                  mainClassSubject.uniqueMethodWithOriginalName("checkNotNull");
               assertThat(checkNotNullMethodSubject, isPresent());
 
               // There is a single call to checkNotNull() in main(), as checkNotNull(newObject())

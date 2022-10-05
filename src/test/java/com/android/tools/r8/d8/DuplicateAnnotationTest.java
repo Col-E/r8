@@ -93,7 +93,7 @@ public class DuplicateAnnotationTest extends TestBase {
     ClassSubject testA = inspector.clazz(TestA.class);
     assertThat(testA, isPresent());
 
-    MethodSubject foo = testA.uniqueMethodWithName("foo");
+    MethodSubject foo = testA.uniqueMethodWithOriginalName("foo");
     assertThat(foo, isPresent());
     AnnotationSubject annotation = foo.annotation(TestKeep.class.getName());
     assertThat(annotation, isPresent());
@@ -110,17 +110,17 @@ public class DuplicateAnnotationTest extends TestBase {
     ClassSubject testB = inspector.clazz(TestB.class);
     assertThat(testB, isPresent());
 
-    FieldSubject instance = testB.uniqueFieldWithName("instance");
+    FieldSubject instance = testB.uniqueFieldWithOriginalName("instance");
     assertThat(instance, isPresent());
     annotation = instance.annotation(TestKeep.class.getName());
     assertThat(annotation, isPresent());
 
-    foo = testB.uniqueMethodWithName("foo");
+    foo = testB.uniqueMethodWithOriginalName("foo");
     assertThat(foo, isPresent());
     annotation = foo.annotation(TestKeep.class.getName());
     assertThat(annotation, isPresent());
 
-    MethodSubject bar = testB.uniqueMethodWithName("bar");
+    MethodSubject bar = testB.uniqueMethodWithOriginalName("bar");
     assertThat(bar, isPresent());
     annotation = bar.annotation(TestKeep.class.getName());
     assertThat(annotation, isPresent());

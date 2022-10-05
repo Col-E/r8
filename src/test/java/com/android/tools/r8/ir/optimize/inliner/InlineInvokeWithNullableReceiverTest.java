@@ -84,7 +84,7 @@ public class InlineInvokeWithNullableReceiverTest extends TestBase {
     assertThat(otherClassSubject, isPresent());
 
     // Method A.m() should no longer be present due to inlining.
-    assertThat(otherClassSubject.uniqueMethodWithName("m"), not(isPresent()));
+    assertThat(otherClassSubject.uniqueMethodWithOriginalName("m"), not(isPresent()));
   }
 
   private boolean canUseRequireNonNull() {

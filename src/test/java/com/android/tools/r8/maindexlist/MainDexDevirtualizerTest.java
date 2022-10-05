@@ -65,7 +65,7 @@ public class MainDexDevirtualizerTest extends TestBase {
           // cast.
           ClassSubject clazz = inspector.clazz(Main.class);
           assertThat(clazz, isPresentAndNotRenamed());
-          MethodSubject main = clazz.uniqueMethodWithName("main");
+          MethodSubject main = clazz.uniqueMethodWithOriginalName("main");
           assertThat(main, isPresent());
           List<CheckCastInstructionSubject> checkCasts =
               main.streamInstructions()

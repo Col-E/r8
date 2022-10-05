@@ -54,10 +54,10 @@ public class SingletonClassInitializerWithInstancePutCannotBePostponedTest exten
   private void inspect(CodeInspector inspector) {
     ClassSubject classSubject = inspector.clazz(A.class);
     assertThat(classSubject, isPresent());
-    assertThat(classSubject.uniqueFieldWithName("INSTANCE"), isPresent());
+    assertThat(classSubject.uniqueFieldWithOriginalName("INSTANCE"), isPresent());
 
     // A.inlineable() should be inlined, but we should synthesize an $r8$clinit field.
-    assertThat(classSubject.uniqueMethodWithName("inlineable"), not(isPresent()));
+    assertThat(classSubject.uniqueMethodWithOriginalName("inlineable"), not(isPresent()));
     assertEquals(2, classSubject.allStaticFields().size());
   }
 

@@ -71,11 +71,11 @@ public class PrivateKeptMembersPublicizerTest extends TestBase {
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(classSubject, isPresent());
     if (withKeepAllowAccessModification) {
-      assertThat(classSubject.uniqueFieldWithName("greeting"), isPublic());
-      assertThat(classSubject.uniqueMethodWithName("greet"), isPublic());
+      assertThat(classSubject.uniqueFieldWithOriginalName("greeting"), isPublic());
+      assertThat(classSubject.uniqueMethodWithOriginalName("greet"), isPublic());
     } else {
-      assertThat(classSubject.uniqueFieldWithName("greeting"), isPrivate());
-      assertThat(classSubject.uniqueMethodWithName("greet"), isPrivate());
+      assertThat(classSubject.uniqueFieldWithOriginalName("greeting"), isPrivate());
+      assertThat(classSubject.uniqueMethodWithOriginalName("greet"), isPrivate());
     }
   }
 

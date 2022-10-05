@@ -60,7 +60,7 @@ public class InvokeDirectPositiveTest extends TestBase {
     assertThat(mainMethodSubject, isPresent());
     assertTrue(mainMethodSubject.streamInstructions().noneMatch(InstructionSubject::isConstString));
 
-    MethodSubject test = main.uniqueMethodWithName("test");
+    MethodSubject test = main.uniqueMethodWithOriginalName("test");
     assertThat(test, isPresent());
     assertEquals(0, test.getProgramMethod().getReference().getArity());
     // Can optimize branches since `arg` is definitely "nul", i.e., not containing "null".

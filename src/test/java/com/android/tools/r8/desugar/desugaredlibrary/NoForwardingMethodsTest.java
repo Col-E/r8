@@ -61,8 +61,10 @@ public class NoForwardingMethodsTest extends DesugaredLibraryTestBase {
   }
 
   private void assertNoForwardingStreamMethod(CodeInspector inspector) {
-    assertTrue(inspector.clazz(CustomArrayList.class).uniqueMethodWithName("stream").isAbsent());
-    assertTrue(inspector.clazz(CustomSortedSet.class).uniqueMethodWithName("stream").isAbsent());
+    assertTrue(
+        inspector.clazz(CustomArrayList.class).uniqueMethodWithOriginalName("stream").isAbsent());
+    assertTrue(
+        inspector.clazz(CustomSortedSet.class).uniqueMethodWithOriginalName("stream").isAbsent());
   }
 
   static class Executor {

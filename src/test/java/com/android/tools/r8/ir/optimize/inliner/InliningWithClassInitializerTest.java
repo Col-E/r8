@@ -42,10 +42,10 @@ public class InliningWithClassInitializerTest extends TestBase {
     ClassSubject classB = inspector.clazz(B.class);
     assertThat(classB, isPresent());
 
-    MethodSubject inlineableMethod = classB.uniqueMethodWithName("inlineable");
+    MethodSubject inlineableMethod = classB.uniqueMethodWithOriginalName("inlineable");
     assertThat(inlineableMethod, not(isPresent()));
 
-    MethodSubject otherMethod = classB.uniqueMethodWithName("other");
+    MethodSubject otherMethod = classB.uniqueMethodWithOriginalName("other");
     assertThat(otherMethod, isPresent());
 
     MethodSubject mainMethod = inspector.clazz(TestClass.class).mainMethod();

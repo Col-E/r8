@@ -61,7 +61,7 @@ public class InvokeStaticWithNullOutvalueTest extends TestBase {
     // Check if the instance is gone.
     ClassSubject host = inspector.clazz(Host.class);
     assertThat(host, isPresent());
-    FieldSubject instance = host.uniqueFieldWithName("companion");
+    FieldSubject instance = host.uniqueFieldWithOriginalName("companion");
     assertThat(instance, not(isPresent()));
 
     ClassSubject companion = inspector.clazz(Host.Companion.class);
@@ -71,7 +71,7 @@ public class InvokeStaticWithNullOutvalueTest extends TestBase {
     // Check if the candidate methods are staticized (if necessary) and migrated.
     for (String name : ImmutableList.of("boo", "foo")) {
       // TODO(b/158018192): This should be host and not companion.
-      MethodSubject oo = companion.uniqueMethodWithName(name);
+      MethodSubject oo = companion.uniqueMethodWithOriginalName(name);
       assertThat(oo, isPresent());
       assertTrue(oo.isStatic());
       assertTrue(

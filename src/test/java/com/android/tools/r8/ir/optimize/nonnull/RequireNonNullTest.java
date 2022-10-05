@@ -52,8 +52,8 @@ public class RequireNonNullTest extends TestBase {
 
   private void inspect(CodeInspector inspector) {
     ClassSubject testClassSubject = inspector.clazz(TestClass.class);
-    assertThat(testClassSubject.uniqueMethodWithName("live"), isPresent());
-    assertThat(testClassSubject.uniqueMethodWithName("dead"), not(isPresent()));
+    assertThat(testClassSubject.uniqueMethodWithOriginalName("live"), isPresent());
+    assertThat(testClassSubject.uniqueMethodWithOriginalName("dead"), not(isPresent()));
   }
 
   static class TestClass {

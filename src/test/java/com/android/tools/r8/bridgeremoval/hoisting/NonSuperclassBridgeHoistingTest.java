@@ -63,8 +63,8 @@ public class NonSuperclassBridgeHoistingTest extends TestBase {
 
     ClassSubject b1ClassSubject = inspector.clazz(B.class);
     assertThat(b1ClassSubject, isPresent());
-    assertThat(b1ClassSubject.uniqueMethodWithName("m"), isPresent());
-    assertThat(b1ClassSubject.uniqueMethodWithName("bridge"), isPresent());
+    assertThat(b1ClassSubject.uniqueMethodWithOriginalName("m"), isPresent());
+    assertThat(b1ClassSubject.uniqueMethodWithOriginalName("bridge"), isPresent());
   }
 
   static class TestClass {

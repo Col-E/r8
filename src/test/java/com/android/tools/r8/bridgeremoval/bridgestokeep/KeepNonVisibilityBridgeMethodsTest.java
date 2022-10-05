@@ -71,7 +71,7 @@ public class KeepNonVisibilityBridgeMethodsTest extends TestBase {
               ClassSubject classSubject = inspector.clazz(SimpleDataAdapter.class);
               assertThat(classSubject, isPresent());
 
-              MethodSubject subject = classSubject.uniqueMethodWithName("registerObserver");
+              MethodSubject subject = classSubject.uniqueMethodWithOriginalName("registerObserver");
               assertThat(subject, isPresent());
             })
         .run(parameters.getRuntime(), Main.class)

@@ -58,7 +58,7 @@ public class MockitoTest extends TestBase {
             .inspector();
     ClassSubject itf = inspector.clazz(M_I);
     assertThat(itf, isPresent());
-    MethodSubject mtd = itf.uniqueMethodWithName("onEnterForeground");
+    MethodSubject mtd = itf.uniqueMethodWithOriginalName("onEnterForeground");
     assertThat(mtd, isAbsent());
   }
 
@@ -77,7 +77,7 @@ public class MockitoTest extends TestBase {
             .inspector();
     ClassSubject itf = inspector.clazz(M_I);
     assertThat(itf, isPresent());
-    MethodSubject mtd = itf.uniqueMethodWithName("onEnterForeground");
+    MethodSubject mtd = itf.uniqueMethodWithOriginalName("onEnterForeground");
     assertThat(mtd, isPresentAndNotRenamed());
   }
 }

@@ -102,7 +102,7 @@ public class StringConcatenationTest extends TestBase {
     CodeInspector codeInspector = result.inspector();
     ClassSubject mainClass = codeInspector.clazz(MAIN);
 
-    MethodSubject method = mainClass.uniqueMethodWithName("unusedBuilder");
+    MethodSubject method = mainClass.uniqueMethodWithOriginalName("unusedBuilder");
     if (isR8) {
       assertThat(method, not(isPresent()));
     } else {
@@ -110,80 +110,80 @@ public class StringConcatenationTest extends TestBase {
       assertEquals(0, countConstString(method));
     }
 
-    method = mainClass.uniqueMethodWithName("trivialSequence");
+    method = mainClass.uniqueMethodWithOriginalName("trivialSequence");
     assertThat(method, isPresent());
     expectedCount = isReleaseMode ? 1 : 3;
     assertEquals(expectedCount, countConstString(method));
 
-    method = mainClass.uniqueMethodWithName("builderWithInitialValue");
+    method = mainClass.uniqueMethodWithOriginalName("builderWithInitialValue");
     assertThat(method, isPresent());
     expectedCount = isReleaseMode ? 1 : 3;
     assertEquals(expectedCount, countConstString(method));
 
-    method = mainClass.uniqueMethodWithName("builderWithCapacity");
+    method = mainClass.uniqueMethodWithOriginalName("builderWithCapacity");
     assertThat(method, isPresent());
     expectedCount = isReleaseMode ? 1 : 0;
     assertEquals(expectedCount, countConstString(method));
 
-    method = mainClass.uniqueMethodWithName("nonStringArgs");
+    method = mainClass.uniqueMethodWithOriginalName("nonStringArgs");
     assertThat(method, isPresent());
     expectedCount = isReleaseMode ? 1 : 0;
     assertEquals(expectedCount, countConstString(method));
 
-    method = mainClass.uniqueMethodWithName("typeConversion");
+    method = mainClass.uniqueMethodWithOriginalName("typeConversion");
     assertThat(method, isPresent());
     expectedCount = isReleaseMode ? 1 : 0;
     assertEquals(expectedCount, countConstString(method));
 
-    method = mainClass.uniqueMethodWithName("typeConversion_withPhis");
+    method = mainClass.uniqueMethodWithOriginalName("typeConversion_withPhis");
     assertThat(method, isPresent());
     assertEquals(0, countConstString(method));
 
-    method = mainClass.uniqueMethodWithName("nestedBuilders_appendBuilderItself");
+    method = mainClass.uniqueMethodWithOriginalName("nestedBuilders_appendBuilderItself");
     assertThat(method, isPresent());
     assertEquals(isReleaseMode ? 1 : 3, countConstString(method));
 
-    method = mainClass.uniqueMethodWithName("nestedBuilders_appendBuilderResult");
+    method = mainClass.uniqueMethodWithOriginalName("nestedBuilders_appendBuilderResult");
     assertThat(method, isPresent());
     assertEquals(isReleaseMode ? 1 : 3, countConstString(method));
 
-    method = mainClass.uniqueMethodWithName("nestedBuilders_conditional");
+    method = mainClass.uniqueMethodWithOriginalName("nestedBuilders_conditional");
     assertThat(method, isPresent());
     assertEquals(isReleaseMode ? 3 : 4, countConstString(method));
 
-    method = mainClass.uniqueMethodWithName("concatenatedBuilders_init");
+    method = mainClass.uniqueMethodWithOriginalName("concatenatedBuilders_init");
     assertThat(method, isPresent());
     assertEquals(isReleaseMode ? 1 : 2, countConstString(method));
 
-    method = mainClass.uniqueMethodWithName("concatenatedBuilders_append");
+    method = mainClass.uniqueMethodWithOriginalName("concatenatedBuilders_append");
     assertThat(method, isPresent());
     assertEquals(isReleaseMode ? 1 : 2, countConstString(method));
 
-    method = mainClass.uniqueMethodWithName("concatenatedBuilders_conditional");
+    method = mainClass.uniqueMethodWithOriginalName("concatenatedBuilders_conditional");
     assertThat(method, isPresent());
     assertEquals(isReleaseMode ? 2 : 4, countConstString(method));
 
-    method = mainClass.uniqueMethodWithName("simplePhi");
+    method = mainClass.uniqueMethodWithOriginalName("simplePhi");
     assertThat(method, isPresent());
     assertEquals(isReleaseMode ? 3 : 4, countConstString(method));
 
-    method = mainClass.uniqueMethodWithName("phiAtInit");
+    method = mainClass.uniqueMethodWithOriginalName("phiAtInit");
     assertThat(method, isPresent());
     assertEquals(3, countConstString(method));
 
-    method = mainClass.uniqueMethodWithName("phiWithDifferentInits");
+    method = mainClass.uniqueMethodWithOriginalName("phiWithDifferentInits");
     assertThat(method, isPresent());
     assertEquals(3, countConstString(method));
 
-    method = mainClass.uniqueMethodWithName("conditionalPhiWithoutAppend");
+    method = mainClass.uniqueMethodWithOriginalName("conditionalPhiWithoutAppend");
     assertThat(method, isPresent());
     assertEquals(isReleaseMode ? 2 : 3, countConstString(method));
 
-    method = mainClass.uniqueMethodWithName("loop");
+    method = mainClass.uniqueMethodWithOriginalName("loop");
     assertThat(method, isPresent());
     assertEquals(3, countConstString(method));
 
-    method = mainClass.uniqueMethodWithName("loopWithBuilder");
+    method = mainClass.uniqueMethodWithOriginalName("loopWithBuilder");
     assertThat(method, isPresent());
     assertEquals(2, countConstString(method));
   }

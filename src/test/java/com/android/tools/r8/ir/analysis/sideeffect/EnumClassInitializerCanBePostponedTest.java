@@ -55,10 +55,10 @@ public class EnumClassInitializerCanBePostponedTest extends TestBase {
   private void inspect(CodeInspector inspector) {
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(classSubject, isPresent());
-    assertThat(classSubject.uniqueMethodWithName("dead"), not(isPresent()));
+    assertThat(classSubject.uniqueMethodWithOriginalName("dead"), not(isPresent()));
 
     for (String methodName : ImmutableList.of("testIf", "testSwitch")) {
-      MethodSubject methodSubject = classSubject.uniqueMethodWithName(methodName);
+      MethodSubject methodSubject = classSubject.uniqueMethodWithOriginalName(methodName);
       assertThat(methodSubject, isPresent());
 
       // Verify that all enum reads have been removed.

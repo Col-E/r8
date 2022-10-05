@@ -54,7 +54,7 @@ public class EnumCanonicalizationTest extends TestBase {
     ClassSubject enumSubject = inspector.clazz(MyEnum.class);
     assertThat(enumSubject, isPresent());
 
-    FieldSubject enumFieldSubject = enumSubject.uniqueFieldWithName("A");
+    FieldSubject enumFieldSubject = enumSubject.uniqueFieldWithOriginalName("A");
     assertThat(enumFieldSubject, isPresent());
 
     ClassSubject enumWithClassInitializationSideEffectsSubject =
@@ -62,7 +62,7 @@ public class EnumCanonicalizationTest extends TestBase {
     assertThat(enumWithClassInitializationSideEffectsSubject, isPresent());
 
     FieldSubject enumWithClassInitializationSideEffectsFieldSubject =
-        enumWithClassInitializationSideEffectsSubject.uniqueFieldWithName("A");
+        enumWithClassInitializationSideEffectsSubject.uniqueFieldWithOriginalName("A");
     assertThat(enumWithClassInitializationSideEffectsFieldSubject, isPresent());
 
     MethodSubject mainMethodSubject = classSubject.mainMethod();

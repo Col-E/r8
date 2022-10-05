@@ -52,7 +52,7 @@ public class TreeFixerInterfaceFixedCollisionTest extends HorizontalClassMerging
               ClassSubject cClassSubject = codeInspector.clazz(C.class);
               assertThat(cClassSubject, isPresent());
               // C#foo is not renamed to match interface.
-              assertThat(cClassSubject.uniqueMethodWithName("foo"), isPresent());
+              assertThat(cClassSubject.uniqueMethodWithOriginalName("foo"), isPresent());
 
               ClassSubject iClassSubject = codeInspector.clazz(I.class);
               assertThat(iClassSubject, isPresent());

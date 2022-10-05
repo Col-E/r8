@@ -89,7 +89,8 @@ public class SingleBridgeToPackagePrivateMethodThatOverridesPublicMethodTest ext
               ClassSubject aClassSubject = inspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
 
-              MethodSubject bridgeOnAMethodSubject = aClassSubject.uniqueMethodWithName("bridge");
+              MethodSubject bridgeOnAMethodSubject =
+                  aClassSubject.uniqueMethodWithOriginalName("bridge");
               assertThat(bridgeOnAMethodSubject, onlyIf(enableBridgeHoistingFromB, isPresent()));
 
               // Inspect B.
@@ -97,14 +98,16 @@ public class SingleBridgeToPackagePrivateMethodThatOverridesPublicMethodTest ext
                   inspector.clazz(DescriptorUtils.descriptorToJavaType(TRANSFORMED_B_DESCRIPTOR));
               assertThat(bClassSubject, isPresent());
 
-              MethodSubject bridgeOnBMethodSubject = bClassSubject.uniqueMethodWithName("bridge");
+              MethodSubject bridgeOnBMethodSubject =
+                  bClassSubject.uniqueMethodWithOriginalName("bridge");
               assertThat(bridgeOnBMethodSubject, notIf(isPresent(), enableBridgeHoistingFromB));
 
               // Inspect C.
               ClassSubject cClassSubject = inspector.clazz(C.class);
               assertThat(cClassSubject, isPresent());
 
-              MethodSubject bridgeOnCMethodSubject = cClassSubject.uniqueMethodWithName("bridge");
+              MethodSubject bridgeOnCMethodSubject =
+                  cClassSubject.uniqueMethodWithOriginalName("bridge");
               assertThat(bridgeOnCMethodSubject, isAbsent());
             })
         .run(parameters.getRuntime(), Main.class)

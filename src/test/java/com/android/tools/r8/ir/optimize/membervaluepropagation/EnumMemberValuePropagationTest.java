@@ -53,9 +53,11 @@ public class EnumMemberValuePropagationTest extends TestBase {
     ClassSubject testClassSubject = inspector.clazz(TestClass.class);
     assertThat(testClassSubject, isPresent());
     assertThat(
-        testClassSubject.uniqueMethodWithName("deadDueToFieldValuePropagation"), not(isPresent()));
+        testClassSubject.uniqueMethodWithOriginalName("deadDueToFieldValuePropagation"),
+        not(isPresent()));
     assertThat(
-        testClassSubject.uniqueMethodWithName("deadDueToReturnValuePropagation"), not(isPresent()));
+        testClassSubject.uniqueMethodWithOriginalName("deadDueToReturnValuePropagation"),
+        not(isPresent()));
 
     // Verify that there are no more conditional instructions.
     MethodSubject mainMethodSubject = testClassSubject.mainMethod();

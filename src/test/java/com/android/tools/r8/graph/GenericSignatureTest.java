@@ -148,7 +148,7 @@ public class GenericSignatureTest extends TestBase {
     // Testing FieldTypeSignature
     //
 
-    FieldSubject yyInZZ = zz.uniqueFieldWithName("yy");
+    FieldSubject yyInZZ = zz.uniqueFieldWithOriginalName("yy");
     assertThat(yyInZZ, isPresent());
     DexEncodedField field = yyInZZ.getField();
     assertNotNull(field);
@@ -165,7 +165,7 @@ public class GenericSignatureTest extends TestBase {
     //
 
     // A$Y$YY newYY([B<T>)
-    MethodSubject newYY = zz.uniqueMethodWithName("newYY");
+    MethodSubject newYY = zz.uniqueMethodWithOriginalName("newYY");
     assertThat(newYY, isPresent());
     method = newYY.getMethod();
     assertNotNull(method);
@@ -207,7 +207,7 @@ public class GenericSignatureTest extends TestBase {
     assertEquals(b.getDexProgramClass().type, classTypeSignature.type);
 
     // Function<A$Y$ZZ<TT>, A$Y$YY> convertToYY(Supplier<A$Y$ZZ<TT>>
-    MethodSubject convertToYY = zz.uniqueMethodWithName("convertToYY");
+    MethodSubject convertToYY = zz.uniqueMethodWithOriginalName("convertToYY");
     assertThat(convertToYY, isPresent());
     method = convertToYY.getMethod();
     assertNotNull(method);
@@ -243,7 +243,7 @@ public class GenericSignatureTest extends TestBase {
     check_supplier(factory, a, y, zz, parameterSignature);
 
     // void boo(Supplier<A$Y$ZZ<TT>>)
-    MethodSubject boo = zz.uniqueMethodWithName("boo");
+    MethodSubject boo = zz.uniqueMethodWithOriginalName("boo");
     assertThat(boo, isPresent());
     method = boo.getMethod();
     assertNotNull(method);
@@ -295,11 +295,11 @@ public class GenericSignatureTest extends TestBase {
   }
 
   private void check_A_Y_foo_bar_baz(ClassSubject y, AppView<AppInfoWithLiveness> appView) {
-    checkMethodWildCard(y.uniqueMethodWithName("foo"), appView, WildcardIndicator.POSITIVE);
-    checkMethodWildCard(y.uniqueMethodWithName("bar"), appView, WildcardIndicator.NEGATIVE);
+    checkMethodWildCard(y.uniqueMethodWithOriginalName("foo"), appView, WildcardIndicator.POSITIVE);
+    checkMethodWildCard(y.uniqueMethodWithOriginalName("bar"), appView, WildcardIndicator.NEGATIVE);
     // Check for star
     checkFieldTypeSignature(
-        y.uniqueMethodWithName("baz").asFoundMethodSubject(),
+        y.uniqueMethodWithOriginalName("baz").asFoundMethodSubject(),
         appView,
         typeSignature -> {
           assertTrue(typeSignature.isStar());

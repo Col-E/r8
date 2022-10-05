@@ -132,7 +132,7 @@ public class NestInvokeSpecialInterfaceMethodAccessWithIntermediateTest extends 
   private void assertCallingClassCallsTarget(
       Class<?> callerClass, AppInfoWithLiveness appInfo, DexMethod method) {
     CodeInspector inspector = new CodeInspector(appInfo.app());
-    MethodSubject foo = inspector.clazz(callerClass).uniqueMethodWithName("foo");
+    MethodSubject foo = inspector.clazz(callerClass).uniqueMethodWithOriginalName("foo");
     assertTrue(
         foo.streamInstructions()
             .anyMatch(

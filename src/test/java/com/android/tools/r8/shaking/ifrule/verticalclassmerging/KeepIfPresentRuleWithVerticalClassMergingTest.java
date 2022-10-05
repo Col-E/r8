@@ -51,7 +51,7 @@ public class KeepIfPresentRuleWithVerticalClassMergingTest extends TestBase {
               ClassSubject classBSubject = inspector.clazz(B.class);
               assertThat(classBSubject, isPresent());
               assertThat(classBSubject.init(), isPresent());
-              assertThat(classBSubject.uniqueMethodWithName("greet"), isPresent());
+              assertThat(classBSubject.uniqueMethodWithOriginalName("greet"), isPresent());
               assertEquals(2, classBSubject.allMethods().size());
             })
         .run(parameters.getRuntime(), TestClass.class)

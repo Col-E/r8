@@ -62,7 +62,7 @@ public class RetraceInlineBranchTest extends TestBase {
         .inspectStackTrace(
             (stackTrace, inspector) -> {
               MethodSubject methodSubject =
-                  inspector.clazz(Main.class).uniqueMethodWithName("call");
+                  inspector.clazz(Main.class).uniqueMethodWithOriginalName("call");
               assertThat(methodSubject, isPresent());
               List<InstructionSubject> getClassCalls =
                   methodSubject

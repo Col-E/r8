@@ -422,13 +422,13 @@ public class ClassStaticizerTest extends TestBase {
     ClassSubject clazz = inspector.clazz(main);
 
     // Check that "calledTwice" is removed (inlined into main).
-    assertThat(clazz.uniqueMethodWithName("calledTwice"), not(isPresent()));
+    assertThat(clazz.uniqueMethodWithOriginalName("calledTwice"), not(isPresent()));
 
     // Check that the two inlines of "calledTwice" is correctly rewritten.
     ClassSubject candidateClassSubject = inspector.clazz(Candidate.class);
     assertThat(candidateClassSubject, isPresent());
-    assertThat(candidateClassSubject.uniqueMethodWithName("foo"), isPresent());
-    assertThat(candidateClassSubject.uniqueMethodWithName("bar"), isPresent());
+    assertThat(candidateClassSubject.uniqueMethodWithOriginalName("foo"), isPresent());
+    assertThat(candidateClassSubject.uniqueMethodWithOriginalName("bar"), isPresent());
     assertEquals(
         Lists.newArrayList(
             "STATIC: String dualcallinline.Candidate.foo()",

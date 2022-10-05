@@ -48,19 +48,19 @@ public class MemberValuePropagationWithNewArrayFilledDataTest extends TestBase {
               assertThat(fontClassSubject, isPresent());
 
               FieldSubject robotoMonoFieldSubject =
-                  fontClassSubject.uniqueFieldWithName("roboto_mono");
+                  fontClassSubject.uniqueFieldWithOriginalName("roboto_mono");
               assertThat(robotoMonoFieldSubject, not(isPresent()));
 
               FieldSubject robotoMonoBoldFieldSubject =
-                  fontClassSubject.uniqueFieldWithName("roboto_mono_bold");
+                  fontClassSubject.uniqueFieldWithOriginalName("roboto_mono_bold");
               assertThat(robotoMonoBoldFieldSubject, not(isPresent()));
 
               FieldSubject robotoMonoRegularFieldSubject =
-                  fontClassSubject.uniqueFieldWithName("roboto_mono_regular");
+                  fontClassSubject.uniqueFieldWithOriginalName("roboto_mono_regular");
               assertThat(robotoMonoRegularFieldSubject, not(isPresent()));
 
               FieldSubject robotoMonoWeightsFieldSubject =
-                  fontClassSubject.uniqueFieldWithName("roboto_mono_weights");
+                  fontClassSubject.uniqueFieldWithOriginalName("roboto_mono_weights");
               assertThat(robotoMonoWeightsFieldSubject, isPresent());
 
               ClassSubject testClassSubject = inspector.clazz(TestClass.class);

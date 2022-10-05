@@ -46,7 +46,8 @@ public class DevirtualizeLibrarySuperTest extends TestBase {
         .compile()
         .inspect(
             inspector -> {
-              MethodSubject fooMethod = inspector.clazz(Main.class).uniqueMethodWithName("foo");
+              MethodSubject fooMethod =
+                  inspector.clazz(Main.class).uniqueMethodWithOriginalName("foo");
               assertThat(fooMethod, isPresent());
               assertThat(
                   fooMethod,

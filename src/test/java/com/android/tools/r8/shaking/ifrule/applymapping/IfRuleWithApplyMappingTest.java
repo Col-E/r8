@@ -62,7 +62,9 @@ public class IfRuleWithApplyMappingTest extends TestBase {
 
   private void inspect(CodeInspector inspector) {
     MethodSubject methodSubject =
-        inspector.clazz(IfRuleWithApplyMappingTestClass.class).uniqueMethodWithName("method");
+        inspector
+            .clazz(IfRuleWithApplyMappingTestClass.class)
+            .uniqueMethodWithOriginalName("method");
     assertThat(methodSubject, isPresent());
     assertEquals(
         A.class.getTypeName(),

@@ -164,7 +164,7 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
     ClassSubject libKt = inspector.clazz(libKtClassName);
     assertThat(libKt, isPresentAndNotRenamed());
 
-    MethodSubject seq = libKt.uniqueMethodWithName("seq");
+    MethodSubject seq = libKt.uniqueMethodWithOriginalName("seq");
     assertThat(seq, isPresentAndNotRenamed());
 
     // API entry is kept, hence the presence of Metadata.

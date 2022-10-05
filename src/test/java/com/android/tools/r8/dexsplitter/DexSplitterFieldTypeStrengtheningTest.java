@@ -55,7 +55,8 @@ public class DexSplitterFieldTypeStrengtheningTest extends SplitterTestBase {
                       ClassSubject baseSuperClassSubject = inspector.clazz(BaseSuperClass.class);
                       assertThat(baseSuperClassSubject, isPresent());
 
-                      FieldSubject fieldSubject = baseSuperClassSubject.uniqueFieldWithName("f");
+                      FieldSubject fieldSubject =
+                          baseSuperClassSubject.uniqueFieldWithOriginalName("f");
                       assertThat(fieldSubject, isPresent());
                       assertEquals(
                           Object.class.getTypeName(),

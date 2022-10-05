@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.List;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -154,45 +153,57 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
     {
       ClassSubject usedRootClassSubject = inputInspector.clazz(USED_ROOT);
       assertThat(usedRootClassSubject, isPresent());
-      assertThat(usedRootClassSubject.uniqueFieldWithName("hasRequiredFieldA_"), isPresent());
-      assertThat(usedRootClassSubject.uniqueFieldWithName("hasRequiredFieldB_"), isPresent());
-      assertThat(usedRootClassSubject.uniqueFieldWithName("myOneof_"), isPresent());
       assertThat(
-          usedRootClassSubject.uniqueFieldWithName("recursiveWithRequiredField_"), isPresent());
-      assertThat(usedRootClassSubject.uniqueFieldWithName("isExtendedWithOptional_"), isPresent());
-      assertThat(usedRootClassSubject.uniqueFieldWithName("isExtendedWithScalars_"), isPresent());
+          usedRootClassSubject.uniqueFieldWithOriginalName("hasRequiredFieldA_"), isPresent());
       assertThat(
-          usedRootClassSubject.uniqueFieldWithName("isExtendedWithRequiredField_"), isPresent());
+          usedRootClassSubject.uniqueFieldWithOriginalName("hasRequiredFieldB_"), isPresent());
+      assertThat(usedRootClassSubject.uniqueFieldWithOriginalName("myOneof_"), isPresent());
       assertThat(
-          usedRootClassSubject.uniqueFieldWithName("isRepeatedlyExtendedWithRequiredField_"),
+          usedRootClassSubject.uniqueFieldWithOriginalName("recursiveWithRequiredField_"),
           isPresent());
-      assertThat(usedRootClassSubject.uniqueFieldWithName("hasMapField_"), isPresent());
+      assertThat(
+          usedRootClassSubject.uniqueFieldWithOriginalName("isExtendedWithOptional_"), isPresent());
+      assertThat(
+          usedRootClassSubject.uniqueFieldWithOriginalName("isExtendedWithScalars_"), isPresent());
+      assertThat(
+          usedRootClassSubject.uniqueFieldWithOriginalName("isExtendedWithRequiredField_"),
+          isPresent());
+      assertThat(
+          usedRootClassSubject.uniqueFieldWithOriginalName(
+              "isRepeatedlyExtendedWithRequiredField_"),
+          isPresent());
+      assertThat(usedRootClassSubject.uniqueFieldWithOriginalName("hasMapField_"), isPresent());
 
       ClassSubject hasRequiredFieldClassSubject = inputInspector.clazz(HAS_REQUIRED_FIELD);
       assertThat(hasRequiredFieldClassSubject, isPresent());
-      assertThat(hasRequiredFieldClassSubject.uniqueFieldWithName("value_"), isPresent());
+      assertThat(hasRequiredFieldClassSubject.uniqueFieldWithOriginalName("value_"), isPresent());
     }
 
     // Verify the existence of various fields in the output.
     {
       ClassSubject usedRootClassSubject = outputInspector.clazz(USED_ROOT);
       assertThat(usedRootClassSubject, isPresent());
-      assertThat(usedRootClassSubject.uniqueFieldWithName("hasRequiredFieldA_"), isPresent());
-      assertThat(usedRootClassSubject.uniqueFieldWithName("hasRequiredFieldB_"), isPresent());
-      assertThat(usedRootClassSubject.uniqueFieldWithName("myOneof_"), isPresent());
       assertThat(
-          usedRootClassSubject.uniqueFieldWithName("recursiveWithRequiredField_"), isPresent());
-      assertThat(usedRootClassSubject.uniqueFieldWithName("hasMapField_"), isPresent());
+          usedRootClassSubject.uniqueFieldWithOriginalName("hasRequiredFieldA_"), isPresent());
+      assertThat(
+          usedRootClassSubject.uniqueFieldWithOriginalName("hasRequiredFieldB_"), isPresent());
+      assertThat(usedRootClassSubject.uniqueFieldWithOriginalName("myOneof_"), isPresent());
+      assertThat(
+          usedRootClassSubject.uniqueFieldWithOriginalName("recursiveWithRequiredField_"),
+          isPresent());
+      assertThat(usedRootClassSubject.uniqueFieldWithOriginalName("hasMapField_"), isPresent());
 
       assertThat(
-          usedRootClassSubject.uniqueFieldWithName("isExtendedWithRequiredField_"), isPresent());
+          usedRootClassSubject.uniqueFieldWithOriginalName("isExtendedWithRequiredField_"),
+          isPresent());
       assertThat(
-          usedRootClassSubject.uniqueFieldWithName("isRepeatedlyExtendedWithRequiredField_"),
+          usedRootClassSubject.uniqueFieldWithOriginalName(
+              "isRepeatedlyExtendedWithRequiredField_"),
           isPresent());
 
       ClassSubject hasRequiredFieldClassSubject = outputInspector.clazz(HAS_REQUIRED_FIELD);
       assertThat(hasRequiredFieldClassSubject, isPresent());
-      assertThat(hasRequiredFieldClassSubject.uniqueFieldWithName("value_"), isPresent());
+      assertThat(hasRequiredFieldClassSubject.uniqueFieldWithOriginalName("value_"), isPresent());
     }
 
     // Verify the absence of various fields in the output.
@@ -200,9 +211,11 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
       ClassSubject usedRootClassSubject = outputInspector.clazz(USED_ROOT);
       assertThat(usedRootClassSubject, isPresent());
       assertThat(
-          usedRootClassSubject.uniqueFieldWithName("isExtendedWithOptional_"), not(isPresent()));
+          usedRootClassSubject.uniqueFieldWithOriginalName("isExtendedWithOptional_"),
+          not(isPresent()));
       assertThat(
-          usedRootClassSubject.uniqueFieldWithName("isExtendedWithScalars_"), not(isPresent()));
+          usedRootClassSubject.uniqueFieldWithOriginalName("isExtendedWithScalars_"),
+          not(isPresent()));
     }
   }
 
@@ -221,13 +234,16 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
       ClassSubject generatedExtensionRegistryLoader = inputInspector.clazz(extensionRegistryName);
       assertThat(generatedExtensionRegistryLoader, isPresent());
       assertThat(
-          generatedExtensionRegistryLoader.uniqueMethodWithName("findLiteExtensionByNumber"),
+          generatedExtensionRegistryLoader.uniqueMethodWithOriginalName(
+              "findLiteExtensionByNumber"),
           isPresent());
       assertThat(
-          generatedExtensionRegistryLoader.uniqueMethodWithName("findLiteExtensionByNumber1"),
+          generatedExtensionRegistryLoader.uniqueMethodWithOriginalName(
+              "findLiteExtensionByNumber1"),
           isPresent());
       assertThat(
-          generatedExtensionRegistryLoader.uniqueMethodWithName("findLiteExtensionByNumber2"),
+          generatedExtensionRegistryLoader.uniqueMethodWithOriginalName(
+              "findLiteExtensionByNumber2"),
           isPresent());
     }
 
@@ -240,13 +256,16 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
       ClassSubject generatedExtensionRegistryLoader = outputInspector.clazz(extensionRegistryName);
       assertThat(generatedExtensionRegistryLoader, isPresent());
       assertThat(
-          generatedExtensionRegistryLoader.uniqueMethodWithName("findLiteExtensionByNumber"),
+          generatedExtensionRegistryLoader.uniqueMethodWithOriginalName(
+              "findLiteExtensionByNumber"),
           isPresent());
       assertThat(
-          generatedExtensionRegistryLoader.uniqueMethodWithName("findLiteExtensionByNumber1"),
+          generatedExtensionRegistryLoader.uniqueMethodWithOriginalName(
+              "findLiteExtensionByNumber1"),
           isPresent());
       assertThat(
-          generatedExtensionRegistryLoader.uniqueMethodWithName("findLiteExtensionByNumber2"),
+          generatedExtensionRegistryLoader.uniqueMethodWithOriginalName(
+              "findLiteExtensionByNumber2"),
           notIf(isPresent(), enableMinification));
     }
 
@@ -268,45 +287,48 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
     {
       ClassSubject cfofClassSubject = inputInspector.clazz(CONTAINS_FLAGGED_OFF_FIELD);
       assertThat(cfofClassSubject, isPresent());
-      assertThat(cfofClassSubject.uniqueFieldWithName("conditionallyUsed_"), isPresent());
+      assertThat(cfofClassSubject.uniqueFieldWithOriginalName("conditionallyUsed_"), isPresent());
 
       ClassSubject puClassSubject = inputInspector.clazz(PARTIALLY_USED);
       assertThat(puClassSubject, isPresent());
       assertEquals(7, puClassSubject.allInstanceFields().size());
-      assertThat(puClassSubject.uniqueFieldWithName("bitField0_"), isPresent());
-      assertThat(puClassSubject.uniqueFieldWithName("used_"), isPresent());
-      assertThat(puClassSubject.uniqueFieldWithName("completelyUnused_"), isPresent());
-      assertThat(puClassSubject.uniqueFieldWithName("unusedEnum_"), isPresent());
-      assertThat(puClassSubject.uniqueFieldWithName("unusedRepeatedEnum_"), isPresent());
-      assertThat(puClassSubject.uniqueFieldWithName("unusedMessage_"), isPresent());
-      assertThat(puClassSubject.uniqueFieldWithName("unusedRepeatedMessage_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithOriginalName("bitField0_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithOriginalName("used_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithOriginalName("completelyUnused_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithOriginalName("unusedEnum_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithOriginalName("unusedRepeatedEnum_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithOriginalName("unusedMessage_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithOriginalName("unusedRepeatedMessage_"), isPresent());
 
       ClassSubject uvhClassSubject = inputInspector.clazz(USED_VIA_HAZZER);
       assertThat(uvhClassSubject, isPresent());
-      assertThat(uvhClassSubject.uniqueFieldWithName("used_"), isPresent());
-      assertThat(uvhClassSubject.uniqueFieldWithName("unused_"), isPresent());
+      assertThat(uvhClassSubject.uniqueFieldWithOriginalName("used_"), isPresent());
+      assertThat(uvhClassSubject.uniqueFieldWithOriginalName("unused_"), isPresent());
     }
 
     // Verify that various proto fields have been removed in the output.
     {
       ClassSubject cfofClassSubject = outputInspector.clazz(CONTAINS_FLAGGED_OFF_FIELD);
       assertThat(cfofClassSubject, isPresent());
-      assertThat(cfofClassSubject.uniqueFieldWithName("conditionallyUsed_"), not(isPresent()));
+      assertThat(
+          cfofClassSubject.uniqueFieldWithOriginalName("conditionallyUsed_"), not(isPresent()));
 
       ClassSubject puClassSubject = outputInspector.clazz(PARTIALLY_USED);
       assertThat(puClassSubject, isPresent());
-      assertThat(puClassSubject.uniqueFieldWithName("bitField0_"), isPresent());
-      assertThat(puClassSubject.uniqueFieldWithName("used_"), isPresent());
-      assertThat(puClassSubject.uniqueFieldWithName("completelyUnused_"), not(isPresent()));
-      assertThat(puClassSubject.uniqueFieldWithName("unusedEnum_"), not(isPresent()));
-      assertThat(puClassSubject.uniqueFieldWithName("unusedRepeatedEnum_"), not(isPresent()));
-      assertThat(puClassSubject.uniqueFieldWithName("unusedMessage_"), not(isPresent()));
-      assertThat(puClassSubject.uniqueFieldWithName("unusedRepeatedMessage_"), not(isPresent()));
+      assertThat(puClassSubject.uniqueFieldWithOriginalName("bitField0_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithOriginalName("used_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithOriginalName("completelyUnused_"), not(isPresent()));
+      assertThat(puClassSubject.uniqueFieldWithOriginalName("unusedEnum_"), not(isPresent()));
+      assertThat(
+          puClassSubject.uniqueFieldWithOriginalName("unusedRepeatedEnum_"), not(isPresent()));
+      assertThat(puClassSubject.uniqueFieldWithOriginalName("unusedMessage_"), not(isPresent()));
+      assertThat(
+          puClassSubject.uniqueFieldWithOriginalName("unusedRepeatedMessage_"), not(isPresent()));
 
       ClassSubject uvhClassSubject = outputInspector.clazz(USED_VIA_HAZZER);
       assertThat(uvhClassSubject, isPresent());
-      assertThat(uvhClassSubject.uniqueFieldWithName("used_"), isPresent());
-      assertThat(uvhClassSubject.uniqueFieldWithName("unused_"), not(isPresent()));
+      assertThat(uvhClassSubject.uniqueFieldWithOriginalName("used_"), isPresent());
+      assertThat(uvhClassSubject.uniqueFieldWithOriginalName("unused_"), not(isPresent()));
     }
   }
 
@@ -316,18 +338,18 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
     {
       ClassSubject classSubject = inputInspector.clazz(USES_ONLY_REPEATED_FIELDS);
       assertThat(classSubject, isPresent());
-      assertThat(classSubject.uniqueFieldWithName("bitField0_"), isPresent());
-      assertThat(classSubject.uniqueFieldWithName("myoneof_"), isPresent());
-      assertThat(classSubject.uniqueFieldWithName("myoneofCase_"), isPresent());
+      assertThat(classSubject.uniqueFieldWithOriginalName("bitField0_"), isPresent());
+      assertThat(classSubject.uniqueFieldWithOriginalName("myoneof_"), isPresent());
+      assertThat(classSubject.uniqueFieldWithOriginalName("myoneofCase_"), isPresent());
     }
 
     // Verify that various proto fields have been removed in the output.
     {
       ClassSubject classSubject = outputInspector.clazz(USES_ONLY_REPEATED_FIELDS);
       assertThat(classSubject, isPresent());
-      assertThat(classSubject.uniqueFieldWithName("bitField0_"), not(isPresent()));
-      assertThat(classSubject.uniqueFieldWithName("myoneof_"), not(isPresent()));
-      assertThat(classSubject.uniqueFieldWithName("myoneofCase_"), not(isPresent()));
+      assertThat(classSubject.uniqueFieldWithOriginalName("bitField0_"), not(isPresent()));
+      assertThat(classSubject.uniqueFieldWithOriginalName("myoneof_"), not(isPresent()));
+      assertThat(classSubject.uniqueFieldWithOriginalName("myoneofCase_"), not(isPresent()));
     }
   }
 

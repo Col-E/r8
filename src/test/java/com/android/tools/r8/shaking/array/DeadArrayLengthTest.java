@@ -42,15 +42,15 @@ public class DeadArrayLengthTest extends TestBase {
     ClassSubject main = inspector.clazz(MAIN);
     assertThat(main, isPresent());
 
-    MethodSubject nonNull = main.uniqueMethodWithName("clearlyNonNull");
+    MethodSubject nonNull = main.uniqueMethodWithOriginalName("clearlyNonNull");
     assertThat(nonNull, isPresent());
     assertEquals(0, countArrayLength(nonNull));
 
-    MethodSubject nullable = main.uniqueMethodWithName("isNullable");
+    MethodSubject nullable = main.uniqueMethodWithOriginalName("isNullable");
     assertThat(nullable, isPresent());
     assertEquals(isR8 ? 0 : 1, countArrayLength(nullable));
 
-    MethodSubject nullCheck = main.uniqueMethodWithName("afterNullCheck");
+    MethodSubject nullCheck = main.uniqueMethodWithOriginalName("afterNullCheck");
     assertThat(nullCheck, isPresent());
     assertEquals(isR8 ? 0 : 1, countArrayLength(nullCheck));
   }

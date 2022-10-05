@@ -45,7 +45,7 @@ public class RedundantInstanceFieldLoadAfterStoreTest extends TestBase {
               ClassSubject classSubject = inspector.clazz(TestClass.class);
               assertThat(classSubject, isPresent());
 
-              FieldSubject fieldSubject = classSubject.uniqueFieldWithName("greeting");
+              FieldSubject fieldSubject = classSubject.uniqueFieldWithOriginalName("greeting");
               assertThat(fieldSubject, isAbsent());
             })
         .run(parameters.getRuntime(), TestClass.class)

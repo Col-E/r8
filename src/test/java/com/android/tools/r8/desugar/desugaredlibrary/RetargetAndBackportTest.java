@@ -79,7 +79,7 @@ public class RetargetAndBackportTest extends DesugaredLibraryTestBase implements
               assertTrue(
                   inspector
                       .clazz("j$.time.Duration")
-                      .uniqueMethodWithName("toMillis")
+                      .uniqueMethodWithOriginalName("toMillis")
                       .streamInstructions()
                       .filter(InstructionSubject::isInvokeStatic)
                       .map(InstructionSubject::toString)

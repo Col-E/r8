@@ -61,8 +61,8 @@ public class SingleStaticTargetLookupTestRunner extends TestBase {
         .inspect(
             inspector -> {
               ClassSubject clazz = inspector.clazz(SingleStaticTargetLookupTest.class);
-              MethodSubject main = clazz.uniqueMethodWithName("main");
-              MethodSubject staticFoo = clazz.uniqueMethodWithName("staticFoo");
+              MethodSubject main = clazz.uniqueMethodWithOriginalName("main");
+              MethodSubject staticFoo = clazz.uniqueMethodWithOriginalName("staticFoo");
               assertThat(clazz, isPresent());
               assertThat(main, isPresent());
               assertEquals(keepFoo, staticFoo.isPresent());

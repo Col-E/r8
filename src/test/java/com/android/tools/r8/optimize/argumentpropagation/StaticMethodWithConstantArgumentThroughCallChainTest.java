@@ -51,14 +51,15 @@ public class StaticMethodWithConstantArgumentThroughCallChainTest extends TestBa
 
               // The test1(), test2(), and test3() methods have been optimized.
               for (int i = 1; i <= 3; i++) {
-                MethodSubject testMethodSubject = mainClassSubject.uniqueMethodWithName("test" + i);
+                MethodSubject testMethodSubject =
+                    mainClassSubject.uniqueMethodWithOriginalName("test" + i);
                 assertThat(testMethodSubject, isPresent());
                 assertEquals(0, testMethodSubject.getProgramMethod().getParameters().size());
                 assertTrue(
                     testMethodSubject.streamInstructions().noneMatch(InstructionSubject::isIf));
               }
 
-              assertThat(mainClassSubject.uniqueMethodWithName("dead"), isAbsent());
+              assertThat(mainClassSubject.uniqueMethodWithOriginalName("dead"), isAbsent());
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(

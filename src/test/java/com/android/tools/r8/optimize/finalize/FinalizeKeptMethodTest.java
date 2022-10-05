@@ -43,7 +43,8 @@ public class FinalizeKeptMethodTest extends TestBase {
               ClassSubject aClassSubject = inspector.clazz(Main.class);
               assertThat(aClassSubject, isPresent());
               assertThat(
-                  aClassSubject.uniqueMethodWithName("m"), allOf(isPresent(), not(isFinal())));
+                  aClassSubject.uniqueMethodWithOriginalName("m"),
+                  allOf(isPresent(), not(isFinal())));
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Main.m()");

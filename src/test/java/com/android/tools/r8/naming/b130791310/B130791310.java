@@ -110,7 +110,7 @@ public class B130791310 extends TestBase {
   private void inspect(CodeInspector inspector) {
     ClassSubject holder = inspector.clazz(SomeLogic.class);
     assertThat(holder, isPresentAndNotRenamed());
-    MethodSubject someMethod = holder.uniqueMethodWithName("someMethod");
+    MethodSubject someMethod = holder.uniqueMethodWithOriginalName("someMethod");
     assertThat(someMethod, isPresentAndNotRenamed());
   }
 

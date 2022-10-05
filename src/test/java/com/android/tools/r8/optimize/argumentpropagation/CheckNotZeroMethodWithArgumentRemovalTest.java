@@ -48,7 +48,7 @@ public class CheckNotZeroMethodWithArgumentRemovalTest extends TestBase {
               assertThat(mainClassSubject, isPresent());
 
               MethodSubject checkNotNullSubject =
-                  mainClassSubject.uniqueMethodWithName("checkNotNull");
+                  mainClassSubject.uniqueMethodWithOriginalName("checkNotNull");
               assertThat(checkNotNullSubject, isPresent());
               assertEquals(1, checkNotNullSubject.getProgramMethod().getReference().getArity());
             })

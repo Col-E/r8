@@ -62,8 +62,9 @@ public class KeepAllowShrinkingIncludeDescriptorClassesCompatibilityTest extends
               assertThat(inspector.clazz(TestClass.class), isPresent());
 
               ClassSubject softPinnedClass = inspector.clazz(SoftPinned.class);
-              assertThat(softPinnedClass.uniqueMethodWithName("used"), isPresentAndNotRenamed());
-              assertThat(softPinnedClass.uniqueMethodWithName("unused"), not(isPresent()));
+              assertThat(
+                  softPinnedClass.uniqueMethodWithOriginalName("used"), isPresentAndNotRenamed());
+              assertThat(softPinnedClass.uniqueMethodWithOriginalName("unused"), not(isPresent()));
 
               // SoftPinned.used(A) remains thus A must be present and not renamed.
               assertThat(inspector.clazz(A.class), isPresentAndNotRenamed());

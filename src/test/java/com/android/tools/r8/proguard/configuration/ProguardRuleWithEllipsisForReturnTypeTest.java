@@ -66,8 +66,8 @@ public class ProguardRuleWithEllipsisForReturnTypeTest extends TestBase {
   private void inspect(CodeInspector inspector) {
     ClassSubject classSubject = inspector.clazz(clazz);
     assertThat(classSubject, isPresent());
-    assertThat(classSubject.uniqueFieldWithName("unused"), isPresent());
-    assertThat(classSubject.uniqueMethodWithName("main"), isPresent());
+    assertThat(classSubject.uniqueFieldWithOriginalName("unused"), isPresent());
+    assertThat(classSubject.uniqueMethodWithOriginalName("main"), isPresent());
   }
 }
 

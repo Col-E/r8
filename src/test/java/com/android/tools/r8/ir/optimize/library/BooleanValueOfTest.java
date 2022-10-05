@@ -53,7 +53,7 @@ public class BooleanValueOfTest extends TestBase {
     assertThat(testClassSubject, isPresent());
 
     MethodSubject testBooleanValueOfTrue =
-        testClassSubject.uniqueMethodWithName("testBooleanValueOfTrue");
+        testClassSubject.uniqueMethodWithOriginalName("testBooleanValueOfTrue");
     assertThat(testBooleanValueOfTrue, isPresent());
     assertTrue(
         testBooleanValueOfTrue
@@ -69,7 +69,7 @@ public class BooleanValueOfTest extends TestBase {
             .noneMatch("TRUE"::equals));
 
     MethodSubject testBooleanValueOfFalse =
-        testClassSubject.uniqueMethodWithName("testBooleanValueOfFalse");
+        testClassSubject.uniqueMethodWithOriginalName("testBooleanValueOfFalse");
     assertThat(testBooleanValueOfFalse, isPresent());
     assertTrue(
         testBooleanValueOfFalse
@@ -85,7 +85,7 @@ public class BooleanValueOfTest extends TestBase {
             .noneMatch("FALSE"::equals));
 
     MethodSubject testRoundTripTrueMethodSubject =
-        testClassSubject.uniqueMethodWithName("testRoundTripTrue");
+        testClassSubject.uniqueMethodWithOriginalName("testRoundTripTrue");
     assertThat(testRoundTripTrueMethodSubject, isPresent());
     assertTrue(
         testRoundTripTrueMethodSubject
@@ -95,7 +95,7 @@ public class BooleanValueOfTest extends TestBase {
             .noneMatch(or("booleanValue"::equals, "valueOf"::equals)));
 
     MethodSubject testRoundTripFalseMethodSubject =
-        testClassSubject.uniqueMethodWithName("testRoundTripFalse");
+        testClassSubject.uniqueMethodWithOriginalName("testRoundTripFalse");
     assertThat(testRoundTripFalseMethodSubject, isPresent());
     assertTrue(
         testRoundTripFalseMethodSubject
@@ -104,7 +104,8 @@ public class BooleanValueOfTest extends TestBase {
             .map(invoke -> invoke.getMethod().name.toSourceString())
             .noneMatch(or("booleanValue"::equals, "valueOf"::equals)));
 
-    MethodSubject testValueOfTrue = testClassSubject.uniqueMethodWithName("testValueOfTrue");
+    MethodSubject testValueOfTrue =
+        testClassSubject.uniqueMethodWithOriginalName("testValueOfTrue");
     assertThat(testValueOfTrue, isPresent());
     assertTrue(
         testValueOfTrue
@@ -119,7 +120,8 @@ public class BooleanValueOfTest extends TestBase {
             .map(staticGet -> staticGet.getField().name.toSourceString())
             .anyMatch("TRUE"::equals));
 
-    MethodSubject testValueOfFalse = testClassSubject.uniqueMethodWithName("testValueOfFalse");
+    MethodSubject testValueOfFalse =
+        testClassSubject.uniqueMethodWithOriginalName("testValueOfFalse");
     assertThat(testValueOfFalse, isPresent());
     assertTrue(
         testValueOfFalse

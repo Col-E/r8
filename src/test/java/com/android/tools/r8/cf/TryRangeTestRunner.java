@@ -72,7 +72,7 @@ public class TryRangeTestRunner extends TestBase {
     // L1: ; locals:
     // 11:   pop
     ClassSubject clazz = inspector.clazz("com.android.tools.r8.cf.TryRangeTestLimitRange");
-    CfCode cfCode = clazz.uniqueMethodWithName("main").getMethod().getCode().asCfCode();
+    CfCode cfCode = clazz.uniqueMethodWithOriginalName("main").getMethod().getCode().asCfCode();
     List<CfInstruction> instructions = cfCode.getInstructions();
     CfLabel startLabel = cfCode.getTryCatchRanges().get(0).start;
     int index = 0;

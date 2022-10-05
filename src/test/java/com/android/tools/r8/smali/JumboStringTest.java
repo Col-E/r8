@@ -92,7 +92,7 @@ public class JumboStringTest extends SmaliTestBase {
             inspector -> {
               ClassSubject main = inspector.clazz(DEFAULT_CLASS_NAME);
               assertThat(main, isPresent());
-              MethodSubject method = main.uniqueMethodWithName(DEFAULT_METHOD_NAME);
+              MethodSubject method = main.uniqueMethodWithOriginalName(DEFAULT_METHOD_NAME);
               assertThat(method, isPresent());
               assertTrue(method.streamInstructions().anyMatch(InstructionSubject::isJumboString));
             });
@@ -143,10 +143,10 @@ public class JumboStringTest extends SmaliTestBase {
             inspector -> {
               ClassSubject main = inspector.clazz(DEFAULT_CLASS_NAME);
               assertThat(main, isPresent());
-              MethodSubject method = main.uniqueMethodWithName(DEFAULT_METHOD_NAME);
+              MethodSubject method = main.uniqueMethodWithOriginalName(DEFAULT_METHOD_NAME);
               assertThat(method, isPresent());
               assertTrue(method.streamInstructions().anyMatch(InstructionSubject::isJumboString));
-              MethodSubject method2 = main.uniqueMethodWithName(DEFAULT_METHOD_NAME + "2");
+              MethodSubject method2 = main.uniqueMethodWithOriginalName(DEFAULT_METHOD_NAME + "2");
               assertThat(method2, isPresent());
               assertTrue(method2.streamInstructions().anyMatch(InstructionSubject::isJumboString));
             });

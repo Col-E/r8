@@ -69,16 +69,16 @@ public class VoidReturnTypeRewritingTest extends TestBase {
 
     ClassSubject factoryClassSubject = inspector.clazz(Factory.class);
     MethodSubject createStaticMethodSubject =
-        factoryClassSubject.uniqueMethodWithName("createStatic");
+        factoryClassSubject.uniqueMethodWithOriginalName("createStatic");
     assertThat(createStaticMethodSubject, isPresent());
     assertTrue(createStaticMethodSubject.getMethod().getReturnType().isVoidType());
     MethodSubject createVirtualMethodSubject =
-        factoryClassSubject.uniqueMethodWithName("createVirtual");
+        factoryClassSubject.uniqueMethodWithOriginalName("createVirtual");
     assertThat(createVirtualMethodSubject, isPresent());
     assertTrue(createVirtualMethodSubject.getMethod().getReturnType().isVoidType());
 
     createVirtualMethodSubject =
-        inspector.clazz(SubFactory.class).uniqueMethodWithName("createVirtual");
+        inspector.clazz(SubFactory.class).uniqueMethodWithOriginalName("createVirtual");
     assertThat(createVirtualMethodSubject, isPresent());
     assertTrue(createVirtualMethodSubject.getMethod().getReturnType().isVoidType());
 

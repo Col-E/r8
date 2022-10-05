@@ -43,8 +43,8 @@ public class RedundantInitClassBeforeInvokeStaticTest extends TestBase {
             inspector -> {
               ClassSubject greeterClassSubject = inspector.clazz(Greeter.class);
               assertThat(greeterClassSubject, isPresent());
-              assertThat(greeterClassSubject.uniqueMethodWithName("hello"), isAbsent());
-              assertThat(greeterClassSubject.uniqueMethodWithName("world"), isPresent());
+              assertThat(greeterClassSubject.uniqueMethodWithOriginalName("hello"), isAbsent());
+              assertThat(greeterClassSubject.uniqueMethodWithOriginalName("world"), isPresent());
               assertEquals(0, greeterClassSubject.allFields().size());
             })
         .run(parameters.getRuntime(), Main.class)

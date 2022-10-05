@@ -86,7 +86,7 @@ public class AndroidApiVersionsXmlParser {
               getMaxAndroidApiLevelFromNode(memberNode, apiLevel));
         } else if (isField(memberNode)) {
           // The field do not have descriptors and are supposed to be unique.
-          FieldSubject fieldSubject = clazz.uniqueFieldWithName(getName(memberNode));
+          FieldSubject fieldSubject = clazz.uniqueFieldWithOriginalName(getName(memberNode));
           if (!fieldSubject.isPresent()) {
             assert hasRemoved(memberNode);
             assert getRemoved(memberNode).isLessThanOrEqualTo(maxApiLevel);

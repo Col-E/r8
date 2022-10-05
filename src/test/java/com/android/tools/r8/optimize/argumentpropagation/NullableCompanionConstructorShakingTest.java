@@ -49,7 +49,7 @@ public class NullableCompanionConstructorShakingTest extends TestBase {
         .inspect(
             inspector -> {
               MethodSubject companionMethodSubject =
-                  inspector.clazz(Host.Companion.class).uniqueMethodWithName("greet");
+                  inspector.clazz(Host.Companion.class).uniqueMethodWithOriginalName("greet");
               assertThat(companionMethodSubject, isStatic());
 
               MethodSubject mainMethodSubject = inspector.clazz(Main.class).mainMethod();

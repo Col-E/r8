@@ -43,7 +43,8 @@ public class ArgumentPropagationToClassesOutsideLowerBoundTest extends TestBase 
         .compile()
         .inspect(
             inspector -> {
-              MethodSubject aMethodSubject = inspector.clazz(A.class).uniqueMethodWithName("m");
+              MethodSubject aMethodSubject =
+                  inspector.clazz(A.class).uniqueMethodWithOriginalName("m");
               assertThat(aMethodSubject, isPresent());
               assertTrue(
                   aMethodSubject
@@ -55,7 +56,8 @@ public class ArgumentPropagationToClassesOutsideLowerBoundTest extends TestBase 
                       .anyMatch(instruction -> instruction.isConstString("A: Null")));
 
               // TODO(b/190154391): B.m() is always called with non-null.
-              MethodSubject bMethodSubject = inspector.clazz(B.class).uniqueMethodWithName("m");
+              MethodSubject bMethodSubject =
+                  inspector.clazz(B.class).uniqueMethodWithOriginalName("m");
               assertThat(bMethodSubject, isPresent());
               assertTrue(
                   bMethodSubject
@@ -67,7 +69,8 @@ public class ArgumentPropagationToClassesOutsideLowerBoundTest extends TestBase 
                       .anyMatch(instruction -> instruction.isConstString("B: Null")));
 
               // TODO(b/190154391): C.m() is always called with null.
-              MethodSubject cMethodSubject = inspector.clazz(C.class).uniqueMethodWithName("m");
+              MethodSubject cMethodSubject =
+                  inspector.clazz(C.class).uniqueMethodWithOriginalName("m");
               assertThat(cMethodSubject, isPresent());
               assertTrue(
                   cMethodSubject

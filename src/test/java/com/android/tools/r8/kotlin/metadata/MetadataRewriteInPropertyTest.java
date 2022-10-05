@@ -114,11 +114,11 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
     ClassSubject person = inspector.clazz(personClassName);
     assertThat(person, isPresentAndNotRenamed());
 
-    FieldSubject backingField = person.uniqueFieldWithName("name");
+    FieldSubject backingField = person.uniqueFieldWithOriginalName("name");
     assertThat(backingField, isPresentAndRenamed());
-    MethodSubject getterForName = person.uniqueMethodWithName("getName");
+    MethodSubject getterForName = person.uniqueMethodWithOriginalName("getName");
     assertThat(getterForName, isPresentAndNotRenamed());
-    MethodSubject setterForName = person.uniqueMethodWithName("setName");
+    MethodSubject setterForName = person.uniqueMethodWithOriginalName("setName");
     assertThat(setterForName, not(isPresent()));
 
     // API entry is kept, hence the presence of Metadata.
@@ -250,7 +250,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
     KmPropertySubject familyName = kmClass.kmPropertyWithUniqueName("familyName");
     assertThat(familyName, not(isPresent()));
 
-    FieldSubject ageField = person.uniqueFieldWithName("age");
+    FieldSubject ageField = person.uniqueFieldWithOriginalName("age");
     assertThat(ageField, isAbsent());
 
     KmPropertySubject age = kmClass.kmPropertyWithUniqueName("age");

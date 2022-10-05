@@ -96,17 +96,18 @@ public class KeepSignatureTest extends TestBase {
     assertThat(keptClass, isPresent());
     assertEquals(
         "<T:Ljava/lang/Object;>Ljava/lang/Object;", keptClass.getFinalSignatureAttribute());
-    FieldSubject keptField = keptClass.uniqueFieldWithName("keptField");
+    FieldSubject keptField = keptClass.uniqueFieldWithOriginalName("keptField");
     assertThat(keptField, isPresent());
     assertEquals("TT;", keptField.getFinalSignatureAttribute());
-    MethodSubject keptMethod = keptClass.uniqueMethodWithName("keptMethod");
+    MethodSubject keptMethod = keptClass.uniqueMethodWithOriginalName("keptMethod");
     assertThat(keptMethod, isPresent());
     assertEquals("<R:Ljava/lang/Object;>(TT;)TR;", keptMethod.getFinalSignatureAttribute());
 
     // For all remaining classes and members, we should only keep signatures if in compat mode.
-    checkMemberSignature(keptClass.uniqueFieldWithName("notKeptField"), keepForNotKept, "TT;");
     checkMemberSignature(
-        keptClass.uniqueMethodWithName("notKeptMethod"),
+        keptClass.uniqueFieldWithOriginalName("notKeptField"), keepForNotKept, "TT;");
+    checkMemberSignature(
+        keptClass.uniqueMethodWithOriginalName("notKeptMethod"),
         keepForNotKept,
         "<R:Ljava/lang/Object;>(TT;)TR;");
 
@@ -119,9 +120,11 @@ public class KeepSignatureTest extends TestBase {
       assertNull(notKeptClass.getFinalSignatureAttribute());
     }
     checkMemberSignature(
-        notKeptClass.uniqueFieldWithName("notKeptField"), keepForNotKept, "Ljava/util/List<TP;>;");
+        notKeptClass.uniqueFieldWithOriginalName("notKeptField"),
+        keepForNotKept,
+        "Ljava/util/List<TP;>;");
     checkMemberSignature(
-        notKeptClass.uniqueMethodWithName("notKeptMethod"),
+        notKeptClass.uniqueMethodWithOriginalName("notKeptMethod"),
         keepForNotKept,
         "(TP;TP;)Ljava/util/List<TP;>;");
   }

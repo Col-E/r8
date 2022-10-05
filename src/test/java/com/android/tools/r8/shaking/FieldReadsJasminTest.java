@@ -161,7 +161,8 @@ public class FieldReadsJasminTest extends JasminTestBase {
         .compile()
         .inspect(
             inspector ->
-                assertThat(inspector.clazz(main.name).uniqueFieldWithName("sField"), isAbsent()));
+                assertThat(
+                    inspector.clazz(main.name).uniqueFieldWithOriginalName("sField"), isAbsent()));
   }
 
   @Test
@@ -196,7 +197,7 @@ public class FieldReadsJasminTest extends JasminTestBase {
           assertThat(emptyClassSubject, isPresent());
           assertTrue(emptyClassSubject.allFields().isEmpty());
 
-          MethodSubject fooMethodSubject = emptyClassSubject.uniqueMethodWithName("foo");
+          MethodSubject fooMethodSubject = emptyClassSubject.uniqueMethodWithOriginalName("foo");
           assertThat(fooMethodSubject, isPresent());
           assertTrue(
               fooMethodSubject
@@ -350,7 +351,7 @@ public class FieldReadsJasminTest extends JasminTestBase {
       ClassBuilder fieldHolder,
       String fieldName,
       boolean isR8) {
-    FieldSubject fld = inspector.clazz(fieldHolder.name).uniqueFieldWithName(fieldName);
+    FieldSubject fld = inspector.clazz(fieldHolder.name).uniqueFieldWithOriginalName(fieldName);
     if (isR8) {
       assertThat(fld, isPresentAndRenamed());
     } else {
@@ -359,7 +360,7 @@ public class FieldReadsJasminTest extends JasminTestBase {
 
     ClassSubject classSubject = inspector.clazz(className);
     assertThat(classSubject, isPresent());
-    MethodSubject methodSubject = classSubject.uniqueMethodWithName(methodName);
+    MethodSubject methodSubject = classSubject.uniqueMethodWithOriginalName(methodName);
     assertThat(methodSubject, isPresent());
     Iterator<InstructionSubject> it =
         methodSubject.iterateInstructions(InstructionSubject::isFieldAccess);

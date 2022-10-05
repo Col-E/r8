@@ -76,7 +76,7 @@ public class LibraryMethodOverridesTest extends TestBase {
     ClassSubject customPredicate = inspector.clazz(CustomPredicate.class);
     assertThat(customPredicate, isPresent());
 
-    MethodSubject m = customPredicate.uniqueMethodWithName("test");
+    MethodSubject m = customPredicate.uniqueMethodWithOriginalName("test");
     // Should not optimize branches since the method is overriding a library method.
     assertTrue(m.streamInstructions().anyMatch(InstructionSubject::isIf));
   }

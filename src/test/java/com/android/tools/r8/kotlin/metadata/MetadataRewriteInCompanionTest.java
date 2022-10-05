@@ -186,15 +186,15 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
     }
 
     // The backing field for the property in the companion, with @JvmField
-    FieldSubject elt2 = impl.uniqueFieldWithName("elt2");
+    FieldSubject elt2 = impl.uniqueFieldWithOriginalName("elt2");
     assertThat(elt2, isPresentAndNotRenamed());
 
-    FieldSubject companionObject = impl.uniqueFieldWithName("Companion");
+    FieldSubject companionObject = impl.uniqueFieldWithOriginalName("Companion");
     assertThat(companionObject, isPresentAndNotRenamed());
     assertEquals(companionObject.getFinalName(), kmClass.getCompanionObject());
 
     // Bridge for the property in the companion that needs a backing field.
-    MethodSubject elt1Bridge = impl.uniqueMethodWithName("access$getElt1$cp");
+    MethodSubject elt1Bridge = impl.uniqueMethodWithOriginalName("access$getElt1$cp");
     if (keptAll) {
       assertThat(elt1Bridge, isPresentAndNotRenamed());
     } else {
@@ -202,11 +202,11 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
     }
 
     // With @JvmField, no bridge is added.
-    MethodSubject elt2Bridge = impl.uniqueMethodWithName("access$getElt2$cp");
+    MethodSubject elt2Bridge = impl.uniqueMethodWithOriginalName("access$getElt2$cp");
     assertThat(elt2Bridge, not(isPresent()));
 
     // For B$Companion.foo, which is a simple computation, no backing field needed, hence no bridge.
-    MethodSubject fooBridge = impl.uniqueMethodWithName("access$getFoo$cp");
+    MethodSubject fooBridge = impl.uniqueMethodWithOriginalName("access$getFoo$cp");
     assertThat(fooBridge, not(isPresent()));
 
     ClassSubject companion = inspector.clazz(companionClassName);
@@ -226,17 +226,17 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
     kmProperty = kmClass.kmPropertyWithUniqueName("foo");
     assertThat(kmProperty, isPresent());
 
-    MethodSubject elt1Getter = companion.uniqueMethodWithName("getElt1");
+    MethodSubject elt1Getter = companion.uniqueMethodWithOriginalName("getElt1");
     assertThat(elt1Getter, isPresentAndNotRenamed());
 
     // Note that there is no getter for property with @JvmField.
-    MethodSubject elt2Getter = companion.uniqueMethodWithName("getElt2");
+    MethodSubject elt2Getter = companion.uniqueMethodWithOriginalName("getElt2");
     assertThat(elt2Getter, not(isPresent()));
 
-    MethodSubject fooGetter = companion.uniqueMethodWithName("getFoo");
+    MethodSubject fooGetter = companion.uniqueMethodWithOriginalName("getFoo");
     assertThat(fooGetter, isPresentAndNotRenamed());
 
-    MethodSubject barSetter = companion.uniqueMethodWithName("setBar");
+    MethodSubject barSetter = companion.uniqueMethodWithOriginalName("setBar");
     assertThat(barSetter, isPresentAndNotRenamed());
   }
 }

@@ -169,7 +169,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
     if (isOptimizing) {
       ClassSubject testHelperClassSubject = codeInspector.clazz(TestHelper.class);
       assertThat(testHelperClassSubject, isPresent());
-      assertThat(testHelperClassSubject.uniqueMethodWithName("getClassName"), isAbsent());
+      assertThat(testHelperClassSubject.uniqueMethodWithOriginalName("getClassName"), isAbsent());
     }
   }
 

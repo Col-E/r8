@@ -53,10 +53,10 @@ public class EffectivelyFinalCompanionMethodsTest extends TestBase {
               ClassSubject companionClassSubject = inspector.clazz(Host.Companion.class);
               assertThat(companionClassSubject, isPresent());
               assertEquals(4, companionClassSubject.allMethods().size());
-              assertThat(companionClassSubject.uniqueMethodWithName("foo"), isStatic());
-              assertThat(companionClassSubject.uniqueMethodWithName("bar"), isStatic());
-              assertThat(companionClassSubject.uniqueMethodWithName("baz"), isStatic());
-              assertThat(companionClassSubject.uniqueMethodWithName("qux"), isStatic());
+              assertThat(companionClassSubject.uniqueMethodWithOriginalName("foo"), isStatic());
+              assertThat(companionClassSubject.uniqueMethodWithOriginalName("bar"), isStatic());
+              assertThat(companionClassSubject.uniqueMethodWithOriginalName("baz"), isStatic());
+              assertThat(companionClassSubject.uniqueMethodWithOriginalName("qux"), isStatic());
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Foo!", "Bar!", "Baz!", "Qux!", "Baz!");

@@ -71,7 +71,7 @@ public class StringSwitchConversionFromIfTest extends TestBase {
                       "testWithSwitch",
                       "testNullCheckIsPreserved");
               for (String methodName : methodNames) {
-                MethodSubject methodSubject = classSubject.uniqueMethodWithName(methodName);
+                MethodSubject methodSubject = classSubject.uniqueMethodWithOriginalName(methodName);
                 assertThat(methodSubject, isPresent());
                 IRCode code = methodSubject.buildIR();
                 List<Value> hashCodeValues =

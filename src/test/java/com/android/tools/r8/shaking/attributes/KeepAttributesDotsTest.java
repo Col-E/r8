@@ -69,9 +69,9 @@ public class KeepAttributesDotsTest extends TestBase {
   private void inspect(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz(Main.class);
     assertTrue(clazz.getDexProgramClass().annotations().isEmpty());
-    MethodSubject main = clazz.uniqueMethodWithName("main");
+    MethodSubject main = clazz.uniqueMethodWithOriginalName("main");
     assertTrue(main.getMethod().annotations().isEmpty());
-    FieldSubject field = clazz.uniqueFieldWithName("field");
+    FieldSubject field = clazz.uniqueFieldWithOriginalName("field");
     assertTrue(field.getField().annotations().isEmpty());
     assertTrue(
         clazz.getDexProgramClass().sourceFile == null

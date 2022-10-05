@@ -68,13 +68,13 @@ public class EnumMinification extends TestBase {
     // The class and fields - including the method valueOf - can be renamed. Only the values()
     // method needs to be.
     assertThat(clazz, isPresentAndRenamed());
-    assertThat(clazz.uniqueFieldWithName("VALUE1"), isAbsent());
-    assertThat(clazz.uniqueFieldWithName("VALUE2"), isAbsent());
-    assertThat(clazz.uniqueFieldWithName("$VALUES"), isPresentAndRenamed());
+    assertThat(clazz.uniqueFieldWithOriginalName("VALUE1"), isAbsent());
+    assertThat(clazz.uniqueFieldWithOriginalName("VALUE2"), isAbsent());
+    assertThat(clazz.uniqueFieldWithOriginalName("$VALUES"), isPresentAndRenamed());
     assertThat(
-        clazz.uniqueMethodWithName("valueOf"),
+        clazz.uniqueMethodWithOriginalName("valueOf"),
         valueOfKept ? isPresentAndRenamed() : not(isPresent()));
-    assertThat(clazz.uniqueMethodWithName("values"), isPresentAndNotRenamed());
+    assertThat(clazz.uniqueMethodWithOriginalName("values"), isPresentAndNotRenamed());
   }
 
   @Test

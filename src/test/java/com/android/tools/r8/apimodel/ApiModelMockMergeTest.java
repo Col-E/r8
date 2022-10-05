@@ -136,8 +136,8 @@ public class ApiModelMockMergeTest extends TestBase {
       assertThat(libraryClassSubject, isAbsent());
     } else {
       assertThat(libraryClassSubject, isPresent());
-      assertThat(libraryClassSubject.uniqueMethodWithName("foo"), isAbsent());
-      assertThat(libraryClassSubject.uniqueMethodWithName("bar"), isAbsent());
+      assertThat(libraryClassSubject.uniqueMethodWithOriginalName("foo"), isAbsent());
+      assertThat(libraryClassSubject.uniqueMethodWithOriginalName("bar"), isAbsent());
     }
   }
 

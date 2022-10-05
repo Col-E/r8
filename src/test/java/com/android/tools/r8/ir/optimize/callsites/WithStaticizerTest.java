@@ -59,7 +59,7 @@ public class WithStaticizerTest extends TestBase {
     // Check if the candidate is indeed staticized.
     ClassSubject companion = inspector.clazz(Host.Companion.class);
     assertThat(companion, isPresent());
-    MethodSubject foo = companion.uniqueMethodWithName("foo");
+    MethodSubject foo = companion.uniqueMethodWithOriginalName("foo");
     assertThat(foo, isPresent());
     assertThat(foo, isStatic());
   }

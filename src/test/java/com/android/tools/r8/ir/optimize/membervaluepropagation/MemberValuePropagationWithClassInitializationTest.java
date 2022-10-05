@@ -55,17 +55,17 @@ public class MemberValuePropagationWithClassInitializationTest extends TestBase 
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
 
-    FieldSubject fieldSubject = aClassSubject.uniqueFieldWithName("field");
+    FieldSubject fieldSubject = aClassSubject.uniqueFieldWithOriginalName("field");
     assertThat(fieldSubject, not(isPresent()));
 
-    FieldSubject clinitFieldSubject = aClassSubject.uniqueFieldWithName("$r8$clinit");
+    FieldSubject clinitFieldSubject = aClassSubject.uniqueFieldWithOriginalName("$r8$clinit");
     assertThat(clinitFieldSubject, isPresent());
 
     // B.method() is present.
     ClassSubject bClassSubject = inspector.clazz(B.class);
     assertThat(bClassSubject, isPresent());
 
-    MethodSubject methodSubject = bClassSubject.uniqueMethodWithName("method");
+    MethodSubject methodSubject = bClassSubject.uniqueMethodWithOriginalName("method");
     assertThat(methodSubject, not(isPresent()));
 
     // TestClass.missingFieldValuePropagation() and TestClass.missingMethodValuePropagation() are
@@ -73,9 +73,11 @@ public class MemberValuePropagationWithClassInitializationTest extends TestBase 
     ClassSubject testClassSubject = inspector.clazz(TestClass.class);
     assertThat(testClassSubject, isPresent());
     assertThat(
-        testClassSubject.uniqueMethodWithName("missingFieldValuePropagation"), not(isPresent()));
+        testClassSubject.uniqueMethodWithOriginalName("missingFieldValuePropagation"),
+        not(isPresent()));
     assertThat(
-        testClassSubject.uniqueMethodWithName("missingMethodValuePropagation"), not(isPresent()));
+        testClassSubject.uniqueMethodWithOriginalName("missingMethodValuePropagation"),
+        not(isPresent()));
 
     // TestClass.main() still accesses A.field and invokes B.method().
     MethodSubject mainMethodSubject = testClassSubject.mainMethod();

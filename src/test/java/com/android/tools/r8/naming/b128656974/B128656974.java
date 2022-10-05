@@ -39,7 +39,7 @@ public class B128656974 extends TestBase {
             inspector -> {
               ClassSubject greetingBase = inspector.clazz(Greeting.getGreetingBase());
               assertThat(greetingBase, isPresent());
-              FieldSubject greeting = greetingBase.uniqueFieldWithName("greeting");
+              FieldSubject greeting = greetingBase.uniqueFieldWithOriginalName("greeting");
               assertThat(greeting, isPresentAndRenamed());
               assertNotEquals("a", greeting.getFinalName());
             });
@@ -86,7 +86,7 @@ public class B128656974 extends TestBase {
             inspector -> {
               ClassSubject base = inspector.clazz(TestClassBase.class);
               assertThat(base, isPresent());
-              MethodSubject foo = base.uniqueMethodWithName("foo");
+              MethodSubject foo = base.uniqueMethodWithOriginalName("foo");
               assertThat(foo, isPresentAndRenamed());
               assertNotEquals("a", foo.getFinalName());
             });

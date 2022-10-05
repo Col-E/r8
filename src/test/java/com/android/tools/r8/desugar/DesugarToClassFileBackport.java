@@ -61,7 +61,8 @@ public class DesugarToClassFileBackport extends TestBase {
   }
 
   private void checkBackportingNotRequired(CodeInspector inspector) {
-    MethodSubject methodSubject = inspector.clazz(TestClass.class).uniqueMethodWithName("main");
+    MethodSubject methodSubject =
+        inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("main");
     if (methodSubject.getProgramMethod().getDefinition().getCode().isCfCode()) {
       CfCode code = methodSubject.getProgramMethod().getDefinition().getCode().asCfCode();
       assertTrue(code.getInstructions().stream().noneMatch(this::isCfLAdd));
@@ -73,7 +74,8 @@ public class DesugarToClassFileBackport extends TestBase {
   }
 
   private void checkBackportingRequired(CodeInspector inspector) {
-    MethodSubject methodSubject = inspector.clazz(TestClass.class).uniqueMethodWithName("main");
+    MethodSubject methodSubject =
+        inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("main");
     if (methodSubject.getProgramMethod().getDefinition().getCode().isCfCode()) {
       CfCode code = methodSubject.getProgramMethod().getDefinition().getCode().asCfCode();
       assertTrue(code.getInstructions().stream().anyMatch(this::isCfLAdd));

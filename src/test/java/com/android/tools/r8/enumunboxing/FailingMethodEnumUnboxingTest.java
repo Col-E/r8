@@ -87,7 +87,8 @@ public class FailingMethodEnumUnboxingTest extends EnumUnboxingTestBase {
         inspector.clazz(InstanceFieldPutObject.class).getDexProgramClass().instanceFields().size());
     assertEquals(
         1, inspector.clazz(StaticFieldPutObject.class).getDexProgramClass().staticFields().size());
-    assertTrue(inspector.clazz(FailingPhi.class).uniqueMethodWithName("switchOn").isPresent());
+    assertTrue(
+        inspector.clazz(FailingPhi.class).uniqueMethodWithOriginalName("switchOn").isPresent());
   }
 
   static class InstanceFieldPutObject {

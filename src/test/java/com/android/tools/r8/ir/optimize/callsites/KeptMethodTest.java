@@ -61,7 +61,7 @@ public class KeptMethodTest extends TestBase {
     ClassSubject a = inspector.clazz(A.class);
     assertThat(a, isPresent());
 
-    MethodSubject m = a.uniqueMethodWithName("m");
+    MethodSubject m = a.uniqueMethodWithOriginalName("m");
     assertThat(m, isPresent());
     // Should not optimize branches since the method is kept, accessed via reflection.
     assertTrue(m.streamInstructions().anyMatch(InstructionSubject::isIf));

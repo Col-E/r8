@@ -75,9 +75,9 @@ public class InvalidObfuscationEntryTest extends TestBase {
             codeInspector -> {
               ClassSubject clazz = codeInspector.clazz(Main.class);
               assertThat(clazz, isPresent());
-              MethodSubject aSubject = clazz.uniqueMethodWithName("a");
+              MethodSubject aSubject = clazz.uniqueMethodWithOriginalName("a");
               assertThat(aSubject.getFinalName(), anyOf(is("x"), is("y")));
-              MethodSubject bSubject = clazz.uniqueMethodWithName("b");
+              MethodSubject bSubject = clazz.uniqueMethodWithOriginalName("b");
               assertThat(bSubject.getFinalName(), anyOf(is("x"), is("y")));
             });
   }

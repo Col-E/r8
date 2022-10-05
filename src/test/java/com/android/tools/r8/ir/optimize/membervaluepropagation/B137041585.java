@@ -41,8 +41,11 @@ public class B137041585 extends TestBase {
             inspector -> {
               ClassSubject classSubject = inspector.clazz(R.font.class);
               assertThat(classSubject, isPresent());
-              assertThat(classSubject.uniqueFieldWithName("roboto_mono_bold"), not(isPresent()));
-              assertThat(classSubject.uniqueFieldWithName("roboto_mono_regular"), not(isPresent()));
+              assertThat(
+                  classSubject.uniqueFieldWithOriginalName("roboto_mono_bold"), not(isPresent()));
+              assertThat(
+                  classSubject.uniqueFieldWithOriginalName("roboto_mono_regular"),
+                  not(isPresent()));
             })
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("1", "2", "1", "2", "1");

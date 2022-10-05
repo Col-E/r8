@@ -49,11 +49,13 @@ public class FinalizeVirtualMethodWithSiblingTest extends TestBase {
               ClassSubject iClassSubject = inspector.clazz(I.class);
               assertThat(iClassSubject, isPresent());
               assertThat(
-                  iClassSubject.uniqueMethodWithName("m"), allOf(isPresent(), not(isFinal())));
+                  iClassSubject.uniqueMethodWithOriginalName("m"),
+                  allOf(isPresent(), not(isFinal())));
 
               ClassSubject aClassSubject = inspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
-              assertThat(aClassSubject.uniqueMethodWithName("m"), allOf(isPresent(), isFinal()));
+              assertThat(
+                  aClassSubject.uniqueMethodWithOriginalName("m"), allOf(isPresent(), isFinal()));
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A.m()", "C.m()");

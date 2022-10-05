@@ -80,10 +80,10 @@ public class SimpleIfNullOrNotNullInliningTest extends ConditionalSimpleInlining
     }
 
     assertThat(classSubject, isPresent());
-    assertThat(classSubject.uniqueMethodWithName("simpleIfNullTest"), isPresent());
-    assertThat(classSubject.uniqueMethodWithName("simpleIfBothNullTest"), isPresent());
-    assertThat(classSubject.uniqueMethodWithName("simpleIfNotNullTest"), isPresent());
-    assertThat(classSubject.uniqueMethodWithName("simpleIfBothNotNullTest"), isPresent());
+    assertThat(classSubject.uniqueMethodWithOriginalName("simpleIfNullTest"), isPresent());
+    assertThat(classSubject.uniqueMethodWithOriginalName("simpleIfBothNullTest"), isPresent());
+    assertThat(classSubject.uniqueMethodWithOriginalName("simpleIfNotNullTest"), isPresent());
+    assertThat(classSubject.uniqueMethodWithOriginalName("simpleIfBothNotNullTest"), isPresent());
   }
 
   private boolean shouldBeEligibleForSimpleInlining() {

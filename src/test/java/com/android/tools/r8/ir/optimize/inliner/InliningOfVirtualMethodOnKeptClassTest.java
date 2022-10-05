@@ -51,9 +51,9 @@ public class InliningOfVirtualMethodOnKeptClassTest extends TestBase {
   private void verifyOutput(CodeInspector inspector) {
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(classSubject, isPresent());
-    assertThat(classSubject.uniqueMethodWithName("foo"), not(isPresent()));
-    assertThat(classSubject.uniqueMethodWithName("bar"), isPresent());
-    assertThat(classSubject.uniqueMethodWithName("baz"), isPresent());
+    assertThat(classSubject.uniqueMethodWithOriginalName("foo"), not(isPresent()));
+    assertThat(classSubject.uniqueMethodWithOriginalName("bar"), isPresent());
+    assertThat(classSubject.uniqueMethodWithOriginalName("baz"), isPresent());
   }
 
   @NeverClassInline

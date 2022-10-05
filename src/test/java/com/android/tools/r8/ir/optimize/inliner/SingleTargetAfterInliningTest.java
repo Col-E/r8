@@ -65,16 +65,16 @@ public class SingleTargetAfterInliningTest extends TestBase {
     assertThat(testClassSubject, isPresent());
 
     // The indirection() method should be inlined.
-    assertThat(testClassSubject.uniqueMethodWithName("indirection"), not(isPresent()));
+    assertThat(testClassSubject.uniqueMethodWithOriginalName("indirection"), not(isPresent()));
 
     // A.foo() should be absent if the max inlining depth is 1, because indirection() has been
     // inlined into main(), which makes A.foo() eligible for inlining into main().
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
-    assertThat(aClassSubject.uniqueMethodWithName("foo"), not(isPresent()));
+    assertThat(aClassSubject.uniqueMethodWithOriginalName("foo"), not(isPresent()));
 
     // A.bar() should always be inlined because it is marked as @AlwaysInline.
-    assertThat(aClassSubject.uniqueMethodWithName("bar"), not(isPresent()));
+    assertThat(aClassSubject.uniqueMethodWithOriginalName("bar"), not(isPresent()));
   }
 
   static class TestClass {

@@ -74,7 +74,7 @@ public class KotlinIntrinsicsInlineTest extends KotlinTestBase {
 
               // Note that isSupported itself has a parameter whose null check would be inlined
               // with -allowaccessmodification.
-              MethodSubject isSupported = main.uniqueMethodWithName("isSupported");
+              MethodSubject isSupported = main.uniqueMethodWithOriginalName("isSupported");
               assertThat(isSupported, isPresent());
               assertEquals(
                   kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72) ? 1 : 0,
@@ -82,7 +82,7 @@ public class KotlinIntrinsicsInlineTest extends KotlinTestBase {
 
               // In general cases, null check won't be invoked only once or twice, hence no subtle
               // situation in double inlining.
-              MethodSubject containsArray = main.uniqueMethodWithName("containsArray");
+              MethodSubject containsArray = main.uniqueMethodWithOriginalName("containsArray");
               assertThat(containsArray, isPresent());
               assertEquals(0, countCall(containsArray, "checkParameterIsNotNull"));
             });
@@ -127,7 +127,7 @@ public class KotlinIntrinsicsInlineTest extends KotlinTestBase {
               ClassSubject main = inspector.clazz(MAIN);
               assertThat(main, isPresent());
 
-              MethodSubject method = main.uniqueMethodWithName(methodName);
+              MethodSubject method = main.uniqueMethodWithOriginalName(methodName);
               assertThat(method, isPresent());
               int arity = method.getMethod().getReference().getArity();
               assertEquals(

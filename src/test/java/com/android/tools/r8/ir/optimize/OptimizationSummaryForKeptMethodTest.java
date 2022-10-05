@@ -63,7 +63,8 @@ public class OptimizationSummaryForKeptMethodTest extends TestBase {
     // Main method invokes noNormalExits() since it is not allowed to be inlined.
     assertThat(
         mainMethodSubject,
-        invokesMethod(inspector.clazz(KeptClass.class).uniqueMethodWithName("noNormalExits")));
+        invokesMethod(
+            inspector.clazz(KeptClass.class).uniqueMethodWithOriginalName("noNormalExits")));
 
     // The fact that noNormalExits() never returns normally has only been exploited if it is not
     // kept.

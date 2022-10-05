@@ -78,8 +78,8 @@ public class KeepClassMemberNamesMinificationTest extends TestBase {
             inspector -> {
               ClassSubject aClass = inspector.clazz(A.class);
               assertThat(aClass, isPresentAndRenamed());
-              assertThat(aClass.uniqueFieldWithName("foo"), isPresentAndNotRenamed());
-              assertThat(aClass.uniqueMethodWithName("foo"), isPresentAndNotRenamed());
+              assertThat(aClass.uniqueFieldWithOriginalName("foo"), isPresentAndNotRenamed());
+              assertThat(aClass.uniqueMethodWithOriginalName("foo"), isPresentAndNotRenamed());
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello World!", "Hello World!");

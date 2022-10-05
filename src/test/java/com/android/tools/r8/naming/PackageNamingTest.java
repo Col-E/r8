@@ -157,7 +157,7 @@ public class PackageNamingTest extends TestBase {
     assertFalse(inspector.clazz("naming044.sub.SubB").getFinalName().contains("."));
 
     // Method naming044.B.m would be renamed.
-    MethodSubject mMethodSubject = bClassSubject.uniqueMethodWithName("m");
+    MethodSubject mMethodSubject = bClassSubject.uniqueMethodWithOriginalName("m");
     assertNotEquals("m", mMethodSubject.getMethod().getName().toSourceString());
   }
 
@@ -197,7 +197,7 @@ public class PackageNamingTest extends TestBase {
         b.getDexProgramClass().getType().getPackageName());
 
     // method naming044.B.m would be renamed.
-    MethodSubject mMethodSubject = b.uniqueMethodWithName("m");
+    MethodSubject mMethodSubject = b.uniqueMethodWithOriginalName("m");
     assertNotEquals("m", mMethodSubject.getMethod().getName().toSourceString());
   }
 

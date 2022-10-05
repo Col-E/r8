@@ -60,7 +60,7 @@ public class R8SplitterInlineToFeature extends SplitterTestBase {
         r8TestCompileResult -> {
           // Ensure that isEarly from BaseUtilClass is inlined into the feature
           ClassSubject clazz = r8TestCompileResult.inspector().clazz(BaseUtilClass.class);
-          assertThat(clazz.uniqueMethodWithName("isEarly"), not(isPresent()));
+          assertThat(clazz.uniqueMethodWithOriginalName("isEarly"), not(isPresent()));
         };
     ProcessResult processResult =
         testR8Splitter(

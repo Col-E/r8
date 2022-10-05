@@ -52,7 +52,7 @@ public class BridgeInliningTest extends TestBase {
   private void inspect(CodeInspector codeInspector) {
     ClassSubject c = codeInspector.clazz(C.class);
     assertThat(c, isPresent());
-    MethodSubject m = c.uniqueMethodWithName("m");
+    MethodSubject m = c.uniqueMethodWithOriginalName("m");
     assertThat(m, isPresent());
     assertTrue(m.getMethod().hasCode());
     // TODO(b/124017330): Verify that I$-CC.m() has been inlined into C.m().

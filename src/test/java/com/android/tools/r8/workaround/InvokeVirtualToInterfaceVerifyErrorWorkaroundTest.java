@@ -68,7 +68,7 @@ public class InvokeVirtualToInterfaceVerifyErrorWorkaroundTest extends TestBase 
                 assertThat(cameraDeviceUserClassSubject, isPresent());
 
                 MethodSubject mMethodSubject =
-                    cameraDeviceUserClassSubject.uniqueMethodWithName("m");
+                    cameraDeviceUserClassSubject.uniqueMethodWithOriginalName("m");
                 assertThat(mMethodSubject, isPresent());
                 assertThat(mMethodSubject, invokesMethodWithName("close"));
               }

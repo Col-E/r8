@@ -107,7 +107,7 @@ public class GenericSignatureKeepAttributesTest extends TestBase {
 
     ClassSubject innerClass = inspector.clazz(Inner.class);
     assertThat(innerClass, isPresent());
-    MethodSubject testMethod = innerClass.uniqueMethodWithName("test");
+    MethodSubject testMethod = innerClass.uniqueMethodWithOriginalName("test");
     assertThat(testMethod, isPresent());
     if (isCompat) {
       assertEquals("(TO;TM;)TI;", testMethod.getFinalSignatureAttribute());

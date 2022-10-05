@@ -108,10 +108,14 @@ public class B149971007 extends SplitterTestBase {
 
     // Verify they are called from the feature methods.
     // Note: should the choice of synthetic grouping change these expectations will too.
-    assertTrue(invokesOutline(featureClass.uniqueMethodWithName("method1"), outlineClassName));
-    assertTrue(invokesOutline(featureClass.uniqueMethodWithName("method2"), outlineClassName));
-    assertTrue(invokesOutline(featureClass.uniqueMethodWithName("method3"), outlineClassName));
-    assertTrue(invokesOutline(featureClass.uniqueMethodWithName("method4"), outlineClassName));
+    assertTrue(
+        invokesOutline(featureClass.uniqueMethodWithOriginalName("method1"), outlineClassName));
+    assertTrue(
+        invokesOutline(featureClass.uniqueMethodWithOriginalName("method2"), outlineClassName));
+    assertTrue(
+        invokesOutline(featureClass.uniqueMethodWithOriginalName("method3"), outlineClassName));
+    assertTrue(
+        invokesOutline(featureClass.uniqueMethodWithOriginalName("method4"), outlineClassName));
 
     compileResult.run(parameters.getRuntime(), TestClass.class).assertSuccessWithOutput("123456");
   }
@@ -160,10 +164,14 @@ public class B149971007 extends SplitterTestBase {
             .inverse
             .get(SyntheticItemsTestUtils.syntheticOutlineClass(TestClass.class, 0).getTypeName());
 
-    assertFalse(invokesOutline(featureClass.uniqueMethodWithName("method1"), outlineClassName));
-    assertFalse(invokesOutline(featureClass.uniqueMethodWithName("method2"), outlineClassName));
-    assertFalse(invokesOutline(featureClass.uniqueMethodWithName("method3"), outlineClassName));
-    assertFalse(invokesOutline(featureClass.uniqueMethodWithName("method4"), outlineClassName));
+    assertFalse(
+        invokesOutline(featureClass.uniqueMethodWithOriginalName("method1"), outlineClassName));
+    assertFalse(
+        invokesOutline(featureClass.uniqueMethodWithOriginalName("method2"), outlineClassName));
+    assertFalse(
+        invokesOutline(featureClass.uniqueMethodWithOriginalName("method3"), outlineClassName));
+    assertFalse(
+        invokesOutline(featureClass.uniqueMethodWithOriginalName("method4"), outlineClassName));
 
     // Run the code without the feature code present.
     compileResult.run(parameters.getRuntime(), TestClass.class).assertSuccessWithOutput("12");

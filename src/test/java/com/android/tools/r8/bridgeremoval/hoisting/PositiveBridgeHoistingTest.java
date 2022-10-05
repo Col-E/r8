@@ -70,29 +70,29 @@ public class PositiveBridgeHoistingTest extends TestBase {
   private void inspect(CodeInspector inspector) {
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
-    assertThat(aClassSubject.uniqueMethodWithName("m"), isPresent());
-    assertThat(aClassSubject.uniqueMethodWithName("superBridge"), isPresent());
-    assertThat(aClassSubject.uniqueMethodWithName("virtualBridge"), isPresent());
+    assertThat(aClassSubject.uniqueMethodWithOriginalName("m"), isPresent());
+    assertThat(aClassSubject.uniqueMethodWithOriginalName("superBridge"), isPresent());
+    assertThat(aClassSubject.uniqueMethodWithOriginalName("virtualBridge"), isPresent());
 
     ClassSubject b1ClassSubject = inspector.clazz(B1.class);
     assertThat(b1ClassSubject, isPresent());
-    assertThat(b1ClassSubject.uniqueMethodWithName("superBridge"), not(isPresent()));
-    assertThat(b1ClassSubject.uniqueMethodWithName("virtualBridge"), not(isPresent()));
+    assertThat(b1ClassSubject.uniqueMethodWithOriginalName("superBridge"), not(isPresent()));
+    assertThat(b1ClassSubject.uniqueMethodWithOriginalName("virtualBridge"), not(isPresent()));
 
     ClassSubject b2ClassSubject = inspector.clazz(B2.class);
     assertThat(b2ClassSubject, isPresent());
-    assertThat(b2ClassSubject.uniqueMethodWithName("superBridge"), not(isPresent()));
-    assertThat(b2ClassSubject.uniqueMethodWithName("virtualBridge"), not(isPresent()));
+    assertThat(b2ClassSubject.uniqueMethodWithOriginalName("superBridge"), not(isPresent()));
+    assertThat(b2ClassSubject.uniqueMethodWithOriginalName("virtualBridge"), not(isPresent()));
 
     ClassSubject b4ClassSubject = inspector.clazz(B4.class);
     assertThat(b4ClassSubject, isPresent());
-    assertThat(b4ClassSubject.uniqueMethodWithName("superBridge"), isPresent());
-    assertThat(b4ClassSubject.uniqueMethodWithName("virtualBridge"), isPresent());
+    assertThat(b4ClassSubject.uniqueMethodWithOriginalName("superBridge"), isPresent());
+    assertThat(b4ClassSubject.uniqueMethodWithOriginalName("virtualBridge"), isPresent());
 
     ClassSubject b5ClassSubject = inspector.clazz(B5.class);
     assertThat(b5ClassSubject, isPresent());
-    assertThat(b5ClassSubject.uniqueMethodWithName("superBridge"), isPresent());
-    assertThat(b5ClassSubject.uniqueMethodWithName("virtualBridge"), isPresent());
+    assertThat(b5ClassSubject.uniqueMethodWithOriginalName("superBridge"), isPresent());
+    assertThat(b5ClassSubject.uniqueMethodWithOriginalName("virtualBridge"), isPresent());
   }
 
   static class TestClass {

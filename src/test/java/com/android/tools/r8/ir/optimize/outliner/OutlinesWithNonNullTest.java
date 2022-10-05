@@ -88,24 +88,24 @@ public class OutlinesWithNonNullTest extends TestBase {
     ClassSubject outlineClass =
         inspector.clazz(SyntheticItemsTestUtils.syntheticOutlineClass(main, 0));
     MethodSubject outlineMethod =
-        outlineClass.uniqueMethodWithName(SyntheticItemsTestUtils.syntheticMethodName());
+        outlineClass.uniqueMethodWithOriginalName(SyntheticItemsTestUtils.syntheticMethodName());
     assertThat(outlineMethod, isPresent());
 
     ClassSubject argClass = inspector.clazz(TestArg.class);
     assertThat(argClass, isPresent());
-    MethodSubject printHash = argClass.uniqueMethodWithName("printHash");
+    MethodSubject printHash = argClass.uniqueMethodWithOriginalName("printHash");
     assertThat(printHash, isPresent());
-    MethodSubject printArg= argClass.uniqueMethodWithName("printArg");
+    MethodSubject printArg = argClass.uniqueMethodWithOriginalName("printArg");
     assertThat(printArg, isPresent());
 
     ClassSubject classSubject = inspector.clazz(main);
     assertThat(classSubject, isPresent());
-    MethodSubject method1 = classSubject.uniqueMethodWithName("method1");
+    MethodSubject method1 = classSubject.uniqueMethodWithOriginalName("method1");
     assertThat(method1, isPresent());
     assertThat(method1, CodeMatchers.invokesMethod(outlineMethod));
     assertThat(method1, not(CodeMatchers.invokesMethod(printHash)));
     assertThat(method1, not(CodeMatchers.invokesMethod(printArg)));
-    MethodSubject method2 = classSubject.uniqueMethodWithName("method2");
+    MethodSubject method2 = classSubject.uniqueMethodWithOriginalName("method2");
     assertThat(method2, isPresent());
     assertThat(method2, CodeMatchers.invokesMethod(outlineMethod));
     assertThat(method2, not(CodeMatchers.invokesMethod(printHash)));

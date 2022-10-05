@@ -88,8 +88,8 @@ public class IfRuleWithInterfaceMethodDesugaringTest extends TestBase {
     if (parameters.isCfRuntime()) {
       ClassSubject itfClass = inspector.clazz(Interface.class.getTypeName());
       assertThat(itfClass, isPresent());
-      assertThat(itfClass.uniqueMethodWithName("staticMethod"), isPresent());
-      assertThat(itfClass.uniqueMethodWithName("virtualMethod"), isPresent());
+      assertThat(itfClass.uniqueMethodWithOriginalName("staticMethod"), isPresent());
+      assertThat(itfClass.uniqueMethodWithOriginalName("virtualMethod"), isPresent());
       assertThat(inspector.clazz(Unused1.class), isPresent());
       assertThat(inspector.clazz(Unused2.class), isPresent());
       return;
@@ -100,7 +100,7 @@ public class IfRuleWithInterfaceMethodDesugaringTest extends TestBase {
 
     // NeverInline is only applicable to the static method at this point (could change).
     assertEquals(1, classSubject.allMethods().size());
-    MethodSubject staticMethodSubject = classSubject.uniqueMethodWithName("staticMethod");
+    MethodSubject staticMethodSubject = classSubject.uniqueMethodWithOriginalName("staticMethod");
     assertThat(staticMethodSubject, allOf(isPresent(), isPublic(), isStatic()));
     assertTrue(staticMethodSubject.streamInstructions().anyMatch(i -> i.isConstString(STATIC_STR)));
 

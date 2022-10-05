@@ -65,15 +65,15 @@ public class InterfaceAlsoImplementedByMissingClassTest extends TestBase {
 
   private void inspect(CodeInspector inspector) {
     ClassSubject iClassSubject = inspector.clazz(I.class);
-    assertThat(iClassSubject.uniqueMethodWithName("kept"), isPresent());
+    assertThat(iClassSubject.uniqueMethodWithOriginalName("kept"), isPresent());
 
     ClassSubject aClassSubject = inspector.clazz(A.class);
-    assertThat(aClassSubject.uniqueMethodWithName("kept"), isPresent());
+    assertThat(aClassSubject.uniqueMethodWithOriginalName("kept"), isPresent());
 
     // I.notKept() and A.notKept() should not be present, because the only invoke instruction
     // targeting I.notKept() should have been inlined.
-    assertThat(iClassSubject.uniqueMethodWithName("notKept"), not(isPresent()));
-    assertThat(aClassSubject.uniqueMethodWithName("notKept"), not(isPresent()));
+    assertThat(iClassSubject.uniqueMethodWithOriginalName("notKept"), not(isPresent()));
+    assertThat(aClassSubject.uniqueMethodWithOriginalName("notKept"), not(isPresent()));
   }
 
   static class TestClass {

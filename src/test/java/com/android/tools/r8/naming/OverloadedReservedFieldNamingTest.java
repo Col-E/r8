@@ -65,11 +65,11 @@ public class OverloadedReservedFieldNamingTest extends TestBase {
         classSubject.asFoundClassSubject().uniqueFieldWithName("a", Reference.BOOL);
     assertThat(fieldSubject, isPresentAndNotRenamed());
 
-    FieldSubject helloFieldSubject = classSubject.uniqueFieldWithName("hello");
+    FieldSubject helloFieldSubject = classSubject.uniqueFieldWithOriginalName("hello");
     assertThat(helloFieldSubject, isPresent());
     assertEquals(overloadAggressively ? "a" : "b", helloFieldSubject.getFinalName());
 
-    FieldSubject worldFieldSubject = classSubject.uniqueFieldWithName("world");
+    FieldSubject worldFieldSubject = classSubject.uniqueFieldWithOriginalName("world");
     assertThat(worldFieldSubject, isPresent());
     assertEquals(overloadAggressively ? "a" : "c", worldFieldSubject.getFinalName());
   }

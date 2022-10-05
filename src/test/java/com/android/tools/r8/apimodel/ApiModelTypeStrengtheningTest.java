@@ -56,7 +56,8 @@ public class ApiModelTypeStrengtheningTest extends TestBase {
             inspector -> {
               Class<?> expectedFieldType =
                   isTypeStrengtheningSafe ? ApiLevel23.class : ApiLevel22.class;
-              FieldSubject fieldSubject = inspector.clazz(Main.class).uniqueFieldWithName("FIELD");
+              FieldSubject fieldSubject =
+                  inspector.clazz(Main.class).uniqueFieldWithOriginalName("FIELD");
               assertThat(fieldSubject, isPresent());
               assertEquals(
                   expectedFieldType.getTypeName(), fieldSubject.getField().getType().getTypeName());

@@ -142,10 +142,13 @@ public class OverloadUniqueNameTest extends TestBase {
               assertEquals(aFoo.getFinalName(), cFoo.getFinalName());
 
               // Ensure that all SAM interfaces has same method name.
-              final MethodSubject i1Foo = codeInspector.clazz(I1.class).uniqueMethodWithName("foo");
-              final MethodSubject i2Foo = codeInspector.clazz(I2.class).uniqueMethodWithName("foo");
+              final MethodSubject i1Foo =
+                  codeInspector.clazz(I1.class).uniqueMethodWithOriginalName("foo");
+              final MethodSubject i2Foo =
+                  codeInspector.clazz(I2.class).uniqueMethodWithOriginalName("foo");
               assertEquals(i1Foo.getFinalName(), i2Foo.getFinalName());
-              final MethodSubject i3Foo = codeInspector.clazz(I3.class).uniqueMethodWithName("foo");
+              final MethodSubject i3Foo =
+                  codeInspector.clazz(I3.class).uniqueMethodWithOriginalName("foo");
               assertEquals(i1Foo.getFinalName(), i3Foo.getFinalName());
 
               // Ensure C has the correct name for the interface method.
@@ -154,7 +157,8 @@ public class OverloadUniqueNameTest extends TestBase {
               assertEquals(cIFoo.getFinalName(), i1Foo.getFinalName());
 
               // Ensure that I4.foo(int) has the same name as I3.foo(int).
-              final MethodSubject i4Foo = codeInspector.clazz(I4.class).uniqueMethodWithName("foo");
+              final MethodSubject i4Foo =
+                  codeInspector.clazz(I4.class).uniqueMethodWithOriginalName("foo");
               assertEquals(i3Foo.getFinalName(), i4Foo.getFinalName());
             });
   }

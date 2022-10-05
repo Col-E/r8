@@ -53,8 +53,8 @@ public class InlineStaticSynchronizedMethodTest extends TestBase {
   private void verifySynchronizedMethodsAreInlined(CodeInspector inspector) {
     ClassSubject classSubject = inspector.clazz(RunnableImpl.class);
     assertThat(classSubject, isPresent());
-    assertThat(classSubject.uniqueMethodWithName("m1"), not(isPresent()));
-    assertThat(classSubject.uniqueMethodWithName("m2"), not(isPresent()));
+    assertThat(classSubject.uniqueMethodWithOriginalName("m1"), not(isPresent()));
+    assertThat(classSubject.uniqueMethodWithOriginalName("m2"), not(isPresent()));
   }
 
   static class TestClass {

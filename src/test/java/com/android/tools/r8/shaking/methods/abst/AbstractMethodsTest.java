@@ -74,23 +74,26 @@ public class AbstractMethodsTest extends MethodsTestBase {
   private void checkMethods(CodeInspector inspector, Set<String> expected, Shrinker shrinker) {
     ClassSubject superSubject = inspector.clazz(Super.class);
     assertThat(superSubject, isPresent());
-    MethodSubject m1 = superSubject.uniqueMethodWithName("m1");
+    MethodSubject m1 = superSubject.uniqueMethodWithOriginalName("m1");
     assertEquals(expected.contains("m1") && shrinker != Shrinker.R8Full, m1.isPresent());
     if (m1.isPresent()) {
       assertTrue(m1.isAbstract());
     }
     ClassSubject subSubject = inspector.clazz(Sub.class);
     assertThat(subSubject, isPresent());
-    MethodSubject m2 = subSubject.uniqueMethodWithName("m2");
+    MethodSubject m2 = subSubject.uniqueMethodWithOriginalName("m2");
     assertEquals(expected.contains("m2") && shrinker != Shrinker.R8Full, m2.isPresent());
     if (m2.isPresent()) {
       assertTrue(m2.isAbstract());
     }
     ClassSubject subSubSubject = inspector.clazz(SubSub.class);
     assertThat(subSubSubject, isPresent());
-    assertEquals(expected.contains("m1"), subSubSubject.uniqueMethodWithName("m1").isPresent());
-    assertEquals(expected.contains("m2"), subSubSubject.uniqueMethodWithName("m2").isPresent());
-    assertEquals(expected.contains("m3"), subSubSubject.uniqueMethodWithName("m3").isPresent());
+    assertEquals(
+        expected.contains("m1"), subSubSubject.uniqueMethodWithOriginalName("m1").isPresent());
+    assertEquals(
+        expected.contains("m2"), subSubSubject.uniqueMethodWithOriginalName("m2").isPresent());
+    assertEquals(
+        expected.contains("m3"), subSubSubject.uniqueMethodWithOriginalName("m3").isPresent());
   }
 
   private void checkAllMethods(CodeInspector inspector, Shrinker shrinker) {

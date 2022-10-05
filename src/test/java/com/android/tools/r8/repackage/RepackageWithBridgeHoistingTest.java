@@ -54,7 +54,7 @@ public class RepackageWithBridgeHoistingTest extends RepackageTestBase {
   private void inspect(CodeInspector inspector) {
     ClassSubject greeterBase = inspector.clazz(GreeterBase.class);
     assertThat(greeterBase, isPresent());
-    assertThat(greeterBase.uniqueMethodWithName("greetBridge"), isPresent());
+    assertThat(greeterBase.uniqueMethodWithOriginalName("greetBridge"), isPresent());
   }
 
   public static class TestClass {

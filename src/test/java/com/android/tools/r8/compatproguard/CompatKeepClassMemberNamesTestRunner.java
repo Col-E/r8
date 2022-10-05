@@ -91,11 +91,11 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
   }
 
   private static void assertBarGetInstanceIsNotInlined(CodeInspector inspector) {
-    assertTrue(inspector.clazz(BAR_CLASS).uniqueMethodWithName("instance").isPresent());
+    assertTrue(inspector.clazz(BAR_CLASS).uniqueMethodWithOriginalName("instance").isPresent());
     assertTrue(
         inspector
             .clazz(MAIN_CLASS)
-            .uniqueMethodWithName("main")
+            .uniqueMethodWithOriginalName("main")
             .streamInstructions()
             .anyMatch(i -> i.isInvoke() && i.getMethod().qualifiedName().contains("instance")));
   }
@@ -154,8 +154,9 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
               assertTrue(inspector.clazz(MAIN_CLASS).isPresent());
               assertTrue(inspector.clazz(BAR_CLASS).isPresent());
               assertBarGetInstanceIsNotInlined(inspector);
-              assertTrue(inspector.clazz(BAR_CLASS).uniqueFieldWithName("i").isPresent());
-              assertTrue(inspector.clazz(BAR_CLASS).uniqueMethodWithName("<init>").isPresent());
+              assertTrue(inspector.clazz(BAR_CLASS).uniqueFieldWithOriginalName("i").isPresent());
+              assertTrue(
+                  inspector.clazz(BAR_CLASS).uniqueMethodWithOriginalName("<init>").isPresent());
             })
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutput(EXPECTED);
@@ -184,7 +185,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
               assertTrue(inspector.clazz(BAR_CLASS).isPresent());
               assertBarGetInstanceIsNotInlined(inspector);
               assertThat(inspector.clazz(BAR_CLASS).init(), isPresent());
-              assertThat(inspector.clazz(BAR_CLASS).uniqueFieldWithName("i"), isPresent());
+              assertThat(inspector.clazz(BAR_CLASS).uniqueFieldWithOriginalName("i"), isPresent());
             });
   }
 
@@ -256,13 +257,13 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
               // Bar is renamed but its member names are kept.
               ClassSubject bar = inspector.clazz(BAR_CLASS);
               assertTrue(bar.isRenamed());
-              FieldSubject barI = bar.uniqueFieldWithName("i");
+              FieldSubject barI = bar.uniqueFieldWithOriginalName("i");
               assertTrue(barI.isPresent());
               assertFalse(barI.isRenamed());
-              MethodSubject barInit = bar.uniqueMethodWithName("<init>");
+              MethodSubject barInit = bar.uniqueMethodWithOriginalName("<init>");
               assertTrue(barInit.isPresent());
               assertFalse(barInit.isRenamed());
-              MethodSubject barInstance = bar.uniqueMethodWithName("instance");
+              MethodSubject barInstance = bar.uniqueMethodWithOriginalName("instance");
               assertTrue(barInstance.isPresent());
               assertFalse(barInstance.isRenamed());
             })
@@ -296,8 +297,9 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
               assertTrue(inspector.clazz(MAIN_CLASS).isPresent());
               assertTrue(inspector.clazz(BAR_CLASS).isPresent());
               assertBarGetInstanceIsNotInlined(inspector);
-              assertThat(inspector.clazz(BAR_CLASS).uniqueMethodWithName("<init>"), isPresent());
-              assertThat(inspector.clazz(BAR_CLASS).uniqueFieldWithName("i"), isPresent());
+              assertThat(
+                  inspector.clazz(BAR_CLASS).uniqueMethodWithOriginalName("<init>"), isPresent());
+              assertThat(inspector.clazz(BAR_CLASS).uniqueFieldWithOriginalName("i"), isPresent());
             });
   }
 
@@ -356,10 +358,10 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
               assertBarGetInstanceIsNotInlined(inspector);
               ClassSubject bar = inspector.clazz(BAR_CLASS);
               assertTrue(bar.isPresent());
-              assertTrue(bar.uniqueMethodWithName("instance").isPresent());
+              assertTrue(bar.uniqueMethodWithOriginalName("instance").isPresent());
               // Reflected on fields are not kept.
-              assertFalse(bar.uniqueMethodWithName("<init>").isPresent());
-              assertFalse(bar.uniqueFieldWithName("i").isPresent());
+              assertFalse(bar.uniqueMethodWithOriginalName("<init>").isPresent());
+              assertFalse(bar.uniqueFieldWithOriginalName("i").isPresent());
             })
         .run(parameters.getRuntime(), MAIN_CLASS)
         // Keeping the instance and its accessed members does not keep the reflected <init> and i.
@@ -414,9 +416,9 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
               ClassSubject bar = inspector.clazz(BAR_CLASS);
               assertTrue(bar.isPresent());
               assertTrue(bar.isRenamed());
-              assertFalse(bar.uniqueFieldWithName("i").isPresent());
-              assertFalse(bar.uniqueMethodWithName("<init>").isPresent());
-              MethodSubject barInstance = bar.uniqueMethodWithName("instance");
+              assertFalse(bar.uniqueFieldWithOriginalName("i").isPresent());
+              assertFalse(bar.uniqueMethodWithOriginalName("<init>").isPresent());
+              MethodSubject barInstance = bar.uniqueMethodWithOriginalName("instance");
               assertTrue(barInstance.isPresent());
               assertFalse(barInstance.isRenamed());
             })

@@ -75,7 +75,7 @@ public class AssertionConfigurationTest extends CompilerApiTestRunner {
     assertTrue(
         new CodeInspector(output)
             .clazz(MockClassWithAssertion.class)
-            .uniqueMethodWithName("main")
+            .uniqueMethodWithOriginalName("main")
             .streamInstructions()
             .anyMatch(this::invokesAssertionHandler));
   }

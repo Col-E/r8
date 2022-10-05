@@ -62,7 +62,7 @@ public class InvokeStaticPositiveTest extends TestBase {
     ClassSubject main = inspector.clazz(MAIN);
     assertThat(main, isPresent());
 
-    MethodSubject test = main.uniqueMethodWithName("test");
+    MethodSubject test = main.uniqueMethodWithOriginalName("test");
     assertThat(test, isPresent());
     // Can optimize branches since `arg` is definitely not null.
     assertTrue(test.streamInstructions().noneMatch(InstructionSubject::isIf));

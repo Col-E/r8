@@ -67,9 +67,9 @@ public class SingleLineInfoMultipleInlineTest extends TestBase {
               assertThat(stackTrace, isSame(expectedStackTrace));
               ClassSubject mainSubject = inspector.clazz(Main.class);
               assertThat(mainSubject, isPresent());
-              assertThat(mainSubject.uniqueMethodWithName("inlinee"), not(isPresent()));
+              assertThat(mainSubject.uniqueMethodWithOriginalName("inlinee"), not(isPresent()));
               assertThat(
-                  mainSubject.uniqueMethodWithName("shouldNotRemoveLineNumberForInline"),
+                  mainSubject.uniqueMethodWithOriginalName("shouldNotRemoveLineNumberForInline"),
                   notIf(
                       hasLineNumberTable(),
                       parameters.isDexRuntime()

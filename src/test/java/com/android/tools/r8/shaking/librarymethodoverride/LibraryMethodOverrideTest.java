@@ -68,7 +68,7 @@ public class LibraryMethodOverrideTest extends TestBase {
     for (Class<?> nonEscapingClass : nonEscapingClasses) {
       ClassSubject classSubject = inspector.clazz(nonEscapingClass);
       assertThat(classSubject, isPresent());
-      assertThat(classSubject.uniqueMethodWithName("toString"), not(isPresent()));
+      assertThat(classSubject.uniqueMethodWithOriginalName("toString"), not(isPresent()));
     }
   }
 

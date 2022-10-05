@@ -38,7 +38,7 @@ public class Regress233857593Test extends TestBase {
                     1,
                     inspector
                         .clazz(TestClass.class)
-                        .uniqueMethodWithName("testLoopPhiWithNullFirstInput")
+                        .uniqueMethodWithOriginalName("testLoopPhiWithNullFirstInput")
                         .streamInstructions()
                         .filter(InstructionSubject::isGoto)
                         .count()));

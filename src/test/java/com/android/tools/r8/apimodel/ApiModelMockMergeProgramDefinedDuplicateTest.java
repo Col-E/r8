@@ -135,8 +135,8 @@ public class ApiModelMockMergeProgramDefinedDuplicateTest extends TestBase {
   private void inspect(CodeInspector inspector) {
     ClassSubject libraryClassSubject = inspector.clazz(LibraryClass.class);
     assertThat(libraryClassSubject, isPresent());
-    assertThat(libraryClassSubject.uniqueMethodWithName("foo"), isPresent());
-    assertThat(libraryClassSubject.uniqueMethodWithName("bar"), isPresent());
+    assertThat(libraryClassSubject.uniqueMethodWithOriginalName("foo"), isPresent());
+    assertThat(libraryClassSubject.uniqueMethodWithOriginalName("bar"), isPresent());
   }
 
   private void checkOutput(SingleTestRunResult<?> runResult) {

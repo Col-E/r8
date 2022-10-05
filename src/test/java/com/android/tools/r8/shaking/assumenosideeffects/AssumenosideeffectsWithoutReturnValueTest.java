@@ -84,7 +84,7 @@ public class AssumenosideeffectsWithoutReturnValueTest extends TestBase {
   private void verifyDebugMethodIsRemoved(CodeInspector inspector) {
     ClassSubject main = inspector.clazz(MAIN);
     assertThat(main, isPresent());
-    MethodSubject debug = main.uniqueMethodWithName("debug");
+    MethodSubject debug = main.uniqueMethodWithOriginalName("debug");
     assertThat(debug, not(isPresent()));
   }
 

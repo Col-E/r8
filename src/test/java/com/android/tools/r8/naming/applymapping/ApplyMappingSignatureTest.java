@@ -65,7 +65,7 @@ public class ApplyMappingSignatureTest extends TestBase {
             inspector -> {
               ClassSubject clazz = inspector.clazz(SignatureTest.class);
               assertThat(clazz, isPresent());
-              FieldSubject field = clazz.uniqueFieldWithName("field");
+              FieldSubject field = clazz.uniqueFieldWithOriginalName("field");
               assertThat(field, isPresent());
               assertThat(field.getFinalSignatureAttribute(), containsString("foo"));
             });

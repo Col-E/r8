@@ -67,7 +67,7 @@ public class UnusedArgumentsInstanceConstructorTest extends TestBase {
     ClassSubject classSubject = inspector.clazz(A.class);
     assertThat(classSubject, isPresent());
 
-    MethodSubject methodSubject = classSubject.uniqueMethodWithName("<init>");
+    MethodSubject methodSubject = classSubject.uniqueMethodWithOriginalName("<init>");
     assertThat(methodSubject, isPresent());
     assertTrue(methodSubject.getMethod().getReference().proto.parameters.isEmpty());
 

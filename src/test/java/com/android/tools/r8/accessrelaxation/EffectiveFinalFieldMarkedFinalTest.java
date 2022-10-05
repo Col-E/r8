@@ -49,10 +49,10 @@ public class EffectiveFinalFieldMarkedFinalTest extends TestBase {
               ClassSubject mainClassSubject = inspector.clazz(Main.class);
               assertThat(mainClassSubject, isPresent());
               assertThat(
-                  mainClassSubject.uniqueFieldWithName("instanceField"),
+                  mainClassSubject.uniqueFieldWithOriginalName("instanceField"),
                   allOf(isPresent(), onlyIf(allowAccessModification, isFinal())));
               assertThat(
-                  mainClassSubject.uniqueFieldWithName("staticField"),
+                  mainClassSubject.uniqueFieldWithOriginalName("staticField"),
                   allOf(isPresent(), onlyIf(allowAccessModification, isFinal())));
             })
         .run(parameters.getRuntime(), Main.class)

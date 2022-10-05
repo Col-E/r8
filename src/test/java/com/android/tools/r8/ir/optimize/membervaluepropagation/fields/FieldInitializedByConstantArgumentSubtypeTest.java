@@ -50,8 +50,8 @@ public class FieldInitializedByConstantArgumentSubtypeTest extends TestBase {
   private void inspect(CodeInspector inspector) {
     ClassSubject testClassSubject = inspector.clazz(TestClass.class);
     assertThat(testClassSubject, isPresent());
-    assertThat(testClassSubject.uniqueMethodWithName("live"), isPresent());
-    assertThat(testClassSubject.uniqueMethodWithName("dead"), isAbsent());
+    assertThat(testClassSubject.uniqueMethodWithOriginalName("live"), isPresent());
+    assertThat(testClassSubject.uniqueMethodWithOriginalName("dead"), isAbsent());
   }
 
   static class TestClass {

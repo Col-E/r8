@@ -128,7 +128,7 @@ public class AssumevaluesWithMultipleTargetsTest extends TestBase {
           mainMethod.streamInstructions().noneMatch(
               i -> i.isInvoke() && i.getMethod().name.toString().equals("m")));
 
-      MethodSubject testInvokeInterface = main.uniqueMethodWithName("testInvokeInterface");
+      MethodSubject testInvokeInterface = main.uniqueMethodWithOriginalName("testInvokeInterface");
       assertThat(testInvokeInterface, isPresent());
       // With call site optimizations, the dynamic type of the argument is accurate (Impl1),
       // hence the accurate resolution of the method call, resulting in rule application.

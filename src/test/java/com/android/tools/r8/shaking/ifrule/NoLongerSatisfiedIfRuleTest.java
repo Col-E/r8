@@ -52,7 +52,7 @@ public class NoLongerSatisfiedIfRuleTest extends TestBase {
 
     ClassSubject bClassSubject = inspector.clazz(B.class);
     assertThat(bClassSubject, isPresent());
-    assertThat(bClassSubject.uniqueMethodWithName("m"), isAbsent());
+    assertThat(bClassSubject.uniqueMethodWithOriginalName("m"), isAbsent());
   }
 
   static class TestClass {

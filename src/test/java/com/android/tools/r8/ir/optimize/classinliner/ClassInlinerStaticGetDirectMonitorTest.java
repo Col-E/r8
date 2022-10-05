@@ -53,13 +53,13 @@ public class ClassInlinerStaticGetDirectMonitorTest extends TestBase {
     assertTrue(
         inspector
             .clazz(TestClass.class)
-            .uniqueMethodWithName("produce1")
+            .uniqueMethodWithOriginalName("produce1")
             .streamInstructions()
             .anyMatch(InstructionSubject::isMonitorEnter));
     assertTrue(
         inspector
             .clazz(TestClass.class)
-            .uniqueMethodWithName("produce2")
+            .uniqueMethodWithOriginalName("produce2")
             .streamInstructions()
             .anyMatch(InstructionSubject::isMonitorExit));
   }

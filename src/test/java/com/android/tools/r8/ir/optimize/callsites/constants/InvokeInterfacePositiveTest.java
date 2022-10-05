@@ -82,14 +82,14 @@ public class InvokeInterfacePositiveTest extends TestBase {
     ClassSubject i = inspector.clazz(I.class);
     assertThat(i, isPresent());
 
-    MethodSubject i_m = i.uniqueMethodWithName("m");
+    MethodSubject i_m = i.uniqueMethodWithOriginalName("m");
     assertThat(i_m, isPresent());
     assertEquals(0, i_m.getProgramMethod().getReference().getArity());
 
     ClassSubject a = inspector.clazz(A.class);
     assertThat(a, isPresent());
 
-    MethodSubject a_m = a.uniqueMethodWithName("m");
+    MethodSubject a_m = a.uniqueMethodWithOriginalName("m");
     assertThat(a_m, isPresent());
     assertEquals(0, a_m.getProgramMethod().getReference().getArity());
     // Can optimize branches since `arg` is definitely "nul", i.e., not containing "null".
@@ -98,7 +98,7 @@ public class InvokeInterfacePositiveTest extends TestBase {
     ClassSubject b = inspector.clazz(B.class);
     assertThat(b, isPresent());
 
-    MethodSubject b_m = b.uniqueMethodWithName("m");
+    MethodSubject b_m = b.uniqueMethodWithOriginalName("m");
     assertThat(b_m, isPresent());
     assertEquals(0, b_m.getProgramMethod().getReference().getArity());
     // Can optimize branches since `arg` is definitely "nul", i.e., not containing "null".

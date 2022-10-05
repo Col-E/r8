@@ -46,7 +46,7 @@ public class VirtualMethodWithConstantArgumentThroughSiblingInterfaceMethodTest 
               for (Class<?> clazz : new Class[] {A.class, C.class}) {
                 ClassSubject aClassSubject = inspector.clazz(clazz);
                 assertThat(aClassSubject, isPresent());
-                MethodSubject aMethodSubject = aClassSubject.uniqueMethodWithName("m");
+                MethodSubject aMethodSubject = aClassSubject.uniqueMethodWithOriginalName("m");
                 assertThat(aMethodSubject, isPresent());
                 assertTrue(aMethodSubject.streamInstructions().noneMatch(InstructionSubject::isIf));
               }

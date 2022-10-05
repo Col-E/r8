@@ -46,7 +46,7 @@ public class NonFinalOverrideOfFinalMethodTest extends HorizontalClassMergingTes
               ClassSubject classSubject = inspector.clazz(A.class);
               assertThat(classSubject, isPresent());
 
-              MethodSubject methodSubject = classSubject.uniqueMethodWithName("foo");
+              MethodSubject methodSubject = classSubject.uniqueMethodWithOriginalName("foo");
               assertThat(methodSubject, isPresent());
               assertFalse(methodSubject.isFinal());
             })

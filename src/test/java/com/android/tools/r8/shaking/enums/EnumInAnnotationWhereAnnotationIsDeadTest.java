@@ -47,9 +47,10 @@ public class EnumInAnnotationWhereAnnotationIsDeadTest extends TestBase {
         .inspect(
             inspector -> {
               assertThat(
-                  inspector.clazz(Enum.class).uniqueFieldWithName("TEST_ONE"),
+                  inspector.clazz(Enum.class).uniqueFieldWithOriginalName("TEST_ONE"),
                   isPresentAndRenamed());
-              assertThat(inspector.clazz(Enum.class).uniqueFieldWithName("TEST_TWO"), isAbsent());
+              assertThat(
+                  inspector.clazz(Enum.class).uniqueFieldWithOriginalName("TEST_TWO"), isAbsent());
             })
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }

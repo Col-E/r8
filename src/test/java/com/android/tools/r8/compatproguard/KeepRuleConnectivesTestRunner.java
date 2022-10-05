@@ -41,21 +41,22 @@ public class KeepRuleConnectivesTestRunner extends TestBase {
           RR extends TestRunResult<RR>,
           T extends TestShrinkerBuilder<C, B, CR, RR, T>>
       void testKeepIsDisjunction(TestShrinkerBuilder<C, B, CR, RR, T> builder) throws Exception {
-        builder
-            .addProgramClassesAndInnerClasses(KeepRuleConnectivesTest.class)
-            .addKeepRules("-keep class * { public long foo(); public long bar(); }")
-            .compile()
-            .inspect(inspector -> {
+    builder
+        .addProgramClassesAndInnerClasses(KeepRuleConnectivesTest.class)
+        .addKeepRules("-keep class * { public long foo(); public long bar(); }")
+        .compile()
+        .inspect(
+            inspector -> {
               ClassSubject bothFooAndBar = inspector.clazz(BothFooAndBar.class);
               ClassSubject justFoo = inspector.clazz(JustFoo.class);
               ClassSubject justBar = inspector.clazz(JustBar.class);
               assertTrue(bothFooAndBar.isPresent());
-              assertTrue(bothFooAndBar.uniqueMethodWithName("foo").isPresent());
-              assertTrue(bothFooAndBar.uniqueMethodWithName("bar").isPresent());
+              assertTrue(bothFooAndBar.uniqueMethodWithOriginalName("foo").isPresent());
+              assertTrue(bothFooAndBar.uniqueMethodWithOriginalName("bar").isPresent());
               assertTrue(justFoo.isPresent());
-              assertTrue(justFoo.uniqueMethodWithName("foo").isPresent());
+              assertTrue(justFoo.uniqueMethodWithOriginalName("foo").isPresent());
               assertTrue(justBar.isPresent());
-              assertTrue(justBar.uniqueMethodWithName("bar").isPresent());
+              assertTrue(justBar.uniqueMethodWithOriginalName("bar").isPresent());
             });
   }
 
@@ -86,16 +87,17 @@ public class KeepRuleConnectivesTestRunner extends TestBase {
         .addProgramClassesAndInnerClasses(KeepRuleConnectivesTest.class)
         .addKeepRules("-keepclasseswithmembers class * { public long foo(); public long bar(); }")
         .compile()
-        .inspect(inspector -> {
-          ClassSubject bothFooAndBar = inspector.clazz(BothFooAndBar.class);
-          ClassSubject justFoo = inspector.clazz(JustFoo.class);
-          ClassSubject justBar = inspector.clazz(JustBar.class);
-          assertTrue(bothFooAndBar.isPresent());
-          assertTrue(bothFooAndBar.uniqueMethodWithName("foo").isPresent());
-          assertTrue(bothFooAndBar.uniqueMethodWithName("bar").isPresent());
-          assertFalse(justFoo.isPresent());
-          assertFalse(justBar.isPresent());
-        });
+        .inspect(
+            inspector -> {
+              ClassSubject bothFooAndBar = inspector.clazz(BothFooAndBar.class);
+              ClassSubject justFoo = inspector.clazz(JustFoo.class);
+              ClassSubject justBar = inspector.clazz(JustBar.class);
+              assertTrue(bothFooAndBar.isPresent());
+              assertTrue(bothFooAndBar.uniqueMethodWithOriginalName("foo").isPresent());
+              assertTrue(bothFooAndBar.uniqueMethodWithOriginalName("bar").isPresent());
+              assertFalse(justFoo.isPresent());
+              assertFalse(justBar.isPresent());
+            });
   }
 
   @Test

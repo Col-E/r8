@@ -47,12 +47,12 @@ public class TreeFixerInterfaceCollisionTest extends HorizontalClassMergingTestB
               ClassSubject parentClassSubject = codeInspector.clazz(Parent.class);
               assertThat(parentClassSubject, isPresent());
               // Parent#foo is renamed to Parent#foo1 to prevent collision.
-              assertThat(parentClassSubject.uniqueMethodWithName("foo$1"), isPresent());
+              assertThat(parentClassSubject.uniqueMethodWithOriginalName("foo$1"), isPresent());
 
               ClassSubject cClassSubject = codeInspector.clazz(C.class);
               assertThat(cClassSubject, isPresent());
               // C#foo is not renamed to match interface.
-              assertThat(cClassSubject.uniqueMethodWithName("foo"), isPresent());
+              assertThat(cClassSubject.uniqueMethodWithOriginalName("foo"), isPresent());
 
               ClassSubject iClassSubject = codeInspector.clazz(I.class);
               assertThat(iClassSubject, isPresent());

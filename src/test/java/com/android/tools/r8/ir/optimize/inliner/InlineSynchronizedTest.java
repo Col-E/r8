@@ -71,7 +71,7 @@ public class InlineSynchronizedTest extends TestBase {
               ClassSubject aClassSubject = inspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
               assertThat(
-                  aClassSubject.uniqueMethodWithName("normalInlinedSynchronized"),
+                  aClassSubject.uniqueMethodWithOriginalName("normalInlinedSynchronized"),
                   not(isPresent()));
 
               ClassSubject bClassSubject = inspector.clazz(B.class);

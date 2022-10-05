@@ -51,7 +51,8 @@ public class ApiModelTypeStrengtheningAboveMinApiTest extends TestBase {
         .compile()
         .inspect(
             inspector -> {
-              FieldSubject fieldSubject = inspector.clazz(Main.class).uniqueFieldWithName("FIELD");
+              FieldSubject fieldSubject =
+                  inspector.clazz(Main.class).uniqueFieldWithOriginalName("FIELD");
               assertThat(fieldSubject, isPresent());
               assertEquals(
                   ApiLevel22.class.getTypeName(), fieldSubject.getField().getType().getTypeName());

@@ -125,7 +125,7 @@ public class NameThenLengthTest extends TestBase {
       assertEquals(expectedConstNumberCountInClinit, countNonZeroConstNumber(clinit));
     }
 
-    MethodSubject m = mainClass.uniqueMethodWithName("instanceMethod");
+    MethodSubject m = mainClass.uniqueMethodWithOriginalName("instanceMethod");
     assertThat(m, isPresent());
     assertEquals(expectedStringLengthCountInInstanceMethod, countStringLength(m));
     assertEquals(expectedConstNumberCountInInstanceMethod, countNonZeroConstNumber(m));

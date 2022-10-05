@@ -147,7 +147,7 @@ public class StringContentCheckTest extends TestBase {
     long count = countStringContentChecker(mainMethod);
     assertEquals(expectedStringContentCheckerCount, count);
 
-    MethodSubject argCouldBeNull = mainClass.uniqueMethodWithName("argCouldBeNull");
+    MethodSubject argCouldBeNull = mainClass.uniqueMethodWithOriginalName("argCouldBeNull");
     assertThat(argCouldBeNull, isPresent());
     // Because of nullable argument, all checkers should remain.
     assertEquals(10, countStringContentChecker(argCouldBeNull));

@@ -67,7 +67,7 @@ public class CanonicalizeWithInline extends TestBase {
     result.inspect(
         inspector -> {
           DexEncodedMethod method =
-              inspector.clazz(ClassA.class).uniqueMethodWithName("call").getMethod();
+              inspector.clazz(ClassA.class).uniqueMethodWithOriginalName("call").getMethod();
           DexDebugInfo debugInfo = method.getCode().asDexCode().getDebugInfo();
           assertNull(debugInfo);
         });

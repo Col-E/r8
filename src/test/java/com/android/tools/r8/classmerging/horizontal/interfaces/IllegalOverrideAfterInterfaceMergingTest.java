@@ -58,13 +58,14 @@ public class IllegalOverrideAfterInterfaceMergingTest extends TestBase {
             inspector -> {
               ClassSubject iClassSubject = inspector.clazz(I.class);
               assertThat(iClassSubject, isPresent());
-              assertThat(iClassSubject.uniqueMethodWithName("m"), isAbsent());
+              assertThat(iClassSubject.uniqueMethodWithOriginalName("m"), isAbsent());
 
               ClassSubject aClassSubject = inspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
               assertThat(aClassSubject, isImplementing(iClassSubject));
               assertThat(
-                  aClassSubject.uniqueMethodWithName("m"), allOf(isPresent(), isPackagePrivate()));
+                  aClassSubject.uniqueMethodWithOriginalName("m"),
+                  allOf(isPresent(), isPackagePrivate()));
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A.m()", "B.m()");

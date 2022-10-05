@@ -54,13 +54,13 @@ public class InlinerMonitorEnterValuesThresholdTest extends TestBase {
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(classSubject, isPresent());
     assertThat(classSubject.mainMethod(), isPresent());
-    assertThat(classSubject.uniqueMethodWithName("m1"), not(isPresent()));
-    assertThat(classSubject.uniqueMethodWithName("m2"), not(isPresent()));
+    assertThat(classSubject.uniqueMethodWithOriginalName("m1"), not(isPresent()));
+    assertThat(classSubject.uniqueMethodWithOriginalName("m2"), not(isPresent()));
     if (threshold == 2) {
-      assertThat(classSubject.uniqueMethodWithName("m3"), isPresent());
+      assertThat(classSubject.uniqueMethodWithOriginalName("m3"), isPresent());
     } else {
       assert threshold == 3;
-      assertThat(classSubject.uniqueMethodWithName("m3"), not(isPresent()));
+      assertThat(classSubject.uniqueMethodWithOriginalName("m3"), not(isPresent()));
     }
   }
 

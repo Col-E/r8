@@ -60,7 +60,7 @@ public class ReservedFieldNameInSuperInterfaceTest extends TestBase {
     ClassSubject iClassSubject = inspector.clazz(I.class);
     assertThat(iClassSubject, isPresent());
 
-    FieldSubject aFieldSubject = iClassSubject.uniqueFieldWithName("a");
+    FieldSubject aFieldSubject = iClassSubject.uniqueFieldWithOriginalName("a");
     assertThat(aFieldSubject, isPresent());
 
     // Interface fields are visited/renamed before fields on classes. Thus, the interface field I.a
@@ -93,7 +93,7 @@ public class ReservedFieldNameInSuperInterfaceTest extends TestBase {
     ClassSubject jClassSubject = inspector.clazz(J.class);
     assertThat(jClassSubject, isPresent());
 
-    FieldSubject f1FieldSubject = jClassSubject.uniqueFieldWithName("f1");
+    FieldSubject f1FieldSubject = jClassSubject.uniqueFieldWithOriginalName("f1");
     assertThat(f1FieldSubject, isPresent());
     assertThat(f1FieldSubject, isPresentAndRenamed());
     assertEquals("b", f1FieldSubject.getFinalName());
@@ -101,7 +101,7 @@ public class ReservedFieldNameInSuperInterfaceTest extends TestBase {
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
 
-    FieldSubject f2FieldSubject = aClassSubject.uniqueFieldWithName("f2");
+    FieldSubject f2FieldSubject = aClassSubject.uniqueFieldWithOriginalName("f2");
     assertThat(f2FieldSubject, isPresent());
     assertThat(f2FieldSubject, isPresentAndRenamed());
     assertEquals("c", f2FieldSubject.getFinalName());

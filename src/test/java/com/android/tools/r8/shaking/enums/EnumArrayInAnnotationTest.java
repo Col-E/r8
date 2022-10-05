@@ -67,13 +67,13 @@ public class EnumArrayInAnnotationTest extends TestBase {
                 inspector -> {
                   assertThat(inspector.clazz(Enum.class), isPresentAndRenamed());
                   assertThat(
-                      inspector.clazz(Enum.class).uniqueFieldWithName("TEST_ONE"),
+                      inspector.clazz(Enum.class).uniqueFieldWithOriginalName("TEST_ONE"),
                       isPresentAndNotRenamed());
                   assertThat(
-                      inspector.clazz(Enum.class).uniqueFieldWithName("TEST_TWO"),
+                      inspector.clazz(Enum.class).uniqueFieldWithOriginalName("TEST_TWO"),
                       isPresentAndNotRenamed());
                   assertThat(
-                      inspector.clazz(Enum.class).uniqueFieldWithName("TEST_THREE"),
+                      inspector.clazz(Enum.class).uniqueFieldWithOriginalName("TEST_THREE"),
                       isPresentAndRenamed());
                   minifiedEnumName.set(inspector.clazz(Enum.class).getFinalName());
                 })
@@ -114,13 +114,13 @@ public class EnumArrayInAnnotationTest extends TestBase {
         .inspect(
             inspector -> {
               assertThat(
-                  inspector.clazz(Enum.class).uniqueFieldWithName("TEST_ONE"),
+                  inspector.clazz(Enum.class).uniqueFieldWithOriginalName("TEST_ONE"),
                   parameters.isCfRuntime() ? isPresentAndNotRenamed() : isPresentAndRenamed());
               assertThat(
-                  inspector.clazz(Enum.class).uniqueFieldWithName("TEST_TWO"),
+                  inspector.clazz(Enum.class).uniqueFieldWithOriginalName("TEST_TWO"),
                   parameters.isCfRuntime() ? isPresentAndNotRenamed() : isPresentAndRenamed());
               assertThat(
-                  inspector.clazz(Enum.class).uniqueFieldWithName("TEST_THREE"),
+                  inspector.clazz(Enum.class).uniqueFieldWithOriginalName("TEST_THREE"),
                   useGenericEnumsRule ? isPresentAndRenamed() : isPresentAndNotRenamed());
             })
         .assertSuccessWithOutput(EXPECTED_RESULT);
@@ -139,10 +139,10 @@ public class EnumArrayInAnnotationTest extends TestBase {
         .inspect(
             inspector -> {
               assertThat(
-                  inspector.clazz(minifiedEnumName.get()).uniqueFieldWithName("TEST_ONE"),
+                  inspector.clazz(minifiedEnumName.get()).uniqueFieldWithOriginalName("TEST_ONE"),
                   parameters.isCfRuntime() ? isPresentAndNotRenamed() : isPresentAndRenamed());
               assertThat(
-                  inspector.clazz(minifiedEnumName.get()).uniqueFieldWithName("TEST_TWO"),
+                  inspector.clazz(minifiedEnumName.get()).uniqueFieldWithOriginalName("TEST_TWO"),
                   parameters.isCfRuntime() ? isPresentAndNotRenamed() : isPresentAndRenamed());
             })
         .assertSuccessWithOutput(EXPECTED_RESULT);

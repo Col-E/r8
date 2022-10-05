@@ -53,14 +53,14 @@ public class InvokeVirtualCascadeTest extends TestBase {
     ClassSubject a = inspector.clazz(A.class);
     assertThat(a, isPresent());
 
-    MethodSubject a_m = a.uniqueMethodWithName("m");
+    MethodSubject a_m = a.uniqueMethodWithOriginalName("m");
     assertThat(a_m, isPresent());
       assertTrue(a_m.streamInstructions().noneMatch(InstructionSubject::isIf));
 
     ClassSubject b = inspector.clazz(B.class);
     assertThat(b, isPresent());
 
-    MethodSubject b_m = b.uniqueMethodWithName("m");
+    MethodSubject b_m = b.uniqueMethodWithOriginalName("m");
     assertThat(b_m, isPresent());
     assertTrue(b_m.streamInstructions().noneMatch(InstructionSubject::isIf));
   }

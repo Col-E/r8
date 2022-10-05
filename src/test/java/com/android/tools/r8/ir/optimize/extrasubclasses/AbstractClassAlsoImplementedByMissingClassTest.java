@@ -67,15 +67,15 @@ public class AbstractClassAlsoImplementedByMissingClassTest extends TestBase {
 
   private void inspect(CodeInspector inspector) {
     ClassSubject aClassSubject = inspector.clazz(A.class);
-    assertThat(aClassSubject.uniqueMethodWithName("kept"), isPresent());
+    assertThat(aClassSubject.uniqueMethodWithOriginalName("kept"), isPresent());
 
     ClassSubject bClassSubject = inspector.clazz(B.class);
-    assertThat(bClassSubject.uniqueMethodWithName("kept"), isPresent());
+    assertThat(bClassSubject.uniqueMethodWithOriginalName("kept"), isPresent());
 
     // A.notKept() and B.notKept() should not be present, because the only invoke instruction
     // targeting A.notKept() should have been inlined.
-    assertThat(aClassSubject.uniqueMethodWithName("notKept"), not(isPresent()));
-    assertThat(bClassSubject.uniqueMethodWithName("notKept"), not(isPresent()));
+    assertThat(aClassSubject.uniqueMethodWithOriginalName("notKept"), not(isPresent()));
+    assertThat(bClassSubject.uniqueMethodWithOriginalName("notKept"), not(isPresent()));
   }
 
   static class TestClass {

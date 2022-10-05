@@ -73,7 +73,7 @@ public class DesugarLambdaWithLocalClass extends TestBase {
             assertEquals(
                 testClassSubject, inspector.clazz(enclosingMethod.holder.toSourceString()));
             assertThat(
-                testClassSubject.uniqueMethodWithName(enclosingMethod.name.toString()),
+                testClassSubject.uniqueMethodWithOriginalName(enclosingMethod.name.toString()),
                 isPresent());
           }
         });
@@ -88,8 +88,8 @@ public class DesugarLambdaWithLocalClass extends TestBase {
     String outer = DesugarLambdaWithLocalClass.class.getTypeName();
     ClassSubject testClass = inspector.clazz(outer + "$TestClass");
     assertThat(testClass, isPresent());
-    assertThat(testClass.uniqueMethodWithName("lambda$test$0"), isPresent());
-    assertThat(testClass.uniqueMethodWithName("lambda$testStatic$1"), isPresent());
+    assertThat(testClass.uniqueMethodWithOriginalName("lambda$test$0"), isPresent());
+    assertThat(testClass.uniqueMethodWithOriginalName("lambda$testStatic$1"), isPresent());
     assertThat(inspector.clazz(outer + "$TestClass$1MyConsumerImpl"), isPresent());
     assertThat(inspector.clazz(outer + "$TestClass$2MyConsumerImpl"), isPresent());
   }

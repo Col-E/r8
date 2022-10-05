@@ -65,27 +65,27 @@ public class InstanceOfMethodSpecializationTest extends TestBase {
   private void inspect(CodeInspector inspector) {
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
-    assertThat(aClassSubject.uniqueMethodWithName("isA"), not(isPresent()));
-    assertThat(aClassSubject.uniqueMethodWithName("isB"), not(isPresent()));
-    assertThat(aClassSubject.uniqueMethodWithName("isC"), not(isPresent()));
-    assertThat(aClassSubject.uniqueMethodWithName("isSuper"), isPresent());
-    assertThat(aClassSubject.uniqueMethodWithName("isSub"), isPresent());
+    assertThat(aClassSubject.uniqueMethodWithOriginalName("isA"), not(isPresent()));
+    assertThat(aClassSubject.uniqueMethodWithOriginalName("isB"), not(isPresent()));
+    assertThat(aClassSubject.uniqueMethodWithOriginalName("isC"), not(isPresent()));
+    assertThat(aClassSubject.uniqueMethodWithOriginalName("isSuper"), isPresent());
+    assertThat(aClassSubject.uniqueMethodWithOriginalName("isSub"), isPresent());
 
     ClassSubject bClassSubject = inspector.clazz(B.class);
     assertThat(bClassSubject, isPresent());
-    assertThat(bClassSubject.uniqueMethodWithName("isA"), not(isPresent()));
-    assertThat(bClassSubject.uniqueMethodWithName("isB"), not(isPresent()));
-    assertThat(bClassSubject.uniqueMethodWithName("isC"), not(isPresent()));
-    assertThat(bClassSubject.uniqueMethodWithName("isSuper"), not(isPresent()));
-    assertThat(bClassSubject.uniqueMethodWithName("isSub"), not(isPresent()));
+    assertThat(bClassSubject.uniqueMethodWithOriginalName("isA"), not(isPresent()));
+    assertThat(bClassSubject.uniqueMethodWithOriginalName("isB"), not(isPresent()));
+    assertThat(bClassSubject.uniqueMethodWithOriginalName("isC"), not(isPresent()));
+    assertThat(bClassSubject.uniqueMethodWithOriginalName("isSuper"), not(isPresent()));
+    assertThat(bClassSubject.uniqueMethodWithOriginalName("isSub"), not(isPresent()));
 
     ClassSubject cClassSubject = inspector.clazz(C.class);
     assertThat(cClassSubject, isPresent());
-    assertThat(cClassSubject.uniqueMethodWithName("isA"), not(isPresent()));
-    assertThat(cClassSubject.uniqueMethodWithName("isB"), not(isPresent()));
-    assertThat(cClassSubject.uniqueMethodWithName("isC"), not(isPresent()));
-    assertThat(cClassSubject.uniqueMethodWithName("isSuper"), isPresent());
-    assertThat(cClassSubject.uniqueMethodWithName("isSub"), isPresent());
+    assertThat(cClassSubject.uniqueMethodWithOriginalName("isA"), not(isPresent()));
+    assertThat(cClassSubject.uniqueMethodWithOriginalName("isB"), not(isPresent()));
+    assertThat(cClassSubject.uniqueMethodWithOriginalName("isC"), not(isPresent()));
+    assertThat(cClassSubject.uniqueMethodWithOriginalName("isSuper"), isPresent());
+    assertThat(cClassSubject.uniqueMethodWithOriginalName("isSub"), isPresent());
   }
 
   public static class TestClass {

@@ -46,7 +46,8 @@ public class UpwardsInterfacePropagationToUnrelatedMethodTest extends TestBase {
         .compile()
         .inspect(
             inspector -> {
-              MethodSubject aMethodSubject = inspector.clazz(A.class).uniqueMethodWithName("m");
+              MethodSubject aMethodSubject =
+                  inspector.clazz(A.class).uniqueMethodWithOriginalName("m");
               assertThat(aMethodSubject, isPresent());
               assertTrue(
                   aMethodSubject
@@ -57,7 +58,8 @@ public class UpwardsInterfacePropagationToUnrelatedMethodTest extends TestBase {
                       .streamInstructions()
                       .anyMatch(instruction -> instruction.isConstString("A: Null")));
 
-              MethodSubject b2MethodSubject = inspector.clazz(B2.class).uniqueMethodWithName("m");
+              MethodSubject b2MethodSubject =
+                  inspector.clazz(B2.class).uniqueMethodWithOriginalName("m");
               assertThat(b2MethodSubject, isPresent());
               assertTrue(
                   b2MethodSubject
@@ -68,7 +70,8 @@ public class UpwardsInterfacePropagationToUnrelatedMethodTest extends TestBase {
                       .streamInstructions()
                       .noneMatch(instruction -> instruction.isConstString("B2: Null")));
 
-              MethodSubject b3MethodSubject = inspector.clazz(B3.class).uniqueMethodWithName("m");
+              MethodSubject b3MethodSubject =
+                  inspector.clazz(B3.class).uniqueMethodWithOriginalName("m");
               assertThat(b3MethodSubject, isPresent());
               assertTrue(
                   b3MethodSubject
