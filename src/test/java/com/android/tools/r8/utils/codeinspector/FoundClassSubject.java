@@ -226,7 +226,7 @@ public class FoundClassSubject extends ClassSubject {
   // TODO(b/169882658): This should be removed when we have identity mappings for ambiguous cases.
   public FieldSubject uniqueFieldWithOriginalName(String name, TypeReference originalType) {
     Retracer retracer = codeInspector.retrace();
-    RetraceClassElement retraceClassResult = retraceUnique();
+    ClassReference finalReference = getFinalReference();
     Set<FoundFieldSubject> candidates = Sets.newIdentityHashSet();
     Set<FoundFieldSubject> sameTypeCandidates = Sets.newIdentityHashSet();
     for (FoundFieldSubject candidate : allFields()) {
@@ -238,7 +238,8 @@ public class FoundClassSubject extends ClassSubject {
           sameTypeCandidates.add(candidate);
         }
       }
-      retraceClassResult
+      retracer
+          .retraceClass(finalReference)
           .lookupField(candidate.getFinalName())
           .forEach(
               element -> {
