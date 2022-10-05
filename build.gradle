@@ -646,6 +646,12 @@ def setJdkCompilationWithCompatibility(String sourceSet, String javaHome, JavaVe
 }
 
 setJdkCompilationWithCompatibility(
+        sourceSets.main.compileJavaTaskName,
+        'jdk-11',
+        JavaVersion.VERSION_11,
+        false);
+
+setJdkCompilationWithCompatibility(
         sourceSets.examplesJava9.compileJavaTaskName,
         'openjdk-9.0.4',
         JavaVersion.VERSION_1_9,
@@ -1037,7 +1043,7 @@ def r8CfCommandLine(input, output, pgConfs = [], args = ["--release"], libs = []
             input,
             "--output", output,
             "--pg-map-output", output + ".map",
-            "--lib", "third_party/openjdk/openjdk-rt-1.8/rt.jar"
+            "--lib", org.gradle.internal.jvm.Jvm.current().javaHome,
     ] + args + libs.collectMany { ["--lib", it] } + pgConfs.collectMany { ["--pg-conf", it] }
     return baseR8CommandLine(allArgs)
 }

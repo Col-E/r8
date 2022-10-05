@@ -10,6 +10,7 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
@@ -28,7 +29,7 @@ import java.util.function.Function;
 public abstract class TestRuntime {
 
   // Enum describing the possible/supported CF runtimes.
-  public enum CfVm {
+  public enum CfVm implements Ordered<CfVm> {
     JDK8("jdk8", 52),
     JDK9("jdk9", 53),
     JDK10("jdk10", 54),
@@ -66,16 +67,20 @@ public abstract class TestRuntime {
     }
 
     public boolean lessThan(CfVm other) {
-      return this.ordinal() < other.ordinal();
+      return isLessThan(other);
     }
 
     public boolean lessThanOrEqual(CfVm other) {
-      return this.ordinal() <= other.ordinal();
+      return isLessThanOrEqualTo(other);
     }
 
     @Override
     public String toString() {
       return name;
+    }
+
+    public static CfVm getMinimumSystemVersion() {
+      return JDK11;
     }
   }
 

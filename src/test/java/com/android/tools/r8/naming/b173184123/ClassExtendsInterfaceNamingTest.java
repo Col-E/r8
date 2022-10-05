@@ -11,7 +11,6 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
@@ -50,9 +49,7 @@ public class ClassExtendsInterfaceNamingTest extends TestBase {
                 .setSuper(DescriptorUtils.javaTypeToDescriptor(Interface.class.getTypeName()))
                 .transform())
         .build();
-    testForExternalR8(
-            parameters.getBackend(),
-            parameters.isCfRuntime() ? parameters.getRuntime() : TestRuntime.getCheckedInJdk11())
+    testForExternalR8(parameters.getBackend())
         .addProgramFiles(classFiles)
         .addTestingAnnotationsAsProgramClasses()
         .enableAssertions(false)

@@ -46,7 +46,6 @@ import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
-import com.android.tools.r8.profile.art.ArtProfileCollection;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -174,6 +173,11 @@ public class TestBase {
     return ExternalR8TestBuilder.create(new TestState(temp), backend, runtime);
   }
 
+  public static ExternalR8TestBuilder testForExternalR8(TemporaryFolder temp, Backend backend) {
+    return ExternalR8TestBuilder.create(
+        new TestState(temp), backend, TestRuntime.getSystemRuntime());
+  }
+
   public static D8TestBuilder testForD8(TemporaryFolder temp, Backend backend) {
     return D8TestBuilder.create(new TestState(temp), backend);
   }
@@ -212,6 +216,10 @@ public class TestBase {
 
   public ExternalR8TestBuilder testForExternalR8(Backend backend, TestRuntime runtime) {
     return testForExternalR8(temp, backend, runtime);
+  }
+
+  public ExternalR8TestBuilder testForExternalR8(Backend backend) {
+    return testForExternalR8(temp, backend, TestRuntime.getSystemRuntime());
   }
 
   public D8TestBuilder testForD8() {

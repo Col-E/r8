@@ -96,7 +96,7 @@ def main():
   cmd.extend(['--source-file-template', source_file_template])
   cmd.extend(['--output', args.output])
   cmd.extend(['--pg-map-output', args.output + '.map'])
-  cmd.extend(['--lib', 'third_party/openjdk/openjdk-rt-1.8/rt.jar'])
+  cmd.extend(['--lib', jdk.GetJdkHome()])
   if args.pg_conf:
     for pgconf in args.pg_conf:
       cmd.extend(['--pg-conf', pgconf])

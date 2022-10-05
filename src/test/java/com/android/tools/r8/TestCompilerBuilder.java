@@ -10,7 +10,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.benchmarks.BenchmarkResults;
-import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorEventConsumer;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.testing.AndroidBuildVersion;
@@ -32,6 +31,7 @@ import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -226,6 +226,18 @@ public abstract class TestCompilerBuilder<
     return internalCompileAndBenchmark(null);
   }
 
+  private Collection<Path> getDefaultLibraryFiles() {
+    if (backend == Backend.DEX) {
+      assert builder.isMinApiLevelSet();
+      return Collections.singletonList(
+          ToolHelper.getFirstSupportedAndroidJar(
+              AndroidApiLevel.getAndroidApiLevel(builder.getMinApiLevel())));
+    } else {
+      assert backend == Backend.CF;
+      return Collections.singletonList(ToolHelper.getJava8RuntimeJar());
+    }
+  }
+
   private CR internalCompileAndBenchmark(BenchmarkResults benchmark)
       throws CompilationFailedException {
     AndroidAppConsumers sink = new AndroidAppConsumers();
@@ -249,14 +261,7 @@ public abstract class TestCompilerBuilder<
     }
     builder.setOptimizeMultidexForLinearAlloc(optimizeMultidexForLinearAlloc);
     if (useDefaultRuntimeLibrary) {
-      if (backend == Backend.DEX) {
-        assert builder.isMinApiLevelSet();
-        builder.addLibraryFiles(
-            ToolHelper.getFirstSupportedAndroidJar(
-                AndroidApiLevel.getAndroidApiLevel(builder.getMinApiLevel())));
-      } else {
-        builder.addLibraryFiles(TestBase.runtimeJar(backend));
-      }
+      builder.addLibraryFiles(getDefaultLibraryFiles());
     }
     assertNull(oldStdout);
     oldStdout = System.out;

@@ -11,6 +11,7 @@ import static org.junit.Assume.assumeTrue;
 import static org.objectweb.asm.Opcodes.INVOKESTATIC;
 
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.JdkClassFileProvider;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -244,6 +245,7 @@ public class RetraceStackTraceFunctionalCompositionTest extends TestBase {
     testForR8(Backend.CF)
         .setMode(CompilationMode.RELEASE)
         .addProgramFiles(r8Input)
+        .addLibraryProvider(JdkClassFileProvider.fromSystemJdk())
         .addKeepRuleFiles(MAIN_KEEP)
         // TODO(b/241763080): Remove when stable version is default.
         .enableExperimentalMapFileVersion()
@@ -262,6 +264,7 @@ public class RetraceStackTraceFunctionalCompositionTest extends TestBase {
     testForD8(Backend.CF)
         .setMode(CompilationMode.RELEASE)
         .addProgramFiles(r8Input)
+        .addLibraryProvider(JdkClassFileProvider.fromSystemJdk())
         .enableExperimentalMapFileVersion()
         // TODO(b/241763080): Enable CF PC test mapping for this compilation.
         .addOptionsModification(

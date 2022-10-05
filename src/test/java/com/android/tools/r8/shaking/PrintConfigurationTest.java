@@ -8,9 +8,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.JdkClassFileProvider;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -35,7 +37,7 @@ public class PrintConfigurationTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withCfRuntimes().build();
+    return getTestParameters().withSystemRuntime().build();
   }
 
   public PrintConfigurationTest(TestParameters parameters) {
@@ -83,8 +85,10 @@ public class PrintConfigurationTest extends TestBase {
             "-printconfiguration proguard-config-out.txt");
     FileUtils.writeTextFile(proguardConfigFile, proguardConfig.trim());
 
+    assertEquals(TestRuntime.getSystemRuntime(), parameters.getRuntime());
     testForExternalR8(Backend.DEX, parameters.getRuntime())
         .addProgramClasses(PrintConfigurationTestClass.class)
+        .addLibraryProvider(JdkClassFileProvider.fromSystemJdk())
         .addKeepRuleFiles(proguardConfigFile)
         .compile();
 
