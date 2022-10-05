@@ -105,7 +105,7 @@ public class RetraceApiInlineInOutlineTest extends RetraceApiTestBase {
               .retraceFrame(
                   context,
                   OptionalInt.of(27),
-                  Reference.methodFromDescriptor(callsiteRenamed, "s", "(I)V"))
+                  Reference.methodFromDescriptor(callsiteRenamed, "s", "(I)I"))
               .stream()
               .collect(Collectors.toList());
       assertEquals(1, retraceOutlineCallee.size());

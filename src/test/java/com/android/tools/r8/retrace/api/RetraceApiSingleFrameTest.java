@@ -56,7 +56,7 @@ public class RetraceApiSingleFrameTest extends RetraceApiTestBase {
               .retraceFrame(
                   RetraceStackTraceContext.empty(),
                   OptionalInt.empty(),
-                  Reference.methodFromDescriptor(renamedClass, "a", "()I"))
+                  Reference.methodFromDescriptor(renamedClass, "a", "(I)I"))
               .stream()
               .collect(Collectors.toList()));
       checkResults(
