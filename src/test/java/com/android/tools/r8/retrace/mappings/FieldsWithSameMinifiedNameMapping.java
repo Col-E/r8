@@ -5,7 +5,7 @@
 package com.android.tools.r8.retrace.mappings;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.Reference;
@@ -20,7 +20,6 @@ public class FieldsWithSameMinifiedNameMapping implements MappingForTest {
 
   @Override
   public String mapping() {
-    // TODO(b/169953605): Add enough information to the map to allow precise retracing.
     return StringUtils.lines(
         "foo.bar.Baz -> foo.bar.Baz:", "  java.lang.Object f1 -> a", "  java.lang.String f2 -> a");
   }
@@ -44,13 +43,12 @@ public class FieldsWithSameMinifiedNameMapping implements MappingForTest {
             Reference.classFromTypeName("java.lang.Object"));
 
     RetraceFieldResult result = retracer.retraceField(mappedF1FieldReference);
-    // TODO(b/169829306): Result should not be ambigious.
-    assertTrue(result.isAmbiguous());
+    assertFalse(result.isAmbiguous());
 
     List<FieldReference> retracedFields =
         result.stream()
             .map(f -> f.getField().asKnown().getFieldReference())
             .collect(Collectors.toList());
-    assertEquals(ImmutableList.of(f1FieldReference, f2FieldReference), retracedFields);
+    assertEquals(ImmutableList.of(f1FieldReference), retracedFields);
   }
 }

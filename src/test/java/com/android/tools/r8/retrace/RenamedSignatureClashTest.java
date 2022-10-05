@@ -38,6 +38,7 @@ public class RenamedSignatureClashTest extends TestBase {
 
   private final String mapping =
       StringUtils.lines(
+          "# { id: 'com.android.tools.r8.mapping', version: '1.0' }",
           originalHolder.getTypeName() + " -> " + renamedHolder.getTypeName() + ":",
           "  void some.moved.Method.someMethod(int) -> a",
           "  void methodWithRemovedArgument(int) -> a",
@@ -61,8 +62,7 @@ public class RenamedSignatureClashTest extends TestBase {
               } else {
                 assertEquals(
                     originalHolder.getDescriptor() + "methodWithRemovedArgument(I)V", method);
-                // TODO(b/169953605): Should be true.
-                assertFalse(result.isCompilerSynthesized());
+                assertTrue(result.isCompilerSynthesized());
               }
             });
   }

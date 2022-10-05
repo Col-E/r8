@@ -62,19 +62,18 @@ public class RetraceApiResidualSignatureTest extends RetraceApiTestBase {
       List<RetraceMethodElement> fooWithTwoArgs =
           retracer.retraceMethod(Reference.methodFromDescriptor(aClass, "x", "(I)V")).stream()
               .collect(Collectors.toList());
-      // TODO(b/169953605): Use the residual signature information to prune the result.
-      assertEquals(2, fooWithTwoArgs.size());
+      assertEquals(1, fooWithTwoArgs.size());
       assertEquals(
-          setOf("Lsome/Class;foo(II)V", "Lsome/Class;foo(I)V"),
+          setOf("Lsome/Class;foo(II)V"),
           fooWithTwoArgs.stream()
               .map(result -> result.getRetracedMethod().asKnown().getMethodReference().toString())
               .collect(Collectors.toSet()));
       List<RetraceMethodElement> fooWithOneArg =
           retracer.retraceMethod(Reference.methodFromDescriptor(aClass, "x", "()V")).stream()
               .collect(Collectors.toList());
-      assertEquals(2, fooWithOneArg.size());
+      assertEquals(1, fooWithOneArg.size());
       assertEquals(
-          setOf("Lsome/Class;foo(II)V", "Lsome/Class;foo(I)V"),
+          setOf("Lsome/Class;foo(I)V"),
           fooWithOneArg.stream()
               .map(result -> result.getRetracedMethod().asKnown().getMethodReference().toString())
               .collect(Collectors.toSet()));
@@ -84,10 +83,9 @@ public class RetraceApiResidualSignatureTest extends RetraceApiTestBase {
                   Reference.field(aClass, "a", Reference.typeFromTypeName("java.lang.Object")))
               .stream()
               .collect(Collectors.toList());
-      // TODO(b/169953605): Use the residual signature information to prune the result.
-      assertEquals(2, fieldWithSuperType.size());
+      assertEquals(1, fieldWithSuperType.size());
       assertEquals(
-          setOf("Lsome/Class;field:Lsome/SuperType;", "Lsome/Class;field:Lsome/SubType;"),
+          setOf("Lsome/Class;field:Lsome/SuperType;"),
           fieldWithSuperType.stream()
               .map(result -> result.getField().asKnown().getFieldReference().toString())
               .collect(Collectors.toSet()));
@@ -97,9 +95,9 @@ public class RetraceApiResidualSignatureTest extends RetraceApiTestBase {
                   Reference.field(aClass, "a", Reference.typeFromTypeName("some.SuperType")))
               .stream()
               .collect(Collectors.toList());
-      assertEquals(2, fieldWithSubType.size());
+      assertEquals(1, fieldWithSubType.size());
       assertEquals(
-          setOf("Lsome/Class;field:Lsome/SuperType;", "Lsome/Class;field:Lsome/SubType;"),
+          setOf("Lsome/Class;field:Lsome/SubType;"),
           fieldWithSubType.stream()
               .map(result -> result.getField().asKnown().getFieldReference().toString())
               .collect(Collectors.toSet()));

@@ -8,6 +8,8 @@ package com.android.tools.r8.retrace.internal;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
 import com.android.tools.r8.naming.MemberNaming;
+import com.android.tools.r8.naming.MemberNaming.FieldSignature;
+import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
@@ -74,6 +76,15 @@ public class RetraceClassResultImpl implements RetraceClassResult {
     if (memberNamings == null || memberNamings.isEmpty()) {
       return null;
     }
+    if (fieldDefinition.isFullFieldDefinition()) {
+      FieldSignature fieldSignature =
+          FieldSignature.fromFieldReference(
+              fieldDefinition.asFullFieldDefinition().getFieldReference());
+      memberNamings =
+          ListUtils.filter(
+              memberNamings,
+              memberNaming -> memberNaming.getResidualSignature().equals(fieldSignature));
+    }
     return memberNamings;
   }
 
@@ -108,6 +119,18 @@ public class RetraceClassResultImpl implements RetraceClassResult {
       return null;
     }
     List<MappedRangesOfName> partitions = mappedRanges.partitionOnMethodSignature();
+    if (methodDefinition.isFullMethodDefinition()) {
+      MethodSignature methodSignature =
+          MethodSignature.fromMethodReference(
+              methodDefinition.asFullMethodDefinition().getMethodReference());
+      partitions =
+          ListUtils.filter(
+              partitions,
+              partition ->
+                  ListUtils.last(partition.getMappedRanges())
+                      .getResidualSignature()
+                      .equals(methodSignature));
+    }
     boolean isAmbiguous = partitions.size() > 1;
     return ListUtils.map(
         partitions,

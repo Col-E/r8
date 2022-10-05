@@ -160,7 +160,7 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
                         this,
                         classElement,
                         RetracedMethodReferenceImpl.create(methodReference),
-                        memberNaming);
+                        memberNamingWithMappedRangesOfName);
                   })
                   .stream();
             });
@@ -171,22 +171,28 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
     private final RetracedMethodReferenceImpl methodReference;
     private final RetraceMethodResultImpl retraceMethodResult;
     private final RetraceClassElementImpl classElement;
-    private final MemberNaming memberNaming;
+    private final MemberNamingWithMappedRangesOfName mapping;
 
     private ElementImpl(
         RetraceMethodResultImpl retraceMethodResult,
         RetraceClassElementImpl classElement,
         RetracedMethodReferenceImpl methodReference,
-        MemberNaming memberNaming) {
+        MemberNamingWithMappedRangesOfName mapping) {
       this.classElement = classElement;
       this.retraceMethodResult = retraceMethodResult;
       this.methodReference = methodReference;
-      this.memberNaming = memberNaming;
+      this.mapping = mapping;
+      assert mapping != null;
     }
 
     @Override
     public boolean isCompilerSynthesized() {
-      return memberNaming != null && memberNaming.isCompilerSynthesized();
+      if (mapping.getMemberNaming() != null) {
+        return mapping.getMemberNaming().isCompilerSynthesized();
+      } else {
+        List<MappedRange> mappedRanges = mapping.getMappedRanges();
+        return !mappedRanges.isEmpty() && ListUtils.last(mappedRanges).isCompilerSynthesized();
+      }
     }
 
     @Override
