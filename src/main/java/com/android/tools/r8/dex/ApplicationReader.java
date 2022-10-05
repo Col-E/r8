@@ -244,17 +244,25 @@ public class ApplicationReader {
   private AndroidApiLevel validateOrComputeMinApiLevel(
       AndroidApiLevel computedMinApiLevel, DexReader dexReader) {
     DexVersion version = dexReader.getDexVersion();
+    if (!options.testing.dexContainerExperiment
+        && version.getIntValue() == InternalOptions.EXPERIMENTAL_DEX_VERSION) {
+      throwIncompatibleDexVersionAndMinApi(version);
+    }
     if (options.getMinApiLevel() == AndroidApiLevel.getDefault()) {
       computedMinApiLevel = computedMinApiLevel.max(AndroidApiLevel.getMinAndroidApiLevel(version));
     } else if (!version.matchesApiLevel(options.getMinApiLevel())) {
-      throw new CompilationError(
-          "Dex file with version '"
-              + version.getIntValue()
-              + "' cannot be used with min sdk level '"
-              + options.getMinApiLevel()
-              + "'.");
+      throwIncompatibleDexVersionAndMinApi(version);
     }
     return computedMinApiLevel;
+  }
+
+  private void throwIncompatibleDexVersionAndMinApi(DexVersion version) {
+    throw new CompilationError(
+        "Dex file with version '"
+            + version.getIntValue()
+            + "' cannot be used with min sdk level '"
+            + options.getMinApiLevel()
+            + "'.");
   }
 
   private void readProguardMap(
