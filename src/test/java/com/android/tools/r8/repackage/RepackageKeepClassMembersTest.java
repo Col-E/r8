@@ -49,8 +49,8 @@ public class RepackageKeepClassMembersTest extends RepackageTestBase {
     assertThat(clazz, isPresent());
     // TODOD(b/250671873): Should not repackage class.
     assertThat(Sub.class, isRepackaged(inspector));
-    assertThat(clazz.uniqueFieldWithName("hashCodeCache"), isPresentAndNotRenamed());
-    assertThat(clazz.uniqueMethodWithName("calculateHashCode"), isPresentAndRenamed());
+    assertThat(clazz.uniqueFieldWithOriginalName("hashCodeCache"), isPresentAndNotRenamed());
+    assertThat(clazz.uniqueMethodWithOriginalName("calculateHashCode"), isPresentAndRenamed());
   }
 
   public static class Base {}
