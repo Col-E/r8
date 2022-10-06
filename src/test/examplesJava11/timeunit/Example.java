@@ -4,6 +4,7 @@
 
 package timeunit;
 
+import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.TimeUnit;
 
@@ -12,5 +13,6 @@ public class Example {
   public static void main(String[] args) {
     TimeUnit timeUnit = TimeUnit.of(ChronoUnit.NANOS);
     System.out.println(timeUnit.toChronoUnit());
+    System.out.println(timeUnit.convert(Duration.ZERO));
   }
 }

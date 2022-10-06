@@ -6,6 +6,22 @@
   "support_all_callbacks_from_library": true,
   "common_flags": [
     {
+      "api_level_below_or_equal": 32,
+      "rewrite_prefix": {
+        "java.util.concurrent.DesugarTimeUnit": "j$.util.concurrent.DesugarTimeUnit"
+      },
+      "retarget_method": {
+        "java.util.concurrent.TimeUnit java.util.concurrent.TimeUnit#of(java.time.temporal.ChronoUnit)": "java.util.concurrent.DesugarTimeUnit",
+        "java.time.temporal.ChronoUnit java.util.concurrent.TimeUnit#toChronoUnit()": "java.util.concurrent.DesugarTimeUnit",
+        "long java.util.concurrent.TimeUnit#convert(java.time.Duration)": "java.util.concurrent.DesugarTimeUnit"
+      },
+      "amend_library_method": [
+        "public static java.util.concurrent.TimeUnit java.util.concurrent.TimeUnit#of(java.time.temporal.ChronoUnit)",
+        "public java.time.temporal.ChronoUnit java.util.concurrent.TimeUnit#toChronoUnit()",
+        "public long java.util.concurrent.TimeUnit#convert(java.time.Duration)"
+      ]
+    },
+    {
       "api_level_below_or_equal": 30,
       "rewrite_prefix": {
         "java.time.": "j$.time.",
@@ -20,8 +36,7 @@
         "java.time.ZonedDateTime java.util.GregorianCalendar#toZonedDateTime()": "java.util.DesugarGregorianCalendar"
       },
       "wrapper_conversion": [
-        "java.time.Clock",
-        "java.time.temporal.ChronoUnit"
+        "java.time.Clock"
       ],
       "custom_conversion": {
         "java.time.Duration": "java.time.TimeConversions",

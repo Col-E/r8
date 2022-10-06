@@ -5,16 +5,17 @@
 package com.android.tools.r8.desugar.desugaredlibrary.jdk11;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
-import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -31,18 +32,15 @@ public class TimeUnitTest extends DesugaredLibraryTestBase {
   private final CompilationSpecification compilationSpecification;
 
   private static final Path INPUT_JAR =
-      Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR + "timeunit.jar");
-  private static final String EXPECTED_OUTPUT = StringUtils.lines("Nanos");
+      Paths.get(ToolHelper.EXAMPLES_JAVA11_JAR_DIR + "timeunit.jar");
+  private static final String EXPECTED_OUTPUT = StringUtils.lines("Nanos", "0");
   private static final String MAIN_CLASS = "timeunit.Example";
 
   @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters()
-            .withDexRuntimesStartingFromIncluding(Version.V13_0_0)
-            .withApiLevel(AndroidApiLevel.B)
-            .build(),
-        getJdk8Jdk11(),
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        ImmutableList.of(JDK11, JDK11_PATH),
         DEFAULT_SPECIFICATIONS);
   }
 
