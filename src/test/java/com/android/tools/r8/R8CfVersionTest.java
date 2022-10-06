@@ -18,7 +18,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class R8CfVersionTest extends TestBase {
 
-  private final CfVersion targetVersion = CfVersion.V1_8;
+  private final CfVersion targetVersion = CfVersion.V11;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {

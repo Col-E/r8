@@ -320,7 +320,19 @@ public class StringUtils {
   }
 
   public static String trim(String s) {
-    return stripLeadingBOM(s).strip();
+    int beginIndex = 0;
+    int endIndex = s.length();
+    while (beginIndex < endIndex && isWhitespace(s.charAt(beginIndex))) {
+      beginIndex++;
+    }
+    while (endIndex - 1 > beginIndex && isWhitespace(s.charAt(endIndex - 1))) {
+      endIndex--;
+    }
+    if (beginIndex > 0 || endIndex < s.length()) {
+      return s.substring(beginIndex, endIndex);
+    } else {
+      return s;
+    }
   }
 
   /** Returns true if {@param s} only contains the characters [0-9]. */

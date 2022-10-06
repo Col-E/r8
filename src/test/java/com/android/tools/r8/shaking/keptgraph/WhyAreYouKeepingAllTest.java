@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking.keptgraph;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 
+import com.android.tools.r8.JdkClassFileProvider;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -45,6 +46,7 @@ public class WhyAreYouKeepingAllTest extends TestBase {
   public void test() throws Throwable {
     testForR8(Backend.CF)
         .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
+        .addLibraryProvider(JdkClassFileProvider.fromSystemJdk())
         .addKeepRuleFiles(MAIN_KEEP)
         .addKeepRules(WHY_ARE_YOU_KEEPING_ALL)
         .collectStdout()
