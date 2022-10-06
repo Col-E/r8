@@ -1237,7 +1237,6 @@ public class EnumUnboxerImpl extends EnumUnboxer {
         if (code.method().isInstanceInitializer() && !invoke.getFirstArgument().isThis()) {
           return Reason.INVALID_INIT;
         }
-        return Reason.ELIGIBLE;
       }
 
       // Check if this is a checkNotNull() user. In this case, we can create a copy of the method

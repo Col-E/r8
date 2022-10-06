@@ -4,9 +4,6 @@
 
 package com.android.tools.r8.enumunboxing;
 
-import static org.junit.Assert.assertThrows;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestParameters;
 import java.util.List;
@@ -17,20 +14,21 @@ import org.junit.runners.Parameterized.Parameters;
 
 /** This is a regression for b/247146910. */
 @RunWith(Parameterized.class)
-public class EnumImplementingInterfaceAssignmentOutsideTest extends EnumUnboxingTestBase {
+public class EnumImplementingInterfaceImplicitUpcastClassInitializerTest
+    extends EnumUnboxingTestBase {
 
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
   private final EnumKeepRules enumKeepRules;
 
-  private final String[] EXPECTED = new String[] {"Bar", "Hello World!"};
+  private final String[] EXPECTED = new String[] {"Foo", "Hello World!"};
 
   @Parameters(name = "{0} valueOpt: {1} keep: {2}")
   public static List<Object[]> data() {
     return enumUnboxingTestParameters();
   }
 
-  public EnumImplementingInterfaceAssignmentOutsideTest(
+  public EnumImplementingInterfaceImplicitUpcastClassInitializerTest(
       TestParameters parameters, boolean enumValueOptimization, EnumKeepRules enumKeepRules) {
     this.parameters = parameters;
     this.enumValueOptimization = enumValueOptimization;
@@ -40,24 +38,24 @@ public class EnumImplementingInterfaceAssignmentOutsideTest extends EnumUnboxing
   @Test
   public void testRuntime() throws Exception {
     testForRuntime(parameters)
-        .addInnerClasses(EnumImplementingInterfaceAssignmentOutsideTest.class)
+        .addInnerClasses(EnumImplementingInterfaceImplicitUpcastClassInitializerTest.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);
   }
 
   @Test
   public void testEnumUnboxing() throws Exception {
-    // TODO(b/247146910): We should not fail compilation. If running without assertions this
-    //  inserts throw null for the code.
-    assertThrows(
-        CompilationFailedException.class,
-        () ->
-            testForR8(parameters.getBackend())
-                .addInnerClasses(EnumImplementingInterfaceAssignmentOutsideTest.class)
-                .addKeepMainRule(Main.class)
-                .addKeepRules(enumKeepRules.getKeepRules())
-                .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-                .compile());
+    testForR8(parameters.getBackend())
+        .addInnerClasses(EnumImplementingInterfaceImplicitUpcastClassInitializerTest.class)
+        .addKeepMainRule(Main.class)
+        .addKeepRules(enumKeepRules.getKeepRules())
+        .enableNeverClassInliningAnnotations()
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
+        .addEnumUnboxingInspector(
+            inspector -> inspector.assertNotUnboxed(OtherEnum.class, MyEnum.class))
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   public interface I {
@@ -84,26 +82,24 @@ public class EnumImplementingInterfaceAssignmentOutsideTest extends EnumUnboxing
 
   @NeverClassInline
   public enum MyEnum {
-    A(),
-    B();
+    A(OtherEnum.C),
+    B(OtherEnum.D);
 
     public I otherEnum;
+
+    MyEnum(I otherEnum) {
+      this.otherEnum = otherEnum;
+      if (System.currentTimeMillis() == 0) {
+        this.otherEnum = null;
+      }
+    }
   }
 
   public static class Main implements I {
 
     public static void main(String[] args) throws Exception {
-      setInterfaceValue(System.currentTimeMillis() == 0 ? OtherEnum.C : OtherEnum.D);
       System.out.println(MyEnum.A.otherEnum.get());
       System.out.println(new Main().get());
-    }
-
-    private static void setInterfaceValue(I i) {
-      if (System.currentTimeMillis() > 0) {
-        MyEnum.A.otherEnum = i;
-      } else {
-        MyEnum.B.otherEnum = i;
-      }
     }
 
     @Override

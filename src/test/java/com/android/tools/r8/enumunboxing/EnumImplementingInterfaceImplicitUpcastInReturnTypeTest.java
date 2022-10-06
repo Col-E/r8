@@ -4,10 +4,8 @@
 
 package com.android.tools.r8.enumunboxing;
 
-import static org.junit.Assert.assertThrows;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import java.util.List;
 import org.junit.Test;
@@ -15,22 +13,21 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-/** This is a regression for b/247146910. */
 @RunWith(Parameterized.class)
-public class EnumImplementingInterfaceTest extends EnumUnboxingTestBase {
+public class EnumImplementingInterfaceImplicitUpcastInReturnTypeTest extends EnumUnboxingTestBase {
 
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
   private final EnumKeepRules enumKeepRules;
 
-  private final String[] EXPECTED = new String[] {"Foo", "Hello World!"};
+  private final String[] EXPECTED = new String[] {"Foo"};
 
   @Parameters(name = "{0} valueOpt: {1} keep: {2}")
   public static List<Object[]> data() {
     return enumUnboxingTestParameters();
   }
 
-  public EnumImplementingInterfaceTest(
+  public EnumImplementingInterfaceImplicitUpcastInReturnTypeTest(
       TestParameters parameters, boolean enumValueOptimization, EnumKeepRules enumKeepRules) {
     this.parameters = parameters;
     this.enumValueOptimization = enumValueOptimization;
@@ -40,24 +37,24 @@ public class EnumImplementingInterfaceTest extends EnumUnboxingTestBase {
   @Test
   public void testRuntime() throws Exception {
     testForRuntime(parameters)
-        .addInnerClasses(EnumImplementingInterfaceTest.class)
+        .addInnerClasses(EnumImplementingInterfaceImplicitUpcastInReturnTypeTest.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);
   }
 
   @Test
   public void testEnumUnboxing() throws Exception {
-    // TODO(b/247146910): We should not fail compilation. If running without assertions this
-    //  inserts throw null for the code.
-    assertThrows(
-        CompilationFailedException.class,
-        () ->
-            testForR8(parameters.getBackend())
-                .addInnerClasses(EnumImplementingInterfaceTest.class)
-                .addKeepMainRule(Main.class)
-                .addKeepRules(enumKeepRules.getKeepRules())
-                .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-                .compile());
+    testForR8(parameters.getBackend())
+        .addInnerClasses(EnumImplementingInterfaceImplicitUpcastInReturnTypeTest.class)
+        .addKeepMainRule(Main.class)
+        .addKeepRules(enumKeepRules.getKeepRules())
+        .enableNeverClassInliningAnnotations()
+        .enableInliningAnnotations()
+        .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
+        .setMinApi(parameters.getApiLevel())
+        .addEnumUnboxingInspector(inspector -> inspector.assertNotUnboxed(MyEnum.class))
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   public interface I {
@@ -66,13 +63,13 @@ public class EnumImplementingInterfaceTest extends EnumUnboxingTestBase {
   }
 
   @NeverClassInline
-  public enum OtherEnum implements I {
+  public enum MyEnum implements I {
     C("Foo"),
     D("Bar");
 
     private final String value;
 
-    OtherEnum(String value) {
+    MyEnum(String value) {
       this.value = value;
     }
 
@@ -82,26 +79,27 @@ public class EnumImplementingInterfaceTest extends EnumUnboxingTestBase {
     }
   }
 
-  @NeverClassInline
-  public enum MyEnum {
-    A(OtherEnum.C),
-    B(OtherEnum.D);
-
-    public I otherEnum;
-
-    MyEnum(I otherEnum) {
-      this.otherEnum = otherEnum;
-      if (System.currentTimeMillis() == 0) {
-        this.otherEnum = null;
-      }
-    }
-  }
-
   public static class Main implements I {
 
+    public static I i;
+
     public static void main(String[] args) throws Exception {
-      System.out.println(MyEnum.A.otherEnum.get());
-      System.out.println(new Main().get());
+      I i = System.currentTimeMillis() == 0 ? new Main() : identity(MyEnum.C);
+      setInterfaceValue(i);
+      System.out.println(Main.i.get());
+    }
+
+    @NeverInline
+    private static void setInterfaceValue(I i) {
+      Main.i = i;
+    }
+
+    @NeverInline
+    private static I identity(MyEnum myEnum) {
+      if (System.currentTimeMillis() == 0) {
+        throw new RuntimeException("Foo");
+      }
+      return myEnum;
     }
 
     @Override
