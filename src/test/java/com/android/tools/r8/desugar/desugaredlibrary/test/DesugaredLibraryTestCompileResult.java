@@ -18,6 +18,7 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBase> {
@@ -41,7 +42,7 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
       CompilationSpecification compilationSpecification,
       D8TestCompileResult customLibCompile,
       L8TestCompileResult l8Compile)
-      throws Exception {
+      throws CompilationFailedException, IOException {
     this.test = test;
     this.compileResult = compileResult;
     this.parameters = parameters;
@@ -53,26 +54,26 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
   }
 
   public <E extends Throwable> DesugaredLibraryTestCompileResult<T> inspectCustomLib(
-      ThrowingConsumer<CodeInspector, E> consumer) throws Throwable {
+      ThrowingConsumer<CodeInspector, E> consumer) throws IOException, E {
     assert customLibCompile != null;
     customLibCompile.inspect(consumer);
     return this;
   }
 
   public <E extends Throwable> DesugaredLibraryTestCompileResult<T> inspectL8(
-      ThrowingConsumer<CodeInspector, E> consumer) throws Throwable {
+      ThrowingConsumer<CodeInspector, E> consumer) throws IOException, E {
     l8Compile.inspect(consumer);
     return this;
   }
 
   public <E extends Throwable> DesugaredLibraryTestCompileResult<T> inspect(
-      ThrowingConsumer<CodeInspector, E> consumer) throws Throwable {
+      ThrowingConsumer<CodeInspector, E> consumer) throws IOException, E {
     compileResult.inspect(consumer);
     return this;
   }
 
   public <E extends Throwable> DesugaredLibraryTestCompileResult<T> inspectKeepRules(
-      ThrowingConsumer<List<String>, E> consumer) throws Throwable {
+      ThrowingConsumer<List<String>, E> consumer) throws E {
     if (compilationSpecification.isL8Shrink()) {
       l8Compile.inspectKeepRules(consumer);
     }
@@ -80,21 +81,21 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
   }
 
   public <E extends Throwable> DesugaredLibraryTestCompileResult<T> apply(
-      ThrowingConsumer<DesugaredLibraryTestCompileResult<T>, E> consumer) throws Throwable {
+      ThrowingConsumer<DesugaredLibraryTestCompileResult<T>, E> consumer) throws E {
     consumer.accept(this);
     return this;
   }
 
-  public CodeInspector customLibInspector() throws Throwable {
+  public CodeInspector customLibInspector() throws IOException {
     assert customLibCompile != null;
     return customLibCompile.inspector();
   }
 
-  public CodeInspector l8Inspector() throws Throwable {
+  public CodeInspector l8Inspector() throws IOException {
     return l8Compile.inspector();
   }
 
-  public CodeInspector inspector() throws Throwable {
+  public CodeInspector inspector() throws IOException {
     return compileResult.inspector();
   }
 
@@ -105,17 +106,17 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
   }
 
   public SingleTestRunResult<?> run(TestRuntime runtime, Class<?> mainClass, String... args)
-      throws Exception {
+      throws ExecutionException, IOException {
     return run(runtime, mainClass.getTypeName(), args);
   }
 
   public SingleTestRunResult<?> run(TestRuntime runtime, String mainClassName, String... args)
-      throws Exception {
+      throws ExecutionException, IOException {
     return runnableCompiledResult.run(runtime, mainClassName, args);
   }
 
   private TestCompileResult<?, ? extends SingleTestRunResult<?>> computeRunnableCompiledResult()
-      throws Exception {
+      throws CompilationFailedException, IOException {
     TestCompileResult<?, ? extends SingleTestRunResult<?>> runnable = convertToDexIfNeeded();
     if (customLibCompile != null) {
       runnable.addRunClasspathFiles(customLibCompile.writeToZip());

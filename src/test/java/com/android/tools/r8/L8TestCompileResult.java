@@ -77,7 +77,7 @@ public class L8TestCompileResult extends TestCompileResult<L8TestCompileResult, 
   }
 
   public <E extends Throwable> L8TestCompileResult inspectKeepRules(
-      ThrowingConsumer<List<String>, E> consumer) throws Throwable {
+      ThrowingConsumer<List<String>, E> consumer) throws E {
     consumer.accept(allKeepRules);
     return self();
   }

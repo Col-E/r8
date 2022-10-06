@@ -38,6 +38,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.junit.Assume;
@@ -344,14 +345,16 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     builder.addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles());
   }
 
-  public DesugaredLibraryTestCompileResult<T> compile() throws Exception {
+  public DesugaredLibraryTestCompileResult<T> compile()
+      throws CompilationFailedException, IOException, ExecutionException {
     prepareCompilation();
     TestCompileResult<?, ? extends SingleTestRunResult<?>> compile = builder.compile();
     return internalCompile(compile);
   }
 
   public DesugaredLibraryTestCompileResult<T> compileWithExpectedDiagnostics(
-      DiagnosticsConsumer consumer) throws Exception {
+      DiagnosticsConsumer consumer)
+      throws CompilationFailedException, IOException, ExecutionException {
     prepareCompilation();
     TestCompileResult<?, ? extends SingleTestRunResult<?>> compile =
         builder.compileWithExpectedDiagnostics(consumer);
@@ -359,7 +362,8 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   }
 
   private DesugaredLibraryTestCompileResult<T> internalCompile(
-      TestCompileResult<?, ? extends SingleTestRunResult<?>> compile) throws Exception {
+      TestCompileResult<?, ? extends SingleTestRunResult<?>> compile)
+      throws CompilationFailedException, IOException, ExecutionException {
     L8TestCompileResult l8Compile = compileDesugaredLibrary(compile, keepRuleConsumer);
     D8TestCompileResult customLibCompile = compileCustomLib();
     return new DesugaredLibraryTestCompileResult<>(
@@ -382,7 +386,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   private L8TestCompileResult compileDesugaredLibrary(
       TestCompileResult<?, ? extends SingleTestRunResult<?>> compile,
       KeepRuleConsumer keepRuleConsumer)
-      throws Exception {
+      throws CompilationFailedException, IOException, ExecutionException {
     if (!compilationSpecification.isL8Shrink()) {
       return compileDesugaredLibrary(null);
     }
@@ -401,7 +405,8 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return compileDesugaredLibrary(keepRules);
   }
 
-  private L8TestCompileResult compileDesugaredLibrary(String keepRule) throws Exception {
+  private L8TestCompileResult compileDesugaredLibrary(String keepRule)
+      throws CompilationFailedException, IOException, ExecutionException {
     assert !compilationSpecification.isL8Shrink() || keepRule != null;
     return test.testForL8(parameters.getApiLevel(), parameters.getBackend())
         .apply(
@@ -427,7 +432,8 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   }
 
   public String collectKeepRulesWithTraceReferences(
-      Path desugaredProgramClassFile, Path desugaredLibraryClassFile) throws Exception {
+      Path desugaredProgramClassFile, Path desugaredLibraryClassFile)
+      throws CompilationFailedException, IOException {
     Path generatedKeepRules = test.temp.newFile().toPath();
     ArrayList<String> args = new ArrayList<>();
     args.add("--keep-rules");
@@ -449,12 +455,12 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   }
 
   public SingleTestRunResult<?> run(TestRuntime runtime, Class<?> mainClass, String... args)
-      throws Exception {
+      throws ExecutionException, IOException, CompilationFailedException {
     return compile().run(runtime, mainClass.getTypeName(), args);
   }
 
   public SingleTestRunResult<?> run(TestRuntime runtime, String mainClass, String... args)
-      throws Exception {
+      throws ExecutionException, IOException, CompilationFailedException {
     return compile().run(runtime, mainClass, args);
   }
 
