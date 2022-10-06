@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
@@ -11,6 +12,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.utils.UnverifiableCfCodeDiagnostic;
 import com.android.tools.r8.utils.codeinspector.AssertUtils;
 import java.io.IOException;
 import org.junit.Test;
@@ -76,7 +78,9 @@ public class MissingClassThrowingTest extends TestBase {
                 .compileWithExpectedDiagnostics(
                     diagnostics ->
                         diagnostics
-                            .assertOnlyErrors()
+                            .assertNoInfos()
+                            // TODO(b/251482856): Is this an expected unverifiable code?
+                            .assertWarningsMatch(diagnosticType(UnverifiableCfCodeDiagnostic.class))
                             .inspectErrors(
                                 diagnostic ->
                                     diagnostic

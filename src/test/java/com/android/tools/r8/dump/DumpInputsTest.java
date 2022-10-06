@@ -13,7 +13,6 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -37,7 +36,7 @@ public class DumpInputsTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withCfRuntime(CfVm.JDK9).build();
+    return getTestParameters().withSystemRuntime().build();
   }
 
   public DumpInputsTest(TestParameters parameters) {

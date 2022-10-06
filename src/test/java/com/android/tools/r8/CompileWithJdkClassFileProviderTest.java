@@ -12,6 +12,7 @@ import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.UnverifiableCfCodeDiagnostic;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -95,7 +96,9 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
             diagnostics -> {
               diagnostics.assertErrorsMatch(
                   diagnosticMessage(containsString("java.util.concurrent.Flow$Subscriber")));
-              diagnostics.assertOnlyErrors();
+              // TODO(b/251482856): Unexpected unverifiable code.
+              diagnostics.assertWarningsMatch(diagnosticType(UnverifiableCfCodeDiagnostic.class));
+              diagnostics.assertNoInfos();
               if (parameters.isDexRuntime()) {
                 // TODO(b/175659048): This should likely be a desugar diagnostic.
                 diagnostics.assertErrorsMatch(diagnosticType(MissingDefinitionsDiagnostic.class));
