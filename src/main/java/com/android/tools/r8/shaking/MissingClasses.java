@@ -139,7 +139,7 @@ public class MissingClasses {
         if (appView.options().ignoreMissingClasses) {
           appView.reporter().warning(diagnostic);
         } else {
-          throw appView.reporter().fatalError(diagnostic);
+          appView.reporter().error(diagnostic);
         }
       }
       return build();

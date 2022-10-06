@@ -12,7 +12,7 @@ import org.junit.rules.TemporaryFolder;
 public class TestState {
 
   private final TemporaryFolder temp;
-  private final TestDiagnosticMessagesImpl messages = new TestDiagnosticMessagesImpl();
+  private final TestDiagnosticMessagesImpl messages;
 
   private Set<String> mainDexClasses;
 
@@ -20,7 +20,12 @@ public class TestState {
   private String stderr;
 
   public TestState(TemporaryFolder temp) {
+    this(temp, new TestDiagnosticMessagesImpl());
+  }
+
+  public TestState(TemporaryFolder temp, TestDiagnosticMessagesImpl handler) {
     this.temp = temp;
+    this.messages = handler;
   }
 
   public TemporaryFolder getTempFolder() {
