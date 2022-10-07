@@ -118,7 +118,7 @@ public class MainDexListTests extends TestBase {
         getManyClassesMultiDexAppPath(), MANY_CLASSES, MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS);
 
     // Generates an application with two classes, each with the maximum possible number of methods.
-    generateApplication(getTwoLargeClassesAppPath(), TWO_LARGE_CLASSES, getLargeClassMethodCount());
+    generateManyClassesMultiDexApp(getTwoLargeClassesAppPath());
   }
 
   private static int getLargeClassMethodCount() {
@@ -137,6 +137,10 @@ public class MainDexListTests extends TestBase {
 
   private static Path getManyClassesMultiDexAppPath() {
     return generatedApplicationsFolder.getRoot().toPath().resolve("many-classes-stereo.zip");
+  }
+
+  public static void generateManyClassesMultiDexApp(Path path) throws IOException {
+    generateApplication(path, TWO_LARGE_CLASSES, getLargeClassMethodCount());
   }
 
   private static Set<DexType> parse(Path path, DexItemFactory itemFactory) {
