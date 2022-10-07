@@ -142,6 +142,7 @@ public class MissingClasses {
           appView.reporter().error(diagnostic);
         }
       }
+      appView.reporter().failIfPendingErrors();
       return build();
     }
 
