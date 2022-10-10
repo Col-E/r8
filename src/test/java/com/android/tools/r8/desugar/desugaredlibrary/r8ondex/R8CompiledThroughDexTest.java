@@ -220,7 +220,7 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
     long start = System.nanoTime();
     ProcessResult javaProcessResult =
         ToolHelper.runJava(
-            TestRuntime.getCheckedInJdk9(),
+            TestRuntime.getSystemRuntime(),
             Collections.singletonList(r8jar),
             ImmutableList.builder()
                 .add("-Xmx1g")
