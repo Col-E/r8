@@ -550,6 +550,14 @@ public class ClassFileTransformer {
 
   private ClassFileTransformer setAccessFlags(
       FieldReference fieldReference, Consumer<FieldAccessFlags> setter) {
+    return setAccessFlags(
+        FieldPredicate.onNameAndDescriptor(
+            fieldReference.getFieldName(), fieldReference.getFieldType().getDescriptor()),
+        setter);
+  }
+
+  public ClassFileTransformer setAccessFlags(
+      FieldPredicate predicate, Consumer<FieldAccessFlags> setter) {
     return addClassTransformer(
         new ClassTransformer() {
 
@@ -557,8 +565,7 @@ public class ClassFileTransformer {
           public FieldVisitor visitField(
               int access, String name, String descriptor, String signature, Object value) {
             FieldAccessFlags accessFlags = FieldAccessFlags.fromCfAccessFlags(access);
-            if (name.equals(fieldReference.getFieldName())
-                && descriptor.equals(fieldReference.getFieldType().getDescriptor())) {
+            if (predicate.test(access, name, descriptor, signature, value)) {
               setter.accept(accessFlags);
             }
             return super.visitField(
@@ -631,7 +638,7 @@ public class ClassFileTransformer {
       return (access, name, descriptor, signature, value) -> true;
     }
 
-    static FieldPredicate onNameAndSignature(String name, String descriptor) {
+    static FieldPredicate onNameAndDescriptor(String name, String descriptor) {
       return (access, otherName, otherDescriptor, signature, value) ->
           name.equals(otherName) && descriptor.equals(otherDescriptor);
     }

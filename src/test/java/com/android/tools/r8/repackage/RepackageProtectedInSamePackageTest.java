@@ -5,15 +5,18 @@
 package com.android.tools.r8.repackage;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverClassInline;
-import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.ProguardVersion;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.repackage.testclasses.RepackageForKeepClassMembers;
+import com.android.tools.r8.transformers.ClassFileTransformer.FieldPredicate;
+import com.android.tools.r8.transformers.ClassFileTransformer.MethodPredicate;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import java.util.Objects;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -22,66 +25,82 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class RepackageProtectedInSamePackageTest extends RepackageTestBase {
 
+  private final String EXPECTED = "Hello World!";
+
   public RepackageProtectedInSamePackageTest(
       String flattenPackageHierarchyOrRepackageClasses, TestParameters parameters) {
     super(flattenPackageHierarchyOrRepackageClasses, parameters);
   }
 
   @Test
-  public void testR8() throws Exception {
-    testForR8(parameters.getBackend())
-        .addInnerClasses(getClass())
+  public void testPG() throws Exception {
+    assumeTrue(parameters.isOrSimulateNoneRuntime());
+    testForProguard(ProguardVersion.V7_0_0)
+        .addProgramClasses(Main.class)
+        .addProgramClassFileData(getRepackageForKeepClassMembersWithProtectedAccess())
         .setMinApi(parameters.getApiLevel())
         .apply(this::configureRepackaging)
         .addKeepRules(
-            "-keepclassmembers,allowobfuscation class * extends "
-                + typeName(Base.class)
-                + " { <fields>; }")
+            "-keepclassmembers class " + typeName(RepackageForKeepClassMembers.class) + " { *; }")
+        .addKeepMainRule(Main.class)
+        .addDontWarn(RepackageProtectedInSamePackageTest.class, NeverClassInline.class)
+        .run(parameters.getRuntime(), Main.class, typeName(RepackageForKeepClassMembers.class))
+        .inspect(inspector -> inspect(inspector, true))
+        .assertSuccessWithOutputLines(EXPECTED);
+  }
+
+  @Test
+  public void testR8() throws Exception {
+    testForR8(parameters.getBackend())
+        .addProgramClasses(Main.class)
+        .addProgramClassFileData(getRepackageForKeepClassMembersWithProtectedAccess())
+        .setMinApi(parameters.getApiLevel())
+        .apply(this::configureRepackaging)
+        .addKeepRules(
+            "-keepclassmembers class " + typeName(RepackageForKeepClassMembers.class) + " { *; }")
         .addKeepMainRule(Main.class)
         .enableNeverClassInliningAnnotations()
-        .enableInliningAnnotations()
         .run(parameters.getRuntime(), Main.class)
-        .inspect(this::inspect)
-        .assertSuccessWithOutputLines("Hello World!");
+        .inspect(inspector -> inspect(inspector, false))
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
-  private void inspect(CodeInspector inspector) {
+  private byte[] getRepackageForKeepClassMembersWithProtectedAccess() throws Exception {
+    return transformer(RepackageForKeepClassMembers.class)
+        .setAccessFlags(
+            MethodPredicate.onName("calculateHashCode"),
+            methodAccessFlags -> {
+              methodAccessFlags.unsetPublic();
+              methodAccessFlags.setProtected();
+            })
+        .setAccessFlags(
+            FieldPredicate.onName("hashCodeCache"),
+            fieldAccessFlags -> {
+              fieldAccessFlags.unsetPublic();
+              fieldAccessFlags.setProtected();
+            })
+        .transform();
+  }
+
+  private void inspect(CodeInspector inspector, boolean isProguard) {
+    ClassSubject clazz = inspector.clazz(RepackageForKeepClassMembers.class);
+    assertThat(clazz, isPresent());
     // TODO(b/250671873): We should be able to repackage the Sub class since the only reference
     //  to Sub.class is in the same package and we have allowobfuscation.
-    ClassSubject clazz = inspector.clazz(Sub.class);
-    assertThat(clazz, isPresent());
-    assertThat(Sub.class, isNotRepackaged(inspector));
-    assertThat(clazz.uniqueFieldWithOriginalName("hashCodeCache"), isPresentAndRenamed());
-    assertThat(clazz.uniqueMethodWithOriginalName("calculateHashCode"), isPresentAndRenamed());
-  }
-
-  public static class Base {}
-
-  @NeverClassInline
-  public static class Sub extends Base {
-
-    protected int hashCodeCache;
-
-    @NeverInline
-    protected int calculateHashCode() {
-      if (hashCodeCache != -1) {
-        return hashCodeCache;
-      }
-      hashCodeCache = Objects.hash(Sub.class);
-      return hashCodeCache;
+    if (isProguard) {
+      assertThat(RepackageForKeepClassMembers.class, isRepackaged(inspector));
+    } else {
+      assertThat(RepackageForKeepClassMembers.class, isNotRepackaged(inspector));
     }
-
-    @Override
-    public int hashCode() {
-      return calculateHashCode();
-    }
+    assertThat(clazz.uniqueFieldWithOriginalName("hashCodeCache"), isPresentAndNotRenamed());
+    assertThat(clazz.uniqueMethodWithOriginalName("calculateHashCode"), isPresentAndNotRenamed());
   }
 
   public static class Main {
 
     public static void main(String[] args) {
       if (System.currentTimeMillis() == 0) {
-        System.out.println(new Sub().hashCode());
+        System.out.println(new RepackageForKeepClassMembers().hashCode());
       }
       System.out.println("Hello World!");
     }
