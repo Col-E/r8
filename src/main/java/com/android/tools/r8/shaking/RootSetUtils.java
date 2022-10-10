@@ -1135,6 +1135,7 @@ public class RootSetUtils {
         dependentMinimumKeepInfo
             .getOrCreateMinimumKeepInfoFor(preconditionEvent, clazz.getReference())
             .disallowMinification()
+            .asClassJoiner()
             .disallowRepackaging();
       }
     }
@@ -1638,14 +1639,14 @@ public class RootSetUtils {
         dependentMinimumKeepInfo
             .getOrCreateMinimumKeepInfoFor(preconditionEvent, item.getReference())
             .disallowMinification()
-            .disallowRepackaging();
+            .applyIf(item.isProgramClass(), joiner -> joiner.asClassJoiner().disallowRepackaging());
         context.markAsUsed();
       }
 
       if (appView.options().isRepackagingEnabled() && !modifiers.allowsObfuscation) {
         dependentMinimumKeepInfo
             .getOrCreateMinimumKeepInfoFor(preconditionEvent, item.getReference())
-            .disallowRepackaging();
+            .applyIf(item.isProgramClass(), joiner -> joiner.asClassJoiner().disallowRepackaging());
         context.markAsUsed();
       }
 
@@ -1664,10 +1665,6 @@ public class RootSetUtils {
                 .addRule(keepRule)
                 .disallowShrinking();
         context.markAsUsed();
-
-        if (item.getAccessFlags().isPackagePrivateOrProtected()) {
-          minimumKeepInfoForItem.requireAccessModificationForRepackaging();
-        }
       }
 
       if (modifiers.includeDescriptorClasses) {
@@ -1981,7 +1978,8 @@ public class RootSetUtils {
       getDependentMinimumKeepInfo()
           .getOrCreateUnconditionalMinimumKeepInfoFor(definition.getReference())
           .disallowMinification()
-          .disallowRepackaging();
+          .applyIf(
+              definition.isProgramClass(), joiner -> joiner.asClassJoiner().disallowRepackaging());
     }
 
     public boolean verifyKeptFieldsAreAccessedAndLive(AppView<AppInfoWithLiveness> appView) {

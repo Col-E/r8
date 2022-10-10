@@ -45,7 +45,7 @@ public class RepackageProtectedInSamePackageTest extends RepackageTestBase {
         .addKeepMainRule(Main.class)
         .addDontWarn(RepackageProtectedInSamePackageTest.class, NeverClassInline.class)
         .run(parameters.getRuntime(), Main.class, typeName(RepackageForKeepClassMembers.class))
-        .inspect(inspector -> inspect(inspector, true))
+        .inspect(this::inspect)
         .assertSuccessWithOutputLines(EXPECTED);
   }
 
@@ -61,7 +61,7 @@ public class RepackageProtectedInSamePackageTest extends RepackageTestBase {
         .addKeepMainRule(Main.class)
         .enableNeverClassInliningAnnotations()
         .run(parameters.getRuntime(), Main.class)
-        .inspect(inspector -> inspect(inspector, false))
+        .inspect(this::inspect)
         .assertSuccessWithOutputLines(EXPECTED);
   }
 
@@ -82,16 +82,10 @@ public class RepackageProtectedInSamePackageTest extends RepackageTestBase {
         .transform();
   }
 
-  private void inspect(CodeInspector inspector, boolean isProguard) {
+  private void inspect(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz(RepackageForKeepClassMembers.class);
     assertThat(clazz, isPresent());
-    // TODO(b/250671873): We should be able to repackage the Sub class since the only reference
-    //  to Sub.class is in the same package and we have allowobfuscation.
-    if (isProguard) {
-      assertThat(RepackageForKeepClassMembers.class, isRepackaged(inspector));
-    } else {
-      assertThat(RepackageForKeepClassMembers.class, isNotRepackaged(inspector));
-    }
+    assertThat(RepackageForKeepClassMembers.class, isRepackaged(inspector));
     assertThat(clazz.uniqueFieldWithOriginalName("hashCodeCache"), isPresentAndNotRenamed());
     assertThat(clazz.uniqueMethodWithOriginalName("calculateHashCode"), isPresentAndNotRenamed());
   }

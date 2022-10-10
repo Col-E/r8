@@ -163,18 +163,16 @@ public class RepackageTest extends RepackageTestBase {
 
     // 3.A, 3.B, 3.C) Accessing a kept method is OK.
     markShouldAlwaysBeEligible.accept(AccessPublicKeptMethodOnReachableClass.class);
-    markEligibleWithAllowAccessModification.accept(
-        AccessPackagePrivateKeptMethodOnReachableClassDirect.class);
-    markEligibleWithAllowAccessModification.accept(
-        AccessPackagePrivateKeptMethodOnReachableClassIndirect.class);
+    markShouldAlwaysBeEligible.accept(AccessPackagePrivateKeptMethodOnReachableClassDirect.class);
+    markShouldAlwaysBeEligible.accept(AccessPackagePrivateKeptMethodOnReachableClassIndirect.class);
 
     // 4) -keepclassmembers,allowobfuscation class ReachableClassWithKeptMethod { <methods>; }
 
     // 4.A, 4.B, 4.C) Accessing a kept method is OK.
     markShouldAlwaysBeEligible.accept(AccessPublicKeptMethodAllowRenamingOnReachableClass.class);
-    markEligibleWithAllowAccessModification.accept(
+    markShouldAlwaysBeEligible.accept(
         AccessPackagePrivateKeptMethodAllowRenamingOnReachableClassDirect.class);
-    markEligibleWithAllowAccessModification.accept(
+    markShouldAlwaysBeEligible.accept(
         AccessPackagePrivateKeptMethodAllowRenamingOnReachableClassIndirect.class);
 
     // 5) No keep rule.
