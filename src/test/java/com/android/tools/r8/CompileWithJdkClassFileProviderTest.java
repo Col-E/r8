@@ -2,9 +2,9 @@ package com.android.tools.r8;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestRuntime.CfRuntime;
@@ -82,32 +82,34 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
   public void compileCodeWithJava9APIUsage() throws Exception {
     ClassFileResourceProvider provider = JdkClassFileProvider.fromJdkHome(library.getJavaHome());
 
-    TestShrinkerBuilder<?, ?, ?, ?, ?> testBuilder =
+    R8FullTestBuilder testBuilder =
         testForR8(parameters.getBackend())
             .setMinApi(AndroidApiLevel.B)
             .addLibraryProvider(provider)
             .addProgramClassFileData(dumpClassWhichUseJava9Flow())
+            .setDiagnosticsLevelModifier(
+                (level, diagnostic) ->
+                    diagnostic instanceof MissingDefinitionsDiagnostic
+                        ? DiagnosticsLevel.WARNING
+                        : level)
             .addKeepMainRule("MySubscriber");
 
     if (library.getVm() == CfVm.JDK8) {
-      try {
-        // java.util.concurrent.Flow$Subscriber is not present in JDK8 rt.jar.
-        testBuilder.compileWithExpectedDiagnostics(
-            diagnostics -> {
-              diagnostics.assertErrorsMatch(
-                  diagnosticMessage(containsString("java.util.concurrent.Flow$Subscriber")));
-              // TODO(b/251482856): Unexpected unverifiable code.
-              diagnostics.assertWarningsMatch(diagnosticType(UnverifiableCfCodeDiagnostic.class));
-              diagnostics.assertNoInfos();
-              if (parameters.isDexRuntime()) {
-                // TODO(b/175659048): This should likely be a desugar diagnostic.
-                diagnostics.assertErrorsMatch(diagnosticType(MissingDefinitionsDiagnostic.class));
-              }
-            });
-      } catch (CompilationFailedException e) {
+      // java.util.concurrent.Flow$Subscriber is not present in JDK8 rt.jar.
+      testBuilder
+          .allowDiagnosticWarningMessages()
+          .compileWithExpectedDiagnostics(
+              diagnostics -> {
+                diagnostics.assertWarningsMatch(
+                    // TODO(b/251482856): Unexpected unverifiable code.
+                    diagnosticType(UnverifiableCfCodeDiagnostic.class),
+                    // TODO(b/175659048): This should likely be a desugar diagnostic.
+                    allOf(
+                        diagnosticType(MissingDefinitionsDiagnostic.class),
+                        diagnosticMessage(containsString("java.util.concurrent.Flow$Subscriber"))));
+                diagnostics.assertOnlyWarnings();
+              });
         return;
-      }
-      fail("Expected compilation error");
     } else {
       if (parameters.getRuntime().isDex()) {
         // java.util.concurrent.Flow$Subscriber is not present on Android.
