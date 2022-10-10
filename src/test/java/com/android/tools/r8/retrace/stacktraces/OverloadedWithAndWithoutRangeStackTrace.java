@@ -27,18 +27,12 @@ public class OverloadedWithAndWithoutRangeStackTrace implements StackTraceForTes
 
   @Override
   public List<String> retracedStackTrace() {
-    return Arrays.asList(
-        "  at some.Class.cancel(Class.java:3)",
-        "  <OR> at some.Class.select(Class.java:3)",
-        "  <OR> at some.Class.sync(Class.java:425)");
+    return Arrays.asList("  at some.Class.sync(Class.java:425)");
   }
 
   @Override
   public List<String> retraceVerboseStackTrace() {
-    return Arrays.asList(
-        "  at some.Class.void cancel(java.lang.String[])(Class.java:3)",
-        "  <OR> at some.Class.java.util.List select(java.util.List)(Class.java:3)",
-        "  <OR> at some.Class.void sync()(Class.java:425)");
+    return Arrays.asList("  at some.Class.void sync()(Class.java:425)");
   }
 
   @Override

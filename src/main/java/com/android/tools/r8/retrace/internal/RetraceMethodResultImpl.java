@@ -21,6 +21,7 @@ import com.android.tools.r8.utils.Pair;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class RetraceMethodResultImpl implements RetraceMethodResult {
@@ -62,66 +63,104 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
   @Override
   public RetraceFrameResultImpl narrowByPosition(
       RetraceStackTraceContext context, OptionalInt position) {
-    List<Pair<RetraceClassElementImpl, List<MemberNamingWithMappedRangesOfName>>> narrowedRanges =
-        new ArrayList<>();
+    List<RetraceFrameResultData> narrowedRanges = new ArrayList<>();
     RetraceStackTraceContextImpl stackTraceContext = null;
     if (context instanceof RetraceStackTraceContextImpl) {
       stackTraceContext = (RetraceStackTraceContextImpl) context;
     }
+    boolean hasPosition = position.isPresent() && position.getAsInt() >= 0;
+    Function<MemberNamingWithMappedRangesOfName, List<MappedRange>> selector =
+        hasPosition ? filterOnExistingPosition(position.getAsInt()) : filterOnNoPosition();
     for (Pair<RetraceClassElementImpl, List<MemberNamingWithMappedRangesOfName>> mappedRange :
         mappedRanges) {
-      List<MemberNamingWithMappedRangesOfName> memberNamingWithMappedRanges =
-          mappedRange.getSecond();
-      if (memberNamingWithMappedRanges == null) {
-        narrowedRanges.add(new Pair<>(mappedRange.getFirst(), null));
-        continue;
+      narrowMappedRangeByPosition(
+          mappedRange, selector, position, stackTraceContext, narrowedRanges);
+    }
+    if (hasPosition && narrowedRanges.isEmpty()) {
+      for (Pair<RetraceClassElementImpl, List<MemberNamingWithMappedRangesOfName>> mappedRange :
+          mappedRanges) {
+        narrowMappedRangeByPosition(
+            mappedRange,
+            filterOnMappedRangesWithNoMinifiedRange(),
+            position,
+            stackTraceContext,
+            narrowedRanges);
       }
-      boolean hasPosition = position.isPresent() && position.getAsInt() >= 0;
-      List<MemberNamingWithMappedRangesOfName> newMemberNamingsResult = new ArrayList<>();
-      for (MemberNamingWithMappedRangesOfName memberNamingWithMappedRange :
-          memberNamingWithMappedRanges) {
-        List<MappedRange> mappedRangesForPosition = null;
-        if (hasPosition) {
-          mappedRangesForPosition =
-              memberNamingWithMappedRange.allRangesForLine(position.getAsInt());
-        }
-        if (mappedRangesForPosition == null || mappedRangesForPosition.isEmpty()) {
-          mappedRangesForPosition =
-              hasPosition
-                  ? memberNamingWithMappedRange.mappedRangesWithNoMinifiedRange()
-                  : memberNamingWithMappedRange.getMappedRanges();
-        }
-        if (mappedRangesForPosition != null && !mappedRangesForPosition.isEmpty()) {
-          MemberNamingWithMappedRangesOfName newMemberNaming =
-              new MemberNamingWithMappedRangesOfName(
-                  memberNamingWithMappedRange.getMemberNaming(),
-                  new MappedRangesOfName(mappedRangesForPosition));
-          newMemberNamingsResult.add(newMemberNaming);
-          if (stackTraceContext != null && stackTraceContext.hasRewritePosition()) {
-            List<OutlineCallsiteMappingInformation> outlineCallsiteInformation =
-                ListUtils.last(mappedRangesForPosition).getOutlineCallsiteInformation();
-            if (!outlineCallsiteInformation.isEmpty()) {
-              assert outlineCallsiteInformation.size() == 1
-                  : "There can only be one outline entry for a line";
-              return narrowByPosition(
-                  stackTraceContext.buildFromThis().clearRewritePosition().build(),
-                  OptionalInt.of(
-                      outlineCallsiteInformation
-                          .get(0)
-                          .rewritePosition(stackTraceContext.getRewritePosition())));
-            }
-          }
-        }
+    }
+    if (narrowedRanges.isEmpty()) {
+      for (Pair<RetraceClassElementImpl, List<MemberNamingWithMappedRangesOfName>> mappedRange :
+          mappedRanges) {
+        narrowedRanges.add(new RetraceFrameResultData(mappedRange.getFirst(), null, position));
       }
-      narrowedRanges.add(new Pair<>(mappedRange.getFirst(), newMemberNamingsResult));
     }
     return new RetraceFrameResultImpl(
         classResult,
         narrowedRanges,
         methodDefinition,
-        position,
         retracer,
         (RetraceStackTraceContextImpl) context);
+  }
+
+  private void narrowMappedRangeByPosition(
+      Pair<RetraceClassElementImpl, List<MemberNamingWithMappedRangesOfName>> mappedRange,
+      Function<MemberNamingWithMappedRangesOfName, List<MappedRange>> selector,
+      OptionalInt position,
+      RetraceStackTraceContextImpl stackTraceContext,
+      List<RetraceFrameResultData> narrowedRanges) {
+    List<MemberNamingWithMappedRangesOfName> memberNamingWithMappedRanges = mappedRange.getSecond();
+    if (memberNamingWithMappedRanges == null) {
+      narrowedRanges.add(new RetraceFrameResultData(mappedRange.getFirst(), null, position));
+      return;
+    }
+    List<MemberNamingWithMappedRangesOfName> newMemberNamingsResult = new ArrayList<>();
+    for (MemberNamingWithMappedRangesOfName memberNamingWithMappedRange :
+        memberNamingWithMappedRanges) {
+      List<MappedRange> mappedRangesForPosition = selector.apply(memberNamingWithMappedRange);
+      if (mappedRangesForPosition == null || mappedRangesForPosition.isEmpty()) {
+        continue;
+      } else if (stackTraceContext != null && stackTraceContext.hasRewritePosition()) {
+        List<OutlineCallsiteMappingInformation> outlineCallsiteInformation =
+            ListUtils.last(mappedRangesForPosition).getOutlineCallsiteInformation();
+        if (!outlineCallsiteInformation.isEmpty()) {
+          assert outlineCallsiteInformation.size() == 1
+              : "There can only be one outline entry for a line";
+          int newPosition =
+              outlineCallsiteInformation
+                  .get(0)
+                  .rewritePosition(stackTraceContext.getRewritePosition());
+          narrowMappedRangeByPosition(
+              mappedRange,
+              filterOnExistingPosition(newPosition),
+              OptionalInt.of(newPosition),
+              stackTraceContext.buildFromThis().clearRewritePosition().build(),
+              narrowedRanges);
+          return;
+        }
+      }
+      MemberNamingWithMappedRangesOfName newMemberNaming =
+          new MemberNamingWithMappedRangesOfName(
+              memberNamingWithMappedRange.getMemberNaming(),
+              new MappedRangesOfName(mappedRangesForPosition));
+      newMemberNamingsResult.add(newMemberNaming);
+    }
+    if (!newMemberNamingsResult.isEmpty()) {
+      narrowedRanges.add(
+          new RetraceFrameResultData(mappedRange.getFirst(), newMemberNamingsResult, position));
+    }
+  }
+
+  private Function<MemberNamingWithMappedRangesOfName, List<MappedRange>> filterOnExistingPosition(
+      int position) {
+    return memberNamingWithMappedRange -> memberNamingWithMappedRange.allRangesForLine(position);
+  }
+
+  private Function<MemberNamingWithMappedRangesOfName, List<MappedRange>>
+      filterOnMappedRangesWithNoMinifiedRange() {
+    return MemberNamingWithMappedRangesOfName::mappedRangesWithNoMinifiedRange;
+  }
+
+  private Function<MemberNamingWithMappedRangesOfName, List<MappedRange>> filterOnNoPosition() {
+    return MemberNamingWithMappedRangesOfName::getMappedRanges;
   }
 
   @Override

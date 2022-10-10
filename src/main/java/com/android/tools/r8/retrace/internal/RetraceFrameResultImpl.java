@@ -8,7 +8,6 @@ import static com.android.tools.r8.retrace.internal.RetraceUtils.methodReference
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
-import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.Range;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.RetraceFrameElement;
@@ -22,7 +21,6 @@ import com.android.tools.r8.retrace.internal.RetraceClassResultImpl.RetraceClass
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.OptionalUtils;
-import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
@@ -36,9 +34,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
 
   private final RetraceClassResultImpl classResult;
   private final MethodDefinition methodDefinition;
-  private final OptionalInt obfuscatedPosition;
-  private final List<Pair<RetraceClassElementImpl, List<MemberNamingWithMappedRangesOfName>>>
-      mappedRanges;
+  private final List<RetraceFrameResultData> mappedRanges;
   private final RetracerImpl retracer;
   private final RetraceStackTraceContextImpl context;
 
@@ -46,14 +42,12 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
 
   public RetraceFrameResultImpl(
       RetraceClassResultImpl classResult,
-      List<Pair<RetraceClassElementImpl, List<MemberNamingWithMappedRangesOfName>>> mappedRanges,
+      List<RetraceFrameResultData> mappedRanges,
       MethodDefinition methodDefinition,
-      OptionalInt obfuscatedPosition,
       RetracerImpl retracer,
       RetraceStackTraceContextImpl context) {
     this.classResult = classResult;
     this.methodDefinition = methodDefinition;
-    this.obfuscatedPosition = obfuscatedPosition;
     this.mappedRanges = mappedRanges;
     this.retracer = retracer;
     this.context = context;
@@ -73,30 +67,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     if (mappedRanges.size() > 1) {
       return true;
     }
-    List<MemberNamingWithMappedRangesOfName> memberNamingWithMappedRanges =
-        mappedRanges.get(0).getSecond();
-    if (memberNamingWithMappedRanges == null) {
-      return false;
-    }
-    if (memberNamingWithMappedRanges.size() > 1) {
-      return true;
-    }
-    assert !memberNamingWithMappedRanges.isEmpty();
-    List<MappedRange> methodRanges = memberNamingWithMappedRanges.get(0).getMappedRanges();
-    if (methodRanges != null && !methodRanges.isEmpty()) {
-      MappedRange initialRange = methodRanges.get(0);
-      for (MappedRange mappedRange : methodRanges) {
-        if (isMappedRangeAmbiguous(mappedRange)) {
-          return true;
-        }
-        if (mappedRange != initialRange
-            && (mappedRange.minifiedRange == null
-                || !mappedRange.minifiedRange.equals(initialRange.minifiedRange))) {
-          return true;
-        }
-      }
-    }
-    return false;
+    return mappedRanges.get(0).isAmbiguous();
   }
 
   private boolean isMappedRangeAmbiguous(MappedRange mappedRange) {
@@ -113,10 +84,10 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
   public Stream<RetraceFrameElement> stream() {
     return mappedRanges.stream()
         .flatMap(
-            mappedRangePair -> {
-              RetraceClassElementImpl classElement = mappedRangePair.getFirst();
+            mappedRangeData -> {
+              RetraceClassElementImpl classElement = mappedRangeData.getRetraceClassElement();
               List<MemberNamingWithMappedRangesOfName> memberNamingWithMappedRangesOfNames =
-                  mappedRangePair.getSecond();
+                  mappedRangeData.getMemberNamingWithMappedRanges();
               if (memberNamingWithMappedRangesOfNames == null
                   || memberNamingWithMappedRangesOfNames.isEmpty()) {
                 return Stream.of(
@@ -127,8 +98,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
                             methodDefinition.substituteHolder(
                                 classElement.getRetracedClass().getClassReference())),
                         ImmutableList.of(),
-                        null,
-                        obfuscatedPosition,
+                        mappedRangeData.getPosition(),
                         retracer));
               }
               // Iterate over mapped ranges that may have different positions than specified.
@@ -146,9 +116,9 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
                     // This is a new frame
                     separateAmbiguousOriginalPositions(
                         classElement,
-                        memberNamingWithMappedRangesOfName.getMemberNaming(),
                         mappedRangesForElement,
-                        ambiguousFrames);
+                        ambiguousFrames,
+                        mappedRangeData.getPosition());
                     mappedRangesForElement = new ArrayList<>();
                     minifiedRange = mappedRange.minifiedRange;
                   }
@@ -156,9 +126,9 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
                 }
                 separateAmbiguousOriginalPositions(
                     classElement,
-                    memberNamingWithMappedRangesOfName.getMemberNaming(),
                     mappedRangesForElement,
-                    ambiguousFrames);
+                    ambiguousFrames,
+                    mappedRangeData.getPosition());
               }
               return ambiguousFrames.stream();
             });
@@ -166,15 +136,17 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
 
   private void separateAmbiguousOriginalPositions(
       RetraceClassElementImpl classElement,
-      MemberNaming memberNaming,
       List<MappedRange> frames,
-      List<ElementImpl> allAmbiguousElements) {
+      List<ElementImpl> allAmbiguousElements,
+      OptionalInt obfuscatedPosition) {
     // We have a single list of frames where minified positional information may produce ambiguous
     // results.
     if (!isAmbiguous() || !isMappedRangeAmbiguous(frames.get(0))) {
       allAmbiguousElements.add(
           elementFromMappedRanges(
-              memberNaming, ListUtils.map(frames, MappedRangeForFrame::create), classElement));
+              ListUtils.map(frames, MappedRangeForFrame::create),
+              classElement,
+              obfuscatedPosition));
       return;
     }
     assert frames.size() > 0;
@@ -200,13 +172,13 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     newFrames.forEach(
         ambiguousFrames ->
             allAmbiguousElements.add(
-                elementFromMappedRanges(memberNaming, ambiguousFrames, classElement)));
+                elementFromMappedRanges(ambiguousFrames, classElement, obfuscatedPosition)));
   }
 
   private ElementImpl elementFromMappedRanges(
-      MemberNaming memberNaming,
       List<MappedRangeForFrame> mappedRangesForElement,
-      RetraceClassElementImpl classElement) {
+      RetraceClassElementImpl classElement,
+      OptionalInt obfuscatedPosition) {
     MappedRangeForFrame topFrame = mappedRangesForElement.get(0);
     MethodReference methodReference =
         methodReferenceFromMappedRange(
@@ -216,7 +188,6 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
         classElement,
         getRetracedMethod(methodReference, topFrame, obfuscatedPosition),
         mappedRangesForElement,
-        memberNaming,
         obfuscatedPosition,
         retracer);
   }
@@ -251,7 +222,8 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
 
   @Override
   public boolean isEmpty() {
-    List<MemberNamingWithMappedRangesOfName> mappedRangesOfNames = mappedRanges.get(0).getSecond();
+    List<MemberNamingWithMappedRangesOfName> mappedRangesOfNames =
+        mappedRanges.get(0).getMemberNamingWithMappedRanges();
     return mappedRangesOfNames == null || mappedRangesOfNames.isEmpty();
   }
 
@@ -261,7 +233,6 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     private final RetraceFrameResultImpl retraceFrameResult;
     private final RetraceClassElementImpl classElement;
     private final List<MappedRangeForFrame> mappedRanges;
-    private final MemberNaming memberNaming;
     private final OptionalInt obfuscatedPosition;
     private final RetracerImpl retracer;
 
@@ -270,14 +241,12 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
         RetraceClassElementImpl classElement,
         RetracedMethodReferenceImpl methodReference,
         List<MappedRangeForFrame> mappedRanges,
-        MemberNaming memberNaming,
         OptionalInt obfuscatedPosition,
         RetracerImpl retracer) {
       this.methodReference = methodReference;
       this.retraceFrameResult = retraceFrameResult;
       this.classElement = classElement;
       this.mappedRanges = mappedRanges;
-      this.memberNaming = memberNaming;
       this.obfuscatedPosition = obfuscatedPosition;
       this.retracer = retracer;
     }
