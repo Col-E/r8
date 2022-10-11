@@ -126,6 +126,14 @@ public class DexOutputBuffer {
     byteBuffer.putInt(anInteger);
   }
 
+  public short getShort() {
+    return byteBuffer.getShort();
+  }
+
+  public int getInt() {
+    return byteBuffer.getInt();
+  }
+
   public boolean assertZero() {
     int pos = byteBuffer.position();
     int i = byteBuffer.getInt();
