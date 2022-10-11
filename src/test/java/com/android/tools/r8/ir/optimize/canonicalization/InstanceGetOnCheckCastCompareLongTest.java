@@ -4,16 +4,10 @@
 
 package com.android.tools.r8.ir.optimize.canonicalization;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThrows;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,29 +43,15 @@ public class InstanceGetOnCheckCastCompareLongTest extends TestBase {
     // For R8 we will try to shorten the live range and we have a bailout to find an insertion
     // point if we see a cmp instruction and the api is lower than 23. The receiver of the instance
     // get is not defined on the insertion point which is why this regression test was made.
-    R8FullTestBuilder r8FullTestBuilder =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(I.class, Main.class)
-            .addProgramClassFileData(getTestClassWithRewrittenLongCompareToLCmp())
-            .addKeepMainRule(Main.class)
-            .addKeepClassRules(I.class)
-            .setMinApi(parameters.getApiLevel())
-            .enableInliningAnnotations();
-    if (parameters.getApiLevel().isLessThan(AndroidApiLevel.M)) {
-      // TODO(b/251015885). We should not fail compilation.
-      assertThrows(
-          CompilationFailedException.class,
-          () ->
-              r8FullTestBuilder.compileWithExpectedDiagnostics(
-                  diagnostics ->
-                      diagnostics.assertErrorMessageThatMatches(
-                          containsString("Unexpected values live at entry to first block"))));
-
-    } else {
-      r8FullTestBuilder
-          .run(parameters.getRuntime(), Main.class)
-          .assertSuccessWithOutputLines(EXPECTED);
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClasses(I.class, Main.class)
+        .addProgramClassFileData(getTestClassWithRewrittenLongCompareToLCmp())
+        .addKeepMainRule(Main.class)
+        .addKeepClassRules(I.class)
+        .setMinApi(parameters.getApiLevel())
+        .enableInliningAnnotations()
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   private byte[] getTestClassWithRewrittenLongCompareToLCmp() throws Exception {

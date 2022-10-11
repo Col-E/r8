@@ -1980,8 +1980,13 @@ public class CodeRewriter {
       Map<BasicBlock, LinkedHashMap<Value, Instruction>> addConstantInBlock,
       Predicate<Instruction> selector) {
     InstructionListIterator iterator = block.listIterator(code);
+    boolean seenCompareExit = false;
     while (iterator.hasNext()) {
       Instruction instruction = iterator.next();
+      if (options.canHaveCmpIfFloatBug() && instruction.isCmp()) {
+        seenCompareExit = true;
+      }
+
       if (instruction.hasUnusedOutValue() || instruction.outValue().hasLocalInfo()) {
         continue;
       }
@@ -2008,6 +2013,7 @@ public class CodeRewriter {
         Instruction uniqueUse = instruction.outValue().singleUniqueUser();
         Instruction next = iterator.next();
         if (uniqueUse == next) {
+          iterator.previous();
           continue;
         }
         if (next.hasOutValue()
@@ -2017,6 +2023,7 @@ public class CodeRewriter {
           Instruction nextNext = iterator.peekNext();
           Instruction uniqueUseNext = next.outValue().singleUniqueUser();
           if (uniqueUse == nextNext && uniqueUseNext == nextNext) {
+            iterator.previous();
             continue;
           }
         }
@@ -2051,6 +2058,14 @@ public class CodeRewriter {
           // and the dominator or the original block has catch handlers.
           continue;
         }
+      }
+
+      // If the dominator block has a potential compare exit we will chose that as the insertion
+      // point. Uniquely for instructions having invalues this can be before the definition of them.
+      // Bail-out when this is the case. See b/251015885 for more information.
+      if (seenCompareExit
+          && Iterables.any(instruction.inValues(), x -> x.getBlock() == dominator)) {
+        continue;
       }
 
       Instruction copy;
