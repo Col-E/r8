@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.Timing.TimingMerger;
@@ -145,6 +146,8 @@ class ApplicationWriterExperimental extends ApplicationWriter {
       fileTiming.end();
       timings.add(fileTiming);
     }
+    updateStringIdsSizeAndOffset(dexOutputBuffer, sections);
+
     merger.add(timings);
     merger.end();
 
@@ -159,6 +162,39 @@ class ApplicationWriterExperimental extends ApplicationWriter {
       assert false;
     } else {
       ((DexIndexedConsumer) consumer).accept(0, data, Sets.newIdentityHashSet(), options.reporter);
+    }
+  }
+
+  private void updateStringIdsSizeAndOffset(
+      DexOutputBuffer dexOutputBuffer, List<DexContainerSection> sections) {
+    // The last section has the shared string_ids table. Now it is written the final size and
+    // offset is known and the remaining sections can be updated to point to the shared table.
+    // This updates both the size and offset in the header and in the map.
+    DexContainerSection lastSection = ListUtils.last(sections);
+    int stringIdsSize = lastSection.getFileWriter().getMixedSectionOffsets().getStringData().size();
+    int stringIdsOffset = lastSection.getLayout().stringIdsOffset;
+    for (DexContainerSection section : sections) {
+      if (section != lastSection) {
+        dexOutputBuffer.moveTo(section.getLayout().headerOffset + Constants.STRING_IDS_SIZE_OFFSET);
+        dexOutputBuffer.putInt(stringIdsSize);
+        dexOutputBuffer.putInt(stringIdsOffset);
+        dexOutputBuffer.moveTo(section.getLayout().getMapOffset());
+        // Skip size.
+        dexOutputBuffer.getInt();
+        while (dexOutputBuffer.position() < section.getLayout().getEndOfFile()) {
+          int sectionType = dexOutputBuffer.getShort();
+          dexOutputBuffer.getShort(); // Skip unused.
+          if (sectionType == Constants.TYPE_STRING_ID_ITEM) {
+            dexOutputBuffer.putInt(stringIdsSize);
+            dexOutputBuffer.putInt(stringIdsOffset);
+            break;
+          } else {
+            // Skip size and offset for this type.
+            dexOutputBuffer.getInt();
+            dexOutputBuffer.getInt();
+          }
+        }
+      }
     }
   }
 

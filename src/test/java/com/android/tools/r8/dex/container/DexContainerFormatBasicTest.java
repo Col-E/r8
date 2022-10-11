@@ -3,6 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex.container;
 
+import static com.android.tools.r8.dex.Constants.DATA_OFF_OFFSET;
+import static com.android.tools.r8.dex.Constants.DATA_SIZE_OFFSET;
+import static com.android.tools.r8.dex.Constants.MAP_OFF_OFFSET;
+import static com.android.tools.r8.dex.Constants.STRING_IDS_OFF_OFFSET;
+import static com.android.tools.r8.dex.Constants.STRING_IDS_SIZE_OFFSET;
+import static com.android.tools.r8.dex.Constants.TYPE_STRING_ID_ITEM;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ByteDataView;
@@ -10,6 +16,9 @@ import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.dex.CompatByteBuffer;
+import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.maindexlist.MainDexListTests;
 import com.android.tools.r8.transformers.ClassTransformer;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -17,7 +26,10 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import java.io.IOException;
+import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -91,8 +103,7 @@ public class DexContainerFormatBasicTest extends TestBase {
                 options -> options.getTestingOptions().dexContainerExperiment = true)
             .compile()
             .writeToZip();
-    List<byte[]> dexFromDexing = unzipContent(outputFromDexing);
-    assertEquals(1, dexFromDexing.size());
+    validateSingleContainerDex(outputFromDexing);
   }
 
   @Test
@@ -105,7 +116,7 @@ public class DexContainerFormatBasicTest extends TestBase {
                 options -> options.getTestingOptions().dexContainerExperiment = true)
             .compile()
             .writeToZip();
-    assertEquals(1, unzipContent(outputA).size());
+    validateSingleContainerDex(outputA);
 
     Path outputB =
         testForD8(Backend.DEX)
@@ -115,7 +126,84 @@ public class DexContainerFormatBasicTest extends TestBase {
                 options -> options.getTestingOptions().dexContainerExperiment = true)
             .compile()
             .writeToZip();
-    assertEquals(1, unzipContent(outputB).size());
+    validateSingleContainerDex(outputB);
+  }
+
+  private void validateSingleContainerDex(Path output) throws IOException {
+    List<byte[]> dexes = unzipContent(output);
+    assertEquals(1, dexes.size());
+    validateStringIdsSizeAndOffsets(dexes.get(0));
+  }
+
+  private void validateStringIdsSizeAndOffsets(byte[] dex) {
+    CompatByteBuffer buffer = CompatByteBuffer.wrap(dex);
+    setByteOrder(buffer);
+
+    IntList sections = new IntArrayList();
+    int offset = 0;
+    while (offset < buffer.capacity()) {
+      sections.add(offset);
+      int dataSize = buffer.getInt(offset + DATA_SIZE_OFFSET);
+      int dataOffset = buffer.getInt(offset + DATA_OFF_OFFSET);
+      offset = dataOffset + dataSize;
+    }
+    assertEquals(buffer.capacity(), offset);
+
+    int lastOffset = sections.getInt(sections.size() - 1);
+    int stringIdsSize = buffer.getInt(lastOffset + STRING_IDS_SIZE_OFFSET);
+    int stringIdsOffset = buffer.getInt(lastOffset + STRING_IDS_OFF_OFFSET);
+
+    for (Integer sectionOffset : sections) {
+      assertEquals(stringIdsSize, buffer.getInt(sectionOffset + STRING_IDS_SIZE_OFFSET));
+      assertEquals(stringIdsOffset, buffer.getInt(sectionOffset + STRING_IDS_OFF_OFFSET));
+      assertEquals(stringIdsSize, getSizeFromMap(TYPE_STRING_ID_ITEM, buffer, sectionOffset));
+      assertEquals(stringIdsOffset, getOffsetFromMap(TYPE_STRING_ID_ITEM, buffer, sectionOffset));
+    }
+  }
+
+  private int getSizeFromMap(int type, CompatByteBuffer buffer, int offset) {
+    int mapOffset = buffer.getInt(offset + MAP_OFF_OFFSET);
+    buffer.position(mapOffset);
+    int mapSize = buffer.getInt();
+    for (int i = 0; i < mapSize; i++) {
+      int sectionType = buffer.getShort();
+      buffer.getShort(); // Skip unused.
+      int sectionSize = buffer.getInt();
+      buffer.getInt(); // Skip offset.
+      if (type == sectionType) {
+        return sectionSize;
+      }
+    }
+    throw new RuntimeException("Not found");
+  }
+
+  private int getOffsetFromMap(int type, CompatByteBuffer buffer, int offset) {
+    int mapOffset = buffer.getInt(offset + MAP_OFF_OFFSET);
+    buffer.position(mapOffset);
+    int mapSize = buffer.getInt();
+    for (int i = 0; i < mapSize; i++) {
+      int sectionType = buffer.getShort();
+      buffer.getShort(); // Skip unused.
+      buffer.getInt(); // SKip size.
+      int sectionOffset = buffer.getInt();
+      if (type == sectionType) {
+        return sectionOffset;
+      }
+    }
+    throw new RuntimeException("Not found");
+  }
+
+  private void setByteOrder(CompatByteBuffer buffer) {
+    // Make sure we set the right endian for reading.
+    buffer.order(ByteOrder.LITTLE_ENDIAN);
+    int endian = buffer.getInt(Constants.ENDIAN_TAG_OFFSET);
+    if (endian == Constants.REVERSE_ENDIAN_CONSTANT) {
+      buffer.order(ByteOrder.BIG_ENDIAN);
+    } else {
+      if (endian != Constants.ENDIAN_CONSTANT) {
+        throw new CompilationError("Unable to determine endianess for reading dex file.");
+      }
+    }
   }
 
   private List<byte[]> unzipContent(Path zip) throws IOException {
