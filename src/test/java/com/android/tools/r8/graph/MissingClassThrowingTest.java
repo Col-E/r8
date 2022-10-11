@@ -76,9 +76,7 @@ public class MissingClassThrowingTest extends TestBase {
                 .compileWithExpectedDiagnostics(
                     diagnostics ->
                         diagnostics
-                            .assertNoInfos()
-                            // TODO(b/251482856): When missing class is not an error this throws
-                            //  for unverifiable code. Is that expected?
+                            .assertOnlyErrors()
                             .inspectErrors(
                                 diagnostic ->
                                     diagnostic

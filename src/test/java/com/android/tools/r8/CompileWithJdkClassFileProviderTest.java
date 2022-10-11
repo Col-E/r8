@@ -101,7 +101,7 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
           .compileWithExpectedDiagnostics(
               diagnostics -> {
                 diagnostics.assertWarningsMatch(
-                    // TODO(b/251482856): Unexpected unverifiable code.
+                    // The open-interfaces analysis will issue unverifiable code on missing class.
                     diagnosticType(UnverifiableCfCodeDiagnostic.class),
                     // TODO(b/175659048): This should likely be a desugar diagnostic.
                     allOf(
