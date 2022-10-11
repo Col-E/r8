@@ -25,7 +25,8 @@ with a `-keep` rule.
 - Default methods are not implicitly kept as abstract methods.
 - Attributes (such as `Signature`) and annotations are only kept for classes,
 methods and fields which are matched by keep rules even when `-keepattributes`
-is specified.
+is specified. The weakest rule that will keep annotations and attributes is 
+`-keep[classmembers],allowshrinking,allowoptimization,allowobfuscation,allowaccessmodification class-specification`
 Additionally, for attributes describing a relationship such as `InnerClass` and
 `EnclosingMethod`, non-compat mode requires both endpoints being kept.
 
