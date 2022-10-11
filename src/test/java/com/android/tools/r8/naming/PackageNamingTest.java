@@ -356,11 +356,13 @@ public class PackageNamingTest extends TestBase {
         ba.getDexProgramClass().getType().getPackageName(),
         bb.getDexProgramClass().getType().getPackageName());
 
-    // We can repackage c and d since these have no external package-private references.
+    // We cannot repackage c or d since these have package-private members and a
+    // keep,allowobfuscation. For us to be able to repackage them, we have to use
+    // -allowaccesmodification.
     List<String> klasses = ImmutableList.of("naming101.c", "naming101.d");
     for (String klass : klasses) {
       ClassSubject k = inspector.clazz(klass);
-      assertEquals("naming101.a", k.getDexProgramClass().getType().getPackageName());
+      assertNotEquals("naming101.a", k.getDexProgramClass().getType().getPackageName());
     }
 
     // All other classes can be repackaged to naming101.a, but naming101.a.a exists to make a name

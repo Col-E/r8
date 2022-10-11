@@ -10,7 +10,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -63,12 +62,7 @@ public class RepackageWithKeepPackagePrivateTest extends RepackageTestBase {
         .compile()
         .addRunClasspathFiles(compileResult.writeToZip())
         .run(parameters.getRuntime(), TestClass.class)
-        .assertFailureWithErrorThatThrowsIf(hasIllegalAccessError(), IllegalAccessError.class)
-        .assertSuccessWithOutputLinesIf(!hasIllegalAccessError(), "Hello world!");
-  }
-
-  private boolean hasIllegalAccessError() {
-    return !allowAccessModification && !parameters.isDexRuntimeVersion(Version.V8_1_0);
+        .assertSuccessWithOutputLines("Hello world!");
   }
 
   private List<String> getKeepRules() {
@@ -82,8 +76,8 @@ public class RepackageWithKeepPackagePrivateTest extends RepackageTestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    assertThat(A.class, isRepackaged(inspector));
-    assertThat(B.class, isRepackaged(inspector));
+    assertThat(A.class, isRepackagedIf(inspector, allowAccessModification));
+    assertThat(B.class, isRepackagedIf(inspector, allowAccessModification));
   }
 
   public static class TestClass {

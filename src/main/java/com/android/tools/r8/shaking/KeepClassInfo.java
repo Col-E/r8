@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.function.Function;
 
@@ -14,10 +15,10 @@ import java.util.function.Function;
 public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepClassInfo> {
 
   // Requires all aspects of a class to be kept.
-  private static final KeepClassInfo TOP = new Builder().makeTop().disallowRepackaging().build();
+  private static final KeepClassInfo TOP = new Builder().makeTop().build();
 
   // Requires no aspects of a class to be kept.
-  private static final KeepClassInfo BOTTOM = new Builder().makeBottom().allowRepackaging().build();
+  private static final KeepClassInfo BOTTOM = new Builder().makeBottom().build();
 
   public static KeepClassInfo top() {
     return TOP;
@@ -31,12 +32,10 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
     return bottom().joiner();
   }
 
-  private final boolean allowRepackaging;
   private final boolean checkEnumUnboxed;
 
   private KeepClassInfo(Builder builder) {
     super(builder);
-    this.allowRepackaging = builder.isRepackagingAllowed();
     this.checkEnumUnboxed = builder.isCheckEnumUnboxedEnabled();
   }
 
@@ -58,18 +57,13 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
     return new Joiner(this);
   }
 
-  /**
-   * True if an item may be repackaged.
-   *
-   * <p>This method requires knowledge of the global configuration as that can override the concrete
-   * value on a given item.
-   */
-  public boolean isRepackagingAllowed(GlobalKeepInfoConfiguration configuration) {
-    return configuration.isRepackagingEnabled() && internalIsRepackagingAllowed();
-  }
-
-  boolean internalIsRepackagingAllowed() {
-    return allowRepackaging;
+  @Override
+  public boolean isRepackagingAllowed(
+      ProgramDefinition definition, GlobalKeepInfoConfiguration configuration) {
+    return configuration.isRepackagingEnabled()
+        && internalIsRepackagingAllowed()
+        && (definition.getAccessFlags().isPublic()
+            || !internalIsAccessModificationRequiredForRepackaging());
   }
 
   public boolean isKotlinMetadataRemovalAllowed(
@@ -104,7 +98,6 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
 
   public static class Builder extends KeepInfo.Builder<Builder, KeepClassInfo> {
 
-    private boolean allowRepackaging;
     private boolean checkEnumUnboxed;
 
     private Builder() {
@@ -113,7 +106,6 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
 
     private Builder(KeepClassInfo original) {
       super(original);
-      allowRepackaging = original.internalIsRepackagingAllowed();
       checkEnumUnboxed = original.internalIsCheckEnumUnboxedEnabled();
     }
 
@@ -126,23 +118,6 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
     public Builder setCheckEnumUnboxed(boolean checkEnumUnboxed) {
       this.checkEnumUnboxed = checkEnumUnboxed;
       return self();
-    }
-
-    public boolean isRepackagingAllowed() {
-      return allowRepackaging;
-    }
-
-    private Builder setAllowRepackaging(boolean allowRepackaging) {
-      this.allowRepackaging = allowRepackaging;
-      return self();
-    }
-
-    public Builder allowRepackaging() {
-      return setAllowRepackaging(true);
-    }
-
-    public Builder disallowRepackaging() {
-      return setAllowRepackaging(false);
     }
 
     public Builder setCheckEnumUnboxed() {
@@ -176,7 +151,6 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
     @Override
     boolean internalIsEqualTo(KeepClassInfo other) {
       return super.internalIsEqualTo(other)
-          && isRepackagingAllowed() == other.internalIsRepackagingAllowed()
           && isCheckEnumUnboxedEnabled() == other.internalIsCheckEnumUnboxedEnabled();
     }
 
@@ -187,12 +161,12 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
 
     @Override
     public Builder makeTop() {
-      return super.makeTop().unsetCheckEnumUnboxed().disallowRepackaging();
+      return super.makeTop().unsetCheckEnumUnboxed();
     }
 
     @Override
     public Builder makeBottom() {
-      return super.makeBottom().unsetCheckEnumUnboxed().allowRepackaging();
+      return super.makeBottom().unsetCheckEnumUnboxed();
     }
   }
 
@@ -207,11 +181,6 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
       return self();
     }
 
-    public Joiner disallowRepackaging() {
-      builder.disallowRepackaging();
-      return self();
-    }
-
     @Override
     public Joiner asClassJoiner() {
       return this;
@@ -221,8 +190,7 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
     public Joiner merge(Joiner joiner) {
       // Should be extended to merge the fields of this class in case any are added.
       return super.merge(joiner)
-          .applyIf(joiner.builder.isCheckEnumUnboxedEnabled(), Joiner::setCheckEnumUnboxed)
-          .applyIf(!joiner.builder.isRepackagingAllowed(), Joiner::disallowRepackaging);
+          .applyIf(joiner.builder.isCheckEnumUnboxedEnabled(), Joiner::setCheckEnumUnboxed);
     }
 
     @Override

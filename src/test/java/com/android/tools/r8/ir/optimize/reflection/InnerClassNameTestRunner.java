@@ -225,16 +225,12 @@ public class InnerClassNameTestRunner extends TestBase {
     R8TestCompileResult r8CompileResult =
         testForR8(parameters.getBackend())
             .addKeepMainRule(MAIN_CLASS)
-            .addKeepAllClassesRuleWithAllowObfuscation()
-            .addKeepAttributeInnerClassesAndEnclosingMethod()
+            .addKeepRules("-keep,allowobfuscation class * { *; }")
+            .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
             .addProgramClassFileData(InnerClassNameTestDump.dump(config, parameters))
             .allowDiagnosticInfoMessages(hasMalformedInnerClassAttribute())
             .minification(minify)
-            .addOptionsModification(
-                options -> {
-                  options.disableInnerClassSeparatorValidationWhenRepackaging = true;
-                  options.disableNameReflectionOptimization();
-                })
+            .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
             .setMinApi(parameters.getApiLevel())
             .compile()
             .apply(this::checkWarningsAboutMalformedAttribute);

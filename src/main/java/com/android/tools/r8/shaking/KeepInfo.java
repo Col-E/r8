@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.shaking.KeepInfo.Builder;
 import com.android.tools.r8.shaking.KeepReason.ReflectiveUseFrom;
 import com.android.tools.r8.utils.InternalOptions;
@@ -21,25 +22,31 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
   private final boolean allowAnnotationRemoval;
   private final boolean allowMinification;
   private final boolean allowOptimization;
+  private final boolean allowRepackaging;
   private final boolean allowShrinking;
   private final boolean allowSignatureRemoval;
   private final boolean checkDiscarded;
+  private final boolean requireAccessModificationForRepackaging;
 
   private KeepInfo(
       boolean allowAccessModification,
       boolean allowAnnotationRemoval,
       boolean allowMinification,
       boolean allowOptimization,
+      boolean allowRepackaging,
       boolean allowShrinking,
       boolean allowSignatureRemoval,
-      boolean checkDiscarded) {
+      boolean checkDiscarded,
+      boolean requireAccessModificationForRepackaging) {
     this.allowAccessModification = allowAccessModification;
     this.allowAnnotationRemoval = allowAnnotationRemoval;
     this.allowMinification = allowMinification;
     this.allowOptimization = allowOptimization;
+    this.allowRepackaging = allowRepackaging;
     this.allowShrinking = allowShrinking;
     this.allowSignatureRemoval = allowSignatureRemoval;
     this.checkDiscarded = checkDiscarded;
+    this.requireAccessModificationForRepackaging = requireAccessModificationForRepackaging;
   }
 
   KeepInfo(B builder) {
@@ -48,9 +55,11 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
         builder.isAnnotationRemovalAllowed(),
         builder.isMinificationAllowed(),
         builder.isOptimizationAllowed(),
+        builder.isRepackagingAllowed(),
         builder.isShrinkingAllowed(),
         builder.isSignatureRemovalAllowed(),
-        builder.isCheckDiscardedEnabled());
+        builder.isCheckDiscardedEnabled(),
+        builder.isAccessModificationRequiredForRepackaging());
   }
 
   public static Joiner<?, ?, ?> newEmptyJoinerFor(DexReference reference) {
@@ -155,6 +164,23 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
   }
 
   /**
+   * True if an item may be repackaged.
+   *
+   * <p>This method requires knowledge of the global configuration as that can override the concrete
+   * value on a given item.
+   */
+  public abstract boolean isRepackagingAllowed(
+      ProgramDefinition definition, GlobalKeepInfoConfiguration configuration);
+
+  boolean internalIsRepackagingAllowed() {
+    return allowRepackaging;
+  }
+
+  boolean internalIsAccessModificationRequiredForRepackaging() {
+    return requireAccessModificationForRepackaging;
+  }
+
+  /**
    * True if an item may have its access flags modified.
    *
    * <p>This method requires knowledge of the global access modification as that will override the
@@ -216,6 +242,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
         && (allowAnnotationRemoval || !other.internalIsAnnotationRemovalAllowed())
         && (allowMinification || !other.internalIsMinificationAllowed())
         && (allowOptimization || !other.internalIsOptimizationAllowed())
+        && (allowRepackaging || !other.internalIsRepackagingAllowed())
         && (allowShrinking || !other.internalIsShrinkingAllowed())
         && (allowSignatureRemoval || !other.internalIsSignatureRemovalAllowed())
         && (!checkDiscarded || other.internalIsCheckDiscardedEnabled());
@@ -238,10 +265,12 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
     private boolean allowAccessModification;
     private boolean allowAnnotationRemoval;
     private boolean allowMinification;
+    private boolean allowRepackaging;
     private boolean allowOptimization;
     private boolean allowShrinking;
     private boolean allowSignatureRemoval;
     private boolean checkDiscarded;
+    private boolean requireAccessModificationForRepackaging;
 
     Builder() {
       // Default initialized. Use should be followed by makeTop/makeBottom.
@@ -253,9 +282,12 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       allowAnnotationRemoval = original.internalIsAnnotationRemovalAllowed();
       allowMinification = original.internalIsMinificationAllowed();
       allowOptimization = original.internalIsOptimizationAllowed();
+      allowRepackaging = original.internalIsRepackagingAllowed();
       allowShrinking = original.internalIsShrinkingAllowed();
       allowSignatureRemoval = original.internalIsSignatureRemovalAllowed();
       checkDiscarded = original.internalIsCheckDiscardedEnabled();
+      requireAccessModificationForRepackaging =
+          original.internalIsAccessModificationRequiredForRepackaging();
     }
 
     B makeTop() {
@@ -263,9 +295,11 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       disallowAnnotationRemoval();
       disallowMinification();
       disallowOptimization();
+      disallowRepackaging();
       disallowShrinking();
       disallowSignatureRemoval();
       unsetCheckDiscarded();
+      requireAccessModificationForRepackaging();
       return self();
     }
 
@@ -274,9 +308,11 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       allowAnnotationRemoval();
       allowMinification();
       allowOptimization();
+      allowRepackaging();
       allowShrinking();
       allowSignatureRemoval();
       unsetCheckDiscarded();
+      unsetRequireAccessModificationForRepackaging();
       return self();
     }
 
@@ -300,9 +336,16 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
           && isAnnotationRemovalAllowed() == other.internalIsAnnotationRemovalAllowed()
           && isMinificationAllowed() == other.internalIsMinificationAllowed()
           && isOptimizationAllowed() == other.internalIsOptimizationAllowed()
+          && isRepackagingAllowed() == other.internalIsRepackagingAllowed()
           && isShrinkingAllowed() == other.internalIsShrinkingAllowed()
           && isSignatureRemovalAllowed() == other.internalIsSignatureRemovalAllowed()
-          && isCheckDiscardedEnabled() == other.internalIsCheckDiscardedEnabled();
+          && isCheckDiscardedEnabled() == other.internalIsCheckDiscardedEnabled()
+          && isAccessModificationRequiredForRepackaging()
+              == other.internalIsAccessModificationRequiredForRepackaging();
+    }
+
+    public boolean isAccessModificationRequiredForRepackaging() {
+      return requireAccessModificationForRepackaging;
     }
 
     public boolean isAccessModificationAllowed() {
@@ -325,6 +368,10 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       return allowOptimization;
     }
 
+    public boolean isRepackagingAllowed() {
+      return allowRepackaging;
+    }
+
     public boolean isShrinkingAllowed() {
       return allowShrinking;
     }
@@ -344,6 +391,19 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     public B disallowMinification() {
       return setAllowMinification(false);
+    }
+
+    public B setAllowRepackaging(boolean allowRepackaging) {
+      this.allowRepackaging = allowRepackaging;
+      return self();
+    }
+
+    public B allowRepackaging() {
+      return setAllowRepackaging(true);
+    }
+
+    public B disallowRepackaging() {
+      return setAllowRepackaging(false);
     }
 
     public B setAllowOptimization(boolean allowOptimization) {
@@ -383,6 +443,20 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     public B unsetCheckDiscarded() {
       return setCheckDiscarded(false);
+    }
+
+    public B setRequireAccessModificationForRepackaging(
+        boolean requireAccessModificationForRepackaging) {
+      this.requireAccessModificationForRepackaging = requireAccessModificationForRepackaging;
+      return self();
+    }
+
+    public B requireAccessModificationForRepackaging() {
+      return setRequireAccessModificationForRepackaging(true);
+    }
+
+    public B unsetRequireAccessModificationForRepackaging() {
+      return setRequireAccessModificationForRepackaging(false);
     }
 
     public B setAllowAccessModification(boolean allowAccessModification) {
@@ -534,6 +608,11 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       return self();
     }
 
+    public J disallowRepackaging() {
+      builder.disallowRepackaging();
+      return self();
+    }
+
     public J disallowOptimization() {
       builder.disallowOptimization();
       return self();
@@ -554,15 +633,24 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       return self();
     }
 
+    public J requireAccessModificationForRepackaging() {
+      builder.requireAccessModificationForRepackaging();
+      return self();
+    }
+
     public J merge(J joiner) {
       Builder<B, K> builder = joiner.builder;
       applyIf(!builder.isAccessModificationAllowed(), Joiner::disallowAccessModification);
       applyIf(!builder.isAnnotationRemovalAllowed(), Joiner::disallowAnnotationRemoval);
       applyIf(!builder.isMinificationAllowed(), Joiner::disallowMinification);
       applyIf(!builder.isOptimizationAllowed(), Joiner::disallowOptimization);
+      applyIf(!builder.isRepackagingAllowed(), Joiner::disallowRepackaging);
       applyIf(!builder.isShrinkingAllowed(), Joiner::disallowShrinking);
       applyIf(!builder.isSignatureRemovalAllowed(), Joiner::disallowSignatureRemoval);
       applyIf(builder.isCheckDiscardedEnabled(), Joiner::setCheckDiscarded);
+      applyIf(
+          builder.isAccessModificationRequiredForRepackaging(),
+          Joiner::requireAccessModificationForRepackaging);
       reasons.addAll(joiner.reasons);
       rules.addAll(joiner.rules);
       return self();

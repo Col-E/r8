@@ -440,7 +440,7 @@ public class Repackaging {
                   + simpleName.substring(outerClassSimpleName.length());
           repackagedDexType = repackagedDexType.withSimpleName(newSimpleName, dexItemFactory);
         } else {
-          assert options.disableInnerClassSeparatorValidationWhenRepackaging
+          assert false
               : "Unexpected name for inner class: "
                   + clazz.getType().toSourceString()
                   + " (outer class: "

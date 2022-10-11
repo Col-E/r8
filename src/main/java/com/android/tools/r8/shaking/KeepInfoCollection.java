@@ -140,10 +140,6 @@ public abstract class KeepInfoCollection {
     throw new Unreachable();
   }
 
-  public final KeepClassInfo getInfo(DexProgramClass clazz) {
-    return getClassInfo(clazz);
-  }
-
   public final KeepInfo<?, ?> getInfo(ProgramDefinition definition) {
     if (definition.isProgramClass()) {
       return getClassInfo(definition.asProgramClass());
@@ -283,7 +279,8 @@ public abstract class KeepInfoCollection {
             assert newType == type
                 || !info.isPinned(options)
                 || info.isMinificationAllowed(options)
-                || info.isRepackagingAllowed(options);
+                || info.isRepackagingAllowed(
+                    definitions.definitionFor(newType).asProgramClass(), options);
             KeepClassInfo previous = newClassInfo.put(newType, info);
             assert previous == null;
           });
@@ -462,6 +459,29 @@ public abstract class KeepInfoCollection {
 
     public void keepMethod(ProgramMethod method) {
       joinMethod(method, KeepInfo.Joiner::top);
+    }
+
+    public void unsetRequireAllowAccessModificationForRepackaging(ProgramDefinition definition) {
+      if (definition.isProgramClass()) {
+        DexProgramClass clazz = definition.asProgramClass();
+        KeepClassInfo info = getClassInfo(clazz);
+        keepClassInfo.put(
+            clazz.getType(), info.builder().unsetRequireAccessModificationForRepackaging().build());
+      } else if (definition.isProgramMethod()) {
+        ProgramMethod method = definition.asProgramMethod();
+        KeepMethodInfo info = getMethodInfo(method);
+        keepMethodInfo.put(
+            method.getReference(),
+            info.builder().unsetRequireAccessModificationForRepackaging().build());
+      } else if (definition.isProgramField()) {
+        ProgramField field = definition.asProgramField();
+        KeepFieldInfo info = getFieldInfo(field);
+        keepFieldInfo.put(
+            field.getReference(),
+            info.builder().unsetRequireAccessModificationForRepackaging().build());
+      } else {
+        throw new Unreachable();
+      }
     }
 
     public void joinField(ProgramField field, Consumer<? super KeepFieldInfo.Joiner> fn) {
