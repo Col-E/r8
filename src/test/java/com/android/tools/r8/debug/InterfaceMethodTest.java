@@ -9,16 +9,18 @@ import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
@@ -29,33 +31,40 @@ public class InterfaceMethodTest extends DebugTestBase {
   private static final String INTERFACE_SOURCE_FILE = "InterfaceWithDefaultAndStaticMethods.java";
 
   @Parameters(name = "{0}")
-  public static Collection configs() {
-    return parameters()
-        .add("CF", new CfDebugTestConfig(JAR))
-        .add("D8", temp -> new D8DebugTestConfig().compileAndAdd(temp, JAR))
-        .build();
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  private final DebugTestConfig config;
+  @Parameter public TestParameters parameters;
+  String debuggeeClass = "DebugInterfaceMethod";
 
-  public InterfaceMethodTest(String name, DelayedDebugTestConfig delayedConfig) {
-    this.config = delayedConfig.getConfig(temp);
+  private boolean supportsDefaultMethods() {
+    return parameters.isCfRuntime()
+        || parameters
+            .getApiLevel()
+            .isGreaterThanOrEqualTo(apiLevelWithDefaultInterfaceMethodsSupport());
   }
 
   @Test
   public void testDefaultMethod() throws Throwable {
     // TODO(b/244683447): This test fails on ART 13 when checking current method in doSomething.
     assumeTrue(
-        config.getRuntime().isCf()
-            || !config.getRuntime().asDex().getVersion().isEqualTo(Version.V13_0_0));
-    String debuggeeClass = "DebugInterfaceMethod";
+        parameters.isCfRuntime() || !parameters.getDexRuntimeVersion().isEqualTo(Version.V13_0_0));
+    testForRuntime(parameters)
+        .addProgramFiles(JAR)
+        .run(parameters.getRuntime(), debuggeeClass)
+        .debugger(this::runDefaultMethod);
+  }
+
+  private void runDefaultMethod(DebugTestConfig config) throws Throwable {
     String parameterName = "msg";
     String localVariableName = "name";
 
     final String defaultMethodContainerClass;
     final String defaultMethodName;
     final String defaultMethodThisName;
-    if (supportsDefaultMethod(config)) {
+
+    if (supportsDefaultMethods()) {
       defaultMethodContainerClass = "InterfaceWithDefaultAndStaticMethods";
       defaultMethodName = "doSomething";
       defaultMethodThisName = "this";
@@ -68,7 +77,6 @@ public class InterfaceMethodTest extends DebugTestBase {
       defaultMethodName = getDefaultMethodPrefix() + "doSomething";
       defaultMethodThisName = "_this";
     }
-
 
     List<Command> commands = new ArrayList<>();
     commands.add(breakpoint(debuggeeClass, "testDefaultMethod"));
@@ -96,7 +104,13 @@ public class InterfaceMethodTest extends DebugTestBase {
 
   @Test
   public void testOverrideDefaultMethod() throws Throwable {
-    String debuggeeClass = "DebugInterfaceMethod";
+    testForRuntime(parameters)
+        .addProgramFiles(JAR)
+        .run(parameters.getRuntime(), debuggeeClass)
+        .debugger(this::runOverrideDefaultMethod);
+  }
+
+  private void runOverrideDefaultMethod(DebugTestConfig config) throws Throwable {
     String parameterName = "msg";
     String localVariableName = "newMsg";
 
@@ -121,12 +135,18 @@ public class InterfaceMethodTest extends DebugTestBase {
 
   @Test
   public void testStaticMethod() throws Throwable {
-    String debuggeeClass = "DebugInterfaceMethod";
+    testForRuntime(parameters)
+        .addProgramFiles(JAR)
+        .run(parameters.getRuntime(), debuggeeClass)
+        .debugger(this::runStaticMethod);
+  }
+
+  private void runStaticMethod(DebugTestConfig config) throws Throwable {
     String parameterName = "msg";
 
     final String staticMethodContainerClass;
     final String staticMethodName = "printString";
-    if (supportsDefaultMethod(config)) {
+    if (supportsDefaultMethods()) {
       staticMethodContainerClass = "InterfaceWithDefaultAndStaticMethods";
     } else {
       staticMethodContainerClass =

@@ -151,11 +151,6 @@ public abstract class DebugTestBase extends TestBase {
   @Rule
   public TestDescriptionWatcher watcher = new TestDescriptionWatcher();
 
-  protected static final boolean supportsDefaultMethod(DebugTestConfig config) {
-    return config.isCfRuntime()
-        || ToolHelper.getMinApiLevelForDexVm().getLevel() >= AndroidApiLevel.N.getLevel();
-  }
-
   protected final void runDebugTest(
       DebugTestConfig config, Class<?> debuggeeClass, JUnit3Wrapper.Command... commands)
       throws Throwable {
