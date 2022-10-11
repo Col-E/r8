@@ -114,6 +114,7 @@ public class TraceReferencesCommand {
     return printVersion;
   }
 
+  @Keep
   public static class Builder {
 
     private boolean printHelp = false;
