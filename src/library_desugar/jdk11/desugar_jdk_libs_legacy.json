@@ -1,8 +1,8 @@
 {
   "configuration_format_version": 5,
-  "group_id" : "com.tools.android",
-  "artifact_id" : "desugar_jdk_libs",
-  "version": "1.2.3",
+  "group_id": "com.tools.android",
+  "artifact_id": "desugar_jdk_libs",
+  "version": "1.2.4",
   "required_compilation_api_level": 30,
   "synthesized_library_classes_package_prefix": "j$.",
   "support_all_callbacks_from_library": true,
@@ -47,29 +47,9 @@
     {
       "api_level_below_or_equal": 23,
       "rewrite_prefix": {
-        "java.util.concurrent.atomic.DesugarAtomic": "j$.util.concurrent.atomic.DesugarAtomic"
-      }
-    },
-    {
-      "api_level_below_or_equal": 23,
-      "rewrite_prefix": {
+        "java.util.concurrent.atomic.DesugarAtomic": "j$.util.concurrent.atomic.DesugarAtomic",
         "java.util.function.": "j$.util.function."
-      },
-      "emulate_interface": {
-        "java.lang.Iterable": "j$.lang.Iterable",
-        "java.util.Collection": "j$.util.Collection",
-        "java.util.Comparator": "j$.util.Comparator",
-        "java.util.Iterator": "j$.util.Iterator",
-        "java.util.List": "j$.util.List",
-        "java.util.Map": "j$.util.Map",
-        "java.util.Map$Entry": "j$.util.Map$Entry",
-        "java.util.Set": "j$.util.Set",
-        "java.util.SortedSet": "j$.util.SortedSet",
-        "java.util.concurrent.ConcurrentMap": "j$.util.concurrent.ConcurrentMap"
-      },
-      "dont_rewrite": [
-        "java.util.Iterator#remove"
-      ]
+      }
     },
     {
       "api_level_below_or_equal": 10000,
@@ -90,6 +70,21 @@
         "java.util.Arrays#stream": "java.util.DesugarArrays",
         "java.util.LinkedHashSet#spliterator": "java.util.DesugarLinkedHashSet"
       },
+      "emulate_interface": {
+        "java.lang.Iterable": "j$.lang.Iterable",
+        "java.util.Collection": "j$.util.Collection",
+        "java.util.Comparator": "j$.util.Comparator",
+        "java.util.Iterator": "j$.util.Iterator",
+        "java.util.List": "j$.util.List",
+        "java.util.Map": "j$.util.Map",
+        "java.util.Map$Entry": "j$.util.Map$Entry",
+        "java.util.Set": "j$.util.Set",
+        "java.util.SortedSet": "j$.util.SortedSet",
+        "java.util.concurrent.ConcurrentMap": "j$.util.concurrent.ConcurrentMap"
+      },
+      "dont_rewrite": [
+        "java.util.Iterator#remove"
+      ],
       "wrapper_conversion": [
         "java.util.Spliterator",
         "java.util.function.IntUnaryOperator",

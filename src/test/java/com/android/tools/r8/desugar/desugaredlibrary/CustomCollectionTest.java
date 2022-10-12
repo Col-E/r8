@@ -5,16 +5,20 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.SPECIFICATIONS_WITH_CF2CF;
-import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_LEGACY;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -22,6 +26,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.SortedSet;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,7 +44,7 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters().withDexRuntimes().withAllApiLevels().build(),
-        getJdk8Jdk11(),
+        ImmutableList.of(JDK8, JDK11, JDK11_LEGACY),
         SPECIFICATIONS_WITH_CF2CF);
   }
 
@@ -82,16 +87,17 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
     }
     MethodSubject direct =
         inspector.clazz(Executor.class).uniqueMethodWithOriginalName("directTypes");
+    Predicate<InstructionSubject> matcher =
+        parameters.getApiLevel().isLessThan(AndroidApiLevel.N)
+            ? (instr ->
+                instr.toString().contains("$-EL")
+                    || instr.toString().contains("Comparator$-CC")
+                    || instr.toString().contains("Stream$-CC"))
+            : (instr ->
+                instr.toString().contains("$-EL") || instr.toString().contains("Comparator"));
     if (libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters)) {
       assertTrue(
-          direct
-              .streamInstructions()
-              .filter(InstructionSubject::isInvokeStatic)
-              .allMatch(
-                  instr ->
-                      instr.toString().contains("$-EL")
-                          || instr.toString().contains("Comparator$-CC")
-                          || instr.toString().contains("Stream$-CC")));
+          direct.streamInstructions().filter(InstructionSubject::isInvokeStatic).allMatch(matcher));
     } else {
       assertTrue(direct.streamInstructions().noneMatch(instr -> instr.toString().contains("$-EL")));
     }
@@ -106,11 +112,7 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
         inherited
             .streamInstructions()
             .filter(InstructionSubject::isInvokeStatic)
-            .allMatch(
-                instr ->
-                    instr.toString().contains("$-EL")
-                        || instr.toString().contains("Comparator$-CC")
-                        || instr.toString().contains("Stream$-CC")));
+            .allMatch(matcher));
     inherited.streamInstructions().forEach(this::assertInheritedDispatchCorrect);
   }
 
@@ -118,15 +120,14 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
     if (!instructionSubject.isConstString(JumboStringMode.ALLOW)) {
       for (String s : new String[] {">stream", "spliterator", "sort"}) {
         if (instructionSubject.toString().contains(s)) {
-            assertTrue(instructionSubject.isInvokeStatic());
-            assertTrue(
-                instructionSubject.toString().contains("$-EL")
-                    || instructionSubject.toString().contains("Comparator$-CC"));
+          assertTrue(instructionSubject.isInvokeStatic());
+          assertTrue(
+              instructionSubject.toString().contains("$-EL")
+                  || instructionSubject.toString().contains("Comparator$-CC"));
         }
       }
     }
   }
-
 
   static class Executor {
 

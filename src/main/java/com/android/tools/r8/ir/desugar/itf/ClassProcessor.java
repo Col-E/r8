@@ -1,10 +1,11 @@
 // Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-
 package com.android.tools.r8.ir.desugar.itf;
 
+import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.InterfaceMethodDesugaringMode.ALL;
 import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.InterfaceMethodDesugaringMode.EMULATED_INTERFACE_ONLY;
+import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.InterfaceMethodDesugaringMode.NONE;
 
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfNew;
@@ -386,9 +387,10 @@ final class ClassProcessor {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
     this.helper = new InterfaceDesugaringSyntheticHelper(appView);
-    needsLibraryInfo =
-        !appView.options().canUseDefaultAndStaticInterfaceMethods()
-            && !appView.options().machineDesugaredLibrarySpecification.isEmpty();
+    assert desugaringMode != NONE;
+    assert desugaringMode == ALL
+        || !appView.options().machineDesugaredLibrarySpecification.isEmpty();
+    needsLibraryInfo = !appView.options().machineDesugaredLibrarySpecification.isEmpty();
     this.isLiveMethod = isLiveMethod;
     this.desugaringMode = desugaringMode;
   }
@@ -454,7 +456,7 @@ final class ClassProcessor {
     }
     // Add non-library default methods as well as those for desugared library classes.
     if (!iface.isLibraryClass() || (needsLibraryInfo() && helper.isInDesugaredLibrary(iface))) {
-      MethodSignatures signatures = getDefaultMethods(iface);
+      MethodSignatures signatures = getDefaultMethodsMatching(iface, m -> true);
       interfaceInfo = interfaceInfo.withSignatures(signatures);
     }
     return interfaceInfo;
@@ -466,18 +468,29 @@ final class ClassProcessor {
     assert iface.superType == dexItemFactory.objectType;
     assert helper.isEmulatedInterface(iface.type);
     assert needsLibraryInfo();
-    MethodSignatures signatures = getDefaultMethods(iface);
+    MethodSignatures signatures =
+        getDefaultMethodsMatching(
+            iface,
+            m ->
+                appView
+                        .options()
+                        .machineDesugaredLibrarySpecification
+                        .getEmulatedInterfaceEmulatedDispatchMethodDescriptor(m)
+                    != null);
     EmulatedInterfaceInfo emulatedInterfaceInfo =
         new EmulatedInterfaceInfo(signatures, new EmulatedInterfaces(iface.type));
     return interfaceInfo.withEmulatedInterfaceInfo(emulatedInterfaceInfo);
   }
 
-  private MethodSignatures getDefaultMethods(DexClass iface) {
+  private MethodSignatures getDefaultMethodsMatching(
+      DexClass iface, Predicate<DexMethod> predicate) {
     assert iface.isInterface();
     Set<Wrapper<DexMethod>> defaultMethods =
         new HashSet<>(iface.getMethodCollection().numberOfVirtualMethods());
     for (DexEncodedMethod method : iface.virtualMethods(DexEncodedMethod::isDefaultMethod)) {
-      defaultMethods.add(equivalence.wrap(method.getReference()));
+      if (predicate.test(method.getReference())) {
+        defaultMethods.add(equivalence.wrap(method.getReference()));
+      }
     }
     return MethodSignatures.create(defaultMethods);
   }
@@ -653,6 +666,7 @@ final class ClassProcessor {
           });
     }
   }
+
   // If any of the signature would lead to a different behavior than the default method on the
   // emulated interface, we need to resolve the forwarding methods.
   private boolean shouldResolveForwardingMethodsForEmulatedInterfaces(
@@ -803,7 +817,6 @@ final class ClassProcessor {
   }
 
   // Construction of actual forwarding methods.
-
   private void addSyntheticMethod(DexProgramClass clazz, DexEncodedMethod method) {
     newSyntheticMethods
         .computeIfAbsent(clazz, key -> ProgramMethodSet.create())
@@ -893,7 +906,6 @@ final class ClassProcessor {
   }
 
   // Topological order traversal and its helpers.
-
   private DexClass definitionOrNull(DexType type, ReportingContext context) {
     // No forwards at the top of the class hierarchy (assuming java.lang.Object is never amended).
     if (type == null || type == dexItemFactory.objectType) {
