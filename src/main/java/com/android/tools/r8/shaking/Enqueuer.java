@@ -2226,6 +2226,19 @@ public class Enqueuer {
       return;
     }
 
+    if (!clazz.isInterface()) {
+      throw appView
+          .reporter()
+          .fatalError(
+              "The class "
+                  + implementer
+                  + " implements the interface "
+                  + type
+                  + " but "
+                  + type
+                  + " is not an interface.");
+    }
+
     if (!appView.options().enableUnusedInterfaceRemoval
         || rootSet.noUnusedInterfaceRemoval.contains(type)
         || mode.isMainDexTracing()) {
