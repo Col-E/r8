@@ -390,7 +390,6 @@
       "rewrite_prefix": {
         "desugar.": "j$.desugar.",
         "libcore.": "j$.libcore.",
-        "java.lang.Desugar": "j$.lang.Desugar",
         "sun.security.action.": "j$.sun.security.action."
       }
     },
@@ -450,6 +449,9 @@
         },
         "java.nio.file.Path": {
           "j$.nio.file.Path": "java.nio.file.Path"
+        },
+        "java.nio.file.WatchEvent": {
+          "j$.nio.file.WatchEvent": "java.nio.file.WatchEvent"
         }
       },
       "retarget_method": {
@@ -510,6 +512,9 @@
     },
     {
       "api_level_below_or_equal": 18,
+      "rewrite_prefix": {
+        "java.lang.DesugarCharacter": "j$.lang.DesugarCharacter"
+      },
       "retarget_static_field": {
         "sun.nio.cs.US_ASCII sun.nio.cs.US_ASCII#INSTANCE": "java.nio.charset.Charset java.nio.charset.StandardCharsets#US_ASCII",
         "sun.nio.cs.ISO_8859_1 sun.nio.cs.ISO_8859_1#INSTANCE": "java.nio.charset.Charset java.nio.charset.StandardCharsets#ISO_8859_1",

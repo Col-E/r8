@@ -37,6 +37,7 @@ public class FlatMapApiFlips {
       this.function = function;
     }
 
+    @SuppressWarnings("unchecked")
     private R flipStream(R maybeStream) {
       if (maybeStream == null) {
         return null;
@@ -89,6 +90,7 @@ public class FlatMapApiFlips {
       this.function = function;
     }
 
+    @SuppressWarnings("unchecked")
     private R flipStream(R maybeStream) {
       if (maybeStream == null) {
         return null;
@@ -115,6 +117,7 @@ public class FlatMapApiFlips {
       this.function = function;
     }
 
+    @SuppressWarnings("unchecked")
     private R flipStream(R maybeStream) {
       if (maybeStream == null) {
         return null;
@@ -143,6 +146,7 @@ public class FlatMapApiFlips {
       this.function = function;
     }
 
+    @SuppressWarnings("unchecked")
     private R flipStream(R maybeStream) {
       if (maybeStream == null) {
         return null;

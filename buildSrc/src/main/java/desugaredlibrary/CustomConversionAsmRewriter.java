@@ -6,7 +6,6 @@ package desugaredlibrary;
 
 import static desugaredlibrary.AsmRewriter.ASM_VERSION;
 import static desugaredlibrary.CustomConversionAsmRewriteDescription.CONVERT;
-import static desugaredlibrary.CustomConversionAsmRewriteDescription.INVERTED_WRAP_CONVERT;
 import static desugaredlibrary.CustomConversionAsmRewriteDescription.WRAP_CONVERT;
 import static desugaredlibrary.CustomConversionAsmRewriter.CustomConversionVersion.LEGACY;
 import static org.objectweb.asm.Opcodes.INVOKESTATIC;
@@ -133,51 +132,46 @@ public class CustomConversionAsmRewriter {
     @Override
     public void visitMethodInsn(
         int opcode, String owner, String name, String descriptor, boolean isInterface) {
-      if (opcode == INVOKESTATIC) {
-        if (name.equals(WRAP_CONVERT)) {
-          convertInvoke(
-              opcode,
-              owner,
-              descriptor,
-              isInterface,
-              javaWrapConvertOwnerMap,
-              j$WrapConvertOwnerMap);
-          return;
-        }
-        if (name.equals(INVERTED_WRAP_CONVERT)) {
-          convertInvoke(
-              opcode,
-              owner,
-              descriptor,
-              isInterface,
-              j$WrapConvertOwnerMap,
-              javaWrapConvertOwnerMap);
-          return;
-        }
+      if (opcode == INVOKESTATIC && name.equals(WRAP_CONVERT)) {
+        convertInvoke(opcode, owner, descriptor, isInterface);
+        return;
       }
       super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
     }
 
-    private void convertInvoke(
-        int opcode,
-        String owner,
-        String descriptor,
-        boolean isInterface,
-        Map<String, String> javaMap,
-        Map<String, String> j$Map) {
-      if (!javaMap.containsKey(owner)
-          || !j$Map.containsKey(owner)
-          || !(owner.startsWith("java") || owner.startsWith("j$"))) {
-        throw new RuntimeException("Cannot transform wrap_convert method for " + owner);
+    private String extractFirstArg(String descriptor) {
+      assert descriptor.startsWith("(L");
+      int end = descriptor.indexOf(';');
+      assert end > 2;
+      return descriptor.substring(2, end);
+    }
+
+    private void convertInvoke(int opcode, String owner, String descriptor, boolean isInterface) {
+      String firstArg = extractFirstArg(descriptor);
+      assert sameBaseName(firstArg, owner);
+      if (!javaWrapConvertOwnerMap.containsKey(owner)
+          || !j$WrapConvertOwnerMap.containsKey(owner)
+          || !(firstArg.startsWith("java") || firstArg.startsWith("j$"))) {
+        throw new RuntimeException(
+            "Cannot transform wrap_convert method for " + firstArg + " (owner: " + owner + ")");
       }
-      if (owner.startsWith("java")) {
-        String newOwner = j$Map.get(owner);
+      if (firstArg.startsWith("java")) {
+        String newOwner = javaWrapConvertOwnerMap.get(owner);
         super.visitMethodInsn(opcode, newOwner, CONVERT, descriptor, isInterface);
         return;
       }
-      assert owner.startsWith("j$");
-      String newOwner = javaMap.get(owner);
+      assert firstArg.startsWith("j$");
+      String newOwner = j$WrapConvertOwnerMap.get(owner);
       super.visitMethodInsn(opcode, newOwner, CONVERT, descriptor, isInterface);
+    }
+
+    private boolean sameBaseName(String firstArg, String owner) {
+      assert owner.startsWith("j$");
+      if (firstArg.equals(owner)) {
+        return true;
+      }
+      String javaName = owner.replace("j$", "java");
+      return firstArg.equals(javaName);
     }
   }
 }

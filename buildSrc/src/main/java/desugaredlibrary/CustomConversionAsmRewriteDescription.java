@@ -12,7 +12,6 @@ import java.util.Set;
 public class CustomConversionAsmRewriteDescription {
 
   static final String WRAP_CONVERT = "wrap_convert";
-  static final String INVERTED_WRAP_CONVERT = "inverted_wrap_convert";
   static final String CONVERT = "convert";
 
   private static final Set<String> ENUM_WRAP_CONVERT_OWNER =

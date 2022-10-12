@@ -22,17 +22,16 @@ public class StackWalkerApiFlips {
       this.function = function;
     }
 
+    @SuppressWarnings("unchecked")
     private T flipStream(T maybeStream) {
       if (maybeStream == null) {
         return null;
       }
       if (maybeStream instanceof java.util.stream.Stream<?>) {
-        return (T)
-            j$.util.stream.Stream.inverted_wrap_convert((java.util.stream.Stream<?>) maybeStream);
+        return (T) j$.util.stream.Stream.wrap_convert((java.util.stream.Stream<?>) maybeStream);
       }
       if (maybeStream instanceof j$.util.stream.Stream<?>) {
-        return (T)
-            j$.util.stream.Stream.inverted_wrap_convert((j$.util.stream.Stream<?>) maybeStream);
+        return (T) j$.util.stream.Stream.wrap_convert((j$.util.stream.Stream<?>) maybeStream);
       }
       throw exception("java.util.stream.Stream", maybeStream.getClass());
     }

@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GenericSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.IterableUtils;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -59,9 +60,8 @@ public final class EmulatedInterfaceApplicationRewriter {
     }
     DexType newType = emulatedInterfaces.get(emulatedInterface.type);
     assert newType != null;
-    DexEncodedMethod[] newVirtualMethods =
-        renameHolder(emulatedInterface.virtualMethods(), newType);
-    DexEncodedMethod[] newDirectMethods = renameHolder(emulatedInterface.directMethods(), newType);
+    DexEncodedMethod[] newVirtualMethods = computeNewVirtualMethods(emulatedInterface, newType);
+    DexEncodedMethod[] newDirectMethods = DexEncodedMethod.EMPTY_ARRAY;
     assert emulatedInterface.getSuperType() == appView.dexItemFactory().objectType;
     assert !emulatedInterface.hasFields();
     assert emulatedInterface.getNestHost() == null;
@@ -116,11 +116,24 @@ public final class EmulatedInterfaceApplicationRewriter {
     return newInterfaces;
   }
 
-  private DexEncodedMethod[] renameHolder(Iterable<DexEncodedMethod> methods, DexType newName) {
-    List<DexEncodedMethod> methodArray = IterableUtils.toNewArrayList(methods);
+  private DexEncodedMethod[] computeNewVirtualMethods(
+      DexProgramClass emulatedInterface, DexType newName) {
+    Iterable<ProgramMethod> emulatedMethods =
+        emulatedInterface.virtualProgramMethods(
+            m ->
+                appView
+                        .options()
+                        .machineDesugaredLibrarySpecification
+                        .getEmulatedInterfaceEmulatedDispatchMethodDescriptor(m.getReference())
+                    != null);
+    List<ProgramMethod> methodArray = IterableUtils.toNewArrayList(emulatedMethods);
     DexEncodedMethod[] newMethods = new DexEncodedMethod[methodArray.size()];
     for (int i = 0; i < newMethods.length; i++) {
-      newMethods[i] = methodArray.get(i).toRenamedHolderMethod(newName, appView.dexItemFactory());
+      newMethods[i] =
+          methodArray
+              .get(i)
+              .getDefinition()
+              .toRenamedHolderMethod(newName, appView.dexItemFactory());
     }
     return newMethods;
   }

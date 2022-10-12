@@ -178,6 +178,10 @@ public class CodeInspector {
     }
   }
 
+  public DexApplication getApplication() {
+    return application;
+  }
+
   public DexItemFactory getFactory() {
     return dexItemFactory;
   }
