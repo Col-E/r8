@@ -29,34 +29,6 @@
       ]
     },
     {
-      "api_level_below_or_equal": 30,
-      "rewrite_prefix": {
-        "java.time.": "j$.time.",
-        "java.util.Desugar": "j$.util.Desugar"
-      },
-      "retarget_method": {
-        "java.util.TimeZone java.util.TimeZone#getTimeZone(java.time.ZoneId)": "java.util.DesugarTimeZone"
-      },
-      "retarget_method_with_emulated_dispatch": {
-        "java.time.Instant java.util.Date#toInstant()": "java.util.DesugarDate",
-        "java.time.ZoneId java.util.TimeZone#toZoneId()": "java.util.DesugarTimeZone",
-        "java.time.ZonedDateTime java.util.GregorianCalendar#toZonedDateTime()": "java.util.DesugarGregorianCalendar"
-      },
-      "wrapper_conversion": [
-        "java.time.Clock"
-      ],
-      "custom_conversion": {
-        "java.time.Duration": "java.time.TimeConversions",
-        "java.time.Instant": "java.time.TimeConversions",
-        "java.time.LocalDate": "java.time.TimeConversions",
-        "java.time.LocalTime": "java.time.TimeConversions",
-        "java.time.MonthDay": "java.time.TimeConversions",
-        "java.time.Period": "java.time.TimeConversions",
-        "java.time.ZoneId": "java.time.TimeConversions",
-        "java.time.ZonedDateTime": "java.time.TimeConversions"
-      }
-    },
-    {
       "api_level_below_or_equal": 29,
       "rewrite_prefix": {
         "java.util.concurrent.Flow": "j$.util.concurrent.Flow"
@@ -90,6 +62,56 @@
         "java.util.stream.Collector java.util.stream.Collectors#toUnmodifiableMap(java.util.function.Function, java.util.function.Function)": "java.util.stream.DesugarCollectors",
         "java.util.stream.Collector java.util.stream.Collectors#toUnmodifiableMap(java.util.function.Function, java.util.function.Function, java.util.function.BinaryOperator)": "java.util.stream.DesugarCollectors",
         "java.util.stream.Collector java.util.stream.Collectors#toUnmodifiableSet()": "java.util.stream.DesugarCollectors"
+      }
+    },
+    {
+      "api_level_below_or_equal": 30,
+      "api_level_greater_or_equal": 26,
+      "rewrite_prefix": {
+        "java.time.DesugarDuration": "j$.time.DesugarDuration",
+        "java.time.DesugarLocalTime": "j$.time.DesugarLocalTime"
+      },
+      "retarget_method": {
+        "long java.time.Duration#dividedBy(java.time.Duration)": "java.time.DesugarDuration",
+        "long java.time.Duration#toDaysPart()": "java.time.DesugarDuration",
+        "int java.time.Duration#toHoursPart()": "java.time.DesugarDuration",
+        "int java.time.Duration#toMillisPart()": "java.time.DesugarDuration",
+        "int java.time.Duration#toMinutesPart()": "java.time.DesugarDuration",
+        "int java.time.Duration#toNanosPart()": "java.time.DesugarDuration",
+        "long java.time.Duration#toSeconds()": "java.time.DesugarDuration",
+        "int java.time.Duration#toSecondsPart()": "java.time.DesugarDuration",
+        "java.time.Duration java.time.Duration#truncatedTo(java.time.temporal.TemporalUnit)": "java.time.DesugarDuration",
+        "java.time.LocalTime java.time.LocalTime#ofInstant(java.time.Instant, java.time.ZoneId)": "java.time.DesugarLocalTime",
+        "long java.time.LocalTime#toEpochSecond(java.time.LocalDate, java.time.ZoneOffset)": "java.time.DesugarLocalTime"
+      }
+    },
+    {
+      "api_level_below_or_equal": 25,
+      "rewrite_prefix": {
+        "java.time.": "j$.time.",
+        "java.util.Desugar": "j$.util.Desugar"
+      },
+      "retarget_method": {
+        "java.util.TimeZone java.util.TimeZone#getTimeZone(java.time.ZoneId)": "java.util.DesugarTimeZone"
+      },
+      "retarget_method_with_emulated_dispatch": {
+        "java.time.Instant java.util.Date#toInstant()": "java.util.DesugarDate",
+        "java.time.ZoneId java.util.TimeZone#toZoneId()": "java.util.DesugarTimeZone",
+        "java.time.ZonedDateTime java.util.GregorianCalendar#toZonedDateTime()": "java.util.DesugarGregorianCalendar"
+      },
+      "wrapper_conversion": [
+        "java.time.Clock",
+        "java.time.temporal.ChronoUnit"
+      ],
+      "custom_conversion": {
+        "java.time.Duration": "java.time.TimeConversions",
+        "java.time.Instant": "java.time.TimeConversions",
+        "java.time.LocalDate": "java.time.TimeConversions",
+        "java.time.LocalTime": "java.time.TimeConversions",
+        "java.time.MonthDay": "java.time.TimeConversions",
+        "java.time.Period": "java.time.TimeConversions",
+        "java.time.ZoneId": "java.time.TimeConversions",
+        "java.time.ZonedDateTime": "java.time.TimeConversions"
       }
     },
     {
@@ -361,6 +383,22 @@
     },
     {
       "api_level_below_or_equal": 30,
+      "amend_library_method": [
+        "public long java.time.Duration#dividedBy(java.time.Duration)",
+        "public long java.time.Duration#toDaysPart()",
+        "public int java.time.Duration#toHoursPart()",
+        "public int java.time.Duration#toMillisPart()",
+        "public int java.time.Duration#toMinutesPart()",
+        "public int java.time.Duration#toNanosPart()",
+        "public long java.time.Duration#toSeconds()",
+        "public int java.time.Duration#toSecondsPart()",
+        "public java.time.Duration java.time.Duration#truncatedTo(java.time.temporal.TemporalUnit)",
+        "public static java.time.LocalTime java.time.LocalTime#ofInstant(java.time.Instant, java.time.ZoneId)",
+        "public long java.time.LocalTime#toEpochSecond(java.time.LocalDate, java.time.ZoneOffset)"
+      ]
+    },
+    {
+      "api_level_below_or_equal": 30,
       "retarget_method": {
         "java.time.Instant java.util.Calendar#toInstant()": "java.util.DesugarCalendar",
         "java.util.Date java.util.Date#from(java.time.Instant)": "java.util.DesugarDate",
@@ -407,14 +445,6 @@
         "desugar.": "j$.desugar.",
         "libcore.": "j$.libcore.",
         "sun.security.action.": "j$.sun.security.action."
-      }
-    },
-    {
-      "api_level_below_or_equal": 30,
-      "rewrite_derived_prefix": {
-        "java.time.": {
-          "j$.time.": "java.time."
-        }
       }
     },
     {
@@ -465,6 +495,9 @@
         },
         "java.nio.file.Path": {
           "j$.nio.file.Path": "java.nio.file.Path"
+        },
+        "java.time.": {
+          "j$.time.": "java.time."
         },
         "java.nio.file.WatchEvent": {
           "j$.nio.file.WatchEvent": "java.nio.file.WatchEvent"

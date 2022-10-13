@@ -6,13 +6,20 @@ package com.android.tools.r8.desugar.desugaredlibrary.jdk11;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.transformers.MethodTransformer;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -36,6 +43,21 @@ import org.objectweb.asm.Opcodes;
 @RunWith(Parameterized.class)
 public class JavaTimeJDK11Test extends DesugaredLibraryTestBase {
 
+  private static AndroidApiLevel INTRODUCTION_LEVEL = AndroidApiLevel.S;
+  private static Set<String> DURATION_VIRTUAL_INVOKES =
+      ImmutableSet.of(
+          "toDaysPart",
+          "toHoursPart",
+          "toMillisPart",
+          "toMinutesPart",
+          "toNanosPart",
+          "toSeconds",
+          "toSecondsPart",
+          "dividedBy",
+          "truncatedTo");
+  private static Set<String> LOCAL_TIME_VIRTUAL_INVOKES = ImmutableSet.of("toEpochSecond");
+  private static Set<String> LOCAL_TIME_STATIC_INVOKES = ImmutableSet.of("ofInstant");
+
   private final TestParameters parameters;
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
   private final CompilationSpecification compilationSpecification;
@@ -47,7 +69,7 @@ public class JavaTimeJDK11Test extends DesugaredLibraryTestBase {
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters().withDexRuntimes().withAllApiLevels().build(),
-        ImmutableList.of(JDK11),
+        ImmutableList.of(JDK11, JDK11_PATH),
         DEFAULT_SPECIFICATIONS);
   }
 
@@ -61,26 +83,48 @@ public class JavaTimeJDK11Test extends DesugaredLibraryTestBase {
   }
 
   @Test
-  public void test() throws Exception {
+  public void test() throws Throwable {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramClassFileData(getProgramClassFileData())
         .addKeepMainRule(TestClass.class)
+        .compile()
+        .inspect(this::assertCalls)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
+  private void assertCalls(CodeInspector inspector) {
+    MethodSubject mainMethod = inspector.clazz(TestClass.class).mainMethod();
+    assertTrue(mainMethod.isPresent());
+    mainMethod
+        .streamInstructions()
+        .forEach(
+            i -> {
+              if (i.isInvoke()) {
+                if (libraryDesugaringSpecification.hasTimeDesugaring(parameters)) {
+                  checkInvokeTime(i, "j$.time.Duration", "j$.time.LocalTime");
+                  return;
+                }
+                if (parameters.getApiLevel().isLessThan(INTRODUCTION_LEVEL)) {
+                  checkInvokeTime(i, "j$.time.DesugarDuration", "j$.time.DesugarLocalTime");
+                  return;
+                }
+                checkInvokeTime(i, "java.time.Duration", "java.time.LocalTime");
+              }
+            });
+  }
+
+  private void checkInvokeTime(InstructionSubject i, String duration, String localTime) {
+    String name = i.getMethod().getName().toString();
+    if (DURATION_VIRTUAL_INVOKES.contains(name)) {
+      assertEquals(duration, i.getMethod().getHolderType().toString());
+    }
+    if (LOCAL_TIME_STATIC_INVOKES.contains(name) || LOCAL_TIME_VIRTUAL_INVOKES.contains(name)) {
+      assertEquals(localTime, i.getMethod().getHolderType().toString());
+    }
+  }
+
   private Collection<byte[]> getProgramClassFileData() throws IOException {
-    Set<String> methodsToRewriteToDurationVirtualInvoke =
-        ImmutableSet.of(
-            "toDaysPart",
-            "toHoursPart",
-            "toMillisPart",
-            "toMinutesPart",
-            "toNanosPart",
-            "toSeconds",
-            "toSecondsPart",
-            "dividedBy",
-            "truncatedTo");
     return ImmutableList.of(
         transformer(TestClass.class)
             .addMethodTransformer(
@@ -92,29 +136,30 @@ public class JavaTimeJDK11Test extends DesugaredLibraryTestBase {
                       String name,
                       String descriptor,
                       boolean isInterface) {
-                    if (opcode == Opcodes.INVOKESTATIC
-                        && methodsToRewriteToDurationVirtualInvoke.contains(name)) {
-                      super.visitMethodInsn(
-                          Opcodes.INVOKEVIRTUAL,
-                          "java/time/Duration",
-                          name,
-                          withoutFirstObjectArg(descriptor),
-                          isInterface);
-                      return;
-                    }
-                    if (opcode == Opcodes.INVOKESTATIC && name.equals("ofInstant")) {
-                      super.visitMethodInsn(
-                          opcode, "java/time/LocalTime", name, descriptor, isInterface);
-                      return;
-                    }
-                    if (opcode == Opcodes.INVOKESTATIC && name.equals("toEpochSecond")) {
-                      super.visitMethodInsn(
-                          Opcodes.INVOKEVIRTUAL,
-                          "java/time/LocalTime",
-                          name,
-                          withoutFirstObjectArg(descriptor),
-                          isInterface);
-                      return;
+                    if (opcode == Opcodes.INVOKESTATIC) {
+                      if (DURATION_VIRTUAL_INVOKES.contains(name)) {
+                        super.visitMethodInsn(
+                            Opcodes.INVOKEVIRTUAL,
+                            "java/time/Duration",
+                            name,
+                            withoutFirstObjectArg(descriptor),
+                            isInterface);
+                        return;
+                      }
+                      if (LOCAL_TIME_VIRTUAL_INVOKES.contains(name)) {
+                        super.visitMethodInsn(
+                            Opcodes.INVOKEVIRTUAL,
+                            "java/time/LocalTime",
+                            name,
+                            withoutFirstObjectArg(descriptor),
+                            isInterface);
+                        return;
+                      }
+                      if (LOCAL_TIME_STATIC_INVOKES.contains(name)) {
+                        super.visitMethodInsn(
+                            opcode, "java/time/LocalTime", name, descriptor, isInterface);
+                        return;
+                      }
                     }
                     super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
                   }
