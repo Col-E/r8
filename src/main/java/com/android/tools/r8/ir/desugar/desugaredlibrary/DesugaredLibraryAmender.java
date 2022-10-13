@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary;
 
 import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClassResolutionResult;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -107,7 +108,18 @@ public class DesugaredLibraryAmender {
   private DexLibraryClass getLibraryClass(DexReference reference) {
     DexClass dexClass = definitions.contextIndependentDefinitionFor(reference.getContextType());
     if (dexClass == null || !dexClass.isLibraryClass()) {
-      // Consider just throwing an error.
+      // We can end up in situation where a class is rewritten at some API level but is used as
+      // a library class with a different min API level. We check here if there is a multiple
+      // resolution result.
+      ClassResolutionResult result =
+          definitions.contextIndependentDefinitionForWithResolutionResult(
+              reference.getContextType());
+      if (result.isMultipleClassResolutionResult()) {
+        DexClass alternativeClass = result.toAlternativeClass();
+        if (alternativeClass != null && alternativeClass.isLibraryClass()) {
+          return alternativeClass.asLibraryClass();
+        }
+      }
       reporter.warning(
           "Desugared library: Cannot amend library reference "
               + reference

@@ -62,7 +62,15 @@
         "java.util.stream.Collector java.util.stream.Collectors#toUnmodifiableMap(java.util.function.Function, java.util.function.Function)": "java.util.stream.DesugarCollectors",
         "java.util.stream.Collector java.util.stream.Collectors#toUnmodifiableMap(java.util.function.Function, java.util.function.Function, java.util.function.BinaryOperator)": "java.util.stream.DesugarCollectors",
         "java.util.stream.Collector java.util.stream.Collectors#toUnmodifiableSet()": "java.util.stream.DesugarCollectors"
-      }
+      },
+      "amend_library_method": [
+        "public static java.util.stream.Collector java.util.stream.Collectors#filtering(java.util.function.Predicate, java.util.stream.Collector)",
+        "public static java.util.stream.Collector java.util.stream.Collectors#flatMapping(java.util.function.Function, java.util.stream.Collector)",
+        "public static java.util.stream.Collector java.util.stream.Collectors#toUnmodifiableList()",
+        "public static java.util.stream.Collector java.util.stream.Collectors#toUnmodifiableMap(java.util.function.Function, java.util.function.Function)",
+        "public static java.util.stream.Collector java.util.stream.Collectors#toUnmodifiableMap(java.util.function.Function, java.util.function.Function, java.util.function.BinaryOperator)",
+        "public static java.util.stream.Collector java.util.stream.Collectors#toUnmodifiableSet()"
+      ]
     },
     {
       "api_level_below_or_equal": 30,
@@ -83,7 +91,20 @@
         "java.time.Duration java.time.Duration#truncatedTo(java.time.temporal.TemporalUnit)": "java.time.DesugarDuration",
         "java.time.LocalTime java.time.LocalTime#ofInstant(java.time.Instant, java.time.ZoneId)": "java.time.DesugarLocalTime",
         "long java.time.LocalTime#toEpochSecond(java.time.LocalDate, java.time.ZoneOffset)": "java.time.DesugarLocalTime"
-      }
+      },
+      "amend_library_method": [
+        "public long java.time.Duration#dividedBy(java.time.Duration)",
+        "public long java.time.Duration#toDaysPart()",
+        "public int java.time.Duration#toHoursPart()",
+        "public int java.time.Duration#toMillisPart()",
+        "public int java.time.Duration#toMinutesPart()",
+        "public int java.time.Duration#toNanosPart()",
+        "public long java.time.Duration#toSeconds()",
+        "public int java.time.Duration#toSecondsPart()",
+        "public java.time.Duration java.time.Duration#truncatedTo(java.time.temporal.TemporalUnit)",
+        "public static java.time.LocalTime java.time.LocalTime#ofInstant(java.time.Instant, java.time.ZoneId)",
+        "public long java.time.LocalTime#toEpochSecond(java.time.LocalDate, java.time.ZoneOffset)"
+      ]
     },
     {
       "api_level_below_or_equal": 25,
@@ -367,34 +388,6 @@
       },
       "amend_library_method": [
         "public java.time.chrono.IsoEra java.time.LocalDate#getEra()"
-      ]
-    },
-    {
-      "api_level_below_or_equal": 32,
-      "api_level_greater_or_equal": 24,
-      "amend_library_method": [
-        "public static java.util.stream.Collector java.util.stream.Collectors#filtering(java.util.function.Predicate, java.util.stream.Collector)",
-        "public static java.util.stream.Collector java.util.stream.Collectors#flatMapping(java.util.function.Function, java.util.stream.Collector)",
-        "public static java.util.stream.Collector java.util.stream.Collectors#toUnmodifiableList()",
-        "public static java.util.stream.Collector java.util.stream.Collectors#toUnmodifiableMap(java.util.function.Function, java.util.function.Function)",
-        "public static java.util.stream.Collector java.util.stream.Collectors#toUnmodifiableMap(java.util.function.Function, java.util.function.Function, java.util.function.BinaryOperator)",
-        "public static java.util.stream.Collector java.util.stream.Collectors#toUnmodifiableSet()"
-      ]
-    },
-    {
-      "api_level_below_or_equal": 30,
-      "amend_library_method": [
-        "public long java.time.Duration#dividedBy(java.time.Duration)",
-        "public long java.time.Duration#toDaysPart()",
-        "public int java.time.Duration#toHoursPart()",
-        "public int java.time.Duration#toMillisPart()",
-        "public int java.time.Duration#toMinutesPart()",
-        "public int java.time.Duration#toNanosPart()",
-        "public long java.time.Duration#toSeconds()",
-        "public int java.time.Duration#toSecondsPart()",
-        "public java.time.Duration java.time.Duration#truncatedTo(java.time.temporal.TemporalUnit)",
-        "public static java.time.LocalTime java.time.LocalTime#ofInstant(java.time.Instant, java.time.ZoneId)",
-        "public long java.time.LocalTime#toEpochSecond(java.time.LocalDate, java.time.ZoneOffset)"
       ]
     },
     {
