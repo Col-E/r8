@@ -221,11 +221,13 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
       this.retraceMethodResult = retraceMethodResult;
       this.methodReference = methodReference;
       this.mapping = mapping;
-      assert mapping != null;
     }
 
     @Override
     public boolean isCompilerSynthesized() {
+      if (mapping == null) {
+        return false;
+      }
       if (mapping.getMemberNaming() != null) {
         return mapping.getMemberNaming().isCompilerSynthesized();
       } else {
