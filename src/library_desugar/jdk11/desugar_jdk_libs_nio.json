@@ -79,7 +79,18 @@
         "java.util.stream.Stream java.util.Collection#parallelStream()",
         "java.util.stream.Stream java.util.Collection#stream()",
         "void java.util.Collection#forEach(java.util.function.Consumer)"
-      ]
+      ],
+      "rewrite_prefix": {
+        "java.util.stream.DesugarCollectors": "j$.util.stream.DesugarCollectors"
+      },
+      "retarget_method": {
+        "java.util.stream.Collector java.util.stream.Collectors#filtering(java.util.function.Predicate, java.util.stream.Collector)": "java.util.stream.DesugarCollectors",
+        "java.util.stream.Collector java.util.stream.Collectors#flatMapping(java.util.function.Function, java.util.stream.Collector)": "java.util.stream.DesugarCollectors",
+        "java.util.stream.Collector java.util.stream.Collectors#toUnmodifiableList()": "java.util.stream.DesugarCollectors",
+        "java.util.stream.Collector java.util.stream.Collectors#toUnmodifiableMap(java.util.function.Function, java.util.function.Function)": "java.util.stream.DesugarCollectors",
+        "java.util.stream.Collector java.util.stream.Collectors#toUnmodifiableMap(java.util.function.Function, java.util.function.Function, java.util.function.BinaryOperator)": "java.util.stream.DesugarCollectors",
+        "java.util.stream.Collector java.util.stream.Collectors#toUnmodifiableSet()": "java.util.stream.DesugarCollectors"
+      }
     },
     {
       "api_level_below_or_equal": 25,
@@ -190,13 +201,6 @@
       },
       "custom_conversion": {
         "java.nio.file.attribute.FileTime": "java.nio.file.attribute.FileAttributeConversions"
-      }
-    },
-    {
-      "api_level_below_or_equal": 32,
-      "api_level_greater_or_equal": 24,
-      "rewrite_prefix": {
-        "java.util.stream.Collectors": "j$.util.stream.Collectors"
       }
     },
     {
@@ -341,6 +345,18 @@
       },
       "amend_library_method": [
         "public java.time.chrono.IsoEra java.time.LocalDate#getEra()"
+      ]
+    },
+    {
+      "api_level_below_or_equal": 32,
+      "api_level_greater_or_equal": 24,
+      "amend_library_method": [
+        "public static java.util.stream.Collector java.util.stream.Collectors#filtering(java.util.function.Predicate, java.util.stream.Collector)",
+        "public static java.util.stream.Collector java.util.stream.Collectors#flatMapping(java.util.function.Function, java.util.stream.Collector)",
+        "public static java.util.stream.Collector java.util.stream.Collectors#toUnmodifiableList()",
+        "public static java.util.stream.Collector java.util.stream.Collectors#toUnmodifiableMap(java.util.function.Function, java.util.function.Function)",
+        "public static java.util.stream.Collector java.util.stream.Collectors#toUnmodifiableMap(java.util.function.Function, java.util.function.Function, java.util.function.BinaryOperator)",
+        "public static java.util.stream.Collector java.util.stream.Collectors#toUnmodifiableSet()"
       ]
     },
     {
