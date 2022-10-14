@@ -114,8 +114,7 @@
         "java.time.ZonedDateTime java.util.GregorianCalendar#toZonedDateTime()": "java.util.DesugarGregorianCalendar"
       },
       "wrapper_conversion": [
-        "java.time.Clock",
-        "java.time.temporal.ChronoUnit"
+        "java.time.Clock"
       ],
       "custom_conversion": {
         "java.time.Duration": "java.time.TimeConversions",
