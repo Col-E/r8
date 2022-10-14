@@ -131,7 +131,8 @@ public class FieldAssignmentTracker {
           field -> {
             FieldAccessInfo accessInfo = fieldAccessInfos.get(field.getReference());
             KeepFieldInfo keepInfo = appView.getKeepInfo(field);
-            if (keepInfo.isPinned(appView.options()) || accessInfo.isWrittenFromMethodHandle()) {
+            if (keepInfo.isPinned(appView.options())
+                || (accessInfo != null && accessInfo.isWrittenFromMethodHandle())) {
               fieldStates.put(field.getDefinition(), FieldState.unknown());
             }
           });
