@@ -209,7 +209,7 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
                 assertThat(
                     clazz.getOriginalName(),
                     CoreMatchers.anyOf(startsWith("j$."), startsWith("java."))));
-    if (parameters.getApiLevel().getLevel() <= AndroidApiLevel.R.getLevel()) {
+    if (parameters.getApiLevel().getLevel() < AndroidApiLevel.O.getLevel()) {
       assertThat(inspector.clazz("j$.time.Clock"), isPresent());
     }
     // Above N the following classes are removed instead of being desugared.
