@@ -556,6 +556,11 @@
       "rewrite_prefix": {
         "java.lang.DesugarCharacter": "j$.lang.DesugarCharacter"
       },
+      "retarget_method" : {
+        "boolean java.lang.Character#isSurrogate(char)" : "java.lang.DesugarCharacter",
+        "char java.lang.Character#highSurrogate(int)" : "java.lang.DesugarCharacter",
+        "char java.lang.Character#lowSurrogate(int)" : "java.lang.DesugarCharacter"
+      },
       "retarget_static_field": {
         "sun.nio.cs.US_ASCII sun.nio.cs.US_ASCII#INSTANCE": "java.nio.charset.Charset java.nio.charset.StandardCharsets#US_ASCII",
         "sun.nio.cs.ISO_8859_1 sun.nio.cs.ISO_8859_1#INSTANCE": "java.nio.charset.Charset java.nio.charset.StandardCharsets#ISO_8859_1",
