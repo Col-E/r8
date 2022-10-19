@@ -5,6 +5,7 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_4_20;
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_7_0;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -129,11 +130,19 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
             .setOutputPath(temp.newFolder().toPath())
             .compileRaw();
     Assert.assertEquals(1, compileResult.exitCode);
-    assertThat(
-        compileResult.stderr,
-        containsString(
-            "unsupported [reference to the synthetic extension property for a Java get/set"
-                + " method]"));
+    if (kotlinParameters.isNewerThan(KOTLINC_1_7_0)) {
+      assertThat(
+          compileResult.stderr,
+          containsString(
+              "the feature \"references to synthetic java properties\" is only available since"
+                  + " language version 1.9"));
+    } else {
+      assertThat(
+          compileResult.stderr,
+          containsString(
+              "unsupported [reference to the synthetic extension property for a Java get/set"
+                  + " method]"));
+    }
   }
 
   private void inspectMetadata(CodeInspector inspector) {

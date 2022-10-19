@@ -72,6 +72,9 @@ def download_newest():
   download_and_save(
       JETBRAINS_KOTLIN_MAVEN_URL + "kotlin-reflect/{0}/kotlin-reflect-{0}.jar"
       .format(top_most_version_and_build), kotlinc_lib, "kotlin-reflect.jar")
+  download_and_save(
+    JETBRAINS_KOTLIN_MAVEN_URL + "kotlin-script-runtime/{0}/kotlin-script-runtime-{0}.jar"
+    .format(top_most_version_and_build), kotlinc_lib, "kotlin-script-runtime.jar")
 
 
 def download_and_save(url, path, name):
