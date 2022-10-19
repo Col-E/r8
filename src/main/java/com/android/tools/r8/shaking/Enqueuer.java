@@ -2226,19 +2226,6 @@ public class Enqueuer {
       return;
     }
 
-    if (!clazz.isInterface()) {
-      throw appView
-          .reporter()
-          .fatalError(
-              "The class "
-                  + implementer
-                  + " implements the interface "
-                  + type
-                  + " but "
-                  + type
-                  + " is not an interface.");
-    }
-
     if (!appView.options().enableUnusedInterfaceRemoval
         || rootSet.noUnusedInterfaceRemoval.contains(type)
         || mode.isMainDexTracing()) {
@@ -2250,6 +2237,21 @@ public class Enqueuer {
       // The interface is already live, so make sure to report this implements-edge.
       graphReporter.reportClassReferencedFrom(clazz, implementer);
       return;
+    }
+
+    if (mode.isInitialTreeShaking()) {
+      if (!clazz.isInterface()) {
+        appView
+            .reporter()
+            .warning(
+                "The class "
+                    + implementer
+                    + " implements the interface "
+                    + type
+                    + " but "
+                    + type
+                    + " is not an interface.");
+      }
     }
 
     // No need to mark the type as live. If an interface type is only reachable via the
