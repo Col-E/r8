@@ -99,4 +99,14 @@ public class KeepPackageNamesTest extends TestBase {
         .compile()
         .inspect(config::inspect);
   }
+
+  @Test
+  public void testR8Compat() throws Exception {
+    testForR8Compat(Backend.DEX)
+        .addProgramClasses(CLASSES)
+        .addKeepAllClassesRuleWithAllowObfuscation()
+        .addKeepRules(config.getKeepRule())
+        .compile()
+        .inspect(config::inspect);
+  }
 }

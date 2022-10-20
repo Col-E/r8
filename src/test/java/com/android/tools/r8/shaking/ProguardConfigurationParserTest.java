@@ -1513,48 +1513,30 @@ public class ProguardConfigurationParserTest extends TestBase {
     testKeepattributes(expected, config);
   }
 
-  private void testKeeppackagenames(ProguardPackageNameList expected, String config) {
+  private void testKeeppackagenames(String config) {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(createConfigurationForTesting(ImmutableList.of(config)));
     verifyParserEndsCleanly();
-    assertEquals(expected, parser.getConfigRawForTesting().getKeepPackageNamesPatterns());
   }
 
   @Test
   public void parseKeeppackagenames() {
-    ProguardPackageNameList xxxYYY =
-        ProguardPackageNameList.builder()
-            .addPackageName(false, new ProguardPackageMatcher("xxx"))
-            .addPackageName(false, new ProguardPackageMatcher("yyy"))
-            .build();
-    testKeeppackagenames(xxxYYY, "-keeppackagenames xxx,yyy");
-    testKeeppackagenames(xxxYYY, "-keeppackagenames xxx, yyy");
-    testKeeppackagenames(xxxYYY, "-keeppackagenames xxx ,yyy");
-    testKeeppackagenames(xxxYYY, "-keeppackagenames xxx   ,   yyy");
-    testKeeppackagenames(xxxYYY, "-keeppackagenames       xxx   ,   yyy     ");
-    testKeeppackagenames(xxxYYY, "-keeppackagenames       xxx   ,   yyy     \n");
-    testKeeppackagenames(xxxYYY, "-keeppackagenames \"xxx\",\"yyy\"");
+    testKeeppackagenames("-keeppackagenames xxx,yyy");
+    testKeeppackagenames("-keeppackagenames xxx, yyy");
+    testKeeppackagenames("-keeppackagenames xxx ,yyy");
+    testKeeppackagenames("-keeppackagenames xxx   ,   yyy");
+    testKeeppackagenames("-keeppackagenames       xxx   ,   yyy     ");
+    testKeeppackagenames("-keeppackagenames       xxx   ,   yyy     \n");
+    testKeeppackagenames("-keeppackagenames \"xxx\",\"yyy\"");
 
     testKeeppackagenames(
-        ProguardPackageNameList.builder()
-            .addPackageName(false, new ProguardPackageMatcher("com.**"))
-            .addPackageName(false, new ProguardPackageMatcher("org.*"))
-            .build(),
         "-keeppackagenames com.**, org.*");
 
     testKeeppackagenames(
-        ProguardPackageNameList.builder()
-            .addPackageName(false, new ProguardPackageMatcher("c?m.**"))
-            .addPackageName(false, new ProguardPackageMatcher("?r?.*"))
-            .build(),
         "-keeppackagenames c?m.**, ?r?.*");
 
     testKeeppackagenames(
-        ProguardPackageNameList.builder()
-            .addPackageName(true, new ProguardPackageMatcher("c?m.**"))
-            .addPackageName(true, new ProguardPackageMatcher("?r?.*"))
-            .build(),
         "-keeppackagenames !c?m.**, !?r?.*");
   }
 

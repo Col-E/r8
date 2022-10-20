@@ -76,8 +76,8 @@ public class RepackageWithKeepPackagePrivateTest extends RepackageTestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    assertThat(A.class, isRepackagedIf(inspector, allowAccessModification));
-    assertThat(B.class, isRepackagedIf(inspector, allowAccessModification));
+    assertThat(A.class, isNotRepackaged(inspector));
+    assertThat(B.class, isNotRepackaged(inspector));
   }
 
   public static class TestClass {

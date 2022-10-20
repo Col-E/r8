@@ -316,7 +316,7 @@ public class ProguardConfigurationParser {
       } else if (acceptString("keepattributes")) {
         parseKeepAttributes();
       } else if (acceptString("keeppackagenames")) {
-        parsePackageFilter(configurationBuilder::addKeepPackageNamesPattern);
+        parseClassFilter(configurationBuilder::addKeepPackageNamesPattern);
       } else if (acceptString("keepparameternames")) {
         configurationBuilder.setKeepParameterNames(true, origin, getPosition(optionStart));
       } else if (acceptString("checkdiscard")) {
@@ -1146,6 +1146,8 @@ public class ProguardConfigurationParser {
             builder.getModifiersBuilder().setAllowsObfuscation(true);
           } else if (acceptString("accessmodification")) {
             builder.getModifiersBuilder().setAllowsAccessModification(true);
+          } else if (acceptString("repackage")) {
+            builder.getModifiersBuilder().setAllowsRepackaging(true);
           } else if (options.isTestingOptionsEnabled()) {
             if (acceptString("annotationremoval")) {
               builder.getModifiersBuilder().setAllowsAnnotationRemoval(true);

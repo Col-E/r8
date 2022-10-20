@@ -3,11 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import java.util.Objects;
+
 public class ProguardKeepRuleModifiers {
   public static class Builder {
 
     private boolean allowsAccessModification = false;
     private boolean allowsAnnotationRemoval = false;
+    private boolean allowsRepackaging = false;
     private boolean allowsShrinking = false;
     private boolean allowsOptimization = false;
     private boolean allowsObfuscation = false;
@@ -37,6 +40,14 @@ public class ProguardKeepRuleModifiers {
 
     public Builder setAllowsObfuscation(boolean allowsObfuscation) {
       this.allowsObfuscation = allowsObfuscation;
+      if (allowsObfuscation) {
+        this.allowsRepackaging = true;
+      }
+      return this;
+    }
+
+    public Builder setAllowsRepackaging(boolean allowsRepackaging) {
+      this.allowsRepackaging = allowsRepackaging;
       return this;
     }
 
@@ -48,6 +59,7 @@ public class ProguardKeepRuleModifiers {
       return new ProguardKeepRuleModifiers(
           allowsAccessModification,
           allowsAnnotationRemoval,
+          allowsRepackaging,
           allowsShrinking,
           allowsOptimization,
           allowsObfuscation,
@@ -57,6 +69,7 @@ public class ProguardKeepRuleModifiers {
 
   public final boolean allowsAccessModification;
   public final boolean allowsAnnotationRemoval;
+  public final boolean allowsRepackaging;
   public final boolean allowsShrinking;
   public final boolean allowsOptimization;
   public final boolean allowsObfuscation;
@@ -65,12 +78,14 @@ public class ProguardKeepRuleModifiers {
   private ProguardKeepRuleModifiers(
       boolean allowsAccessModification,
       boolean allowsAnnotationRemoval,
+      boolean allowsRepackaging,
       boolean allowsShrinking,
       boolean allowsOptimization,
       boolean allowsObfuscation,
       boolean includeDescriptorClasses) {
     this.allowsAccessModification = allowsAccessModification;
     this.allowsAnnotationRemoval = allowsAnnotationRemoval;
+    this.allowsRepackaging = allowsRepackaging;
     this.allowsShrinking = allowsShrinking;
     this.allowsOptimization = allowsOptimization;
     this.allowsObfuscation = allowsObfuscation;
@@ -87,6 +102,7 @@ public class ProguardKeepRuleModifiers {
   public boolean isBottom() {
     return allowsAccessModification
         && allowsAnnotationRemoval
+        && allowsRepackaging
         && allowsObfuscation
         && allowsOptimization
         && allowsShrinking
@@ -101,6 +117,7 @@ public class ProguardKeepRuleModifiers {
     ProguardKeepRuleModifiers that = (ProguardKeepRuleModifiers) o;
     return allowsAccessModification == that.allowsAccessModification
         && allowsAnnotationRemoval == that.allowsAnnotationRemoval
+        && allowsRepackaging == that.allowsRepackaging
         && allowsShrinking == that.allowsShrinking
         && allowsOptimization == that.allowsOptimization
         && allowsObfuscation == that.allowsObfuscation
@@ -109,12 +126,14 @@ public class ProguardKeepRuleModifiers {
 
   @Override
   public int hashCode() {
-    return (allowsAccessModification ? 1 : 0)
-        | (allowsAnnotationRemoval ? 2 : 0)
-        | (allowsShrinking ? 4 : 0)
-        | (allowsOptimization ? 8 : 0)
-        | (allowsObfuscation ? 16 : 0)
-        | (includeDescriptorClasses ? 32 : 0);
+    return Objects.hash(
+        allowsAccessModification,
+        allowsAnnotationRemoval,
+        allowsRepackaging,
+        allowsShrinking,
+        allowsOptimization,
+        allowsObfuscation,
+        includeDescriptorClasses);
   }
 
   @Override
@@ -122,6 +141,7 @@ public class ProguardKeepRuleModifiers {
     StringBuilder builder = new StringBuilder();
     appendWithComma(builder, allowsAccessModification, "allowaccessmodification");
     appendWithComma(builder, allowsAnnotationRemoval, "allowannotationremoval");
+    appendWithComma(builder, allowsRepackaging, "allowrepackaging");
     appendWithComma(builder, allowsObfuscation, "allowobfuscation");
     appendWithComma(builder, allowsShrinking, "allowshrinking");
     appendWithComma(builder, allowsOptimization, "allowoptimization");

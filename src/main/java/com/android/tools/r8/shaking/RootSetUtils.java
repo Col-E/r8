@@ -54,6 +54,7 @@ import com.android.tools.r8.ir.desugar.itf.InterfaceMethodDesugaringBaseEventCon
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.repackaging.RepackagingUtils;
 import com.android.tools.r8.shaking.AnnotationMatchResult.AnnotationsIgnoredMatchResult;
 import com.android.tools.r8.shaking.AnnotationMatchResult.ConcreteAnnotationMatchResult;
 import com.android.tools.r8.shaking.AnnotationMatchResult.MatchedAnnotation;
@@ -1637,12 +1638,11 @@ public class RootSetUtils {
       if (appView.options().isMinificationEnabled() && !modifiers.allowsObfuscation) {
         dependentMinimumKeepInfo
             .getOrCreateMinimumKeepInfoFor(preconditionEvent, item.getReference())
-            .disallowMinification()
-            .disallowRepackaging();
+            .disallowMinification();
         context.markAsUsed();
       }
 
-      if (appView.options().isRepackagingEnabled() && !modifiers.allowsObfuscation) {
+      if (appView.options().isRepackagingEnabled() && isRepackagingDisallowed(item, modifiers)) {
         dependentMinimumKeepInfo
             .getOrCreateMinimumKeepInfoFor(preconditionEvent, item.getReference())
             .disallowRepackaging();
@@ -1674,6 +1674,14 @@ public class RootSetUtils {
         includeDescriptorClasses(item, keepRule, preconditionEvent);
         context.markAsUsed();
       }
+    }
+
+    private boolean isRepackagingDisallowed(
+        ProgramDefinition item, ProguardKeepRuleModifiers modifiers) {
+      if (!modifiers.allowsRepackaging) {
+        return true;
+      }
+      return RepackagingUtils.isPackageNameKept(item.getContextClass(), options);
     }
 
     private void evaluateIdentifierNameStringRule(

@@ -57,6 +57,7 @@ import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper;
 import com.android.tools.r8.naming.SeedMapper;
+import com.android.tools.r8.repackaging.RepackagingUtils;
 import com.android.tools.r8.shaking.KeepInfo.Joiner;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.utils.CollectionUtils;
@@ -1090,6 +1091,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       return false;
     }
     if (!keepInfo.getInfo(clazz).isRepackagingAllowed(clazz, options())) {
+      return false;
+    }
+    if (RepackagingUtils.isPackageNameKept(clazz, appView.options())) {
       return false;
     }
     SeedMapper applyMappingSeedMapper = appView.getApplyMappingSeedMapper();

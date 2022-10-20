@@ -295,7 +295,7 @@ public abstract class ProguardClassNameList {
 
     @Override
     public boolean matches(DexType type) {
-      return classNames.stream().anyMatch(name -> name.matches(type));
+      return Iterables.any(classNames, name -> name.matches(type));
     }
 
     @Override

@@ -42,8 +42,8 @@ public class ProguardConfiguration {
     private boolean verbose;
     private String renameSourceFileAttribute;
     private final List<String> keepAttributePatterns = new ArrayList<>();
-    private final ProguardPackageNameList.Builder keepPackageNamesPatterns =
-        ProguardPackageNameList.builder();
+    private final ProguardClassFilter.Builder keepPackageNamesPatterns =
+        ProguardClassFilter.builder();
     private final ProguardClassFilter.Builder dontWarnPatterns = ProguardClassFilter.builder();
     private final ProguardClassFilter.Builder dontNotePatterns = ProguardClassFilter.builder();
     protected final Set<ProguardConfigurationRule> rules = Sets.newLinkedHashSet();
@@ -193,8 +193,8 @@ public class ProguardConfiguration {
       this.rules.add(rule);
     }
 
-    public void addKeepPackageNamesPattern(boolean isNegated, ProguardPackageMatcher pattern) {
-      keepPackageNamesPatterns.addPackageName(isNegated, pattern);
+    public void addKeepPackageNamesPattern(ProguardClassNameList pattern) {
+      keepPackageNamesPatterns.addPattern(pattern);
     }
 
     public void addDontWarnPattern(ProguardClassNameList pattern) {
@@ -395,7 +395,7 @@ public class ProguardConfiguration {
   private final boolean verbose;
   private final String renameSourceFileAttribute;
   private final ProguardKeepAttributes keepAttributes;
-  private final ProguardPackageNameList keepPackageNamesPatterns;
+  private final ProguardClassFilter keepPackageNamesPatterns;
   private final ProguardClassFilter dontWarnPatterns;
   private final ProguardClassFilter dontNotePatterns;
   protected final ImmutableList<ProguardConfigurationRule> rules;
@@ -437,7 +437,7 @@ public class ProguardConfiguration {
       boolean verbose,
       String renameSourceFileAttribute,
       ProguardKeepAttributes keepAttributes,
-      ProguardPackageNameList keepPackageNamesPatterns,
+      ProguardClassFilter keepPackageNamesPatterns,
       ProguardClassFilter dontWarnPatterns,
       ProguardClassFilter dontNotePatterns,
       Set<ProguardConfigurationRule> rules,
@@ -594,7 +594,7 @@ public class ProguardConfiguration {
     return keepAttributes;
   }
 
-  public ProguardPackageNameList getKeepPackageNamesPatterns() {
+  public ProguardClassFilter getKeepPackageNamesPatterns() {
     return keepPackageNamesPatterns;
   }
 

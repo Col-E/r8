@@ -9,7 +9,6 @@ import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.ProguardVersion;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestShrinkerBuilder;
@@ -34,22 +33,22 @@ public class KeepPackageNameRootTest extends TestBase {
 
   @Test
   public void testR8Compat() throws Exception {
-    run(testForR8Compat(Backend.CF));
+    run(testForR8Compat(Backend.CF), false);
   }
 
   @Test
   public void testR8Full() throws Exception {
-    run(testForR8(Backend.CF));
+    run(testForR8(Backend.CF), true);
   }
 
   @Test
   public void testR8PG() throws Exception {
-    run(testForProguard(ProguardVersion.V7_0_0).addKeepRules("-dontwarn"));
+    run(testForProguard(ProguardVersion.V7_0_0).addKeepRules("-dontwarn"), false);
   }
 
-  private TestCompileResult<?, ?> run(TestShrinkerBuilder<?, ?, ?, ?, ?> testBuilder)
+  private void run(TestShrinkerBuilder<?, ?, ?, ?, ?> testBuilder, boolean isFullMode)
       throws Exception {
-    return testBuilder
+    testBuilder
         .addProgramClassFileData(
             transformer(Main.class)
                 .setClassDescriptor("Lfoo/Main;")
@@ -64,7 +63,11 @@ public class KeepPackageNameRootTest extends TestBase {
               assertEquals(1, inspector.allClasses().size());
               inspector.forAllClasses(
                   clazz -> {
-                    assertNotEquals("foo", clazz.getDexProgramClass().getType().getPackageName());
+                    if (isFullMode) {
+                      assertEquals("foo", clazz.getDexProgramClass().getType().getPackageName());
+                    } else {
+                      assertNotEquals("foo", clazz.getDexProgramClass().getType().getPackageName());
+                    }
                   });
             });
   }

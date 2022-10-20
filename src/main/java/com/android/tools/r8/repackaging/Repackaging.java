@@ -245,9 +245,9 @@ public class Repackaging {
         continue;
       }
       // Already processed packages should have been removed.
+      assert !repackagingConfiguration.isPackageInTargetLocation(pkg);
       String newPackageDescriptor =
           repackagingConfiguration.getNewPackageDescriptor(pkg, seenPackageDescriptors);
-      assert !repackagingConfiguration.isPackageInTargetLocation(pkg);
       for (DexProgramClass classToRepackage : classesToRepackage) {
         processClass(classToRepackage, pkg, newPackageDescriptor, mappings);
       }
@@ -351,7 +351,6 @@ public class Repackaging {
         // Preserve full package name under destination package when not minifying
         // (no matter which package obfuscation mode is used).
         if (newPackageDescriptor.isEmpty()
-            || proguardConfiguration.getKeepPackageNamesPatterns().matches(pkg)
             || mayHavePinnedPackagePrivateOrProtectedItem(pkg)) {
           return pkg.getPackageDescriptor();
         }
@@ -360,8 +359,7 @@ public class Repackaging {
         return newPackageDescriptor;
       } else if (packageObfuscationMode.isMinification()) {
         // Always keep top-level classes since their packages can never be minified.
-        if (pkg.getPackageDescriptor().equals("")
-            || proguardConfiguration.getKeepPackageNamesPatterns().matches(pkg)
+        if (pkg.getPackageDescriptor().isEmpty()
             || mayHavePinnedPackagePrivateOrProtectedItem(pkg)) {
           return pkg.getPackageDescriptor();
         }
@@ -386,9 +384,8 @@ public class Repackaging {
       if (packageObfuscationMode.isRepackageClasses()) {
         return pkg.getPackageDescriptor().equals(newPackageDescriptor);
       } else if (packageObfuscationMode.isMinification()) {
-        // Always keep top-level classes since there packages can never be minified.
-        return pkg.getPackageDescriptor().equals("")
-            || proguardConfiguration.getKeepPackageNamesPatterns().matches(pkg)
+        // Always keep top-level classes since their packages can never be minified.
+        return pkg.getPackageDescriptor().isEmpty()
             || mayHavePinnedPackagePrivateOrProtectedItem(pkg);
       } else {
         assert packageObfuscationMode.isFlattenPackageHierarchy();
