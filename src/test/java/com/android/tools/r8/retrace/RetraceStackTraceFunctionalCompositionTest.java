@@ -180,10 +180,9 @@ public class RetraceStackTraceFunctionalCompositionTest extends TestBase {
     comparePartitionedStackTraces(originalPartitions, firstRoundPartitions);
 
     Pair<Path, Path> d8OfR8ofR8 = compileWithD8(r8OfR8.getFirst(), r8OfR8.getSecond());
-    List<String> retracedSecondLevelStackTraces =
-        retrace(d8OfR8ofR8.getSecond(), generateStackTraces(d8OfR8ofR8.getFirst()));
-    Map<String, List<String>> secondRoundPartitions =
-        partitionStacktraces(retracedSecondLevelStackTraces);
+    List<String> d8StackTraces = generateStackTraces(d8OfR8ofR8.getFirst());
+    List<String> secondRoundStackTraces = retrace(d8OfR8ofR8.getSecond(), d8StackTraces);
+    Map<String, List<String>> secondRoundPartitions = partitionStacktraces(secondRoundStackTraces);
     comparePartitionedStackTraces(originalPartitions, secondRoundPartitions);
   }
 
