@@ -11,7 +11,6 @@ import com.android.tools.r8.dex.code.CfOrDexInstruction;
 import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.dex.code.DexReturnVoid;
 import com.android.tools.r8.dex.code.DexSwitchPayload;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
 import com.android.tools.r8.graph.DexDebugEvent.SetPositionFrame;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
@@ -508,7 +507,11 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       DexInstruction lastInstruction = ArrayUtils.last(instructions);
       debugInfo = advanceToOffset(lastInstruction.getOffset(), debugInfo, debugInfoIterator);
       if (debugInfo != null) {
-        throw new Unreachable("Could not print all debug information.");
+        builder
+            .append("(warning: has unhandled debug events @ pc:")
+            .append(debugInfo.address)
+            .append(", line:")
+            .append(debugInfo.line);
       } else {
         builder.append("(has debug events past last pc)\n");
       }
