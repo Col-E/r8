@@ -1639,8 +1639,7 @@ public class RootSetUtils {
       if (appView.options().isMinificationEnabled() && !modifiers.allowsObfuscation) {
         dependentMinimumKeepInfo
             .getOrCreateMinimumKeepInfoFor(preconditionEvent, item.getReference())
-            .disallowMinification()
-            .applyIf(item.isProgramClass(), joiner -> joiner.asClassJoiner().disallowRepackaging());
+            .disallowMinification();
         context.markAsUsed();
       }
 
