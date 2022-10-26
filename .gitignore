@@ -130,6 +130,8 @@ third_party/kotlin/kotlin-compiler-dev.tar.gz
 third_party/kotlin/kotlin-compiler-dev
 third_party/kotlinx-coroutines-1.3.6.tar.gz
 third_party/kotlinx-coroutines-1.3.6
+third_party/multidex
+third_party/multidex.tar.gz
 third_party/nest/*
 third_party/openjdk/desugar_jdk_libs
 third_party/openjdk/desugar_jdk_libs.tar.gz

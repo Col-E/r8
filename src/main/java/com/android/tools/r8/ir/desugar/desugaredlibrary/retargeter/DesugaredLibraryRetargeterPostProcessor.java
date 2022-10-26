@@ -125,11 +125,7 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
         // The class has already been desugared.
         continue;
       }
-      if (appView
-          .options()
-          .machineDesugaredLibrarySpecification
-          .getDontRetarget()
-          .contains(clazz.getType())) {
+      if (appView.dexItemFactory().multiDexTypes.contains(clazz.getType())) {
         continue;
       }
       clazz.addExtraInterfaces(

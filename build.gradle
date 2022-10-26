@@ -8,8 +8,8 @@ import dx.DexMergerTask
 import dx.DxTask
 import net.ltgt.gradle.errorprone.CheckSeverity
 import org.gradle.internal.os.OperatingSystem
-import smali.SmaliTask
 import tasks.DownloadDependency
+import smali.SmaliTask
 import tasks.GetJarsFromConfiguration
 import utils.Utils
 
@@ -378,6 +378,7 @@ def cloudDependencies = [
                 "kotlin/kotlin-compiler-1.6.0",
                 "kotlin/kotlin-compiler-1.7.0",
                 "kotlinx-coroutines-1.3.6",
+                "multidex",
                 "openjdk/openjdk-rt-1.8",
                 "openjdk/desugar_jdk_libs",
                 "openjdk/desugar_jdk_libs_11",

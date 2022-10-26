@@ -103,6 +103,9 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
     if (isAPIConversionSyntheticType(context.getHolderType(), wrapperSynthesizor, appView)) {
       return false;
     }
+    if (appView.dexItemFactory().multiDexTypes.contains(context.getHolderType())) {
+      return false;
+    }
     return shouldRewriteInvoke(instruction.asInvoke(), context);
   }
 

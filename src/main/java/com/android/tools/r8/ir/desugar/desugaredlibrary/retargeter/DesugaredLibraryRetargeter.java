@@ -175,11 +175,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
 
   private InvokeRetargetingResult computeNewInvokeTarget(
       CfInvoke instruction, ProgramMethod context) {
-    if (appView
-        .options()
-        .machineDesugaredLibrarySpecification
-        .getDontRetarget()
-        .contains(context.getContextType())) {
+    if (appView.dexItemFactory().multiDexTypes.contains(context.getContextType())) {
       return NO_REWRITING;
     }
     CfInvoke cfInvoke = instruction.asInvoke();

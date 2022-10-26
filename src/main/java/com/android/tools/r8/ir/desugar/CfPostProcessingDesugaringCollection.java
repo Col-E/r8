@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryAPICallbackSynthesizer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.disabledesugarer.DesugaredLibraryDisableDesugarerPostProcessor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterPostProcessor;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
 import com.android.tools.r8.ir.desugar.records.RecordDesugaring;
@@ -71,6 +72,11 @@ public abstract class CfPostProcessingDesugaringCollection {
       RecordDesugaring recordRewriter = RecordDesugaring.create(appView);
       if (recordRewriter != null) {
         desugarings.add(recordRewriter);
+      }
+      DesugaredLibraryDisableDesugarerPostProcessor disableDesugarer =
+          DesugaredLibraryDisableDesugarerPostProcessor.create(appView);
+      if (disableDesugarer != null) {
+        desugarings.add(disableDesugarer);
       }
       if (desugarings.isEmpty()) {
         return empty();

@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.apimodel.ApiInvokeOutlinerDesugaring;
 import com.android.tools.r8.ir.desugar.constantdynamic.ConstantDynamicInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryAPIConverter;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.disabledesugarer.DesugaredLibraryDisableDesugarer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.icce.AlwaysThrowingInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialToSelfDesugaring;
@@ -57,6 +58,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
   private final DesugaredLibraryRetargeter desugaredLibraryRetargeter;
   private final InterfaceMethodRewriter interfaceMethodRewriter;
   private final DesugaredLibraryAPIConverter desugaredLibraryAPIConverter;
+  private final DesugaredLibraryDisableDesugarer disableDesugarer;
   private final AndroidApiLevelCompute apiLevelCompute;
 
   NonEmptyCfInstructionDesugaringCollection(
@@ -76,6 +78,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
       this.desugaredLibraryRetargeter = null;
       this.interfaceMethodRewriter = null;
       this.desugaredLibraryAPIConverter = null;
+      this.disableDesugarer = null;
       return;
     }
     this.nestBasedAccessDesugaring = NestBasedAccessDesugaring.create(appView);
@@ -86,6 +89,10 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
             : null;
     if (desugaredLibraryRetargeter != null) {
       desugarings.add(desugaredLibraryRetargeter);
+    }
+    disableDesugarer = DesugaredLibraryDisableDesugarer.create(appView);
+    if (disableDesugarer != null) {
+      desugarings.add(disableDesugarer);
     }
     if (appView.options().apiModelingOptions().enableOutliningOfMethods) {
       yieldingDesugarings.add(new ApiInvokeOutlinerDesugaring(appView, apiLevelCompute));

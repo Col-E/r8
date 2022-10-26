@@ -469,6 +469,45 @@ public class DexItemFactory {
           floatBufferType,
           doubleBufferType);
 
+  private static final List<String> MULTIDEX_PREFIXES =
+      ImmutableList.of("androidx/", "android/support/");
+  private static final List<String> MULTIDEX_SUFFIXES =
+      ImmutableList.of(
+          "multidex/MultiDex$V14$ElementConstructor;",
+          "multidex/MultiDex$V14$ICSElementConstructor;",
+          "multidex/MultiDex$V14$JBMR11ElementConstructor;",
+          "multidex/MultiDex$V14$JBMR2ElementConstructor;",
+          "multidex/MultiDex$V14;",
+          "multidex/MultiDex$V19;",
+          "multidex/MultiDex$V21_PLUS;",
+          "multidex/MultiDex$V4;",
+          "multidex/MultiDexApplication;",
+          "multidex/MultiDexExtractor$1;",
+          "multidex/MultiDexExtractor$ExtractedDex;",
+          "multidex/MultiDexExtractor;",
+          "multidex/MultiDex;",
+          "multidex/ZipUtil;",
+          "multidex/ZipUtil$CentralDirectory;");
+  private static final List<String> MULTIDEX_INSTRUMENTATION =
+      ImmutableList.of(
+          "Landroid/support/multidex/instrumentation/BuildConfig;",
+          "Landroid/test/runner/MultiDexTestRunner;");
+
+  private List<DexType> createMultiDexTypes() {
+    ImmutableList.Builder<DexType> builder = ImmutableList.builder();
+    for (String prefix : MULTIDEX_PREFIXES) {
+      for (String suffix : MULTIDEX_SUFFIXES) {
+        builder.add(createType("L" + prefix + suffix));
+      }
+    }
+    for (String typeString : MULTIDEX_INSTRUMENTATION) {
+      builder.add(createType(typeString));
+    }
+    return builder.build();
+  }
+
+  public List<DexType> multiDexTypes = createMultiDexTypes();
+
   public final DexType doubleConsumer =
       createStaticallyKnownType("Ljava/util/function/DoubleConsumer;");
   public final DexType longConsumer =
