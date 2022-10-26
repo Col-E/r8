@@ -33,7 +33,7 @@ public class KotlinStdLibCompilationTest extends TestBase {
   public static List<Object[]> setup() {
     return buildParameters(
         TestParameters.builder().withAllRuntimesAndApiLevels().build(),
-        getKotlinTestParameters().withNoTargetVersion().build());
+        getKotlinTestParameters().withAllCompilers().withNoTargetVersion().build());
   }
 
   public KotlinStdLibCompilationTest(
