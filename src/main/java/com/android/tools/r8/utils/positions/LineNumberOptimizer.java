@@ -118,13 +118,21 @@ public class LineNumberOptimizer {
 
         for (ProgramMethod method : methods) {
           DexEncodedMethod definition = method.getDefinition();
+          DexMethod methodReference = method.getReference();
+          if (methodName == method.getName()
+              && appView.graphLens().getOriginalMethodSignature(methodReference) == methodReference
+              && !mustHaveResidualDebugInfo(appView.options(), definition)
+              && !definition.isD8R8Synthesized()
+              && methods.size() <= 1) {
+            continue;
+          }
           positionRemapper.setCurrentMethod(definition);
           List<MappedPosition> mappedPositions;
           int pcEncodingCutoff =
               methods.size() == 1 ? representation.getDexPcEncodingCutoff(method) : -1;
           boolean canUseDexPc = pcEncodingCutoff > 0;
           if (definition.getCode() != null
-              && mustHaveResidualDebugInfo(appView.options(), definition)
+              && (definition.getCode().isCfCode() || definition.getCode().isDexCode())
               && !appView.isCfByteCodePassThrough(definition)) {
             mappedPositions =
                 positionToMappedRangeMapper.getMappedPositions(
@@ -229,14 +237,9 @@ public class LineNumberOptimizer {
       DexEncodedMethod definition = programMethod.getDefinition();
       DexMethod method = programMethod.getReference();
       DexString renamedName = appView.getNamingLens().lookupName(method);
-      if (renamedName != method.name
-          || appView.graphLens().getOriginalMethodSignature(method) != method
-          || mustHaveResidualDebugInfo(appView.options(), definition)
-          || definition.isD8R8Synthesized()) {
-        methodsByRenamedName
-            .computeIfAbsent(renamedName, key -> new ArrayList<>())
-            .add(programMethod);
-      }
+      methodsByRenamedName
+          .computeIfAbsent(renamedName, key -> new ArrayList<>())
+          .add(programMethod);
     }
     return methodsByRenamedName;
   }

@@ -4,17 +4,20 @@
 
 package com.android.tools.r8.debuginfo;
 
-import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.debuginfo.testclasses.SimpleCallChainClassWithOverloads;
-import com.android.tools.r8.naming.retrace.StackTrace;
-import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
+import com.android.tools.r8.retrace.ProguardMapProducer;
+import com.android.tools.r8.retrace.ProguardMappingSupplier;
+import com.android.tools.r8.retrace.Retrace;
+import com.android.tools.r8.retrace.RetraceCommand;
 import com.android.tools.r8.transformers.ClassFileTransformer.MethodPredicate;
+import com.android.tools.r8.utils.StringUtils;
+import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -35,68 +38,43 @@ public class OverloadWithNoLineNumberTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    testForR8(parameters.getBackend())
-        .addProgramClassFileData(
-            transformer(SimpleCallChainClassWithOverloads.class)
-                .removeLineNumberTable(MethodPredicate.onName("test"))
-                .transform())
-        .setMinApi(parameters.getApiLevel())
-        .addKeepMainRule(SimpleCallChainClassWithOverloads.class)
-        .addKeepClassAndMembersRules(SimpleCallChainClassWithOverloads.class)
-        .addKeepAttributeLineNumberTable()
-        .run(parameters.getRuntime(), SimpleCallChainClassWithOverloads.class)
-        .assertFailureWithErrorThatThrows(RuntimeException.class)
-        .inspectStackTrace(
-            (stackTrace, inspector) -> {
-              StackTraceLine mainLine =
-                  StackTraceLine.builder()
-                      .setClassName(typeName(SimpleCallChainClassWithOverloads.class))
-                      .setMethodName("main")
-                      .setFileName(SOURCE_FILE_NAME)
-                      .setLineNumber(10)
-                      .build();
-              if (parameters.isCfRuntime()
-                  || parameters.getDexRuntimeVersion().isOlderThan(Version.V8_1_0)) {
-                StackTraceLine testStackTraceLine =
-                    StackTraceLine.builder()
-                        .setClassName(typeName(SimpleCallChainClassWithOverloads.class))
-                        .setMethodName("test")
-                        .setFileName(SOURCE_FILE_NAME)
-                        .build();
-                assertThat(
-                    stackTrace,
-                    isSame(
-                        StackTrace.builder()
-                            // TODO(b/251677184): Stack trace lines should still be distinguishable
-                            //  even if there are no original line numbers to map back two.
-                            .add(testStackTraceLine)
-                            .add(testStackTraceLine)
-                            .add(mainLine)
-                            .build()));
-              } else {
-                assertThat(
-                    stackTrace,
-                    isSame(
-                        StackTrace.builder()
-                            // TODO(b/251677184): Strange that we are able to distinguish when using
-                            //  pc mapping.
-                            .add(
-                                StackTraceLine.builder()
-                                    .setClassName(typeName(SimpleCallChainClassWithOverloads.class))
-                                    .setMethodName("test")
-                                    .setFileName(SOURCE_FILE_NAME)
-                                    .setLineNumber(11)
-                                    .build())
-                            .add(
-                                StackTraceLine.builder()
-                                    .setClassName(typeName(SimpleCallChainClassWithOverloads.class))
-                                    .setMethodName("test")
-                                    .setFileName(SOURCE_FILE_NAME)
-                                    .setLineNumber(4)
-                                    .build())
-                            .add(mainLine)
-                            .build()));
-              }
-            });
+    R8TestRunResult result =
+        testForR8(parameters.getBackend())
+            .addProgramClassFileData(
+                transformer(SimpleCallChainClassWithOverloads.class)
+                    .removeLineNumberTable(MethodPredicate.onName("test"))
+                    .transform())
+            .setMinApi(parameters.getApiLevel())
+            .addKeepMainRule(SimpleCallChainClassWithOverloads.class)
+            .addKeepClassAndMembersRules(SimpleCallChainClassWithOverloads.class)
+            .addKeepAttributeLineNumberTable()
+            .run(parameters.getRuntime(), SimpleCallChainClassWithOverloads.class)
+            .assertFailureWithErrorThatThrows(RuntimeException.class);
+    Retrace.run(
+        RetraceCommand.builder()
+            .setMappingSupplier(
+                ProguardMappingSupplier.builder()
+                    .setProguardMapProducer(ProguardMapProducer.fromString(result.proguardMap()))
+                    .build())
+            .setStackTrace(
+                result.getOriginalStackTrace().getStackTraceLines().stream()
+                    .map(line -> line.originalLine)
+                    .collect(Collectors.toList()))
+            .setRetracedStackTraceConsumer(
+                retraced -> {
+                  String className = typeName(SimpleCallChainClassWithOverloads.class);
+                  assertEquals(
+                      StringUtils.joinLines(
+                          "\tat " + className + ".void test(long)(" + SOURCE_FILE_NAME + ":0)",
+                          "\tat " + className + ".void test()(" + SOURCE_FILE_NAME + ":0)",
+                          "\tat "
+                              + className
+                              + ".void main(java.lang.String[])("
+                              + SOURCE_FILE_NAME
+                              + ":10)"),
+                      StringUtils.joinLines(retraced));
+                })
+            .setVerbose(true)
+            .build());
   }
 }

@@ -11,8 +11,10 @@ import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.utils.Pair;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +36,7 @@ public class ClassFilePositionToMappedRangeMapper implements PositionToMappedRan
       int pcEncodingCutoff) {
     return appView.options().getTestingOptions().usePcEncodingInCfForTesting
         ? getPcEncodedPositions(method, positionRemapper)
-        : getMappedPositionsRemapped(method, positionRemapper);
+        : getMappedPositionsRemapped(method, positionRemapper, hasOverloads);
   }
 
   @Override
@@ -43,15 +45,17 @@ public class ClassFilePositionToMappedRangeMapper implements PositionToMappedRan
   }
 
   private List<MappedPosition> getMappedPositionsRemapped(
-      ProgramMethod method, PositionRemapper positionRemapper) {
+      ProgramMethod method, PositionRemapper positionRemapper, boolean hasOverloads) {
     List<MappedPosition> mappedPositions = new ArrayList<>();
     // Do the actual processing for each method.
     CfCode oldCode = method.getDefinition().getCode().asCfCode();
     List<CfInstruction> oldInstructions = oldCode.getInstructions();
     List<CfInstruction> newInstructions = new ArrayList<>(oldInstructions.size());
+    boolean seenPosition = false;
     for (CfInstruction oldInstruction : oldInstructions) {
       CfInstruction newInstruction;
       if (oldInstruction.isPosition()) {
+        seenPosition = true;
         CfPosition cfPosition = oldInstruction.asPosition();
         newInstruction =
             new CfPosition(
@@ -61,6 +65,24 @@ public class ClassFilePositionToMappedRangeMapper implements PositionToMappedRan
         newInstruction = oldInstruction;
       }
       newInstructions.add(newInstruction);
+    }
+    if (!seenPosition && hasOverloads) {
+      // If a method with overloads does not have an actual position then map it to the implicit
+      // preamble position.
+      DexMethod reference = method.getReference();
+      DexMethod original = appView.graphLens().getOriginalMethodSignature(reference);
+      CfPosition preamblePositionForOverload =
+          new CfPosition(
+              new CfLabel(),
+              remapAndAdd(
+                  SyntheticPosition.builder().setMethod(original).setLine(0).build(),
+                  positionRemapper,
+                  mappedPositions));
+      List<CfInstruction> shiftedPositions = new ArrayList<>(oldInstructions.size() + 2);
+      shiftedPositions.add(preamblePositionForOverload);
+      shiftedPositions.add(preamblePositionForOverload.getLabel());
+      shiftedPositions.addAll(newInstructions);
+      newInstructions = shiftedPositions;
     }
     method.setCode(
         new CfCode(

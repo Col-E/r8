@@ -1,6 +1,7 @@
 shaking1.Shaking -> shaking1.Shaking:
 shaking1.Used -> a.a:
     0:2:void <init>(java.lang.String):12:12 -> <init>
+    0:2:java.lang.String aMethodThatIsNotUsedButKept():0:0 -> aMethodThatIsNotUsedButKept
     3:5:void <init>(java.lang.String):13:13 -> <init>
     0:6:void main(java.lang.String[]):8:8 -> main
     7:21:void main(java.lang.String[]):9:9 -> main

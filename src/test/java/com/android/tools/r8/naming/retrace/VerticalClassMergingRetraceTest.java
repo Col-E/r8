@@ -130,7 +130,6 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
     // at com.android.tools.r8.naming.retraceproguard.MainApp.main(MainApp.java:7)
     //
     // We should instead translate to:
-    // at com.android.tools.r8.naming.retraceproguard.ResourceWrapper.foo(ResourceWrapper.java:1)
     // at com.android.tools.r8.naming.retraceproguard.ResourceWrapper.foo(ResourceWrapper.java:0)
     // at com.android.tools.r8.naming.retraceproguard.MainApp.main(MainApp.java:7)
     // since the synthetic bridge belongs to ResourceWrapper.foo.
@@ -140,12 +139,7 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
     runTest(
         ImmutableList.of(),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
-          StackTrace reprocessedStackTrace =
-              mode == CompilationMode.DEBUG
-                  ? retracedStackTrace
-                  : retracedStackTrace.filter(this::filterSynthesizedBridgeMethod);
-          assertThat(
-              reprocessedStackTrace, isSameExceptForFileNameAndLineNumber(expectedStackTrace));
+          assertThat(retracedStackTrace, isSameExceptForFileNameAndLineNumber(expectedStackTrace));
           assertEquals(
               expectedActualStackTraceHeight(), actualStackTrace.getStackTraceLines().size());
         });

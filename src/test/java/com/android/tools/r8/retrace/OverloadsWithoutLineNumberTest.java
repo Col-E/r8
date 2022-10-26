@@ -63,21 +63,11 @@ public class OverloadsWithoutLineNumberTest extends TestBase {
             .setRetracedStackTraceConsumer(box::set)
             .setVerbose(true);
     Retrace.run(builder.build());
-    // TODO(b/221015863): This should ideally be:
-    // at " + typeName(ClassWithOverload.class) + ".test(int)(OverloadsWithoutLineNumberTest.java)
-    if (parameters.canUseNativeDexPC()) {
-      assertEquals(
-          "\tat "
-              + typeName(ClassWithOverload.class)
-              + ".test(OverloadsWithoutLineNumberTest.java:0)",
-          box.get().get(1));
-    } else {
-      assertEquals(
-          "\tat "
-              + typeName(ClassWithOverload.class)
-              + ".test(OverloadsWithoutLineNumberTest.java)",
-          box.get().get(1));
-    }
+    assertEquals(
+        "\tat "
+            + typeName(ClassWithOverload.class)
+            + ".void test(int)(OverloadsWithoutLineNumberTest.java:0)",
+        box.get().get(1));
   }
 
   public static class ClassWithOverload {
