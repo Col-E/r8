@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Supplier;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -156,6 +157,7 @@ public class RetraceStackTraceFunctionalCompositionTest extends TestBase {
     return rewrittenR8Jar;
   }
 
+  @Ignore("b/255292908")
   @Test
   public void testR8RetraceAndComposition() throws Exception {
     Path rewrittenR8Jar = getRewrittenR8Jar();
