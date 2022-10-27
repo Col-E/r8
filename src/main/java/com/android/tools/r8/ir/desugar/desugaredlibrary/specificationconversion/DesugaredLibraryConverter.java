@@ -73,7 +73,7 @@ public class DesugaredLibraryConverter {
     Files.write(output, Collections.singleton(outputString));
   }
 
-  private static String convertToMachineSpecification(
+  public static String convertToMachineSpecification(
       InternalOptions options,
       DexApplication appForConversion,
       MultiAPILevelHumanDesugaredLibrarySpecification humanSpec)
@@ -88,7 +88,7 @@ public class DesugaredLibraryConverter {
     return machineJson.get();
   }
 
-  private static JsonObject parseJsonConfig(InternalOptions options, FileResource jsonResource) {
+  public static JsonObject parseJsonConfig(InternalOptions options, FileResource jsonResource) {
     JsonObject jsonConfig;
     try {
       String jsonConfigString = jsonResource.getString();
@@ -104,7 +104,7 @@ public class DesugaredLibraryConverter {
    * Parse the human specification, or parse and convert the legacy specification into human
    * specification.
    */
-  private static MultiAPILevelHumanDesugaredLibrarySpecification getInputAsHumanSpecification(
+  public static MultiAPILevelHumanDesugaredLibrarySpecification getInputAsHumanSpecification(
       InternalOptions options,
       FileResource jsonResource,
       JsonObject jsonConfig,
