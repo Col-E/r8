@@ -28,7 +28,6 @@ public class RetraceApiTestCollection
           RetraceApiSynthesizedFieldTest.ApiTest.class,
           RetraceApiSynthesizedMethodTest.ApiTest.class,
           RetraceApiSynthesizedFrameTest.ApiTest.class,
-          RetraceApiSynthesizedInnerFrameTest.ApiTest.class,
           RetraceApiUnknownJsonTest.ApiTest.class,
           RetraceApiRewriteFrameInlineNpeTest.ApiTest.class,
           RetraceApiAmbiguousOriginalRangeTest.ApiTest.class,
