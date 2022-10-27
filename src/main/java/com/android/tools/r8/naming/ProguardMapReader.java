@@ -444,6 +444,8 @@ public class ProguardMapReader implements AutoCloseable {
 
       if (signature.isMethodSignature()) {
         MethodSignature residualSignature = null;
+        // Propagate the active residual signature down to the next read mapped range if the
+        // original signature and name is the same - that is, there are no inline frames.
         if (activeMappedRange != null
             && activeMappedRange.signature == signature
             && activeMappedRange.renamedName.equals(renamedName)) {
@@ -452,8 +454,18 @@ public class ProguardMapReader implements AutoCloseable {
         activeMappedRange =
             classNamingBuilder.addMappedRange(
                 mappedRange, signature.asMethodSignature(), originalRange, renamedName);
-        if (residualSignature != null) {
-          activeMappedRange.setResidualSignatureInternal(residualSignature);
+        if (activeMappedRange != null) {
+          if (residualSignature != null) {
+            activeMappedRange.setResidualSignatureInternal(residualSignature);
+          } else if (lastAddedNaming != null
+              && lastAddedNaming
+                  .getOriginalSignature()
+                  .equals(activeMappedRange.getOriginalSignature())) {
+            // If we already parsed a residual signature for the newly read mapped range and have
+            // lost the information about the residual signature we re-create it again.
+            activeMappedRange.setResidualSignatureInternal(
+                lastAddedNaming.getResidualSignature().asMethodSignature());
+          }
         }
       }
 

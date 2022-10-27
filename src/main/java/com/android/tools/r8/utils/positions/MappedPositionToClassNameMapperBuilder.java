@@ -45,6 +45,7 @@ import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.OneShotCollectionConsumer;
 import com.android.tools.r8.utils.OriginalSourceFiles;
 import com.android.tools.r8.utils.Pair;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
@@ -196,9 +197,11 @@ public class MappedPositionToClassNameMapperBuilder {
       MethodSignature originalSignature =
           MethodSignature.fromDexMethod(originalMethod, originalMethod.holder != originalType);
 
-      List<MappingInformation> methodMappingInfo = new ArrayList<>();
+      OneShotCollectionConsumer<MappingInformation> methodSpecificMappingInformation =
+          OneShotCollectionConsumer.wrap(new ArrayList<>());
       if (method.getDefinition().isD8R8Synthesized()) {
-        methodMappingInfo.add(CompilerSynthesizedMappingInformation.builder().build());
+        methodSpecificMappingInformation.add(
+            CompilerSynthesizedMappingInformation.builder().build());
       }
 
       DexMethod residualMethod =
@@ -208,7 +211,7 @@ public class MappedPositionToClassNameMapperBuilder {
       if (isIdentityMapping(
           mapFileVersion,
           mappedPositions,
-          methodMappingInfo,
+          methodSpecificMappingInformation,
           method,
           residualMethod.getName(),
           originalMethod,
@@ -221,7 +224,7 @@ public class MappedPositionToClassNameMapperBuilder {
       if (mapFileVersion.isGreaterThan(MapVersion.MAP_VERSION_2_1)
           && originalMethod != method.getReference()
           && !appView.graphLens().isSimpleRenaming(residualMethod)) {
-        methodMappingInfo.add(
+        methodSpecificMappingInformation.add(
             ResidualMethodSignatureMappingInformation.fromDexMethod(residualMethod));
       }
       MethodSignature residualSignature = MethodSignature.fromDexMethod(residualMethod);
@@ -233,7 +236,8 @@ public class MappedPositionToClassNameMapperBuilder {
       if (mappedPositions.isEmpty()) {
         MappedRange range =
             getBuilder().addMappedRange(null, originalSignature, null, residualSignature.getName());
-        methodMappingInfo.forEach(info -> range.addMappingInformation(info, Unreachable::raise));
+        methodSpecificMappingInformation.consume(
+            info -> range.addMappingInformation(info, Unreachable::raise));
         return this;
       }
 
@@ -252,7 +256,7 @@ public class MappedPositionToClassNameMapperBuilder {
                 outlineMethod,
                 outline -> new OutlineFixupBuilder(computeMappedMethod(outline, appView)))
             .setMappedPositionsOutline(mappedPositions);
-        methodMappingInfo.add(OutlineMappingInformation.builder().build());
+        methodSpecificMappingInformation.add(OutlineMappingInformation.builder().build());
       }
 
       // Update memberNaming with the collected positions, merging multiple positions into a
@@ -311,9 +315,8 @@ public class MappedPositionToClassNameMapperBuilder {
                 firstPosition.getCaller(),
                 prunedInlinedClasses,
                 cardinalRangeCache);
-        for (MappingInformation info : methodMappingInfo) {
-          lastMappedRange.addMappingInformation(info, Unreachable::raise);
-        }
+        methodSpecificMappingInformation.consume(
+            info -> lastMappedRange.addMappingInformation(info, Unreachable::raise));
         // firstPosition will contain a potential outline caller.
         if (firstPosition.getOutlineCallee() != null) {
           Int2IntMap positionMap = new Int2IntArrayMap();
@@ -427,7 +430,7 @@ public class MappedPositionToClassNameMapperBuilder {
     private boolean isIdentityMapping(
         MapVersion mapFileVersion,
         List<MappedPosition> mappedPositions,
-        List<MappingInformation> methodMappingInfo,
+        OneShotCollectionConsumer<MappingInformation> methodMappingInfo,
         ProgramMethod method,
         DexString obfuscatedNameDexString,
         DexMethod originalMethod,

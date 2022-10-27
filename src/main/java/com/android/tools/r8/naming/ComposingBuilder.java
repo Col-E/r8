@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.naming;
 
-import static com.android.tools.r8.naming.MappedRangeUtils.addAllInlineFramesUntilOutermostCaller;
 import static com.android.tools.r8.naming.MappedRangeUtils.isInlineMappedRange;
 import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
 
@@ -486,16 +485,23 @@ public class ComposingBuilder {
       Map<String, String> inverseClassMapping =
           classNameMapper.getObfuscatedToOriginalMapping().inverse;
       for (Entry<String, MappedRangesOfName> entry : mapper.mappedRangesByRenamedName.entrySet()) {
-        MappedRangesOfName value = entry.getValue();
-        List<MappedRange> mappedRanges = value.getMappedRanges();
-        MappedRangeResult mappedRangeResult;
-        int index = 0;
-        while ((mappedRangeResult = getMappedRangesForMethod(mappedRanges, index)) != null) {
-          index = mappedRangeResult.endIndex;
-          MappedRange newMappedRange = mappedRangeResult.lastRange;
-          MethodSignature originalSignature = newMappedRange.signature;
-          List<MappedRange> existingMappedRanges = null;
+        MappedRangesOfName mappedRangesOfName = entry.getValue();
+        for (MappedRangesOfName rangesOfName : mappedRangesOfName.partitionOnMethodSignature()) {
+          MemberNaming memberNaming = rangesOfName.getMemberNaming(mapper);
+          List<MappedRange> newMappedRanges = rangesOfName.getMappedRanges();
+          RangeBuilder minified = new RangeBuilder();
+          RangeBuilder original = new RangeBuilder();
+          for (MappedRange mappedRange : newMappedRanges) {
+            minified.addRange(mappedRange.minifiedRange);
+            original.addRange(mappedRange.originalRange);
+            // Register mapping information that is dependent on the residual naming to allow
+            // updating later on.
+            registerMappingInformationFromMappedRanges(mappedRange);
+          }
+          MethodSignature originalSignature =
+              memberNaming.getOriginalSignature().asMethodSignature();
           // Remove the existing entry if it exists.
+          List<MappedRange> existingMappedRanges = null;
           if (committedPreviousClassBuilder != null) {
             SegmentTree<List<MappedRange>> listSegmentTree =
                 committedPreviousClassBuilder.methodsWithPosition.get(originalSignature);
@@ -505,33 +511,29 @@ public class ComposingBuilder {
               // emits `1:1:void foo() -> a` instead of `1:1:void foo():1:1 -> a`, so R8 must
               // capture the preamble position by explicitly inserting 0 as original range.
               Entry<Integer, List<MappedRange>> existingEntry =
-                  listSegmentTree.findEntry(mappedRangeResult.startOriginalPosition);
+                  listSegmentTree.findEntry(original.getStartOrNoRangeFrom());
               // We assume that all new minified ranges for a method are rewritten in the new map
               // such that no previous existing positions exists.
               if (existingEntry != null) {
                 listSegmentTree.removeSegment(existingEntry.getKey());
                 existingMappedRanges = existingEntry.getValue();
               } else {
-                Range originalRange = newMappedRange.originalRange;
                 // The original can be discarded if it no longer exists or if the method is
                 // non-throwing.
-                if (mappedRangeResult.startOriginalPosition > 0
-                    && (originalRange == null || !newMappedRange.originalRange.isPreamble())
+                if (original.hasValue()
+                    && !original.isPreamble()
                     && !options.mappingComposeOptions().allowNonExistingOriginalRanges) {
                   throw new MappingComposeException(
                       "Could not find original starting position of '"
-                          + mappedRangeResult.lastRange
+                          + minified.start
                           + "' which should be "
-                          + mappedRangeResult.startOriginalPosition);
+                          + original.start);
                 }
               }
-              assert newMappedRange.minifiedRange != null;
+              assert minified.hasValue();
             } else {
               MappedRange existingMappedRange =
-                  committedPreviousClassBuilder.methodsWithoutPosition.get(originalSignature);
-              if (existingMappedRange != null) {
-                committedPreviousClassBuilder.methodsWithoutPosition.remove(originalSignature);
-              }
+                  committedPreviousClassBuilder.methodsWithoutPosition.remove(originalSignature);
               existingMappedRanges =
                   existingMappedRange == null
                       ? null
@@ -539,18 +541,18 @@ public class ComposingBuilder {
             }
           }
           List<MappedRange> composedRanges =
-              composeMappedRangesForMethod(existingMappedRanges, mappedRangeResult.allRanges);
+              composeMappedRangesForMethod(existingMappedRanges, newMappedRanges);
           MappedRange lastComposedRange = ListUtils.last(composedRanges);
           MethodSignature residualSignature =
-              newMappedRange
+              memberNaming
                   .computeResidualSignature(type -> inverseClassMapping.getOrDefault(type, type))
                   .asMethodSignature();
           if (lastComposedRange.minifiedRange != null) {
             methodsWithPosition
                 .computeIfAbsent(residualSignature, ignored -> new SegmentTree<>(false))
                 .add(
-                    mappedRangeResult.startMinifiedPosition,
-                    newMappedRange.minifiedRange.to,
+                    minified.getStartOrNoRangeFrom(),
+                    minified.getEndOrNoRangeFrom(),
                     composedRanges);
           } else {
             assert composedRanges.size() == 1;
@@ -560,78 +562,32 @@ public class ComposingBuilder {
       }
     }
 
-    /***
-     * Iterates over mapped ranges in order, starting from index, and adds to an internal result as
-     * long as the current mapped range is the same method and return a mapped range result
-     * containing all ranges for a method along with some additional information.
-     */
-    private MappedRangeResult getMappedRangesForMethod(List<MappedRange> mappedRanges, int index)
+    private void registerMappingInformationFromMappedRanges(MappedRange mappedRange)
         throws MappingComposeException {
-      if (index >= mappedRanges.size()) {
-        return null;
-      }
-      int startIndex = index;
-      List<MappedRange> seenMappedRanges = new ArrayList<>();
-      int startMinifiedPosition = NO_RANGE_FROM;
-      int startOriginalPosition = NO_RANGE_FROM;
-      MappedRange lastOutermost = null;
-      while (index < mappedRanges.size()) {
-        List<MappedRange> mappedRangesForThisInterval = new ArrayList<>();
-        index =
-            addAllInlineFramesUntilOutermostCaller(
-                mappedRanges, index, mappedRangesForThisInterval);
-        assert mappedRangesForThisInterval.size() > 0;
-        MappedRange lastForThisInterval = ListUtils.last(mappedRangesForThisInterval);
-        if (lastOutermost == null) {
-          startMinifiedPosition =
-              lastForThisInterval.minifiedRange != null
-                  ? lastForThisInterval.minifiedRange.from
-                  : NO_RANGE_FROM;
-          startOriginalPosition =
-              lastForThisInterval.getFirstPositionOfOriginalRange(NO_RANGE_FROM);
-        }
-        if (lastOutermost != null
-            && !lastForThisInterval.signature.equals(lastOutermost.signature)) {
-          break;
-        }
-        // Register mapping information that is dependent on the residual naming to allow updating
-        // later on.
-        for (MappedRange mappedRange : mappedRangesForThisInterval) {
-          for (MappingInformation mappingInformation :
-              mappedRange.getAdditionalMappingInformation()) {
-            if (mappingInformation.isRewriteFrameMappingInformation()) {
-              RewriteFrameMappingInformation rewriteFrameMappingInformation =
-                  mappingInformation.asRewriteFrameMappingInformation();
-              rewriteFrameMappingInformation
-                  .getConditions()
-                  .forEach(
-                      condition -> {
-                        if (condition.isThrowsCondition()) {
-                          current.rewriteFrameInformation.add(rewriteFrameMappingInformation);
-                        }
-                      });
-            } else if (mappingInformation.isOutlineCallsiteInformation()) {
-              OutlineCallsiteMappingInformation outlineCallsiteInfo =
-                  mappingInformation.asOutlineCallsiteInformation();
-              MethodReference outline = outlineCallsiteInfo.getOutline();
-              if (outline == null) {
-                throw new MappingComposeException(
-                    "Unable to compose outline call site information without outline key: "
-                        + outlineCallsiteInfo.serialize());
-              }
-              current.addNewOutlineCallsiteInformation(outline, outlineCallsiteInfo);
-            }
+      for (MappingInformation mappingInformation : mappedRange.getAdditionalMappingInformation()) {
+        if (mappingInformation.isRewriteFrameMappingInformation()) {
+          RewriteFrameMappingInformation rewriteFrameMappingInformation =
+              mappingInformation.asRewriteFrameMappingInformation();
+          rewriteFrameMappingInformation
+              .getConditions()
+              .forEach(
+                  condition -> {
+                    if (condition.isThrowsCondition()) {
+                      current.rewriteFrameInformation.add(rewriteFrameMappingInformation);
+                    }
+                  });
+        } else if (mappingInformation.isOutlineCallsiteInformation()) {
+          OutlineCallsiteMappingInformation outlineCallsiteInfo =
+              mappingInformation.asOutlineCallsiteInformation();
+          MethodReference outline = outlineCallsiteInfo.getOutline();
+          if (outline == null) {
+            throw new MappingComposeException(
+                "Unable to compose outline call site information without outline key: "
+                    + outlineCallsiteInfo.serialize());
           }
-          seenMappedRanges.add(mappedRange);
+          current.addNewOutlineCallsiteInformation(outline, outlineCallsiteInfo);
         }
-        lastOutermost = lastForThisInterval;
       }
-      return new MappedRangeResult(
-          startMinifiedPosition,
-          startOriginalPosition,
-          startIndex + seenMappedRanges.size(),
-          lastOutermost,
-          seenMappedRanges);
     }
 
     private List<MappedRange> composeMappedRangesForMethod(
@@ -1090,25 +1046,32 @@ public class ComposingBuilder {
       }
     }
 
-    private static class MappedRangeResult {
+    private static class RangeBuilder {
 
-      private final int startMinifiedPosition;
-      private final int startOriginalPosition;
-      private final int endIndex;
-      private final MappedRange lastRange;
-      private final List<MappedRange> allRanges;
+      private int start = Integer.MAX_VALUE;
+      private int end = Integer.MIN_VALUE;
 
-      public MappedRangeResult(
-          int startMinifiedPosition,
-          int startOriginalPosition,
-          int endIndex,
-          MappedRange lastRange,
-          List<MappedRange> allRanges) {
-        this.startMinifiedPosition = startMinifiedPosition;
-        this.startOriginalPosition = startOriginalPosition;
-        this.endIndex = endIndex;
-        this.lastRange = lastRange;
-        this.allRanges = allRanges;
+      private void addRange(Range range) {
+        if (range != null) {
+          start = Math.min(start, range.from);
+          end = Math.max(end, range.to);
+        }
+      }
+
+      private boolean hasValue() {
+        return start < Integer.MAX_VALUE;
+      }
+
+      private int getStartOrNoRangeFrom() {
+        return hasValue() ? start : NO_RANGE_FROM;
+      }
+
+      private int getEndOrNoRangeFrom() {
+        return hasValue() ? end : NO_RANGE_FROM;
+      }
+
+      private boolean isPreamble() {
+        return hasValue() && start == end && start == 0;
       }
     }
 

@@ -62,6 +62,12 @@ public class RetraceSynthesizedInnerFrameTest extends TestBase {
             .streamRewritten(RetraceStackTraceContext.empty())
             .map(RetracedSingleFrame::getMethodReference)
             .collect(Collectors.toList());
-    assertEquals(allFrames, nonSyntheticFrames);
+    // The input should never have a synthesized inline frame - rater it should have been removed
+    // from the mapping output. Because of the incorrect input we now attribute the synthesized
+    // information to the entire inline block.
+    assertEquals(1, nonSyntheticFrames.size());
+    assertEquals(
+        Reference.methodFromDescriptor("Lother;", "strawberry", "(I)I"),
+        nonSyntheticFrames.get(0).asKnown().getMethodReference());
   }
 }
