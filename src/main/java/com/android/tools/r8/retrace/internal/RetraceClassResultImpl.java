@@ -131,12 +131,11 @@ public class RetraceClassResultImpl implements RetraceClassResult {
                       .getResidualSignature()
                       .equals(methodSignature));
     }
-    boolean isAmbiguous = partitions.size() > 1;
     return ListUtils.map(
         partitions,
         mappedRangesOfName ->
             new MemberNamingWithMappedRangesOfName(
-                mappedRangesOfName.getMemberNaming(mapper, isAmbiguous), mappedRangesOfName));
+                mappedRangesOfName.getMemberNaming(mapper), mappedRangesOfName));
   }
 
   private static <T, D extends Definition> void lookupElement(

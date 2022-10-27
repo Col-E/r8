@@ -253,12 +253,8 @@ public class ClassNamingForNameMapper implements ClassNaming {
       return partitionedMappings;
     }
 
-    public MemberNaming getMemberNaming(
-        ClassNamingForNameMapper classNamingForNameMapper, boolean hasMultipleResults) {
+    public MemberNaming getMemberNaming(ClassNamingForNameMapper classNamingForNameMapper) {
       MappedRange lastMappedRange = ListUtils.last(mappedRanges);
-      if (hasMultipleResults) {
-        return null;
-      }
       MethodSignature signature = lastMappedRange.getResidualSignature();
       MemberNaming memberNaming = classNamingForNameMapper.methodMembers.get(signature);
       assert memberNaming != null;
