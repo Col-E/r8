@@ -1282,12 +1282,17 @@ public class ClassFileTransformer {
 
   public ClassFileTransformer transformMethodInsnInMethod(
       String methodName, MethodInsnTransform transform) {
+    return transformMethodInsnInMethod(MethodPredicate.onName(methodName), transform);
+  }
+
+  public ClassFileTransformer transformMethodInsnInMethod(
+      MethodPredicate predicate, MethodInsnTransform transform) {
     return addMethodTransformer(
         new MethodTransformer() {
           @Override
           public void visitMethodInsn(
               int opcode, String owner, String name, String descriptor, boolean isInterface) {
-            if (getContext().method.getMethodName().equals(methodName)) {
+            if (MethodPredicate.testContext(predicate, getContext())) {
               transform.visitMethodInsn(
                   opcode,
                   owner,
