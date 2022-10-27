@@ -9,8 +9,4 @@ public class Path {
   public static j$.nio.file.Path wrap_convert(java.nio.file.Path path) {
     return null;
   }
-
-  public static java.nio.file.Path wrap_convert(j$.nio.file.Path path) {
-    return null;
-  }
 }

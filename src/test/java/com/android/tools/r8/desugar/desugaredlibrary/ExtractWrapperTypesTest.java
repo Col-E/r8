@@ -123,7 +123,13 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
 
   // TODO(b/238179854): Investigate how to fix these.
   private static final Set<String> MISSING_GENERIC_TYPE_CONVERSION_PATH =
-      ImmutableSet.of("java.lang.Iterable java.nio.file.FileSystem.getFileStores()");
+      ImmutableSet.of(
+          "java.lang.Iterable java.nio.file.FileSystem.getFileStores()",
+          "java.lang.Iterable java.nio.file.FileSystem.getRootDirectories()",
+          "java.util.Iterator java.nio.file.Path.iterator()",
+          "java.nio.file.DirectoryStream"
+              + " java.nio.file.spi.FileSystemProvider.newDirectoryStream(java.nio.file.Path,"
+              + " java.nio.file.DirectoryStream$Filter)");
 
   // TODO(b/238179854): Investigate how to fix these.
   private static final Set<String> MISSING_GENERIC_TYPE_CONVERSION_FLOW =
@@ -239,18 +245,6 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
             .collect(Collectors.toSet());
     Set<String> maintainTypeInSet =
         specification.getMaintainType().stream().map(DexType::toString).collect(Collectors.toSet());
-    Map<String, boolean[]> genericConversionsInSpec = new HashMap<>();
-    specification
-        .getApiGenericConversion()
-        .forEach(
-            (method, generics) -> {
-              boolean[] indexes = new boolean[generics.length];
-              for (int i = 0; i < generics.length; i++) {
-                indexes[i] = generics[i] != null;
-              }
-              genericConversionsInSpec.put(method.toString(), indexes);
-            });
-
     assertEquals(
         Collections.emptySet(), Sets.intersection(wrappersInSpec, customConversionsInSpec));
 
@@ -263,7 +257,6 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
             nonDesugaredJar,
             customConversionsInSpec,
             maintainTypeInSet,
-            genericConversionsInSpec,
             genericDependencies);
     Map<ClassReference, Set<ClassReference>> indirectWrappers =
         getIndirectlyReferencedWrapperTypes(
@@ -273,7 +266,6 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
             customConversionsInSpec,
             maintainTypeInSet,
             specification.getWrappers(),
-            genericConversionsInSpec,
             genericDependencies);
     {
       Set<String> missingGenericDependency = new HashSet<>();
@@ -347,7 +339,6 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
       CodeInspector nonDesugaredJar,
       Set<String> customConversions,
       Set<String> maintainType,
-      Map<String, boolean[]> genericConversionsInSpec,
       Set<DexEncodedMethod> genericDependencies) {
     Map<ClassReference, Set<MethodReference>> directWrappers = new HashMap<>();
     nonDesugaredJar.forAllClasses(
@@ -373,7 +364,6 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
                 forEachType(
                     method,
                     t -> addType(adder, t, preDesugarTypes, customConversions, maintainType),
-                    genericConversionsInSpec,
                     genericDependencies);
               });
         });
@@ -383,20 +373,12 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
   private void forEachType(
       FoundMethodSubject subject,
       Function<String, Boolean> process,
-      Map<String, boolean[]> genericConversionsInSpec,
       Set<DexEncodedMethod> generics) {
-    boolean[] genericConversions = genericConversionsInSpec.get(subject.toString());
     MethodSignature signature = subject.getFinalSignature().asMethodSignature();
-    if (genericConversions == null || !genericConversions[genericConversions.length - 1]) {
-      process.apply(signature.type);
+    process.apply(signature.type);
+    for (String parameter : signature.parameters) {
+      process.apply(parameter);
     }
-    for (int i = 0; i < signature.parameters.length; i++) {
-      if (genericConversions == null || !genericConversions[i]) {
-        process.apply(signature.parameters[i]);
-      }
-    }
-    // Even if the genericConversions are present, we check the generic types since conversions
-    // on such types will happen through the hand written custom wrappers.
     MethodTypeSignature genericSignature = subject.getMethod().getGenericSignature();
     if (genericSignature != null) {
       TypeSignature[] typeSignatures = new TypeSignature[signature.parameters.length + 1];
@@ -405,17 +387,15 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
       }
       typeSignatures[signature.parameters.length] = genericSignature.returnType().typeSignature();
       for (TypeSignature typeSignature : typeSignatures) {
-        if (typeSignature != null) {
-          if ((typeSignature instanceof ClassTypeSignature)) {
-            for (FieldTypeSignature typeArgument :
-                ((ClassTypeSignature) typeSignature).typeArguments()) {
-              if (typeArgument instanceof ClassTypeSignature) {
-                String type = descriptorToJavaType(typeArgument.toString()).split("<")[0];
-                if (!GENERIC_NOT_NEEDED.contains(type)) {
-                  boolean added = process.apply(type);
-                  if (added) {
-                    generics.add(subject.getMethod());
-                  }
+        if ((typeSignature instanceof ClassTypeSignature)) {
+          for (FieldTypeSignature typeArgument :
+              ((ClassTypeSignature) typeSignature).typeArguments()) {
+            if (typeArgument instanceof ClassTypeSignature) {
+              String type = descriptorToJavaType(typeArgument.toString()).split("<")[0];
+              if (!GENERIC_NOT_NEEDED.contains(type)) {
+                boolean added = process.apply(type);
+                if (added) {
+                  generics.add(subject.getMethod());
                 }
               }
             }
@@ -432,7 +412,6 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
       Set<String> customConversions,
       Set<String> maintainType,
       Map<DexType, WrapperDescriptor> wrapperDescriptorMap,
-      Map<String, boolean[]> genericConversionsInSpec,
       Set<DexEncodedMethod> genericDependencies) {
     Map<ClassReference, Set<ClassReference>> indirectWrappers = new HashMap<>();
     WorkList<ClassReference> worklist = WorkList.newEqualityWorkList(directWrappers.keySet());
@@ -456,7 +435,6 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
             forEachType(
                 method,
                 t -> addType(adder, t, existing, customConversions, maintainType),
-                genericConversionsInSpec,
                 genericDependencies);
           });
       WrapperDescriptor descriptor = wrapperDescriptorMap.get(clazz.getDexProgramClass().getType());

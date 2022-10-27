@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.OpenOption;
@@ -29,7 +28,6 @@ import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,10 +50,7 @@ public class FilesTest extends DesugaredLibraryTestBase {
           "null",
           "true",
           "unsupported",
-          "j$.nio.file.attribute",
-          "tmp",
-          "/",
-          "true");
+          "j$.nio.file.attribute");
   private static final String EXPECTED_RESULT_DESUGARING_FILE_SYSTEM_PLATFORM_CHANNEL =
       StringUtils.lines(
           "bytes written: 11",
@@ -67,10 +62,7 @@ public class FilesTest extends DesugaredLibraryTestBase {
           "null",
           "true",
           "unsupported",
-          "j$.nio.file.attribute",
-          "tmp",
-          "/",
-          "true");
+          "j$.nio.file.attribute");
   private static final String EXPECTED_RESULT_PLATFORM_FILE_SYSTEM_DESUGARING =
       StringUtils.lines(
           "bytes written: 11",
@@ -82,10 +74,7 @@ public class FilesTest extends DesugaredLibraryTestBase {
           "true",
           "true",
           "true",
-          "j$.nio.file.attribute",
-          "tmp",
-          "/",
-          "true");
+          "j$.nio.file.attribute");
   private static final String EXPECTED_RESULT_PLATFORM_FILE_SYSTEM =
       StringUtils.lines(
           "bytes written: 11",
@@ -97,10 +86,7 @@ public class FilesTest extends DesugaredLibraryTestBase {
           "true",
           "true",
           "true",
-          "java.nio.file.attribute",
-          "tmp",
-          "/",
-          "true");
+          "java.nio.file.attribute");
 
   private final TestParameters parameters;
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
@@ -158,18 +144,6 @@ public class FilesTest extends DesugaredLibraryTestBase {
       readThroughFileChannelAPI(path);
       attributeAccess(path);
       fspMethodsWithGeneric(path);
-      pathGeneric();
-    }
-
-    private static void pathGeneric() throws IOException {
-      Path tmpDict = Files.createTempDirectory("tmpDict");
-      Path tmpFile = Files.createFile(tmpDict.resolve("tmpFile"));
-      Iterator<Path> iterator = tmpDict.iterator();
-      System.out.println(iterator.next());
-      Iterable<Path> rootDirectories = tmpFile.getFileSystem().getRootDirectories();
-      System.out.println(rootDirectories.iterator().next());
-      DirectoryStream<Path> paths = Files.newDirectoryStream(tmpDict);
-      System.out.println(paths.iterator().hasNext());
     }
 
     private static void fspMethodsWithGeneric(Path path) throws IOException {
