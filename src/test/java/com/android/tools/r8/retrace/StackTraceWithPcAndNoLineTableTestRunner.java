@@ -61,24 +61,12 @@ public class StackTraceWithPcAndNoLineTableTestRunner extends TestBase {
               assertEquals(
                   "SourceFile",
                   inspector.clazz(getTestClass()).getDexProgramClass().sourceFile.toString());
-              // The stack-trace should not have line numbers unless on a VM with DEX PC support.
+              // TODO(b/202919530): The stack-trace should have line positions since they are
+              //  essentially free when compiling for dex.
               if (parameters.isDexRuntime()
                   && parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V8_1_0)) {
-                if (parameters
-                    .getApiLevel()
-                    .isGreaterThanOrEqualTo(apiLevelWithPcAsLineNumberSupport())) {
-                  // TODO(b/202919530): With PC support it should retrace.
-                  assertThat(
-                      stacktrace,
-                      StackTrace.isSameExceptForLineNumbers(getExpectedStackTrace(true)));
-                } else {
-                  // Compiling for an API level before PC support it may be unfeasible to include
-                  // the mapping information due to mapping size increase. That is up for
-                  // discussion.
-                  assertThat(
-                      stacktrace,
-                      StackTrace.isSameExceptForLineNumbers(getExpectedStackTrace(true)));
-                }
+                assertThat(
+                    stacktrace, StackTrace.isSameExceptForLineNumbers(getExpectedStackTrace(true)));
               } else {
                 // Having stripped the line-number table, the raw stack will not have line info.
                 assertThat(stacktrace, StackTrace.isSame(getExpectedStackTrace(false)));
@@ -95,14 +83,30 @@ public class StackTraceWithPcAndNoLineTableTestRunner extends TestBase {
                 .setClassName(className)
                 .setFileName(sourceFile)
                 .setMethodName("foo")
-                .applyIf(withLines, b -> b.setLineNumber(10))
+                .applyIf(
+                    withLines,
+                    b -> b.setLineNumber(10),
+                    b -> {
+                      if (parameters.isDexRuntime()) {
+                        // TODO(b/255705077): Should not have position 0.
+                        b.setLineNumber(0);
+                      }
+                    })
                 .build())
         .add(
             StackTraceLine.builder()
                 .setClassName(className)
                 .setFileName(sourceFile)
                 .setMethodName("bar")
-                .applyIf(withLines, b -> b.setLineNumber(15))
+                .applyIf(
+                    withLines,
+                    b -> b.setLineNumber(15),
+                    b -> {
+                      if (parameters.isDexRuntime()) {
+                        // TODO(b/255705077): Should not have position 0.
+                        b.setLineNumber(0);
+                      }
+                    })
                 .build())
         .add(
             StackTraceLine.builder()

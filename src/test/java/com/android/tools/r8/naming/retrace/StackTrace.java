@@ -163,6 +163,16 @@ public class StackTrace {
         return this;
       }
 
+      public Builder applyIf(
+          boolean condition, Consumer<Builder> trueConsumer, Consumer<Builder> elseConsumer) {
+        if (condition) {
+          trueConsumer.accept(this);
+        } else {
+          elseConsumer.accept(this);
+        }
+        return this;
+      }
+
       public StackTraceLine build() {
         String lineNumberPart = lineNumber >= 0 ? ":" + lineNumber : "";
         String originalLine = className + '.' + methodName + '(' + fileName + lineNumberPart + ')';
