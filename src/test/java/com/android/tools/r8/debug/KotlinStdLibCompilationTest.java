@@ -50,7 +50,8 @@ public class KotlinStdLibCompilationTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .compileWithExpectedDiagnostics(
             diagnostics -> {
-              if (parameters.isDexRuntime()
+              if (kotlinTestParameters.isKotlinDev()
+                  && parameters.isDexRuntime()
                   && parameters.getApiLevel().isLessThan(AndroidApiLevel.N)) {
                 diagnostics.assertWarningsCount(2);
                 diagnostics.assertAllWarningsMatch(
