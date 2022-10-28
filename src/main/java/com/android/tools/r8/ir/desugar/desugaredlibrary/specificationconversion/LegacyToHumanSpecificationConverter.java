@@ -161,7 +161,7 @@ public class LegacyToHumanSpecificationConverter {
           itemFactory.createMethod(
               itemFactory.createType(itemFactory.arraysDescriptor), proto, name);
       DexType target = itemFactory.createType("Ljava/util/DesugarArrays;");
-      builder.retargetMethod(source, target);
+      builder.retargetMethodToType(source, target);
 
       builder.amendLibraryMethod(
           source,
@@ -178,7 +178,7 @@ public class LegacyToHumanSpecificationConverter {
       source =
           itemFactory.createMethod(itemFactory.createType("Ljava/util/TimeZone;"), proto, name);
       target = itemFactory.createType("Ljava/util/DesugarTimeZone;");
-      builder.retargetMethod(source, target);
+      builder.retargetMethodToType(source, target);
     }
     // Required by
     // https://github.com/google/desugar_jdk_libs/commit/485071cd09a3691549d065ba9e323d07edccf085.
@@ -272,9 +272,9 @@ public class LegacyToHumanSpecificationConverter {
             if (definition.isStatic()
                 || definition.isFinal()
                 || dexClassAndMethod.getHolder().isFinal()) {
-              builder.retargetMethod(dexClassAndMethod.getReference(), rewrittenType);
+              builder.retargetMethodToType(dexClassAndMethod.getReference(), rewrittenType);
             } else {
-              builder.retargetMethodEmulatedDispatch(
+              builder.retargetMethodEmulatedDispatchToType(
                   dexClassAndMethod.getReference(), rewrittenType);
             }
           }

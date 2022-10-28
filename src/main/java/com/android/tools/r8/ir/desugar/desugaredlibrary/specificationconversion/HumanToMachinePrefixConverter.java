@@ -50,11 +50,14 @@ public class HumanToMachinePrefixConverter {
   public void convertPrefixFlags(
       HumanRewritingFlags rewritingFlags, BiConsumer<String, Set<DexString>> warnConsumer) {
     rewriteClasses();
-    rewriteValues(rewritingFlags.getRetargetMethod());
-    rewriteValues(rewritingFlags.getRetargetMethodEmulatedDispatch());
+    rewriteValues(rewritingFlags.getRetargetMethodToType());
+    rewriteValues(rewritingFlags.getRetargetMethodEmulatedDispatchToType());
     rewriteValues(rewritingFlags.getCustomConversions());
+    rewriteMethodValues(rewritingFlags.getRetargetMethodToMethod());
+    rewriteMethodValues(rewritingFlags.getRetargetMethodEmulatedDispatchToMethod());
     rewriteEmulatedInterface(rewritingFlags.getEmulatedInterfaces());
-    rewriteRetargetKeys(rewritingFlags.getRetargetMethodEmulatedDispatch());
+    rewriteRetargetKeys(rewritingFlags.getRetargetMethodEmulatedDispatchToType());
+    rewriteRetargetKeys(rewritingFlags.getRetargetMethodEmulatedDispatchToMethod());
     rewriteApiConversions(rewritingFlags.getApiGenericConversion());
     warnIfUnusedPrefix(warnConsumer);
   }
@@ -79,7 +82,7 @@ public class HumanToMachinePrefixConverter {
                 convertedPrefix + interfaceType.substring(firstPackage + 1)));
   }
 
-  private void rewriteRetargetKeys(Map<DexMethod, DexType> retarget) {
+  private void rewriteRetargetKeys(Map<DexMethod, ?> retarget) {
     for (DexMethod dexMethod : retarget.keySet()) {
       DexType type = convertJavaNameToDesugaredLibrary(dexMethod.holder);
       builder.rewriteDerivedTypeOnly(dexMethod.holder, type);
@@ -105,6 +108,12 @@ public class HumanToMachinePrefixConverter {
       Map<?, DexType> flags) {
     for (DexType type : flags.values()) {
       registerType(type);
+    }
+  }
+
+  private void rewriteMethodValues(Map<?, DexMethod> flags) {
+    for (DexMethod method : flags.values()) {
+      registerType(method.getHolderType());
     }
   }
 

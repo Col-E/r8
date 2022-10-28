@@ -302,23 +302,32 @@ public class HumanDesugaredLibrarySpecificationParser {
     if (jsonFlagSet.has(RETARGET_METHOD_KEY)) {
       for (Map.Entry<String, JsonElement> retarget :
           jsonFlagSet.get(RETARGET_METHOD_KEY).getAsJsonObject().entrySet()) {
-        builder.retargetMethod(
-            parseMethod(retarget.getKey()),
-            stringDescriptorToDexType(retarget.getValue().getAsString()));
+        String key = retarget.getKey();
+        String value = retarget.getValue().getAsString();
+        if (value.contains("#")) {
+          builder.retargetMethodToMethod(parseMethod(key), parseMethod(value));
+        } else {
+          builder.retargetMethodToType(parseMethod(key), stringDescriptorToDexType(value));
+        }
+      }
+    }
+    if (jsonFlagSet.has(RETARGET_METHOD_EMULATED_DISPATCH_KEY)) {
+      for (Map.Entry<String, JsonElement> retarget :
+          jsonFlagSet.get(RETARGET_METHOD_EMULATED_DISPATCH_KEY).getAsJsonObject().entrySet()) {
+        String key = retarget.getKey();
+        String value = retarget.getValue().getAsString();
+        if (value.contains("#")) {
+          builder.retargetMethodEmulatedDispatchToMethod(parseMethod(key), parseMethod(value));
+        } else {
+          builder.retargetMethodEmulatedDispatchToType(
+              parseMethod(key), stringDescriptorToDexType(value));
+        }
       }
     }
     if (jsonFlagSet.has(COVARIANT_RETARGET_METHOD_KEY)) {
       for (Map.Entry<String, JsonElement> retarget :
           jsonFlagSet.get(COVARIANT_RETARGET_METHOD_KEY).getAsJsonObject().entrySet()) {
         builder.covariantRetargetMethod(
-            parseMethod(retarget.getKey()),
-            stringDescriptorToDexType(retarget.getValue().getAsString()));
-      }
-    }
-    if (jsonFlagSet.has(RETARGET_METHOD_EMULATED_DISPATCH_KEY)) {
-      for (Map.Entry<String, JsonElement> retarget :
-          jsonFlagSet.get(RETARGET_METHOD_EMULATED_DISPATCH_KEY).getAsJsonObject().entrySet()) {
-        builder.retargetMethodEmulatedDispatch(
             parseMethod(retarget.getKey()),
             stringDescriptorToDexType(retarget.getValue().getAsString()));
       }

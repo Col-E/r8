@@ -93,15 +93,15 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
         commonBuilder::putEmulatedInterface,
         builder::putEmulatedInterface);
     deduplicateFlags(
-        flags.getRetargetMethod(),
-        otherFlags.getRetargetMethod(),
-        commonBuilder::retargetMethod,
-        builder::retargetMethod);
+        flags.getRetargetMethodToType(),
+        otherFlags.getRetargetMethodToType(),
+        commonBuilder::retargetMethodToType,
+        builder::retargetMethodToType);
     deduplicateFlags(
-        flags.getRetargetMethodEmulatedDispatch(),
-        otherFlags.getRetargetMethodEmulatedDispatch(),
-        commonBuilder::retargetMethodEmulatedDispatch,
-        builder::retargetMethodEmulatedDispatch);
+        flags.getRetargetMethodEmulatedDispatchToType(),
+        otherFlags.getRetargetMethodEmulatedDispatchToType(),
+        commonBuilder::retargetMethodEmulatedDispatchToType,
+        builder::retargetMethodEmulatedDispatchToType);
     deduplicateFlags(
         flags.getLegacyBackport(),
         otherFlags.getLegacyBackport(),

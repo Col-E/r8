@@ -35,13 +35,15 @@
         "long java.util.concurrent.TimeUnit#convert(java.time.Duration)": "java.util.concurrent.DesugarTimeUnit"
       },
       "retarget_method_with_emulated_dispatch": {
-        "long java.io.InputStream#transferTo(java.io.OutputStream)": "java.io.DesugarInputStream"
+        "long java.io.InputStream#transferTo(java.io.OutputStream)": "java.io.DesugarInputStream",
+        "long java.io.ByteArrayInputStream#transferTo(java.io.OutputStream)": "long java.io.DesugarInputStream#transferTo(java.io.InputStream, java.io.OutputStream)"
       },
       "amend_library_method": [
         "public static java.util.concurrent.TimeUnit java.util.concurrent.TimeUnit#of(java.time.temporal.ChronoUnit)",
         "public java.time.temporal.ChronoUnit java.util.concurrent.TimeUnit#toChronoUnit()",
         "public long java.util.concurrent.TimeUnit#convert(java.time.Duration)",
-        "public long java.io.InputStream#transferTo(java.io.OutputStream)"
+        "public long java.io.InputStream#transferTo(java.io.OutputStream)",
+        "public long java.io.ByteArrayInputStream#transferTo(java.io.OutputStream)"
       ]
     },
     {

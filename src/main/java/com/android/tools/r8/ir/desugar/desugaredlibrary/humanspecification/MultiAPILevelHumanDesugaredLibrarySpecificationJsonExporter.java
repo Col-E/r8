@@ -124,13 +124,22 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationJsonExporter {
       if (!flags.getRetargetStaticField().isEmpty()) {
         toJson.put(RETARGET_STATIC_FIELD_KEY, mapToString(flags.getRetargetStaticField()));
       }
-      if (!flags.getRetargetMethod().isEmpty()) {
-        toJson.put(RETARGET_METHOD_KEY, mapToString(flags.getRetargetMethod()));
+      if (!flags.getRetargetMethodToType().isEmpty()) {
+        toJson.put(RETARGET_METHOD_KEY, mapToString(flags.getRetargetMethodToType()));
       }
-      if (!flags.getRetargetMethodEmulatedDispatch().isEmpty()) {
+      if (!flags.getRetargetMethodEmulatedDispatchToMethod().isEmpty()) {
+        toJson.put(
+            RETARGET_METHOD_KEY, mapToString(flags.getRetargetMethodEmulatedDispatchToMethod()));
+      }
+      if (!flags.getRetargetMethodEmulatedDispatchToType().isEmpty()) {
         toJson.put(
             RETARGET_METHOD_EMULATED_DISPATCH_KEY,
-            mapToString(flags.getRetargetMethodEmulatedDispatch()));
+            mapToString(flags.getRetargetMethodEmulatedDispatchToType()));
+      }
+      if (!flags.getRetargetMethodEmulatedDispatchToMethod().isEmpty()) {
+        toJson.put(
+            RETARGET_METHOD_EMULATED_DISPATCH_KEY,
+            mapToString(flags.getRetargetMethodEmulatedDispatchToMethod()));
       }
       if (!flags.getDontRetarget().isEmpty()) {
         toJson.put(DONT_RETARGET_KEY, setToString(flags.getDontRetarget()));

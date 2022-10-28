@@ -13,6 +13,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -64,6 +65,25 @@ public class InputStreamTransferToTest extends DesugaredLibraryTestBase {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
         .addProgramFiles(INPUT_JAR)
         .addKeepMainRule(MAIN_CLASS)
+        .run(parameters.getRuntime(), MAIN_CLASS)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
+  }
+
+  /**
+   * See b/248200357, in T an override or transferTo was introduced in android.jar changing
+   * resolution.
+   */
+  @Test
+  public void testWithAndroidJarFromT() throws Exception {
+    // The method is not present on JDK8 so if we don't desugar that won't work.
+    Assume.assumeFalse(
+        parameters.isCfRuntime(CfVm.JDK8)
+            && !libraryDesugaringSpecification.hasNioFileDesugaring(parameters)
+            && compilationSpecification.isCfToCf());
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+        .addProgramFiles(INPUT_JAR)
+        .addKeepMainRule(MAIN_CLASS)
+        .overrideLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }

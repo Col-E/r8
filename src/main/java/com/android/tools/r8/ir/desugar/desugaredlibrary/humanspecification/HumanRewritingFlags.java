@@ -32,8 +32,10 @@ public class HumanRewritingFlags {
   private final Map<DexType, DexType> emulatedInterfaces;
   private final Map<DexField, DexField> retargetStaticField;
   private final Map<DexMethod, DexType> covariantRetarget;
-  private final Map<DexMethod, DexType> retargetMethod;
-  private final Map<DexMethod, DexType> retargetMethodEmulatedDispatch;
+  private final Map<DexMethod, DexType> retargetMethodToType;
+  private final Map<DexMethod, DexType> retargetMethodEmulatedDispatchToType;
+  private final Map<DexMethod, DexMethod> retargetMethodToMethod;
+  private final Map<DexMethod, DexMethod> retargetMethodEmulatedDispatchToMethod;
   private final Map<DexMethod, DexMethod[]> apiGenericTypesConversion;
   private final Map<DexType, DexType> legacyBackport;
   private final Map<DexType, DexType> customConversions;
@@ -52,8 +54,10 @@ public class HumanRewritingFlags {
       Map<DexType, DexType> emulateLibraryInterface,
       Map<DexField, DexField> retargetStaticField,
       Map<DexMethod, DexType> covariantRetarget,
-      Map<DexMethod, DexType> retargetMethod,
-      Map<DexMethod, DexType> retargetMethodEmulatedDispatch,
+      Map<DexMethod, DexType> retargetMethodToType,
+      Map<DexMethod, DexType> retargetMethodEmulatedDispatchToType,
+      Map<DexMethod, DexMethod> retargetMethodToMethod,
+      Map<DexMethod, DexMethod> retargetMethodEmulatedDispatchToMethod,
       Map<DexMethod, DexMethod[]> apiGenericTypesConversion,
       Map<DexType, DexType> legacyBackport,
       Map<DexType, DexType> customConversion,
@@ -70,8 +74,10 @@ public class HumanRewritingFlags {
     this.emulatedInterfaces = emulateLibraryInterface;
     this.retargetStaticField = retargetStaticField;
     this.covariantRetarget = covariantRetarget;
-    this.retargetMethod = retargetMethod;
-    this.retargetMethodEmulatedDispatch = retargetMethodEmulatedDispatch;
+    this.retargetMethodToType = retargetMethodToType;
+    this.retargetMethodEmulatedDispatchToType = retargetMethodEmulatedDispatchToType;
+    this.retargetMethodToMethod = retargetMethodToMethod;
+    this.retargetMethodEmulatedDispatchToMethod = retargetMethodEmulatedDispatchToMethod;
     this.apiGenericTypesConversion = apiGenericTypesConversion;
     this.legacyBackport = legacyBackport;
     this.customConversions = customConversion;
@@ -88,6 +94,8 @@ public class HumanRewritingFlags {
         ImmutableMap.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
         ImmutableMap.of(),
         ImmutableMap.of(),
         ImmutableMap.of(),
@@ -120,8 +128,10 @@ public class HumanRewritingFlags {
         emulatedInterfaces,
         retargetStaticField,
         covariantRetarget,
-        retargetMethod,
-        retargetMethodEmulatedDispatch,
+        retargetMethodToType,
+        retargetMethodEmulatedDispatchToType,
+        retargetMethodToMethod,
+        retargetMethodEmulatedDispatchToMethod,
         apiGenericTypesConversion,
         legacyBackport,
         customConversions,
@@ -161,12 +171,20 @@ public class HumanRewritingFlags {
     return covariantRetarget;
   }
 
-  public Map<DexMethod, DexType> getRetargetMethod() {
-    return retargetMethod;
+  public Map<DexMethod, DexType> getRetargetMethodToType() {
+    return retargetMethodToType;
   }
 
-  public Map<DexMethod, DexType> getRetargetMethodEmulatedDispatch() {
-    return retargetMethodEmulatedDispatch;
+  public Map<DexMethod, DexType> getRetargetMethodEmulatedDispatchToType() {
+    return retargetMethodEmulatedDispatchToType;
+  }
+
+  public Map<DexMethod, DexMethod> getRetargetMethodToMethod() {
+    return retargetMethodToMethod;
+  }
+
+  public Map<DexMethod, DexMethod> getRetargetMethodEmulatedDispatchToMethod() {
+    return retargetMethodEmulatedDispatchToMethod;
   }
 
   public Set<DexMethod> getNeverOutlineApi() {
@@ -211,8 +229,8 @@ public class HumanRewritingFlags {
         && maintainPrefix.isEmpty()
         && emulatedInterfaces.isEmpty()
         && covariantRetarget.isEmpty()
-        && retargetMethod.isEmpty()
-        && retargetMethodEmulatedDispatch.isEmpty()
+        && retargetMethodToType.isEmpty()
+        && retargetMethodEmulatedDispatchToType.isEmpty()
         && retargetStaticField.isEmpty();
   }
 
@@ -228,8 +246,10 @@ public class HumanRewritingFlags {
     private final Map<DexType, DexType> emulatedInterfaces;
     private final Map<DexField, DexField> retargetStaticField;
     private final Map<DexMethod, DexType> covariantRetarget;
-    private final Map<DexMethod, DexType> retargetMethod;
-    private final Map<DexMethod, DexType> retargetMethodEmulatedDispatch;
+    private final Map<DexMethod, DexType> retargetMethodToType;
+    private final Map<DexMethod, DexType> retargetMethodEmulatedDispatchToType;
+    private final Map<DexMethod, DexMethod> retargetMethodToMethod;
+    private final Map<DexMethod, DexMethod> retargetMethodEmulatedDispatchToMethod;
     private final Map<DexMethod, DexMethod[]> apiGenericTypesConversion;
     private final Map<DexType, DexType> legacyBackport;
     private final Map<DexType, DexType> customConversions;
@@ -256,6 +276,8 @@ public class HumanRewritingFlags {
           new IdentityHashMap<>(),
           new IdentityHashMap<>(),
           new IdentityHashMap<>(),
+          new IdentityHashMap<>(),
+          new IdentityHashMap<>(),
           Sets.newIdentityHashSet(),
           Sets.newIdentityHashSet(),
           new IdentityHashMap<>(),
@@ -274,8 +296,10 @@ public class HumanRewritingFlags {
         Map<DexType, DexType> emulateLibraryInterface,
         Map<DexField, DexField> retargetStaticField,
         Map<DexMethod, DexType> covariantRetarget,
-        Map<DexMethod, DexType> retargetMethod,
-        Map<DexMethod, DexType> retargetMethodEmulatedDispatch,
+        Map<DexMethod, DexType> retargetMethodToType,
+        Map<DexMethod, DexType> retargetMethodEmulatedDispatchToType,
+        Map<DexMethod, DexMethod> retargetMethodToMethod,
+        Map<DexMethod, DexMethod> retargetMethodEmulatedDispatchToMethod,
         Map<DexMethod, DexMethod[]> apiConversionCollection,
         Map<DexType, DexType> backportCoreLibraryMember,
         Map<DexType, DexType> customConversions,
@@ -294,8 +318,12 @@ public class HumanRewritingFlags {
       this.emulatedInterfaces = new IdentityHashMap<>(emulateLibraryInterface);
       this.retargetStaticField = new IdentityHashMap<>(retargetStaticField);
       this.covariantRetarget = new IdentityHashMap<>(covariantRetarget);
-      this.retargetMethod = new IdentityHashMap<>(retargetMethod);
-      this.retargetMethodEmulatedDispatch = new IdentityHashMap<>(retargetMethodEmulatedDispatch);
+      this.retargetMethodToType = new IdentityHashMap<>(retargetMethodToType);
+      this.retargetMethodEmulatedDispatchToType =
+          new IdentityHashMap<>(retargetMethodEmulatedDispatchToType);
+      this.retargetMethodToMethod = new IdentityHashMap<>(retargetMethodToMethod);
+      this.retargetMethodEmulatedDispatchToMethod =
+          new IdentityHashMap<>(retargetMethodEmulatedDispatchToMethod);
       this.apiGenericTypesConversion = new IdentityHashMap<>(apiConversionCollection);
       this.legacyBackport = new IdentityHashMap<>(backportCoreLibraryMember);
       this.customConversions = new IdentityHashMap<>(customConversions);
@@ -384,12 +412,39 @@ public class HumanRewritingFlags {
       return this;
     }
 
-    public Builder retargetMethod(DexMethod key, DexType rewrittenType) {
+    public Builder retargetMethodToType(DexMethod key, DexType rewrittenType) {
       put(
-          retargetMethod,
+          retargetMethodToType,
           key,
           rewrittenType,
           HumanDesugaredLibrarySpecificationParser.RETARGET_METHOD_KEY);
+      return this;
+    }
+
+    public Builder retargetMethodEmulatedDispatchToType(DexMethod key, DexType rewrittenType) {
+      put(
+          retargetMethodEmulatedDispatchToType,
+          key,
+          rewrittenType,
+          HumanDesugaredLibrarySpecificationParser.RETARGET_METHOD_EMULATED_DISPATCH_KEY);
+      return this;
+    }
+
+    public Builder retargetMethodToMethod(DexMethod key, DexMethod retarget) {
+      put(
+          retargetMethodToMethod,
+          key,
+          retarget,
+          HumanDesugaredLibrarySpecificationParser.RETARGET_METHOD_KEY);
+      return this;
+    }
+
+    public Builder retargetMethodEmulatedDispatchToMethod(DexMethod key, DexMethod retarget) {
+      put(
+          retargetMethodEmulatedDispatchToMethod,
+          key,
+          retarget,
+          HumanDesugaredLibrarySpecificationParser.RETARGET_METHOD_EMULATED_DISPATCH_KEY);
       return this;
     }
 
@@ -408,15 +463,6 @@ public class HumanRewritingFlags {
           key,
           value,
           HumanDesugaredLibrarySpecificationParser.RETARGET_STATIC_FIELD_KEY);
-      return this;
-    }
-
-    public Builder retargetMethodEmulatedDispatch(DexMethod key, DexType rewrittenType) {
-      put(
-          retargetMethodEmulatedDispatch,
-          key,
-          rewrittenType,
-          HumanDesugaredLibrarySpecificationParser.RETARGET_METHOD_EMULATED_DISPATCH_KEY);
       return this;
     }
 
@@ -473,8 +519,10 @@ public class HumanRewritingFlags {
           ImmutableMap.copyOf(emulatedInterfaces),
           ImmutableMap.copyOf(retargetStaticField),
           ImmutableMap.copyOf(covariantRetarget),
-          ImmutableMap.copyOf(retargetMethod),
-          ImmutableMap.copyOf(retargetMethodEmulatedDispatch),
+          ImmutableMap.copyOf(retargetMethodToType),
+          ImmutableMap.copyOf(retargetMethodEmulatedDispatchToType),
+          ImmutableMap.copyOf(retargetMethodToMethod),
+          ImmutableMap.copyOf(retargetMethodEmulatedDispatchToMethod),
           ImmutableMap.copyOf(apiGenericTypesConversion),
           ImmutableMap.copyOf(legacyBackport),
           ImmutableMap.copyOf(customConversions),

@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class HumanToMachineRetargetConverter {
 
@@ -45,13 +46,22 @@ public class HumanToMachineRetargetConverter {
         .getCovariantRetarget()
         .forEach((method, type) -> convertCovariantRetarget(builder, method, type));
     rewritingFlags
-        .getRetargetMethod()
-        .forEach((method, type) -> convertRetargetMethod(builder, method, type));
+        .getRetargetMethodToType()
+        .forEach((method, type) -> convertRetargetMethodToType(builder, method, type));
     rewritingFlags
-        .getRetargetMethodEmulatedDispatch()
+        .getRetargetMethodEmulatedDispatchToType()
         .forEach(
             (method, type) ->
-                convertRetargetMethodEmulatedDispatch(builder, rewritingFlags, method, type));
+                convertRetargetMethodEmulatedDispatchToType(builder, rewritingFlags, method, type));
+    rewritingFlags
+        .getRetargetMethodToMethod()
+        .forEach((method, retarget) -> convertRetargetMethodToMethod(builder, method, retarget));
+    rewritingFlags
+        .getRetargetMethodEmulatedDispatchToMethod()
+        .forEach(
+            (method, retarget) ->
+                convertRetargetMethodEmulatedDispatchToMethod(
+                    builder, rewritingFlags, method, retarget));
     warnConsumer.accept("Cannot retarget missing references: ", missingReferences);
   }
 
@@ -64,37 +74,6 @@ public class HumanToMachineRetargetConverter {
       return;
     }
     builder.putStaticFieldRetarget(field, rewrittenField);
-  }
-
-  private void convertRetargetMethodEmulatedDispatch(
-      MachineRewritingFlags.Builder builder,
-      HumanRewritingFlags rewritingFlags,
-      DexMethod method,
-      DexType type) {
-    DexClass holder = appInfo.definitionFor(method.holder);
-    DexEncodedMethod foundMethod = holder.lookupMethod(method);
-    if (foundMethod == null) {
-      missingReferences.add(method);
-      return;
-    }
-    if (foundMethod.isStatic()) {
-      appInfo
-          .app()
-          .options
-          .reporter
-          .error("Cannot generate emulated dispatch for static method " + foundMethod);
-      return;
-    }
-    if (!seemsToNeedEmulatedDispatch(holder, foundMethod)) {
-      appInfo
-          .app()
-          .options
-          .reporter
-          .warning(
-              "Generating (seemingly unnecessary) emulated dispatch for final method "
-                  + foundMethod);
-    }
-    convertEmulatedVirtualRetarget(builder, rewritingFlags, foundMethod, type);
   }
 
   private void convertCovariantRetarget(
@@ -133,7 +112,9 @@ public class HumanToMachineRetargetConverter {
   }
 
   private void convertRetargetMethod(
-      MachineRewritingFlags.Builder builder, DexMethod method, DexType type) {
+      DexMethod method,
+      Consumer<DexEncodedMethod> staticRetarget,
+      Consumer<DexEncodedMethod> nonEmulatedVirtualRetarget) {
     DexClass holder = appInfo.definitionFor(method.holder);
     DexEncodedMethod foundMethod = holder.lookupMethod(method);
     if (foundMethod == null) {
@@ -141,7 +122,7 @@ public class HumanToMachineRetargetConverter {
       return;
     }
     if (foundMethod.isStatic()) {
-      convertStaticRetarget(builder, foundMethod, type);
+      staticRetarget.accept(foundMethod);
       return;
     }
     if (seemsToNeedEmulatedDispatch(holder, foundMethod)) {
@@ -154,7 +135,72 @@ public class HumanToMachineRetargetConverter {
                   + foundMethod
                   + " which could lead to invalid runtime execution in overrides.");
     }
-    convertNonEmulatedVirtualRetarget(builder, foundMethod, type);
+    nonEmulatedVirtualRetarget.accept(foundMethod);
+  }
+
+  private void convertRetargetMethodToType(
+      MachineRewritingFlags.Builder builder, DexMethod method, DexType type) {
+    convertRetargetMethod(
+        method,
+        foundMethod -> convertStaticRetarget(builder, foundMethod, type),
+        foundMethod -> convertNonEmulatedVirtualRetarget(builder, foundMethod, type));
+  }
+
+  private void convertRetargetMethodToMethod(
+      MachineRewritingFlags.Builder builder, DexMethod method, DexMethod retarget) {
+    convertRetargetMethod(
+        method,
+        foundMethod -> builder.putStaticRetarget(method, retarget),
+        foundMethod -> builder.putNonEmulatedVirtualRetarget(method, retarget));
+  }
+
+  private void convertRetargetMethodEmulatedDispatch(
+      DexMethod method, Consumer<DexEncodedMethod> emulatedRetarget) {
+    DexClass holder = appInfo.definitionFor(method.holder);
+    DexEncodedMethod foundMethod = holder.lookupMethod(method);
+    if (foundMethod == null) {
+      missingReferences.add(method);
+      return;
+    }
+    if (foundMethod.isStatic()) {
+      appInfo
+          .app()
+          .options
+          .reporter
+          .error("Cannot generate emulated dispatch for static method " + foundMethod);
+      return;
+    }
+    if (!seemsToNeedEmulatedDispatch(holder, foundMethod)) {
+      appInfo
+          .app()
+          .options
+          .reporter
+          .warning(
+              "Generating (seemingly unnecessary) emulated dispatch for final method "
+                  + foundMethod);
+    }
+    emulatedRetarget.accept(foundMethod);
+  }
+
+  private void convertRetargetMethodEmulatedDispatchToType(
+      MachineRewritingFlags.Builder builder,
+      HumanRewritingFlags rewritingFlags,
+      DexMethod method,
+      DexType type) {
+    convertRetargetMethodEmulatedDispatch(
+        method,
+        foundMethod -> convertEmulatedVirtualRetarget(builder, rewritingFlags, foundMethod, type));
+  }
+
+  private void convertRetargetMethodEmulatedDispatchToMethod(
+      MachineRewritingFlags.Builder builder,
+      HumanRewritingFlags rewritingFlags,
+      DexMethod method,
+      DexMethod retarget) {
+    convertRetargetMethodEmulatedDispatch(
+        method,
+        foundMethod ->
+            convertEmulatedVirtualRetarget(builder, rewritingFlags, foundMethod, retarget));
   }
 
   private boolean seemsToNeedEmulatedDispatch(DexClass holder, DexEncodedMethod method) {
@@ -166,10 +212,7 @@ public class HumanToMachineRetargetConverter {
       MachineRewritingFlags.Builder builder,
       HumanRewritingFlags rewritingFlags,
       DexEncodedMethod src,
-      DexType type) {
-    DexProto newProto = appInfo.dexItemFactory().prependHolderToProto(src.getReference());
-    DexMethod forwardingDexMethod =
-        appInfo.dexItemFactory().createMethod(type, newProto, src.getName());
+      DexMethod forwardingDexMethod) {
     if (isEmulatedInterfaceDispatch(src, appInfo, rewritingFlags)) {
       // Handled by emulated interface dispatch.
       builder.putEmulatedVirtualRetargetThroughEmulatedInterface(
@@ -188,6 +231,17 @@ public class HumanToMachineRetargetConverter {
         src.getReference(),
         new EmulatedDispatchMethodDescriptor(
             interfaceMethod, dispatchMethod, forwardingMethod, dispatchCases));
+  }
+
+  private void convertEmulatedVirtualRetarget(
+      MachineRewritingFlags.Builder builder,
+      HumanRewritingFlags rewritingFlags,
+      DexEncodedMethod src,
+      DexType type) {
+    DexProto newProto = appInfo.dexItemFactory().prependHolderToProto(src.getReference());
+    DexMethod forwardingDexMethod =
+        appInfo.dexItemFactory().createMethod(type, newProto, src.getName());
+    convertEmulatedVirtualRetarget(builder, rewritingFlags, src, forwardingDexMethod);
   }
 
   private boolean isEmulatedInterfaceDispatch(
