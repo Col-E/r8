@@ -7,6 +7,13 @@
   "common_flags": [
     {
       "api_level_below_or_equal": 10000,
+      "amend_library_method": [
+        "public static java.nio.file.Path java.nio.file.Path#of(java.lang.String, java.lang.String[])",
+        "public static java.nio.file.Path java.nio.file.Path#of(java.net.URI)"
+      ]
+    },
+    {
+      "api_level_below_or_equal": 10000,
       "api_level_greater_or_equal": 24,
       "rewrite_prefix": {
         "java.util.stream.DesugarDoubleStream": "j$.util.stream.DesugarDoubleStream",
@@ -403,6 +410,14 @@
         "public static java.util.stream.LongStream java.util.stream.LongStream#iterate(long, java.util.function.LongPredicate, java.util.function.LongUnaryOperator)",
         "public static java.util.stream.Stream java.util.stream.Stream#iterate(java.lang.Object, java.util.function.Predicate, java.util.function.UnaryOperator)"
       ]
+    },
+    {
+      "api_level_below_or_equal": 10000,
+      "api_level_greater_or_equal": 26,
+      "retarget_method": {
+        "java.nio.file.Path java.nio.file.Path#of(java.lang.String, java.lang.String[])": "java.nio.file.Path java.nio.file.Paths#get(java.lang.String, java.lang.String[])",
+        "java.nio.file.Path java.nio.file.Path#of(java.net.URI)": "java.nio.file.Path java.nio.file.Paths#get(java.net.URI)"
+      }
     },
     {
       "api_level_below_or_equal": 33,
