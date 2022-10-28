@@ -4,17 +4,12 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.specification;
 
-import static com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser.isMachineSpecification;
-import static com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.DesugaredLibraryConverter.convertToMachineSpecification;
-import static com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.DesugaredLibraryConverter.getInputAsHumanSpecification;
-import static com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.DesugaredLibraryConverter.parseJsonConfig;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.StringResource;
-import com.android.tools.r8.StringResource.FileResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
@@ -37,6 +32,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.Mac
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineTopLevelFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MultiAPILevelMachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MultiAPILevelMachineDesugaredLibrarySpecificationJsonExporter;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.DesugaredLibraryConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.HumanToMachineSpecificationConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.LegacyToHumanSpecificationConverter;
 import com.android.tools.r8.origin.Origin;
@@ -45,11 +41,8 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
-import com.google.gson.JsonObject;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.Map;
 import org.junit.Assume;
 import org.junit.Test;
@@ -153,20 +146,17 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
       LibraryDesugaringSpecification spec, Path output, InternalOptions options)
       throws IOException {
 
-    FileResource jsonResource = StringResource.fromFile(spec.getSpecification());
-    JsonObject jsonConfig = parseJsonConfig(options, jsonResource);
+    MultiAPILevelHumanDesugaredLibrarySpecification humanSpec =
+        DesugaredLibraryConverter.convertMultiLevelAnythingToMachineSpecification(
+            spec.getSpecification(),
+            spec.getDesugarJdkLibs(),
+            spec.getLibraryFiles(),
+            output,
+            options);
 
-    if (isMachineSpecification(jsonConfig, options.reporter, jsonResource.getOrigin())) {
-      // Nothing to convert;
-      Files.copy(spec.getSpecification(), output);
+    if (humanSpec == null) {
       return;
     }
-
-    DexApplication appForConversion = spec.getAppForTesting(options, true);
-    MultiAPILevelHumanDesugaredLibrarySpecification humanSpec =
-        getInputAsHumanSpecification(options, jsonResource, jsonConfig, appForConversion);
-    String outputString = convertToMachineSpecification(options, appForConversion, humanSpec);
-    Files.write(output, Collections.singleton(outputString));
 
     // Validate the written spec is the read spec.
     Box<String> json = new Box<>();

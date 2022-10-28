@@ -46,14 +46,18 @@ public class DesugaredLibraryConverter {
         jsonFile,
         ImmutableSet.of(desugaredLibraryJar, customConversionsJar),
         ImmutableSet.of(androidJar),
-        output);
+        output,
+        new InternalOptions());
   }
 
-  public static void convertMultiLevelAnythingToMachineSpecification(
-      Path jsonSpec, Set<Path> desugaredLibraryFiles, Set<Path> libraryFiles, Path output)
-      throws IOException {
-
-    InternalOptions options = new InternalOptions();
+  public static MultiAPILevelHumanDesugaredLibrarySpecification
+      convertMultiLevelAnythingToMachineSpecification(
+          Path jsonSpec,
+          Set<Path> desugaredLibraryFiles,
+          Set<Path> libraryFiles,
+          Path output,
+          InternalOptions options)
+          throws IOException {
 
     FileResource jsonResource = StringResource.fromFile(jsonSpec);
     JsonObject jsonConfig = parseJsonConfig(options, jsonResource);
@@ -61,7 +65,7 @@ public class DesugaredLibraryConverter {
     if (isMachineSpecification(jsonConfig, options.reporter, jsonResource.getOrigin())) {
       // Nothing to convert;
       Files.copy(jsonSpec, output);
-      return;
+      return null;
     }
 
     DexApplication appForConversion =
@@ -71,9 +75,11 @@ public class DesugaredLibraryConverter {
     String outputString = convertToMachineSpecification(options, appForConversion, humanSpec);
 
     Files.write(output, Collections.singleton(outputString));
+
+    return humanSpec;
   }
 
-  public static String convertToMachineSpecification(
+  private static String convertToMachineSpecification(
       InternalOptions options,
       DexApplication appForConversion,
       MultiAPILevelHumanDesugaredLibrarySpecification humanSpec)
@@ -88,7 +94,7 @@ public class DesugaredLibraryConverter {
     return machineJson.get();
   }
 
-  public static JsonObject parseJsonConfig(InternalOptions options, FileResource jsonResource) {
+  private static JsonObject parseJsonConfig(InternalOptions options, FileResource jsonResource) {
     JsonObject jsonConfig;
     try {
       String jsonConfigString = jsonResource.getString();
@@ -104,7 +110,7 @@ public class DesugaredLibraryConverter {
    * Parse the human specification, or parse and convert the legacy specification into human
    * specification.
    */
-  public static MultiAPILevelHumanDesugaredLibrarySpecification getInputAsHumanSpecification(
+  private static MultiAPILevelHumanDesugaredLibrarySpecification getInputAsHumanSpecification(
       InternalOptions options,
       FileResource jsonResource,
       JsonObject jsonConfig,
@@ -126,7 +132,7 @@ public class DesugaredLibraryConverter {
         .parseMultiLevelConfiguration(jsonResource);
   }
 
-  public static DexApplication getAppForConversion(
+  private static DexApplication getAppForConversion(
       InternalOptions options, Set<Path> androidJar, Set<Path> desugaredlibJar) throws IOException {
     AndroidApp.Builder builder = AndroidApp.builder();
     builder.addProgramFiles(desugaredlibJar);
