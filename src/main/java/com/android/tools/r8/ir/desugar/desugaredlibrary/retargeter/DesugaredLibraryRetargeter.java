@@ -100,8 +100,9 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     assert invokeRetargetingResult.hasNewInvokeTarget();
     DexMethod newInvokeTarget =
         invokeRetargetingResult.getNewInvokeTarget(eventConsumer, methodProcessingContext);
-    return Collections.singletonList(
-        new CfInvoke(Opcodes.INVOKESTATIC, newInvokeTarget, invoke.isInterface()));
+    assert appView.definitionFor(newInvokeTarget.getHolderType()) != null;
+    assert !appView.definitionFor(newInvokeTarget.getHolderType()).isInterface();
+    return Collections.singletonList(new CfInvoke(Opcodes.INVOKESTATIC, newInvokeTarget, false));
   }
 
   @Override

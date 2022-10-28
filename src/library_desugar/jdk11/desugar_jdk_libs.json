@@ -6,6 +6,22 @@
   "support_all_callbacks_from_library": true,
   "common_flags": [
     {
+      "api_level_below_or_equal": 10000,
+      "api_level_greater_or_equal": 24,
+      "rewrite_prefix": {
+        "java.util.stream.DesugarDoubleStream": "j$.util.stream.DesugarDoubleStream",
+        "java.util.stream.DesugarIntStream": "j$.util.stream.DesugarIntStream",
+        "java.util.stream.DesugarLongStream": "j$.util.stream.DesugarLongStream",
+        "java.util.stream.DesugarStream": "j$.util.stream.DesugarStream"
+      },
+      "retarget_method": {
+        "java.util.stream.DoubleStream java.util.stream.DoubleStream#iterate(double, java.util.function.DoublePredicate, java.util.function.DoubleUnaryOperator)":  "java.util.stream.DesugarDoubleStream",
+        "java.util.stream.IntStream java.util.stream.IntStream#iterate(int, java.util.function.IntPredicate, java.util.function.IntUnaryOperator)":  "java.util.stream.DesugarIntStream",
+        "java.util.stream.LongStream java.util.stream.LongStream#iterate(long, java.util.function.LongPredicate, java.util.function.LongUnaryOperator)":  "java.util.stream.DesugarLongStream",
+        "java.util.stream.Stream java.util.stream.Stream#iterate(java.lang.Object, java.util.function.Predicate, java.util.function.UnaryOperator)":  "java.util.stream.DesugarStream"
+      }
+    },
+    {
       "api_level_below_or_equal": 32,
       "rewrite_prefix": {
         "java.util.concurrent.DesugarTimeUnit": "j$.util.concurrent.DesugarTimeUnit"
@@ -228,6 +244,15 @@
     }
   ],
   "program_flags": [
+    {
+      "api_level_below_or_equal": 10000,
+      "amend_library_method": [
+        "public static java.util.stream.DoubleStream java.util.stream.DoubleStream#iterate(double, java.util.function.DoublePredicate, java.util.function.DoubleUnaryOperator)",
+        "public static java.util.stream.IntStream java.util.stream.IntStream#iterate(int, java.util.function.IntPredicate, java.util.function.IntUnaryOperator)",
+        "public static java.util.stream.LongStream java.util.stream.LongStream#iterate(long, java.util.function.LongPredicate, java.util.function.LongUnaryOperator)",
+        "public static java.util.stream.Stream java.util.stream.Stream#iterate(java.lang.Object, java.util.function.Predicate, java.util.function.UnaryOperator)"
+      ]
+    },
     {
       "api_level_below_or_equal": 33,
       "amend_library_method": [
