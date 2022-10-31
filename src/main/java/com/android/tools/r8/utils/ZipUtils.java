@@ -13,6 +13,7 @@ import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.androidapi.AndroidApiDataAccess;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.references.ClassReference;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
 import java.io.BufferedOutputStream;
@@ -302,6 +303,10 @@ public class ZipUtils {
 
   public static String zipEntryNameForClass(Class<?> clazz) {
     return DescriptorUtils.getClassBinaryName(clazz) + CLASS_EXTENSION;
+  }
+
+  public static String zipEntryNameForClass(ClassReference clazz) {
+    return clazz.getBinaryName() + CLASS_EXTENSION;
   }
 
   public static long getOffsetOfResourceInZip(File file, String entry) throws IOException {

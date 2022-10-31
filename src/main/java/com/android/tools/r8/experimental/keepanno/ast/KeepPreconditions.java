@@ -59,6 +59,16 @@ public abstract class KeepPreconditions {
     public void forEach(Consumer<KeepCondition> fn) {
       // Empty.
     }
+
+    @Override
+    public boolean equals(Object obj) {
+      return this == obj;
+    }
+
+    @Override
+    public int hashCode() {
+      return System.identityHashCode(this);
+    }
   }
 
   private static class KeepPreconditionsSome extends KeepPreconditions {
@@ -66,6 +76,8 @@ public abstract class KeepPreconditions {
     private final List<KeepCondition> preconditions;
 
     private KeepPreconditionsSome(List<KeepCondition> preconditions) {
+      assert preconditions != null;
+      assert !preconditions.isEmpty();
       this.preconditions = preconditions;
     }
 
@@ -77,6 +89,23 @@ public abstract class KeepPreconditions {
     @Override
     public void forEach(Consumer<KeepCondition> fn) {
       preconditions.forEach(fn);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      KeepPreconditionsSome that = (KeepPreconditionsSome) o;
+      return preconditions.equals(that.preconditions);
+    }
+
+    @Override
+    public int hashCode() {
+      return preconditions.hashCode();
     }
   }
 }

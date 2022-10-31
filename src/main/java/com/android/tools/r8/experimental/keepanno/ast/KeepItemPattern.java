@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.experimental.keepanno.ast;
 
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -87,6 +88,16 @@ public abstract class KeepItemPattern {
     public <T> T match(Supplier<T> onAny, Function<KeepClassPattern, T> onItem) {
       return onAny.get();
     }
+
+    @Override
+    public boolean equals(Object obj) {
+      return this == obj;
+    }
+
+    @Override
+    public int hashCode() {
+      return System.identityHashCode(this);
+    }
   }
 
   public static class KeepClassPattern extends KeepItemPattern {
@@ -100,6 +111,9 @@ public abstract class KeepItemPattern {
         KeepQualifiedClassNamePattern qualifiedClassPattern,
         KeepExtendsPattern extendsPattern,
         KeepMembersPattern membersPattern) {
+      assert qualifiedClassPattern != null;
+      assert extendsPattern != null;
+      assert membersPattern != null;
       this.qualifiedClassPattern = qualifiedClassPattern;
       this.extendsPattern = extendsPattern;
       this.membersPattern = membersPattern;
@@ -129,6 +143,25 @@ public abstract class KeepItemPattern {
 
     public KeepMembersPattern getMembersPattern() {
       return membersPattern;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null || getClass() != obj.getClass()) {
+        return false;
+      }
+      KeepClassPattern that = (KeepClassPattern) obj;
+      return qualifiedClassPattern.equals(that.qualifiedClassPattern)
+          && extendsPattern.equals(that.extendsPattern)
+          && membersPattern.equals(that.membersPattern);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(qualifiedClassPattern, extendsPattern, membersPattern);
     }
   }
 
