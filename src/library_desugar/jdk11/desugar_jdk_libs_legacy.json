@@ -2,13 +2,57 @@
   "configuration_format_version": 5,
   "group_id": "com.tools.android",
   "artifact_id": "desugar_jdk_libs",
-  "version": "1.2.4",
-  "required_compilation_api_level": 30,
+  "version": "1.2.5",
+  "required_compilation_api_level": 33,
   "synthesized_library_classes_package_prefix": "j$.",
   "support_all_callbacks_from_library": true,
   "common_flags": [
     {
-      "api_level_below_or_equal": 10000,
+      "api_level_below_or_equal": 32,
+      "rewrite_prefix": {
+        "java.util.stream.DesugarCollectors": "j$.util.stream.DesugarCollectors"
+      },
+      "retarget_lib_member": {
+        "java.util.stream.Collectors#filtering": "java.util.stream.DesugarCollectors",
+        "java.util.stream.Collectors#flatMapping": "java.util.stream.DesugarCollectors",
+        "java.util.stream.Collectors#toUnmodifiableList": "java.util.stream.DesugarCollectors",
+        "java.util.stream.Collectors#toUnmodifiableMap": "java.util.stream.DesugarCollectors",
+        "java.util.stream.Collectors#toUnmodifiableSet": "java.util.stream.DesugarCollectors"
+      }
+    },
+    {
+      "api_level_below_or_equal": 30,
+      "rewrite_prefix": {
+        "java.time.DesugarDuration": "j$.time.DesugarDuration",
+        "java.time.DesugarLocalTime": "j$.time.DesugarLocalTime"
+      },
+      "retarget_lib_member": {
+        "java.time.Duration#dividedBy": "java.time.DesugarDuration",
+        "java.time.Duration#toDaysPart": "java.time.DesugarDuration",
+        "java.time.Duration#toHoursPart": "java.time.DesugarDuration",
+        "java.time.Duration#toMillisPart": "java.time.DesugarDuration",
+        "java.time.Duration#toMinutesPart": "java.time.DesugarDuration",
+        "java.time.Duration#toNanosPart": "java.time.DesugarDuration",
+        "java.time.Duration#toSeconds": "java.time.DesugarDuration",
+        "java.time.Duration#toSecondsPart": "java.time.DesugarDuration",
+        "java.time.Duration#truncatedTo": "java.time.DesugarDuration",
+        "java.time.LocalTime#ofInstant": "java.time.DesugarLocalTime",
+        "java.time.LocalTime#toEpochSecond": "java.time.DesugarLocalTime"
+      }
+    },
+    {
+      "api_level_below_or_equal": 29,
+      "rewrite_prefix": {
+        "java.util.concurrent.Flow": "j$.util.concurrent.Flow"
+      },
+      "wrapper_conversion": [
+        "java.util.concurrent.Flow$Publisher",
+        "java.util.concurrent.Flow$Subscriber",
+        "java.util.concurrent.Flow$Subscription"
+      ]
+    },
+    {
+      "api_level_below_or_equal": 25,
       "rewrite_prefix": {
         "java.time.": "j$.time.",
         "java.util.Desugar": "j$.util.Desugar"
@@ -34,26 +78,10 @@
       }
     },
     {
-      "api_level_below_or_equal": 29,
-      "rewrite_prefix": {
-        "java.util.concurrent.Flow": "j$.util.concurrent.Flow"
-      },
-      "wrapper_conversion": [
-        "java.util.concurrent.Flow$Publisher",
-        "java.util.concurrent.Flow$Subscriber",
-        "java.util.concurrent.Flow$Subscription"
-      ]
-    },
-    {
       "api_level_below_or_equal": 23,
       "rewrite_prefix": {
         "java.util.concurrent.atomic.DesugarAtomic": "j$.util.concurrent.atomic.DesugarAtomic",
-        "java.util.function.": "j$.util.function."
-      }
-    },
-    {
-      "api_level_below_or_equal": 10000,
-      "rewrite_prefix": {
+        "java.util.function.": "j$.util.function.",
         "java.util.DoubleSummaryStatistics": "j$.util.DoubleSummaryStatistics",
         "java.util.IntSummaryStatistics": "j$.util.IntSummaryStatistics",
         "java.util.LongSummaryStatistics": "j$.util.LongSummaryStatistics",
@@ -150,7 +178,7 @@
   ],
   "program_flags": [
     {
-      "api_level_below_or_equal": 10000,
+      "api_level_below_or_equal": 25,
       "retarget_lib_member": {
         "java.util.TimeZone#getTimeZone": "java.util.DesugarTimeZone",
         "java.util.Calendar#toInstant": "java.util.DesugarCalendar",
@@ -180,7 +208,7 @@
   ],
   "library_flags": [
     {
-      "api_level_below_or_equal": 10000,
+      "api_level_below_or_equal": 25,
       "rewrite_prefix": {
         "j$.time.": "java.time.",
         "java.lang.Desugar": "j$.lang.Desugar",
@@ -196,7 +224,7 @@
       }
     },
     {
-      "api_level_below_or_equal": 10000,
+      "api_level_below_or_equal": 23,
       "rewrite_prefix": {
         "java.util.AbstractList": "j$.util.AbstractList",
         "java.util.CollSer": "j$.util.CollSer",

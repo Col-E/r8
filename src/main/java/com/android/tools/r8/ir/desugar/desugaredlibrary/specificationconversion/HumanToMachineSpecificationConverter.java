@@ -57,12 +57,13 @@ public class HumanToMachineSpecificationConverter {
 
     MachineTopLevelFlags machineTopLevelFlags = convertTopLevelFlags(humanSpec.getTopLevelFlags());
     String synthesizedPrefix = machineTopLevelFlags.getSynthesizedLibraryClassesPackagePrefix();
+    String identifier = machineTopLevelFlags.getIdentifier();
     Map<ApiLevelRange, MachineRewritingFlags> commonFlags =
-        convertRewritingFlagMap(humanSpec.getCommonFlags(), synthesizedPrefix, true);
+        convertRewritingFlagMap(humanSpec.getCommonFlags(), synthesizedPrefix, true, identifier);
     Map<ApiLevelRange, MachineRewritingFlags> programFlags =
-        convertRewritingFlagMap(humanSpec.getProgramFlags(), synthesizedPrefix, false);
+        convertRewritingFlagMap(humanSpec.getProgramFlags(), synthesizedPrefix, false, identifier);
     Map<ApiLevelRange, MachineRewritingFlags> libraryFlags =
-        convertRewritingFlagMap(humanSpec.getLibraryFlags(), synthesizedPrefix, true);
+        convertRewritingFlagMap(humanSpec.getLibraryFlags(), synthesizedPrefix, true, identifier);
 
     MultiAPILevelMachineDesugaredLibrarySpecification machineSpec =
         new MultiAPILevelMachineDesugaredLibrarySpecification(
@@ -74,13 +75,15 @@ public class HumanToMachineSpecificationConverter {
   private Map<ApiLevelRange, MachineRewritingFlags> convertRewritingFlagMap(
       Map<ApiLevelRange, HumanRewritingFlags> libFlags,
       String synthesizedPrefix,
-      boolean interpretAsLibraryCompilation) {
+      boolean interpretAsLibraryCompilation,
+      String identifier) {
     Map<ApiLevelRange, MachineRewritingFlags> map = new HashMap<>();
     libFlags.forEach(
         (range, flags) ->
             map.put(
                 range,
-                convertRewritingFlags(flags, synthesizedPrefix, interpretAsLibraryCompilation)));
+                convertRewritingFlags(
+                    flags, synthesizedPrefix, interpretAsLibraryCompilation, identifier)));
     return map;
   }
 
@@ -99,7 +102,8 @@ public class HumanToMachineSpecificationConverter {
         convertRewritingFlags(
             humanSpec.getRewritingFlags(),
             humanSpec.getSynthesizedLibraryClassesPackagePrefix(),
-            humanSpec.isLibraryCompilation());
+            humanSpec.isLibraryCompilation(),
+            humanSpec.getIdentifier());
     MachineTopLevelFlags topLevelFlags = convertTopLevelFlags(humanSpec.getTopLevelFlags());
     timing.end();
     return new MachineDesugaredLibrarySpecification(
@@ -117,7 +121,10 @@ public class HumanToMachineSpecificationConverter {
   }
 
   private MachineRewritingFlags convertRewritingFlags(
-      HumanRewritingFlags rewritingFlags, String synthesizedPrefix, boolean libraryCompilation) {
+      HumanRewritingFlags rewritingFlags,
+      String synthesizedPrefix,
+      boolean libraryCompilation,
+      String identifier) {
     timing.begin("convert rewriting flags");
     MachineRewritingFlags.Builder builder = MachineRewritingFlags.builder();
     DesugaredLibraryAmender.run(
@@ -135,7 +142,7 @@ public class HumanToMachineSpecificationConverter {
     new HumanToMachineEmulatedInterfaceConverter(appInfo)
         .convertEmulatedInterfaces(rewritingFlags, appInfo, builder, this::warnMissingReferences);
     new HumanToMachinePrefixConverter(
-            appInfo, builder, synthesizedPrefix, libraryCompilation, rewritingFlags)
+            appInfo, builder, synthesizedPrefix, libraryCompilation, identifier, rewritingFlags)
         .convertPrefixFlags(rewritingFlags, this::warnMissingDexString);
     new HumanToMachineWrapperConverter(appInfo)
         .convertWrappers(rewritingFlags, builder, this::warnMissingReferences);

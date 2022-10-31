@@ -6,6 +6,7 @@ package com.android.tools.r8.desugar.desugaredlibrary.jdk11;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_LEGACY;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -69,7 +70,7 @@ public class JavaTimeJDK11Test extends DesugaredLibraryTestBase {
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters().withDexRuntimes().withAllApiLevels().build(),
-        ImmutableList.of(JDK11, JDK11_PATH),
+        ImmutableList.of(JDK11, JDK11_PATH, JDK11_LEGACY),
         DEFAULT_SPECIFICATIONS);
   }
 
@@ -101,7 +102,8 @@ public class JavaTimeJDK11Test extends DesugaredLibraryTestBase {
         .forEach(
             i -> {
               if (i.isInvoke()) {
-                if (libraryDesugaringSpecification.hasTimeDesugaring(parameters)) {
+                if (libraryDesugaringSpecification.hasTimeDesugaring(parameters)
+                    && libraryDesugaringSpecification != JDK11_LEGACY) {
                   checkInvokeTime(i, "j$.time.Duration", "j$.time.LocalTime");
                   return;
                 }

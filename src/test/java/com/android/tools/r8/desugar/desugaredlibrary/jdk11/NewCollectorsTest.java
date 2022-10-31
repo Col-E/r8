@@ -6,7 +6,9 @@ package com.android.tools.r8.desugar.desugaredlibrary.jdk11;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_LEGACY;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -46,7 +48,7 @@ public class NewCollectorsTest extends DesugaredLibraryTestBase {
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters().withDexRuntimes().withAllApiLevels().build(),
-        ImmutableList.of(JDK11, JDK11_PATH),
+        ImmutableList.of(JDK11, JDK11_PATH, JDK11_LEGACY),
         DEFAULT_SPECIFICATIONS);
   }
 
@@ -76,7 +78,11 @@ public class NewCollectorsTest extends DesugaredLibraryTestBase {
     if (libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters)) {
       // Collectors is not present, all calls to the j$ version.
       assertTrue(anyStaticInvokeToHolder(methodSubject, "j$.util.stream.Collectors"));
-      assertFalse(anyStaticInvokeToHolder(methodSubject, "j$.util.stream.DesugarCollectors"));
+      // In JDK11_LEGACY DesugarCollectors is used whenever possible, in other specifications,
+      // it is used only when needed.
+      assertEquals(
+          libraryDesugaringSpecification == JDK11_LEGACY,
+          anyStaticInvokeToHolder(methodSubject, "j$.util.stream.DesugarCollectors"));
       assertFalse(anyStaticInvokeToHolder(methodSubject, "java.util.stream.Collectors"));
       return;
     }

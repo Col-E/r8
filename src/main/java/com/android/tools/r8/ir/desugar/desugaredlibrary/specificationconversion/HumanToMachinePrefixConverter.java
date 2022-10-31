@@ -14,6 +14,8 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -29,12 +31,14 @@ public class HumanToMachinePrefixConverter {
   private final Set<DexString> descriptorDontRewritePrefix;
   private final Map<DexString, Map<DexString, DexString>> descriptorDifferentPrefix;
   private final Set<DexString> usedPrefix = Sets.newIdentityHashSet();
+  private final boolean jdk11Legacy;
 
   public HumanToMachinePrefixConverter(
       AppInfoWithClassHierarchy appInfo,
       MachineRewritingFlags.Builder builder,
       String synthesizedPrefix,
       boolean libraryCompilation,
+      String identifier,
       HumanRewritingFlags rewritingFlags) {
     this.appInfo = appInfo;
     this.builder = builder;
@@ -45,6 +49,7 @@ public class HumanToMachinePrefixConverter {
     this.descriptorMaintainPrefix = convertPrefixSet(rewritingFlags.getMaintainPrefix());
     this.descriptorDifferentPrefix =
         convertRewriteDifferentPrefix(rewritingFlags.getRewriteDerivedPrefix());
+    this.jdk11Legacy = identifier.startsWith("com.tools.android:desugar_jdk_libs:1.2.");
   }
 
   public void convertPrefixFlags(
@@ -63,12 +68,27 @@ public class HumanToMachinePrefixConverter {
   }
 
   private void warnIfUnusedPrefix(BiConsumer<String, Set<DexString>> warnConsumer) {
-    Set<DexString> prefixes = Sets.newIdentityHashSet();
-    prefixes.addAll(descriptorPrefix.keySet());
-    prefixes.addAll(descriptorMaintainPrefix);
-    prefixes.addAll(descriptorDifferentPrefix.keySet());
-    prefixes.removeAll(usedPrefix);
-    warnConsumer.accept("The following prefixes do not match any type: ", prefixes);
+    Set<DexString> unused = Sets.newIdentityHashSet();
+    unused.addAll(descriptorPrefix.keySet());
+    unused.addAll(descriptorMaintainPrefix);
+    unused.addAll(descriptorDifferentPrefix.keySet());
+    unused.removeAll(usedPrefix);
+    if (jdk11Legacy) {
+      // We have to allow duplicate because of the jdk11 legacy configuration, since there is no
+      // api_greater_or_equal in legacy, we're bound to have duplicates.
+      // If we have x.y. -> w.z and x. -> w., then if one is used the other is used.
+      List<DexString> duplicates = new ArrayList<>();
+      for (DexString prefix : unused) {
+        descriptorPrefix.forEach(
+            (k, v) -> {
+              if (!unused.contains(k) && (k.startsWith(prefix) || prefix.startsWith(k))) {
+                duplicates.add(prefix);
+              }
+            });
+      }
+      duplicates.forEach(unused::remove);
+    }
+    warnConsumer.accept("The following prefixes do not match any type: ", unused);
   }
 
   public DexType convertJavaNameToDesugaredLibrary(DexType type) {

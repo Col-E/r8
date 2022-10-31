@@ -37,7 +37,7 @@ public class LibraryDesugaringSpecification {
   public static Descriptor JDK11_DESCRIPTOR = new Descriptor(24, 26, -1, 10000, -1);
   public static Descriptor EMPTY_DESCRIPTOR_24 = new Descriptor(-1, -1, -1, 24, -1);
   public static Descriptor JDK11_PATH_DESCRIPTOR = new Descriptor(24, 26, 26, 10000, -1);
-  public static Descriptor JDK11_LEGACY_DESCRIPTOR = new Descriptor(10000, 10000, -1, 10000, 24);
+  public static Descriptor JDK11_LEGACY_DESCRIPTOR = new Descriptor(24, 26, -1, 32, 24);
 
   private static class Descriptor {
 
@@ -166,7 +166,7 @@ public class LibraryDesugaringSpecification {
           // The legacy specification is not using the undesugared JAR.
           DESUGARED_JDK_11_LIB_JAR,
           "jdk11/desugar_jdk_libs_legacy.json",
-          AndroidApiLevel.R,
+          AndroidApiLevel.T,
           JDK11_LEGACY_DESCRIPTOR,
           LEGACY);
   public static final LibraryDesugaringSpecification RELEASED_1_0_9 =
