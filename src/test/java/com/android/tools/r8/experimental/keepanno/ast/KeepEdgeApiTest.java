@@ -16,7 +16,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class KeepEdgeAstTest extends TestBase {
+public class KeepEdgeApiTest extends TestBase {
 
   private static String CLASS = "com.example.Foo";
 
@@ -25,7 +25,7 @@ public class KeepEdgeAstTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public KeepEdgeAstTest(TestParameters parameters) {
+  public KeepEdgeApiTest(TestParameters parameters) {
     parameters.assertNoneRuntime();
   }
 
@@ -102,7 +102,10 @@ public class KeepEdgeAstTest extends TestBase {
         KeepEdge.builder()
             .setPreconditions(
                 KeepPreconditions.builder()
-                    .addCondition(KeepCondition.builder().setItem(classItem(CLASS)).build())
+                    .addCondition(
+                        KeepCondition.builder()
+                            .setItem(classItem(CLASS))
+                            .build())
                     .build())
             .setConsequences(
                 KeepConsequences.builder()
@@ -124,7 +127,10 @@ public class KeepEdgeAstTest extends TestBase {
         KeepEdge.builder()
             .setPreconditions(
                 KeepPreconditions.builder()
-                    .addCondition(KeepCondition.builder().setItem(classItem(CLASS)).build())
+                    .addCondition(
+                        KeepCondition.builder()
+                            .setItem(classItem(CLASS))
+                            .build())
                     .build())
             .setConsequences(KeepConsequences.builder().addTarget(target(classItem(CLASS))).build())
             .build();
@@ -138,7 +144,10 @@ public class KeepEdgeAstTest extends TestBase {
         KeepEdge.builder()
             .setPreconditions(
                 KeepPreconditions.builder()
-                    .addCondition(KeepCondition.builder().setItem(classItem(CLASS)).build())
+                    .addCondition(
+                        KeepCondition.builder()
+                            .setItem(classItem(CLASS))
+                            .build())
                     .build())
             .setConsequences(
                 KeepConsequences.builder()

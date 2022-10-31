@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.experimental.keepanno.ast;
 
-import java.util.Objects;
-
 /**
  * An edge in the keep graph.
  *
@@ -45,8 +43,6 @@ public final class KeepEdge {
   private final KeepConsequences consequences;
 
   private KeepEdge(KeepPreconditions preconditions, KeepConsequences consequences) {
-    assert preconditions != null;
-    assert consequences != null;
     this.preconditions = preconditions;
     this.consequences = consequences;
   }
@@ -57,23 +53,5 @@ public final class KeepEdge {
 
   public KeepConsequences getConsequences() {
     return consequences;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    KeepEdge keepEdge = (KeepEdge) o;
-    return preconditions.equals(keepEdge.preconditions)
-        && consequences.equals(keepEdge.consequences);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(preconditions, consequences);
   }
 }

@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.experimental.keepanno.ast;
 
-import java.util.Objects;
-
 public class KeepTarget {
 
   public static KeepTarget any() {
@@ -40,8 +38,6 @@ public class KeepTarget {
   private final KeepOptions options;
 
   private KeepTarget(KeepItemPattern item, KeepOptions options) {
-    assert item != null;
-    assert options != null;
     this.item = item;
     this.options = options;
   }
@@ -56,22 +52,5 @@ public class KeepTarget {
 
   public KeepOptions getOptions() {
     return options;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    KeepTarget that = (KeepTarget) o;
-    return item.equals(that.item) && options.equals(that.options);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(item, options);
   }
 }

@@ -40,7 +40,6 @@ public final class KeepConsequences {
   private final List<KeepTarget> targets;
 
   private KeepConsequences(List<KeepTarget> targets) {
-    assert targets != null;
     this.targets = targets;
   }
 
@@ -50,22 +49,5 @@ public final class KeepConsequences {
 
   public void forEachTarget(Consumer<KeepTarget> fn) {
     targets.forEach(fn);
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    KeepConsequences that = (KeepConsequences) o;
-    return targets.equals(that.targets);
-  }
-
-  @Override
-  public int hashCode() {
-    return targets.hashCode();
   }
 }
