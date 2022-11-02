@@ -199,7 +199,7 @@ public class RedundantBridgeRemover {
       return resolutionPair.getDefinition().isAbstract()
           && resolutionPair
               .getDefinition()
-              .isAtLeastAsVisibleAsOtherInSameHierarchy(method.getDefinition())
+              .isAtLeastAsVisibleAsOtherInSameHierarchy(method.getDefinition(), appView)
           && (!resolutionPair.getHolder().isInterface() || holder.getInterfaces().isEmpty());
     }
     // Only check for interfaces if resolving the method on super type causes NoSuchMethodError.
@@ -219,7 +219,7 @@ public class RedundantBridgeRemover {
           || !singleIfaceResult.getResolvedMethod().isAbstract()
           || !singleIfaceResult
               .getResolvedMethod()
-              .isAtLeastAsVisibleAsOtherInSameHierarchy(method.getDefinition())) {
+              .isAtLeastAsVisibleAsOtherInSameHierarchy(method.getDefinition(), appView)) {
         return false;
       }
     }
