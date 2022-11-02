@@ -198,6 +198,11 @@ sourceSets {
         }
         output.resourcesDir = 'build/classes/kotlinR8TestResources'
     }
+    keepanno {
+        java {
+            srcDirs = ['src/keepanno/main/java']
+        }
+    }
 }
 
 // Ensure importing into IntelliJ IDEA use the same output directories as Gradle. In tests we
@@ -207,7 +212,7 @@ sourceSets {
 idea {
     sourceSets.all { SourceSet sources ->
         module {
-            if (sources.name == "main") {
+            if (sources.name == "main" || sources.name == "keepanno") {
                 sourceDirs += sources.java.srcDirs
                 outputDir sources.output.classesDirs[0]
             } else {
@@ -311,6 +316,11 @@ dependencies {
     apiUsageSampleCompile "com.google.guava:guava:$guavaVersion"
     kotlinR8TestResourcesCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     errorprone("com.google.errorprone:error_prone_core:$errorproneVersion")
+
+    keepannoCompile group: 'org.ow2.asm', name: 'asm', version: asmVersion
+    keepannoCompile "com.google.guava:guava:$guavaVersion"
+    testCompile sourceSets.keepanno.output
+    testRuntime sourceSets.keepanno.output
 }
 
 def r8LibPath = "$buildDir/libs/r8lib.jar"
@@ -1093,6 +1103,7 @@ task buildLibraryDesugarConversions(type: CustomConversionAsmRewriterTask, depen
 task testJarSources(type: Jar, dependsOn: [testClasses, buildLibraryDesugarConversions]) {
     archiveFileName = "r8testsbase.jar"
     from sourceSets.test.output
+    from sourceSets.keepanno.output
     // We only want to include tests that use R8 when generating keep rules for applymapping.
     include "com/android/tools/r8/**"
     include "android/**"

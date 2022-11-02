@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.experimental.keepanno.keeprules;
 
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.experimental.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.experimental.keepanno.ast.KeepEdge;
 import com.android.tools.r8.experimental.keepanno.ast.KeepFieldPattern;
@@ -22,11 +21,11 @@ import com.android.tools.r8.experimental.keepanno.ast.KeepQualifiedClassNamePatt
 import com.android.tools.r8.experimental.keepanno.ast.KeepTarget;
 import com.android.tools.r8.experimental.keepanno.ast.KeepTypePattern;
 import com.android.tools.r8.experimental.keepanno.ast.KeepUnqualfiedClassNamePattern;
-import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.StringUtils.BraceType;
+import com.android.tools.r8.experimental.keepanno.utils.Unimplemented;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class KeepRuleExtractor {
 
@@ -151,7 +150,12 @@ public class KeepRuleExtractor {
       StringBuilder builder, KeepMethodParametersPattern parametersPattern) {
     return parametersPattern.match(
         () -> builder.append("(***)"),
-        list -> StringUtils.append(builder, list, ", ", BraceType.PARENS));
+        list -> {
+          return builder
+              .append('{')
+              .append(list.stream().map(Object::toString).collect(Collectors.joining(", ")))
+              .append('}');
+        });
   }
 
   private static StringBuilder printMethodName(

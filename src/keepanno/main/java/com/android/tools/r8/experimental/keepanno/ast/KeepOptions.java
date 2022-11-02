@@ -3,14 +3,18 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.experimental.keepanno.ast;
 
-import com.android.tools.r8.utils.SetUtils;
-import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 public final class KeepOptions {
+
+  public boolean isKeepAll() {
+    return allowIfSet ? options.isEmpty() : options.size() == KeepOption.values().length;
+  }
 
   public enum KeepOption {
     SHRINKING,
@@ -44,7 +48,7 @@ public final class KeepOptions {
 
   public static class Builder {
     public final boolean allowIfSet;
-    public Set<KeepOption> options = SetUtils.newIdentityHashSet();
+    public Set<KeepOption> options = new HashSet<>();
 
     private Builder(boolean allowIfSet) {
       this.allowIfSet = allowIfSet;
@@ -77,7 +81,7 @@ public final class KeepOptions {
         }
         throw new KeepEdgeException("Invalid keep options that allow everything.");
       }
-      return new KeepOptions(allowIfSet, ImmutableSet.copyOf(options));
+      return new KeepOptions(allowIfSet, Collections.unmodifiableSet(options));
     }
   }
 
@@ -93,5 +97,24 @@ public final class KeepOptions {
 
   public boolean isAllowed(KeepOption option) {
     return options.contains(option) == allowIfSet;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    // This does not actually capture equivalence. We should normalize the builder the 'allow'
+    // variant always.
+    KeepOptions that = (KeepOptions) o;
+    return allowIfSet == that.allowIfSet && options.equals(that.options);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(allowIfSet, options);
   }
 }

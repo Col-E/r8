@@ -74,6 +74,21 @@ public final class KeepQualifiedClassNamePattern {
     return packagePattern.isAny() && namePattern.isAny();
   }
 
+  public boolean isExact() {
+    return packagePattern.isExact() && namePattern.isExact();
+  }
+
+  public String getExactDescriptor() {
+    if (!isExact()) {
+      throw new KeepEdgeException("Attempt to obtain exact qualified type for inexact pattern");
+    }
+    return 'L'
+        + packagePattern.asExact().getExactPackageAsString().replace('.', '/')
+        + (packagePattern.isTop() ? "" : "/")
+        + namePattern.asExact().getExactNameAsString()
+        + ';';
+  }
+
   public KeepPackagePattern getPackagePattern() {
     return packagePattern;
   }

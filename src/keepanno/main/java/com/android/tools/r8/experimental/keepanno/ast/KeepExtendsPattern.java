@@ -42,6 +42,16 @@ public abstract class KeepExtendsPattern {
     public boolean isAny() {
       return true;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+      return this == obj;
+    }
+
+    @Override
+    public int hashCode() {
+      return System.identityHashCode(this);
+    }
   }
 
   private static class KeepExtendsClassPattern extends KeepExtendsPattern {
@@ -49,12 +59,30 @@ public abstract class KeepExtendsPattern {
     private final KeepQualifiedClassNamePattern pattern;
 
     public KeepExtendsClassPattern(KeepQualifiedClassNamePattern pattern) {
+      assert pattern != null;
       this.pattern = pattern;
     }
 
     @Override
     public boolean isAny() {
       return pattern.isAny();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      KeepExtendsClassPattern that = (KeepExtendsClassPattern) o;
+      return pattern.equals(that.pattern);
+    }
+
+    @Override
+    public int hashCode() {
+      return pattern.hashCode();
     }
   }
 

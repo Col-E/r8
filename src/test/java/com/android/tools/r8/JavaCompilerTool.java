@@ -102,10 +102,10 @@ public class JavaCompilerTool {
   }
 
   public JavaCompilerTool addAnnotationProcessors(String... processors) {
-    return addAnnotationProcessor(Arrays.asList(processors));
+    return addAnnotationProcessors(Arrays.asList(processors));
   }
 
-  public JavaCompilerTool addAnnotationProcessor(Collection<String> processors) {
+  public JavaCompilerTool addAnnotationProcessors(Collection<String> processors) {
     annotationProcessors.addAll(processors);
     return this;
   }
@@ -116,6 +116,11 @@ public class JavaCompilerTool {
         || (!Files.exists(file) && FileUtils.isJarFile(file) && Files.exists(file.getParent()));
     this.output = file;
     return this;
+  }
+
+  public JavaCompilerTool addDebugAgent() {
+    return addOptions(
+        "-J-debug", "-J-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005");
   }
 
   private Path getOrCreateOutputPath() throws IOException {

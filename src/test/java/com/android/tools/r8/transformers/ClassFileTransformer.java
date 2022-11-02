@@ -66,7 +66,7 @@ public class ClassFileTransformer {
       List<MethodTransformer> methodTransformers,
       int flags) {
     ClassReader reader = new ClassReader(bytes);
-    ClassWriter writer = new ClassWriter(reader, flags);
+    ClassWriter writer = new ClassWriter(flags);
     ClassVisitor subvisitor = new InnerMostClassTransformer(writer, methodTransformers);
     for (int i = classTransformers.size() - 1; i >= 0; i--) {
       classTransformers.get(i).setSubVisitor(subvisitor);

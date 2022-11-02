@@ -3,9 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.experimental.keepanno.ast;
 
-import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.experimental.keepanno.utils.Unimplemented;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 public abstract class KeepMembersPattern {
@@ -89,6 +90,16 @@ public abstract class KeepMembersPattern {
     public void forEach(Consumer<KeepFieldPattern> onField, Consumer<KeepMethodPattern> onMethod) {
       throw new Unimplemented("Should this include all and none?");
     }
+
+    @Override
+    public boolean equals(Object obj) {
+      return this == obj;
+    }
+
+    @Override
+    public int hashCode() {
+      return System.identityHashCode(this);
+    }
   }
 
   private static class KeepMembersNonePattern extends KeepMembersPattern {
@@ -115,6 +126,16 @@ public abstract class KeepMembersPattern {
     @Override
     public void forEach(Consumer<KeepFieldPattern> onField, Consumer<KeepMethodPattern> onMethod) {
       throw new Unimplemented("Should this include all and none?");
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return this == obj;
+    }
+
+    @Override
+    public int hashCode() {
+      return System.identityHashCode(this);
     }
   }
 
@@ -145,6 +166,23 @@ public abstract class KeepMembersPattern {
     public void forEach(Consumer<KeepFieldPattern> onField, Consumer<KeepMethodPattern> onMethod) {
       fields.forEach(onField);
       methods.forEach(onMethod);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null || getClass() != obj.getClass()) {
+        return false;
+      }
+      KeepMembersSomePattern that = (KeepMembersSomePattern) obj;
+      return methods.equals(that.methods) && fields.equals(that.fields);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(methods, fields);
     }
   }
 

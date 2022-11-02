@@ -41,5 +41,5 @@ public final class KeepCondition {
 
   public KeepItemPattern getItemPattern() {
     return itemPattern;
-    }
+  }
 }
