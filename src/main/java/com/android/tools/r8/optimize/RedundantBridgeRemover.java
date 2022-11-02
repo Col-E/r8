@@ -59,18 +59,10 @@ public class RedundantBridgeRemover {
     if (targetMethod == null) {
       return null;
     }
-    if (method.getAccessFlags().isPublic()) {
-      if (!targetMethod.getAccessFlags().isPublic()) {
-        return null;
-      }
-    } else {
-      if (targetMethod.getAccessFlags().isProtected()
-          && !targetMethod.getHolderType().isSamePackage(method.getHolderType())) {
-        return null;
-      }
-      if (targetMethod.getAccessFlags().isPrivate()) {
-        return null;
-      }
+    if (!targetMethod
+        .getDefinition()
+        .isAtLeastAsVisibleAsOtherInSameHierarchy(method.getDefinition(), appView)) {
+      return null;
     }
     if (definition.isStatic()
         && method.getHolder().hasClassInitializer()

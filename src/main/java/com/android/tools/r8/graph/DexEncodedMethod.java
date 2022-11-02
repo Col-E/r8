@@ -569,6 +569,40 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return isStatic();
   }
 
+  public boolean isAtLeastAsVisibleAsOtherInSameHierarchy(
+      DexEncodedMethod other, AppView<? extends AppInfoWithClassHierarchy> appView) {
+    assert getReference().getProto() == other.getReference().getProto();
+    assert appView.isSubtype(getHolderType(), other.getHolderType()).isTrue()
+        || appView.isSubtype(other.getHolderType(), getHolderType()).isTrue();
+    AccessFlags<MethodAccessFlags> accessFlags = getAccessFlags();
+    AccessFlags<?> otherAccessFlags = other.getAccessFlags();
+    if (accessFlags.getVisibilityOrdinal() < otherAccessFlags.getVisibilityOrdinal()) {
+      return false;
+    } else if (accessFlags.isPrivate()) {
+      return getHolderType() == other.getHolderType();
+    } else if (accessFlags.isPublic() || accessFlags.isProtected()) {
+      return true;
+    } else {
+      assert accessFlags.isPackagePrivate();
+      return getHolderType().getPackageName().equals(other.getHolderType().getPackageName());
+    }
+  }
+
+  public boolean isSameVisibility(DexEncodedMethod other) {
+    AccessFlags<MethodAccessFlags> accessFlags = getAccessFlags();
+    if (accessFlags.getVisibilityOrdinal() != other.getAccessFlags().getVisibilityOrdinal()) {
+      return false;
+    }
+    if (accessFlags.isPublic()) {
+      return true;
+    }
+    if (accessFlags.isPrivate()) {
+      return getHolderType() == other.getHolderType();
+    }
+    assert accessFlags.isVisibilityDependingOnPackage();
+    return getHolderType().getPackageName().equals(other.getHolderType().getPackageName());
+  }
+
   /**
    * Returns true if this method is synthetic.
    */

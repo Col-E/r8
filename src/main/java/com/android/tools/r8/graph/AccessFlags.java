@@ -109,25 +109,14 @@ public abstract class AccessFlags<T extends AccessFlags<T>> implements Structura
   }
 
   public boolean isMoreVisibleThan(
-      AccessFlags other, String packageNameThis, String packageNameOther) {
+      AccessFlags<?> other, String packageNameThis, String packageNameOther) {
     int visibilityOrdinal = getVisibilityOrdinal();
     if (visibilityOrdinal > other.getVisibilityOrdinal()) {
       return true;
     }
-    if (visibilityOrdinal == other.getVisibilityOrdinal()
+    return visibilityOrdinal == other.getVisibilityOrdinal()
         && isVisibilityDependingOnPackage()
-        && !packageNameThis.equals(packageNameOther)) {
-      return true;
-    }
-    return false;
-  }
-
-  public boolean isAtLeastAsVisibleAs(AccessFlags other) {
-    return getVisibilityOrdinal() >= other.getVisibilityOrdinal();
-  }
-
-  public boolean isSameVisibility(AccessFlags other) {
-    return getVisibilityOrdinal() == other.getVisibilityOrdinal();
+        && !packageNameThis.equals(packageNameOther);
   }
 
   public int getVisibilityOrdinal() {

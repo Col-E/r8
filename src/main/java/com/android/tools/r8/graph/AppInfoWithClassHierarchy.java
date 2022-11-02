@@ -536,7 +536,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     assert potentialHolder.isInterface();
     for (DexEncodedMethod virtualMethod : potentialHolder.virtualMethods()) {
       if (virtualMethod.getReference().match(method.getReference())
-          && virtualMethod.accessFlags.isSameVisibility(method.accessFlags)) {
+          && virtualMethod.isSameVisibility(method)) {
         return true;
       }
     }

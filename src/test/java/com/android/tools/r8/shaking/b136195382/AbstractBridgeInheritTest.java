@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.shaking.b136195382;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -13,8 +12,6 @@ import com.android.tools.r8.shaking.b136195382.package1.Service;
 import com.android.tools.r8.shaking.b136195382.package2.Main;
 import com.android.tools.r8.shaking.b136195382.package2.SubFactory;
 import com.android.tools.r8.shaking.b136195382.package2.SubService;
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -35,8 +32,7 @@ public class AbstractBridgeInheritTest extends TestBase {
   }
 
   @Test
-  public void testRemovingBridge()
-      throws ExecutionException, CompilationFailedException, IOException {
+  public void testRemovingBridge() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(
             Service.class, Factory.class, SubService.class, SubFactory.class, Main.class)
@@ -44,7 +40,6 @@ public class AbstractBridgeInheritTest extends TestBase {
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("Hello World!")
-        .inspector();
+        .assertSuccessWithOutputLines("Hello World!");
   }
 }
