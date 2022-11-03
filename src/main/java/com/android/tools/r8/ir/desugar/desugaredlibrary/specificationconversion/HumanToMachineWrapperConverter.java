@@ -49,11 +49,28 @@ public class HumanToMachineWrapperConverter {
     // processed before.
     LinkedHashMap<DexType, WrapperDescriptorBuilder> orderedDescriptors =
         orderDescriptors(descriptors);
+    clearIncompleteSubwrappers(orderedDescriptors, rewritingFlags.getWrapperConversions());
     finalizeWrapperDescriptors(orderedDescriptors, builder);
     warnConsumer.accept("The following types to wrap are missing: ", missingClasses);
     warnConsumer.accept(
         "The following methods cannot be handled by the wrappers due to their flags: ",
         invalidMethods);
+  }
+
+  private void clearIncompleteSubwrappers(
+      LinkedHashMap<DexType, WrapperDescriptorBuilder> orderedDescriptors,
+      Map<DexType, Set<DexMethod>> wrapperConversions) {
+    // If the wrapper is incomplete, it may lead to runtime errors.
+    // We never try to specialize the wrapper to an incomplete wrapper for this reason.
+    for (WrapperDescriptorBuilder descriptor : orderedDescriptors.values()) {
+      List<DexType> toRemove = new ArrayList<>();
+      for (DexType subwrapper : descriptor.getSubwrappers()) {
+        if (!wrapperConversions.get(subwrapper).isEmpty()) {
+          toRemove.add(subwrapper);
+        }
+      }
+      descriptor.removeSubwrappers(toRemove);
+    }
   }
 
   private static class WrapperDescriptorBuilder {
@@ -84,6 +101,12 @@ public class HumanToMachineWrapperConverter {
       subwrappers.sort(DexType::compareTo);
       return new WrapperDescriptor(
           ImmutableList.copyOf(methods), ImmutableList.copyOf(subwrappers), nonPublicAccess);
+    }
+
+    public void removeSubwrappers(List<DexType> toRemove) {
+      if (!toRemove.isEmpty()) {
+        subwrappers.removeAll(toRemove);
+      }
     }
   }
 
