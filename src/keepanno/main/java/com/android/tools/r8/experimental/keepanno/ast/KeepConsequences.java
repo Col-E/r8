@@ -6,6 +6,7 @@ package com.android.tools.r8.experimental.keepanno.ast;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * Set of consequences of a keep edge.
@@ -67,5 +68,10 @@ public final class KeepConsequences {
   @Override
   public int hashCode() {
     return targets.hashCode();
+  }
+
+  @Override
+  public String toString() {
+    return targets.stream().map(Object::toString).collect(Collectors.joining(", "));
   }
 }

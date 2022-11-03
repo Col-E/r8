@@ -23,6 +23,10 @@ public abstract class KeepMethodReturnTypePattern {
 
   public abstract <T> T match(Supplier<T> onVoid, Function<KeepTypePattern, T> onType);
 
+  public boolean isAny() {
+    return match(() -> false, KeepTypePattern::isAny);
+  }
+
   private static class VoidType extends KeepMethodReturnTypePattern {
     private static VoidType INSTANCE = null;
 
@@ -37,6 +41,21 @@ public abstract class KeepMethodReturnTypePattern {
     public <T> T match(Supplier<T> onVoid, Function<KeepTypePattern, T> onType) {
       return onVoid.get();
     }
+
+    @Override
+    public boolean equals(Object obj) {
+      return this == obj;
+    }
+
+    @Override
+    public int hashCode() {
+      return System.identityHashCode(this);
+    }
+
+    @Override
+    public String toString() {
+      return "void";
+    }
   }
 
   private static class SomeType extends KeepMethodReturnTypePattern {
@@ -44,12 +63,35 @@ public abstract class KeepMethodReturnTypePattern {
     private final KeepTypePattern typePattern;
 
     private SomeType(KeepTypePattern typePattern) {
+      assert typePattern != null;
       this.typePattern = typePattern;
     }
 
     @Override
     public <T> T match(Supplier<T> onVoid, Function<KeepTypePattern, T> onType) {
       return onType.apply(typePattern);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      SomeType someType = (SomeType) o;
+      return typePattern.equals(someType.typePattern);
+    }
+
+    @Override
+    public int hashCode() {
+      return typePattern.hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return typePattern.toString();
     }
   }
 }

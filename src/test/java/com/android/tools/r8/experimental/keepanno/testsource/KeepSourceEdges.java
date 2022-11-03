@@ -6,6 +6,9 @@ package com.android.tools.r8.experimental.keepanno.testsource;
 import com.android.tools.r8.experimental.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.experimental.keepanno.ast.KeepEdge;
 import com.android.tools.r8.experimental.keepanno.ast.KeepItemPattern;
+import com.android.tools.r8.experimental.keepanno.ast.KeepMembersPattern;
+import com.android.tools.r8.experimental.keepanno.ast.KeepMethodNamePattern;
+import com.android.tools.r8.experimental.keepanno.ast.KeepMethodPattern;
 import com.android.tools.r8.experimental.keepanno.ast.KeepQualifiedClassNamePattern;
 import com.android.tools.r8.experimental.keepanno.ast.KeepTarget;
 import java.util.Collections;
@@ -27,10 +30,24 @@ public class KeepSourceEdges {
 
   public static Set<KeepEdge> getKeepClassAndDefaultConstructorSourceEdges() {
     Class<?> clazz = KeepClassAndDefaultConstructorSource.class;
+    // Build the class target.
     KeepQualifiedClassNamePattern name = KeepQualifiedClassNamePattern.exact(clazz.getTypeName());
-    KeepItemPattern item = KeepItemPattern.builder().setClassPattern(name).build();
-    KeepTarget target = KeepTarget.builder().setItem(item).build();
-    KeepConsequences consequences = KeepConsequences.builder().addTarget(target).build();
+    KeepItemPattern classItem = KeepItemPattern.builder().setClassPattern(name).build();
+    KeepTarget classTarget = KeepTarget.builder().setItem(classItem).build();
+    // Build the constructor target.
+    KeepMethodPattern constructorMethod =
+        KeepMethodPattern.builder().setNamePattern(KeepMethodNamePattern.exact("<init>")).build();
+    KeepMembersPattern constructorMembers =
+        KeepMembersPattern.builder().addMethodPattern(constructorMethod).build();
+    KeepItemPattern constructorItem =
+        KeepItemPattern.builder()
+            .setClassPattern(name)
+            .setMembersPattern(constructorMembers)
+            .build();
+    KeepTarget constructorTarget = KeepTarget.builder().setItem(constructorItem).build();
+    // The consequet set is the class an its constructor.
+    KeepConsequences consequences =
+        KeepConsequences.builder().addTarget(classTarget).addTarget(constructorTarget).build();
     KeepEdge edge = KeepEdge.builder().setConsequences(consequences).build();
     return Collections.singleton(edge);
   }

@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public abstract class KeepMembersPattern {
 
@@ -100,6 +101,11 @@ public abstract class KeepMembersPattern {
     public int hashCode() {
       return System.identityHashCode(this);
     }
+
+    @Override
+    public String toString() {
+      return "*";
+    }
   }
 
   private static class KeepMembersNonePattern extends KeepMembersPattern {
@@ -136,6 +142,11 @@ public abstract class KeepMembersPattern {
     @Override
     public int hashCode() {
       return System.identityHashCode(this);
+    }
+
+    @Override
+    public String toString() {
+      return "<none>";
     }
   }
 
@@ -183,6 +194,16 @@ public abstract class KeepMembersPattern {
     @Override
     public int hashCode() {
       return Objects.hash(methods, fields);
+    }
+
+    @Override
+    public String toString() {
+      return "KeepMembersSomePattern{"
+          + "methods={"
+          + methods.stream().map(Object::toString).collect(Collectors.joining(", "))
+          + "}, fields={"
+          + fields.stream().map(Object::toString).collect(Collectors.joining(", "))
+          + "}}";
     }
   }
 

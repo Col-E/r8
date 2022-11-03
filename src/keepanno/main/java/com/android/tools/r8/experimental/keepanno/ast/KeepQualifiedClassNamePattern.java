@@ -113,4 +113,9 @@ public final class KeepQualifiedClassNamePattern {
   public int hashCode() {
     return Objects.hash(packagePattern.hashCode(), namePattern.hashCode());
   }
+
+  @Override
+  public String toString() {
+    return packagePattern + (packagePattern.isTop() ? "" : ".") + namePattern;
+  }
 }

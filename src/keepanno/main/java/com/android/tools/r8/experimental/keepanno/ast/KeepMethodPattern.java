@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.experimental.keepanno.ast;
 
+import java.util.Objects;
+
 public final class KeepMethodPattern extends KeepMemberPattern {
 
   public static Builder builder() {
@@ -62,6 +64,10 @@ public final class KeepMethodPattern extends KeepMemberPattern {
       KeepMethodNamePattern namePattern,
       KeepMethodReturnTypePattern returnTypePattern,
       KeepMethodParametersPattern parametersPattern) {
+    assert accessPattern != null;
+    assert namePattern != null;
+    assert returnTypePattern != null;
+    assert parametersPattern != null;
     this.accessPattern = accessPattern;
     this.namePattern = namePattern;
     this.returnTypePattern = returnTypePattern;
@@ -86,5 +92,39 @@ public final class KeepMethodPattern extends KeepMemberPattern {
 
   public KeepMethodParametersPattern getParametersPattern() {
     return parametersPattern;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    KeepMethodPattern that = (KeepMethodPattern) o;
+    return accessPattern.equals(that.accessPattern)
+        && namePattern.equals(that.namePattern)
+        && returnTypePattern.equals(that.returnTypePattern)
+        && parametersPattern.equals(that.parametersPattern);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(accessPattern, namePattern, returnTypePattern, parametersPattern);
+  }
+
+  @Override
+  public String toString() {
+    return "KeepMethodPattern{"
+        + "access="
+        + accessPattern
+        + ", name="
+        + namePattern
+        + ", returnType="
+        + returnTypePattern
+        + ", parameters="
+        + parametersPattern
+        + '}';
   }
 }

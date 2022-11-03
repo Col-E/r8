@@ -98,6 +98,11 @@ public abstract class KeepItemPattern {
     public int hashCode() {
       return System.identityHashCode(this);
     }
+
+    @Override
+    public String toString() {
+      return "*";
+    }
   }
 
   public static class KeepClassPattern extends KeepItemPattern {
@@ -162,6 +167,18 @@ public abstract class KeepItemPattern {
     @Override
     public int hashCode() {
       return Objects.hash(qualifiedClassPattern, extendsPattern, membersPattern);
+    }
+
+    @Override
+    public String toString() {
+      return "KeepClassPattern{"
+          + "qualifiedClassPattern="
+          + qualifiedClassPattern
+          + ", extendsPattern="
+          + extendsPattern
+          + ", membersPattern="
+          + membersPattern
+          + '}';
     }
   }
 

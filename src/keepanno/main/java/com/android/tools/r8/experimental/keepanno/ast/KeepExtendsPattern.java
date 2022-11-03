@@ -52,6 +52,11 @@ public abstract class KeepExtendsPattern {
     public int hashCode() {
       return System.identityHashCode(this);
     }
+
+    @Override
+    public String toString() {
+      return "*";
+    }
   }
 
   private static class KeepExtendsClassPattern extends KeepExtendsPattern {
@@ -83,6 +88,11 @@ public abstract class KeepExtendsPattern {
     @Override
     public int hashCode() {
       return pattern.hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return pattern.toString();
     }
   }
 

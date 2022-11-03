@@ -88,6 +88,11 @@ public abstract class KeepPackagePattern {
     public int hashCode() {
       return System.identityHashCode(this);
     }
+
+    @Override
+    public String toString() {
+      return "*";
+    }
   }
 
   private static final class KeepPackageTopPattern extends KeepPackageExactPattern {
@@ -113,6 +118,11 @@ public abstract class KeepPackagePattern {
     @Override
     public boolean isTop() {
       return true;
+    }
+
+    @Override
+    public String toString() {
+      return "";
     }
   }
 
@@ -165,6 +175,11 @@ public abstract class KeepPackagePattern {
     @Override
     public int hashCode() {
       return fullPackage.hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return fullPackage;
     }
   }
 

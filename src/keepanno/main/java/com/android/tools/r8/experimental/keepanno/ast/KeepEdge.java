@@ -76,4 +76,9 @@ public final class KeepEdge {
   public int hashCode() {
     return Objects.hash(preconditions, consequences);
   }
+
+  @Override
+  public String toString() {
+    return "KeepEdge{" + "preconditions=" + preconditions + ", consequences=" + consequences + '}';
+  }
 }

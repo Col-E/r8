@@ -71,6 +71,11 @@ public abstract class KeepUnqualfiedClassNamePattern {
     public int hashCode() {
       return System.identityHashCode(this);
     }
+
+    @Override
+    public String toString() {
+      return "*";
+    }
   }
 
   public static class KeepClassNameExactPattern extends KeepUnqualfiedClassNamePattern {
@@ -116,6 +121,11 @@ public abstract class KeepUnqualfiedClassNamePattern {
     @Override
     public int hashCode() {
       return className.hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return className;
     }
   }
 

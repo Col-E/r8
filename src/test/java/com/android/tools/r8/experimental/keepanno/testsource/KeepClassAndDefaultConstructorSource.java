@@ -9,13 +9,9 @@ import com.android.tools.r8.experimental.keepanno.annotations.KeepTarget;
 @KeepEdge(
     consequences = {
       // Keep the class to allow lookup of it.
-      @KeepTarget(classConstant = KeepClassAndDefaultConstructorSource.class)
-      // TODO(b/248408342): Add default constructor target.
-      // // Keep the default constructor.
-      // @KeepTarget(
-      //     classConstant = KeepClassAndDefaultConstructorSource.class,
-      //     methodName = "<init>"
-      // )
+      @KeepTarget(classConstant = KeepClassAndDefaultConstructorSource.class),
+      // Keep the default constructor.
+      @KeepTarget(classConstant = KeepClassAndDefaultConstructorSource.class, methodName = "<init>")
     })
 public class KeepClassAndDefaultConstructorSource {
 

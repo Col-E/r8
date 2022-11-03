@@ -8,12 +8,17 @@ import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.ACC_SUPER;
 
 import com.android.tools.r8.experimental.keepanno.annotations.KeepConstants;
+import com.android.tools.r8.experimental.keepanno.annotations.KeepConstants.Edge;
+import com.android.tools.r8.experimental.keepanno.annotations.KeepConstants.Target;
 import com.android.tools.r8.experimental.keepanno.asm.KeepEdgeReader;
 import com.android.tools.r8.experimental.keepanno.asm.KeepEdgeWriter;
 import com.android.tools.r8.experimental.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.experimental.keepanno.ast.KeepEdge;
 import com.android.tools.r8.experimental.keepanno.ast.KeepEdge.Builder;
 import com.android.tools.r8.experimental.keepanno.ast.KeepItemPattern;
+import com.android.tools.r8.experimental.keepanno.ast.KeepMembersPattern;
+import com.android.tools.r8.experimental.keepanno.ast.KeepMethodNamePattern;
+import com.android.tools.r8.experimental.keepanno.ast.KeepMethodPattern;
 import com.android.tools.r8.experimental.keepanno.ast.KeepQualifiedClassNamePattern;
 import com.android.tools.r8.experimental.keepanno.ast.KeepTarget;
 import com.android.tools.r8.experimental.keepanno.utils.Unimplemented;
@@ -98,7 +103,7 @@ public class KeepEdgeProcessor extends AbstractProcessor {
   }
 
   private void processPreconditions(Builder edgeBuilder, AnnotationMirror mirror) {
-    AnnotationValue preconditions = getAnnotationValue(mirror, "preconditions");
+    AnnotationValue preconditions = getAnnotationValue(mirror, Edge.preconditions);
     if (preconditions == null) {
       return;
     }
@@ -106,7 +111,7 @@ public class KeepEdgeProcessor extends AbstractProcessor {
   }
 
   private void processConsequences(Builder edgeBuilder, AnnotationMirror mirror) {
-    AnnotationValue consequences = getAnnotationValue(mirror, "consequences");
+    AnnotationValue consequences = getAnnotationValue(mirror, Edge.consequences);
     if (consequences == null) {
       return;
     }
@@ -123,11 +128,23 @@ public class KeepEdgeProcessor extends AbstractProcessor {
 
   private void processTarget(KeepTarget.Builder builder, AnnotationMirror mirror) {
     KeepItemPattern.Builder itemBuilder = KeepItemPattern.builder();
-    AnnotationValue classConstantValue = getAnnotationValue(mirror, "classConstant");
+    AnnotationValue classConstantValue = getAnnotationValue(mirror, Target.classConstant);
     if (classConstantValue != null) {
       DeclaredType type = AnnotationClassValueVisitor.getType(classConstantValue);
       itemBuilder.setClassPattern(KeepQualifiedClassNamePattern.exact(type.toString()));
     }
+    AnnotationValue methodNameValue = getAnnotationValue(mirror, Target.methodName);
+    if (methodNameValue != null) {
+      String methodName = AnnotationStringValueVisitor.getString(methodNameValue);
+      itemBuilder.setMembersPattern(
+          KeepMembersPattern.builder()
+              .addMethodPattern(
+                  KeepMethodPattern.builder()
+                      .setNamePattern(KeepMethodNamePattern.exact(methodName))
+                      .build())
+              .build());
+    }
+
     builder.setItem(itemBuilder.build());
   }
 
@@ -207,6 +224,21 @@ public class KeepEdgeProcessor extends AbstractProcessor {
     @Override
     public AnnotationMirrorValueVisitor visitAnnotation(AnnotationMirror mirror, Object o) {
       this.mirror = mirror;
+      return this;
+    }
+  }
+
+  private static class AnnotationStringValueVisitor
+      extends AnnotationValueVisitorBase<AnnotationStringValueVisitor> {
+    private String string;
+
+    public static String getString(AnnotationValue value) {
+      return new AnnotationStringValueVisitor().onValue(value).string;
+    }
+
+    @Override
+    public AnnotationStringValueVisitor visitString(String string, Object ignore) {
+      this.string = string;
       return this;
     }
   }

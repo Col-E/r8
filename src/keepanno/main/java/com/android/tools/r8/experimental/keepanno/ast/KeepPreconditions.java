@@ -69,6 +69,11 @@ public abstract class KeepPreconditions {
     public int hashCode() {
       return System.identityHashCode(this);
     }
+
+    @Override
+    public String toString() {
+      return "true";
+    }
   }
 
   private static class KeepPreconditionsSome extends KeepPreconditions {
@@ -106,6 +111,11 @@ public abstract class KeepPreconditions {
     @Override
     public int hashCode() {
       return preconditions.hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return preconditions.toString();
     }
   }
 }

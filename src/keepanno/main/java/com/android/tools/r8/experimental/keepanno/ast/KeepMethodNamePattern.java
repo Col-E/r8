@@ -47,18 +47,56 @@ public abstract class KeepMethodNamePattern {
     public <T> T match(Supplier<T> onAny, Function<String, T> onExact) {
       return onAny.get();
     }
+
+    @Override
+    public boolean equals(Object obj) {
+      return this == obj;
+    }
+
+    @Override
+    public int hashCode() {
+      return System.identityHashCode(this);
+    }
+
+    @Override
+    public String toString() {
+      return "*";
+    }
   }
 
   private static class KeepMethodNameExactPattern extends KeepMethodNamePattern {
     private final String name;
 
     public KeepMethodNameExactPattern(String name) {
+      assert name != null;
       this.name = name;
     }
 
     @Override
     public <T> T match(Supplier<T> onAny, Function<String, T> onExact) {
       return onExact.apply(name);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      KeepMethodNameExactPattern that = (KeepMethodNameExactPattern) o;
+      return name.equals(that.name);
+    }
+
+    @Override
+    public int hashCode() {
+      return name.hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return name;
     }
   }
 }

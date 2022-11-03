@@ -23,6 +23,21 @@ public abstract class KeepTypePattern {
     public boolean isAny() {
       return true;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+      return this == obj;
+    }
+
+    @Override
+    public int hashCode() {
+      return System.identityHashCode(this);
+    }
+
+    @Override
+    public String toString() {
+      return "*";
+    }
   }
 
   public abstract boolean isAny();

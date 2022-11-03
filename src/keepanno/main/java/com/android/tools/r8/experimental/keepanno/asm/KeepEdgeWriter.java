@@ -5,8 +5,10 @@ package com.android.tools.r8.experimental.keepanno.asm;
 
 import com.android.tools.r8.experimental.keepanno.annotations.KeepConstants;
 import com.android.tools.r8.experimental.keepanno.annotations.KeepConstants.Edge;
+import com.android.tools.r8.experimental.keepanno.annotations.KeepConstants.Target;
 import com.android.tools.r8.experimental.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.experimental.keepanno.ast.KeepEdge;
+import com.android.tools.r8.experimental.keepanno.ast.KeepMethodNamePattern;
 import com.android.tools.r8.experimental.keepanno.ast.KeepPreconditions;
 import com.android.tools.r8.experimental.keepanno.ast.KeepQualifiedClassNamePattern;
 import com.android.tools.r8.experimental.keepanno.utils.Unimplemented;
@@ -65,6 +67,41 @@ public class KeepEdgeWriter implements Opcodes {
                       targetVisitor.visit(KeepConstants.Target.classConstant, typeConstant);
                     } else {
                       throw new Unimplemented();
+                    }
+                    if (!clazz.getExtendsPattern().isAny()) {
+                      throw new Unimplemented();
+                    }
+                    if (clazz.getMembersPattern().isNone()) {
+                      // Default is "no methods".
+                    } else if (clazz.getMembersPattern().isAll()) {
+                      throw new Unimplemented();
+                    } else {
+                      clazz
+                          .getMembersPattern()
+                          .forEach(
+                              field -> {
+                                throw new Unimplemented();
+                              },
+                              method -> {
+                                KeepMethodNamePattern methodNamePattern = method.getNamePattern();
+                                methodNamePattern.match(
+                                    () -> {
+                                      throw new Unimplemented();
+                                    },
+                                    exactMethodName -> {
+                                      targetVisitor.visit(Target.methodName, exactMethodName);
+                                      return null;
+                                    });
+                                if (!method.getAccessPattern().isAny()) {
+                                  throw new Unimplemented();
+                                }
+                                if (!method.getReturnTypePattern().isAny()) {
+                                  throw new Unimplemented();
+                                }
+                                if (!method.getParametersPattern().isAny()) {
+                                  throw new Unimplemented();
+                                }
+                              });
                     }
                     return null;
                   });

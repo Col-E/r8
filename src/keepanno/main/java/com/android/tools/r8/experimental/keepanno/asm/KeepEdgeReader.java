@@ -9,6 +9,10 @@ import com.android.tools.r8.experimental.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.experimental.keepanno.ast.KeepEdge;
 import com.android.tools.r8.experimental.keepanno.ast.KeepEdgeException;
 import com.android.tools.r8.experimental.keepanno.ast.KeepItemPattern;
+import com.android.tools.r8.experimental.keepanno.ast.KeepItemPattern.Builder;
+import com.android.tools.r8.experimental.keepanno.ast.KeepMembersPattern;
+import com.android.tools.r8.experimental.keepanno.ast.KeepMethodNamePattern;
+import com.android.tools.r8.experimental.keepanno.ast.KeepMethodPattern;
 import com.android.tools.r8.experimental.keepanno.ast.KeepPreconditions;
 import com.android.tools.r8.experimental.keepanno.ast.KeepQualifiedClassNamePattern;
 import com.android.tools.r8.experimental.keepanno.ast.KeepTarget;
@@ -138,7 +142,8 @@ public class KeepEdgeReader implements Opcodes {
 
   private static class KeepTargetVisitor extends AnnotationVisitorBase {
     private final Parent<KeepTarget> parent;
-    private String classConstant = null;
+    private KeepQualifiedClassNamePattern classNamePattern = null;
+    private KeepMethodNamePattern methodName = null;
 
     public KeepTargetVisitor(Parent<KeepTarget> parent) {
       this.parent = parent;
@@ -147,7 +152,11 @@ public class KeepEdgeReader implements Opcodes {
     @Override
     public void visit(String name, Object value) {
       if (name.equals(Target.classConstant) && value instanceof Type) {
-        classConstant = ((Type) value).getClassName();
+        classNamePattern = KeepQualifiedClassNamePattern.exact(((Type) value).getClassName());
+        return;
+      }
+      if (name.equals(Target.methodName) && value instanceof String) {
+        methodName = KeepMethodNamePattern.exact((String) value);
         return;
       }
       super.visit(name, value);
@@ -155,18 +164,18 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     public void visitEnd() {
-      if (classConstant != null) {
-        KeepTarget target =
-            KeepTarget.builder()
-                .setItem(
-                    KeepItemPattern.builder()
-                        .setClassPattern(KeepQualifiedClassNamePattern.exact(classConstant))
-                        .build())
-                .build();
-        parent.accept(target);
-        return;
+      Builder itemBuilder = KeepItemPattern.builder();
+      if (classNamePattern != null) {
+        itemBuilder.setClassPattern(classNamePattern);
       }
-      throw new KeepEdgeException("Unexpected failure to build @KeepTarget");
+      if (methodName != null) {
+        itemBuilder.setMembersPattern(
+            KeepMembersPattern.builder()
+                .addMethodPattern(KeepMethodPattern.builder().setNamePattern(methodName).build())
+                .build());
+      }
+      KeepTarget target = KeepTarget.builder().setItem(itemBuilder.build()).build();
+      parent.accept(target);
     }
   }
 }

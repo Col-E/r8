@@ -74,4 +74,9 @@ public class KeepTarget {
   public int hashCode() {
     return Objects.hash(item, options);
   }
+
+  @Override
+  public String toString() {
+    return "KeepTarget{" + "item=" + item + ", options=" + options + '}';
+  }
 }

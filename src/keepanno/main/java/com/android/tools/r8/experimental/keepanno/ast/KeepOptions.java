@@ -7,7 +7,9 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public final class KeepOptions {
 
@@ -122,5 +124,12 @@ public final class KeepOptions {
   @Override
   public int hashCode() {
     return allowedOptions.hashCode();
+  }
+
+  @Override
+  public String toString() {
+    return "KeepOptions{"
+        + allowedOptions.stream().map(Objects::toString).collect(Collectors.joining(", "))
+        + '}';
   }
 }
