@@ -25,9 +25,11 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -157,6 +159,7 @@ public class FilesTest extends DesugaredLibraryTestBase {
       readWriteThroughFilesAPI(path);
       readThroughFileChannelAPI(path);
       attributeAccess(path);
+      Files.setAttribute(path, "basic:lastModifiedTime", FileTime.from(Instant.EPOCH));
       fspMethodsWithGeneric(path);
       pathGeneric();
     }

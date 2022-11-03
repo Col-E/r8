@@ -101,32 +101,35 @@ public class FileApiFlips {
     throw exception("java.nio.file.attribute.FileTime", suffix);
   }
 
+  public static Object flipMaybeFileTime(Object val) {
+    if (val instanceof j$.nio.file.attribute.FileTime) {
+      j$.nio.file.attribute.FileTime fileTime;
+      try {
+        fileTime = (j$.nio.file.attribute.FileTime) val;
+      } catch (ClassCastException cce) {
+        throw exceptionFileTime(cce);
+      }
+      return FileAttributeConversions.convert(fileTime);
+    }
+    if (val instanceof java.nio.file.attribute.FileTime) {
+      java.nio.file.attribute.FileTime fileTime;
+      try {
+        fileTime = (java.nio.file.attribute.FileTime) val;
+      } catch (ClassCastException cce) {
+        throw exceptionFileTime(cce);
+      }
+      return FileAttributeConversions.convert(fileTime);
+    }
+    return val;
+  }
+
   public static Map<String, Object> flipMapWithMaybeFileTimeValues(Map<String, Object> in) {
     if (in == null || in.isEmpty()) {
       return in;
     }
     HashMap<String, Object> newMap = new HashMap<>();
     for (String key : in.keySet()) {
-      Object val = in.get(key);
-      if (val instanceof j$.nio.file.attribute.FileTime) {
-        j$.nio.file.attribute.FileTime fileTime;
-        try {
-          fileTime = (j$.nio.file.attribute.FileTime) val;
-        } catch (ClassCastException cce) {
-          throw exceptionFileTime(cce);
-        }
-        newMap.put(key, FileAttributeConversions.convert(fileTime));
-      } else if (val instanceof java.nio.file.attribute.FileTime) {
-        java.nio.file.attribute.FileTime fileTime;
-        try {
-          fileTime = (java.nio.file.attribute.FileTime) val;
-        } catch (ClassCastException cce) {
-          throw exceptionFileTime(cce);
-        }
-        newMap.put(key, FileAttributeConversions.convert(fileTime));
-      } else {
-        newMap.put(key, val);
-      }
+      newMap.put(key, flipMaybeFileTime(in.get(key)));
     }
     return newMap;
   }
