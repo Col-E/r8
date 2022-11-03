@@ -223,7 +223,7 @@ public class KeepRuleExtractor {
         return "optimization";
       case OBFUSCATING:
         return "obfuscation";
-      case ACCESS_MODIFING:
+      case ACCESS_MODIFYING:
         return "accessmodification";
       default:
         throw new Unimplemented();

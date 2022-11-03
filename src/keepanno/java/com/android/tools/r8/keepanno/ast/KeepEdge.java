@@ -10,6 +10,47 @@ import java.util.Objects;
  *
  * <p>An edge describes a set of preconditions and a set of consequences. If the preconditions are
  * met, then the consequences are put into effect.
+ *
+ * <p>Below is a BNF of the keep edge AST for reference. The non-terminals are written in ALL_CAPS,
+ * possibly-empty repeatable subexpressions denoted with SUB* and non-empty with SUB+
+ *
+ * <p>In the Java AST, the non-terminals are prefixed with 'Keep' and in CamelCase.
+ *
+ * <p>TODO(b/248408342): Update the BNF and AST to be complete.
+ *
+ * <pre>
+ *   EDGE ::= PRECONDITIONS -> CONSEQUENCES
+ *
+ *   PRECONDITIONS ::= always | CONDITION+
+ *   CONDITION ::= ITEM_PATTERN
+ *
+ *   CONSEQUENCES ::= TARGET+
+ *   TARGET ::= any | OPTIONS ITEM_PATTERN
+ *   OPTIONS ::= keep-all | OPTION+
+ *   OPTION ::= shrinking | optimizing | obfuscating | access-modifying
+ *
+ *   ITEM_PATTERN ::= any | CLASS_PATTERN
+ *   CLASS_PATTERN ::= QUALIFIED_CLASS_NAME_PATTERN extends EXTENDS_PATTERN { MEMBERS_PATTERN }
+ *
+ *   TYPE_PATTERN ::= any
+ *   PACKAGE_PATTERN ::= any | exact package-name
+ *   QUALIFIED_CLASS_NAME_PATTERN ::= any | PACKAGE_PATTERN | UNQUALIFIED_CLASS_NAME_PATTERN
+ *   UNQUALIFIED_CLASS_NAME_PATTERN ::= any | exact simple-class-name
+ *   EXTENDS_PATTERN ::= any | QUALIFIED_CLASS_NAME_PATTERN
+ *
+ *   MEMBERS_PATTERN ::= none | all | METHOD_PATTERN*
+ *
+ *   METHOD_PATTERN
+ *     ::= METHOD_ACCESS_PATTERN
+ *           METHOD_RETURN_TYPE_PATTERN
+ *           METHOD_NAME_PATTERN
+ *           METHOD_PARAMETERS_PATTERN
+ *
+ *   METHOD_ACCESS_PATTERN ::= any
+ *   METHOD_NAME_PATTERN ::= any | exact method-name
+ *   METHOD_RETURN_TYPE_PATTERN ::= void | TYPE_PATTERN
+ *   METHOD_PARAMETERS_PATTERN ::= any | none | TYPE_PATTERN+
+ * </pre>
  */
 public final class KeepEdge {
 

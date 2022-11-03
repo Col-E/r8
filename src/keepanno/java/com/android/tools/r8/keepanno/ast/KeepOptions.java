@@ -21,7 +21,7 @@ public final class KeepOptions {
     SHRINKING,
     OPTIMIZING,
     OBFUSCATING,
-    ACCESS_MODIFING,
+    ACCESS_MODIFYING,
   }
 
   public static KeepOptions keepAll() {

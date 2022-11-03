@@ -30,6 +30,9 @@ public final class KeepConsequences {
     }
 
     public KeepConsequences build() {
+      if (targets.isEmpty()) {
+        throw new KeepEdgeException("Invalid empty consequent set");
+      }
       return new KeepConsequences(targets);
     }
   }
@@ -42,6 +45,7 @@ public final class KeepConsequences {
 
   private KeepConsequences(List<KeepTarget> targets) {
     assert targets != null;
+    assert !targets.isEmpty();
     this.targets = targets;
   }
 
