@@ -52,7 +52,7 @@ public class KeepEdgeProcessor extends AbstractProcessor {
   @Override
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
     for (Element rootElement : roundEnv.getRootElements()) {
-      TypeElement typeElement = findEnclosingTypeElement(rootElement);
+      TypeElement typeElement = getEnclosingTypeElement(rootElement);
       KeepEdge edge = processKeepEdge(typeElement, roundEnv);
       if (edge != null) {
         String edgeTargetClass =
@@ -68,15 +68,6 @@ public class KeepEdgeProcessor extends AbstractProcessor {
       }
     }
     return true;
-  }
-
-  private static TypeElement findEnclosingTypeElement(Element element) {
-    while (true) {
-      if (element == null || element instanceof TypeElement) {
-        return (TypeElement) element;
-      }
-      element = element.getEnclosingElement();
-    }
   }
 
   private static byte[] writeEdge(KeepEdge edge, String classTypeName) {
@@ -120,14 +111,13 @@ public class KeepEdgeProcessor extends AbstractProcessor {
       return;
     }
     KeepConsequences.Builder consequencesBuilder = KeepConsequences.builder();
-    AnnotationListValueVisitor v =
-        new AnnotationListValueVisitor(
+    new AnnotationListValueVisitor(
             value -> {
               KeepTarget.Builder targetBuilder = KeepTarget.builder();
-              processTarget(targetBuilder, getAnnotationMirror(value, KeepConstants.Target.CLASS));
+              processTarget(targetBuilder, AnnotationMirrorValueVisitor.getMirror(value));
               consequencesBuilder.addTarget(targetBuilder.build());
-            });
-    consequences.accept(v, null);
+            })
+        .onValue(consequences);
     edgeBuilder.setConsequences(consequencesBuilder.build());
   }
 
@@ -135,94 +125,23 @@ public class KeepEdgeProcessor extends AbstractProcessor {
     KeepItemPattern.Builder itemBuilder = KeepItemPattern.builder();
     AnnotationValue classConstantValue = getAnnotationValue(mirror, "classConstant");
     if (classConstantValue != null) {
-      AnnotationClassValueVisitor v = new AnnotationClassValueVisitor();
-      classConstantValue.accept(v, null);
-      itemBuilder.setClassPattern(KeepQualifiedClassNamePattern.exact(v.type.toString()));
+      DeclaredType type = AnnotationClassValueVisitor.getType(classConstantValue);
+      itemBuilder.setClassPattern(KeepQualifiedClassNamePattern.exact(type.toString()));
     }
     builder.setItem(itemBuilder.build());
-  }
-
-  public static class AnnotationListValueVisitor
-      extends SimpleAnnotationValueVisitor7<AnnotationListValueVisitor, Object> {
-
-    private final Consumer<AnnotationValue> fn;
-
-    public AnnotationListValueVisitor(Consumer<AnnotationValue> fn) {
-      this.fn = fn;
-    }
-
-    @Override
-    protected AnnotationListValueVisitor defaultAction(Object o, Object o2) {
-      throw new IllegalStateException();
-    }
-
-    @Override
-    public AnnotationListValueVisitor visitArray(List<? extends AnnotationValue> vals, Object o) {
-      vals.forEach(fn::accept);
-      return this;
-    }
-  }
-
-  public static class AnnotationMirrorValueVisitor
-      extends SimpleAnnotationValueVisitor7<AnnotationMirrorValueVisitor, Object> {
-
-    private AnnotationMirror mirror = null;
-
-    @Override
-    protected AnnotationMirrorValueVisitor defaultAction(Object o, Object o2) {
-      throw new IllegalStateException();
-    }
-
-    @Override
-    public AnnotationMirrorValueVisitor visitAnnotation(AnnotationMirror a, Object o) {
-      mirror = a;
-      return this;
-    }
-  }
-
-  public static class AnnotationClassValueVisitor
-      extends SimpleAnnotationValueVisitor7<AnnotationClassValueVisitor, Object> {
-
-    private DeclaredType type = null;
-
-    @Override
-    protected AnnotationClassValueVisitor defaultAction(Object o, Object o2) {
-      throw new IllegalStateException();
-    }
-
-    @Override
-    public AnnotationClassValueVisitor visitType(TypeMirror t, Object o) {
-      ClassTypeVisitor classTypeVisitor = new ClassTypeVisitor();
-      t.accept(classTypeVisitor, null);
-      type = classTypeVisitor.t;
-      return this;
-    }
-  }
-
-  public static class ClassTypeVisitor extends SimpleTypeVisitor7<ClassTypeVisitor, Object> {
-
-    DeclaredType t = null;
-
-    @Override
-    protected ClassTypeVisitor defaultAction(TypeMirror e, Object o) {
-      throw new IllegalStateException();
-    }
-
-    @Override
-    public ClassTypeVisitor visitDeclared(DeclaredType t, Object o) {
-      this.t = t;
-      return this;
-    }
   }
 
   private void error(String message) {
     processingEnv.getMessager().printMessage(Kind.ERROR, message);
   }
 
-  private static AnnotationMirror getAnnotationMirror(AnnotationValue value, Class<?> annoClass) {
-    AnnotationMirrorValueVisitor v = new AnnotationMirrorValueVisitor();
-    value.accept(v, null);
-    return v.mirror;
+  private static TypeElement getEnclosingTypeElement(Element element) {
+    while (true) {
+      if (element == null || element instanceof TypeElement) {
+        return (TypeElement) element;
+      }
+      element = element.getEnclosingElement();
+    }
   }
 
   private static AnnotationMirror getAnnotationMirror(TypeElement typeElement, Class<?> clazz) {
@@ -243,5 +162,86 @@ public class KeepEdgeProcessor extends AbstractProcessor {
       }
     }
     return null;
+  }
+
+  /// Annotation Visitors
+
+  private abstract static class AnnotationValueVisitorBase<T>
+      extends SimpleAnnotationValueVisitor7<T, Object> {
+    @Override
+    protected T defaultAction(Object o1, Object o2) {
+      throw new IllegalStateException();
+    }
+
+    public T onValue(AnnotationValue value) {
+      return value.accept(this, null);
+    }
+  }
+
+  private static class AnnotationListValueVisitor
+      extends AnnotationValueVisitorBase<AnnotationListValueVisitor> {
+
+    private final Consumer<AnnotationValue> fn;
+
+    public AnnotationListValueVisitor(Consumer<AnnotationValue> fn) {
+      this.fn = fn;
+    }
+
+    @Override
+    public AnnotationListValueVisitor visitArray(
+        List<? extends AnnotationValue> values, Object ignore) {
+      values.forEach(fn);
+      return this;
+    }
+  }
+
+  private static class AnnotationMirrorValueVisitor
+      extends AnnotationValueVisitorBase<AnnotationMirrorValueVisitor> {
+
+    private AnnotationMirror mirror = null;
+
+    public static AnnotationMirror getMirror(AnnotationValue value) {
+      return new AnnotationMirrorValueVisitor().onValue(value).mirror;
+    }
+
+    @Override
+    public AnnotationMirrorValueVisitor visitAnnotation(AnnotationMirror mirror, Object o) {
+      this.mirror = mirror;
+      return this;
+    }
+  }
+
+  private static class AnnotationClassValueVisitor
+      extends AnnotationValueVisitorBase<AnnotationClassValueVisitor> {
+    private DeclaredType type = null;
+
+    public static DeclaredType getType(AnnotationValue value) {
+      return new AnnotationClassValueVisitor().onValue(value).type;
+    }
+
+    @Override
+    public AnnotationClassValueVisitor visitType(TypeMirror t, Object ignore) {
+      ClassTypeVisitor classTypeVisitor = new ClassTypeVisitor();
+      t.accept(classTypeVisitor, null);
+      type = classTypeVisitor.type;
+      return this;
+    }
+  }
+
+  private static class TypeVisitorBase<T> extends SimpleTypeVisitor7<T, Object> {
+    @Override
+    protected T defaultAction(TypeMirror typeMirror, Object ignore) {
+      throw new IllegalStateException();
+    }
+  }
+
+  private static class ClassTypeVisitor extends TypeVisitorBase<ClassTypeVisitor> {
+    private DeclaredType type = null;
+
+    @Override
+    public ClassTypeVisitor visitDeclared(DeclaredType t, Object ignore) {
+      this.type = t;
+      return this;
+    }
   }
 }
