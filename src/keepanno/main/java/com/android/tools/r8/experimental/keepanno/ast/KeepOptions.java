@@ -3,17 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.experimental.keepanno.ast;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 
 public final class KeepOptions {
 
   public boolean isKeepAll() {
-    return allowIfSet ? options.isEmpty() : options.size() == KeepOption.values().length;
+    return allowedOptions.isEmpty();
   }
 
   public enum KeepOption {
@@ -25,7 +24,7 @@ public final class KeepOptions {
 
   public static KeepOptions keepAll() {
     if (ALLOW_NONE_INSTANCE == null) {
-      ALLOW_NONE_INSTANCE = new KeepOptions(true, Collections.emptySet());
+      ALLOW_NONE_INSTANCE = new KeepOptions(ImmutableSet.of());
     }
     return ALLOW_NONE_INSTANCE;
   }
@@ -69,6 +68,7 @@ public final class KeepOptions {
     }
 
     public KeepOptions build() {
+      // Fast path check for the two variants of "keep all".
       if (options.isEmpty()) {
         if (allowIfSet) {
           return keepAll();
@@ -81,22 +81,30 @@ public final class KeepOptions {
         }
         throw new KeepEdgeException("Invalid keep options that allow everything.");
       }
-      return new KeepOptions(allowIfSet, Collections.unmodifiableSet(options));
+      // The normalized options is the "allow variant", if not of that form invert it on build.
+      if (allowIfSet) {
+        return new KeepOptions(ImmutableSet.copyOf(options));
+      }
+      ImmutableSet.Builder<KeepOption> invertedOptions = ImmutableSet.builder();
+      for (KeepOption option : KeepOption.values()) {
+        if (!options.contains(option)) {
+          invertedOptions.add(option);
+        }
+      }
+      return new KeepOptions(invertedOptions.build());
     }
   }
 
   private static KeepOptions ALLOW_NONE_INSTANCE = null;
 
-  private final boolean allowIfSet;
-  private final Set<KeepOption> options;
+  private final ImmutableSet<KeepOption> allowedOptions;
 
-  private KeepOptions(boolean allowIfSet, Set<KeepOption> options) {
-    this.allowIfSet = allowIfSet;
-    this.options = options;
+  private KeepOptions(ImmutableSet<KeepOption> options) {
+    this.allowedOptions = options;
   }
 
   public boolean isAllowed(KeepOption option) {
-    return options.contains(option) == allowIfSet;
+    return allowedOptions.contains(option);
   }
 
   @Override
@@ -107,14 +115,12 @@ public final class KeepOptions {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    // This does not actually capture equivalence. We should normalize the builder the 'allow'
-    // variant always.
     KeepOptions that = (KeepOptions) o;
-    return allowIfSet == that.allowIfSet && options.equals(that.options);
+    return allowedOptions.equals(that.allowedOptions);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(allowIfSet, options);
+    return allowedOptions.hashCode();
   }
 }
