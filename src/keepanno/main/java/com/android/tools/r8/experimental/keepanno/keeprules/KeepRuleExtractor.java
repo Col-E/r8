@@ -150,12 +150,11 @@ public class KeepRuleExtractor {
       StringBuilder builder, KeepMethodParametersPattern parametersPattern) {
     return parametersPattern.match(
         () -> builder.append("(***)"),
-        list -> {
-          return builder
-              .append('{')
-              .append(list.stream().map(Object::toString).collect(Collectors.joining(", ")))
-              .append('}');
-        });
+        list ->
+            builder
+                .append('(')
+                .append(list.stream().map(Object::toString).collect(Collectors.joining(", ")))
+                .append(')'));
   }
 
   private static StringBuilder printMethodName(
