@@ -200,7 +200,7 @@ sourceSets {
     }
     keepanno {
         java {
-            srcDirs = ['src/keepanno/main/java']
+            srcDirs = ['src/keepanno/java']
         }
     }
 }
