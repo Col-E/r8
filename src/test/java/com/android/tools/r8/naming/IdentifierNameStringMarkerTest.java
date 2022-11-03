@@ -639,16 +639,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
         "-keep class " + CLASS_NAME,
         "-keep class R { *; }");
     CodeInspector inspector =
-        compileWithR8(
-                builder,
-                testBuilder ->
-                    testBuilder
-                        .addKeepRules(pgConfigs)
-                        .addOptionsModification(
-                            options ->
-                                options.rewriteArrayOptions().experimentalNewFilledArraySupport =
-                                    true))
-            .inspector();
+        compileWithR8(builder, testBuilder -> testBuilder.addKeepRules(pgConfigs)).inspector();
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
@@ -708,16 +699,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
         "-keep class " + CLASS_NAME,
         "-keep,allowobfuscation class R { *; }");
     CodeInspector inspector =
-        compileWithR8(
-                builder,
-                testBuilder ->
-                    testBuilder
-                        .addKeepRules(pgConfigs)
-                        .addOptionsModification(
-                            (options) ->
-                                options.rewriteArrayOptions().experimentalNewFilledArraySupport =
-                                    true))
-            .inspector();
+        compileWithR8(builder, testBuilder -> testBuilder.addKeepRules(pgConfigs)).inspector();
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());

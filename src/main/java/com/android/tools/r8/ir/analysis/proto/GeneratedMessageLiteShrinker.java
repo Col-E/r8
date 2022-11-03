@@ -320,8 +320,7 @@ public class GeneratedMessageLiteShrinker {
     Value newObjectsValue = code.createValue(objectArrayType);
 
     // Populate the `objects` array.
-    if (appView.options().rewriteArrayOptions().experimentalNewFilledArraySupport
-        && appView.options().rewriteArrayOptions().canUseFilledNewArrayOfObjects()) {
+    if (appView.options().rewriteArrayOptions().canUseFilledNewArrayOfObjects()) {
       List<Value> arrayValues = new ArrayList<>(objects.size());
       for (int i = 0; i < objects.size(); i++) {
         Instruction materializingInstruction = objects.get(i).buildIR(appView, code);

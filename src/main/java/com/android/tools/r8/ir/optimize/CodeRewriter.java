@@ -2134,6 +2134,7 @@ public class CodeRewriter {
   private Value[] computeArrayValues(LinearFlowInstructionListIterator it, int size) {
     NewArrayEmpty newArrayEmpty = it.next().asNewArrayEmpty();
     assert newArrayEmpty != null;
+    Value arrayValue = newArrayEmpty.outValue();
 
     // aput-object allows any object for arrays of interfaces, but new-filled-array fails to verify
     // if types require a cast.
@@ -2165,7 +2166,7 @@ public class CodeRewriter {
       ArrayPut arrayPut = instruction.asArrayPut();
       // If the initialization sequence is broken by another use we cannot use a fill-array-data
       // instruction.
-      if (arrayPut == null) {
+      if (arrayPut == null || arrayPut.array() != arrayValue) {
           return null;
         }
       if (!arrayPut.index().isConstNumber()) {
@@ -2185,6 +2186,9 @@ public class CodeRewriter {
           if (!elementType.equals(valueDexType)) {
             return null;
           }
+        } else if (valueDexType.isArrayType()) {
+          // isSubtype asserts for this case.
+          return null;
         } else {
           // TODO(b/246971330): When in d8 mode, we might still be able to see if this is true for
           // library types (which this helper does not do).
@@ -2246,18 +2250,11 @@ public class CodeRewriter {
         if (values == null) {
           continue;
         }
-        if (!rewriteOptions.experimentalNewFilledArraySupport
-            && !newArrayEmpty.type.isPrimitiveArrayType()
-            && newArrayEmpty.type != dexItemFactory.stringArrayType) {
-          continue;
-        }
         // filled-new-array is implemented only for int[] and Object[].
         // For int[], using filled-new-array is usually smaller than filled-array-data.
         // filled-new-array supports up to 5 registers before it's filled-new-array/range.
         if (!newArrayEmpty.type.isPrimitiveArrayType()
-            || (rewriteOptions.experimentalNewFilledArraySupport
-                && newArrayEmpty.type == dexItemFactory.intArrayType
-                && size <= 5)) {
+            || (newArrayEmpty.type == dexItemFactory.intArrayType && size <= 5)) {
           // Don't replace with filled-new-array if it requires more than 200 consecutive registers.
           if (size > rewriteOptions.maxRangeInputs) {
             continue;
@@ -2309,6 +2306,7 @@ public class CodeRewriter {
       // inserted a fill array data instruction instead.
       if (!storesToRemoveForArray.isEmpty()) {
         Set<BasicBlock> visitedBlocks = Sets.newIdentityHashSet();
+        int numInstructionsInserted = 0;
         do {
           visitedBlocks.add(block);
           it = block.listIterator(code);
@@ -2330,6 +2328,7 @@ public class CodeRewriter {
                     // last removed put at which point we are now adding the construction.
                     construction.setPosition(instruction.getPosition());
                     it.add(construction);
+                    numInstructionsInserted += 1;
                   }
                 }
               }
@@ -2338,6 +2337,7 @@ public class CodeRewriter {
           BasicBlock nextBlock = block.exit().isGoto() ? block.exit().asGoto().getTarget() : null;
           block = nextBlock != null && !visitedBlocks.contains(nextBlock) ? nextBlock : null;
         } while (block != null);
+        assert numInstructionsInserted == instructionToInsertForArray.size();
       }
     }
     assert code.isConsistentSSA(appView);

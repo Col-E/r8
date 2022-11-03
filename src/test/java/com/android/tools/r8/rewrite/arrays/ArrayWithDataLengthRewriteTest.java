@@ -43,8 +43,6 @@ public class ArrayWithDataLengthRewriteTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .setMode(CompilationMode.RELEASE)
         .addProgramClasses(Main.class)
-        .addOptionsModification(
-            opt -> opt.rewriteArrayOptions().experimentalNewFilledArraySupport = true)
         .addOptionsModification(opt -> opt.testing.irModifier = this::transformArray)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(expectedOutput)
@@ -56,8 +54,6 @@ public class ArrayWithDataLengthRewriteTest extends TestBase {
     testForR8(parameters.getBackend())
         .setMinApi(parameters.getRuntime())
         .addProgramClasses(Main.class)
-        .addOptionsModification(
-            opt -> opt.rewriteArrayOptions().experimentalNewFilledArraySupport = true)
         .addOptionsModification(opt -> opt.testing.irModifier = this::transformArray)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()

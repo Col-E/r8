@@ -1394,8 +1394,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     // Arbitrary limit of number of inputs to fill-array-data.
     public int maxFillArrayDataInputs = 8 * 1024;
 
-    // TODO(b/246971330): Remove when feature is complete.
-    public boolean experimentalNewFilledArraySupport = false;
     // Dalvik x86-atom backend had a bug that made it crash on filled-new-array instructions for
     // arrays of objects. This is unfortunate, since this never hits arm devices, but we have
     // to disallow filled-new-array of objects for dalvik until kitkat. The buggy code was

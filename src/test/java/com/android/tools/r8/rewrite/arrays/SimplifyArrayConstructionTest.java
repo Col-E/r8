@@ -97,6 +97,7 @@ public class SimplifyArrayConstructionTest extends TestBase {
     "[0, 1, 2]",
     "[1, 2, 3]",
     "[1, 2, 3, 4, 5, 6]",
+    "[0]",
   };
 
   private static final byte[] TRANSFORMED_MAIN = transformedMain();
@@ -109,9 +110,6 @@ public class SimplifyArrayConstructionTest extends TestBase {
             d8TestBuilder ->
                 d8TestBuilder
                     .setMinApi(parameters.getApiLevel())
-                    .addOptionsModification(
-                        options ->
-                            options.rewriteArrayOptions().experimentalNewFilledArraySupport = true)
                     .setMode(compilationMode))
         .addProgramClassFileData(TRANSFORMED_MAIN)
         .run(parameters.getRuntime(), Main.class)
@@ -124,12 +122,10 @@ public class SimplifyArrayConstructionTest extends TestBase {
     testForR8(parameters.getBackend())
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(
-            options -> {
-              options.rewriteArrayOptions().experimentalNewFilledArraySupport = true;
-              options
-                  .getOpenClosedInterfacesOptions()
-                  .suppressSingleOpenInterface(Reference.classFromClass(Serializable.class));
-            })
+            options ->
+                options
+                    .getOpenClosedInterfacesOptions()
+                    .suppressSingleOpenInterface(Reference.classFromClass(Serializable.class)))
         .setMode(compilationMode)
         .addProgramClassFileData(TRANSFORMED_MAIN)
         .addKeepMainRule(Main.class)
@@ -296,6 +292,7 @@ public class SimplifyArrayConstructionTest extends TestBase {
       catchHandlerThrowing();
       catchHandlerNonThrowingFilledNewArray();
       catchHandlerNonThrowingFillArrayData();
+      arrayIntoAnotherArray();
     }
 
     @NeverInline
@@ -429,6 +426,16 @@ public class SimplifyArrayConstructionTest extends TestBase {
       } catch (Throwable t) {
         throw new RuntimeException(t);
       }
+    }
+
+    @NeverInline
+    private static void arrayIntoAnotherArray() {
+      // Tests that our computeValues() method does not assume all array-put-object users have
+      // the array as the target.
+      int[] intArr = new int[1];
+      Object[] objArr = new Object[2];
+      objArr[0] = intArr;
+      System.out.println(Arrays.toString((int[]) objArr[0]));
     }
 
     @NeverInline
