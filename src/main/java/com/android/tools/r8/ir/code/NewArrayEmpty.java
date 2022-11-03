@@ -167,4 +167,10 @@ public class NewArrayEmpty extends Instruction {
   void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
     registry.registerTypeReference(type);
   }
+
+  // Returns the size of the array if it is known, -1 otherwise.
+  public int sizeIfConst() {
+    Value size = size();
+    return size.isConstNumber() ? size.getConstInstruction().asConstNumber().getIntValue() : -1;
+  }
 }

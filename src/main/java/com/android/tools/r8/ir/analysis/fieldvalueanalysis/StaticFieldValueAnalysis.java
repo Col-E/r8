@@ -256,18 +256,9 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
       return null;
     }
 
-    int valuesSize;
-    if (newArrayEmpty != null) {
-      if (!newArrayEmpty.size().isConstNumber()) {
-        return null;
-      }
-      valuesSize = newArrayEmpty.size().getConstInstruction().asConstNumber().getIntValue();
-    } else {
-      valuesSize = invokeNewArray.inValues().size();
-    }
-
-    if (valuesSize == 0) {
-      // No need to compute the state of an empty array.
+    int valuesSize = newArrayEmpty != null ? newArrayEmpty.sizeIfConst() : invokeNewArray.size();
+    if (valuesSize < 1) {
+      // Array is empty or non-const size.
       return null;
     }
 
