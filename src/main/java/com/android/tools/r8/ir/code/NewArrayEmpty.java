@@ -49,10 +49,6 @@ public class NewArrayEmpty extends Instruction {
     return super.toString() + " " + type.toString();
   }
 
-  public Value dest() {
-    return outValue;
-  }
-
   public Value size() {
     return inValues.get(0);
   }
@@ -60,7 +56,7 @@ public class NewArrayEmpty extends Instruction {
   @Override
   public void buildDex(DexBuilder builder) {
     int size = builder.allocatedRegister(size(), getNumber());
-    int dest = builder.allocatedRegister(dest(), getNumber());
+    int dest = builder.allocatedRegister(outValue, getNumber());
     builder.add(this, new DexNewArray(dest, size, type));
   }
 
