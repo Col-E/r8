@@ -27,12 +27,9 @@ public abstract class KeepMethodParametersPattern {
   }
 
   private static class None extends KeepMethodParametersPattern {
-    private static None INSTANCE = null;
+    private static final None INSTANCE = new None();
 
     public static None getInstance() {
-      if (INSTANCE == null) {
-        INSTANCE = new None();
-      }
       return INSTANCE;
     }
 
@@ -58,12 +55,9 @@ public abstract class KeepMethodParametersPattern {
   }
 
   private static class Any extends KeepMethodParametersPattern {
-    private static Any INSTANCE = null;
+    private static final Any INSTANCE = new Any();
 
     public static Any getInstance() {
-      if (INSTANCE == null) {
-        INSTANCE = new Any();
-      }
       return INSTANCE;
     }
 

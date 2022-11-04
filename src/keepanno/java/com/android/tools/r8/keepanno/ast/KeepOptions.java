@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public final class KeepOptions {
+  private static final KeepOptions ALLOW_NONE_INSTANCE = new KeepOptions(ImmutableSet.of());
 
   public boolean isKeepAll() {
     return allowedOptions.isEmpty();
@@ -25,9 +26,6 @@ public final class KeepOptions {
   }
 
   public static KeepOptions keepAll() {
-    if (ALLOW_NONE_INSTANCE == null) {
-      ALLOW_NONE_INSTANCE = new KeepOptions(ImmutableSet.of());
-    }
     return ALLOW_NONE_INSTANCE;
   }
 
@@ -96,8 +94,6 @@ public final class KeepOptions {
       return new KeepOptions(invertedOptions.build());
     }
   }
-
-  private static KeepOptions ALLOW_NONE_INSTANCE = null;
 
   private final ImmutableSet<KeepOption> allowedOptions;
 

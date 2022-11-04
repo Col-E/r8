@@ -6,16 +6,13 @@ package com.android.tools.r8.keepanno.ast;
 public abstract class KeepMemberPattern {
 
   public static KeepMemberPattern anyMember() {
-    return KeepMemberAnyPattern.getInstance();
+    return Any.getInstance();
   }
 
-  private static class KeepMemberAnyPattern extends KeepMemberPattern {
-    private static KeepMemberAnyPattern INSTANCE = null;
+  private static class Any extends KeepMemberPattern {
+    private static final Any INSTANCE = new Any();
 
-    public static KeepMemberAnyPattern getInstance() {
-      if (INSTANCE == null) {
-        INSTANCE = new KeepMemberAnyPattern();
-      }
+    public static Any getInstance() {
       return INSTANCE;
     }
 

@@ -10,11 +10,11 @@ public abstract class KeepPackagePattern {
   }
 
   public static KeepPackagePattern any() {
-    return KeepPackageAnyPattern.getInstance();
+    return Any.getInstance();
   }
 
   public static KeepPackagePattern top() {
-    return KeepPackageTopPattern.getInstance();
+    return Top.getInstance();
   }
 
   public static KeepPackagePattern exact(String fullPackage) {
@@ -26,20 +26,17 @@ public abstract class KeepPackagePattern {
     private KeepPackagePattern pattern;
 
     public Builder any() {
-      pattern = KeepPackageAnyPattern.getInstance();
+      pattern = Any.getInstance();
       return this;
     }
 
     public Builder top() {
-      pattern = KeepPackageTopPattern.getInstance();
+      pattern = Top.getInstance();
       return this;
     }
 
     public Builder exact(String fullPackage) {
-      pattern =
-          fullPackage.isEmpty()
-              ? KeepPackagePattern.top()
-              : new KeepPackageExactPattern(fullPackage);
+      pattern = fullPackage.isEmpty() ? KeepPackagePattern.top() : new Exact(fullPackage);
       return this;
     }
 
@@ -51,18 +48,15 @@ public abstract class KeepPackagePattern {
     }
   }
 
-  private static final class KeepPackageAnyPattern extends KeepPackagePattern {
+  private static final class Any extends KeepPackagePattern {
 
-    private static KeepPackageAnyPattern INSTANCE = null;
+    private static final Any INSTANCE = new Any();
 
-    public static KeepPackageAnyPattern getInstance() {
-      if (INSTANCE == null) {
-        INSTANCE = new KeepPackageAnyPattern();
-      }
+    public static Any getInstance() {
       return INSTANCE;
     }
 
-    private KeepPackageAnyPattern() {}
+    private Any() {}
 
     @Override
     public boolean isAny() {
@@ -95,18 +89,15 @@ public abstract class KeepPackagePattern {
     }
   }
 
-  private static final class KeepPackageTopPattern extends KeepPackageExactPattern {
+  private static final class Top extends Exact {
 
-    private static KeepPackageTopPattern INSTANCE = null;
+    private static final Top INSTANCE = new Top();
 
-    public static KeepPackageTopPattern getInstance() {
-      if (INSTANCE == null) {
-        INSTANCE = new KeepPackageTopPattern();
-      }
+    public static Top getInstance() {
       return INSTANCE;
     }
 
-    private KeepPackageTopPattern() {
+    private Top() {
       super("");
     }
 
@@ -126,11 +117,11 @@ public abstract class KeepPackagePattern {
     }
   }
 
-  public static class KeepPackageExactPattern extends KeepPackagePattern {
+  private static class Exact extends KeepPackagePattern {
 
     private final String fullPackage;
 
-    private KeepPackageExactPattern(String fullPackage) {
+    private Exact(String fullPackage) {
       assert fullPackage != null;
       this.fullPackage = fullPackage;
       // TODO: Verify valid package identifiers.
@@ -152,10 +143,6 @@ public abstract class KeepPackagePattern {
     }
 
     @Override
-    public KeepPackageExactPattern asExact() {
-      return this;
-    }
-
     public String getExactPackageAsString() {
       return fullPackage;
     }
@@ -168,7 +155,7 @@ public abstract class KeepPackagePattern {
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
-      KeepPackageExactPattern that = (KeepPackageExactPattern) o;
+      Exact that = (Exact) o;
       return fullPackage.equals(that.fullPackage);
     }
 
@@ -189,7 +176,7 @@ public abstract class KeepPackagePattern {
 
   public abstract boolean isExact();
 
-  public KeepPackageExactPattern asExact() {
-    return null;
+  public String getExactPackageAsString() {
+    throw new IllegalStateException();
   }
 }

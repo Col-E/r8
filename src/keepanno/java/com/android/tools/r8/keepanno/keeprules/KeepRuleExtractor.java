@@ -203,7 +203,7 @@ public class KeepRuleExtractor {
       return builder;
     }
     assert packagePattern.isExact();
-    return builder.append(packagePattern.asExact().getExactPackageAsString()).append('.');
+    return builder.append(packagePattern.getExactPackageAsString()).append('.');
   }
 
   private static StringBuilder printSimpleClassName(

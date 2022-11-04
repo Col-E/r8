@@ -83,7 +83,7 @@ public final class KeepQualifiedClassNamePattern {
       throw new KeepEdgeException("Attempt to obtain exact qualified type for inexact pattern");
     }
     return 'L'
-        + packagePattern.asExact().getExactPackageAsString().replace('.', '/')
+        + packagePattern.getExactPackageAsString().replace('.', '/')
         + (packagePattern.isTop() ? "" : "/")
         + namePattern.asExact().getExactNameAsString()
         + ';';

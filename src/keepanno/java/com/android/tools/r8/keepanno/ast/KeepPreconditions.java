@@ -34,19 +34,16 @@ public abstract class KeepPreconditions {
   }
 
   public static KeepPreconditions always() {
-    return KeepPreconditionsAlways.getInstance();
+    return Always.getInstance();
   }
 
   public abstract boolean isAlways();
 
-  private static class KeepPreconditionsAlways extends KeepPreconditions {
+  private static class Always extends KeepPreconditions {
 
-    private static KeepPreconditionsAlways INSTANCE = null;
+    private static final Always INSTANCE = new Always();
 
-    public static KeepPreconditionsAlways getInstance() {
-      if (INSTANCE == null) {
-        INSTANCE = new KeepPreconditionsAlways();
-      }
+    public static Always getInstance() {
       return INSTANCE;
     }
 

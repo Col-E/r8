@@ -17,11 +17,11 @@ public abstract class KeepMembersPattern {
   }
 
   public static KeepMembersPattern none() {
-    return KeepMembersNonePattern.getInstance();
+    return None.getInstance();
   }
 
   public static KeepMembersPattern all() {
-    return KeepMembersAllPattern.getInstance();
+    return All.getInstance();
   }
 
   public static class Builder {
@@ -62,18 +62,15 @@ public abstract class KeepMembersPattern {
       if (anyMethod && anyField) {
         return KeepMembersPattern.all();
       }
-      return new KeepMembersSomePattern(methods, fields);
+      return new Some(methods, fields);
     }
   }
 
-  private static class KeepMembersAllPattern extends KeepMembersPattern {
+  private static class All extends KeepMembersPattern {
 
-    private static KeepMembersAllPattern INSTANCE = null;
+    private static final All INSTANCE = new All();
 
-    public static KeepMembersAllPattern getInstance() {
-      if (INSTANCE == null) {
-        INSTANCE = new KeepMembersAllPattern();
-      }
+    public static All getInstance() {
       return INSTANCE;
     }
 
@@ -108,14 +105,11 @@ public abstract class KeepMembersPattern {
     }
   }
 
-  private static class KeepMembersNonePattern extends KeepMembersPattern {
+  private static class None extends KeepMembersPattern {
 
-    private static KeepMembersNonePattern INSTANCE = null;
+    private static final None INSTANCE = new None();
 
-    public static KeepMembersNonePattern getInstance() {
-      if (INSTANCE == null) {
-        INSTANCE = new KeepMembersNonePattern();
-      }
+    public static None getInstance() {
       return INSTANCE;
     }
 
@@ -150,12 +144,12 @@ public abstract class KeepMembersPattern {
     }
   }
 
-  private static class KeepMembersSomePattern extends KeepMembersPattern {
+  private static class Some extends KeepMembersPattern {
 
     private final List<KeepMethodPattern> methods;
     private final List<KeepFieldPattern> fields;
 
-    private KeepMembersSomePattern(List<KeepMethodPattern> methods, List<KeepFieldPattern> fields) {
+    private Some(List<KeepMethodPattern> methods, List<KeepFieldPattern> fields) {
       assert !methods.isEmpty() || !fields.isEmpty();
       this.methods = methods;
       this.fields = fields;
@@ -187,7 +181,7 @@ public abstract class KeepMembersPattern {
       if (obj == null || getClass() != obj.getClass()) {
         return false;
       }
-      KeepMembersSomePattern that = (KeepMembersSomePattern) obj;
+      Some that = (Some) obj;
       return methods.equals(that.methods) && fields.equals(that.fields);
     }
 

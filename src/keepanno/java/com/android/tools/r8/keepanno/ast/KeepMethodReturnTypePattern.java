@@ -8,12 +8,9 @@ import java.util.function.Supplier;
 
 public abstract class KeepMethodReturnTypePattern {
 
-  private static SomeType ANY_TYPE_INSTANCE = null;
+  private static final SomeType ANY_TYPE_INSTANCE = new SomeType(KeepTypePattern.any());
 
   public static KeepMethodReturnTypePattern any() {
-    if (ANY_TYPE_INSTANCE == null) {
-      ANY_TYPE_INSTANCE = new SomeType(KeepTypePattern.any());
-    }
     return ANY_TYPE_INSTANCE;
   }
 
@@ -28,12 +25,9 @@ public abstract class KeepMethodReturnTypePattern {
   }
 
   private static class VoidType extends KeepMethodReturnTypePattern {
-    private static VoidType INSTANCE = null;
+    private static final VoidType INSTANCE = new VoidType();
 
     public static VoidType getInstance() {
-      if (INSTANCE == null) {
-        INSTANCE = new VoidType();
-      }
       return INSTANCE;
     }
 

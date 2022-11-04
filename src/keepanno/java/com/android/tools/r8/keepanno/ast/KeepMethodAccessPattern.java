@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.ast;
 
+
 // TODO: finish this.
 public abstract class KeepMethodAccessPattern {
 
@@ -14,12 +15,9 @@ public abstract class KeepMethodAccessPattern {
 
   private static class Any extends KeepMethodAccessPattern {
 
-    private static Any INSTANCE = null;
+    private static final Any INSTANCE = new Any();
 
     private static Any getInstance() {
-      if (INSTANCE == null) {
-        INSTANCE = new Any();
-      }
       return INSTANCE;
     }
 

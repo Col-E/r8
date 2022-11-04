@@ -9,7 +9,7 @@ import java.util.function.Supplier;
 public abstract class KeepMethodNamePattern {
 
   public static KeepMethodNamePattern any() {
-    return KeepMethodNameAnyPattern.getInstance();
+    return Any.getInstance();
   }
 
   public static KeepMethodNamePattern initializer() {
@@ -33,13 +33,10 @@ public abstract class KeepMethodNamePattern {
 
   public abstract <T> T match(Supplier<T> onAny, Function<String, T> onExact);
 
-  private static class KeepMethodNameAnyPattern extends KeepMethodNamePattern {
-    private static KeepMethodNameAnyPattern INSTANCE = null;
+  private static class Any extends KeepMethodNamePattern {
+    private static final Any INSTANCE = new Any();
 
-    public static KeepMethodNameAnyPattern getInstance() {
-      if (INSTANCE == null) {
-        INSTANCE = new KeepMethodNameAnyPattern();
-      }
+    public static Any getInstance() {
       return INSTANCE;
     }
 

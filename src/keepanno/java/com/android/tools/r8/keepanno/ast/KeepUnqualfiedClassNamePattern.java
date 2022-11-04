@@ -10,7 +10,7 @@ public abstract class KeepUnqualfiedClassNamePattern {
   }
 
   public static KeepUnqualfiedClassNamePattern any() {
-    return KeepClassNameAnyPattern.getInstance();
+    return Any.getInstance();
   }
 
   public static KeepUnqualfiedClassNamePattern exact(String className) {
@@ -22,7 +22,7 @@ public abstract class KeepUnqualfiedClassNamePattern {
     private KeepUnqualfiedClassNamePattern pattern;
 
     public Builder any() {
-      pattern = KeepClassNameAnyPattern.getInstance();
+      pattern = Any.getInstance();
       return this;
     }
 
@@ -39,18 +39,15 @@ public abstract class KeepUnqualfiedClassNamePattern {
     }
   }
 
-  private static class KeepClassNameAnyPattern extends KeepUnqualfiedClassNamePattern {
+  private static class Any extends KeepUnqualfiedClassNamePattern {
 
-    private static KeepClassNameAnyPattern INSTANCE = null;
+    private static final Any INSTANCE = new Any();
 
-    public static KeepClassNameAnyPattern getInstance() {
-      if (INSTANCE == null) {
-        INSTANCE = new KeepClassNameAnyPattern();
-      }
+    public static Any getInstance() {
       return INSTANCE;
     }
 
-    private KeepClassNameAnyPattern() {}
+    private Any() {}
 
     @Override
     public boolean isAny() {

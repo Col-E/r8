@@ -10,12 +10,9 @@ public abstract class KeepTypePattern {
   }
 
   private static class Any extends KeepTypePattern {
-    private static Any INSTANCE = null;
+    private static final Any INSTANCE = new Any();
 
     public static Any getInstance() {
-      if (INSTANCE == null) {
-        INSTANCE = new Any();
-      }
       return INSTANCE;
     }
 

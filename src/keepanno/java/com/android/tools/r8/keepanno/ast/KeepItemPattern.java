@@ -24,7 +24,7 @@ public abstract class KeepItemPattern {
   }
 
   public static KeepItemPattern any() {
-    return KeepItemAnyPattern.getInstance();
+    return Any.getInstance();
   }
 
   public static class Builder {
@@ -68,14 +68,11 @@ public abstract class KeepItemPattern {
     }
   }
 
-  private static class KeepItemAnyPattern extends KeepItemPattern {
+  private static class Any extends KeepItemPattern {
 
-    private static KeepItemAnyPattern INSTANCE = null;
+    private static final Any INSTANCE = new Any();
 
-    public static KeepItemAnyPattern getInstance() {
-      if (INSTANCE == null) {
-        INSTANCE = new KeepItemAnyPattern();
-      }
+    public static Any getInstance() {
       return INSTANCE;
     }
 

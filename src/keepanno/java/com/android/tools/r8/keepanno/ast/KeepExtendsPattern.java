@@ -7,7 +7,7 @@ package com.android.tools.r8.keepanno.ast;
 public abstract class KeepExtendsPattern {
 
   public static KeepExtendsPattern any() {
-    return KeepExtendsAnyPattern.getInstance();
+    return Any.getInstance();
   }
 
   public static class Builder {
@@ -17,24 +17,21 @@ public abstract class KeepExtendsPattern {
     private Builder() {}
 
     public Builder any() {
-      pattern = KeepExtendsAnyPattern.getInstance();
+      pattern = Any.getInstance();
       return this;
     }
 
     public Builder classPattern(KeepQualifiedClassNamePattern pattern) {
-      this.pattern = new KeepExtendsClassPattern(pattern);
+      this.pattern = new Some(pattern);
       return this;
     }
   }
 
-  private static class KeepExtendsAnyPattern extends KeepExtendsPattern {
+  private static class Any extends KeepExtendsPattern {
 
-    private static KeepExtendsAnyPattern INSTANCE = null;
+    private static final Any INSTANCE = new Any();
 
-    public static KeepExtendsAnyPattern getInstance() {
-      if (INSTANCE == null) {
-        INSTANCE = new KeepExtendsAnyPattern();
-      }
+    public static Any getInstance() {
       return INSTANCE;
     }
 
@@ -59,11 +56,11 @@ public abstract class KeepExtendsPattern {
     }
   }
 
-  private static class KeepExtendsClassPattern extends KeepExtendsPattern {
+  private static class Some extends KeepExtendsPattern {
 
     private final KeepQualifiedClassNamePattern pattern;
 
-    public KeepExtendsClassPattern(KeepQualifiedClassNamePattern pattern) {
+    public Some(KeepQualifiedClassNamePattern pattern) {
       assert pattern != null;
       this.pattern = pattern;
     }
@@ -81,7 +78,7 @@ public abstract class KeepExtendsPattern {
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
-      KeepExtendsClassPattern that = (KeepExtendsClassPattern) o;
+      Some that = (Some) o;
       return pattern.equals(that.pattern);
     }
 
