@@ -86,7 +86,13 @@ public class MemberRebindingIdentityLens extends NonIdentityGraphLens {
   }
 
   private DexMethod getReboundMethodReference(DexMethod method) {
-    return nonReboundMethodReferenceToDefinitionMap.getOrDefault(method, method);
+    DexMethod rebound = nonReboundMethodReferenceToDefinitionMap.get(method);
+    while (rebound != null) {
+      method = rebound;
+      rebound = nonReboundMethodReferenceToDefinitionMap.get(method);
+    }
+    assert method != rebound;
+    return method;
   }
 
   @Override
