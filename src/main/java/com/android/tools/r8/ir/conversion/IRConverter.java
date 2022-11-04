@@ -1522,6 +1522,11 @@ public class IRConverter {
       timing.end();
     }
 
+    timing.begin("Redundant catch/rethrow elimination");
+    codeRewriter.optimizeRedundantCatchRethrowInstructions(code);
+    timing.end();
+    previous = printMethod(code, "IR after redundant catch/rethrow elimination (SSA)", previous);
+
     if (assumeInserter != null) {
       timing.begin("Remove assume instructions");
       CodeRewriter.removeAssumeInstructions(appView, code);

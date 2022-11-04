@@ -3070,6 +3070,123 @@ public class CodeRewriter {
     return changed;
   }
 
+  private boolean isPotentialTrivialRethrowValue(Value exceptionValue) {
+    if (exceptionValue.hasDebugUsers()) {
+      return false;
+    }
+    if (exceptionValue.hasUsers()) {
+      if (exceptionValue.hasPhiUsers()
+          || !exceptionValue.hasSingleUniqueUser()
+          || !exceptionValue.singleUniqueUser().isThrow()) {
+        return false;
+      }
+    } else if (exceptionValue.numberOfPhiUsers() != 1) {
+      return false;
+    }
+    return true;
+  }
+
+  private boolean isSingleHandlerTrivial(BasicBlock firstBlock, IRCode code) {
+    InstructionListIterator instructionIterator = firstBlock.listIterator(code);
+    Instruction instruction = instructionIterator.next();
+    if (!instruction.isMoveException()) {
+      // A catch handler which doesn't use its exception is not going to be a trivial rethrow.
+      return false;
+    }
+    Value exceptionValue = instruction.outValue();
+    if (!isPotentialTrivialRethrowValue(exceptionValue)) {
+      return false;
+    }
+    while (instructionIterator.hasNext()) {
+      instruction = instructionIterator.next();
+      BasicBlock currentBlock = instruction.getBlock();
+      if (instruction.isGoto()) {
+        BasicBlock nextBlock = instruction.asGoto().getTarget();
+        int predecessorIndex = nextBlock.getPredecessors().indexOf(currentBlock);
+        Value phiAliasOfExceptionValue = null;
+        for (Phi phi : nextBlock.getPhis()) {
+          Value operand = phi.getOperand(predecessorIndex);
+          if (exceptionValue == operand) {
+            phiAliasOfExceptionValue = phi;
+            break;
+          }
+        }
+        if (phiAliasOfExceptionValue != null) {
+          if (!isPotentialTrivialRethrowValue(phiAliasOfExceptionValue)) {
+            return false;
+          }
+          exceptionValue = phiAliasOfExceptionValue;
+        }
+        instructionIterator = nextBlock.listIterator(code);
+      } else if (instruction.isThrow()) {
+        List<Value> throwValues = instruction.inValues();
+        assert throwValues.size() == 1;
+        if (throwValues.get(0) != exceptionValue) {
+          return false;
+        }
+        CatchHandlers<BasicBlock> currentHandlers = currentBlock.getCatchHandlers();
+        if (!currentHandlers.isEmpty()) {
+          // This is the case where our trivial catch handler has catch handler(s). For now, we
+          // will only treat our block as trivial if all its catch handlers are also trivial.
+          // Note: it is possible that we could "bridge" a trivial handler, where we take the
+          // handlers of the handler and bring them up to replace the trivial handler. Example:
+          //   catch (Throwable t) {
+          //     try { throw t; } catch(Throwable abc) { foo(abc); }
+          //   }
+          // could turn into:
+          //   catch (Throwable abc) {
+          //     foo(abc);
+          //   }
+          // However this gets significantly harder when you have to consider non-matching guard
+          // types.
+          for (CatchHandler<BasicBlock> handler : currentHandlers) {
+            if (!isSingleHandlerTrivial(handler.getTarget(), code)) {
+              return false;
+            }
+          }
+        }
+        return true;
+      } else {
+        // Any other instructions in the catch handler means it's not trivial, and thus we can't
+        // elide.
+        return false;
+      }
+    }
+    throw new Unreachable("Triviality check should always return before the loop terminates");
+  }
+
+  // Find any case where we have a catch followed immediately and only by a rethrow. This is extra
+  // code doing what the JVM does automatically and can be safely elided.
+  public void optimizeRedundantCatchRethrowInstructions(IRCode code) {
+    ListIterator<BasicBlock> blockIterator = code.listIterator();
+    boolean hasUnlinkedCatchHandlers = false;
+    while (blockIterator.hasNext()) {
+      BasicBlock blockWithHandlers = blockIterator.next();
+      if (blockWithHandlers.hasCatchHandlers()) {
+        boolean allHandlersAreTrivial = true;
+        for (CatchHandler<BasicBlock> handler : blockWithHandlers.getCatchHandlers()) {
+          if (!isSingleHandlerTrivial(handler.target, code)) {
+            allHandlersAreTrivial = false;
+            break;
+          }
+        }
+        // We need to ensure all handlers are trivial to unlink, since if one is non-trivial, and
+        // its guard is a parent type to a trivial one, removing the trivial catch will result in
+        // us hitting the non-trivial catch. This could be avoided by more sophisticated type
+        // analysis.
+        if (allHandlersAreTrivial) {
+          hasUnlinkedCatchHandlers = true;
+          for (CatchHandler<BasicBlock> handler : blockWithHandlers.getCatchHandlers()) {
+            handler.getTarget().unlinkCatchHandler();
+          }
+        }
+      }
+    }
+    if (hasUnlinkedCatchHandlers) {
+      code.removeUnreachableBlocks();
+    }
+  }
+
   // Find all instructions that always throw, split the block after each such instruction and follow
   // it with a block throwing a null value (which should result in NPE). Note that this throw is not
   // expected to be ever reached, but is intended to satisfy verifier.
