@@ -10,12 +10,17 @@ import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.MethodResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult.FailedResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.optimize.InvokeSingleTargetExtractor.InvokeKind;
 import com.android.tools.r8.optimize.redundantbridgeremoval.RedundantBridgeRemovalLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,12 +36,7 @@ public class RedundantBridgeRemover {
   }
 
   private DexClassAndMethod getTargetForRedundantBridge(ProgramMethod method) {
-    // Clean-up the predicate check.
-    if (appView.appInfo().isPinned(method.getReference())) {
-      return null;
-    }
     DexEncodedMethod definition = method.getDefinition();
-    // TODO(b/197490164): Remove if method is abstract.
     BridgeInfo bridgeInfo = definition.getOptimizationInfo().getBridgeInfo();
     boolean isBridge = definition.isBridge() || bridgeInfo != null;
     if (!isBridge || definition.isAbstract()) {
@@ -140,6 +140,16 @@ public class RedundantBridgeRemover {
           ProgramMethodSet bridgesToRemoveForClass = ProgramMethodSet.create();
           clazz.forEachProgramMethod(
               method -> {
+                KeepMethodInfo keepInfo = appView.getKeepInfo(method);
+                if (!keepInfo.isShrinkingAllowed(appView.options())
+                    || !keepInfo.isOptimizationAllowed(appView.options())) {
+                  return;
+                }
+                if (isRedundantAbstractBridge(method)) {
+                  // Record that the redundant bridge should be removed.
+                  bridgesToRemoveForClass.add(method);
+                  return;
+                }
                 DexClassAndMethod target = getTargetForRedundantBridge(method);
                 if (target != null) {
                   // Record that the redundant bridge should be removed.
@@ -165,6 +175,55 @@ public class RedundantBridgeRemover {
         },
         executorService);
     return bridgesToRemove;
+  }
+
+  private boolean isRedundantAbstractBridge(ProgramMethod method) {
+    if (!method.getAccessFlags().isAbstract() || method.getDefinition().getCode() != null) {
+      return false;
+    }
+    DexProgramClass holder = method.getHolder();
+    if (holder.getSuperType() == null) {
+      assert holder.getType() == appView.dexItemFactory().objectType;
+      return false;
+    }
+    MethodResolutionResult superTypeResolution =
+        appView.appInfo().resolveMethodOn(holder.getSuperType(), method.getReference(), false);
+    if (superTypeResolution.isMultiMethodResolutionResult()) {
+      return false;
+    }
+    // Check if there is a definition in the super type hieararchy that is also abstract and has the
+    // same visibility.
+    if (superTypeResolution.isSingleResolution()) {
+      DexClassAndMethod resolutionPair =
+          superTypeResolution.asSingleResolution().getResolutionPair();
+      return resolutionPair.getDefinition().isAbstract()
+          && resolutionPair
+              .getDefinition()
+              .isAtLeastAsVisibleAsOtherInSameHierarchy(method.getDefinition(), appView)
+          && (!resolutionPair.getHolder().isInterface() || holder.getInterfaces().isEmpty());
+    }
+    // Only check for interfaces if resolving the method on super type causes NoSuchMethodError.
+    FailedResolutionResult failedResolutionResult = superTypeResolution.asFailedResolution();
+    if (failedResolutionResult == null
+        || !failedResolutionResult.isNoSuchMethodErrorResult(holder, appView.appInfo())
+        || holder.getInterfaces().isEmpty()) {
+      return false;
+    }
+    for (DexType iface : holder.getInterfaces()) {
+      SingleResolutionResult<?> singleIfaceResult =
+          appView
+              .appInfo()
+              .resolveMethodOn(iface, method.getReference(), true)
+              .asSingleResolution();
+      if (singleIfaceResult == null
+          || !singleIfaceResult.getResolvedMethod().isAbstract()
+          || !singleIfaceResult
+              .getResolvedMethod()
+              .isAtLeastAsVisibleAsOtherInSameHierarchy(method.getDefinition(), appView)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private void pruneApp(

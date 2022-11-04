@@ -5,9 +5,8 @@
 package com.android.tools.r8.memberrebinding;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isSynthetic;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
@@ -16,7 +15,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -58,10 +56,7 @@ public class MemberRebindingRemoveInterfaceBridgeTest extends TestBase {
             inspector -> {
               ClassSubject clazz = inspector.clazz(J.class);
               assertThat(clazz, isPresent());
-              // TODO(b/197490164): We should remove the bridge inserted here.
-              assertEquals(1, clazz.allMethods().size());
-              FoundMethodSubject foundMethodSubject = clazz.allMethods().get(0);
-              assertThat(foundMethodSubject, isSynthetic());
+              assertTrue(clazz.allMethods().isEmpty());
             });
   }
 
