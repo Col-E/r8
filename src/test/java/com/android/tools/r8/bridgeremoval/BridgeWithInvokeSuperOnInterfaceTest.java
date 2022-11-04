@@ -24,7 +24,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class BridgeWithInvokeSuperTest extends TestBase {
+public class BridgeWithInvokeSuperOnInterfaceTest extends TestBase {
 
   private static final String[] EXPECTED = new String[] {"I::foo"};
 
@@ -39,7 +39,7 @@ public class BridgeWithInvokeSuperTest extends TestBase {
   public void testRuntime() throws Exception {
     testForRuntime(parameters)
         .addProgramClasses(Main.class, I.class)
-        .addProgramClassFileData(getAWithBridgeAccessFlag())
+        .addProgramClassFileData(getJWithBridgeAccessFlag())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);
   }
@@ -48,19 +48,20 @@ public class BridgeWithInvokeSuperTest extends TestBase {
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class, I.class)
-        .addProgramClassFileData(getAWithBridgeAccessFlag())
+        .addProgramClassFileData(getJWithBridgeAccessFlag())
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .enableNoVerticalClassMergingAnnotations()
         .enableInliningAnnotations()
+        .addDontObfuscate()
         .compile()
         .inspect(
             inspector -> {
               // Check that we are removing the bridge if we support default methods.
               if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
-                ClassSubject A = inspector.clazz(A.class);
-                assertThat(A, isPresent());
-                MethodSubject fooMethod = A.uniqueMethodWithOriginalName("foo");
+                ClassSubject J = inspector.clazz(J.class);
+                assertThat(J, isPresent());
+                MethodSubject fooMethod = J.uniqueMethodWithOriginalName("foo");
                 assertThat(fooMethod, not(isPresent()));
               }
             })
@@ -68,8 +69,8 @@ public class BridgeWithInvokeSuperTest extends TestBase {
         .assertSuccessWithOutputLines(EXPECTED);
   }
 
-  private byte[] getAWithBridgeAccessFlag() throws Exception {
-    return transformer(A.class)
+  private byte[] getJWithBridgeAccessFlag() throws Exception {
+    return transformer(J.class)
         .setAccessFlags(MethodPredicate.onName("foo"), MethodAccessFlags::setBridge)
         .transform();
   }
@@ -83,19 +84,24 @@ public class BridgeWithInvokeSuperTest extends TestBase {
     }
   }
 
-  public static class A implements I {
+  @NoVerticalClassMerging
+  public interface J extends I {
 
     @Override
-    @NeverInline
-    public void foo() {
+    default void foo() {
       I.super.foo();
     }
   }
 
-  public static class Main {
+  public static class Main implements J {
 
     public static void main(String[] args) {
-      new A().foo();
+      new Main().callSuper();
+    }
+
+    @NeverInline
+    public void callSuper() {
+      J.super.foo();
     }
   }
 }

@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
+import com.android.tools.r8.ir.code.Invoke;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -80,14 +81,18 @@ public class RedundantBridgeRemovalLens extends NonIdentityGraphLens {
       do {
         newReference = methodMap.get(newReference);
       } while (methodMap.containsKey(newReference));
-      if (previous.getType().isSuper() && interfaces.contains(newReference.getHolderType())) {
+      boolean holderTypeIsInterface = interfaces.contains(newReference.getHolderType());
+      if (previous.getType().isSuper() && holderTypeIsInterface) {
         return previous;
       }
       return MethodLookupResult.builder(this)
           .setReference(newReference)
           .setReboundReference(newReference)
           .setPrototypeChanges(previous.getPrototypeChanges())
-          .setType(previous.getType())
+          .setType(
+              holderTypeIsInterface && previous.getType().isVirtual()
+                  ? Invoke.Type.INTERFACE
+                  : previous.getType())
           .build();
     }
     return previous;

@@ -131,7 +131,8 @@ public class CfInvoke extends CfInstruction {
       String owner = namingLens.lookupInternalName(rewrittenMethod.holder);
       String name = namingLens.lookupName(rewrittenMethod).toString();
       String desc = rewrittenMethod.proto.toDescriptorString(namingLens);
-      visitor.visitMethodInsn(rewrittenType.getCfOpcode(), owner, name, desc, itf);
+      visitor.visitMethodInsn(
+          rewrittenType.getCfOpcode(), owner, name, desc, rewrittenType.isInterface() || itf);
     }
   }
 
