@@ -33,6 +33,8 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class KeepEdgeProcessorTest extends TestBase {
 
+  private static final Path KEEP_ANNO_PATH =
+      Paths.get(ToolHelper.BUILD_DIR, "classes", "java", "keepanno");
   private static final Class<?> SOURCE = KeepClassAndDefaultConstructorSource.class;
 
   private final TestParameters parameters;
@@ -51,7 +53,7 @@ public class KeepEdgeProcessorTest extends TestBase {
     Path out =
         JavaCompilerTool.create(parameters.getRuntime().asCf(), temp)
             .addAnnotationProcessors(typeName(KeepEdgeProcessor.class))
-            .addClasspathFiles(Paths.get(ToolHelper.BUILD_DIR, "classes", "java", "main"))
+            .addClasspathFiles(KEEP_ANNO_PATH)
             .addClassNames(Collections.singletonList(typeName(SOURCE)))
             .addClasspathFiles(Paths.get(ToolHelper.BUILD_DIR, "classes", "java", "test"))
             .addClasspathFiles(ToolHelper.DEPS)
@@ -69,7 +71,7 @@ public class KeepEdgeProcessorTest extends TestBase {
         JavaCompilerTool.create(parameters.getRuntime().asCf(), temp)
             .addSourceFiles(ToolHelper.getSourceFileForTestClass(SOURCE))
             .addAnnotationProcessors(typeName(KeepEdgeProcessor.class))
-            .addClasspathFiles(Paths.get(ToolHelper.BUILD_DIR, "classes", "java", "main"))
+            .addClasspathFiles(KEEP_ANNO_PATH)
             .addClasspathFiles(ToolHelper.DEPS)
             .compile();
 
