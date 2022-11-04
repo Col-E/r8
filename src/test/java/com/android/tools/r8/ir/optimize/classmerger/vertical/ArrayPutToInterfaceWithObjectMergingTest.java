@@ -53,7 +53,8 @@ public class ArrayPutToInterfaceWithObjectMergingTest extends TestBase {
         .addProgramClasses(I.class, A.class)
         .addProgramClassFileData(getTransformedMain())
         .addKeepMainRule(Main.class)
-        .addKeepMethodRules(Reference.methodFromMethod(Main.class.getDeclaredMethod("get")))
+        // Keep get() to prevent that we optimize it into having static return type A.
+        .addKeepRules("-keepclassmembers class " + Main.class.getTypeName() + " { *** get(...); }")
         .addOptionsModification(
             options ->
                 options

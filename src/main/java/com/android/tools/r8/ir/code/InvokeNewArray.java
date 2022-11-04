@@ -221,9 +221,4 @@ public class InvokeNewArray extends Invoke {
   void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
     registry.registerTypeReference(type);
   }
-
-  // Returns the number of elements in the array.
-  public int size() {
-    return inValues.size();
-  }
 }
