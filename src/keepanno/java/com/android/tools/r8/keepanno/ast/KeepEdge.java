@@ -29,8 +29,8 @@ import java.util.Objects;
  *   OPTIONS ::= keep-all | OPTION+
  *   OPTION ::= shrinking | optimizing | obfuscating | access-modifying
  *
- *   ITEM_PATTERN ::= any | CLASS_PATTERN
- *   CLASS_PATTERN ::= QUALIFIED_CLASS_NAME_PATTERN extends EXTENDS_PATTERN { MEMBERS_PATTERN }
+ *   ITEM_PATTERN ::=
+ *     class QUALIFIED_CLASS_NAME_PATTERN extends EXTENDS_PATTERN { MEMBERS_PATTERN }
  *
  *   TYPE_PATTERN ::= any
  *   PACKAGE_PATTERN ::= any | exact package-name
@@ -49,7 +49,7 @@ import java.util.Objects;
  *   METHOD_ACCESS_PATTERN ::= any
  *   METHOD_NAME_PATTERN ::= any | exact method-name
  *   METHOD_RETURN_TYPE_PATTERN ::= void | TYPE_PATTERN
- *   METHOD_PARAMETERS_PATTERN ::= any | none | TYPE_PATTERN+
+ *   METHOD_PARAMETERS_PATTERN ::= any | none | (TYPE_PATTERN+)
  * </pre>
  */
 public final class KeepEdge {

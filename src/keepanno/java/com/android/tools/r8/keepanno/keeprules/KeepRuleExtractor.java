@@ -6,7 +6,7 @@ package com.android.tools.r8.keepanno.keeprules;
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
-import com.android.tools.r8.keepanno.ast.KeepItemPattern.KeepClassPattern;
+import com.android.tools.r8.keepanno.ast.KeepItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepMembersPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodAccessPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern;
@@ -51,37 +51,29 @@ public class KeepRuleExtractor {
     boolean[] hasAtLeastOneConditionalClause = new boolean[1];
     preconditions.forEach(
         condition -> {
-          // The usage kind for a predicate is not expressible in keep rules, so it is
-          // ignored.
-          condition
-              .getItemPattern()
-              .match(
-                  () -> {
-                    // If the conditions is "any" then we ignore it for now (identity of
-                    // conjunction).
-                    return null;
-                  },
-                  conditionItem -> {
-                    hasAtLeastOneConditionalClause[0] = true;
-                    consequentRules.forEach(
-                        consequentItem -> {
-                          // Since conjunctions are not supported in keep rules, we expand them into
-                          // disjunctions so conservatively we keep the consequences if any one of
-                          // the preconditions hold.
-                          StringBuilder builder = new StringBuilder();
-                          if (!consequentItem.isMemberConsequent()
-                              || !conditionItem
-                                  .getClassNamePattern()
-                                  .equals(consequentItem.getHolderPattern())) {
-                            builder.append("-if ");
-                            printClassItem(builder, conditionItem);
-                            builder.append(' ');
-                          }
-                          printConsequentRule(builder, consequentItem);
-                          ruleConsumer.accept(builder.toString());
-                        });
-                    return null;
-                  });
+          KeepItemPattern conditionItem = condition.getItemPattern();
+          // If the conditions is "any" then we ignore it for now (identity of conjunction).
+          if (conditionItem.isAny()) {
+            return;
+          }
+          hasAtLeastOneConditionalClause[0] = true;
+          consequentRules.forEach(
+              consequentItem -> {
+                // Since conjunctions are not supported in keep rules, we expand them into
+                // disjunctions so conservatively we keep the consequences if any one of
+                // the preconditions hold.
+                StringBuilder builder = new StringBuilder();
+                if (!consequentItem.isMemberOnlyConsequent()
+                    || !conditionItem
+                        .getClassNamePattern()
+                        .equals(consequentItem.getHolderPattern())) {
+                  builder.append("-if ");
+                  printItem(builder, conditionItem);
+                  builder.append(' ');
+                }
+                printConsequentRule(builder, consequentItem);
+                ruleConsumer.accept(builder.toString());
+              });
         });
     assert !(preconditions.isAlways() && hasAtLeastOneConditionalClause[0]);
     if (!hasAtLeastOneConditionalClause[0]) {
@@ -92,7 +84,7 @@ public class KeepRuleExtractor {
   }
 
   private static StringBuilder printConsequentRule(StringBuilder builder, ItemRule rule) {
-    if (rule.isMemberConsequent()) {
+    if (rule.isMemberOnlyConsequent()) {
       builder.append("-keepclassmembers");
     } else {
       builder.append("-keep");
@@ -105,8 +97,7 @@ public class KeepRuleExtractor {
     return builder.append(" ").append(rule.getKeepRuleForItem());
   }
 
-  private static StringBuilder printClassItem(
-      StringBuilder builder, KeepClassPattern clazzPattern) {
+  private static StringBuilder printItem(StringBuilder builder, KeepItemPattern clazzPattern) {
     builder.append("class ");
     printClassName(builder, clazzPattern.getClassNamePattern());
     if (!clazzPattern.getExtendsPattern().isAny()) {
@@ -240,24 +231,20 @@ public class KeepRuleExtractor {
       this.options = target.getOptions();
     }
 
-    public boolean isMemberConsequent() {
-      return target.getItem().match(() -> false, clazz -> !clazz.getMembersPattern().isNone());
+    public boolean isMemberOnlyConsequent() {
+      KeepItemPattern item = target.getItem();
+      return !item.isAny() && !item.getMembersPattern().isNone();
     }
 
     public KeepQualifiedClassNamePattern getHolderPattern() {
-      return target
-          .getItem()
-          .match(KeepQualifiedClassNamePattern::any, KeepClassPattern::getClassNamePattern);
+      return target.getItem().getClassNamePattern();
     }
 
     public String getKeepRuleForItem() {
       if (ruleLine == null) {
+        KeepItemPattern item = target.getItem();
         ruleLine =
-            target
-                .getItem()
-                .match(
-                    () -> "class * { *; }",
-                    clazz -> printClassItem(new StringBuilder(), clazz).toString());
+            item.isAny() ? "class * { *; }" : printItem(new StringBuilder(), item).toString();
       }
       return ruleLine;
     }

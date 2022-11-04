@@ -4,8 +4,6 @@
 package com.android.tools.r8.keepanno.ast;
 
 import java.util.Objects;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * A pattern for matching items in the program.
@@ -17,14 +15,16 @@ import java.util.function.Supplier;
  * classes or it is a pattern on members. The distinction is defined by having a "none" member
  * pattern.
  */
-public abstract class KeepItemPattern {
+public class KeepItemPattern {
+
+  public static KeepItemPattern any() {
+    KeepItemPattern any = builder().any().build();
+    assert any.isAny();
+    return any;
+  }
 
   public static Builder builder() {
     return new Builder();
-  }
-
-  public static KeepItemPattern any() {
-    return Any.getInstance();
   }
 
   public static class Builder {
@@ -61,125 +61,71 @@ public abstract class KeepItemPattern {
       if (classNamePattern == null) {
         throw new KeepEdgeException("Class pattern must define a class name pattern.");
       }
-      if (classNamePattern.isAny() && extendsPattern.isAny() && membersPattern.isAll()) {
-        return KeepItemPattern.any();
-      }
-      return new KeepClassPattern(classNamePattern, extendsPattern, membersPattern);
+      return new KeepItemPattern(classNamePattern, extendsPattern, membersPattern);
     }
   }
 
-  private static class Any extends KeepItemPattern {
+  private final KeepQualifiedClassNamePattern qualifiedClassPattern;
+  private final KeepExtendsPattern extendsPattern;
+  private final KeepMembersPattern membersPattern;
+  // TODO: class annotations
 
-    private static final Any INSTANCE = new Any();
+  private KeepItemPattern(
+      KeepQualifiedClassNamePattern qualifiedClassPattern,
+      KeepExtendsPattern extendsPattern,
+      KeepMembersPattern membersPattern) {
+    assert qualifiedClassPattern != null;
+    assert extendsPattern != null;
+    assert membersPattern != null;
+    this.qualifiedClassPattern = qualifiedClassPattern;
+    this.extendsPattern = extendsPattern;
+    this.membersPattern = membersPattern;
+  }
 
-    public static Any getInstance() {
-      return INSTANCE;
-    }
+  public boolean isAny() {
+    return qualifiedClassPattern.isAny() && extendsPattern.isAny() && membersPattern.isAll();
+  }
 
-    @Override
-    public boolean isAny() {
+  public KeepQualifiedClassNamePattern getClassNamePattern() {
+    return qualifiedClassPattern;
+  }
+
+  public KeepExtendsPattern getExtendsPattern() {
+    return extendsPattern;
+  }
+
+  public KeepMembersPattern getMembersPattern() {
+    return membersPattern;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
       return true;
     }
-
-    @Override
-    public <T> T match(Supplier<T> onAny, Function<KeepClassPattern, T> onItem) {
-      return onAny.get();
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
     }
-
-    @Override
-    public boolean equals(Object obj) {
-      return this == obj;
-    }
-
-    @Override
-    public int hashCode() {
-      return System.identityHashCode(this);
-    }
-
-    @Override
-    public String toString() {
-      return "*";
-    }
+    KeepItemPattern that = (KeepItemPattern) obj;
+    return qualifiedClassPattern.equals(that.qualifiedClassPattern)
+        && extendsPattern.equals(that.extendsPattern)
+        && membersPattern.equals(that.membersPattern);
   }
 
-  public static class KeepClassPattern extends KeepItemPattern {
-
-    private final KeepQualifiedClassNamePattern qualifiedClassPattern;
-    private final KeepExtendsPattern extendsPattern;
-    private final KeepMembersPattern membersPattern;
-    // TODO: class annotations
-
-    private KeepClassPattern(
-        KeepQualifiedClassNamePattern qualifiedClassPattern,
-        KeepExtendsPattern extendsPattern,
-        KeepMembersPattern membersPattern) {
-      assert qualifiedClassPattern != null;
-      assert extendsPattern != null;
-      assert membersPattern != null;
-      this.qualifiedClassPattern = qualifiedClassPattern;
-      this.extendsPattern = extendsPattern;
-      this.membersPattern = membersPattern;
-    }
-
-    @Override
-    public boolean isAny() {
-      return qualifiedClassPattern.isAny() && extendsPattern.isAny() && membersPattern.isAll();
-    }
-
-    @Override
-    public <T> T match(Supplier<T> onAny, Function<KeepClassPattern, T> onItem) {
-      if (isAny()) {
-        return onAny.get();
-      } else {
-        return onItem.apply(this);
-      }
-    }
-
-    public KeepQualifiedClassNamePattern getClassNamePattern() {
-      return qualifiedClassPattern;
-    }
-
-    public KeepExtendsPattern getExtendsPattern() {
-      return extendsPattern;
-    }
-
-    public KeepMembersPattern getMembersPattern() {
-      return membersPattern;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-      if (obj == null || getClass() != obj.getClass()) {
-        return false;
-      }
-      KeepClassPattern that = (KeepClassPattern) obj;
-      return qualifiedClassPattern.equals(that.qualifiedClassPattern)
-          && extendsPattern.equals(that.extendsPattern)
-          && membersPattern.equals(that.membersPattern);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(qualifiedClassPattern, extendsPattern, membersPattern);
-    }
-
-    @Override
-    public String toString() {
-      return "KeepClassPattern{"
-          + "qualifiedClassPattern="
-          + qualifiedClassPattern
-          + ", extendsPattern="
-          + extendsPattern
-          + ", membersPattern="
-          + membersPattern
-          + '}';
-    }
+  @Override
+  public int hashCode() {
+    return Objects.hash(qualifiedClassPattern, extendsPattern, membersPattern);
   }
 
-  public abstract boolean isAny();
-
-  public abstract <T> T match(Supplier<T> onAny, Function<KeepClassPattern, T> onItem);
+  @Override
+  public String toString() {
+    return "KeepClassPattern{"
+        + "qualifiedClassPattern="
+        + qualifiedClassPattern
+        + ", extendsPattern="
+        + extendsPattern
+        + ", membersPattern="
+        + membersPattern
+        + '}';
+  }
 }
