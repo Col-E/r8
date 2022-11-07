@@ -8,7 +8,9 @@ import com.android.tools.r8.keepanno.annotations.KeepConstants.Target;
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
+import com.android.tools.r8.keepanno.ast.KeepMembersPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern;
+import com.android.tools.r8.keepanno.ast.KeepMethodPattern;
 import com.android.tools.r8.keepanno.ast.KeepPreconditions;
 import com.android.tools.r8.keepanno.ast.KeepQualifiedClassNamePattern;
 import com.android.tools.r8.keepanno.utils.Unimplemented;
@@ -68,39 +70,38 @@ public class KeepEdgeWriter implements Opcodes {
           if (!item.getExtendsPattern().isAny()) {
             throw new Unimplemented();
           }
-          if (item.getMembersPattern().isNone()) {
-            // Default is "no methods".
-          } else if (item.getMembersPattern().isAll()) {
-            throw new Unimplemented();
-          } else {
-            item.getMembersPattern()
-                .forEach(
-                    field -> {
-                      throw new Unimplemented();
-                    },
-                    method -> {
-                      KeepMethodNamePattern methodNamePattern = method.getNamePattern();
-                      methodNamePattern.match(
-                          () -> {
-                            throw new Unimplemented();
-                          },
-                          exactMethodName -> {
-                            targetVisitor.visit(Target.methodName, exactMethodName);
-                            return null;
-                          });
-                      if (!method.getAccessPattern().isAny()) {
-                        throw new Unimplemented();
-                      }
-                      if (!method.getReturnTypePattern().isAny()) {
-                        throw new Unimplemented();
-                      }
-                      if (!method.getParametersPattern().isAny()) {
-                        throw new Unimplemented();
-                      }
-                    });
-          }
+          writeMembers(item.getMembersPattern(), targetVisitor);
           targetVisitor.visitEnd();
         });
     arrayVisitor.visitEnd();
+  }
+
+  private void writeMembers(KeepMembersPattern membersPattern, AnnotationVisitor targetVisitor) {
+    if (membersPattern.isNone()) {
+      // Default is "no methods".
+      return;
+    }
+    if (membersPattern.isAll()) {
+      throw new Unimplemented();
+    }
+    KeepMethodPattern method = membersPattern.asMethod();
+    KeepMethodNamePattern methodNamePattern = method.getNamePattern();
+    methodNamePattern.match(
+        () -> {
+          throw new Unimplemented();
+        },
+        exactMethodName -> {
+          targetVisitor.visit(Target.methodName, exactMethodName);
+          return null;
+        });
+    if (!method.getAccessPattern().isAny()) {
+      throw new Unimplemented();
+    }
+    if (!method.getReturnTypePattern().isAny()) {
+      throw new Unimplemented();
+    }
+    if (!method.getParametersPattern().isAny()) {
+      throw new Unimplemented();
+    }
   }
 }

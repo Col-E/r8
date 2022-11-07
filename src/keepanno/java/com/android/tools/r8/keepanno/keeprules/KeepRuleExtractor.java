@@ -5,7 +5,6 @@ package com.android.tools.r8.keepanno.keeprules;
 
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
-import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepMembersPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodAccessPattern;
@@ -110,19 +109,12 @@ public class KeepRuleExtractor {
     if (members.isAll()) {
       return builder.append(" { *; }");
     }
-    builder.append(" {");
-    members.forEach(
-        field -> printField(builder.append(' '), field),
-        method -> printMethod(builder.append(' '), method));
-    return builder.append(" }");
-  }
-
-  private static StringBuilder printField(StringBuilder builder, KeepFieldPattern field) {
-    if (field.isAnyField()) {
-      return builder.append("<fields>;");
-    } else {
-      throw new Unimplemented();
+    if (members.isMethod()) {
+      builder.append(" {");
+      printMethod(builder.append(' '), members.asMethod());
+      return builder.append(" }");
     }
+    throw new Unimplemented();
   }
 
   private static StringBuilder printMethod(StringBuilder builder, KeepMethodPattern methodPattern) {

@@ -6,7 +6,6 @@ package com.android.tools.r8.keepanno.testsource;
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
-import com.android.tools.r8.keepanno.ast.KeepMembersPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodPattern;
 import com.android.tools.r8.keepanno.ast.KeepQualifiedClassNamePattern;
@@ -37,12 +36,10 @@ public class KeepSourceEdges {
     // Build the constructor target.
     KeepMethodPattern constructorMethod =
         KeepMethodPattern.builder().setNamePattern(KeepMethodNamePattern.exact("<init>")).build();
-    KeepMembersPattern constructorMembers =
-        KeepMembersPattern.builder().addMethodPattern(constructorMethod).build();
     KeepItemPattern constructorItem =
         KeepItemPattern.builder()
             .setClassPattern(name)
-            .setMembersPattern(constructorMembers)
+            .setMembersPattern(constructorMethod)
             .build();
     KeepTarget constructorTarget = KeepTarget.builder().setItem(constructorItem).build();
     // The consequet set is the class an its constructor.

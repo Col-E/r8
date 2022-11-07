@@ -170,13 +170,10 @@ public class KeepEdgeAstTest extends TestBase {
   }
 
   private KeepMembersPattern defaultInitializerPattern() {
-    return KeepMembersPattern.builder()
-        .addMethodPattern(
-            KeepMethodPattern.builder()
-                .setNamePattern(KeepMethodNamePattern.initializer())
-                .setParametersPattern(KeepMethodParametersPattern.none())
-                .setReturnTypeVoid()
-                .build())
+    return KeepMethodPattern.builder()
+        .setNamePattern(KeepMethodNamePattern.initializer())
+        .setParametersPattern(KeepMethodParametersPattern.none())
+        .setReturnTypeVoid()
         .build();
   }
 }

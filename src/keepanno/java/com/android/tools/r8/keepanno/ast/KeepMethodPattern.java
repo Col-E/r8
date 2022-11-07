@@ -5,13 +5,13 @@ package com.android.tools.r8.keepanno.ast;
 
 import java.util.Objects;
 
-public final class KeepMethodPattern extends KeepMemberPattern {
+public final class KeepMethodPattern extends KeepMembersPattern {
 
   public static Builder builder() {
     return new Builder();
   }
 
-  public static class Builder extends KeepMemberPattern.Builder<Builder> {
+  public static class Builder {
 
     private KeepMethodAccessPattern accessPattern = KeepMethodAccessPattern.any();
     private KeepMethodNamePattern namePattern = null;
@@ -20,7 +20,6 @@ public final class KeepMethodPattern extends KeepMemberPattern {
 
     private Builder() {}
 
-    @Override
     public Builder self() {
       return this;
     }
@@ -74,8 +73,16 @@ public final class KeepMethodPattern extends KeepMemberPattern {
     this.parametersPattern = parametersPattern;
   }
 
+  @Override
+  public KeepMethodPattern asMethod() {
+    return this;
+  }
+
   public boolean isAnyMethod() {
-    return false;
+    return accessPattern.isAny()
+        && namePattern.isAny()
+        && returnTypePattern.isAny()
+        && parametersPattern.isAny();
   }
 
   public KeepMethodAccessPattern getAccessPattern() {

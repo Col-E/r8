@@ -10,7 +10,6 @@ import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern.Builder;
-import com.android.tools.r8.keepanno.ast.KeepMembersPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodPattern;
 import com.android.tools.r8.keepanno.ast.KeepPreconditions;
@@ -170,9 +169,7 @@ public class KeepEdgeReader implements Opcodes {
       }
       if (methodName != null) {
         itemBuilder.setMembersPattern(
-            KeepMembersPattern.builder()
-                .addMethodPattern(KeepMethodPattern.builder().setNamePattern(methodName).build())
-                .build());
+            KeepMethodPattern.builder().setNamePattern(methodName).build());
       }
       KeepTarget target = KeepTarget.builder().setItem(itemBuilder.build()).build();
       parent.accept(target);

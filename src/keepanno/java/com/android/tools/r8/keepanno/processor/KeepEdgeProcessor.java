@@ -16,7 +16,6 @@ import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepEdge.Builder;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
-import com.android.tools.r8.keepanno.ast.KeepMembersPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodPattern;
 import com.android.tools.r8.keepanno.ast.KeepQualifiedClassNamePattern;
@@ -137,11 +136,8 @@ public class KeepEdgeProcessor extends AbstractProcessor {
     if (methodNameValue != null) {
       String methodName = AnnotationStringValueVisitor.getString(methodNameValue);
       itemBuilder.setMembersPattern(
-          KeepMembersPattern.builder()
-              .addMethodPattern(
-                  KeepMethodPattern.builder()
-                      .setNamePattern(KeepMethodNamePattern.exact(methodName))
-                      .build())
+          KeepMethodPattern.builder()
+              .setNamePattern(KeepMethodNamePattern.exact(methodName))
               .build());
     }
 
