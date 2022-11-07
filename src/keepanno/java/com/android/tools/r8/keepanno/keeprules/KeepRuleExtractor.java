@@ -131,24 +131,31 @@ public class KeepRuleExtractor {
 
   private static StringBuilder printParameters(
       StringBuilder builder, KeepMethodParametersPattern parametersPattern) {
-    return parametersPattern.match(
-        () -> builder.append("(***)"),
-        list ->
-            builder
-                .append('(')
-                .append(list.stream().map(Object::toString).collect(Collectors.joining(", ")))
-                .append(')'));
+    if (parametersPattern.isAny()) {
+      return builder.append("(***)");
+    }
+    return builder
+        .append('(')
+        .append(
+            parametersPattern.asList().stream()
+                .map(Object::toString)
+                .collect(Collectors.joining(", ")))
+        .append(')');
   }
 
   private static StringBuilder printMethodName(
       StringBuilder builder, KeepMethodNamePattern namePattern) {
-    return namePattern.match(() -> builder.append("*"), builder::append);
+    return namePattern.isAny()
+        ? builder.append("*")
+        : builder.append(namePattern.asExact().getName());
   }
 
   private static StringBuilder printReturnType(
       StringBuilder builder, KeepMethodReturnTypePattern returnTypePattern) {
-    return returnTypePattern.match(
-        () -> builder.append("void"), typePattern -> printType(builder, typePattern));
+    if (returnTypePattern.isVoid()) {
+      return builder.append("void");
+    }
+    return printType(builder, returnTypePattern.asType());
   }
 
   private static StringBuilder printType(StringBuilder builder, KeepTypePattern typePattern) {

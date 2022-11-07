@@ -9,7 +9,7 @@ import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepMembersPattern;
-import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern;
+import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern.KeepMethodNameExactPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodPattern;
 import com.android.tools.r8.keepanno.ast.KeepPreconditions;
 import com.android.tools.r8.keepanno.ast.KeepQualifiedClassNamePattern;
@@ -85,15 +85,12 @@ public class KeepEdgeWriter implements Opcodes {
       throw new Unimplemented();
     }
     KeepMethodPattern method = membersPattern.asMethod();
-    KeepMethodNamePattern methodNamePattern = method.getNamePattern();
-    methodNamePattern.match(
-        () -> {
-          throw new Unimplemented();
-        },
-        exactMethodName -> {
-          targetVisitor.visit(Target.methodName, exactMethodName);
-          return null;
-        });
+    KeepMethodNameExactPattern exactMethodName = method.getNamePattern().asExact();
+    if (exactMethodName != null) {
+      targetVisitor.visit(Target.methodName, exactMethodName.getName());
+    } else {
+      throw new Unimplemented();
+    }
     if (!method.getAccessPattern().isAny()) {
       throw new Unimplemented();
     }

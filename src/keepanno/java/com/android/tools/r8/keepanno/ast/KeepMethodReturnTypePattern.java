@@ -3,25 +3,31 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.ast;
 
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 public abstract class KeepMethodReturnTypePattern {
 
-  private static final SomeType ANY_TYPE_INSTANCE = new SomeType(KeepTypePattern.any());
-
   public static KeepMethodReturnTypePattern any() {
-    return ANY_TYPE_INSTANCE;
+    return SomeType.ANY_TYPE_INSTANCE;
   }
 
   public static KeepMethodReturnTypePattern voidType() {
     return VoidType.getInstance();
   }
 
-  public abstract <T> T match(Supplier<T> onVoid, Function<KeepTypePattern, T> onType);
-
   public boolean isAny() {
-    return match(() -> false, KeepTypePattern::isAny);
+    return isType() && asType().isAny();
+  }
+
+  public boolean isVoid() {
+    return false;
+  }
+
+  public boolean isType() {
+    return asType() != null;
+  }
+
+  public KeepTypePattern asType() {
+    return null;
   }
 
   private static class VoidType extends KeepMethodReturnTypePattern {
@@ -32,8 +38,8 @@ public abstract class KeepMethodReturnTypePattern {
     }
 
     @Override
-    public <T> T match(Supplier<T> onVoid, Function<KeepTypePattern, T> onType) {
-      return onVoid.get();
+    public boolean isVoid() {
+      return true;
     }
 
     @Override
@@ -54,6 +60,8 @@ public abstract class KeepMethodReturnTypePattern {
 
   private static class SomeType extends KeepMethodReturnTypePattern {
 
+    private static final SomeType ANY_TYPE_INSTANCE = new SomeType(KeepTypePattern.any());
+
     private final KeepTypePattern typePattern;
 
     private SomeType(KeepTypePattern typePattern) {
@@ -62,8 +70,8 @@ public abstract class KeepMethodReturnTypePattern {
     }
 
     @Override
-    public <T> T match(Supplier<T> onVoid, Function<KeepTypePattern, T> onType) {
-      return onType.apply(typePattern);
+    public KeepTypePattern asType() {
+      return typePattern;
     }
 
     @Override

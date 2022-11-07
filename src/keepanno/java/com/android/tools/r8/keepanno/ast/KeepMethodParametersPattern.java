@@ -5,8 +5,6 @@ package com.android.tools.r8.keepanno.ast;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 public abstract class KeepMethodParametersPattern {
 
@@ -15,42 +13,55 @@ public abstract class KeepMethodParametersPattern {
   }
 
   public static KeepMethodParametersPattern none() {
-    return None.getInstance();
+    return Some.EMPTY_INSTANCE;
   }
 
   private KeepMethodParametersPattern() {}
 
-  public abstract <T> T match(Supplier<T> onAny, Function<List<KeepTypePattern>, T> onList);
-
   public boolean isAny() {
-    return match(() -> true, params -> false);
+    return false;
   }
 
-  private static class None extends KeepMethodParametersPattern {
-    private static final None INSTANCE = new None();
+  public boolean isList() {
+    return asList() != null;
+  }
 
-    public static None getInstance() {
-      return INSTANCE;
+  public List<KeepTypePattern> asList() {
+    return null;
+  }
+
+  private static class Some extends KeepMethodParametersPattern {
+
+    private static final Some EMPTY_INSTANCE = new Some(Collections.emptyList());
+
+    private final List<KeepTypePattern> parameterPatterns;
+
+    private Some(List<KeepTypePattern> parameterPatterns) {
+      assert parameterPatterns != null;
+      this.parameterPatterns = parameterPatterns;
     }
 
     @Override
-    public <T> T match(Supplier<T> onAny, Function<List<KeepTypePattern>, T> onList) {
-      return onList.apply(Collections.emptyList());
+    public List<KeepTypePattern> asList() {
+      return parameterPatterns;
     }
 
     @Override
-    public boolean equals(Object obj) {
-      return this == obj;
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+
+      Some that = (Some) o;
+      return parameterPatterns.equals(that.parameterPatterns);
     }
 
     @Override
     public int hashCode() {
-      return System.identityHashCode(this);
-    }
-
-    @Override
-    public String toString() {
-      return "()";
+      return parameterPatterns.hashCode();
     }
   }
 
@@ -62,8 +73,8 @@ public abstract class KeepMethodParametersPattern {
     }
 
     @Override
-    public <T> T match(Supplier<T> onAny, Function<List<KeepTypePattern>, T> onList) {
-      return onAny.get();
+    public boolean isAny() {
+      return true;
     }
 
     @Override

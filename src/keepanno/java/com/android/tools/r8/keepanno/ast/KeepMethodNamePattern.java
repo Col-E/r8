@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.ast;
 
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 public abstract class KeepMethodNamePattern {
 
@@ -23,15 +21,16 @@ public abstract class KeepMethodNamePattern {
   private KeepMethodNamePattern() {}
 
   public boolean isAny() {
-    return match(() -> true, ignore -> false);
+    return false;
   }
 
-  public boolean isExact() {
-    return match(() -> false, ignore -> true);
+  public final boolean isExact() {
+    return asExact() != null;
   }
-  ;
 
-  public abstract <T> T match(Supplier<T> onAny, Function<String, T> onExact);
+  public KeepMethodNameExactPattern asExact() {
+    return null;
+  }
 
   private static class Any extends KeepMethodNamePattern {
     private static final Any INSTANCE = new Any();
@@ -41,8 +40,8 @@ public abstract class KeepMethodNamePattern {
     }
 
     @Override
-    public <T> T match(Supplier<T> onAny, Function<String, T> onExact) {
-      return onAny.get();
+    public boolean isAny() {
+      return true;
     }
 
     @Override
@@ -61,7 +60,7 @@ public abstract class KeepMethodNamePattern {
     }
   }
 
-  private static class KeepMethodNameExactPattern extends KeepMethodNamePattern {
+  public static class KeepMethodNameExactPattern extends KeepMethodNamePattern {
     private final String name;
 
     public KeepMethodNameExactPattern(String name) {
@@ -70,8 +69,12 @@ public abstract class KeepMethodNamePattern {
     }
 
     @Override
-    public <T> T match(Supplier<T> onAny, Function<String, T> onExact) {
-      return onExact.apply(name);
+    public KeepMethodNameExactPattern asExact() {
+      return this;
+    }
+
+    public String getName() {
+      return name;
     }
 
     @Override
