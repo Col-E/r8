@@ -8,7 +8,7 @@ import com.android.tools.r8.keepanno.annotations.KeepConstants.Target;
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
-import com.android.tools.r8.keepanno.ast.KeepMembersPattern;
+import com.android.tools.r8.keepanno.ast.KeepMemberPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern.KeepMethodNameExactPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodPattern;
 import com.android.tools.r8.keepanno.ast.KeepPreconditions;
@@ -70,21 +70,21 @@ public class KeepEdgeWriter implements Opcodes {
           if (!item.getExtendsPattern().isAny()) {
             throw new Unimplemented();
           }
-          writeMembers(item.getMembersPattern(), targetVisitor);
+          writeMember(item.getMemberPattern(), targetVisitor);
           targetVisitor.visitEnd();
         });
     arrayVisitor.visitEnd();
   }
 
-  private void writeMembers(KeepMembersPattern membersPattern, AnnotationVisitor targetVisitor) {
-    if (membersPattern.isNone()) {
+  private void writeMember(KeepMemberPattern memberPattern, AnnotationVisitor targetVisitor) {
+    if (memberPattern.isNone()) {
       // Default is "no methods".
       return;
     }
-    if (membersPattern.isAll()) {
+    if (memberPattern.isAll()) {
       throw new Unimplemented();
     }
-    KeepMethodPattern method = membersPattern.asMethod();
+    KeepMethodPattern method = memberPattern.asMethod();
     KeepMethodNameExactPattern exactMethodName = method.getNamePattern().asExact();
     if (exactMethodName != null) {
       targetVisitor.visit(Target.methodName, exactMethodName.getName());

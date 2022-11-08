@@ -6,7 +6,7 @@ package com.android.tools.r8.keepanno.keeprules;
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
-import com.android.tools.r8.keepanno.ast.KeepMembersPattern;
+import com.android.tools.r8.keepanno.ast.KeepMemberPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodAccessPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodParametersPattern;
@@ -102,16 +102,16 @@ public class KeepRuleExtractor {
     if (!clazzPattern.getExtendsPattern().isAny()) {
       throw new Unimplemented();
     }
-    KeepMembersPattern members = clazzPattern.getMembersPattern();
-    if (members.isNone()) {
+    KeepMemberPattern member = clazzPattern.getMemberPattern();
+    if (member.isNone()) {
       return builder;
     }
-    if (members.isAll()) {
+    if (member.isAll()) {
       return builder.append(" { *; }");
     }
-    if (members.isMethod()) {
+    if (member.isMethod()) {
       builder.append(" {");
-      printMethod(builder.append(' '), members.asMethod());
+      printMethod(builder.append(' '), member.asMethod());
       return builder.append(" }");
     }
     throw new Unimplemented();
@@ -232,7 +232,7 @@ public class KeepRuleExtractor {
 
     public boolean isMemberOnlyConsequent() {
       KeepItemPattern item = target.getItem();
-      return !item.isAny() && !item.getMembersPattern().isNone();
+      return !item.isAny() && !item.getMemberPattern().isNone();
     }
 
     public KeepQualifiedClassNamePattern getHolderPattern() {

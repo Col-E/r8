@@ -168,7 +168,7 @@ public class KeepEdgeReader implements Opcodes {
         itemBuilder.setClassPattern(classNamePattern);
       }
       if (methodName != null) {
-        itemBuilder.setMembersPattern(
+        itemBuilder.setMemberPattern(
             KeepMethodPattern.builder().setNamePattern(methodName).build());
       }
       KeepTarget target = KeepTarget.builder().setItem(itemBuilder.build()).build();

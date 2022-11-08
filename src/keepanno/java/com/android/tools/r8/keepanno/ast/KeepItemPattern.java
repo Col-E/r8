@@ -31,14 +31,14 @@ public class KeepItemPattern {
 
     private KeepQualifiedClassNamePattern classNamePattern;
     private KeepExtendsPattern extendsPattern = KeepExtendsPattern.any();
-    private KeepMembersPattern membersPattern = KeepMembersPattern.none();
+    private KeepMemberPattern memberPattern = KeepMemberPattern.none();
 
     private Builder() {}
 
     public Builder any() {
       classNamePattern = KeepQualifiedClassNamePattern.any();
       extendsPattern = KeepExtendsPattern.any();
-      membersPattern = KeepMembersPattern.all();
+      memberPattern = KeepMemberPattern.all();
       return this;
     }
 
@@ -52,8 +52,8 @@ public class KeepItemPattern {
       return this;
     }
 
-    public Builder setMembersPattern(KeepMembersPattern membersPattern) {
-      this.membersPattern = membersPattern;
+    public Builder setMemberPattern(KeepMemberPattern memberPattern) {
+      this.memberPattern = memberPattern;
       return this;
     }
 
@@ -61,29 +61,29 @@ public class KeepItemPattern {
       if (classNamePattern == null) {
         throw new KeepEdgeException("Class pattern must define a class name pattern.");
       }
-      return new KeepItemPattern(classNamePattern, extendsPattern, membersPattern);
+      return new KeepItemPattern(classNamePattern, extendsPattern, memberPattern);
     }
   }
 
   private final KeepQualifiedClassNamePattern qualifiedClassPattern;
   private final KeepExtendsPattern extendsPattern;
-  private final KeepMembersPattern membersPattern;
+  private final KeepMemberPattern memberPattern;
   // TODO: class annotations
 
   private KeepItemPattern(
       KeepQualifiedClassNamePattern qualifiedClassPattern,
       KeepExtendsPattern extendsPattern,
-      KeepMembersPattern membersPattern) {
+      KeepMemberPattern memberPattern) {
     assert qualifiedClassPattern != null;
     assert extendsPattern != null;
-    assert membersPattern != null;
+    assert memberPattern != null;
     this.qualifiedClassPattern = qualifiedClassPattern;
     this.extendsPattern = extendsPattern;
-    this.membersPattern = membersPattern;
+    this.memberPattern = memberPattern;
   }
 
   public boolean isAny() {
-    return qualifiedClassPattern.isAny() && extendsPattern.isAny() && membersPattern.isAll();
+    return qualifiedClassPattern.isAny() && extendsPattern.isAny() && memberPattern.isAll();
   }
 
   public KeepQualifiedClassNamePattern getClassNamePattern() {
@@ -94,8 +94,8 @@ public class KeepItemPattern {
     return extendsPattern;
   }
 
-  public KeepMembersPattern getMembersPattern() {
-    return membersPattern;
+  public KeepMemberPattern getMemberPattern() {
+    return memberPattern;
   }
 
   @Override
@@ -109,12 +109,12 @@ public class KeepItemPattern {
     KeepItemPattern that = (KeepItemPattern) obj;
     return qualifiedClassPattern.equals(that.qualifiedClassPattern)
         && extendsPattern.equals(that.extendsPattern)
-        && membersPattern.equals(that.membersPattern);
+        && memberPattern.equals(that.memberPattern);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(qualifiedClassPattern, extendsPattern, membersPattern);
+    return Objects.hash(qualifiedClassPattern, extendsPattern, memberPattern);
   }
 
   @Override
@@ -124,8 +124,8 @@ public class KeepItemPattern {
         + qualifiedClassPattern
         + ", extendsPattern="
         + extendsPattern
-        + ", membersPattern="
-        + membersPattern
+        + ", memberPattern="
+        + memberPattern
         + '}';
   }
 }

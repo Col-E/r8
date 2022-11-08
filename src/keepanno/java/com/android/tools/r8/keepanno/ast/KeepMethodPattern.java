@@ -5,7 +5,7 @@ package com.android.tools.r8.keepanno.ast;
 
 import java.util.Objects;
 
-public final class KeepMethodPattern extends KeepMembersPattern {
+public final class KeepMethodPattern extends KeepMemberPattern {
 
   public static Builder builder() {
     return new Builder();

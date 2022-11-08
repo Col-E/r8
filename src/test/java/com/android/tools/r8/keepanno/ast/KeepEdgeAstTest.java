@@ -109,7 +109,7 @@ public class KeepEdgeAstTest extends TestBase {
                     .addTarget(
                         target(
                             buildClassItem(CLASS)
-                                .setMembersPattern(defaultInitializerPattern())
+                                .setMemberPattern(defaultInitializerPattern())
                                 .build()))
                     .build())
             .build();
@@ -146,7 +146,7 @@ public class KeepEdgeAstTest extends TestBase {
                     .addTarget(
                         target(
                             buildClassItem(CLASS)
-                                .setMembersPattern(defaultInitializerPattern())
+                                .setMemberPattern(defaultInitializerPattern())
                                 .build()))
                     .build())
             .build();
@@ -169,7 +169,7 @@ public class KeepEdgeAstTest extends TestBase {
     return KeepItemPattern.builder().setClassPattern(KeepQualifiedClassNamePattern.exact(typeName));
   }
 
-  private KeepMembersPattern defaultInitializerPattern() {
+  private KeepMemberPattern defaultInitializerPattern() {
     return KeepMethodPattern.builder()
         .setNamePattern(KeepMethodNamePattern.initializer())
         .setParametersPattern(KeepMethodParametersPattern.none())

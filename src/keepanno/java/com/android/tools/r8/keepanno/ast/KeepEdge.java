@@ -31,7 +31,7 @@ import java.util.Objects;
  *
  *   ITEM_PATTERN
  *     ::= any
- *       | class QUALIFIED_CLASS_NAME_PATTERN extends EXTENDS_PATTERN { MEMBERS_PATTERN }
+ *       | class QUALIFIED_CLASS_NAME_PATTERN extends EXTENDS_PATTERN { MEMBER_PATTERN }
  *
  *   TYPE_PATTERN ::= any
  *   PACKAGE_PATTERN ::= any | exact package-name
@@ -39,7 +39,7 @@ import java.util.Objects;
  *   UNQUALIFIED_CLASS_NAME_PATTERN ::= any | exact simple-class-name
  *   EXTENDS_PATTERN ::= any | QUALIFIED_CLASS_NAME_PATTERN
  *
- *   MEMBERS_PATTERN ::= none | all | METHOD_PATTERN
+ *   MEMBER_PATTERN ::= none | all | METHOD_PATTERN
  *
  *   METHOD_PATTERN
  *     ::= METHOD_ACCESS_PATTERN

@@ -37,10 +37,7 @@ public class KeepSourceEdges {
     KeepMethodPattern constructorMethod =
         KeepMethodPattern.builder().setNamePattern(KeepMethodNamePattern.exact("<init>")).build();
     KeepItemPattern constructorItem =
-        KeepItemPattern.builder()
-            .setClassPattern(name)
-            .setMembersPattern(constructorMethod)
-            .build();
+        KeepItemPattern.builder().setClassPattern(name).setMemberPattern(constructorMethod).build();
     KeepTarget constructorTarget = KeepTarget.builder().setItem(constructorItem).build();
     // The consequet set is the class an its constructor.
     KeepConsequences consequences =

@@ -3,18 +3,17 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.ast;
 
+public abstract class KeepMemberPattern {
 
-public abstract class KeepMembersPattern {
-
-  public static KeepMembersPattern none() {
+  public static KeepMemberPattern none() {
     return None.getInstance();
   }
 
-  public static KeepMembersPattern all() {
+  public static KeepMemberPattern all() {
     return All.getInstance();
   }
 
-  private static class All extends KeepMembersPattern {
+  private static class All extends KeepMemberPattern {
 
     private static final All INSTANCE = new All();
 
@@ -43,7 +42,7 @@ public abstract class KeepMembersPattern {
     }
   }
 
-  private static class None extends KeepMembersPattern {
+  private static class None extends KeepMemberPattern {
 
     private static final None INSTANCE = new None();
 
@@ -72,7 +71,7 @@ public abstract class KeepMembersPattern {
     }
   }
 
-  KeepMembersPattern() {}
+  KeepMemberPattern() {}
 
   public boolean isAll() {
     return false;

@@ -135,7 +135,7 @@ public class KeepEdgeProcessor extends AbstractProcessor {
     AnnotationValue methodNameValue = getAnnotationValue(mirror, Target.methodName);
     if (methodNameValue != null) {
       String methodName = AnnotationStringValueVisitor.getString(methodNameValue);
-      itemBuilder.setMembersPattern(
+      itemBuilder.setMemberPattern(
           KeepMethodPattern.builder()
               .setNamePattern(KeepMethodNamePattern.exact(methodName))
               .build());
