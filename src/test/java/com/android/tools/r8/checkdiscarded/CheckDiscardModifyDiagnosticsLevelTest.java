@@ -101,7 +101,10 @@ public class CheckDiscardModifyDiagnosticsLevelTest extends TestBase {
                       .assertErrorsMatch(errorMatchers())
                       .assertWarningsMatch(warningMatchers())
                       .assertInfosMatch(infoMatchers()));
-      assertTrue(mappedLevel == DiagnosticsLevel.INFO || mappedLevel == DiagnosticsLevel.WARNING);
+      assertTrue(
+          mappedLevel == DiagnosticsLevel.INFO
+              || mappedLevel == DiagnosticsLevel.WARNING
+              || mappedLevel == DiagnosticsLevel.NONE);
     } catch (CompilationFailedException e) {
       assertEquals(mappedLevel, DiagnosticsLevel.ERROR);
     }

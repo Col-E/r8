@@ -215,11 +215,14 @@ public class BaseCompilerCommandParser<
     if (arg.equals("info")) {
       return DiagnosticsLevel.INFO;
     }
+    if (arg.equals("none")) {
+      return DiagnosticsLevel.NONE;
+    }
     errorHandler.accept(
         new StringDiagnostic(
             "Invalid diagnostics level '"
                 + arg
-                + "'. Valid levels are 'error', 'warning' and 'info'.",
+                + "'. Valid levels are 'error', 'warning', 'info' and 'none'.",
             origin));
 
     return null;

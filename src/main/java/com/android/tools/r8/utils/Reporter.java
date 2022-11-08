@@ -81,6 +81,8 @@ public class Reporter implements DiagnosticsHandler {
         abort = new AbortException(diagnostic);
         clientHandler.error(diagnostic);
         break;
+      case NONE:
+        break;
       default:
         throw new Unreachable();
     }
