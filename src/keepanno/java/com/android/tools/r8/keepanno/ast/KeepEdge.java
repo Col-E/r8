@@ -25,12 +25,13 @@ import java.util.Objects;
  *   CONDITION ::= ITEM_PATTERN
  *
  *   CONSEQUENCES ::= TARGET+
- *   TARGET ::= any | OPTIONS ITEM_PATTERN // TODO(b/248408342): What options are on target 'any'?
+ *   TARGET ::= OPTIONS ITEM_PATTERN
  *   OPTIONS ::= keep-all | OPTION+
  *   OPTION ::= shrinking | optimizing | obfuscating | access-modifying
  *
- *   ITEM_PATTERN ::=
- *     class QUALIFIED_CLASS_NAME_PATTERN extends EXTENDS_PATTERN { MEMBERS_PATTERN }
+ *   ITEM_PATTERN
+ *     ::= any
+ *       | class QUALIFIED_CLASS_NAME_PATTERN extends EXTENDS_PATTERN { MEMBERS_PATTERN }
  *
  *   TYPE_PATTERN ::= any
  *   PACKAGE_PATTERN ::= any | exact package-name

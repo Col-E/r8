@@ -7,10 +7,6 @@ import java.util.Objects;
 
 public class KeepTarget {
 
-  public static KeepTarget any() {
-    return KeepTarget.builder().setItem(KeepItemPattern.any()).build();
-  }
-
   public static class Builder {
 
     private KeepItemPattern item;
