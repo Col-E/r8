@@ -3,11 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.rewrite.assertionerror;
 
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,7 +36,8 @@ public class AssertionErrorRewriteTest extends TestBase {
             || parameters.getApiLevel().getLevel() >= AndroidApiLevel.J.getLevel();
   }
 
-  @Test public void d8() throws Exception {
+  @Test
+  public void d8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
     testForD8()
         .addProgramClasses(Main.class)
@@ -44,7 +47,31 @@ public class AssertionErrorRewriteTest extends TestBase {
         .assertSuccessWithOutputLines("message", "java.lang.RuntimeException: cause message");
   }
 
-  @Test public void r8() throws Exception {
+  @Test
+  public void d8NoDesugar() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    testForD8()
+        .addProgramClasses(Main.class)
+        .setMinApi(parameters.getApiLevel())
+        .disableDesugaring()
+        .compile()
+        // TODO(b/247596495): There should be no synthetics.
+        .inspect(
+            inspector ->
+                assertTrue(
+                    parameters.getApiLevel().isLessThan(AndroidApiLevel.K)
+                        || inspector.allClasses().stream()
+                            .noneMatch(
+                                clazz ->
+                                    SyntheticItemsTestUtils.isExternalSynthetic(
+                                        clazz.getFinalReference()))))
+        .run(parameters.getRuntime(), Main.class)
+        // None of the VMs we have for testing is missing the two args constructor.
+        .assertSuccessWithOutputLines("message", "java.lang.RuntimeException: cause message");
+  }
+
+  @Test
+  public void r8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class)
         .addKeepMainRule(Main.class)
