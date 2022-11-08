@@ -184,7 +184,9 @@ public class IRConverter {
     this.printer = printer;
     this.codeRewriter = new CodeRewriter(appView);
     this.assertionErrorTwoArgsConstructorRewriter =
-        new AssertionErrorTwoArgsConstructorRewriter(appView);
+        appView.options().desugarState.isOn()
+            ? new AssertionErrorTwoArgsConstructorRewriter(appView)
+            : null;
     this.classInitializerDefaultsOptimization =
         new ClassInitializerDefaultsOptimization(appView, this);
     this.stringOptimizer = new StringOptimizer(appView);
@@ -1341,9 +1343,11 @@ public class IRConverter {
     timing.begin("Natural Int Loop Remover");
     naturalIntLoopRemover.run(appView, code);
     timing.end();
-    timing.begin("Rewrite AssertionError");
-    assertionErrorTwoArgsConstructorRewriter.rewrite(code, methodProcessingContext);
-    timing.end();
+    if (assertionErrorTwoArgsConstructorRewriter != null) {
+      timing.begin("Rewrite AssertionError");
+      assertionErrorTwoArgsConstructorRewriter.rewrite(code, methodProcessingContext);
+      timing.end();
+    }
     timing.begin("Run CSE");
     codeRewriter.commonSubexpressionElimination(code);
     timing.end();

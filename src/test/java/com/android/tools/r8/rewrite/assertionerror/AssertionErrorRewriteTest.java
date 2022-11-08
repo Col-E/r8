@@ -59,12 +59,11 @@ public class AssertionErrorRewriteTest extends TestBase {
         .inspect(
             inspector ->
                 assertTrue(
-                    parameters.getApiLevel().isLessThan(AndroidApiLevel.K)
-                        || inspector.allClasses().stream()
-                            .noneMatch(
-                                clazz ->
-                                    SyntheticItemsTestUtils.isExternalSynthetic(
-                                        clazz.getFinalReference()))))
+                    inspector.allClasses().stream()
+                        .noneMatch(
+                            clazz ->
+                                SyntheticItemsTestUtils.isExternalSynthetic(
+                                    clazz.getFinalReference()))))
         .run(parameters.getRuntime(), Main.class)
         // None of the VMs we have for testing is missing the two args constructor.
         .assertSuccessWithOutputLines("message", "java.lang.RuntimeException: cause message");
