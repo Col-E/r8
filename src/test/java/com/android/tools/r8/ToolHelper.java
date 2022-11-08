@@ -413,6 +413,9 @@ public class ToolHelper {
 
     private final Version version;
     private final Kind kind;
+
+    // TODO(b/258170524): Should be a new version that works.
+    public static final DexVm LATEST_DEX2OAT = ART_6_0_1_HOST;
   }
 
 
@@ -2000,10 +2003,8 @@ public class ToolHelper {
         vm.version == DexVm.Version.V10_0_0
             || vm.version == DexVm.Version.V12_0_0
             || vm.version == DexVm.Version.V13_0_0);
-    if (vm.isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
-      // Run default dex2oat for tests on dalvik runtimes.
-      vm = DexVm.ART_DEFAULT;
-    }
+    // TODO(b/258170524): Either remove `vm` as an argument or change using a specific version.
+    vm = DexVm.LATEST_DEX2OAT;
     assert Files.exists(file);
     assert ByteStreams.toByteArray(Files.newInputStream(file)).length > 0;
     List<String> command = new ArrayList<>();
