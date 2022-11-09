@@ -18,7 +18,6 @@ import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_PUT;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_CUSTOM;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_DIRECT;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_INTERFACE;
-import static com.android.tools.r8.ir.code.Opcodes.INVOKE_NEW_ARRAY;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_STATIC;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_SUPER;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_VIRTUAL;
@@ -69,7 +68,6 @@ import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeCustom;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.MemberType;
@@ -1062,10 +1060,6 @@ public class EnumUnboxerImpl extends EnumUnboxer {
             instruction.asInstancePut(), code, context, enumClass, enumValue);
       case INVOKE_DIRECT:
       case INVOKE_INTERFACE:
-        return analyzeInvokeUser(instruction.asInvokeMethod(), code, context, enumClass, enumValue);
-      case INVOKE_NEW_ARRAY:
-        return analyzeInvokeNewArrayUser(
-            instruction.asInvokeNewArray(), code, context, enumClass, enumValue);
       case INVOKE_STATIC:
       case INVOKE_SUPER:
       case INVOKE_VIRTUAL:
@@ -1134,40 +1128,6 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       return Reason.ELIGIBLE;
     }
     return Reason.INVALID_ARRAY_PUT;
-  }
-
-  private Reason analyzeInvokeNewArrayUser(
-      InvokeNewArray invokeNewArray,
-      IRCode code,
-      ProgramMethod context,
-      DexProgramClass enumClass,
-      Value enumValue) {
-    // MyEnum[] array = new MyEnum[] { MyEnum.A }; is valid.
-    // We need to prove that the value to put in and the array have correct types.
-    TypeElement arrayType = invokeNewArray.getOutType();
-    assert arrayType.isArrayType();
-
-    ClassTypeElement arrayBaseType = arrayType.asArrayType().getBaseType().asClassType();
-    if (arrayBaseType == null) {
-      assert false;
-      return Reason.INVALID_INVOKE_NEW_ARRAY;
-    }
-    if (arrayBaseType.getClassType() != enumClass.type) {
-      return Reason.INVALID_INVOKE_NEW_ARRAY;
-    }
-
-    for (Value value : invokeNewArray.inValues()) {
-      TypeElement valueBaseType = value.getType();
-      if (valueBaseType.isArrayType()) {
-        assert valueBaseType.asArrayType().getBaseType().isClassType();
-        assert valueBaseType.asArrayType().getNesting() == arrayType.asArrayType().getNesting() - 1;
-        valueBaseType = valueBaseType.asArrayType().getBaseType();
-      }
-      if (!arrayBaseType.equalUpToNullability(valueBaseType)) {
-        return Reason.INVALID_INVOKE_NEW_ARRAY;
-      }
-    }
-    return Reason.ELIGIBLE;
   }
 
   private Reason analyzeCheckCastUser(

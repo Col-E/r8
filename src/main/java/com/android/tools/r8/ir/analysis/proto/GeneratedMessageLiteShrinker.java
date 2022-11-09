@@ -33,7 +33,6 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
-import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewInstance;
@@ -47,7 +46,6 @@ import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -318,37 +316,17 @@ public class GeneratedMessageLiteShrinker {
     Value sizeValue =
         instructionIterator.insertConstIntInstruction(code, appView.options(), objects.size());
     Value newObjectsValue = code.createValue(objectArrayType);
+    instructionIterator.add(
+        new NewArrayEmpty(newObjectsValue, sizeValue, appView.dexItemFactory().objectArrayType));
 
     // Populate the `objects` array.
-    var rewriteOptions = appView.options().rewriteArrayOptions();
-    if (rewriteOptions.canUseFilledNewArrayOfObjects()
-        && objects.size() < rewriteOptions.maxRangeInputs) {
-      List<Value> arrayValues = new ArrayList<>(objects.size());
-      for (int i = 0; i < objects.size(); i++) {
-        Instruction materializingInstruction = objects.get(i).buildIR(appView, code);
-        instructionIterator.add(materializingInstruction);
-        arrayValues.add(materializingInstruction.outValue());
-      }
+    for (int i = 0; i < objects.size(); i++) {
+      Value indexValue = instructionIterator.insertConstIntInstruction(code, appView.options(), i);
+      Instruction materializingInstruction = objects.get(i).buildIR(appView, code);
+      instructionIterator.add(materializingInstruction);
       instructionIterator.add(
-          new InvokeNewArray(
-              appView.dexItemFactory().objectArrayType, newObjectsValue, arrayValues));
-    } else {
-      instructionIterator.add(
-          new NewArrayEmpty(newObjectsValue, sizeValue, appView.dexItemFactory().objectArrayType));
-
-      // Populate the `objects` array.
-      for (int i = 0; i < objects.size(); i++) {
-        Value indexValue =
-            instructionIterator.insertConstIntInstruction(code, appView.options(), i);
-        Instruction materializingInstruction = objects.get(i).buildIR(appView, code);
-        instructionIterator.add(materializingInstruction);
-        instructionIterator.add(
-            new ArrayPut(
-                MemberType.OBJECT,
-                newObjectsValue,
-                indexValue,
-                materializingInstruction.outValue()));
-      }
+          new ArrayPut(
+              MemberType.OBJECT, newObjectsValue, indexValue, materializingInstruction.outValue()));
     }
 
     // Pass the newly created `objects` array to RawMessageInfo.<init>(...) or

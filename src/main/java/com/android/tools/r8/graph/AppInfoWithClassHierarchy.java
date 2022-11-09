@@ -275,8 +275,8 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   public boolean isSubtype(DexType subtype, DexType supertype) {
     assert subtype != null;
     assert supertype != null;
-    assert subtype.isClassType() : "subtype not a class: " + subtype;
-    assert supertype.isClassType() : "supertype not a class: " + supertype;
+    assert subtype.isClassType();
+    assert supertype.isClassType();
     return subtype == supertype || isStrictSubtypeOf(subtype, supertype);
   }
 

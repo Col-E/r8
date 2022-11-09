@@ -31,7 +31,6 @@ import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.StaticGet;
@@ -303,30 +302,18 @@ public class RawMessageInfoDecoder {
    */
   private static ThrowingIterator<Value, InvalidRawMessageInfoException> createObjectIterator(
       Value objectsValue) throws InvalidRawMessageInfoException {
-    if (objectsValue.isPhi()) {
+    if (objectsValue.isPhi() || !objectsValue.definition.isNewArrayEmpty()) {
       throw new InvalidRawMessageInfoException();
     }
 
     NewArrayEmpty newArrayEmpty = objectsValue.definition.asNewArrayEmpty();
-    InvokeNewArray invokeNewArray = objectsValue.definition.asInvokeNewArray();
+    int expectedArraySize = objectsValue.uniqueUsers().size() - 1;
 
-    if (newArrayEmpty == null && invokeNewArray == null) {
-      throw new InvalidRawMessageInfoException();
-    }
-    // Verify that the array is used in only one spot.
-    if (invokeNewArray != null) {
-      if (objectsValue.uniqueUsers().size() != 1) {
-        throw new InvalidRawMessageInfoException();
-      }
-      return ThrowingIterator.fromIterator(invokeNewArray.inValues().iterator());
-    }
-
+    // Verify that the size is correct.
     Value sizeValue = newArrayEmpty.size().getAliasedValue();
-    if (sizeValue.isPhi() || !sizeValue.definition.isConstNumber()) {
-      throw new InvalidRawMessageInfoException();
-    }
-    int arraySize = sizeValue.definition.asConstNumber().getIntValue();
-    if (arraySize != objectsValue.uniqueUsers().size() - 1) {
+    if (sizeValue.isPhi()
+        || !sizeValue.definition.isConstNumber()
+        || sizeValue.definition.asConstNumber().getIntValue() != expectedArraySize) {
       throw new InvalidRawMessageInfoException();
     }
 

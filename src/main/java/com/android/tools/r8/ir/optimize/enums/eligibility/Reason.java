@@ -32,8 +32,6 @@ public abstract class Reason {
       new StringReason("IMPLICIT_UP_CAST_IN_RETURN");
   public static final Reason INVALID_FIELD_PUT = new StringReason("INVALID_FIELD_PUT");
   public static final Reason INVALID_ARRAY_PUT = new StringReason("INVALID_ARRAY_PUT");
-  public static final Reason INVALID_INVOKE_NEW_ARRAY =
-      new StringReason("INVALID_INVOKE_NEW_ARRAY");
   public static final Reason TYPE_MISMATCH_FIELD_PUT = new StringReason("TYPE_MISMATCH_FIELD_PUT");
   public static final Reason INVALID_IF_TYPES = new StringReason("INVALID_IF_TYPES");
   public static final Reason ASSIGNMENT_OUTSIDE_INIT = new StringReason("ASSIGNMENT_OUTSIDE_INIT");
