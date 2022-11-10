@@ -16,10 +16,12 @@ import com.android.tools.r8.dex.code.DexAputObject;
 import com.android.tools.r8.dex.code.DexConst4;
 import com.android.tools.r8.dex.code.DexConstClass;
 import com.android.tools.r8.dex.code.DexConstString;
+import com.android.tools.r8.dex.code.DexFilledNewArray;
 import com.android.tools.r8.dex.code.DexInvokeDirect;
 import com.android.tools.r8.dex.code.DexInvokeStatic;
 import com.android.tools.r8.dex.code.DexInvokeVirtual;
 import com.android.tools.r8.dex.code.DexIputObject;
+import com.android.tools.r8.dex.code.DexMoveResultObject;
 import com.android.tools.r8.dex.code.DexNewArray;
 import com.android.tools.r8.dex.code.DexReturnVoid;
 import com.android.tools.r8.dex.code.DexSgetObject;
@@ -639,7 +641,8 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
             + "}",
         "-keep class " + CLASS_NAME,
         "-keep class R { *; }");
-    CodeInspector inspector = compileWithR8(builder, pgConfigs).inspector();
+    CodeInspector inspector =
+        compileWithR8(builder, testBuilder -> testBuilder.addKeepRules(pgConfigs)).inspector();
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
@@ -647,19 +650,33 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
-    checkInstructions(
-        code,
-        ImmutableList.of(
-            DexInvokeDirect.class,
-            DexConst4.class,
-            DexNewArray.class,
-            DexConst4.class,
-            DexConstClass.class,
-            DexAputObject.class,
-            DexConstString.class,
-            DexInvokeStatic.class,
-            DexReturnVoid.class));
-    DexConstString constString = (DexConstString) code.instructions[6];
+    // Accept either array construction style (differs based on minSdkVersion).
+    if (code.instructions[2].getClass() == DexFilledNewArray.class) {
+      checkInstructions(
+          code,
+          ImmutableList.of(
+              DexInvokeDirect.class,
+              DexConstClass.class,
+              DexFilledNewArray.class,
+              DexMoveResultObject.class,
+              DexConstString.class,
+              DexInvokeStatic.class,
+              DexReturnVoid.class));
+    } else {
+      checkInstructions(
+          code,
+          ImmutableList.of(
+              DexInvokeDirect.class,
+              DexConst4.class,
+              DexNewArray.class,
+              DexConst4.class,
+              DexConstClass.class,
+              DexAputObject.class,
+              DexConstString.class,
+              DexInvokeStatic.class,
+              DexReturnVoid.class));
+    }
+    DexConstString constString = (DexConstString) code.instructions[code.instructions.length - 3];
     assertEquals("foo", constString.getString().toString());
   }
 
@@ -700,7 +717,8 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
             + "}",
         "-keep class " + CLASS_NAME,
         "-keep,allowobfuscation class R { *; }");
-    CodeInspector inspector = compileWithR8(builder, pgConfigs).inspector();
+    CodeInspector inspector =
+        compileWithR8(builder, testBuilder -> testBuilder.addKeepRules(pgConfigs)).inspector();
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
@@ -708,19 +726,33 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertNotNull(method);
 
     DexCode code = method.getCode().asDexCode();
-    checkInstructions(
-        code,
-        ImmutableList.of(
-            DexInvokeDirect.class,
-            DexConst4.class,
-            DexNewArray.class,
-            DexConst4.class,
-            DexConstClass.class,
-            DexAputObject.class,
-            DexConstString.class,
-            DexInvokeStatic.class,
-            DexReturnVoid.class));
-    DexConstString constString = (DexConstString) code.instructions[6];
+    // Accept either array construction style (differs based on minSdkVersion).
+    if (code.instructions[2].getClass() == DexFilledNewArray.class) {
+      checkInstructions(
+          code,
+          ImmutableList.of(
+              DexInvokeDirect.class,
+              DexConstClass.class,
+              DexFilledNewArray.class,
+              DexMoveResultObject.class,
+              DexConstString.class,
+              DexInvokeStatic.class,
+              DexReturnVoid.class));
+    } else {
+      checkInstructions(
+          code,
+          ImmutableList.of(
+              DexInvokeDirect.class,
+              DexConst4.class,
+              DexNewArray.class,
+              DexConst4.class,
+              DexConstClass.class,
+              DexAputObject.class,
+              DexConstString.class,
+              DexInvokeStatic.class,
+              DexReturnVoid.class));
+    }
+    DexConstString constString = (DexConstString) code.instructions[code.instructions.length - 3];
     assertNotEquals("foo", constString.getString().toString());
   }
 
