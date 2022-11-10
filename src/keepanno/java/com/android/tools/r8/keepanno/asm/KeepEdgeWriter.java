@@ -95,7 +95,14 @@ public class KeepEdgeWriter implements Opcodes {
       throw new Unimplemented();
     }
     if (!method.getReturnTypePattern().isAny()) {
-      throw new Unimplemented();
+      if (exactMethodName != null
+          && (exactMethodName.getName().equals("<init>")
+              || exactMethodName.getName().equals("<clinit>"))
+          && method.getReturnTypePattern().isVoid()) {
+        // constructors have implicit void return.
+      } else {
+        throw new Unimplemented();
+      }
     }
     if (!method.getParametersPattern().isAny()) {
       throw new Unimplemented();

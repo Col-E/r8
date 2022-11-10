@@ -132,7 +132,7 @@ public class KeepRuleExtractor {
   private static StringBuilder printParameters(
       StringBuilder builder, KeepMethodParametersPattern parametersPattern) {
     if (parametersPattern.isAny()) {
-      return builder.append("(***)");
+      return builder.append("(...)");
     }
     return builder
         .append('(')
@@ -160,7 +160,7 @@ public class KeepRuleExtractor {
 
   private static StringBuilder printType(StringBuilder builder, KeepTypePattern typePattern) {
     if (typePattern.isAny()) {
-      return builder.append("*");
+      return builder.append("***");
     }
     throw new Unimplemented();
   }

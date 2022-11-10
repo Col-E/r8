@@ -21,6 +21,7 @@ import com.android.tools.r8.keepanno.ast.KeepMethodPattern;
 import com.android.tools.r8.keepanno.ast.KeepQualifiedClassNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepTarget;
 import com.android.tools.r8.keepanno.utils.Unimplemented;
+import com.sun.tools.javac.code.Type;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -130,7 +131,11 @@ public class KeepEdgeProcessor extends AbstractProcessor {
     AnnotationValue classConstantValue = getAnnotationValue(mirror, Target.classConstant);
     if (classConstantValue != null) {
       DeclaredType type = AnnotationClassValueVisitor.getType(classConstantValue);
-      itemBuilder.setClassPattern(KeepQualifiedClassNamePattern.exact(type.toString()));
+      // The processor API does not expose the descriptor or typename, so we need to depend on the
+      // sun.tools package and cast to its internal type to extract it. If not, this code will not
+      // work for inner classes as we cannot recover the $ separator.
+      String typeName = ((Type) type).tsym.flatName().toString();
+      itemBuilder.setClassPattern(KeepQualifiedClassNamePattern.exact(typeName));
     }
     AnnotationValue methodNameValue = getAnnotationValue(mirror, Target.methodName);
     if (methodNameValue != null) {

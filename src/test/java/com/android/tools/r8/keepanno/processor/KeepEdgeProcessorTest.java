@@ -36,6 +36,7 @@ public class KeepEdgeProcessorTest extends TestBase {
   private static final Path KEEP_ANNO_PATH =
       Paths.get(ToolHelper.BUILD_DIR, "classes", "java", "keepanno");
   private static final Class<?> SOURCE = KeepClassAndDefaultConstructorSource.class;
+  private static final String EXPECTED = KeepSourceEdges.getExpected(SOURCE);
 
   private final TestParameters parameters;
 
@@ -63,6 +64,12 @@ public class KeepEdgeProcessorTest extends TestBase {
     checkSynthesizedKeepEdgeClass(inspector, out);
     // The source is added as a classpath name but not part of the compilation unit output.
     assertThat(inspector.clazz(SOURCE), isAbsent());
+
+    testForJvm()
+        .addProgramClasses(SOURCE, KeepClassAndDefaultConstructorSource.A.class)
+        .addProgramFiles(out)
+        .run(parameters.getRuntime(), SOURCE)
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
@@ -78,7 +85,7 @@ public class KeepEdgeProcessorTest extends TestBase {
     testForJvm()
         .addProgramFiles(out)
         .run(parameters.getRuntime(), SOURCE)
-        .assertSuccessWithOutputLines("A is alive!")
+        .assertSuccessWithOutput(EXPECTED)
         .inspect(
             inspector -> {
               assertThat(inspector.clazz(SOURCE), isPresent());

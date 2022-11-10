@@ -10,6 +10,7 @@ import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodPattern;
 import com.android.tools.r8.keepanno.ast.KeepQualifiedClassNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepTarget;
+import com.android.tools.r8.utils.StringUtils;
 import java.util.Collections;
 import java.util.Set;
 
@@ -27,8 +28,19 @@ public class KeepSourceEdges {
     throw new RuntimeException();
   }
 
+  public static String getExpected(Class<?> clazz) {
+    if (clazz.equals(KeepClassAndDefaultConstructorSource.class)) {
+      return getKeepClassAndDefaultConstructorSourceExpected();
+    }
+    throw new RuntimeException();
+  }
+
+  public static String getKeepClassAndDefaultConstructorSourceExpected() {
+    return StringUtils.lines("A is alive!");
+  }
+
   public static Set<KeepEdge> getKeepClassAndDefaultConstructorSourceEdges() {
-    Class<?> clazz = KeepClassAndDefaultConstructorSource.class;
+    Class<?> clazz = KeepClassAndDefaultConstructorSource.A.class;
     // Build the class target.
     KeepQualifiedClassNamePattern name = KeepQualifiedClassNamePattern.exact(clazz.getTypeName());
     KeepItemPattern classItem = KeepItemPattern.builder().setClassPattern(name).build();
