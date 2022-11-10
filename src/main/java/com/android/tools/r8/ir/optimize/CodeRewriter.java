@@ -2220,6 +2220,7 @@ public class CodeRewriter {
       return;
     }
     InternalOptions.RewriteArrayOptions rewriteOptions = options.rewriteArrayOptions();
+    boolean canUseForStrings = rewriteOptions.canUseFilledNewArrayOfStrings();
     boolean canUseForObjects = rewriteOptions.canUseFilledNewArrayOfObjects();
     boolean canUseForArrays = rewriteOptions.canUseFilledNewArrayOfArrays();
 
@@ -2242,11 +2243,17 @@ public class CodeRewriter {
         if (size < 1 || size > rewriteOptions.maxFillArrayDataInputs) {
           continue;
         }
-        if (!newArrayEmpty.type.isPrimitiveArrayType() && !canUseForObjects) {
-          continue;
-        }
-        if (newArrayEmpty.type.getNumberOfLeadingSquareBrackets() > 1 && !canUseForArrays) {
-          continue;
+        DexType arrayType = newArrayEmpty.type;
+        if (!arrayType.isPrimitiveArrayType()) {
+          if (arrayType == dexItemFactory.stringArrayType) {
+            if (!canUseForStrings) {
+              continue;
+            }
+          } else if (!canUseForObjects) {
+            continue;
+          } else if (!canUseForArrays && arrayType.getNumberOfLeadingSquareBrackets() > 1) {
+            continue;
+          }
         }
 
         Value[] values =
@@ -2258,8 +2265,8 @@ public class CodeRewriter {
         // filled-new-array is implemented only for int[] and Object[].
         // For int[], using filled-new-array is usually smaller than filled-array-data.
         // filled-new-array supports up to 5 registers before it's filled-new-array/range.
-        if (!newArrayEmpty.type.isPrimitiveArrayType()
-            || (newArrayEmpty.type == dexItemFactory.intArrayType && size <= 5)) {
+        if (!arrayType.isPrimitiveArrayType()
+            || (arrayType == dexItemFactory.intArrayType && size <= 5)) {
           // Don't replace with filled-new-array if it requires more than 200 consecutive registers.
           if (size > rewriteOptions.maxRangeInputs) {
             continue;
@@ -2270,8 +2277,7 @@ public class CodeRewriter {
           // positioned).
           Value invokeValue =
               code.createValue(newArrayEmpty.getOutType(), newArrayEmpty.getLocalInfo());
-          InvokeNewArray invoke =
-              new InvokeNewArray(newArrayEmpty.type, invokeValue, Arrays.asList(values));
+          InvokeNewArray invoke = new InvokeNewArray(arrayType, invokeValue, Arrays.asList(values));
           for (Value value : newArrayEmpty.inValues()) {
             value.removeUser(newArrayEmpty);
           }
@@ -2292,7 +2298,7 @@ public class CodeRewriter {
             // throwing instruction to the same block (the first one being NewArrayEmpty).
             continue;
           }
-          int elementSize = newArrayEmpty.type.elementSizeForPrimitiveArrayType();
+          int elementSize = arrayType.elementSizeForPrimitiveArrayType();
           short[] contents = computeArrayFilledData(values, size, elementSize);
           if (contents == null) {
             continue;

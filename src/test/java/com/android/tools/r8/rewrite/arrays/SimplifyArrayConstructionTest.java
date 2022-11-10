@@ -63,11 +63,10 @@ public class SimplifyArrayConstructionTest extends TestBase {
     "[1, null, 2]",
     "[1, null, 2]",
     "[1]",
-    "[a, b]",
+    "[1, 2]",
     "[1, 2, 3, 4, 5]",
     "[1]",
     "[a, 1, null, d, e, f]",
-    "[a, b, c, d, e, f]",
     "[1, null, 3, null, null, 6]",
     "[1, 2, 3, 4, 5, 6]",
     "[true, false]",
@@ -167,6 +166,7 @@ public class SimplifyArrayConstructionTest extends TestBase {
     ClassSubject mainClass = inspector.clazz(Main.class);
     assertTrue(mainClass.isPresent());
 
+    MethodSubject stringArrays = mainClass.uniqueMethodWithOriginalName("stringArrays");
     MethodSubject referenceArraysNoCasts =
         mainClass.uniqueMethodWithOriginalName("referenceArraysNoCasts");
     MethodSubject referenceArraysWithSubclasses =
@@ -210,8 +210,14 @@ public class SimplifyArrayConstructionTest extends TestBase {
       assertArrayTypes(reversedArray, DexFilledNewArray.class);
     }
 
-    // Cannot use filled-new-array of Object before K.
+    // Cannot use filled-new-array of String before K.
     if (parameters.getApiLevel().isLessThan(AndroidApiLevel.K)) {
+      assertArrayTypes(stringArrays, DexNewArray.class);
+    } else {
+      assertArrayTypes(stringArrays, DexFilledNewArray.class);
+    }
+    // Cannot use filled-new-array of Object before L.
+    if (parameters.getApiLevel().isLessThan(AndroidApiLevel.N)) {
       assertArrayTypes(referenceArraysNoCasts, DexNewArray.class);
       assertArrayTypes(referenceArraysWithSubclasses, DexNewArray.class);
       assertArrayTypes(phiFilledNewArray, DexNewArray.class);
@@ -290,6 +296,7 @@ public class SimplifyArrayConstructionTest extends TestBase {
     static final String assumedNullField = null;
 
     public static void main(String[] args) {
+      stringArrays();
       referenceArraysNoCasts();
       referenceArraysWithSubclasses();
       interfaceArrayWithRawObject();
@@ -310,10 +317,14 @@ public class SimplifyArrayConstructionTest extends TestBase {
     }
 
     @NeverInline
-    private static void referenceArraysNoCasts() {
+    private static void stringArrays() {
       // Test exact class, no null.
       String[] stringArr = {"a"};
       System.out.println(Arrays.toString(stringArr));
+    }
+
+    @NeverInline
+    private static void referenceArraysNoCasts() {
       // Tests that no type info is needed when array type is Object[].
       Object[] objectArr = {"a", 1, null};
       System.out.println(Arrays.toString(objectArr));
@@ -454,14 +465,14 @@ public class SimplifyArrayConstructionTest extends TestBase {
 
     @NeverInline
     private static void assumedValues() {
-      String[] arr = {assumedNonNullField, assumedNullField};
+      Object[] arr = {assumedNonNullField, assumedNullField};
       System.out.println(Arrays.toString(arr));
     }
 
     @NeverInline
     private static void phiFilledNewArray() {
       // The presence of ? should not affect use of filled-new-array.
-      String[] phiArray = {"a", System.nanoTime() > 0 ? "b" : "c"};
+      Integer[] phiArray = {1, System.nanoTime() > 0 ? 2 : 3};
       System.out.println(Arrays.toString(phiArray));
     }
 
@@ -483,8 +494,6 @@ public class SimplifyArrayConstructionTest extends TestBase {
       // 6 or more elements use /range variant.
       Object[] objectArr = {"a", 1, null, "d", "e", "f"};
       System.out.println(Arrays.toString(objectArr));
-      String[] stringArr = {"a", "b", "c", "d", "e", "f"};
-      System.out.println(Arrays.toString(stringArr));
       Serializable[] interfaceArr = {
         getSerializable(1), null, getSerializable(3), null, null, getSerializable(6)
       };

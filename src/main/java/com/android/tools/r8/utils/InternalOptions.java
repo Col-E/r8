@@ -1403,9 +1403,17 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     // Buggy code that accidentally call code that only works on primitives arrays.
     //
     // https://android.googlesource.com/platform/dalvik/+/ics-mr0/vm/mterp/out/InterpAsm-x86-atom.S#25106
-    public boolean canUseFilledNewArrayOfObjects() {
+    public boolean canUseFilledNewArrayOfStrings() {
       assert isGeneratingDex();
       return hasFeaturePresentFrom(AndroidApiLevel.K);
+    }
+
+    // When adding support for emitting new-filled-array for non-String types, ART 6.0.1 had issues.
+    // https://ci.chromium.org/ui/p/r8/builders/ci/linux-android-6.0.1/6507/overview
+    // It somehow had a new-array-filled return null.
+    public boolean canUseFilledNewArrayOfObjects() {
+      assert isGeneratingDex();
+      return hasFeaturePresentFrom(AndroidApiLevel.N);
     }
 
     // Dalvik doesn't handle new-filled-array with arrays as values. It fails with:
