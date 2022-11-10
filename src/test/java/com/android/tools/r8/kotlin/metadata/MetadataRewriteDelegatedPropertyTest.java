@@ -133,9 +133,7 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
     if (kotlinParameters.isNewerThan(KOTLINC_1_7_0)) {
       assertThat(
           compileResult.stderr,
-          containsString(
-              "the feature \"references to synthetic java properties\" is only available since"
-                  + " language version 1.9"));
+          containsString("the feature \"references to synthetic java properties\""));
     } else {
       assertThat(
           compileResult.stderr,
