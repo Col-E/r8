@@ -15,8 +15,8 @@ import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.RetraceStackTraceElementProxy;
 import com.android.tools.r8.retrace.RetraceStackTraceElementProxyResult;
 import com.android.tools.r8.retrace.RetraceThrownExceptionElement;
+import com.android.tools.r8.retrace.RetraceTypeElement;
 import com.android.tools.r8.retrace.RetraceTypeResult;
-import com.android.tools.r8.retrace.RetraceTypeResult.Element;
 import com.android.tools.r8.retrace.RetracedClassReference;
 import com.android.tools.r8.retrace.RetracedFieldReference;
 import com.android.tools.r8.retrace.RetracedMethodReference;
@@ -272,7 +272,8 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
     } else {
       TypeReference typeReference = Reference.typeFromTypeName(elementOrReturnType);
       RetraceTypeResult retraceTypeResult = retracer.retraceType(typeReference);
-      List<Element> retracedElements = retraceTypeResult.stream().collect(Collectors.toList());
+      List<RetraceTypeElement> retracedElements =
+          retraceTypeResult.stream().collect(Collectors.toList());
       return resultBuilder
           .setResultStream(
               currentResult.stream()

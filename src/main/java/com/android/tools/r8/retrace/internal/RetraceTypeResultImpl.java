@@ -4,67 +4,110 @@
 
 package com.android.tools.r8.retrace.internal;
 
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
+import com.android.tools.r8.retrace.RetraceTypeElement;
 import com.android.tools.r8.retrace.RetraceTypeResult;
 import com.android.tools.r8.retrace.RetracedTypeReference;
 import com.android.tools.r8.retrace.Retracer;
+import com.android.tools.r8.utils.ListUtils;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class RetraceTypeResultImpl implements RetraceTypeResult {
 
   private final TypeReference obfuscatedType;
+  private final List<RetracedTypeReference> retracedTypeReferences;
   private final Retracer retracer;
 
-  private RetraceTypeResultImpl(TypeReference obfuscatedType, Retracer retracer) {
+  private RetraceTypeResultImpl(
+      TypeReference obfuscatedType,
+      List<RetracedTypeReference> retracedTypeReferences,
+      Retracer retracer) {
     this.obfuscatedType = obfuscatedType;
+    this.retracedTypeReferences = retracedTypeReferences;
     this.retracer = retracer;
   }
 
   static RetraceTypeResultImpl create(TypeReference obfuscatedType, Retracer retracer) {
-    return new RetraceTypeResultImpl(obfuscatedType, retracer);
+    // Handle void and primitive types as single element results.
+    return new RetraceTypeResultImpl(
+        obfuscatedType, retraceTypeReference(obfuscatedType, retracer), retracer);
+  }
+
+  private static List<RetracedTypeReference> retraceTypeReference(
+      TypeReference obfuscatedType, Retracer retracer) {
+    if (obfuscatedType == null) {
+      return Collections.emptyList();
+    } else if (obfuscatedType.isPrimitive()) {
+      return Collections.singletonList(RetracedTypeReferenceImpl.create(obfuscatedType));
+    } else if (obfuscatedType.isArray()) {
+      int dimensions = obfuscatedType.asArray().getDimensions();
+      List<RetracedTypeReference> baseTypeRetraceResult =
+          retraceTypeReference(obfuscatedType.asArray().getBaseType(), retracer);
+      return ListUtils.map(
+          baseTypeRetraceResult,
+          retraceTypeReference ->
+              RetracedTypeReferenceImpl.create(
+                  Reference.array(retraceTypeReference.getTypeReference(), dimensions)));
+    } else {
+      assert obfuscatedType.isClass();
+      return retracer.retraceClass(obfuscatedType.asClass()).stream()
+          .map(clazz -> clazz.getRetracedClass().getRetracedType())
+          .collect(Collectors.toList());
+    }
   }
 
   @Override
-  public Stream<Element> stream() {
-    // Handle void and primitive types as single element results.
-    if (obfuscatedType == null || obfuscatedType.isPrimitive()) {
-      return Stream.of(new ElementImpl(RetracedTypeReferenceImpl.create(obfuscatedType)));
-    }
-    if (obfuscatedType.isArray()) {
-      int dimensions = obfuscatedType.asArray().getDimensions();
-      return retracer.retraceType(obfuscatedType.asArray().getBaseType()).stream()
-          .map(
-              baseElement ->
-                  new ElementImpl(
-                      RetracedTypeReferenceImpl.create(baseElement.getType().toArray(dimensions))));
-    }
-    return retracer.retraceClass(obfuscatedType.asClass()).stream()
-        .map(classElement -> new ElementImpl(classElement.getRetracedClass().getRetracedType()));
+  public Stream<RetraceTypeElement> stream() {
+    List<RetraceTypeElement> map =
+        ListUtils.map(
+            retracedTypeReferences,
+            retracedTypeReference -> new ElementImpl(this, retracedTypeReference));
+    return map.stream();
   }
 
   @Override
   public boolean isAmbiguous() {
-    return false;
+    return retracedTypeReferences.size() > 1;
   }
 
   @Override
-  public RetraceTypeResultImpl forEach(Consumer<Element> resultConsumer) {
+  public void forEach(Consumer<RetraceTypeElement> resultConsumer) {
     stream().forEach(resultConsumer);
-    return this;
   }
 
-  public static class ElementImpl implements RetraceTypeResult.Element {
+  @Override
+  public boolean isEmpty() {
+    return retracedTypeReferences.size() == 0;
+  }
 
+  public static class ElementImpl implements RetraceTypeElement {
+
+    private final RetraceTypeResult typeResult;
     private final RetracedTypeReference retracedType;
 
-    public ElementImpl(RetracedTypeReference retracedType) {
+    private ElementImpl(RetraceTypeResult typeResult, RetracedTypeReference retracedType) {
+      this.typeResult = typeResult;
       this.retracedType = retracedType;
     }
 
     @Override
     public RetracedTypeReference getType() {
       return retracedType;
+    }
+
+    @Override
+    public RetraceTypeResult getParentResult() {
+      return typeResult;
+    }
+
+    @Override
+    public boolean isCompilerSynthesized() {
+      return false;
     }
   }
 }
