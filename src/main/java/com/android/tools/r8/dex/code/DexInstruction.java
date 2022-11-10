@@ -386,7 +386,7 @@ public abstract class DexInstruction implements CfOrDexInstruction, StructuralIt
 
   @Override
   public String toString() {
-    return toString(null);
+    return toString(RetracerForCodePrinting.empty());
   }
 
   public abstract void write(

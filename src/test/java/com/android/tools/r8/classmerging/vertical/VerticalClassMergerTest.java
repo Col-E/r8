@@ -1021,7 +1021,7 @@ public class VerticalClassMergerTest extends TestBase {
     assertThat(method, isPresent());
     assertThat(
         method.getMethod().getCode().asCfCode().toString(),
-        containsString("invokeinterface classmerging.MergeDefaultMethodIntoClassTest$A.f()V"));
+        containsString("invokeinterface Lclassmerging/MergeDefaultMethodIntoClassTest$A;f()V"));
 
     runTestOnInput(
         testForR8(parameters.getBackend())
