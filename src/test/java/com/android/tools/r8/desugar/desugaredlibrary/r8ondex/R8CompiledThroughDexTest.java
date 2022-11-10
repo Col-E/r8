@@ -206,7 +206,7 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
       if (artProcessResult.exitCode != 0) {
         System.out.println(artProcessResult);
       }
-      assertEquals(0, artProcessResult.exitCode);
+      assertEquals(artProcessResult.stderr, 0, artProcessResult.exitCode);
       assertProgramsEqual(
           "The output of R8/JVM in-process and R8/ART external differ.",
           outputThroughCf,
