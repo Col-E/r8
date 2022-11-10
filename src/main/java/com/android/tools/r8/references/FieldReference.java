@@ -65,6 +65,14 @@ public final class FieldReference {
 
   @Override
   public String toString() {
-    return getHolderClass().toString() + getFieldName() + ":" + getFieldType().getDescriptor();
+    return getHolderClass() + getFieldName() + ":" + getFieldType().getDescriptor();
+  }
+
+  public String toSourceString() {
+    return getFieldType().getTypeName()
+        + " "
+        + getHolderClass().getTypeName()
+        + "."
+        + getFieldName();
   }
 }

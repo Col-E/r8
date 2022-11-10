@@ -8,6 +8,7 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.Timing;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -31,7 +32,7 @@ public class SmaliWriter extends DexByteCodeWriter {
     } catch (IOException e) {
       throw new CompilationError("Failed to generate smali sting", e);
     }
-    return new String(os.toByteArray(), StandardCharsets.UTF_8);
+    return os.toString(StandardCharsets.UTF_8);
   }
 
   public static String getFileEnding() {
@@ -67,7 +68,12 @@ public class SmaliWriter extends DexByteCodeWriter {
   @Override
   void writeMethod(ProgramMethod method, PrintStream ps) {
     ps.append("\n");
-    ps.append(method.getDefinition().toSmaliString(application.getProguardMap()));
+    ps.append(
+        method
+            .getDefinition()
+            .toSmaliString(
+                RetracerForCodePrinting.create(
+                    application.getProguardMap(), application.options.reporter)));
     ps.append("\n");
   }
 

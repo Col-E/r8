@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
-import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import java.nio.ShortBuffer;
 
 abstract class DexFormat10x extends DexBase1Format {
@@ -33,12 +33,12 @@ abstract class DexFormat10x extends DexBase1Format {
   }
 
   @Override
-  public String toString(ClassNameMapper naming) {
+  public String toString(RetracerForCodePrinting retracer) {
     return formatString(null);
   }
 
   @Override
-  public String toSmaliString(ClassNameMapper naming) {
+  public String toSmaliString(RetracerForCodePrinting retracer) {
     return formatSmaliString(null);
   }
 

@@ -11,12 +11,11 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
-import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
-import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
@@ -137,7 +136,7 @@ public abstract class DexFormat45cc extends DexBase4Format {
   }
 
   @Override
-  public String toSmaliString(ClassNameMapper naming) {
+  public String toSmaliString(RetracerForCodePrinting retracer) {
     StringBuilder builder = new StringBuilder();
     appendRegisterArguments(builder, ", ");
     builder.append(", ");
@@ -149,24 +148,14 @@ public abstract class DexFormat45cc extends DexBase4Format {
   }
 
   @Override
-  public String toString(ClassNameMapper naming) {
+  public String toString(RetracerForCodePrinting retracer) {
     StringBuilder builder = new StringBuilder();
     appendRegisterArguments(builder, " ");
     builder.append(" ");
-    builder.append(itemToString(BBBB, naming));
+    builder.append(retracer.toDescriptor(BBBB));
     builder.append(", ");
-    builder.append(itemToString(HHHH, naming));
+    builder.append(retracer.toDescriptor(HHHH));
     return formatString(builder.toString());
-  }
-
-  private String itemToString(IndexedDexItem indexedDexItem, ClassNameMapper naming) {
-    String str;
-    if (naming == null) {
-      str = indexedDexItem.toSmaliString();
-    } else {
-      str = naming.originalNameOf(indexedDexItem);
-    }
-    return str;
   }
 
   private void appendRegisterArguments(StringBuilder builder, String separator) {

@@ -6,8 +6,8 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
-import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 
 public class InvalidCode extends Code {
 
@@ -48,7 +48,7 @@ public class InvalidCode extends Code {
   }
 
   @Override
-  public String toString(DexEncodedMethod method, ClassNameMapper naming) {
+  public String toString(DexEncodedMethod method, RetracerForCodePrinting retracer) {
     StringBuilder builder = new StringBuilder();
     if (method != null) {
       builder.append(method.toSourceString()).append("\n");

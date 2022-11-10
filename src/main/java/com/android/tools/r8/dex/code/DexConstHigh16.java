@@ -6,7 +6,7 @@ package com.android.tools.r8.dex.code;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.SingleConstant;
 import com.android.tools.r8.ir.conversion.IRBuilder;
-import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.StringUtils;
 
 public class DexConstHigh16 extends DexFormat21h implements SingleConstant {
@@ -44,13 +44,13 @@ public class DexConstHigh16 extends DexFormat21h implements SingleConstant {
   }
 
   @Override
-  public String toString(ClassNameMapper naming) {
+  public String toString(RetracerForCodePrinting retracer) {
     return formatString(
         "v" + AA + ", " + StringUtils.hexString(decodedValue(), 8) + " (" + decodedValue() + ")");
   }
 
   @Override
-  public String toSmaliString(ClassNameMapper naming) {
+  public String toSmaliString(RetracerForCodePrinting retracer) {
     return formatSmaliString(
         "v" + AA + ", " + StringUtils.hexString(decodedValue(), 8) + "  # " + decodedValue());
   }

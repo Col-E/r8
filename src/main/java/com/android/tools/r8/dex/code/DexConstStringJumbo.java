@@ -6,7 +6,7 @@ package com.android.tools.r8.dex.code;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.ir.conversion.IRBuilder;
-import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 
 public class DexConstStringJumbo extends DexFormat31c {
 
@@ -52,12 +52,12 @@ public class DexConstStringJumbo extends DexFormat31c {
   }
 
   @Override
-  public String toString(ClassNameMapper naming) {
+  public String toString(RetracerForCodePrinting retracer) {
     return formatString("v" + AA + ", \"" + BBBBBBBB.toString() + "\"");
   }
 
   @Override
-  public String toSmaliString(ClassNameMapper naming) {
+  public String toSmaliString(RetracerForCodePrinting retracer) {
     return formatSmaliString("v" + AA + ", \"" + BBBBBBBB.toString() + "\"");
   }
 

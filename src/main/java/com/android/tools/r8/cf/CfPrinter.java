@@ -75,9 +75,8 @@ import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
@@ -112,7 +111,7 @@ public class CfPrinter {
   private final List<List<LocalVariableInfo>> localsAtLabel;
 
   private final StringBuilder builder = new StringBuilder();
-  private final ClassNameMapper mapper;
+  private final RetracerForCodePrinting retracer;
 
   private int nextInstructionIndex = 0;
   private final int instructionIndexSpace;
@@ -121,7 +120,7 @@ public class CfPrinter {
   public CfPrinter() {
     indent = "";
     labelToIndex = null;
-    mapper = null;
+    retracer = RetracerForCodePrinting.empty();
     instructionIndexSpace = 0;
 
     sortedLabels = Collections.emptyList();
@@ -130,12 +129,12 @@ public class CfPrinter {
 
   /** Entry for printing a complete code object. */
   public CfPrinter(CfCode code) {
-    this(code, null, null);
+    this(code, null, RetracerForCodePrinting.empty());
   }
 
   /** Entry for printing a complete method object. */
-  public CfPrinter(CfCode code, DexEncodedMethod method, ClassNameMapper mapper) {
-    this.mapper = mapper;
+  public CfPrinter(CfCode code, DexEncodedMethod method, RetracerForCodePrinting retracer) {
+    this.retracer = retracer;
     indent = "  ";
     instructionIndexSpace = ("" + code.getInstructions().size()).length();
     labelToIndex = new Reference2IntOpenHashMap<>();
@@ -770,56 +769,36 @@ public class CfPrinter {
   }
 
   private void appendDescriptor(DexType type) {
-    if (mapper != null) {
-      builder.append(DescriptorUtils.javaTypeToDescriptor(mapper.originalNameOf(type)));
-      return;
-    }
-    builder.append(type.toDescriptorString());
+    builder.append(retracer.toDescriptor(type));
   }
 
   private void appendType(DexType type) {
     if (type.isArrayType() || type.isClassType()) {
       appendClass(type);
     } else {
-      builder.append(type);
+      builder.append(retracer.toDescriptor(type));
     }
   }
 
   private void appendTypeElement(TypeElement type) {
-    builder.append(type.toString());
+    builder.append(type);
   }
 
   private void appendClass(DexType type) {
     assert type.isArrayType() || type.isClassType();
-    if (mapper == null) {
-      builder.append(type.getInternalName());
-    } else if (type == DexItemFactory.nullValueType) {
+    if (type == DexItemFactory.nullValueType) {
       builder.append("NULL");
     } else {
-      builder.append(
-          DescriptorUtils.descriptorToInternalName(
-              DescriptorUtils.javaTypeToDescriptor(mapper.originalNameOf(type))));
+      builder.append(retracer.toDescriptor(type));
     }
   }
 
   private void appendField(DexField field) {
-    if (mapper != null) {
-      builder.append(mapper.originalSignatureOf(field).toString());
-      return;
-    }
-    appendClass(field.holder);
-    builder.append('/').append(field.name);
+    builder.append(retracer.toDescriptor(field));
   }
 
   private void appendMethod(DexMethod method) {
-    if (mapper != null) {
-      MethodSignature signature = mapper.originalSignatureOf(method);
-      builder.append(mapper.originalNameOf(method.holder)).append('.');
-      builder.append(signature.name).append(signature.toDescriptor());
-      return;
-    }
-    builder.append(method.qualifiedName());
-    builder.append(method.proto.toDescriptorString());
+    builder.append(retracer.toDescriptor(method));
   }
 
   private String opcodeName(int opcode) {

@@ -13,7 +13,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
-import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
@@ -100,7 +100,7 @@ public class DexRecordFieldValues extends DexInstruction {
   }
 
   @Override
-  public String toString(ClassNameMapper naming) {
+  public String toString(RetracerForCodePrinting retracer) {
     StringBuilder sb = new StringBuilder();
     sb.append("v").append(outRegister).append(" ");
     appendArguments(sb);
@@ -108,8 +108,8 @@ public class DexRecordFieldValues extends DexInstruction {
   }
 
   @Override
-  public String toSmaliString(ClassNameMapper naming) {
-    return toString(naming);
+  public String toSmaliString(RetracerForCodePrinting retracer) {
+    return toString(retracer);
   }
 
   @Override

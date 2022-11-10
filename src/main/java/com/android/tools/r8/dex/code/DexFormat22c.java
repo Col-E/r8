@@ -6,7 +6,7 @@ package com.android.tools.r8.dex.code;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.IndexedDexItem;
-import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
@@ -57,13 +57,12 @@ public abstract class DexFormat22c<T extends DexReference> extends DexBase2Forma
   }
 
   @Override
-  public String toString(ClassNameMapper naming) {
-    return formatString(
-        "v" + A + ", v" + B + ", " + (naming == null ? CCCC : naming.originalNameOf(CCCC)));
+  public String toString(RetracerForCodePrinting retracer) {
+    return formatString("v" + A + ", v" + B + ", " + retracer.toDescriptor(CCCC));
   }
 
   @Override
-  public String toSmaliString(ClassNameMapper naming) {
+  public String toSmaliString(RetracerForCodePrinting retracer) {
     // TODO(sgjesse): Add support for smali name mapping.
     return formatSmaliString("v" + A + ", v" + B + ", " + CCCC.toSmaliString());
   }

@@ -12,11 +12,12 @@ import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.kotlin.KotlinMetadataWriter;
-import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
+import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.android.tools.r8.utils.Timing;
 import java.io.BufferedReader;
 import java.io.PrintStream;
@@ -34,6 +35,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
   private final Kotlin kotlin;
   private final Timing timing = new Timing("AssemblyWriter");
   private final CompilationContext compilationContext;
+  private final RetracerForCodePrinting retracer;
 
   public AssemblyWriter(
       DexApplication application,
@@ -62,6 +64,8 @@ public class AssemblyWriter extends DexByteCodeWriter {
       this.appInfo = null;
     }
     kotlin = new Kotlin(application.dexItemFactory);
+    retracer =
+        RetracerForCodePrinting.create(application.getProguardMap(), application.options.reporter);
   }
 
   public static String getFileEnding() {
@@ -70,22 +74,17 @@ public class AssemblyWriter extends DexByteCodeWriter {
 
   @Override
   void writeClassHeader(DexProgramClass clazz, PrintStream ps) {
-    String clazzName;
-    if (application.getProguardMap() != null) {
-      clazzName = application.getProguardMap().originalNameOf(clazz.type);
-    } else {
-      clazzName = clazz.type.toSourceString();
-    }
+    String clazzName = retracer.toSourceString(clazz.getType());
     ps.println("# Bytecode for");
     ps.println("# Class: '" + clazzName + "'");
     if (writeAllClassInfo) {
       writeAnnotations(clazz, clazz.annotations(), ps);
       ps.println("# Flags: '" + clazz.accessFlags + "'");
       if (clazz.superType != application.dexItemFactory.objectType) {
-        ps.println("# Extends: '" + clazz.superType.toSourceString() + "'");
+        ps.println("# Extends: '" + retracer.toSourceString(clazz.superType) + "'");
       }
       for (DexType value : clazz.interfaces.values) {
-        ps.println("# Implements: '" + value.toSourceString() + "'");
+        ps.println("# Implements: '" + retracer.toSourceString(value) + "'");
       }
       if (!clazz.getInnerClasses().isEmpty()) {
         ps.println("# InnerClasses:");
@@ -93,10 +92,10 @@ public class AssemblyWriter extends DexByteCodeWriter {
           ps.println(
               "#  Outer: "
                   + (innerClassAttribute.getOuter() != null
-                      ? innerClassAttribute.getOuter().toSourceString()
+                      ? retracer.toSourceString(innerClassAttribute.getOuter())
                       : "-")
                   + ", inner: "
-                  + innerClassAttribute.getInner().toSourceString()
+                  + retracer.toSourceString(innerClassAttribute.getInner())
                   + ", inner name: "
                   + innerClassAttribute.getInnerName()
                   + ", access: "
@@ -107,10 +106,12 @@ public class AssemblyWriter extends DexByteCodeWriter {
       if (enclosingMethodAttribute != null) {
         ps.println("# EnclosingMethod:");
         if (enclosingMethodAttribute.getEnclosingClass() != null) {
-          ps.println("#  Class: " + enclosingMethodAttribute.getEnclosingClass().toSourceString());
+          ps.println(
+              "#  Class: " + retracer.toSourceString(enclosingMethodAttribute.getEnclosingClass()));
         } else {
           ps.println(
-              "#  Method: " + enclosingMethodAttribute.getEnclosingMethod().toSourceString());
+              "#  Method: "
+                  + retracer.toSourceString(enclosingMethodAttribute.getEnclosingMethod()));
         }
       }
     }
@@ -129,14 +130,9 @@ public class AssemblyWriter extends DexByteCodeWriter {
   @Override
   void writeField(DexEncodedField field, PrintStream ps) {
     if (writeFields) {
-      ClassNameMapper naming = application.getProguardMap();
-      FieldSignature fieldSignature =
-          naming != null
-              ? naming.originalSignatureOf(field.getReference())
-              : FieldSignature.fromDexField(field.getReference());
       writeAnnotations(null, field.annotations(), ps);
       ps.print(field.accessFlags + " ");
-      ps.print(fieldSignature);
+      ps.print(retracer.toSourceString(field.getReference()));
       if (field.isStatic() && field.hasExplicitStaticValue()) {
         ps.print(" = " + field.getStaticValue());
       }
@@ -152,13 +148,8 @@ public class AssemblyWriter extends DexByteCodeWriter {
   @Override
   void writeMethod(ProgramMethod method, PrintStream ps) {
     DexEncodedMethod definition = method.getDefinition();
-    ClassNameMapper naming = application.getProguardMap();
-    String methodName =
-        naming != null
-            ? naming.originalSignatureOf(method.getReference()).name
-            : method.getReference().name.toString();
     ps.println("#");
-    ps.println("# Method: '" + methodName + "':");
+    ps.println("# Method: '" + retracer.toSourceString(definition.getReference()) + "':");
     writeAnnotations(null, definition.annotations(), ps);
     ps.println("# " + definition.accessFlags);
     ps.println("#");
@@ -171,7 +162,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
       if (writeIR) {
         writeIR(method, ps);
       } else {
-        ps.println(code.toString(definition, naming));
+        ps.println(code.toString(definition, retracer));
       }
     }
   }
@@ -188,7 +179,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
                 OptimizationFeedbackIgnore.getInstance(),
                 methodProcessor,
                 methodProcessingContext));
-    ps.println(printer.toString());
+    ps.println(printer);
   }
 
   private void writeAnnotations(
@@ -202,9 +193,19 @@ public class AssemblyWriter extends DexByteCodeWriter {
             assert clazz != null : "Kotlin metadata is a class annotation";
             KotlinMetadataWriter.writeKotlinMetadataAnnotation(prefix, annotation, ps, kotlin);
           } else {
-            String annotationString = annotation.toString();
+            StringBuilder sb = new StringBuilder();
+            sb.append(annotation.getVisibility());
+            sb.append(" ");
+            sb.append(retracer.toSourceString(annotation.getAnnotationType()));
+            sb.append(
+                StringUtils.join(
+                    ",",
+                    annotation.annotation.elements,
+                    element ->
+                        element.getName().toString() + " = " + getStringValue(element.getValue()),
+                    BraceType.SQUARE));
             ps.print(
-                new BufferedReader(new StringReader(annotationString))
+                new BufferedReader(new StringReader(sb.toString()))
                     .lines()
                     .collect(
                         Collectors.joining(
@@ -212,6 +213,26 @@ public class AssemblyWriter extends DexByteCodeWriter {
           }
         }
       }
+    }
+  }
+
+  private String getStringValue(DexValue value) {
+    if (value.isDexValueType()) {
+      return retracer.toSourceString(value.asDexValueType().getValue());
+    } else if (value.isDexValueMethodHandle()) {
+      return retracer.toSourceString(value.asDexValueMethodHandle().value.asMethod());
+    } else if (value.isDexValueMethod()) {
+      return retracer.toSourceString(value.asDexValueMethod().value);
+    } else if (value.isDexItemBasedValueString()) {
+      return retracer.toSourceString(value.asDexItemBasedValueString().value);
+    } else if (value.isDexValueEnum()) {
+      return retracer.toSourceString(value.asDexValueEnum().value);
+    } else if (value.isDexValueField()) {
+      return retracer.toSourceString(value.asDexValueField().value);
+    } else if (value.isDexValueArray()) {
+      return "[" + value.asDexValueArray() + "]";
+    } else {
+      return value.toString();
     }
   }
 

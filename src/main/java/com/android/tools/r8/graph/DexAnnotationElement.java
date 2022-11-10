@@ -71,4 +71,7 @@ public class DexAnnotationElement extends DexItem implements StructuralItem<DexA
     assert false;
   }
 
+  public DexString getName() {
+    return name;
+  }
 }

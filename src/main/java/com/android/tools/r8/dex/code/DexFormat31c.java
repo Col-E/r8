@@ -13,7 +13,7 @@ import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
-import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
@@ -69,9 +69,8 @@ abstract class DexFormat31c extends DexBase3Format {
   }
 
   @Override
-  public String toString(ClassNameMapper naming) {
-    return formatString(
-        "v" + AA + ", " + (naming == null ? BBBBBBBB : naming.originalNameOf(BBBBBBBB)));
+  public String toString(RetracerForCodePrinting retracer) {
+    return formatString("v" + AA + ", " + retracer.toDescriptor(BBBBBBBB));
   }
 
   @Override

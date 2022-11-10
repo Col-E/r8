@@ -56,7 +56,6 @@ import com.android.tools.r8.ir.optimize.info.MutableMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.kotlin.KotlinMethodLevelInfo;
-import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
@@ -65,6 +64,7 @@ import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.Ordered;
@@ -902,7 +902,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     this.parameterAnnotationsList = parameterAnnotations;
   }
 
-  public String toSmaliString(ClassNameMapper naming) {
+  public String toSmaliString(RetracerForCodePrinting naming) {
     checkIfObsolete();
     StringBuilder builder = new StringBuilder();
     builder.append(".method ");
@@ -1226,7 +1226,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public String codeToString() {
     checkIfObsolete();
-    return code == null ? "<no code>" : code.toString(this, null);
+    return code == null ? "<no code>" : code.toString(this, RetracerForCodePrinting.empty());
   }
 
   @Override

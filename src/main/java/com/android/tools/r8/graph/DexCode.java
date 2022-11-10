@@ -27,9 +27,9 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.ThrowingMethodConversionOptions;
-import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.ArrayUtils;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.structural.Equatable;
 import com.android.tools.r8.utils.structural.HashCodeVisitor;
@@ -449,11 +449,11 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
 
   @Override
   public String toString() {
-    return toString(null, null);
+    return toString(null, RetracerForCodePrinting.empty());
   }
 
   @Override
-  public String toString(DexEncodedMethod method, ClassNameMapper naming) {
+  public String toString(DexEncodedMethod method, RetracerForCodePrinting retracer) {
     StringBuilder builder = new StringBuilder();
     if (method != null) {
       builder.append(method.toSourceString()).append("\n");
@@ -495,9 +495,9 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       builder.append(": ");
       if (insn.isSwitchPayload()) {
         DexInstruction payloadUser = payloadUsers.get(insn.getOffset());
-        builder.append(insn.toString(naming, payloadUser));
+        builder.append(insn.toString(retracer, payloadUser));
       } else {
-        builder.append(insn.toString(naming));
+        builder.append(insn.toString(retracer));
       }
       builder.append('\n');
     }
@@ -542,7 +542,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
     return current;
   }
 
-  public String toSmaliString(ClassNameMapper naming) {
+  public String toSmaliString(RetracerForCodePrinting retracer) {
     StringBuilder builder = new StringBuilder();
     // Find labeled targets.
     Map<Integer, DexInstruction> payloadUsers = new HashMap<>();
@@ -582,7 +582,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
         DexInstruction payloadUser = payloadUsers.get(dex.getOffset());
         builder.append(dex.toSmaliString(payloadUser)).append('\n');
       } else {
-        builder.append(dex.toSmaliString(naming)).append('\n');
+        builder.append(dex.toSmaliString(retracer)).append('\n');
       }
     }
     if (tries.length > 0) {

@@ -15,7 +15,7 @@ import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
-import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
@@ -90,25 +90,17 @@ public abstract class DexFormat4rcc extends DexBase4Format {
   }
 
   @Override
-  public String toString(ClassNameMapper naming) {
+  public String toString(RetracerForCodePrinting retracer) {
     StringBuilder builder = new StringBuilder();
     appendRegisterRange(builder);
     builder.append(" ");
-    if (naming == null) {
-      builder.append(BBBB.toSmaliString());
-    } else {
-      builder.append(naming.originalNameOf(BBBB));
-    }
-    if (naming == null) {
-      builder.append(HHHH.toSmaliString());
-    } else {
-      builder.append(naming.originalNameOf(HHHH));
-    }
+    builder.append(retracer.toDescriptor(BBBB));
+    builder.append(retracer.toDescriptor(HHHH));
     return formatString(builder.toString());
   }
 
   @Override
-  public String toSmaliString(ClassNameMapper naming) {
+  public String toSmaliString(RetracerForCodePrinting retracer) {
     StringBuilder builder = new StringBuilder();
     appendRegisterRange(builder);
     builder.append(", ");

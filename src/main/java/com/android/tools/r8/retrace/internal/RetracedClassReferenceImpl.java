@@ -26,6 +26,11 @@ public final class RetracedClassReferenceImpl implements RetracedClassReference 
   }
 
   @Override
+  public String getDescriptor() {
+    return classReference.getDescriptor();
+  }
+
+  @Override
   public String getBinaryName() {
     return classReference.getBinaryName();
   }

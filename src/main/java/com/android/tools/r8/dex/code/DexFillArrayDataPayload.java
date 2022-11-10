@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
-import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
@@ -91,8 +91,8 @@ public class DexFillArrayDataPayload extends DexNop {
   }
 
   @Override
-  public String toString(ClassNameMapper naming) {
-    return super.toString(naming)
+  public String toString(RetracerForCodePrinting retracer) {
+    return super.toString(retracer)
         + "[FillArrayPayload], "
         + "width: "
         + element_width
@@ -101,7 +101,7 @@ public class DexFillArrayDataPayload extends DexNop {
   }
 
   @Override
-  public String toSmaliString(ClassNameMapper naming) {
+  public String toSmaliString(RetracerForCodePrinting retracer) {
     StringBuilder builder = new StringBuilder();
     builder.append("    ");
     builder.append(".array-data ");

@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
@@ -54,6 +55,10 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
 
   public ClassReference asClassReference() {
     return Reference.classFromDescriptor(toDescriptorString());
+  }
+
+  public TypeReference asTypeReference() {
+    return Reference.typeFromDescriptor(toDescriptorString());
   }
 
   public DynamicTypeWithUpperBound toDynamicType(AppView<AppInfoWithLiveness> appView) {

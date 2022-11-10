@@ -16,7 +16,7 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.FieldMemberType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
-import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
@@ -144,18 +144,12 @@ public class DexInitClass extends DexBase2Format {
   }
 
   @Override
-  public String toSmaliString(ClassNameMapper naming) {
+  public String toSmaliString(RetracerForCodePrinting retracer) {
     return formatSmaliString("v" + dest + ", " + clazz.toSmaliString());
   }
 
   @Override
-  public String toString(ClassNameMapper naming) {
-    StringBuilder builder = new StringBuilder("v").append(dest).append(", ");
-    if (naming == null) {
-      builder.append(clazz.toSourceString());
-    } else {
-      builder.append(naming.originalNameOf(clazz));
-    }
-    return formatString(builder.toString());
+  public String toString(RetracerForCodePrinting retracer) {
+    return formatString("v" + dest + ", " + retracer.toDescriptor(clazz));
   }
 }

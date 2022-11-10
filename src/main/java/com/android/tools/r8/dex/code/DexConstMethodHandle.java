@@ -15,7 +15,7 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
-import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.nio.ShortBuffer;
 
@@ -58,12 +58,12 @@ public class DexConstMethodHandle extends DexFormat21c<DexMethodHandle> {
   }
 
   @Override
-  public String toString(ClassNameMapper naming) {
+  public String toString(RetracerForCodePrinting retracer) {
     return formatString("v" + AA + ", \"" + BBBB.toString() + "\"");
   }
 
   @Override
-  public String toSmaliString(ClassNameMapper naming) {
+  public String toSmaliString(RetracerForCodePrinting retracer) {
     return formatSmaliString("v" + AA + ", \"" + BBBB.toString() + "\"");
   }
 

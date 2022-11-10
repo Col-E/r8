@@ -19,9 +19,9 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxerImpl;
-import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.IteratorUtils;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 
 /**
  * A special code object used by enum unboxing that supplies IR from an existing method
@@ -128,7 +128,7 @@ public class CheckNotZeroCode extends Code {
   }
 
   @Override
-  public String toString(DexEncodedMethod method, ClassNameMapper naming) {
+  public String toString(DexEncodedMethod method, RetracerForCodePrinting retracer) {
     return toString();
   }
 }

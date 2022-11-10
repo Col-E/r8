@@ -63,7 +63,6 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SourcePosition;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
-import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.position.TextPosition;
@@ -74,6 +73,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.StringDiagnostic;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -295,8 +295,8 @@ public class LazyCfCode extends Code {
   }
 
   @Override
-  public String toString(DexEncodedMethod method, ClassNameMapper naming) {
-    return asCfCode().toString(method, naming);
+  public String toString(DexEncodedMethod method, RetracerForCodePrinting retracer) {
+    return asCfCode().toString(method, retracer);
   }
 
   protected BiFunction<String, String, LazyCfCode> createCodeLocator(ReparseContext context) {

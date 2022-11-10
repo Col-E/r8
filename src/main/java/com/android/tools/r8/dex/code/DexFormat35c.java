@@ -5,7 +5,7 @@ package com.android.tools.r8.dex.code;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.IndexedDexItem;
-import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralItem;
@@ -94,20 +94,16 @@ public abstract class DexFormat35c<T extends IndexedDexItem & StructuralItem<T>>
   }
 
   @Override
-  public String toString(ClassNameMapper naming) {
+  public String toString(RetracerForCodePrinting retracer) {
     StringBuilder builder = new StringBuilder();
     appendRegisterArguments(builder, " ");
     builder.append(" ");
-    if (naming == null) {
-      builder.append(BBBB.toSmaliString());
-    } else {
-      builder.append(naming.originalNameOf(BBBB));
-    }
+    builder.append(retracer.toDescriptor(BBBB));
     return formatString(builder.toString());
   }
 
   @Override
-  public String toSmaliString(ClassNameMapper naming) {
+  public String toSmaliString(RetracerForCodePrinting retracer) {
     StringBuilder builder = new StringBuilder();
     appendRegisterArguments(builder, ", ");
     builder.append(", ");

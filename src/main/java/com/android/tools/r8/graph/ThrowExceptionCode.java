@@ -19,8 +19,8 @@ import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
-import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import java.nio.ShortBuffer;
 import java.util.Objects;
@@ -237,7 +237,7 @@ public class ThrowExceptionCode extends Code implements DexWritableCode {
   }
 
   @Override
-  public String toString(DexEncodedMethod method, ClassNameMapper naming) {
+  public String toString(DexEncodedMethod method, RetracerForCodePrinting retracer) {
     return "ThrowExceptionCode";
   }
 }

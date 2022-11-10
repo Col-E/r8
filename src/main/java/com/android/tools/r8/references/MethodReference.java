@@ -5,7 +5,6 @@ package com.android.tools.r8.references;
 
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.KeepForRetraceApi;
-import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import java.util.List;
@@ -78,13 +77,24 @@ public final class MethodReference {
   }
 
   public String getMethodDescriptor() {
-    return StringUtils.join(
-            "", ListUtils.map(getFormalTypes(), TypeReference::getDescriptor), BraceType.PARENS)
+    return StringUtils.join("", getFormalTypes(), TypeReference::getDescriptor, BraceType.PARENS)
         + (getReturnType() == null ? "V" : getReturnType().getDescriptor());
   }
 
   @Override
   public String toString() {
     return getHolderClass() + getMethodName() + getMethodDescriptor();
+  }
+
+  public String toSourceString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(returnType == null ? "void" : returnType.getTypeName());
+    sb.append(" ");
+    sb.append(holderClass.getTypeName());
+    sb.append(".");
+    sb.append(methodName);
+    sb.append(
+        StringUtils.join(", ", getFormalTypes(), TypeReference::getTypeName, BraceType.PARENS));
+    return sb.toString();
   }
 }

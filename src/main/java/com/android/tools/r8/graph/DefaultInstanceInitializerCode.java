@@ -28,10 +28,10 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.ThrowingMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.SyntheticStraightLineSourceCode;
-import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.IteratorUtils;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.google.common.collect.ImmutableList;
 import java.nio.ShortBuffer;
@@ -391,7 +391,7 @@ public class DefaultInstanceInitializerCode extends Code
   }
 
   @Override
-  public String toString(DexEncodedMethod method, ClassNameMapper naming) {
+  public String toString(DexEncodedMethod method, RetracerForCodePrinting retracer) {
     return toString();
   }
 

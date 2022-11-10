@@ -35,11 +35,11 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
-import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.CfVersionUtils;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -311,7 +311,7 @@ public class ClassInitializerMerger {
     }
 
     @Override
-    public String toString(DexEncodedMethod method, ClassNameMapper naming) {
+    public String toString(DexEncodedMethod method, RetracerForCodePrinting retracer) {
       throw new Unreachable();
     }
   }

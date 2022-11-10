@@ -12,6 +12,8 @@ public interface RetracedClassReference {
 
   String getTypeName();
 
+  String getDescriptor();
+
   String getBinaryName();
 
   RetracedTypeReference getRetracedType();

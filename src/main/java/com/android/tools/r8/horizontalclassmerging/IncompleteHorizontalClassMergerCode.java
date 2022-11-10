@@ -15,8 +15,8 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
-import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 
 public abstract class IncompleteHorizontalClassMergerCode extends Code {
 
@@ -80,7 +80,7 @@ public abstract class IncompleteHorizontalClassMergerCode extends Code {
   public abstract String toString();
 
   @Override
-  public String toString(DexEncodedMethod method, ClassNameMapper naming) {
+  public String toString(DexEncodedMethod method, RetracerForCodePrinting retracer) {
     return toString();
   }
 }

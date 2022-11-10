@@ -6,7 +6,7 @@ package com.android.tools.r8.dex.code;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.SingleConstant;
 import com.android.tools.r8.ir.conversion.IRBuilder;
-import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.StringUtils;
 
 public class DexConst16 extends DexFormat21s implements SingleConstant {
@@ -44,7 +44,7 @@ public class DexConst16 extends DexFormat21s implements SingleConstant {
   }
 
   @Override
-  public String toString(ClassNameMapper naming) {
+  public String toString(RetracerForCodePrinting retracer) {
     return formatString(
         "v" + AA + ", " + StringUtils.hexString(decodedValue(), 4) + " (" + decodedValue() + ")");
   }

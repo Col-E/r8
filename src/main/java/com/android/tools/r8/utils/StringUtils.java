@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class StringUtils {
   public static char[] EMPTY_CHAR_ARRAY = {};
@@ -141,6 +143,15 @@ public class StringUtils {
 
   public static <T> String join(String separator, Iterable<T> iterable, Function<T, String> fn) {
     return join(separator, iterable, fn, BraceType.NONE);
+  }
+
+  public static <T> String join(String separator, Stream<T> stream, Function<T, String> fn) {
+    return join(separator, stream.collect(Collectors.toList()), fn, BraceType.NONE);
+  }
+
+  public static <T> String join(
+      String separator, T[] elements, Function<T, String> fn, BraceType brace) {
+    return join(separator, Arrays.asList(elements), fn, brace);
   }
 
   public static <T> String join(String separator, Iterable<T> iterable, BraceType brace) {

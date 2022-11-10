@@ -21,8 +21,8 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.ThrowingMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.SourceCode;
-import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import java.util.function.Consumer;
 
 public abstract class AbstractSynthesizedCode extends Code {
@@ -73,7 +73,7 @@ public abstract class AbstractSynthesizedCode extends Code {
 
   @Override
   public final String toString() {
-    return toString(null, null);
+    return toString(null, RetracerForCodePrinting.empty());
   }
 
   @Override
@@ -101,7 +101,7 @@ public abstract class AbstractSynthesizedCode extends Code {
   }
 
   @Override
-  public final String toString(DexEncodedMethod method, ClassNameMapper naming) {
+  public final String toString(DexEncodedMethod method, RetracerForCodePrinting retracer) {
     return this.getClass().getSimpleName();
   }
 

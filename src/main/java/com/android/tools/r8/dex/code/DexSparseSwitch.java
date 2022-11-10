@@ -4,7 +4,7 @@
 package com.android.tools.r8.dex.code;
 
 import com.android.tools.r8.ir.conversion.IRBuilder;
-import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 
 public class DexSparseSwitch extends DexFormat31t {
 
@@ -49,7 +49,7 @@ public class DexSparseSwitch extends DexFormat31t {
   }
 
   @Override
-  public String toSmaliString(ClassNameMapper naming) {
+  public String toSmaliString(RetracerForCodePrinting retracer) {
     return formatSmaliString("v" + AA + ", :label_" + (getOffset() + BBBBBBBB));
   }
 }

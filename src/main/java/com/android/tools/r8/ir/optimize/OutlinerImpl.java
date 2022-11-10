@@ -66,12 +66,12 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.ir.optimize.outliner.OutlineCollection;
 import com.android.tools.r8.ir.optimize.outliner.Outliner;
-import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -1830,7 +1830,7 @@ public class OutlinerImpl extends Outliner {
     }
 
     @Override
-    public String toString(DexEncodedMethod method, ClassNameMapper naming) {
+    public String toString(DexEncodedMethod method, RetracerForCodePrinting retracer) {
       return null;
     }
   }

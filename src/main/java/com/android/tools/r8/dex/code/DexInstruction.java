@@ -19,7 +19,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
-import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.Equatable;
@@ -372,15 +372,15 @@ public abstract class DexInstruction implements CfOrDexInstruction, StructuralIt
     throw new InternalCompilerError("Instruction " + payloadUser + " is not a payload user");
   }
 
-  public abstract String toSmaliString(ClassNameMapper naming);
+  public abstract String toSmaliString(RetracerForCodePrinting retracer);
 
   public String toSmaliString() {
-    return toSmaliString((ClassNameMapper) null);
+    return toSmaliString((RetracerForCodePrinting) null);
   }
 
-  public abstract String toString(ClassNameMapper naming);
+  public abstract String toString(RetracerForCodePrinting retracer);
 
-  public String toString(ClassNameMapper naming, DexInstruction payloadUser) {
+  public String toString(RetracerForCodePrinting retracer, DexInstruction payloadUser) {
     throw new InternalCompilerError("Instruction " + payloadUser + " is not a payload user");
   }
 

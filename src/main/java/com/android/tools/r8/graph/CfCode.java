@@ -38,11 +38,11 @@ import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodC
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.ThrowingMethodConversionOptions;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralItem;
@@ -783,8 +783,8 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
   }
 
   @Override
-  public String toString(DexEncodedMethod method, ClassNameMapper naming) {
-    return new CfPrinter(this, method, naming).toString();
+  public String toString(DexEncodedMethod method, RetracerForCodePrinting retracer) {
+    return new CfPrinter(this, method, retracer).toString();
   }
 
   public ConstraintWithTarget computeInliningConstraint(

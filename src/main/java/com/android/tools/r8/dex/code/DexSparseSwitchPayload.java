@@ -7,7 +7,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
-import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
@@ -108,12 +108,12 @@ public class DexSparseSwitchPayload extends DexSwitchPayload {
   }
 
   @Override
-  public String toString(ClassNameMapper naming) {
-    return toString(naming, null);
+  public String toString(RetracerForCodePrinting retracer) {
+    return toString(retracer, null);
   }
 
   @Override
-  public String toString(ClassNameMapper naming, DexInstruction payloadUser) {
+  public String toString(RetracerForCodePrinting retracer, DexInstruction payloadUser) {
     StringBuilder builder = new StringBuilder("[SparseSwitchPayload");
     if (payloadUser == null) {
       builder.append(" offsets relative to associated SparseSwitch");
@@ -129,7 +129,7 @@ public class DexSparseSwitchPayload extends DexSwitchPayload {
       }
       StringUtils.appendLeftPadded(builder, keys[i] + " -> " + offsetString + "\n", 20);
     }
-    return super.toString(naming) + builder.toString();
+    return super.toString(retracer) + builder.toString();
   }
 
   @Override
