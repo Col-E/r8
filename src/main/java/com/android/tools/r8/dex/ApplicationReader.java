@@ -7,6 +7,7 @@ import static com.android.tools.r8.graph.ClassKind.CLASSPATH;
 import static com.android.tools.r8.graph.ClassKind.LIBRARY;
 import static com.android.tools.r8.graph.ClassKind.PROGRAM;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
+import static com.android.tools.r8.utils.ExceptionUtils.unwrapInterruptedException;
 
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.DataResourceProvider;
@@ -38,6 +39,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ClassProvider;
 import com.android.tools.r8.utils.ClasspathClassCollection;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -55,6 +57,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -68,6 +71,7 @@ public class ApplicationReader {
   private final DexItemFactory itemFactory;
   private final Timing timing;
   private final AndroidApp inputApp;
+  private final Box<Future<ClassNameMapper>> readMap;
 
   private DexApplicationReadFlags flags;
 
@@ -76,10 +80,19 @@ public class ApplicationReader {
   }
 
   public ApplicationReader(AndroidApp inputApp, InternalOptions options, Timing timing) {
+    this(inputApp, options, timing, new Box<>());
+  }
+
+  public ApplicationReader(
+      AndroidApp inputApp,
+      InternalOptions options,
+      Timing timing,
+      Box<Future<ClassNameMapper>> readMap) {
     this.options = options;
     itemFactory = options.itemFactory;
     this.timing = timing;
     this.inputApp = inputApp;
+    this.readMap = readMap;
   }
 
   public LazyLoadedDexApplication read() throws IOException {
@@ -136,10 +149,14 @@ public class ApplicationReader {
       // (b) some of the class file resources don't provide information
       //     about class descriptor.
       // TODO: try and preload less classes.
-      readProguardMap(proguardMap, builder, executorService, futures);
+      readProguardMap(proguardMap, executorService);
       ClassReader classReader = new ClassReader(executorService, futures);
       classReader.readSources();
       ThreadUtils.awaitFutures(futures);
+      ClassNameMapper mapper = readMap.get().get();
+      if (mapper != null) {
+        builder.setProguardMap(mapper);
+      }
       flags = classReader.getDexApplicationReadFlags();
       builder.setFlags(flags);
       classReader.initializeLazyClassCollection(builder);
@@ -149,6 +166,8 @@ public class ApplicationReader {
           builder.addDataResourceProvider(dataResourceProvider);
         }
       }
+    } catch (InterruptedException e) {
+      throw unwrapInterruptedException(e);
     } catch (ExecutionException e) {
       throw unwrapExecutionException(e);
     } catch (ResourceException e) {
@@ -265,31 +284,34 @@ public class ApplicationReader {
             + "'.");
   }
 
-  private void readProguardMap(
-      StringResource map,
-      DexApplication.Builder<?> builder,
-      ExecutorService executorService,
-      List<Future<?>> futures) {
+  private void readProguardMap(StringResource map, ExecutorService executorService) {
     // Read the Proguard mapping file in parallel with DexCode and DexProgramClass items.
-    if (map == null) {
-      return;
-    }
-    futures.add(
-        executorService.submit(
-            () -> {
-              try {
-                String content = map.getString();
-                builder.setProguardMap(
-                    ClassNameMapper.mapperFromString(
-                        content,
+    if (!readMap.isSet()) {
+      synchronized (readMap) {
+        if (readMap.isSet()) {
+          return;
+        }
+        if (map == null) {
+          readMap.set(CompletableFuture.completedFuture(null));
+          return;
+        }
+        readMap.set(
+            executorService.submit(
+                () -> {
+                  try {
+                    return ClassNameMapper.mapperFromString(
+                        map.getString(),
                         options.reporter,
                         false,
                         options.testing.enableExperimentalMapFileVersion,
-                        false));
-              } catch (IOException | ResourceException e) {
-                throw new CompilationError("Failure to read proguard map file", e, map.getOrigin());
-              }
-            }));
+                        false);
+                  } catch (IOException | ResourceException e) {
+                    throw new CompilationError(
+                        "Failure to read proguard map file", e, map.getOrigin());
+                  }
+                }));
+      }
+    }
   }
 
   private final class ClassReader {

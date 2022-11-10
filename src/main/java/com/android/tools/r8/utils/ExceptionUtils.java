@@ -221,6 +221,11 @@ public abstract class ExceptionUtils {
     return new RuntimeException(executionException);
   }
 
+  public static RuntimeException unwrapInterruptedException(
+      InterruptedException interruptedException) {
+    return new RuntimeException(interruptedException);
+  }
+
   public static void withOriginAttachmentHandler(Origin origin, Runnable action) {
     withOriginAndPositionAttachmentHandler(origin, Position.UNKNOWN, action);
   }
