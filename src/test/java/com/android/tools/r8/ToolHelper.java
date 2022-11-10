@@ -1996,14 +1996,9 @@ public class ToolHelper {
   }
 
   public static ProcessResult runDex2OatRaw(Path file, Path outFile, DexVm vm) throws IOException {
-    // TODO(jmhenaff): find a way to run this on windows (push dex and run on device/emulator?)
     Assume.assumeTrue(ToolHelper.isDex2OatSupported());
-    Assume.assumeFalse(
-        "b/144975341",
-        vm.version == DexVm.Version.V10_0_0
-            || vm.version == DexVm.Version.V12_0_0
-            || vm.version == DexVm.Version.V13_0_0);
-    // TODO(b/258170524): Either remove `vm` as an argument or change using a specific version.
+    // TODO(b/258170524): Add working dex2oat. For now we just use latest if it is recent enough.
+    Assume.assumeTrue("b/144975341 & b/258170524", DexVm.LATEST_DEX2OAT.isNewerThanOrEqual(vm));
     vm = DexVm.LATEST_DEX2OAT;
     assert Files.exists(file);
     assert ByteStreams.toByteArray(Files.newInputStream(file)).length > 0;
