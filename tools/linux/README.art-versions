@@ -115,6 +115,10 @@ by the script for running Art.
      --art-dir host/art-12.0.0-beta4 \
      --android-product redfin
 
+The dex2oat tool expects to find core-oj.dex in out/host/linux-x86 so copy it.
+
+(cd tools/linux/host; cp -r apex out/host/linux-x86/apex)
+
 (cd tools/linux/host; upload_to_google_storage.py -a --bucket r8-deps art-12.0.0-beta4)
 
 art-10.0.0 (Android Q)

@@ -12,16 +12,21 @@ import utils
 
 LINUX_DIR = os.path.join(utils.TOOLS_DIR, 'linux')
 
+LATEST = '12.0.0'
+
 VERSIONS = [
-  'default',
-  '9.0.0',
-  '8.1.0',
-  '7.0.0',
+  '12.0.0',
+  # TODO(b/258170524): Fix the broken dex2oat versions.
+  # 'default',
+  # '9.0.0',
+  # '8.1.0',
+  # '7.0.0',
   '6.0.1',
-  '5.1.1',
+  # '5.1.1',
 ]
 
 DIRS = {
+  '12.0.0': 'host/art-12.0.0-beta4',
   'default': 'art',
   '9.0.0': 'art-9.0.0',
   '8.1.0': 'art-8.1.0',
@@ -31,6 +36,7 @@ DIRS = {
 }
 
 PRODUCTS = {
+  '12.0.0': 'redfin',
   'default': 'angler',
   '9.0.0': 'marlin',
   '8.1.0': 'marlin',
@@ -40,6 +46,7 @@ PRODUCTS = {
 }
 
 ARCHS = {
+  '12.0.0': 'x86_64',
   'default': 'arm64',
   '9.0.0': 'arm64',
   '8.1.0': 'arm64',
@@ -58,12 +65,16 @@ VERBOSE_OPTIONS = [
   'all',
 ]
 
+BOOT_IMAGE = {
+  '12.0.0': 'apex/art_boot_images/javalib/boot.art'
+}
+
 def ParseOptions():
   parser = optparse.OptionParser()
   parser.add_option('--version',
-                    help='Version of dex2oat. (defaults to latest, eg, tools/linux/art).',
+                    help='Version of dex2oat. (defaults to latest: ' + LATEST + ').',
                     choices=VERSIONS,
-                    default='default')
+                    default=LATEST)
   parser.add_option('--all',
                     help='Run dex2oat on all possible versions',
                     default=False,
@@ -96,7 +107,9 @@ def Main():
     print("")
   return 0
 
-def run(dexfile, oatfile=None, version='default', verbose=[]):
+def run(dexfile, oatfile=None, version=None, verbose=[]):
+  if not version:
+    version = LATEST
   # dex2oat accepts non-existent dex files, check here instead
   if not os.path.exists(dexfile):
     raise Exception('DEX file not found: "{}"'.format(dexfile))
@@ -117,9 +130,12 @@ def run(dexfile, oatfile=None, version='default', verbose=[]):
     ]
     for flag in verbose:
       cmd += ['--runtime-arg', '-verbose:' + flag]
+    if version in BOOT_IMAGE:
+      cmd += ['--boot-image=' + BOOT_IMAGE[version]]
     env = {"LD_LIBRARY_PATH": os.path.join(base, 'lib')}
     utils.PrintCmd(cmd)
-    subprocess.check_call(cmd, env = env)
+    with utils.ChangedWorkingDirectory(base):
+      subprocess.check_call(cmd, env = env)
 
 if __name__ == '__main__':
   sys.exit(Main())

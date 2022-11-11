@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.AssemblyWriter;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.keepanno.utils.Unimplemented;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.shaking.FilteredClassPath;
@@ -32,6 +33,7 @@ import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
+import com.android.tools.r8.utils.DexVersion;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -66,6 +68,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -413,9 +416,6 @@ public class ToolHelper {
 
     private final Version version;
     private final Kind kind;
-
-    // TODO(b/258170524): Should be a new version that works.
-    public static final DexVm LATEST_DEX2OAT = ART_6_0_1_HOST;
   }
 
 
@@ -715,12 +715,28 @@ public class ToolHelper {
   private static final Path DX = getDxExecutablePath();
 
   private static Path getDexVmPath(DexVm vm) {
-    return Paths.get(
-        TOOLS,
-        "linux",
-        vm.getVersion() == DexVm.Version.DEFAULT
-            ? "art"
-            : "art-" + vm.getVersion());
+    DexVm.Version version = vm.getVersion();
+    Path base = Paths.get(TOOLS, "linux");
+    switch (version) {
+      case DEFAULT:
+        return base.resolve("art");
+      case V4_0_4:
+      case V4_4_4:
+      case V5_1_1:
+      case V6_0_1:
+      case V7_0_0:
+      case V8_1_0:
+      case V9_0_0:
+      case V10_0_0:
+        return base.resolve("art-" + version);
+      case V12_0_0:
+        return base.resolve("host").resolve("art-12.0.0-beta4");
+      case V13_0_0:
+      case MASTER:
+        return base.resolve("host").resolve("art-" + version);
+      default:
+        throw new Unreachable();
+    }
   }
 
   private static Path getDexVmLibPath(DexVm vm) {
@@ -736,7 +752,25 @@ public class ToolHelper {
   }
 
   private static String getArchString(DexVm vm) {
-    return vm.isOlderThanOrEqual(DexVm.ART_5_1_1_HOST) ? "arm" : "arm64";
+    switch (vm.getVersion()) {
+      case V4_0_4:
+      case V4_4_4:
+      case V5_1_1:
+        return "arm";
+      case V6_0_1:
+      case V7_0_0:
+      case V8_1_0:
+      case DEFAULT:
+      case V9_0_0:
+      case V10_0_0:
+        return "arm64";
+      case V12_0_0:
+      case V13_0_0:
+      case MASTER:
+        return "x86_64";
+      default:
+        throw new Unimplemented();
+    }
   }
 
   private static Path getProductBootImagePath(DexVm vm) {
@@ -1058,6 +1092,10 @@ public class ToolHelper {
       default:
         throw new Unreachable("Missing min api level for dex vm " + dexVm);
     }
+  }
+
+  public static DexVersion getDexFileVersionForVm(DexVm vm) {
+    return DexVersion.getDexVersion(getMinApiLevelForDexVm(vm));
   }
 
   private static String getPlatform() {
@@ -1995,27 +2033,56 @@ public class ToolHelper {
     }
   }
 
-  public static ProcessResult runDex2OatRaw(Path file, Path outFile, DexVm vm) throws IOException {
+  // Checked in VMs for which dex2oat should work specified in decreasing order.
+  private static List<DexVm> SUPPORTED_DEX2OAT_VMS =
+      ImmutableList.of(DexVm.ART_12_0_0_HOST, DexVm.ART_6_0_1_HOST);
+
+  public static ProcessResult runDex2OatRaw(Path file, Path outFile, DexVm targetVm)
+      throws IOException {
     Assume.assumeTrue(ToolHelper.isDex2OatSupported());
-    // TODO(b/258170524): Add working dex2oat. For now we just use latest if it is recent enough.
-    Assume.assumeTrue("b/144975341 & b/258170524", DexVm.LATEST_DEX2OAT.isNewerThanOrEqual(vm));
-    vm = DexVm.LATEST_DEX2OAT;
     assert Files.exists(file);
     assert ByteStreams.toByteArray(Files.newInputStream(file)).length > 0;
+    assert SUPPORTED_DEX2OAT_VMS.stream()
+        .sorted(Comparator.comparing(DexVm::getVersion).reversed())
+        .collect(Collectors.toList())
+        .equals(SUPPORTED_DEX2OAT_VMS);
+    DexVersion requiredDexFileVersion = getDexFileVersionForVm(targetVm);
+    DexVm vm = null;
+    for (DexVm supported : SUPPORTED_DEX2OAT_VMS) {
+      DexVersion supportedDexFileVersion = getDexFileVersionForVm(supported);
+      // This and remaining VMs can't compile code at the required DEX version.
+      if (supportedDexFileVersion.isLessThan(requiredDexFileVersion)) {
+        break;
+      }
+      // Find the "oldest" supported VM. Only consider VMs older than targetVm if no VM matched.
+      if (supported.isNewerThanOrEqual(targetVm) || vm == null) {
+        vm = supported;
+      }
+    }
+    if (vm == null) {
+      throw new Unimplemented("Unable to find a supported dex2oat for VM " + vm);
+    }
     List<String> command = new ArrayList<>();
-    command.add(getDex2OatPath(vm).toString());
-    command.add("--android-root=" + getProductPath(vm) + "/system");
+    command.add(getDex2OatPath(vm).toAbsolutePath().toString());
+    command.add("--android-root=" + getProductPath(vm).toAbsolutePath() + "/system");
     command.add("--runtime-arg");
     command.add("-verbose:verifier");
     command.add("--runtime-arg");
     command.add("-Xnorelocate");
     command.add("--dex-file=" + file.toAbsolutePath());
     command.add("--oat-file=" + outFile.toAbsolutePath());
-    // TODO(zerny): Create a proper interface for invoking dex2oat. Hardcoding arch here is a hack!
     command.add("--instruction-set=" + getArchString(vm));
+    if (vm.version.equals(DexVm.Version.V12_0_0)) {
+      command.add(
+          "--boot-image="
+              + getDexVmPath(vm).toAbsolutePath()
+              + "/apex/art_boot_images/javalib/boot.art");
+    }
     ProcessBuilder builder = new ProcessBuilder(command);
+    builder.directory(getDexVmPath(vm).toFile());
     builder.environment().put("LD_LIBRARY_PATH", getDexVmLibPath(vm).toString());
-    return runProcess(builder);
+    ProcessResult processResult = runProcess(builder);
+    return processResult;
   }
 
   public static ProcessResult runProguardRaw(
@@ -2188,6 +2255,7 @@ public class ToolHelper {
 
   public static ProcessResult runProcess(ProcessBuilder builder, PrintStream out)
       throws IOException {
+    out.println("In " + builder.directory());
     String command = String.join(" ", builder.command());
     out.println(command);
     return drainProcessOutputStreams(builder.start(), command);

@@ -4,12 +4,11 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.utils.structural.Ordered;
 import java.util.Optional;
 
-/**
- * Android dex version
- */
-public enum DexVersion {
+/** Android dex version */
+public enum DexVersion implements Ordered<DexVersion> {
   V35(35, new byte[] {'0', '3', '5'}),
   V37(37, new byte[] {'0', '3', '7'}),
   V38(38, new byte[] {'0', '3', '8'}),
