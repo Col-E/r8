@@ -148,23 +148,23 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
             .streamInstructions()
             .filter(instr -> instr.isInvokeInterface() || instr.isInvokeStatic())
             .collect(Collectors.toList());
-    assertInvokeStaticMatching(invokes, 0, "Set$-EL;->spliterator");
-    assertInvokeStaticMatching(invokes, 1, "Collection$-EL;->stream");
-    assertInvokeInterfaceMatching(invokes, 2, "Set;->iterator");
-    assertInvokeStaticMatching(invokes, 3, "Collection$-EL;->stream");
-    assertInvokeStaticMatching(invokes, 4, "Set$-EL;->spliterator");
-    assertInvokeInterfaceMatching(invokes, 8, "Iterator;->remove");
-    assertInvokeStaticMatching(invokes, 9, "DesugarArrays;->spliterator");
-    assertInvokeStaticMatching(invokes, 10, "DesugarArrays;->spliterator");
-    assertInvokeStaticMatching(invokes, 11, "DesugarArrays;->stream");
-    assertInvokeStaticMatching(invokes, 12, "DesugarArrays;->stream");
-    assertInvokeStaticMatching(invokes, 13, "Collection$-EL;->stream");
-    assertInvokeStaticMatching(invokes, 14, "IntStream$-CC;->range");
-    assertInvokeStaticMatching(invokes, 16, "Comparator$-CC;->comparingInt");
-    assertInvokeStaticMatching(invokes, 17, "List$-EL;->sort");
-    assertInvokeStaticMatching(invokes, 19, "Comparator$-CC;->comparingInt");
-    assertInvokeStaticMatching(invokes, 20, "List$-EL;->sort");
-    assertInvokeStaticMatching(invokes, 21, "Collection$-EL;->stream");
+    assertInvokeStaticMatching(invokes, 0, "Set$-EL;spliterator");
+    assertInvokeStaticMatching(invokes, 1, "Collection$-EL;stream");
+    assertInvokeInterfaceMatching(invokes, 2, "Set;iterator");
+    assertInvokeStaticMatching(invokes, 3, "Collection$-EL;stream");
+    assertInvokeStaticMatching(invokes, 4, "Set$-EL;spliterator");
+    assertInvokeInterfaceMatching(invokes, 8, "Iterator;remove");
+    assertInvokeStaticMatching(invokes, 9, "DesugarArrays;spliterator");
+    assertInvokeStaticMatching(invokes, 10, "DesugarArrays;spliterator");
+    assertInvokeStaticMatching(invokes, 11, "DesugarArrays;stream");
+    assertInvokeStaticMatching(invokes, 12, "DesugarArrays;stream");
+    assertInvokeStaticMatching(invokes, 13, "Collection$-EL;stream");
+    assertInvokeStaticMatching(invokes, 14, "IntStream$-CC;range");
+    assertInvokeStaticMatching(invokes, 16, "Comparator$-CC;comparingInt");
+    assertInvokeStaticMatching(invokes, 17, "List$-EL;sort");
+    assertInvokeStaticMatching(invokes, 19, "Comparator$-CC;comparingInt");
+    assertInvokeStaticMatching(invokes, 20, "List$-EL;sort");
+    assertInvokeStaticMatching(invokes, 21, "Collection$-EL;stream");
     assertEquals(22, invokes.size());
   }
 
