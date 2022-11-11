@@ -5,9 +5,10 @@
 package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
-import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
@@ -101,14 +102,8 @@ public class ApiModelMockClassLoadingByClassForNameTest extends TestBase {
   private void checkOutput(SingleTestRunResult<?> runResult) {
     if (isGreaterOrEqualToMockLevel()) {
       runResult.assertSuccessWithOutputLines("Hello World!");
-    } else if (parameters.isDexRuntimeVersion(Version.V4_0_4)) {
-      // TODO(b/258270051): This should be ClassNotFoundException.
-      runResult.assertSuccessWithOutputLines("ExceptionInInitializerError");
-    } else if (parameters.isDexRuntimeVersion(Version.V4_4_4) || parameters.isCfRuntime()) {
-      runResult.assertSuccessWithOutputLines("ClassNotFoundException");
     } else {
-      // TODO(b/258270051): This should be ClassNotFoundException.
-      runResult.assertSuccessWithOutputLines("NoClassDefFoundError");
+      runResult.assertSuccessWithOutputLines("ClassNotFoundException");
     }
     runResult.applyIf(
         !isGreaterOrEqualToMockLevel()
@@ -118,7 +113,7 @@ public class ApiModelMockClassLoadingByClassForNameTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    verifyThat(inspector, parameters, LibraryClass.class).stubbedUntil(mockLevel);
+    assertThat(inspector.clazz(LibraryClass.class), isAbsent());
   }
 
   // Only present from api level 23.

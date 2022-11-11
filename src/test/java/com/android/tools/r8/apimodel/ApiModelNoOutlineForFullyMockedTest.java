@@ -116,11 +116,7 @@ public class ApiModelNoOutlineForFullyMockedTest extends TestBase {
     } else {
       verifyThat(inspector, parameters, methodOn23).isNotOutlinedFrom(mainMethod);
     }
-    if (canStub) {
-      verifyThat(inspector, parameters, LibraryClass.class).stubbedUntil(libraryApiLevel);
-    } else {
-      assertThat(inspector.clazz(LibraryClass.class), isAbsent());
-    }
+    assertThat(inspector.clazz(LibraryClass.class), isAbsent());
   }
 
   // Only present from api level 23.

@@ -8,10 +8,8 @@ import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLeve
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.OutputMode;
@@ -20,7 +18,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.synthesis.globals.GlobalSyntheticsTestingConsumer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -103,17 +100,8 @@ public class ApiModelMockMergeTest extends TestBase {
     paths.add(runD8ForClass(TestCallingFoo.class, testCallingFooGlobals, mode));
     paths.add(runD8ForClass(TestCallingBar.class, testCallingBarGlobals, mode));
     assertFalse(mainGlobals.hasGlobals());
-    if (isGreaterOrEqualToMockLevel()) {
-      assertFalse(testCallingFooGlobals.hasGlobals());
-      assertFalse(testCallingBarGlobals.hasGlobals());
-    } else {
-      // The TestCallingX does reference the mock and should have globals.
-      assertNotNull(
-          testCallingFooGlobals.getProvider(Reference.classFromClass(TestCallingFoo.class)));
-      assertNotNull(
-          testCallingBarGlobals.getProvider(Reference.classFromClass(TestCallingBar.class)));
-    }
-
+    assertFalse(testCallingFooGlobals.hasGlobals());
+    assertFalse(testCallingBarGlobals.hasGlobals());
     testForD8()
         .setMode(mode)
         .addProgramFiles(paths)
@@ -132,13 +120,7 @@ public class ApiModelMockMergeTest extends TestBase {
 
   private void inspect(CodeInspector inspector) {
     ClassSubject libraryClassSubject = inspector.clazz(LibraryClass.class);
-    if (isGreaterOrEqualToMockLevel()) {
-      assertThat(libraryClassSubject, isAbsent());
-    } else {
-      assertThat(libraryClassSubject, isPresent());
-      assertThat(libraryClassSubject.uniqueMethodWithOriginalName("foo"), isAbsent());
-      assertThat(libraryClassSubject.uniqueMethodWithOriginalName("bar"), isAbsent());
-    }
+    assertThat(libraryClassSubject, isAbsent());
   }
 
   private void checkOutput(SingleTestRunResult<?> runResult) {

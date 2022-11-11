@@ -5,9 +5,10 @@
 package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
-import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
@@ -101,11 +102,9 @@ public class ApiModelMockClassCheckCastTest extends TestBase {
   private void checkOutput(SingleTestRunResult<?> runResult) {
     if (isGreaterOrEqualToMockLevel()) {
       runResult.assertSuccessWithOutputLines("false", "checkcast caused ClassCastException");
-    } else if (parameters.isCfRuntime()) {
+    } else {
       runResult.assertSuccessWithOutputLines(
           "instanceof caused NoClassDefFoundError", "checkcast caused NoClassDefFoundError");
-    } else {
-      runResult.assertSuccessWithOutputLines("false", "checkcast caused ClassCastException");
     }
     runResult.applyIf(
         !isGreaterOrEqualToMockLevel()
@@ -115,7 +114,7 @@ public class ApiModelMockClassCheckCastTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    verifyThat(inspector, parameters, LibraryClass.class).stubbedUntil(mockLevel);
+    assertThat(inspector.clazz(LibraryClass.class), isAbsent());
   }
 
   // Only present from api level 23.

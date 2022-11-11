@@ -141,10 +141,12 @@ public class ApiReferenceStubber {
   private final Set<DexLibraryClass> libraryClassesToMock = Sets.newConcurrentHashSet();
   private final Set<DexType> seenTypes = Sets.newConcurrentHashSet();
   private final AndroidApiLevelCompute apiLevelCompute;
+  private final DexItemFactory factory;
 
   public ApiReferenceStubber(AppView<?> appView) {
     this.appView = appView;
     apiLevelCompute = appView.apiLevelCompute();
+    factory = appView.dexItemFactory();
   }
 
   public void run(ExecutorService executorService) throws ExecutionException {
@@ -228,6 +230,12 @@ public class ApiReferenceStubber {
         || libraryClass.getType().toDescriptorString().startsWith("Ljava/")) {
       return;
     }
+    // We cannot reliably create a stub that will have the same throwing
+    // behavior for all VMs. We only create stubs for exceptions to allow them being present in
+    // catch handlers. See b/b/258270051 for more information.
+    if (!isThrowable(libraryClass)) {
+      return;
+    }
     if (appView
         .options()
         .machineDesugaredLibrarySpecification
@@ -259,7 +267,6 @@ public class ApiReferenceStubber {
                               .setProto(factory.createProto(factory.voidType))
                               .setAccessFlags(MethodAccessFlags.createForClassInitializer())
                               .setCode(method -> throwExceptionCode));
-              // Based on b/138781768#comment57 there is no significant reason to synthesize fields.
               if (libraryClass.isInterface()) {
                 classBuilder.setInterface();
               }
@@ -268,5 +275,17 @@ public class ApiReferenceStubber {
               }
             },
             ignored -> {});
+  }
+
+  private boolean isThrowable(DexLibraryClass libraryClass) {
+    DexClass current = libraryClass;
+    while (current.getSuperType() != null) {
+      DexType superType = current.getSuperType();
+      if (superType == factory.throwableType) {
+        return true;
+      }
+      current = appView.definitionFor(current.getSuperType());
+    }
+    return false;
   }
 }

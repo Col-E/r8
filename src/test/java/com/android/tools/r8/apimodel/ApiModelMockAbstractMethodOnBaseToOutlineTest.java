@@ -7,9 +7,10 @@ package com.android.tools.r8.apimodel;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
-import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverInline;
@@ -128,10 +129,6 @@ public class ApiModelMockAbstractMethodOnBaseToOutlineTest extends TestBase {
     if (isGreaterOrEqualToMockLevel()) {
       runResult.assertSuccessWithOutputLines(
           "OtherLibraryClass::foo", "SubLibraryClassAtLaterApiLevel::foo");
-    } else if (parameters.isDexRuntime()
-        && parameters.getDexRuntimeVersion().isDalvik()
-        && isRelease) {
-      runResult.assertFailureWithErrorThatThrows(VerifyError.class);
     } else {
       runResult.assertSuccessWithOutputLines("NoClassDefFoundError");
     }
@@ -143,8 +140,7 @@ public class ApiModelMockAbstractMethodOnBaseToOutlineTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    verifyThat(inspector, parameters, SubLibraryClassAtLaterApiLevel.class)
-        .stubbedUntil(subMockLevel);
+    assertThat(inspector.clazz(SubLibraryClassAtLaterApiLevel.class), isAbsent());
   }
 
   public abstract static class LibraryClass {

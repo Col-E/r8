@@ -6,11 +6,9 @@ package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
-import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
@@ -21,7 +19,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.synthesis.globals.GlobalSyntheticsTestingConsumer;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -133,18 +130,7 @@ public class ApiModelMockClassTest extends TestBase {
             .compile()
             .writeToZip();
 
-    if (isGreaterOrEqualToMockLevel()) {
-      assertFalse(globals.hasGlobals());
-    } else if (outputMode == OutputMode.DexIndexed) {
-      assertTrue(globals.hasGlobals());
-      assertTrue(globals.isSingleGlobal());
-    } else {
-      assertTrue(globals.hasGlobals());
-      // The TestClass does reference the mock and should have globals.
-      assertNotNull(globals.getProvider(Reference.classFromClass(TestClass.class)));
-      // The Main class does not have references to the mock and should have no globals.
-      assertNull(globals.getProvider(Reference.classFromClass(Main.class)));
-    }
+    assertFalse(globals.hasGlobals());
 
     testForD8()
         .debug()
@@ -172,7 +158,7 @@ public class ApiModelMockClassTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    verifyThat(inspector, parameters, LibraryClass.class).stubbedUntil(mockLevel);
+    assertThat(inspector.clazz(LibraryClass.class), isAbsent());
   }
 
   private void checkOutput(SingleTestRunResult<?> runResult) {
