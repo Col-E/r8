@@ -33,6 +33,20 @@ public class ProtoNormalizationWithVirtualMethodCollisionTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
+  private final String[] EXPECTED =
+      new String[] {"A::foo", "B", "A", "B::foo", "B", "A", "B::foo", "B", "A"};
+
+  private final String[] R8_EXPECTED =
+      new String[] {"A::foo", "B", "A", "A::foo", "B", "A", "B::foo", "B", "A"};
+
+  @Test
+  public void testRuntime() throws Exception {
+    testForRuntime(parameters)
+        .addInnerClasses(getClass())
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(EXPECTED);
+  }
+
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
@@ -40,20 +54,23 @@ public class ProtoNormalizationWithVirtualMethodCollisionTest extends TestBase {
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        // TODO(b/173398086): uniqueMethodWithName() does not work with proto changes.
         .addDontObfuscate()
+        .addKeepClassAndMembersRules(B.class)
         .setMinApi(parameters.getApiLevel())
         .compile()
+        .run(parameters.getRuntime(), Main.class)
+        // TODO(b/258720808): We should not produce incorrect results.
+        .assertSuccessWithOutputLines(R8_EXPECTED)
         .inspect(
             inspector -> {
-              ClassSubject aClassSubject = inspector.clazz(A.class);
-              assertThat(aClassSubject, isPresent());
-
               ClassSubject bClassSubject = inspector.clazz(B.class);
               assertThat(bClassSubject, isPresent());
 
-              TypeSubject aTypeSubject = aClassSubject.asTypeSubject();
+              ClassSubject aClassSubject = inspector.clazz(A.class);
+              assertThat(aClassSubject, isPresent());
+
               TypeSubject bTypeSubject = bClassSubject.asTypeSubject();
+              TypeSubject aTypeSubject = aClassSubject.asTypeSubject();
 
               MethodSubject fooMethodSubject = aClassSubject.uniqueMethodWithOriginalName("foo");
               assertThat(fooMethodSubject, isPresent());
@@ -62,12 +79,10 @@ public class ProtoNormalizationWithVirtualMethodCollisionTest extends TestBase {
               // TODO(b/173398086): Consider rewriting B.foo(B, A) to B.foo(A, B, C) instead of
               //  B.foo$1(A, B).
               MethodSubject otherFooMethodSubject =
-                  bClassSubject.uniqueMethodWithOriginalName("foo$1");
+                  bClassSubject.uniqueMethodWithOriginalName("foo");
               assertThat(otherFooMethodSubject, isPresent());
               assertThat(otherFooMethodSubject, hasParameters(aTypeSubject, bTypeSubject));
-            })
-        .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("A", "B", "A", "B");
+            });
   }
 
   static class Main {
@@ -75,16 +90,18 @@ public class ProtoNormalizationWithVirtualMethodCollisionTest extends TestBase {
     public static void main(String[] args) {
       A a = new A();
       B b = new B();
+      a.foo(b, a);
       a.foo(a, b);
-      b.foo(b, a);
+      b.foo(a, b);
     }
   }
 
   @NoVerticalClassMerging
-  static class A {
+  static class B {
 
     @NeverInline
     public void foo(A a, B b) {
+      System.out.println("B::foo");
       System.out.println(a);
       System.out.println(b);
     }
@@ -95,10 +112,11 @@ public class ProtoNormalizationWithVirtualMethodCollisionTest extends TestBase {
     }
   }
 
-  static class B extends A {
+  static class A extends B {
 
     @NeverInline
     public void foo(B b, A a) {
+      System.out.println("A::foo");
       System.out.println(a);
       System.out.println(b);
     }
