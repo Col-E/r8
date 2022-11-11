@@ -1,4 +1,4 @@
-// Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -17,7 +17,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -28,7 +27,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class ApiModelMockClassLoadingTest extends TestBase {
+public class ApiModelMockClassCheckCastTest extends TestBase {
 
   private final AndroidApiLevel mockLevel = AndroidApiLevel.M;
 
@@ -36,7 +35,7 @@ public class ApiModelMockClassLoadingTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   private boolean isGreaterOrEqualToMockLevel() {
@@ -54,9 +53,17 @@ public class ApiModelMockClassLoadingTest extends TestBase {
   }
 
   @Test
+  public void testReference() throws Exception {
+    assumeTrue(parameters.isCfRuntime() && parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
+    testForJvm()
+        .addProgramClasses(Main.class, TestClass.class)
+        .run(parameters.getRuntime(), Main.class)
+        .apply(this::checkOutput);
+  }
+
+  @Test
   public void testD8Debug() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8()
+    testForD8(parameters.getBackend())
         .setMode(CompilationMode.DEBUG)
         .apply(this::setupTestBuilder)
         .compile()
@@ -68,8 +75,7 @@ public class ApiModelMockClassLoadingTest extends TestBase {
 
   @Test
   public void testD8Release() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8()
+    testForD8(parameters.getBackend())
         .setMode(CompilationMode.RELEASE)
         .apply(this::setupTestBuilder)
         .compile()
@@ -94,12 +100,12 @@ public class ApiModelMockClassLoadingTest extends TestBase {
 
   private void checkOutput(SingleTestRunResult<?> runResult) {
     if (isGreaterOrEqualToMockLevel()) {
-      runResult.assertSuccessWithOutputLines("Hello World!");
-    } else if (parameters.isDexRuntime()
-        && parameters.asDexRuntime().getVm().isEqualTo(DexVm.ART_4_4_4_HOST)) {
-      runResult.assertSuccessWithOutputLines("ClassNotFoundException");
+      runResult.assertSuccessWithOutputLines("false", "checkcast caused ClassCastException");
+    } else if (parameters.isCfRuntime()) {
+      runResult.assertSuccessWithOutputLines(
+          "instanceof caused NoClassDefFoundError", "checkcast caused NoClassDefFoundError");
     } else {
-      runResult.assertSuccessWithOutputLines("NoClassDefFoundError");
+      runResult.assertSuccessWithOutputLines("false", "checkcast caused ClassCastException");
     }
     runResult.applyIf(
         !isGreaterOrEqualToMockLevel()
@@ -118,14 +124,22 @@ public class ApiModelMockClassLoadingTest extends TestBase {
   public static class TestClass {
 
     @NeverInline
-    public static void test() {
+    public static void testInstanceOf(Object o) {
       try {
-        Class.forName(LibraryClass.class.getName());
-        System.out.println("Hello World!");
-      } catch (ExceptionInInitializerError | NoClassDefFoundError er) {
-        System.out.println("NoClassDefFoundError");
-      } catch (ClassNotFoundException e) {
-        System.out.println("ClassNotFoundException");
+        System.out.println(o instanceof LibraryClass);
+      } catch (NoClassDefFoundError ex) {
+        System.out.println("instanceof caused NoClassDefFoundError");
+      }
+    }
+
+    @NeverInline
+    public static void testCheckCast(Object o) {
+      try {
+        System.out.println(((LibraryClass) o).getClass().getName());
+      } catch (NoClassDefFoundError e) {
+        System.out.println("checkcast caused NoClassDefFoundError");
+      } catch (ClassCastException e) {
+        System.out.println("checkcast caused ClassCastException");
       }
     }
   }
@@ -133,7 +147,15 @@ public class ApiModelMockClassLoadingTest extends TestBase {
   public static class Main {
 
     public static void main(String[] args) {
-      TestClass.test();
+      if (System.currentTimeMillis() > 0) {
+        Object o = new Object();
+        TestClass.testInstanceOf(o);
+        TestClass.testCheckCast(o);
+      } else {
+        LibraryClass libraryClass = new LibraryClass();
+        TestClass.testInstanceOf(libraryClass);
+        TestClass.testCheckCast(libraryClass);
+      }
     }
   }
 }
