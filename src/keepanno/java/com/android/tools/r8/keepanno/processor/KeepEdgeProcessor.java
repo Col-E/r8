@@ -131,8 +131,8 @@ public class KeepEdgeProcessor extends AbstractProcessor {
     // sun.tools internals to extract it. If not, this code will not work for inner classes as
     // we cannot recover the $ separator.
     try {
-      Object tsym = type.getClass().getDeclaredField("tsym").get(type);
-      Object flatname = tsym.getClass().getDeclaredField("flatname").get(tsym);
+      Object tsym = type.getClass().getField("tsym").get(type);
+      Object flatname = tsym.getClass().getField("flatname").get(tsym);
       return flatname.toString();
     } catch (NoSuchFieldException | IllegalAccessException e) {
       throw new KeepEdgeException("Unable to obtain the class type name for: " + type);
