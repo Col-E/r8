@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -29,7 +28,6 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
 public class Disassemble {
@@ -247,11 +245,9 @@ public class Disassemble {
       throws IOException, ExecutionException {
     AndroidApp app = command.getInputApp();
     InternalOptions options = command.getInternalOptions();
-    Box<Future<ClassNameMapper>> readMapFuture = new Box<>();
     try (OutputWriter outputWriter = getOutputWriter(command)) {
       for (ProgramResource computeAllProgramResource : app.computeAllProgramResources()) {
-        disassembleResource(
-            command, outputWriter, computeAllProgramResource, readMapFuture, options);
+        disassembleResource(command, outputWriter, computeAllProgramResource, options);
       }
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -274,7 +270,6 @@ public class Disassemble {
       DisassembleCommand command,
       OutputWriter outputWriter,
       ProgramResource programResource,
-      Box<Future<ClassNameMapper>> readMapFuture,
       InternalOptions options)
       throws IOException {
     ExecutorService executor = ThreadUtils.getExecutorService(options);
@@ -285,8 +280,7 @@ public class Disassemble {
                       .addProgramResourceProvider(() -> Collections.singletonList(programResource))
                       .build(),
                   options,
-                  Timing.empty(),
-                  readMapFuture)
+                  Timing.empty())
               .read(command.proguardMap, executor);
       DexByteCodeWriter writer =
           command.useSmali()
