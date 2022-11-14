@@ -616,6 +616,7 @@
     "-keepattributes EnclosingMethod",
     "-keepattributes InnerClasses",
     "-dontwarn sun.misc.Unsafe",
-    "-dontwarn wrapper.**"
+    "-dontwarn wrapper.**",
+    "-dontwarn sun.nio.fs.UnixFileSystemProvider"
   ]
 }
