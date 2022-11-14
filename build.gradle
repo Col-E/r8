@@ -1091,6 +1091,7 @@ def r8LibCreateTask(name, pgConfs = [], r8Task, output, libs = [], classpath = [
 task rawBuildLibraryDesugarConversions(type: Zip, dependsOn: downloadDeps) {
     from sourceSets.libraryDesugarConversions.output
     include "java/**/*.class"
+    include "desugar/sun/nio/fs/DesugarAndroid*.class"
     baseName 'library_desugar_conversions_raw'
     destinationDir file('build/tmp/desugaredlibrary')
 }

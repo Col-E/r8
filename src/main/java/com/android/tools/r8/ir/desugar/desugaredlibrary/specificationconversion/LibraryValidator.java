@@ -27,7 +27,7 @@ public class LibraryValidator {
     } else if (requiredCompilationAPILevel.isEqualTo(AndroidApiLevel.R)) {
       levelType = app.dexItemFactory.createType("Ljava/util/concurrent/Flow;");
     } else if (requiredCompilationAPILevel.isEqualTo(AndroidApiLevel.N)) {
-      levelType = app.dexItemFactory.createType("Ljava/util/function/Supplier;");
+      levelType = app.dexItemFactory.createType("Ljava/util/StringJoiner;");
     } else if (requiredCompilationAPILevel.isEqualTo(AndroidApiLevel.T)) {
       levelType = app.dexItemFactory.createType("Ljava/lang/invoke/VarHandle;");
     } else {

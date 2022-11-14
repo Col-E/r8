@@ -80,7 +80,11 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
           "java.util.stream.DoubleStream"
               + " java.util.stream.DoubleStream.dropWhile(java.util.function.DoublePredicate)",
           // FileStore.getBlockSize() was added in 33 which confuses the required library (30).
-          "long java.nio.file.FileStore.getBlockSize()");
+          "long java.nio.file.FileStore.getBlockSize()",
+          // The call is present but unreachable above 26.
+          "java.nio.channels.FileChannel"
+              + " java.nio.channels.DesugarChannels.openEmulatedFileChannel(java.nio.file.Path,"
+              + " java.util.Set, java.nio.file.attribute.FileAttribute[])");
 
   private final TestParameters parameters;
   private final CompilationSpecification compilationSpecification;

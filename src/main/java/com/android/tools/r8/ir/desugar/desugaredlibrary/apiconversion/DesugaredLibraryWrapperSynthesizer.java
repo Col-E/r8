@@ -170,7 +170,9 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
 
   private DexMethod ensureApiGenericConversion(
       DexMethod conversion, DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer) {
-    assert !appView.options().isDesugaredLibraryCompilation();
+    if (appView.appInfoForDesugaring().resolveMethod(conversion, false).isSingleResolution()) {
+      return conversion;
+    }
     ClasspathMethod classpathMethod =
         appView
             .getSyntheticItems()

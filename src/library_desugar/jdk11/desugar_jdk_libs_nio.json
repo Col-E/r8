@@ -166,6 +166,7 @@
         "java.nio.channels.AsynchronousChannel": "j$.nio.channels.AsynchronousChannel",
         "java.nio.channels.AsynchronousFileChannel": "j$.nio.channels.AsynchronousFileChannel",
         "java.nio.channels.CompletionHandler": "j$.nio.channels.CompletionHandler",
+        "java.nio.channels.Desugar": "j$.nio.channels.Desugar",
         "java.nio.file.": "j$.nio.file."
       },
       "dont_rewrite_prefix": [
@@ -230,7 +231,8 @@
         "java.lang.Iterable java.nio.file.FileSystem#getRootDirectories()": [-1, "java.lang.Iterable java.nio.file.PathApiFlips#flipIterablePath(java.lang.Iterable)"],
         "java.util.Iterator java.nio.file.Path#iterator()": [-1, "java.util.Iterator java.nio.file.PathApiFlips#flipIteratorPath(java.util.Iterator)"],
         "java.nio.file.DirectoryStream java.nio.file.spi.FileSystemProvider#newDirectoryStream(java.nio.file.Path, java.nio.file.DirectoryStream$Filter)": [-1, "java.nio.file.DirectoryStream java.nio.file.PathApiFlips#flipDirectoryStreamPath(java.nio.file.DirectoryStream)", 1, "java.nio.file.DirectoryStream$Filter java.nio.file.PathApiFlips#flipDirectoryStreamFilterPath(java.nio.file.DirectoryStream$Filter)"],
-        "void java.nio.file.spi.FileSystemProvider#setAttribute(java.nio.file.Path, java.lang.String, java.lang.Object, java.nio.file.LinkOption[])": [2, "java.lang.Object java.nio.file.FileApiFlips#flipMaybeFileTime(java.lang.Object)"]
+        "void java.nio.file.spi.FileSystemProvider#setAttribute(java.nio.file.Path, java.lang.String, java.lang.Object, java.nio.file.LinkOption[])": [2, "java.lang.Object java.nio.file.FileApiFlips#flipMaybeFileTime(java.lang.Object)"],
+        "java.nio.channels.FileChannel java.nio.channels.FileChannel#open(java.nio.file.Path, java.util.Set, java.nio.file.attribute.FileAttribute[])" : [1, "java.util.Set java.nio.file.FileApiFlips#flipOpenOptionSet(java.util.Set)"]
       },
       "wrapper_conversion": [
         "java.nio.channels.CompletionHandler",
@@ -279,8 +281,6 @@
       "api_level_below_or_equal": 23,
       "rewrite_prefix": {
         "java.io.DesugarBufferedReader": "j$.io.DesugarBufferedReader",
-        "java.nio.channels.FileChannel": "j$.nio.channels.FileChannel",
-        "java.nio.channels.SeekableByteChannel": "j$.nio.channels.SeekableByteChannel",
         "java.util.DoubleSummaryStatistics": "j$.util.DoubleSummaryStatistics",
         "java.util.IntSummaryStatistics": "j$.util.IntSummaryStatistics",
         "java.util.LongSummaryStatistics": "j$.util.LongSummaryStatistics",
@@ -294,12 +294,10 @@
         "java.util.concurrent.atomic.DesugarAtomic": "j$.util.concurrent.atomic.DesugarAtomic",
         "java.util.stream.": "j$.util.stream."
       },
-      "dont_rewrite_prefix": [
-        "java.nio.channels.FileChannel$MapMode"
-      ],
       "maintain_prefix": [
         "java.util.function.",
-        "java.io.UncheckedIOException"
+        "java.io.UncheckedIOException",
+        "java.nio.channels.SeekableByteChannel"
       ],
       "emulate_interface": {
         "java.lang.Iterable": "j$.lang.Iterable",
@@ -347,13 +345,18 @@
         "java.util.stream.IntStream java.util.stream.IntStream#flatMap(java.util.function.IntFunction)": [0, "java.util.function.IntFunction java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.IntFunction)"],
         "java.util.stream.LongStream java.util.stream.Stream#flatMapToLong(java.util.function.Function)": [0, "java.util.function.Function java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.Function)"],
         "java.util.stream.LongStream java.util.stream.LongStream#flatMap(java.util.function.LongFunction)": [0, "java.util.function.LongFunction java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.LongFunction)"],
-        "java.lang.Object java.lang.StackWalker#walk(java.util.function.Function)": [0, "java.util.function.Function java.util.stream.StackWalkerApiFlips#flipFunctionStream(java.util.function.Function)"]
+        "java.lang.Object java.lang.StackWalker#walk(java.util.function.Function)": [0, "java.util.function.Function java.util.stream.StackWalkerApiFlips#flipFunctionStream(java.util.function.Function)"],
+        "java.nio.channels.FileChannel java.nio.channels.FileLock#channel()": [-1, "java.nio.channels.FileChannel java.nio.channels.DesugarChannels#convertMaybeLegacyFileChannelFromLibrary(java.nio.channels.FileChannel)"],
+        "java.nio.channels.Channel java.nio.channels.FileLock#acquiredBy()": [-1, "java.nio.channels.Channel java.nio.channels.DesugarChannels#convertMaybeLegacyChannelFromLibrary(java.nio.channels.Channel)"],
+        "java.nio.channels.FileChannel java.io.RandomAccessFile#getChannel()": [-1, "java.nio.channels.FileChannel java.nio.channels.DesugarChannels#convertMaybeLegacyFileChannelFromLibrary(java.nio.channels.FileChannel)"],
+        "java.nio.channels.FileChannel java.io.FileInputStream#getChannel()": [-1, "java.nio.channels.FileChannel java.nio.channels.DesugarChannels#convertMaybeLegacyFileChannelFromLibrary(java.nio.channels.FileChannel)"],
+        "java.nio.channels.FileChannel java.io.FileOutputStream#getChannel()": [-1, "java.nio.channels.FileChannel java.nio.channels.DesugarChannels#convertMaybeLegacyFileChannelFromLibrary(java.nio.channels.FileChannel)"],
+        "void java.nio.channels.FileLock#<init>(java.nio.channels.FileChannel,long, long, boolean)": [0, "java.nio.channels.FileChannel java.nio.channels.DesugarChannels#convertMaybeLegacyFileChannelToLibrary(java.nio.channels.FileChannel)"]
       },
       "never_outline_api": [
         "java.lang.Object java.lang.StackWalker#walk(java.util.function.Function)"
       ],
       "wrapper_conversion": [
-        "java.nio.channels.SeekableByteChannel",
         "java.util.PrimitiveIterator$OfDouble",
         "java.util.PrimitiveIterator$OfInt",
         "java.util.PrimitiveIterator$OfLong",
@@ -370,18 +373,6 @@
         "java.util.stream.LongStream",
         "java.util.stream.Stream"
       ],
-      "wrapper_conversion_excluding": {
-        "java.nio.channels.FileChannel": [
-          "long java.nio.channels.FileChannel#read(java.nio.ByteBuffer[])",
-          "long java.nio.channels.FileChannel#write(java.nio.ByteBuffer[])",
-          "java.nio.channels.FileLock java.nio.channels.FileChannel#lock()",
-          "java.nio.channels.FileLock java.nio.channels.FileChannel#tryLock()",
-          "void java.nio.channels.spi.AbstractInterruptibleChannel#close()",
-          "boolean java.nio.channels.spi.AbstractInterruptibleChannel#isOpen()",
-          "void java.nio.channels.spi.AbstractInterruptibleChannel#begin()",
-          "void java.nio.channels.spi.AbstractInterruptibleChannel#end(boolean)"
-        ]
-      },
       "custom_conversion": {
         "java.util.DoubleSummaryStatistics": "java.util.DoubleSummaryStatisticsConversions",
         "java.util.IntSummaryStatistics": "java.util.IntSummaryStatisticsConversions",
@@ -442,7 +433,9 @@
         "java.time.Instant java.util.Calendar#toInstant()": "java.util.DesugarCalendar",
         "java.util.Date java.util.Date#from(java.time.Instant)": "java.util.DesugarDate",
         "java.util.GregorianCalendar java.util.GregorianCalendar#from(java.time.ZonedDateTime)": "java.util.DesugarGregorianCalendar",
-        "java.util.TimeZone java.util.TimeZone#getTimeZone(java.lang.String)": "java.util.DesugarTimeZone"
+        "java.util.TimeZone java.util.TimeZone#getTimeZone(java.lang.String)": "java.util.DesugarTimeZone",
+        "java.nio.channels.FileChannel java.nio.channels.FileChannel#open(java.nio.file.Path, java.nio.file.OpenOption[])": "java.nio.channels.DesugarChannels",
+        "java.nio.channels.FileChannel java.nio.channels.FileChannel#open(java.nio.file.Path, java.util.Set, java.nio.file.attribute.FileAttribute[])": "java.nio.channels.DesugarChannels"
       }
     },
     {
@@ -483,7 +476,6 @@
     {
       "api_level_below_or_equal": 25,
       "rewrite_prefix": {
-        "java.nio.channels.Desugar": "j$.nio.channels.Desugar",
         "jdk.internal.": "j$.jdk.internal.",
         "sun.misc.Desugar": "j$.sun.misc.Desugar",
         "sun.nio.cs.": "j$.sun.nio.cs.",

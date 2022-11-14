@@ -514,8 +514,7 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
       if (clazzType.startsWith("java.")
           && !doesNotNeedWrapper(clazzType, customConversions, maintainType)
           // FileChannel is there since B but it needs wrapping due to recently added interfaces.
-          && (!preDesugarTypes.contains(clazz)
-              || clazzType.equals("java.nio.channels.FileChannel"))) {
+          && !preDesugarTypes.contains(clazz)) {
         additions.accept(clazz);
         return true;
       }

@@ -17,13 +17,9 @@ public final class HybridFileTypeDetector {
   private HybridFileTypeDetector() {}
 
   public static FileTypeDetector create() {
-    try {
-      // On API 26 and above, java.nio.file.Files is present.
-      Class.forName("java.nio.file.Files");
-      return new PlatformFileTypeDetector();
-    } catch (ClassNotFoundException ignored) {
-      return DesugarDefaultFileTypeDetector.create();
-    }
+    return AndroidVersionTest.is26OrAbove
+        ? new PlatformFileTypeDetector()
+        : DesugarDefaultFileTypeDetector.create();
   }
 
   static class PlatformFileTypeDetector extends FileTypeDetector {

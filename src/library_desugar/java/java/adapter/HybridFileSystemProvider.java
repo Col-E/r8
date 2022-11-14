@@ -6,7 +6,7 @@ package java.adapter;
 
 import android.os.StrictMode;
 import android.os.StrictMode.ThreadPolicy;
-import desugar.sun.nio.fs.DesugarDefaultFileSystemProvider;
+import desugar.sun.nio.fs.DesugarAndroidDefaultFileSystemProvider;
 import j$.nio.file.FileSystems;
 import java.net.URI;
 import java.nio.file.FileSystem;
@@ -23,27 +23,18 @@ public final class HybridFileSystemProvider {
       INSTANCE.getFileSystem(URI.create("file:///"));
 
   private static FileSystemProvider getFileSystemProvider() {
-    // Note: this fails on non Android devices.
-    try {
+    if (AndroidVersionTest.is26OrAbove) {
       // On API 26 and above, FileSystems is present.
-      Class.forName("java.nio.file.FileSystems");
       j$.nio.file.FileSystem fileSystem = FileSystems.getDefault();
       j$.nio.file.spi.FileSystemProvider provider = fileSystem.provider();
       return j$.nio.file.spi.FileSystemProvider.wrap_convert(provider);
-    } catch (ClassNotFoundException ignored) {
-      // We reach this path is API < 26.
     }
-    // The DesugarDefaultFileSystemProvider requires the ThreadPolicy to be set to work correctly.
-    // We cannot set the ThreadPolicy in headless and it should not matter.
-    // In headless, android.os is absent so the following line will throw.
-    // In headfull, android.os is present and we set the thread policy.
-    try {
-      Class.forName("android.os.Build");
+    if (AndroidVersionTest.isHeadfull) {
+      // The DesugarDefaultFileSystemProvider requires the ThreadPolicy to be set to work correctly.
+      // We cannot set the ThreadPolicy in headless and it should not matter.
       setThreadPolicy();
-    } catch (ClassNotFoundException ignored) {
-      // Headless mode.
     }
-    return DesugarDefaultFileSystemProvider.instance();
+    return DesugarAndroidDefaultFileSystemProvider.instance();
   }
 
   private static void setThreadPolicy() {
