@@ -5,6 +5,8 @@ package com.android.tools.r8.keepanno.testsource;
 
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
+import com.android.tools.r8.keepanno.ast.KeepFieldNamePattern;
+import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodPattern;
@@ -25,12 +27,18 @@ public class KeepSourceEdges {
     if (clazz.equals(KeepClassAndDefaultConstructorSource.class)) {
       return getKeepClassAndDefaultConstructorSourceEdges();
     }
+    if (clazz.equals(KeepFieldSource.class)) {
+      return getKeepFieldSourceEdges();
+    }
     throw new RuntimeException();
   }
 
   public static String getExpected(Class<?> clazz) {
     if (clazz.equals(KeepClassAndDefaultConstructorSource.class)) {
       return getKeepClassAndDefaultConstructorSourceExpected();
+    }
+    if (clazz.equals(KeepFieldSource.class)) {
+      return getKeepFieldSourceExpected();
     }
     throw new RuntimeException();
   }
@@ -54,6 +62,23 @@ public class KeepSourceEdges {
     // The consequet set is the class an its constructor.
     KeepConsequences consequences =
         KeepConsequences.builder().addTarget(classTarget).addTarget(constructorTarget).build();
+    KeepEdge edge = KeepEdge.builder().setConsequences(consequences).build();
+    return Collections.singleton(edge);
+  }
+
+  public static String getKeepFieldSourceExpected() {
+    return StringUtils.lines("The values match!");
+  }
+
+  public static Set<KeepEdge> getKeepFieldSourceEdges() {
+    Class<?> clazz = KeepFieldSource.A.class;
+    KeepQualifiedClassNamePattern name = KeepQualifiedClassNamePattern.exact(clazz.getTypeName());
+    KeepFieldPattern fieldPattern =
+        KeepFieldPattern.builder().setNamePattern(KeepFieldNamePattern.exact("f")).build();
+    KeepItemPattern fieldItem =
+        KeepItemPattern.builder().setClassPattern(name).setMemberPattern(fieldPattern).build();
+    KeepTarget fieldTarget = KeepTarget.builder().setItem(fieldItem).build();
+    KeepConsequences consequences = KeepConsequences.builder().addTarget(fieldTarget).build();
     KeepEdge edge = KeepEdge.builder().setConsequences(consequences).build();
     return Collections.singleton(edge);
   }

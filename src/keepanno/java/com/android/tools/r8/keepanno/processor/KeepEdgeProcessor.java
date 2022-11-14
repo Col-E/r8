@@ -16,6 +16,8 @@ import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepEdge.Builder;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
+import com.android.tools.r8.keepanno.ast.KeepFieldNamePattern;
+import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodPattern;
@@ -148,14 +150,21 @@ public class KeepEdgeProcessor extends AbstractProcessor {
       itemBuilder.setClassPattern(KeepQualifiedClassNamePattern.exact(typeName));
     }
     AnnotationValue methodNameValue = getAnnotationValue(mirror, Target.methodName);
+    AnnotationValue fieldNameValue = getAnnotationValue(mirror, Target.fieldName);
+    if (methodNameValue != null && fieldNameValue != null) {
+      throw new KeepEdgeException("Cannot define both a method and a field name pattern");
+    }
     if (methodNameValue != null) {
       String methodName = AnnotationStringValueVisitor.getString(methodNameValue);
       itemBuilder.setMemberPattern(
           KeepMethodPattern.builder()
               .setNamePattern(KeepMethodNamePattern.exact(methodName))
               .build());
+    } else if (fieldNameValue != null) {
+      String fieldName = AnnotationStringValueVisitor.getString(fieldNameValue);
+      itemBuilder.setMemberPattern(
+          KeepFieldPattern.builder().setNamePattern(KeepFieldNamePattern.exact(fieldName)).build());
     }
-
     builder.setItem(itemBuilder.build());
   }
 

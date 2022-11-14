@@ -39,7 +39,12 @@ import java.util.Objects;
  *   UNQUALIFIED_CLASS_NAME_PATTERN ::= any | exact simple-class-name
  *   EXTENDS_PATTERN ::= any | QUALIFIED_CLASS_NAME_PATTERN
  *
- *   MEMBER_PATTERN ::= none | all | METHOD_PATTERN
+ *   MEMBER_PATTERN ::= none | all | FIELD_PATTERN | METHOD_PATTERN
+ *
+ *   FIELD_PATTERN
+ *     ::= FIELD_ACCESS_PATTERN
+ *           FIELD_TYPE_PATTERN
+ *           FIELD_NAME_PATTERN;
  *
  *   METHOD_PATTERN
  *     ::= METHOD_ACCESS_PATTERN

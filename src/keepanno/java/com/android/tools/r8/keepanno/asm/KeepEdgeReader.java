@@ -8,6 +8,8 @@ import com.android.tools.r8.keepanno.annotations.KeepConstants.Target;
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
+import com.android.tools.r8.keepanno.ast.KeepFieldNamePattern;
+import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern.Builder;
 import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern;
@@ -143,6 +145,7 @@ public class KeepEdgeReader implements Opcodes {
     private final Parent<KeepTarget> parent;
     private KeepQualifiedClassNamePattern classNamePattern = null;
     private KeepMethodNamePattern methodName = null;
+    private KeepFieldNamePattern fieldName = null;
 
     public KeepTargetVisitor(Parent<KeepTarget> parent) {
       this.parent = parent;
@@ -158,6 +161,10 @@ public class KeepEdgeReader implements Opcodes {
         methodName = KeepMethodNamePattern.exact((String) value);
         return;
       }
+      if (name.equals(Target.fieldName) && value instanceof String) {
+        fieldName = KeepFieldNamePattern.exact((String) value);
+        return;
+      }
       super.visit(name, value);
     }
 
@@ -167,9 +174,15 @@ public class KeepEdgeReader implements Opcodes {
       if (classNamePattern != null) {
         itemBuilder.setClassPattern(classNamePattern);
       }
+      if (methodName != null && fieldName != null) {
+        throw new KeepEdgeException("Cannot define both a field and a method pattern.");
+      }
       if (methodName != null) {
         itemBuilder.setMemberPattern(
             KeepMethodPattern.builder().setNamePattern(methodName).build());
+      }
+      if (fieldName != null) {
+        itemBuilder.setMemberPattern(KeepFieldPattern.builder().setNamePattern(fieldName).build());
       }
       KeepTarget target = KeepTarget.builder().setItem(itemBuilder.build()).build();
       parent.accept(target);

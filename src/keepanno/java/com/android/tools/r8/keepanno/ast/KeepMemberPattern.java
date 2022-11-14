@@ -88,4 +88,12 @@ public abstract class KeepMemberPattern {
   public KeepMethodPattern asMethod() {
     return null;
   }
+
+  public final boolean isField() {
+    return asField() != null;
+  }
+
+  public KeepFieldPattern asField() {
+    return null;
+  }
 }

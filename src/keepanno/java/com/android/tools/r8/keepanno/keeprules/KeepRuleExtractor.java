@@ -5,6 +5,9 @@ package com.android.tools.r8.keepanno.keeprules;
 
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
+import com.android.tools.r8.keepanno.ast.KeepFieldAccessPattern;
+import com.android.tools.r8.keepanno.ast.KeepFieldNamePattern;
+import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepMemberPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodAccessPattern;
@@ -114,7 +117,23 @@ public class KeepRuleExtractor {
       printMethod(builder.append(' '), member.asMethod());
       return builder.append(" }");
     }
+    if (member.isField()) {
+      builder.append(" {");
+      printField(builder.append(' '), member.asField());
+      return builder.append(" }");
+    }
     throw new Unimplemented();
+  }
+
+  private static StringBuilder printField(StringBuilder builder, KeepFieldPattern fieldPattern) {
+    if (fieldPattern.isAnyField()) {
+      return builder.append("<fields>;");
+    }
+    printAccess(builder, " ", fieldPattern.getAccessPattern());
+    printType(builder, fieldPattern.getTypePattern().asType());
+    builder.append(' ');
+    printFieldName(builder, fieldPattern.getNamePattern());
+    return builder.append(';');
   }
 
   private static StringBuilder printMethod(StringBuilder builder, KeepMethodPattern methodPattern) {
@@ -143,6 +162,13 @@ public class KeepRuleExtractor {
         .append(')');
   }
 
+  private static StringBuilder printFieldName(
+      StringBuilder builder, KeepFieldNamePattern namePattern) {
+    return namePattern.isAny()
+        ? builder.append("*")
+        : builder.append(namePattern.asExact().getName());
+  }
+
   private static StringBuilder printMethodName(
       StringBuilder builder, KeepMethodNamePattern namePattern) {
     return namePattern.isAny()
@@ -167,6 +193,16 @@ public class KeepRuleExtractor {
 
   private static StringBuilder printAccess(
       StringBuilder builder, String indent, KeepMethodAccessPattern accessPattern) {
+    if (accessPattern.isAny()) {
+      // No text will match any access pattern.
+      // Don't print the indent in this case.
+      return builder;
+    }
+    throw new Unimplemented();
+  }
+
+  private static StringBuilder printAccess(
+      StringBuilder builder, String indent, KeepFieldAccessPattern accessPattern) {
     if (accessPattern.isAny()) {
       // No text will match any access pattern.
       // Don't print the indent in this case.

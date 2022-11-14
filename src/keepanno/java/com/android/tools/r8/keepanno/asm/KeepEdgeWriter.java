@@ -7,6 +7,9 @@ import com.android.tools.r8.keepanno.annotations.KeepConstants.Edge;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Target;
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
+import com.android.tools.r8.keepanno.ast.KeepEdgeException;
+import com.android.tools.r8.keepanno.ast.KeepFieldNamePattern.KeepFieldNameExactPattern;
+import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepMemberPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern.KeepMethodNameExactPattern;
@@ -84,7 +87,31 @@ public class KeepEdgeWriter implements Opcodes {
     if (memberPattern.isAll()) {
       throw new Unimplemented();
     }
-    KeepMethodPattern method = memberPattern.asMethod();
+    if (memberPattern.isMethod()) {
+      writeMethod(memberPattern.asMethod(), targetVisitor);
+    } else if (memberPattern.isField()) {
+      writeField(memberPattern.asField(), targetVisitor);
+    } else {
+      throw new KeepEdgeException("Unexpected member pattern: " + memberPattern);
+    }
+  }
+
+  private void writeField(KeepFieldPattern field, AnnotationVisitor targetVisitor) {
+    KeepFieldNameExactPattern exactFieldName = field.getNamePattern().asExact();
+    if (exactFieldName != null) {
+      targetVisitor.visit(Target.fieldName, exactFieldName.getName());
+    } else {
+      throw new Unimplemented();
+    }
+    if (!field.getAccessPattern().isAny()) {
+      throw new Unimplemented();
+    }
+    if (!field.getTypePattern().isAny()) {
+      throw new Unimplemented();
+    }
+  }
+
+  private void writeMethod(KeepMethodPattern method, AnnotationVisitor targetVisitor) {
     KeepMethodNameExactPattern exactMethodName = method.getNamePattern().asExact();
     if (exactMethodName != null) {
       targetVisitor.visit(Target.methodName, exactMethodName.getName());

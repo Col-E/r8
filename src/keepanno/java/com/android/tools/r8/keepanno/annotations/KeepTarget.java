@@ -16,4 +16,6 @@ public @interface KeepTarget {
   String classTypeName() default "";
 
   String methodName() default "";
+
+  String fieldName() default "";
 }

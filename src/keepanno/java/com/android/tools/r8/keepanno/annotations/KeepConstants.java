@@ -31,5 +31,6 @@ public final class KeepConstants {
     public static final String DESCRIPTOR = getDescriptor(CLASS);
     public static final String classConstant = "classConstant";
     public static final String methodName = "methodName";
+    public static final String fieldName = "fieldName";
   }
 }
