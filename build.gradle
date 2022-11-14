@@ -319,8 +319,6 @@ dependencies {
 
     keepannoCompile group: 'org.ow2.asm', name: 'asm', version: asmVersion
     keepannoCompile "com.google.guava:guava:$guavaVersion"
-    keepannoCompile files("third_party/openjdk/jdk8/linux-x86/lib/tools.jar")
-    testCompile files("third_party/openjdk/jdk8/linux-x86/lib/tools.jar")
     testCompile sourceSets.keepanno.output
     testRuntime sourceSets.keepanno.output
 }
