@@ -160,6 +160,8 @@ def setUpFakeAndroidHome(androidHomeTemp):
   cmd = ["mkdir", subpath]
   subprocess.check_call(cmd)
   dest = os.path.join(subpath, "android.jar")
+  sha = os.path.join(utils.THIRD_PARTY, "android_jar", "lib-v32.tar.gz.sha1")
+  utils.DownloadFromGoogleCloudStorage(sha)
   src = os.path.join(utils.THIRD_PARTY, "android_jar", "lib-v32", "android.jar")
   cmd = ["cp", src, dest]
   subprocess.check_call(cmd)
