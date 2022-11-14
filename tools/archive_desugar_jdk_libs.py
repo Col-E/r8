@@ -140,12 +140,29 @@ def CloneDesugaredLibrary(github_account, checkout_dir, desugar_jdk_libs_hash):
         + github_account + '/' + GITHUB_REPRO, checkout_dir)
   git_utils.GitCheckout(desugar_jdk_libs_hash, checkout_dir)
 
-def GetJavaEnv():
+def GetJavaEnv(androidHomeTemp):
   java_env = dict(os.environ, JAVA_HOME = jdk.GetJdk11Home())
   java_env['PATH'] = java_env['PATH'] + os.pathsep + os.path.join(jdk.GetJdk11Home(), 'bin')
   java_env['GRADLE_OPTS'] = '-Xmx1g'
+  java_env['ANDROID_HOME'] = androidHomeTemp
   return java_env
 
+def setUpFakeAndroidHome(androidHomeTemp):
+  # Bazel will check if 30 is present then extract android.jar from 32.
+  # We copy android.jar from third_party to mimic repository structure.
+  subpath = os.path.join(androidHomeTemp, "platforms")
+  cmd = ["mkdir", subpath]
+  subprocess.check_call(cmd)
+  subpath30 = os.path.join(subpath, "android-30")
+  cmd = ["mkdir", subpath30]
+  subprocess.check_call(cmd)
+  subpath = os.path.join(subpath, "android-32")
+  cmd = ["mkdir", subpath]
+  subprocess.check_call(cmd)
+  dest = os.path.join(subpath, "android.jar")
+  src = os.path.join(utils.THIRD_PARTY, "android_jar", "lib-v32", "android.jar")
+  cmd = ["cp", src, dest]
+  subprocess.check_call(cmd)
 
 def BuildDesugaredLibrary(checkout_dir, variant, version = None):
   if not variant in MAVEN_RELEASE_TARGET_MAP:
@@ -153,19 +170,22 @@ def BuildDesugaredLibrary(checkout_dir, variant, version = None):
   if variant != 'jdk8' and variant != 'jdk11_legacy' and version is None:
     raise Exception('Variant ' + variant + ' require version for undesugaring')
   with utils.ChangedWorkingDirectory(checkout_dir):
-    bazel = os.path.join(utils.BAZEL_TOOL, 'lib', 'bazel', 'bin', 'bazel')
-    cmd = [
+    with utils.TempDir() as androidHomeTemp:
+      setUpFakeAndroidHome(androidHomeTemp)
+      javaEnv = GetJavaEnv(androidHomeTemp)
+      bazel = os.path.join(utils.BAZEL_TOOL, 'lib', 'bazel', 'bin', 'bazel')
+      cmd = [
         bazel,
         '--bazelrc=/dev/null',
         'build',
         '--spawn_strategy=local',
         '--verbose_failures',
         MAVEN_RELEASE_TARGET_MAP[variant]]
-    utils.PrintCmd(cmd)
-    subprocess.check_call(cmd, env=GetJavaEnv())
-    cmd = [bazel, 'shutdown']
-    utils.PrintCmd(cmd)
-    subprocess.check_call(cmd, env=GetJavaEnv())
+      utils.PrintCmd(cmd)
+      subprocess.check_call(cmd, env=javaEnv)
+      cmd = [bazel, 'shutdown']
+      utils.PrintCmd(cmd)
+      subprocess.check_call(cmd, env=javaEnv)
 
     # Locate the library jar and the maven zip with the jar from the
     # bazel build.
