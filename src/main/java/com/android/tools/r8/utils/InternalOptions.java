@@ -1805,6 +1805,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         System.getProperty("com.android.tools.r8.disableApiModeling") == null;
     public boolean reportUnknownApiReferences =
         System.getProperty("com.android.tools.r8.reportUnknownApiReferences") != null;
+    // TODO(b/259076765): Remove when resolved.
+    public boolean stubNonThrowableClasses =
+        System.getProperty("com.android.tools.r8.stubNonThrowableClasses") != null;
 
     // TODO(b/232823652): Enable when we can compute the offset correctly.
     public boolean useMemoryMappedByteBuffer = false;

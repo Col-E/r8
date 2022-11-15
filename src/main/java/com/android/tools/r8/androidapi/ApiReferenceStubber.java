@@ -233,7 +233,8 @@ public class ApiReferenceStubber {
     // We cannot reliably create a stub that will have the same throwing
     // behavior for all VMs. We only create stubs for exceptions to allow them being present in
     // catch handlers. See b/b/258270051 for more information.
-    if (!isThrowable(libraryClass)) {
+    if (!isThrowable(libraryClass)
+        || appView.options().apiModelingOptions().stubNonThrowableClasses) {
       return;
     }
     if (appView
