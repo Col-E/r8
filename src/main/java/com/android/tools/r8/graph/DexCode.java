@@ -456,7 +456,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
   public String toString(DexEncodedMethod method, RetracerForCodePrinting retracer) {
     StringBuilder builder = new StringBuilder();
     if (method != null) {
-      builder.append(method.toSourceString()).append("\n");
+      builder.append(retracer.toSourceString(method.getReference())).append("\n");
     }
     builder.append("registers: ").append(registerSize);
     builder.append(", inputs: ").append(incomingRegisterSize);

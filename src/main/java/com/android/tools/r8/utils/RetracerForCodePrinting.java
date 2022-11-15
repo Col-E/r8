@@ -15,9 +15,8 @@ import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.RetraceClassElement;
 import com.android.tools.r8.retrace.RetraceElement;
-import com.android.tools.r8.retrace.RetraceFrameResult;
+import com.android.tools.r8.retrace.RetraceMethodResult;
 import com.android.tools.r8.retrace.RetraceResult;
-import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.RetracedFieldReference;
 import com.android.tools.r8.retrace.RetracedFieldReference.KnownRetracedFieldReference;
 import com.android.tools.r8.retrace.RetracedMethodReference;
@@ -25,7 +24,6 @@ import com.android.tools.r8.retrace.RetracedMethodReference.KnownRetracedMethodR
 import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.retrace.internal.MappingSupplierInternalImpl;
 import com.android.tools.r8.retrace.internal.RetracerImpl;
-import java.util.OptionalInt;
 import java.util.function.Function;
 
 public class RetracerForCodePrinting {
@@ -85,18 +83,17 @@ public class RetracerForCodePrinting {
     }
     // TODO(b/169953605): Use retracer.retraceMethod() when we have enough information.
     MethodReference methodReference = method.asMethodReference();
-    RetraceFrameResult retraceFrameResult =
+    RetraceMethodResult retraceMethodResult =
         retracer
             .retraceClass(methodReference.getHolderClass())
-            .lookupMethod(methodReference.getMethodName())
-            .narrowByPosition(RetraceStackTraceContext.empty(), OptionalInt.of(1));
+            .lookupMethod(methodReference.getMethodName());
     return joinAmbiguousResults(
-        retraceFrameResult,
+        retraceMethodResult,
         element -> {
           if (element.isUnknown()) {
-            return unknownToString.apply(element.getTopFrame());
+            return unknownToString.apply(element.getRetracedMethod());
           } else {
-            return knownToString.apply(element.getTopFrame().asKnown());
+            return knownToString.apply(element.getRetracedMethod().asKnown());
           }
         });
   }
@@ -107,7 +104,7 @@ public class RetracerForCodePrinting {
         DexMethod::toSourceString,
         knownRetracedMethodReference ->
             knownRetracedMethodReference.getMethodReference().toSourceString(),
-        unknown -> unknown.getHolderClass().getDescriptor() + " " + unknown.getMethodName());
+        unknown -> unknown.getHolderClass().getTypeName() + " " + unknown.getMethodName());
   }
 
   public String toDescriptor(DexMethod method) {
@@ -171,5 +168,9 @@ public class RetracerForCodePrinting {
     }
     return ((DexReference) item)
         .apply(this::toSourceString, this::toSourceString, this::toSourceString);
+  }
+
+  public boolean isEmpty() {
+    return this == EMPTY;
   }
 }

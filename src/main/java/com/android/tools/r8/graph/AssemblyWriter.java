@@ -152,6 +152,9 @@ public class AssemblyWriter extends DexByteCodeWriter {
     ps.println("# Method: '" + retracer.toSourceString(definition.getReference()) + "':");
     writeAnnotations(null, definition.annotations(), ps);
     ps.println("# " + definition.accessFlags);
+    if (!retracer.isEmpty()) {
+      ps.println("# Residual: '" + definition.getReference().toSourceString());
+    }
     ps.println("#");
     ps.println();
     if (!writeCode) {
