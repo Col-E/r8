@@ -58,21 +58,6 @@ public class FilesTest extends DesugaredLibraryTestBase {
           "tmp",
           "/",
           "true");
-  private static final String EXPECTED_RESULT_DESUGARING_FILE_SYSTEM_PLATFORM_CHANNEL =
-      StringUtils.lines(
-          "bytes written: 11",
-          "String written: Hello World",
-          "bytes read: 11",
-          "String read: Hello World",
-          "unsupported",
-          "unsupported",
-          "null",
-          "true",
-          "unsupported",
-          "j$.nio.file.attribute",
-          "tmp",
-          "/",
-          "true");
   private static final String EXPECTED_RESULT_PLATFORM_FILE_SYSTEM_DESUGARING =
       StringUtils.lines(
           "bytes written: 11",
@@ -136,9 +121,7 @@ public class FilesTest extends DesugaredLibraryTestBase {
           ? EXPECTED_RESULT_PLATFORM_FILE_SYSTEM_DESUGARING
           : EXPECTED_RESULT_PLATFORM_FILE_SYSTEM;
     }
-    return libraryDesugaringSpecification.hasNioChannelDesugaring(parameters)
-        ? EXPECTED_RESULT_DESUGARING_FILE_SYSTEM
-        : EXPECTED_RESULT_DESUGARING_FILE_SYSTEM_PLATFORM_CHANNEL;
+    return EXPECTED_RESULT_DESUGARING_FILE_SYSTEM;
   }
 
   @Test
