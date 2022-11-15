@@ -39,10 +39,10 @@ public class DesugarChannels {
     if (raw == null) {
       return null;
     }
-    if (raw instanceof SeekableByteChannel) {
+    if (AndroidVersionTest.is24OrAbove) {
       return raw;
     }
-    return new WrappedFileChannel(raw);
+    return WrappedFileChannel.wrap(raw);
   }
 
   /**
@@ -63,12 +63,15 @@ public class DesugarChannels {
 
     final FileChannel delegate;
 
-    private WrappedFileChannel(FileChannel delegate) {
-      this.delegate = delegate;
+    public static FileChannel wrap(FileChannel channel) {
+      if (channel instanceof WrappedFileChannel) {
+        return channel;
+      }
+      return new WrappedFileChannel(channel);
     }
 
-    FileChannel convert(FileChannel raw) {
-      return new WrappedFileChannel(raw);
+    private WrappedFileChannel(FileChannel delegate) {
+      this.delegate = delegate;
     }
 
     @Override
@@ -98,7 +101,7 @@ public class DesugarChannels {
 
     @Override
     public FileChannel position(long newPosition) throws IOException {
-      return convert(delegate.position(newPosition));
+      return WrappedFileChannel.wrap(delegate.position(newPosition));
     }
 
     @Override
@@ -108,7 +111,7 @@ public class DesugarChannels {
 
     @Override
     public FileChannel truncate(long size) throws IOException {
-      return convert(delegate.truncate(size));
+      return WrappedFileChannel.wrap(delegate.truncate(size));
     }
 
     @Override

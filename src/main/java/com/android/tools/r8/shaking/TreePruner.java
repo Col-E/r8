@@ -156,6 +156,11 @@ public class TreePruner {
     if (clazz == null) {
       return;
     }
+    if (clazz.isLibraryClass()) {
+      // TODO(b/259204069): Mitigation of invalid interface removal.
+      // It would be nice to integrate this with the api database.
+      return;
+    }
     for (DexType itf : clazz.interfaces) {
       if (interfaces.remove(itf) && interfaces.isEmpty()) {
         return;

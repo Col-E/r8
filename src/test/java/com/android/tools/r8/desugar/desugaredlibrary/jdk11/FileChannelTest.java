@@ -18,8 +18,10 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
@@ -38,6 +40,10 @@ public class FileChannelTest extends DesugaredLibraryTestBase {
 
   private static final String EXPECTED_RESULT =
       StringUtils.lines(
+          "true",
+          "true",
+          "true",
+          "true",
           "Hello World! ",
           "Hello World! ",
           "Bye bye. ",
@@ -89,9 +95,26 @@ public class FileChannelTest extends DesugaredLibraryTestBase {
   public static class TestClass {
 
     public static void main(String[] args) throws IOException {
+      instanceTest();
       fisTest();
       fosTest();
       fileChannelOpen();
+    }
+
+    /**
+     * These check look obvious but they are not on low Api level due to the interface injection.
+     */
+    @SuppressWarnings("all")
+    private static void instanceTest() throws IOException {
+      Path tmp = Files.createTempFile("tmp", ".txt");
+      System.out.println(
+          new FileInputStream(tmp.toFile()).getChannel() instanceof SeekableByteChannel);
+      System.out.println(
+          new FileOutputStream(tmp.toFile()).getChannel() instanceof SeekableByteChannel);
+      System.out.println(
+          new RandomAccessFile(tmp.toFile(), "rw").getChannel() instanceof SeekableByteChannel);
+      System.out.println(
+          Files.newByteChannel(tmp, StandardOpenOption.READ) instanceof SeekableByteChannel);
     }
 
     private static void fosTest() throws IOException {
