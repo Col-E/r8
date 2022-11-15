@@ -2255,9 +2255,15 @@ public class ToolHelper {
 
   public static ProcessResult runProcess(ProcessBuilder builder, PrintStream out)
       throws IOException {
-    out.println("In " + builder.directory());
+    boolean printCwd = builder.directory() != null;
+    if (printCwd) {
+      out.println("(cd " + builder.directory().toString() + "; ");
+    }
     String command = String.join(" ", builder.command());
     out.println(command);
+    if (printCwd) {
+      out.println(")");
+    }
     return drainProcessOutputStreams(builder.start(), command);
   }
 
