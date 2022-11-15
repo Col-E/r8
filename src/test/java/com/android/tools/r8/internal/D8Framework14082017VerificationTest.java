@@ -6,11 +6,10 @@ package com.android.tools.r8.internal;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.VmTestRunner;
-import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderThan;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Paths;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -20,7 +19,7 @@ public class D8Framework14082017VerificationTest extends CompilationTestBase {
   private static final String JAR = "third_party/framework/framework_14082017.jar";
 
   @Test
-  @IgnoreIfVmOlderThan(Version.V7_0_0)
+  @Ignore("b/259195080")
   public void verifyDebugBuild() throws Exception {
     runAndCheckVerification(
         D8Command.builder()
@@ -32,7 +31,7 @@ public class D8Framework14082017VerificationTest extends CompilationTestBase {
   }
 
   @Test
-  @IgnoreIfVmOlderThan(Version.V7_0_0)
+  @Ignore("b/259195080")
   public void verifyReleaseBuild() throws Exception {
     runAndCheckVerification(
         D8Command.builder()
