@@ -10,7 +10,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -55,22 +54,13 @@ public class InlinerMonitorEnterValuesThresholdTest extends TestBase {
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(classSubject, isPresent());
     assertThat(classSubject.mainMethod(), isPresent());
-    // On M we are seeing issues when inlining code with monitors which will trip up some art
-    // vms. See issue b/238399429 for details.
-    if (parameters.isCfRuntime()
-        || parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.M)) {
-      assertThat(classSubject.uniqueMethodWithOriginalName("m1"), isPresent());
-      assertThat(classSubject.uniqueMethodWithOriginalName("m1"), isPresent());
+    assertThat(classSubject.uniqueMethodWithOriginalName("m1"), not(isPresent()));
+    assertThat(classSubject.uniqueMethodWithOriginalName("m2"), not(isPresent()));
+    if (threshold == 2) {
       assertThat(classSubject.uniqueMethodWithOriginalName("m3"), isPresent());
     } else {
-      assertThat(classSubject.uniqueMethodWithOriginalName("m1"), not(isPresent()));
-      assertThat(classSubject.uniqueMethodWithOriginalName("m2"), not(isPresent()));
-      if (threshold == 2) {
-        assertThat(classSubject.uniqueMethodWithOriginalName("m3"), isPresent());
-      } else {
-        assert threshold == 3;
-        assertThat(classSubject.uniqueMethodWithOriginalName("m3"), not(isPresent()));
-      }
+      assert threshold == 3;
+      assertThat(classSubject.uniqueMethodWithOriginalName("m3"), not(isPresent()));
     }
   }
 
