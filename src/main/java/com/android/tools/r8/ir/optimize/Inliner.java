@@ -1022,6 +1022,15 @@ public class Inliner {
           InlineeWithReason inlinee =
               action.buildInliningIR(
                   appView, invoke, context, inliningIRProvider, lensCodeRewriter);
+
+          // b/238399429 Don't inline if we have monitor instructions in both
+          // inliner and inlinee if the Art runtime might mess up synchronization.
+          if (inlinee.code.metadata().mayHaveMonitorInstruction()
+              && code.metadata().mayHaveMonitorInstruction()
+              && appView.options().canHaveIssueWithInlinedMonitors()) {
+            continue;
+          }
+
           if (strategy.willExceedBudget(
               code, invoke, inlinee, block, whyAreYouNotInliningReporter)) {
             assert whyAreYouNotInliningReporter.unsetReasonHasBeenReportedFlag();
