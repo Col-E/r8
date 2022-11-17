@@ -36,9 +36,6 @@ public class ProtoNormalizationWithVirtualMethodCollisionTest extends TestBase {
   private final String[] EXPECTED =
       new String[] {"A::foo", "B", "A", "B::foo", "B", "A", "B::foo", "B", "A"};
 
-  private final String[] R8_EXPECTED =
-      new String[] {"A::foo", "B", "A", "A::foo", "B", "A", "B::foo", "B", "A"};
-
   @Test
   public void testRuntime() throws Exception {
     testForRuntime(parameters)
@@ -59,8 +56,7 @@ public class ProtoNormalizationWithVirtualMethodCollisionTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/258720808): We should not produce incorrect results.
-        .assertSuccessWithOutputLines(R8_EXPECTED)
+        .assertSuccessWithOutputLines(EXPECTED)
         .inspect(
             inspector -> {
               ClassSubject bClassSubject = inspector.clazz(B.class);
@@ -72,7 +68,7 @@ public class ProtoNormalizationWithVirtualMethodCollisionTest extends TestBase {
               TypeSubject bTypeSubject = bClassSubject.asTypeSubject();
               TypeSubject aTypeSubject = aClassSubject.asTypeSubject();
 
-              MethodSubject fooMethodSubject = aClassSubject.uniqueMethodWithOriginalName("foo");
+              MethodSubject fooMethodSubject = aClassSubject.uniqueMethodWithFinalName("foo$1");
               assertThat(fooMethodSubject, isPresent());
               assertThat(fooMethodSubject, hasParameters(aTypeSubject, bTypeSubject));
 

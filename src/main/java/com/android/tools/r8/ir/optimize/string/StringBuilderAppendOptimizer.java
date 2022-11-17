@@ -608,7 +608,7 @@ public class StringBuilderAppendOptimizer {
       }
 
       @Override
-      protected List<Void> getFinalStateForRoots(Collection<StringBuilderNode> roots) {
+      protected List<Void> getFinalStateForRoots(Collection<? extends StringBuilderNode> roots) {
         return null;
       }
 

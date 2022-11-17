@@ -4,10 +4,6 @@
 
 package com.android.tools.r8.optimize.proto;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThrows;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
@@ -42,24 +38,17 @@ public class ProtoNormalizationDuplicateMethodTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    // TODO(b/258720808): We should not cause collision with an existing method.
-    assertThrows(
-        CompilationFailedException.class,
-        () -> {
-          testForR8(parameters.getBackend())
-              .addInnerClasses(getClass())
-              .setMinApi(parameters.getApiLevel())
-              .addKeepMainRule(Main.class)
-              .addKeepMethodRules(
-                  Reference.methodFromMethod(
-                      B.class.getDeclaredMethod("foo$1", int.class, int.class, String.class)))
-              .enableInliningAnnotations()
-              .enableNoHorizontalClassMergingAnnotations()
-              .compileWithExpectedDiagnostics(
-                  diagnostics ->
-                      diagnostics.assertErrorMessageThatMatches(
-                          containsString("Duplicate method")));
-        });
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Main.class)
+        .addKeepMethodRules(
+            Reference.methodFromMethod(
+                B.class.getDeclaredMethod("foo$1", int.class, int.class, String.class)))
+        .enableInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   @NoHorizontalClassMerging

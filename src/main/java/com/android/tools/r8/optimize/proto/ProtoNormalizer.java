@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodSignature;
@@ -15,31 +16,35 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
-import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepMethodInfo;
+import com.android.tools.r8.utils.DepthFirstSearchWorkListBase.StatefulDepthFirstSearchWorkList;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.DexMethodSignatureSet;
 import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
 
 public class ProtoNormalizer {
 
@@ -60,47 +65,93 @@ public class ProtoNormalizer {
   private void run(ExecutorService executorService) throws ExecutionException {
     GlobalReservationState globalReservationState = computeGlobalReservationState(executorService);
 
-    // TODO(b/173398086): This uses a single LocalReservationState for the entire program. This
-    //  should process the strongly connected program components in parallel, each with their own
-    //  LocalReservationState.
-    LocalReservationState localReservationState = new LocalReservationState();
+    // To ensure we do not add collisions of method signatures when creating the new method
+    // signatures we keep a map of methods in the type hierarchy, similar to what we do for
+    // minification.
     ProtoNormalizerGraphLens.Builder lensBuilder = ProtoNormalizerGraphLens.builder(appView);
-    for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {
-      Map<DexMethodSignature, DexMethodSignature> newInstanceInitializerSignatures =
-          computeNewInstanceInitializerSignatures(
-              clazz, localReservationState, globalReservationState);
-      clazz
-          .getMethodCollection()
-          .replaceMethods(
-              method -> {
-                DexMethodSignature methodSignature = method.getSignature();
-                DexMethodSignature newMethodSignature =
-                    method.isInstanceInitializer()
-                        ? newInstanceInitializerSignatures.get(methodSignature)
-                        : localReservationState.getAndReserveNewMethodSignature(
-                            methodSignature, dexItemFactory, globalReservationState);
-                if (methodSignature.equals(newMethodSignature)) {
-                  return method;
-                }
-                DexMethod newMethodReference = newMethodSignature.withHolder(clazz, dexItemFactory);
-                RewrittenPrototypeDescription prototypeChanges =
-                    lensBuilder.recordNewMethodSignature(method, newMethodReference);
-                // TODO(b/195112263): Assert that the method does not have any optimization info.
-                //  If/when enabling proto normalization after the final round of tree shaking, this
-                //  should simply clear the optimization info, or replace it by a
-                //  ThrowingMethodOptimizationInfo since we should never use the optimization info
-                //  after this point.
-                return method.toTypeSubstitutedMethod(
-                    newMethodReference,
-                    builder -> {
-                      if (!prototypeChanges.isEmpty()) {
-                        builder
-                            .apply(prototypeChanges.createParameterAnnotationsRemover(method))
-                            .setGenericSignature(MethodTypeSignature.noSignature());
-                      }
-                    });
-              });
-    }
+    new StatefulDepthFirstSearchWorkList<DexClass, LocalReservationState, Void>() {
+
+      @Override
+      @SuppressWarnings("ReturnValueIgnored")
+      protected TraversalContinuation<Void, LocalReservationState> process(
+          DFSNodeWithState<DexClass, LocalReservationState> node,
+          Function<DexClass, DFSNodeWithState<DexClass, LocalReservationState>> childNodeConsumer) {
+        DexClass clazz = node.getNode();
+        node.setState(new LocalReservationState());
+        if (clazz.getSuperType() != null) {
+          appView
+              .contextIndependentDefinitionForWithResolutionResult(clazz.getSuperType())
+              .forEachClassResolutionResult(childNodeConsumer::apply);
+        }
+        return TraversalContinuation.doContinue();
+      }
+
+      @Override
+      protected TraversalContinuation<Void, LocalReservationState> joiner(
+          DFSNodeWithState<DexClass, LocalReservationState> node,
+          List<DFSNodeWithState<DexClass, LocalReservationState>> childStates) {
+        DexClass clazz = node.getNode();
+        assert childStates.size() >= 1
+            || clazz.getType() == dexItemFactory.objectType
+            || clazz.hasMissingSuperType(appView.appInfo());
+        // We can have multiple child states if there are multiple definitions of a class.
+        assert childStates.size() <= 1 || options.loadAllClassDefinitions;
+        LocalReservationState localReservationState = node.getState();
+        if (!childStates.isEmpty()) {
+          localReservationState.linkParent(childStates.get(0).getState());
+        }
+        Map<DexMethodSignature, DexMethodSignature> newInstanceInitializerSignatures =
+            clazz.isProgramClass()
+                ? computeNewInstanceInitializerSignatures(
+                    clazz.asProgramClass(), localReservationState, globalReservationState)
+                : null;
+        clazz
+            .getMethodCollection()
+            .replaceMethods(
+                method -> {
+                  DexMethodSignature methodSignature = method.getSignature();
+                  if (!clazz.isProgramClass()) {
+                    // We cannot change the signature of the method. Record it to ensure we do not
+                    // change a program signature in a sub class to override this.
+                    localReservationState.recordNoSignatureChange(methodSignature, dexItemFactory);
+                    return method;
+                  } else {
+                    assert newInstanceInitializerSignatures != null;
+                    DexMethodSignature newMethodSignature =
+                        method.isInstanceInitializer()
+                            ? newInstanceInitializerSignatures.get(methodSignature)
+                            : localReservationState.getAndReserveNewMethodSignature(
+                                methodSignature, dexItemFactory, globalReservationState);
+                    if (methodSignature.equals(newMethodSignature)) {
+                      // This method could not be optimized, record it as identity mapping to ensure
+                      // we keep it going forward.
+                      localReservationState.recordNoSignatureChange(
+                          methodSignature, dexItemFactory);
+                      return method;
+                    }
+                    DexMethod newMethodReference =
+                        newMethodSignature.withHolder(clazz.asProgramClass(), dexItemFactory);
+                    RewrittenPrototypeDescription prototypeChanges =
+                        lensBuilder.recordNewMethodSignature(method, newMethodReference);
+                    // TODO(b/195112263): Assert that the method does not have optimization info.
+                    // If/when enabling proto normalization after the final round of tree shaking,
+                    // this should simply clear the optimization info, or replace it by a
+                    // ThrowingMethodOptimizationInfo since we should never use the optimization
+                    // info after this point.
+                    return method.toTypeSubstitutedMethod(
+                        newMethodReference,
+                        builder -> {
+                          if (!prototypeChanges.isEmpty()) {
+                            builder
+                                .apply(prototypeChanges.createParameterAnnotationsRemover(method))
+                                .setGenericSignature(MethodTypeSignature.noSignature());
+                          }
+                        });
+                  }
+                });
+        return TraversalContinuation.doContinue(localReservationState);
+      }
+    }.run(appView.appInfo().classesWithDeterministicOrder());
 
     if (!lensBuilder.isEmpty()) {
       appView.rewriteWithLens(lensBuilder.build());
@@ -331,15 +382,13 @@ public class ProtoNormalizer {
     if (appInfo.isBootstrapMethod(method)) {
       return true;
     }
-    ObjectAllocationInfoCollection objectAllocationInfoCollection =
-        appInfo.getObjectAllocationInfoCollection();
-    if (method.getHolder().isInterface()
+    // As long as we do not consider interface method and overrides as optimizable we can change
+    // method signatures in a top-down traversal.
+    return method.getHolder().isInterface()
         && method.getDefinition().isAbstract()
-        && objectAllocationInfoCollection.isImmediateInterfaceOfInstantiatedLambda(
-            method.getHolder())) {
-      return true;
-    }
-    return false;
+        && appInfo
+            .getObjectAllocationInfoCollection()
+            .isImmediateInterfaceOfInstantiatedLambda(method.getHolder());
   }
 
   static class GlobalReservationState {
@@ -389,8 +438,10 @@ public class ProtoNormalizer {
 
   static class LocalReservationState {
 
-    MutableBidirectionalOneToOneMap<DexMethodSignature, DexMethodSignature> newMethodSignatures =
-        new BidirectionalOneToOneHashMap<>();
+    private final List<LocalReservationState> parents = new ArrayList<>(2);
+
+    private final MutableBidirectionalOneToOneMap<DexMethodSignature, DexMethodSignature>
+        newMethodSignatures = new BidirectionalOneToOneHashMap<>();
 
     DexMethodSignature getNewMethodSignature(
         DexMethodSignature methodSignature,
@@ -414,33 +465,68 @@ public class ProtoNormalizer {
         GlobalReservationState globalReservationState,
         boolean reserve) {
       if (globalReservationState.isUnoptimizable(methodSignature)) {
-        assert !newMethodSignatures.containsKey(methodSignature);
+        assert getReserved(methodSignature) == null
+            || methodSignature.equals(getReserved(methodSignature));
         return methodSignature;
       }
-      DexMethodSignature reservedSignature = newMethodSignatures.get(methodSignature);
+      DexMethodSignature reservedSignature = getReserved(methodSignature);
       if (reservedSignature != null) {
-        assert reservedSignature
-            .getParameters()
-            .equals(globalReservationState.getReservedParameters(methodSignature));
         return reservedSignature;
       }
       DexTypeList reservedParameters =
           globalReservationState.getReservedParameters(methodSignature);
       DexMethodSignature newMethodSignature =
           methodSignature.withParameters(reservedParameters, dexItemFactory);
-      if (newMethodSignatures.containsValue(newMethodSignature)) {
+      if (isDestinationTaken(newMethodSignature)) {
         int index = 1;
         String newMethodBaseName = methodSignature.getName().toString();
         do {
           DexString newMethodName = dexItemFactory.createString(newMethodBaseName + "$" + index);
           newMethodSignature = newMethodSignature.withName(newMethodName);
           index++;
-        } while (newMethodSignatures.containsValue(newMethodSignature));
+        } while (isDestinationTaken(newMethodSignature));
       }
       if (reserve) {
         newMethodSignatures.put(methodSignature, newMethodSignature);
       }
       return newMethodSignature;
+    }
+
+    private void linkParent(LocalReservationState parent) {
+      this.parents.add(parent);
+    }
+
+    private DexMethodSignature getReserved(DexMethodSignature signature) {
+      WorkList<LocalReservationState> workList = WorkList.newIdentityWorkList(this);
+      while (workList.hasNext()) {
+        LocalReservationState localReservationState = workList.next();
+        DexMethodSignature reservedSignature =
+            localReservationState.newMethodSignatures.get(signature);
+        if (reservedSignature != null) {
+          return reservedSignature;
+        }
+        workList.addIfNotSeen(localReservationState.parents);
+      }
+      return null;
+    }
+
+    private boolean isDestinationTaken(DexMethodSignature signature) {
+      WorkList<LocalReservationState> workList = WorkList.newIdentityWorkList(this);
+      while (workList.hasNext()) {
+        LocalReservationState localReservationState = workList.next();
+        if (localReservationState.newMethodSignatures.containsValue(signature)) {
+          return true;
+        }
+        workList.addIfNotSeen(localReservationState.parents);
+      }
+      return false;
+    }
+
+    public void recordNoSignatureChange(
+        DexMethodSignature methodSignature, DexItemFactory factory) {
+      if (!methodSignature.getName().equals(factory.constructorMethodName)) {
+        newMethodSignatures.put(methodSignature, methodSignature);
+      }
     }
   }
 }

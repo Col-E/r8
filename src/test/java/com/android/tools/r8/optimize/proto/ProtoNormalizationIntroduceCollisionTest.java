@@ -19,7 +19,6 @@ import org.junit.runners.Parameterized.Parameters;
 public class ProtoNormalizationIntroduceCollisionTest extends TestBase {
 
   private final String[] EXPECTED = new String[] {"Base::foo-42Calling B::foo1337"};
-  private final String[] R8_EXPECTED = new String[] {"Sub::foo-Calling B::foo421337"};
 
   @Parameter() public TestParameters parameters;
 
@@ -46,8 +45,7 @@ public class ProtoNormalizationIntroduceCollisionTest extends TestBase {
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/258720808): We should produce the expected result.
-        .assertSuccessWithOutputLines(R8_EXPECTED);
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   public static class Base {

@@ -4,10 +4,6 @@
 
 package com.android.tools.r8.optimize.proto;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThrows;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestBase;
@@ -44,26 +40,19 @@ public class ProtoNormalizationDestinationOverrideLibraryTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    // TODO(b/258720808): We should not fail compilation.
-    assertThrows(
-        CompilationFailedException.class,
-        () ->
-            testForR8(parameters.getBackend())
-                .addProgramClasses(Main.class, ProgramClass.class, X.class)
-                .addDefaultRuntimeLibrary(parameters)
-                .addLibraryClasses(LibraryClass.class)
-                .setMinApi(parameters.getApiLevel())
-                .addKeepMainRule(Main.class)
-                .addDontObfuscate()
-                .enableInliningAnnotations()
-                .enableNoMethodStaticizingAnnotations()
-                .compileWithExpectedDiagnostics(
-                    diagnostics -> {
-                      diagnostics.assertErrorMessageThatMatches(
-                          containsString(
-                              "went from not overriding a library method to overriding a library"
-                                  + " method"));
-                    }));
+    testForR8(parameters.getBackend())
+        .addProgramClasses(Main.class, ProgramClass.class, X.class)
+        .addDefaultRuntimeLibrary(parameters)
+        .addLibraryClasses(LibraryClass.class)
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Main.class)
+        .addDontObfuscate()
+        .enableInliningAnnotations()
+        .enableNoMethodStaticizingAnnotations()
+        .compile()
+        .addBootClasspathClasses(LibraryClass.class)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   public static class LibraryClass {
