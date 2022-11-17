@@ -1135,7 +1135,8 @@ public class CodeRewriter {
       // behavior of the default block, or if the switch case is unreachable.
       if (switchCaseAnalyzer.switchCaseIsUnreachable(theSwitch, switchAbstractValue, i)) {
         eliminator.markSwitchCaseForRemoval(i);
-      } else if (behavioralSubsumption.isSubsumedBy(targetBlock, defaultTarget)) {
+      } else if (behavioralSubsumption.isSubsumedBy(
+          theSwitch.value(), targetBlock, defaultTarget)) {
         eliminator.markSwitchCaseForRemoval(i);
         hasSwitchCaseToDefaultRewrite = true;
       }
@@ -2642,7 +2643,8 @@ public class CodeRewriter {
 
         // Unable to determine which branch will be taken. Check if the true target can safely be
         // rewritten to the false target.
-        if (behavioralSubsumption.isSubsumedBy(theIf.getTrueTarget(), theIf.fallthroughBlock())) {
+        if (behavioralSubsumption.isSubsumedBy(
+            theIf.inValues().get(0), theIf.getTrueTarget(), theIf.fallthroughBlock())) {
           simplifyIfWithKnownCondition(code, block, theIf, theIf.fallthroughBlock());
           simplified = true;
         }

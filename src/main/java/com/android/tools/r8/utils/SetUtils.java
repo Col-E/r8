@@ -16,6 +16,9 @@ import java.util.function.Function;
 public class SetUtils {
 
   public static <T> boolean containsAnyOf(Set<T> set, Iterable<T> elements) {
+    if (set.isEmpty()) {
+      return false;
+    }
     for (T element : elements) {
       if (set.contains(element)) {
         return true;

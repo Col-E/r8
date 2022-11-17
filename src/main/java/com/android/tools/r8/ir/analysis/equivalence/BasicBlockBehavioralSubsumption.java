@@ -4,12 +4,10 @@
 
 package com.android.tools.r8.ir.analysis.equivalence;
 
-import static com.google.common.base.Predicates.not;
-import static com.google.common.base.Predicates.or;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -23,8 +21,10 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.WorkList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * Analysis that can be used to determine if the behavior of one basic block is subsumed by the
@@ -45,19 +45,59 @@ public class BasicBlockBehavioralSubsumption {
     this.context = code.context();
   }
 
-  public boolean isSubsumedBy(BasicBlock block, BasicBlock other) {
-    return isSubsumedBy(block.iterator(), other.iterator(), null);
+  public boolean isSubsumedBy(Value conditionValue, BasicBlock block, BasicBlock other) {
+    return isSubsumedBy(conditionValue, block.iterator(), other.iterator(), null);
+  }
+
+  private boolean dependsOnConditionValue(Value conditionValue, Instruction instruction) {
+    if (instruction.isAssume()) {
+      // Assume instructions are just virtual alias instructions so they are not materializing uses.
+      return false;
+    }
+    WorkList<Assume> assumptionUses = null;
+    for (Value value : instruction.inValues()) {
+      Assume assumption = value.isPhi() ? null : value.getDefinition().asAssume();
+      if (assumption != null) {
+        if (assumptionUses == null) {
+          assumptionUses = WorkList.newIdentityWorkList();
+        }
+        assumptionUses.addIfNotSeen(assumption);
+      }
+    }
+    if (assumptionUses != null) {
+      while (assumptionUses.hasNext()) {
+        Assume next = assumptionUses.next();
+        for (Value assumptionArgument : next.inValues()) {
+          if (assumptionArgument == conditionValue) {
+            return true;
+          }
+          Assume indirectAssumption =
+              assumptionArgument.isPhi() ? null : assumptionArgument.getDefinition().asAssume();
+          if (indirectAssumption != null) {
+            assumptionUses.addIfNotSeen(indirectAssumption);
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  private Instruction skipNonDependentInstructionsUntil(
+      InstructionIterator iterator, Value conditionValue, Predicate<Instruction> predicate) {
+    return iterator.nextUntil(
+        predicate.or(i -> i.isJumpInstruction() || dependsOnConditionValue(conditionValue, i)));
   }
 
   private boolean isSubsumedBy(
-      InstructionIterator iterator, InstructionIterator otherIterator, Set<BasicBlock> visited) {
+      Value conditionValue,
+      InstructionIterator iterator,
+      InstructionIterator otherIterator,
+      Set<BasicBlock> visited) {
     // Skip over block-local instructions (i.e., instructions that define values that are not used
     // outside the block itself) that do not have side effects.
     Instruction instruction =
-        iterator.nextUntil(
-            or(
-                not(this::isBlockLocalInstructionWithoutSideEffects),
-                Instruction::isJumpInstruction));
+        skipNonDependentInstructionsUntil(
+            iterator, conditionValue, this::isNonLocalDefinitionOrSideEffecting);
 
     // If the instruction defines a value with non-local usages, then we would need a dominator
     // analysis to verify that all these non-local usages can in fact be replaced by a value
@@ -68,8 +108,8 @@ public class BasicBlockBehavioralSubsumption {
 
     // Skip over non-throwing instructions in the other block.
     Instruction otherInstruction =
-        otherIterator.nextUntil(
-            or(this::instructionMayHaveSideEffects, Instruction::isJumpInstruction));
+        skipNonDependentInstructionsUntil(
+            otherIterator, conditionValue, this::instructionMayHaveSideEffects);
     assert otherInstruction != null;
 
     if (instruction.isGoto()) {
@@ -101,7 +141,7 @@ public class BasicBlockBehavioralSubsumption {
         visited = SetUtils.newIdentityHashSet(instruction.getBlock());
       }
       if (visited.add(targetBlock)) {
-        return isSubsumedBy(targetBlock.iterator(), otherIterator, visited);
+        return isSubsumedBy(conditionValue, targetBlock.iterator(), otherIterator, visited);
       }
       // Guard against cycles in the control flow graph.
       return false;
@@ -125,8 +165,8 @@ public class BasicBlockBehavioralSubsumption {
 
       otherIterator = targetBlock.iterator();
       otherInstruction =
-          otherIterator.nextUntil(
-              or(this::instructionMayHaveSideEffects, Instruction::isJumpInstruction));
+          skipNonDependentInstructionsUntil(
+              otherIterator, conditionValue, this::instructionMayHaveSideEffects);
 
       // If following the first goto instruction leads to another goto instruction, then we need to
       // keep track of the set of visited blocks to guard against cycles in the control flow graph.
@@ -150,7 +190,7 @@ public class BasicBlockBehavioralSubsumption {
             || otherSingleTarget.getDefinition().getOptimizationInfo().mayHaveSideEffects()) {
           return false;
         }
-        return isSubsumedBy(iterator, otherIterator, visited);
+        return isSubsumedBy(conditionValue, iterator, otherIterator, visited);
       }
       return false;
     }
@@ -172,8 +212,8 @@ public class BasicBlockBehavioralSubsumption {
     return false;
   }
 
-  private boolean isBlockLocalInstructionWithoutSideEffects(Instruction instruction) {
-    return definesBlockLocalValue(instruction) && !instructionMayHaveSideEffects(instruction);
+  private boolean isNonLocalDefinitionOrSideEffecting(Instruction instruction) {
+    return !definesBlockLocalValue(instruction) || instructionMayHaveSideEffects(instruction);
   }
 
   private boolean definesBlockLocalValue(Instruction instruction) {
