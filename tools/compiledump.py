@@ -404,6 +404,13 @@ def is_hash(version):
   return len(version) == 40
 
 def run1(out, args, otherargs, jdkhome=None):
+  jvmargs = []
+  compilerargs = []
+  for arg in otherargs:
+    if arg.startswith('-D'):
+      jvmargs.append(arg)
+    else:
+      compilerargs.append(arg)
   with utils.TempDir() as temp:
     if out:
       temp = out
@@ -429,6 +436,7 @@ def run1(out, args, otherargs, jdkhome=None):
     prepare_r8_wrapper(jar, temp, jdkhome)
     prepare_d8_wrapper(jar, temp, jdkhome)
     cmd = [jdk.GetJavaExecutable(jdkhome)]
+    cmd.extend(jvmargs)
     if args.debug_agent:
       if not args.nolib:
         print("WARNING: Running debugging agent on r8lib is questionable...")
@@ -500,7 +508,7 @@ def run1(out, args, otherargs, jdkhome=None):
       cmd.extend(['--enable-missing-library-api-modeling'])
     if args.threads:
       cmd.extend(['--threads', args.threads])
-    cmd.extend(otherargs)
+    cmd.extend(compilerargs)
     utils.PrintCmd(cmd)
     try:
       print(subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode('utf-8'))
