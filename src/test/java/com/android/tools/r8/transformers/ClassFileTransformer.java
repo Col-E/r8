@@ -1239,25 +1239,47 @@ public class ClassFileTransformer {
     return setPredictiveLineNumbering(predicate, 0);
   }
 
+  public interface LineTranslation {
+    int translate(MethodContext context, int line);
+  }
+
+  private static class IncrementingLineNumbers implements LineTranslation {
+    private final MethodPredicate predicate;
+    private final int startingLineNumber;
+    private final Map<MethodReference, Integer> lines = new HashMap<>();
+
+    public IncrementingLineNumbers(MethodPredicate predicate, int startingLineNumber) {
+      this.predicate = predicate;
+      this.startingLineNumber = startingLineNumber;
+    }
+
+    @Override
+    public int translate(MethodContext context, int line) {
+      if (MethodPredicate.testContext(predicate, context)) {
+        MethodReference method = context.getReference();
+        int nextLine = lines.getOrDefault(method, startingLineNumber);
+        // Increment the actual line content by 100 so that each one is clearly distinct
+        // from a PC value for any of the methods.
+        lines.put(method, nextLine + 100);
+        return nextLine;
+      }
+      return line;
+    }
+  }
+
   public ClassFileTransformer setPredictiveLineNumbering(
       MethodPredicate predicate, int startingLineNumber) {
+    return setPredictiveLineNumbering(new IncrementingLineNumbers(predicate, startingLineNumber));
+  }
+
+  public ClassFileTransformer setPredictiveLineNumbering(LineTranslation translation) {
     return addMethodTransformer(
         new MethodTransformer() {
-          private final Map<MethodReference, Integer> lines = new HashMap<>();
-
           @Override
           public void visitLineNumber(int line, Label start) {
-            if (MethodPredicate.testContext(predicate, getContext())) {
-              Integer nextLine =
-                  lines.getOrDefault(getContext().getReference(), startingLineNumber);
-              if (nextLine > 0) {
-                super.visitLineNumber(nextLine, start);
-              }
-              // Increment the actual line content by 100 so that each one is clearly distinct
-              // from a PC value for any of the methods.
-              lines.put(getContext().getReference(), nextLine + 100);
-            } else {
-              super.visitLineNumber(line, start);
+            int newLine = translation.translate(getContext(), line);
+            if (newLine >= 0) {
+              super.visitLineNumber(newLine, start);
             }
           }
         });

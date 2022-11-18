@@ -260,7 +260,7 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
-  public String disassembleUsingJavap(boolean verbose) throws Exception {
+  public String javap(boolean verbose) throws Exception {
     throw new Unreachable("Cannot disassembly an absent class");
   }
 

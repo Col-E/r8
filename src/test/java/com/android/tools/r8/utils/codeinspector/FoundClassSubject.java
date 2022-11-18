@@ -627,7 +627,7 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
-  public String disassembleUsingJavap(boolean verbose) throws Exception {
+  public String javap(boolean verbose) throws Exception {
     assert dexClass.origin != null;
     List<String> command = new ArrayList<>();
     command.add(
@@ -644,7 +644,6 @@ public class FoundClassSubject extends ClassSubject {
     command.add(parts.get(1).replace(".class", ""));
     ProcessResult processResult = ToolHelper.runProcess(new ProcessBuilder(command));
     assert processResult.exitCode == 0;
-    System.out.println(processResult.stdout);
     return processResult.stdout;
   }
 

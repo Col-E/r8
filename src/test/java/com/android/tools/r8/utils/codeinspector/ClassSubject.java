@@ -264,7 +264,11 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
 
   public abstract ClassNamingForNameMapper getNaming();
 
-  public abstract String disassembleUsingJavap(boolean verbose) throws Exception;
+  public abstract String javap(boolean verbose) throws Exception;
+
+  public void disassembleUsingJavap(boolean verbose) throws Exception {
+    System.out.println(javap(true));
+  }
 
   public abstract String asmify(TemporaryFolder tempFolder, boolean debug) throws Exception;
 }
