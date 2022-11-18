@@ -46,6 +46,7 @@ public class DumpOptions {
   private static final String ENABLE_MISSING_LIBRARY_API_MODELING =
       "enable-missing-library-api-modeling";
   private static final String ANDROID_PLATFORM_BUILD = "android-platform-build";
+  private static final String TRACE_REFERENCES_CONSUMER = "trace_references_consumer";
 
   private final Tool tool;
   private final CompilationMode compilationMode;
@@ -70,6 +71,9 @@ public class DumpOptions {
 
   private final Map<String, String> systemProperties;
 
+  // TraceReferences only.
+  private final String traceReferencesConsumer;
+
   // Reporting only.
   private final boolean dumpInputToFile;
 
@@ -93,7 +97,8 @@ public class DumpOptions {
       boolean enableMissingLibraryApiModeling,
       boolean isAndroidPlatformBuild,
       Map<String, String> systemProperties,
-      boolean dumpInputToFile) {
+      boolean dumpInputToFile,
+      String traceReferencesConsumer) {
     this.tool = tool;
     this.compilationMode = compilationMode;
     this.minApi = minAPI;
@@ -114,6 +119,7 @@ public class DumpOptions {
     this.isAndroidPlatformBuild = isAndroidPlatformBuild;
     this.systemProperties = systemProperties;
     this.dumpInputToFile = dumpInputToFile;
+    this.traceReferencesConsumer = traceReferencesConsumer;
   }
 
   public String getBuildPropertiesFileContent() {
@@ -126,29 +132,33 @@ public class DumpOptions {
   public Map<String, String> getBuildProperties() {
     Map<String, String> buildProperties = new LinkedHashMap<>();
     addDumpEntry(buildProperties, TOOL_KEY, tool.name());
-    // We keep the following values for backward compatibility.
-    addDumpEntry(
-        buildProperties,
-        MODE_KEY,
-        compilationMode == CompilationMode.DEBUG ? DEBUG_MODE_VALUE : RELEASE_MODE_VALUE);
-    addDumpEntry(buildProperties, MIN_API_KEY, minApi);
-    addDumpEntry(
-        buildProperties, OPTIMIZE_MULTIDEX_FOR_LINEAR_ALLOC_KEY, optimizeMultidexForLinearAlloc);
     if (threadCount != ThreadUtils.NOT_SPECIFIED) {
       addDumpEntry(buildProperties, THREAD_COUNT_KEY, threadCount);
     }
-    addDumpEntry(buildProperties, DESUGAR_STATE_KEY, desugarState);
-    addDumpEntry(
-        buildProperties, ENABLE_MISSING_LIBRARY_API_MODELING, enableMissingLibraryApiModeling);
-    if (isAndroidPlatformBuild) {
-      addDumpEntry(buildProperties, ANDROID_PLATFORM_BUILD, isAndroidPlatformBuild);
+    if (tool != Tool.TraceReferences) {
+      // We keep the following values for backward compatibility.
+      addDumpEntry(
+          buildProperties,
+          MODE_KEY,
+          compilationMode == CompilationMode.DEBUG ? DEBUG_MODE_VALUE : RELEASE_MODE_VALUE);
+      addDumpEntry(buildProperties, MIN_API_KEY, minApi);
+      addDumpEntry(
+          buildProperties, OPTIMIZE_MULTIDEX_FOR_LINEAR_ALLOC_KEY, optimizeMultidexForLinearAlloc);
+      addDumpEntry(buildProperties, DESUGAR_STATE_KEY, desugarState);
+      addDumpEntry(
+          buildProperties, ENABLE_MISSING_LIBRARY_API_MODELING, enableMissingLibraryApiModeling);
+      if (isAndroidPlatformBuild) {
+        addDumpEntry(buildProperties, ANDROID_PLATFORM_BUILD, isAndroidPlatformBuild);
+      }
+      addOptionalDumpEntry(buildProperties, INTERMEDIATE_KEY, intermediate);
+      addOptionalDumpEntry(buildProperties, INCLUDE_DATA_RESOURCES_KEY, includeDataResources);
+      addOptionalDumpEntry(buildProperties, TREE_SHAKING_KEY, treeShaking);
+      addOptionalDumpEntry(
+          buildProperties, FORCE_PROGUARD_COMPATIBILITY_KEY, forceProguardCompatibility);
+    } else {
+      addDumpEntry(buildProperties, TRACE_REFERENCES_CONSUMER, traceReferencesConsumer);
     }
-    addOptionalDumpEntry(buildProperties, INTERMEDIATE_KEY, intermediate);
-    addOptionalDumpEntry(buildProperties, INCLUDE_DATA_RESOURCES_KEY, includeDataResources);
-    addOptionalDumpEntry(buildProperties, TREE_SHAKING_KEY, treeShaking);
     addOptionalDumpEntry(buildProperties, MINIFICATION_KEY, minification);
-    addOptionalDumpEntry(
-        buildProperties, FORCE_PROGUARD_COMPATIBILITY_KEY, forceProguardCompatibility);
     ArrayList<String> sortedKeys = new ArrayList<>(systemProperties.keySet());
     sortedKeys.sort(String::compareTo);
     sortedKeys.forEach(
@@ -211,6 +221,9 @@ public class DumpOptions {
         return;
       case FORCE_PROGUARD_COMPATIBILITY_KEY:
         builder.setForceProguardCompatibility(Boolean.parseBoolean(value));
+        return;
+      case TRACE_REFERENCES_CONSUMER:
+        builder.setTraceReferencesConsumer(value);
         return;
       default:
         if (key.startsWith(SYSTEM_PROPERTY_PREFIX)) {
@@ -311,6 +324,8 @@ public class DumpOptions {
     private boolean enableMissingLibraryApiModeling = false;
     private boolean isAndroidPlatformBuild = false;
 
+    private String traceReferencesConsumer = null;
+
     private Map<String, String> systemProperties = new HashMap<>();
 
     // Reporting only.
@@ -320,6 +335,11 @@ public class DumpOptions {
 
     public Builder setTool(Tool tool) {
       this.tool = tool;
+      return this;
+    }
+
+    public Builder setTraceReferencesConsumer(String traceReferencesConsumer) {
+      this.traceReferencesConsumer = traceReferencesConsumer;
       return this;
     }
 
@@ -456,7 +476,8 @@ public class DumpOptions {
           enableMissingLibraryApiModeling,
           isAndroidPlatformBuild,
           systemProperties,
-          dumpInputToFile);
+          dumpInputToFile,
+          traceReferencesConsumer);
     }
   }
 }

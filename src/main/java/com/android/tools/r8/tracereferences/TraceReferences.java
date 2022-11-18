@@ -28,10 +28,7 @@ import java.util.function.Consumer;
 public class TraceReferences {
 
   public static void run(TraceReferencesCommand command) throws CompilationFailedException {
-    InternalOptions options = new InternalOptions();
-    options.loadAllClassDefinitions = true;
-    ExceptionUtils.withCompilationHandler(
-        command.getReporter(), () -> runInternal(command, options));
+    runForTesting(command, command.getInternalOptions());
   }
 
   private static void forEachDescriptor(ProgramResourceProvider provider, Consumer<String> consumer)

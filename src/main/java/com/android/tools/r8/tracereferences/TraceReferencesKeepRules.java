@@ -40,6 +40,10 @@ public class TraceReferencesKeepRules extends TraceReferencesConsumer.Forwarding
     this.allowObfuscation = allowObfuscation;
   }
 
+  public boolean allowObfuscation() {
+    return allowObfuscation;
+  }
+
   /**
    * Builder for constructing a {@link TraceReferencesKeepRules].
    *

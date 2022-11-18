@@ -33,7 +33,8 @@ public class Marker {
     D8,
     R8,
     L8,
-    Relocator;
+    Relocator,
+    TraceReferences;
 
     public static Tool[] valuesR8andD8() {
       return new Tool[] {Tool.D8, Tool.R8};

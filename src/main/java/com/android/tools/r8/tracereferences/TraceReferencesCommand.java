@@ -18,12 +18,15 @@ import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.dex.Marker.Tool;
+import com.android.tools.r8.dump.DumpOptions;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.ExceptionUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
@@ -395,5 +398,22 @@ public class TraceReferencesCommand {
 
   TraceReferencesConsumer getConsumer() {
     return consumer;
+  }
+
+  InternalOptions getInternalOptions() {
+    InternalOptions options = new InternalOptions();
+    options.loadAllClassDefinitions = true;
+    TraceReferencesConsumer consumer = getConsumer();
+    DumpOptions.Builder builder =
+        DumpOptions.builder(Tool.TraceReferences)
+            .readCurrentSystemProperties()
+            // The behavior of TraceReferences greatly differs depending if we have a CheckConsumer
+            // or a KeepRules consumer. We log the consumer type and obfuscation if relevant.
+            .setTraceReferencesConsumer(consumer.getClass().getName());
+    if (consumer instanceof TraceReferencesKeepRules) {
+      builder.setMinification(((TraceReferencesKeepRules) consumer).allowObfuscation());
+    }
+    options.dumpOptions = builder.build();
+    return options;
   }
 }
