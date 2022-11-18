@@ -397,6 +397,23 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
     return true;
   }
 
+  private static class PrunePreambleMethodVisitor extends MethodVisitor {
+
+    private boolean inPreamble = true;
+
+    public PrunePreambleMethodVisitor(MethodVisitor methodVisitor) {
+      super(InternalOptions.ASM_VERSION, methodVisitor);
+    }
+
+    @Override
+    public void visitLineNumber(int line, Label start) {
+      if (!inPreamble || line != 0) {
+        inPreamble = false;
+        super.visitLineNumber(line, start);
+      }
+    }
+  }
+
   @Override
   public void writeCf(
       ProgramMethod method,
@@ -422,12 +439,20 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
             || (appView.enableWholeProgramOptimizations()
                 && classFileVersion.isEqualTo(CfVersion.V1_6)
                 && !options.shouldKeepStackMapTable());
+    PrunePreambleMethodVisitor prunePreambleVisitor = new PrunePreambleMethodVisitor(visitor);
     for (CfInstruction instruction : instructions) {
       if (discardFrames && instruction instanceof CfFrame) {
         continue;
       }
       instruction.write(
-          appView, method, dexItemFactory, graphLens, initClassLens, namingLens, rewriter, visitor);
+          appView,
+          method,
+          dexItemFactory,
+          graphLens,
+          initClassLens,
+          namingLens,
+          rewriter,
+          prunePreambleVisitor);
     }
     visitor.visitEnd();
     visitor.visitMaxs(maxStack, maxLocals);

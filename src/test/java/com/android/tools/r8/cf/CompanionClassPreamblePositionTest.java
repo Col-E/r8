@@ -4,6 +4,7 @@
 package com.android.tools.r8.cf;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
@@ -76,8 +77,7 @@ public class CompanionClassPreamblePositionTest extends TestBase {
 
   private void checkZeroLineNotPresent(CodeInspector inspector) throws Exception {
     ClassSubject companion = inspector.companionClassFor(I.class);
-    // TODO(b/259104971): The zero line should not be added.
-    assertThat(companion.javap(true), containsString("line 0: 0"));
+    assertThat(companion.javap(true), not(containsString("line 0: 0")));
   }
 
   private byte[] getTransformedI(boolean includeZero) throws Exception {
