@@ -214,6 +214,9 @@
         "java.nio.file.ProviderNotFoundException",
         "java.nio.file.ReadOnlyFileSystemException"
       ],
+      "retarget_method": {
+        "java.nio.channels.FileChannel java.nio.channels.FileChannel#open(java.nio.file.Path, java.nio.file.OpenOption[])": "java.nio.channels.DesugarChannels"
+      },
       "retarget_method_with_emulated_dispatch": {
         "java.nio.file.Path java.io.File#toPath()": "java.io.DesugarFile"
       },
@@ -434,7 +437,6 @@
         "java.util.Date java.util.Date#from(java.time.Instant)": "java.util.DesugarDate",
         "java.util.GregorianCalendar java.util.GregorianCalendar#from(java.time.ZonedDateTime)": "java.util.DesugarGregorianCalendar",
         "java.util.TimeZone java.util.TimeZone#getTimeZone(java.lang.String)": "java.util.DesugarTimeZone",
-        "java.nio.channels.FileChannel java.nio.channels.FileChannel#open(java.nio.file.Path, java.nio.file.OpenOption[])": "java.nio.channels.DesugarChannels",
         "java.nio.channels.FileChannel java.nio.channels.FileChannel#open(java.nio.file.Path, java.util.Set, java.nio.file.attribute.FileAttribute[])": "java.nio.channels.DesugarChannels"
       }
     },

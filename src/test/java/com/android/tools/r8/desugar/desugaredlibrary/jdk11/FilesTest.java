@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -35,6 +36,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -43,51 +45,44 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class FilesTest extends DesugaredLibraryTestBase {
 
+  private static final String END_EXPECTED_RESULT =
+      StringUtils.lines("j$.nio.file.attribute", "tmp", "/", "true", "This", "is", "fun!");
   private static final String EXPECTED_RESULT_DESUGARING_FILE_SYSTEM =
       StringUtils.lines(
-          "bytes written: 11",
-          "String written: Hello World",
-          "bytes read: 11",
-          "String read: Hello World",
-          "bytes read: 11",
-          "String read: Hello World",
-          "null",
-          "true",
-          "unsupported",
-          "j$.nio.file.attribute",
-          "tmp",
-          "/",
-          "true");
+              "bytes written: 11",
+              "String written: Hello World",
+              "bytes read: 11",
+              "String read: Hello World",
+              "bytes read: 11",
+              "String read: Hello World",
+              "null",
+              "true",
+              "unsupported")
+          + END_EXPECTED_RESULT;
   private static final String EXPECTED_RESULT_PLATFORM_FILE_SYSTEM_DESUGARING =
       StringUtils.lines(
-          "bytes written: 11",
-          "String written: Hello World",
-          "bytes read: 11",
-          "String read: Hello World",
-          "bytes read: 11",
-          "String read: Hello World",
-          "true",
-          "true",
-          "true",
-          "j$.nio.file.attribute",
-          "tmp",
-          "/",
-          "true");
+              "bytes written: 11",
+              "String written: Hello World",
+              "bytes read: 11",
+              "String read: Hello World",
+              "bytes read: 11",
+              "String read: Hello World",
+              "true",
+              "true",
+              "true")
+          + END_EXPECTED_RESULT;
   private static final String EXPECTED_RESULT_PLATFORM_FILE_SYSTEM =
       StringUtils.lines(
-          "bytes written: 11",
-          "String written: Hello World",
-          "bytes read: 11",
-          "String read: Hello World",
-          "bytes read: 11",
-          "String read: Hello World",
-          "true",
-          "true",
-          "true",
-          "java.nio.file.attribute",
-          "tmp",
-          "/",
-          "true");
+              "bytes written: 11",
+              "String written: Hello World",
+              "bytes read: 11",
+              "String read: Hello World",
+              "bytes read: 11",
+              "String read: Hello World",
+              "true",
+              "true",
+              "true")
+          + END_EXPECTED_RESULT;
 
   private final TestParameters parameters;
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
@@ -145,6 +140,7 @@ public class FilesTest extends DesugaredLibraryTestBase {
       Files.setAttribute(path, "basic:lastModifiedTime", FileTime.from(Instant.EPOCH));
       fspMethodsWithGeneric(path);
       pathGeneric();
+      lines(path);
     }
 
     private static void pathGeneric() throws IOException {
@@ -190,6 +186,12 @@ public class FilesTest extends DesugaredLibraryTestBase {
       } catch (UnsupportedOperationException e) {
         System.out.println("unsupported");
       }
+    }
+
+    private static void lines(Path path) throws IOException {
+      Files.write(path, "This\nis\nfun!".getBytes(StandardCharsets.UTF_8));
+      Stream<String> lines = Files.lines(path, StandardCharsets.UTF_8);
+      lines.forEach(System.out::println);
     }
 
     private static void readWriteThroughFilesAPI(Path path) throws IOException {
