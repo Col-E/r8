@@ -22,7 +22,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class MetadataRewriteDoNotEmitValuesIfEmpty extends KotlinMetadataTestBase {
+public class MetadataRewriteDoNotEmitValuesIfEmptyTest extends KotlinMetadataTestBase {
 
   private final Set<String> nullableFieldKeys = Sets.newHashSet("pn", "xs", "xi");
 
@@ -35,7 +35,7 @@ public class MetadataRewriteDoNotEmitValuesIfEmpty extends KotlinMetadataTestBas
 
   private final TestParameters parameters;
 
-  public MetadataRewriteDoNotEmitValuesIfEmpty(
+  public MetadataRewriteDoNotEmitValuesIfEmptyTest(
       TestParameters parameters, KotlinTestParameters kotlinParameters) {
     super(kotlinParameters);
     this.parameters = parameters;
