@@ -46,7 +46,7 @@ import org.junit.runners.Parameterized.Parameters;
 public class FilesTest extends DesugaredLibraryTestBase {
 
   private static final String END_EXPECTED_RESULT =
-      StringUtils.lines("j$.nio.file.attribute", "tmp", "/", "true", "This", "is", "fun!");
+      StringUtils.lines("tmp", "/", "true", "This", "is", "fun!");
   private static final String EXPECTED_RESULT_DESUGARING_FILE_SYSTEM =
       StringUtils.lines(
               "bytes written: 11",
@@ -57,7 +57,8 @@ public class FilesTest extends DesugaredLibraryTestBase {
               "String read: Hello World",
               "null",
               "true",
-              "unsupported")
+              "unsupported",
+              "j$.nio.file.attribute")
           + END_EXPECTED_RESULT;
   private static final String EXPECTED_RESULT_PLATFORM_FILE_SYSTEM_DESUGARING =
       StringUtils.lines(
@@ -69,7 +70,8 @@ public class FilesTest extends DesugaredLibraryTestBase {
               "String read: Hello World",
               "true",
               "true",
-              "true")
+              "true",
+              "j$.nio.file.attribute")
           + END_EXPECTED_RESULT;
   private static final String EXPECTED_RESULT_PLATFORM_FILE_SYSTEM =
       StringUtils.lines(
@@ -81,7 +83,8 @@ public class FilesTest extends DesugaredLibraryTestBase {
               "String read: Hello World",
               "true",
               "true",
-              "true")
+              "true",
+              "java.nio.file.attribute")
           + END_EXPECTED_RESULT;
 
   private final TestParameters parameters;
