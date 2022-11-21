@@ -91,6 +91,10 @@ public class SyntheticInitializerConverter {
     // application writer. We therefore simulate that we are in D8, to allow building IR for each of
     // the class initializers without applying the unapplied code rewritings, to avoid that we apply
     // the lens more than once to the same piece of code.
+
+    // Since we are now running in D8 mode clear type elements cache.
+    appView.dexItemFactory().clearTypeElementsCache();
+
     AppView<AppInfo> appViewForConversion =
         AppView.createForD8(
             AppInfo.createInitialAppInfo(
