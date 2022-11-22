@@ -226,21 +226,7 @@ public class ApiReferenceStubber {
       DexLibraryClass libraryClass,
       ThrowExceptionCode throwExceptionCode) {
     DexItemFactory factory = appView.dexItemFactory();
-    if (libraryClass.getType() == factory.objectType
-        || libraryClass.getType().toDescriptorString().startsWith("Ljava/")) {
-      return;
-    }
-    // We cannot reliably create a stub that will have the same throwing
-    // behavior for all VMs. We only create stubs for exceptions to allow them being present in
-    // catch handlers. See b/b/258270051 for more information.
-    if (!isThrowable(libraryClass)
-        || appView.options().apiModelingOptions().stubNonThrowableClasses) {
-      return;
-    }
-    if (appView
-        .options()
-        .machineDesugaredLibrarySpecification
-        .isSupported(libraryClass.getType())) {
+    if (!appView.options().apiModelingOptions().stubbingEnabledFor(appView, libraryClass)) {
       return;
     }
     Set<ProgramDefinition> contexts = referencingContexts.get(libraryClass);
@@ -276,17 +262,5 @@ public class ApiReferenceStubber {
               }
             },
             ignored -> {});
-  }
-
-  private boolean isThrowable(DexLibraryClass libraryClass) {
-    DexClass current = libraryClass;
-    while (current.getSuperType() != null) {
-      DexType superType = current.getSuperType();
-      if (superType == factory.throwableType) {
-        return true;
-      }
-      current = appView.definitionFor(current.getSuperType());
-    }
-    return false;
   }
 }

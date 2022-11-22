@@ -828,7 +828,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   private final ProtoShrinkingOptions protoShrinking = new ProtoShrinkingOptions();
   private final KotlinOptimizationOptions kotlinOptimizationOptions =
       new KotlinOptimizationOptions();
-  private final ApiModelTestingOptions apiModelTestingOptions = new ApiModelTestingOptions();
+  private final ApiModelTestingOptions apiModelTestingOptions =
+      new ApiModelTestingOptions(dexItemFactory());
   private final DesugarSpecificOptions desugarSpecificOptions = new DesugarSpecificOptions();
   private final MappingComposeOptions mappingComposeOptions = new MappingComposeOptions();
   private final ArtProfileOptions artProfileOptions = new ArtProfileOptions();
@@ -1831,6 +1832,40 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public void disableStubbingOfClasses() {
       enableStubbingOfClasses = false;
+    }
+
+    public boolean stubbingEnabledFor(AppView<?> appView, DexLibraryClass libraryClass) {
+      if (libraryClass.getType() == appView.dexItemFactory().objectType
+          || libraryClass
+              .getType()
+              .getDescriptor()
+              .startsWith(appView.dexItemFactory().javaDescriptorPrefix)) {
+        return false;
+      }
+      // Check if desugared library will bridge the type.
+      if (appView
+          .options()
+          .machineDesugaredLibrarySpecification
+          .isSupported(libraryClass.getType())) {
+        return false;
+      }
+      // We cannot reliably create a stub that will have the same throwing behavior for all VMs. We
+      // only create stubs for exceptions to allow them being present in catch handlers. See
+      // b/258270051 for more information. Note that throwables in the java namespace are not
+      // stubbed (bailout above).
+      return isThrowable(appView, libraryClass) || stubNonThrowableClasses;
+    }
+
+    private boolean isThrowable(AppView<?> appView, DexLibraryClass libraryClass) {
+      DexClass current = libraryClass;
+      while (current.getSuperType() != null) {
+        DexType superType = current.getSuperType();
+        if (superType == appView.dexItemFactory().throwableType) {
+          return true;
+        }
+        current = appView.definitionFor(current.getSuperType());
+      }
+      return false;
     }
   }
 

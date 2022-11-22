@@ -142,6 +142,7 @@ public class DexItemFactory {
   public final DexString shortDescriptor = createString("S");
   public final DexString voidDescriptor = createString("V");
   public final DexString descriptorSeparator = createString("/");
+  public final DexString javaDescriptorPrefix = createString("Ljava/");
 
   private final DexString booleanArrayDescriptor = createString("[Z");
   private final DexString byteArrayDescriptor = createString("[B");
