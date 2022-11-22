@@ -828,8 +828,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   private final ProtoShrinkingOptions protoShrinking = new ProtoShrinkingOptions();
   private final KotlinOptimizationOptions kotlinOptimizationOptions =
       new KotlinOptimizationOptions();
-  private final ApiModelTestingOptions apiModelTestingOptions =
-      new ApiModelTestingOptions(dexItemFactory());
+  private final ApiModelTestingOptions apiModelTestingOptions = new ApiModelTestingOptions();
   private final DesugarSpecificOptions desugarSpecificOptions = new DesugarSpecificOptions();
   private final MappingComposeOptions mappingComposeOptions = new MappingComposeOptions();
   private final ArtProfileOptions artProfileOptions = new ArtProfileOptions();
