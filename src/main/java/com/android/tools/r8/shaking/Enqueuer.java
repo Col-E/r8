@@ -104,9 +104,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeVirtual;
-import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
@@ -5081,43 +5079,25 @@ public class Enqueuer {
       return;
     }
     Value parametersValue = constructorDefinition.inValues().get(1);
-    if (parametersValue.isPhi()) {
+    if (parametersValue.isPhi() || !parametersValue.definition.isNewArrayEmpty()) {
       // Give up, we can't tell which constructor is being invoked.
       return;
     }
-    NewArrayEmpty newArrayEmpty = parametersValue.definition.asNewArrayEmpty();
-    InvokeNewArray invokeNewArray = parametersValue.definition.asInvokeNewArray();
-    int parametersSize =
-        newArrayEmpty != null
-            ? newArrayEmpty.sizeIfConst()
-            : invokeNewArray != null ? invokeNewArray.size() : -1;
-    if (parametersSize < 0) {
+
+    Value parametersSizeValue = parametersValue.definition.asNewArrayEmpty().size();
+    if (parametersSizeValue.isPhi() || !parametersSizeValue.definition.isConstNumber()) {
+      // Give up, we can't tell which constructor is being invoked.
       return;
     }
 
     ProgramMethod initializer = null;
 
+    int parametersSize = parametersSizeValue.definition.asConstNumber().getIntValue();
     if (parametersSize == 0) {
       initializer = clazz.getProgramDefaultInitializer();
     } else {
       DexType[] parameterTypes = new DexType[parametersSize];
       int missingIndices = parametersSize;
-
-      if (newArrayEmpty != null) {
-        missingIndices = parametersSize;
-      } else {
-        missingIndices = 0;
-        List<Value> values = invokeNewArray.inValues();
-        for (int i = 0; i < parametersSize; ++i) {
-          DexType type =
-              ConstantValueUtils.getDexTypeRepresentedByValueForTracing(values.get(i), appView);
-          if (type == null) {
-            return;
-          }
-          parameterTypes[i] = type;
-        }
-      }
-
       for (Instruction user : parametersValue.uniqueUsers()) {
         if (user.isArrayPut()) {
           ArrayPut arrayPutInstruction = user.asArrayPut();
@@ -5179,31 +5159,20 @@ public class Enqueuer {
     }
 
     Value interfacesValue = invoke.arguments().get(1);
-    if (interfacesValue.isPhi()) {
+    if (interfacesValue.isPhi() || !interfacesValue.definition.isNewArrayEmpty()) {
       // Give up, we can't tell which interfaces the proxy implements.
       return;
     }
 
-    InvokeNewArray invokeNewArray = interfacesValue.definition.asInvokeNewArray();
-    NewArrayEmpty newArrayEmpty = interfacesValue.definition.asNewArrayEmpty();
-    List<Value> values;
-    if (invokeNewArray != null) {
-      values = invokeNewArray.inValues();
-    } else if (newArrayEmpty != null) {
-      values = new ArrayList<>(interfacesValue.uniqueUsers().size());
-      for (Instruction user : interfacesValue.uniqueUsers()) {
-        ArrayPut arrayPut = user.asArrayPut();
-        if (arrayPut != null) {
-          values.add(arrayPut.value());
-        }
-      }
-    } else {
-      return;
-    }
-
     WorkList<DexProgramClass> worklist = WorkList.newIdentityWorkList();
-    for (Value value : values) {
-      DexType type = ConstantValueUtils.getDexTypeRepresentedByValueForTracing(value, appView);
+    for (Instruction user : interfacesValue.uniqueUsers()) {
+      if (!user.isArrayPut()) {
+        continue;
+      }
+
+      ArrayPut arrayPut = user.asArrayPut();
+      DexType type =
+          ConstantValueUtils.getDexTypeRepresentedByValueForTracing(arrayPut.value(), appView);
       if (type == null || !type.isClassType()) {
         continue;
       }

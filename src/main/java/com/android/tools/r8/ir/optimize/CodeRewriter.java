@@ -16,6 +16,7 @@ import static com.android.tools.r8.ir.code.Opcodes.STATIC_GET;
 
 import com.android.tools.r8.algorithms.scc.SCC;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessControl;
@@ -54,6 +55,7 @@ import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.CatchHandlers.CatchHandler;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstClass;
+import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DebugLocalWrite;
@@ -82,7 +84,6 @@ import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
-import com.android.tools.r8.ir.code.LinearFlowInstructionListIterator;
 import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
@@ -137,7 +138,6 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
@@ -162,6 +162,7 @@ public class CodeRewriter {
     FALSE
   }
 
+  private static final int MAX_FILL_ARRAY_SIZE = 8 * Constants.KILOBYTE;
   // This constant was determined by experimentation.
   private static final int STOP_SHARED_CONSTANT_THRESHOLD = 50;
 
@@ -2100,21 +2101,16 @@ public class CodeRewriter {
     }
   }
 
-  private short[] computeArrayFilledData(Value[] values, int size, int elementSize) {
-    for (Value v : values) {
-      if (!v.isConstant()) {
-        return null;
-      }
+  private short[] computeArrayFilledData(ConstInstruction[] values, int size, int elementSize) {
+    if (values == null) {
+      return null;
     }
     if (elementSize == 1) {
       short[] result = new short[(size + 1) / 2];
       for (int i = 0; i < size; i += 2) {
-        short value =
-            (short) (values[i].getConstInstruction().asConstNumber().getIntValue() & 0xFF);
+        short value = (short) (values[i].asConstNumber().getIntValue() & 0xFF);
         if (i + 1 < size) {
-          value |=
-              (short)
-                  ((values[i + 1].getConstInstruction().asConstNumber().getIntValue() & 0xFF) << 8);
+          value |= (short) ((values[i + 1].asConstNumber().getIntValue() & 0xFF) << 8);
         }
         result[i / 2] = value;
       }
@@ -2124,7 +2120,7 @@ public class CodeRewriter {
     int shortsPerConstant = elementSize / 2;
     short[] result = new short[size * shortsPerConstant];
     for (int i = 0; i < size; i++) {
-      long value = values[i].getConstInstruction().asConstNumber().getRawValue();
+      long value = values[i].asConstNumber().getRawValue();
       for (int part = 0; part < shortsPerConstant; part++) {
         result[i * shortsPerConstant + part] = (short) ((value >> (16 * part)) & 0xFFFFL);
       }
@@ -2132,45 +2128,40 @@ public class CodeRewriter {
     return result;
   }
 
-  private Value[] computeArrayValues(LinearFlowInstructionListIterator it, int size) {
-    NewArrayEmpty newArrayEmpty = it.next().asNewArrayEmpty();
-    assert newArrayEmpty != null;
-    Value arrayValue = newArrayEmpty.outValue();
-
-    // aput-object allows any object for arrays of interfaces, but new-filled-array fails to verify
-    // if types require a cast.
-    // TODO(b/246971330): Check if adding a checked-cast would have the same observable result. E.g.
-    // if aput-object throws a ClassCastException if given an object that does not implement the
-    // desired interface, then we could add check-cast instructions for arguments we're not sure
-    // about.
-    DexType elementType = newArrayEmpty.type.toDimensionMinusOneType(dexItemFactory);
-    boolean needsTypeCheck =
-        !elementType.isPrimitiveType() && elementType != dexItemFactory.objectType;
-
-    Value[] values = new Value[size];
+  private ConstInstruction[] computeConstantArrayValues(
+      NewArrayEmpty newArray, BasicBlock block, int size) {
+    if (size > MAX_FILL_ARRAY_SIZE) {
+      return null;
+    }
+    ConstInstruction[] values = new ConstInstruction[size];
     int remaining = size;
-    Set<Instruction> users = newArrayEmpty.outValue().uniqueUsers();
+    Set<Instruction> users = newArray.outValue().uniqueUsers();
+    Set<BasicBlock> visitedBlocks = Sets.newIdentityHashSet();
+    // We allow the array instantiations to cross block boundaries as long as it hasn't encountered
+    // an instruction instance that can throw an exception.
+    InstructionIterator it = block.iterator();
+    it.nextUntil(i -> i == newArray);
+    do {
+      visitedBlocks.add(block);
       while (it.hasNext()) {
         Instruction instruction = it.next();
-      // If we encounter an instruction that can throw an exception we need to bail out of the
-      // optimization so that we do not transform half-initialized arrays into fully initialized
-      // arrays on exceptional edges. If the block has no handlers it is not observable so
-      // we perform the rewriting.
-      // TODO(b/246971330): Allow simplification when all users of the array are in the same
-      // try/catch.
-      if (instruction.getBlock().hasCatchHandlers() && instruction.instructionInstanceCanThrow()) {
+        // If we encounter an instruction that can throw an exception we need to bail out of the
+        // optimization so that we do not transform half-initialized arrays into fully initialized
+        // arrays on exceptional edges. If the block has no handlers it is not observable so
+        // we perform the rewriting.
+        if (block.hasCatchHandlers() && instruction.instructionInstanceCanThrow()) {
           return null;
         }
         if (!users.contains(instruction)) {
           continue;
         }
-      ArrayPut arrayPut = instruction.asArrayPut();
-      // If the initialization sequence is broken by another use we cannot use a fill-array-data
-      // instruction.
-      if (arrayPut == null || arrayPut.array() != arrayValue) {
+        // If the initialization sequence is broken by another use we cannot use a
+        // fill-array-data instruction.
+        if (!instruction.isArrayPut()) {
           return null;
         }
-      if (!arrayPut.index().isConstNumber()) {
+        ArrayPut arrayPut = instruction.asArrayPut();
+        if (!(arrayPut.value().isConstant() && arrayPut.index().isConstNumber())) {
           return null;
         }
         int index = arrayPut.index().getConstInstruction().asConstNumber().getIntValue();
@@ -2180,36 +2171,38 @@ public class CodeRewriter {
         if (values[index] != null) {
           return null;
         }
-      Value value = arrayPut.value();
-      if (needsTypeCheck && !value.isAlwaysNull(appView)) {
-        DexType valueDexType = value.getType().asReferenceType().toDexType(dexItemFactory);
-        if (elementType.isArrayType()) {
-          if (elementType != valueDexType) {
-            return null;
-          }
-        } else if (valueDexType.isArrayType()) {
-          // isSubtype asserts for this case.
-          return null;
-        } else if (valueDexType.isNullValueType()) {
-          // Assume instructions can cause value.isAlwaysNull() == false while the DexType is
-          // null.
-          // TODO(b/246971330): Figure out how to write a test in SimplifyArrayConstructionTest
-          // that hits this case.
-        } else {
-          // TODO(b/246971330): When in d8 mode, we might still be able to see if this is true for
-          // library types (which this helper does not do).
-          if (appView.isSubtype(valueDexType, elementType).isPossiblyFalse()) {
-            return null;
-          }
-        }
-      }
+        ConstInstruction value = arrayPut.value().getConstInstruction();
         values[index] = value;
         --remaining;
         if (remaining == 0) {
           return values;
         }
       }
+      BasicBlock nextBlock = block.exit().isGoto() ? block.exit().asGoto().getTarget() : null;
+      block = nextBlock != null && !visitedBlocks.contains(nextBlock) ? nextBlock : null;
+      it = block != null ? block.iterator() : null;
+    } while (it != null);
     return null;
+  }
+
+  private boolean allowNewFilledArrayConstruction(Instruction instruction) {
+    if (!(instruction instanceof NewArrayEmpty)) {
+      return false;
+    }
+    NewArrayEmpty newArray = instruction.asNewArrayEmpty();
+    if (!newArray.size().isConstant()) {
+      return false;
+    }
+    assert newArray.size().isConstNumber();
+    int size = newArray.size().getConstInstruction().asConstNumber().getIntValue();
+    if (size < 1) {
+      return false;
+    }
+    if (newArray.type.isPrimitiveArrayType()) {
+      return true;
+    }
+    return newArray.type == dexItemFactory.stringArrayType
+        && options.canUseFilledNewArrayOfObjects();
   }
 
   /**
@@ -2220,11 +2213,6 @@ public class CodeRewriter {
     if (options.isGeneratingClassFiles()) {
       return;
     }
-    InternalOptions.RewriteArrayOptions rewriteOptions = options.rewriteArrayOptions();
-    boolean canUseForStrings = rewriteOptions.canUseFilledNewArrayOfStrings();
-    boolean canUseForObjects = rewriteOptions.canUseFilledNewArrayOfObjects();
-    boolean canUseForArrays = rewriteOptions.canUseFilledNewArrayOfArrays();
-
     for (BasicBlock block : code.blocks) {
       // Map from the array value to the number of array put instruction to remove for that value.
       Map<Value, Instruction> instructionToInsertForArray = new HashMap<>();
@@ -2233,56 +2221,31 @@ public class CodeRewriter {
       InstructionListIterator it = block.listIterator(code);
       while (it.hasNext()) {
         Instruction instruction = it.next();
-        NewArrayEmpty newArrayEmpty = instruction.asNewArrayEmpty();
-        if (newArrayEmpty == null || !newArrayEmpty.size().isConstant()) {
+        if (instruction.getLocalInfo() != null || !allowNewFilledArrayConstruction(instruction)) {
           continue;
         }
-        if (instruction.getLocalInfo() != null) {
-          continue;
-        }
-        int size = newArrayEmpty.size().getConstInstruction().asConstNumber().getIntValue();
-        if (size < 1 || size > rewriteOptions.maxFillArrayDataInputs) {
-          continue;
-        }
-        DexType arrayType = newArrayEmpty.type;
-        if (!arrayType.isPrimitiveArrayType()) {
-          if (arrayType == dexItemFactory.stringArrayType) {
-            if (!canUseForStrings) {
-              continue;
-            }
-          } else if (!canUseForObjects) {
-            continue;
-          } else if (!canUseForArrays && arrayType.getNumberOfLeadingSquareBrackets() > 1) {
-            continue;
-          }
-        }
-
-        Value[] values =
-            computeArrayValues(
-                new LinearFlowInstructionListIterator(code, block, it.previousIndex()), size);
+        NewArrayEmpty newArray = instruction.asNewArrayEmpty();
+        int size = newArray.size().getConstInstruction().asConstNumber().getIntValue();
+        ConstInstruction[] values = computeConstantArrayValues(newArray, block, size);
         if (values == null) {
           continue;
         }
-        // filled-new-array is implemented only for int[] and Object[].
-        // For int[], using filled-new-array is usually smaller than filled-array-data.
-        // filled-new-array supports up to 5 registers before it's filled-new-array/range.
-        if (!arrayType.isPrimitiveArrayType()
-            || (arrayType == dexItemFactory.intArrayType && size <= 5)) {
+        if (newArray.type == dexItemFactory.stringArrayType) {
           // Don't replace with filled-new-array if it requires more than 200 consecutive registers.
-          if (size > rewriteOptions.maxRangeInputs) {
+          if (size > 200) {
             continue;
           }
-          // block.hasCatchHandlers() is fine here since new-array-filled replaces new-array-empty
-          // and computeArrayValues already checks that no throwing instructions exist between the
-          // original new-array-empty and the final aput-object (where the new-array-filled will be
-          // positioned).
-          Value invokeValue =
-              code.createValue(newArrayEmpty.getOutType(), newArrayEmpty.getLocalInfo());
-          InvokeNewArray invoke = new InvokeNewArray(arrayType, invokeValue, Arrays.asList(values));
-          for (Value value : newArrayEmpty.inValues()) {
-            value.removeUser(newArrayEmpty);
+          List<Value> stringValues = new ArrayList<>(size);
+          for (ConstInstruction value : values) {
+            stringValues.add(value.outValue());
           }
-          newArrayEmpty.outValue().replaceUsers(invokeValue);
+          Value invokeValue = code.createValue(newArray.getOutType(), newArray.getLocalInfo());
+          InvokeNewArray invoke =
+              new InvokeNewArray(dexItemFactory.stringArrayType, invokeValue, stringValues);
+          for (Value value : newArray.inValues()) {
+            value.removeUser(newArray);
+          }
+          newArray.outValue().replaceUsers(invokeValue);
           it.removeOrReplaceByDebugLocalRead();
           instructionToInsertForArray.put(invokeValue, invoke);
           storesToRemoveForArray.put(invokeValue, size);
@@ -2292,33 +2255,26 @@ public class CodeRewriter {
           if (size == 1) {
             continue;
           }
-          // TODO(b/246971330): Allow simplification when all users of the array are in the same
-          // try/catch.
-          if (block.hasCatchHandlers()) {
-            // NewArrayFilledData can throw, so creating one as done below would add a second
-            // throwing instruction to the same block (the first one being NewArrayEmpty).
-            continue;
-          }
-          int elementSize = arrayType.elementSizeForPrimitiveArrayType();
+          int elementSize = newArray.type.elementSizeForPrimitiveArrayType();
           short[] contents = computeArrayFilledData(values, size, elementSize);
           if (contents == null) {
             continue;
           }
-          int arraySize = newArrayEmpty.size().getConstInstruction().asConstNumber().getIntValue();
-          // fill-array-data requires the new-array-empty instruction to remain, as it does not
-          // itself create an array.
+          if (block.hasCatchHandlers()) {
+            continue;
+          }
+          int arraySize = newArray.size().getConstInstruction().asConstNumber().getIntValue();
           NewArrayFilledData fillArray =
-              new NewArrayFilledData(newArrayEmpty.outValue(), elementSize, arraySize, contents);
-          fillArray.setPosition(newArrayEmpty.getPosition());
+              new NewArrayFilledData(newArray.outValue(), elementSize, arraySize, contents);
+          fillArray.setPosition(newArray.getPosition());
           it.add(fillArray);
-          storesToRemoveForArray.put(newArrayEmpty.outValue(), size);
+          storesToRemoveForArray.put(newArray.outValue(), size);
         }
       }
       // Second pass: remove all the array put instructions for the array for which we have
       // inserted a fill array data instruction instead.
       if (!storesToRemoveForArray.isEmpty()) {
         Set<BasicBlock> visitedBlocks = Sets.newIdentityHashSet();
-        int numInstructionsInserted = 0;
         do {
           visitedBlocks.add(block);
           it = block.listIterator(code);
@@ -2340,7 +2296,6 @@ public class CodeRewriter {
                     // last removed put at which point we are now adding the construction.
                     construction.setPosition(instruction.getPosition());
                     it.add(construction);
-                    numInstructionsInserted += 1;
                   }
                 }
               }
@@ -2349,7 +2304,6 @@ public class CodeRewriter {
           BasicBlock nextBlock = block.exit().isGoto() ? block.exit().asGoto().getTarget() : null;
           block = nextBlock != null && !visitedBlocks.contains(nextBlock) ? nextBlock : null;
         } while (block != null);
-        assert numInstructionsInserted == instructionToInsertForArray.size();
       }
     }
     assert code.isConsistentSSA(appView);

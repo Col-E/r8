@@ -12,7 +12,6 @@ import static com.android.tools.r8.ir.code.Opcodes.STATIC_PUT;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
@@ -30,7 +29,6 @@ import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
-import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
@@ -39,7 +37,6 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 
 public class StaticFieldValueAnalysis extends FieldValueAnalysis {
@@ -213,7 +210,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     if (value.isPhi()) {
       return null;
     }
-    if (value.definition.isNewArrayEmptyOrInvokeNewArray()) {
+    if (value.definition.isNewArrayEmpty()) {
       return computeSingleEnumFieldValueForValuesArray(value);
     }
     if (value.definition.isNewInstance()) {
@@ -223,7 +220,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   private SingleFieldValue computeSingleEnumFieldValueForValuesArray(Value value) {
-    if (!value.definition.isNewArrayEmptyOrInvokeNewArray()) {
+    if (!value.definition.isNewArrayEmpty()) {
       return null;
     }
     AbstractValue valuesValue = computedValues.get(value);
@@ -244,38 +241,26 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   private SingleFieldValue internalComputeSingleEnumFieldValueForValuesArray(Value value) {
-    NewArrayEmpty newArrayEmpty = value.definition.asNewArrayEmpty();
-    InvokeNewArray invokeNewArray = value.definition.asInvokeNewArray();
-    assert newArrayEmpty != null || invokeNewArray != null;
+    assert value.isDefinedByInstructionSatisfying(Instruction::isNewArrayEmpty);
 
-    DexType arrayType = newArrayEmpty != null ? newArrayEmpty.type : invokeNewArray.getArrayType();
-    if (arrayType.toBaseType(appView.dexItemFactory()) != context.getHolder().type) {
+    NewArrayEmpty newArrayEmpty = value.definition.asNewArrayEmpty();
+    if (newArrayEmpty.type.toBaseType(appView.dexItemFactory()) != context.getHolder().type) {
       return null;
     }
     if (value.hasDebugUsers() || value.hasPhiUsers()) {
       return null;
     }
+    if (!newArrayEmpty.size().isConstNumber()) {
+      return null;
+    }
 
-    int valuesSize = newArrayEmpty != null ? newArrayEmpty.sizeIfConst() : invokeNewArray.size();
-    if (valuesSize < 1) {
-      // Array is empty or non-const size.
+    int valuesSize = newArrayEmpty.size().getConstInstruction().asConstNumber().getIntValue();
+    if (valuesSize == 0) {
+      // No need to compute the state of an empty array.
       return null;
     }
 
     ObjectState[] valuesState = new ObjectState[valuesSize];
-
-    if (invokeNewArray != null) {
-      // Populate array values from filled-new-array values.
-      List<Value> inValues = invokeNewArray.inValues();
-      for (int i = 0; i < valuesSize; ++i) {
-        if (!updateEnumValueState(valuesState, i, inValues.get(i))) {
-          return null;
-        }
-      }
-    }
-
-    // Populate / update array values from aput-object instructions, and find the static-put
-    // instruction.
     DexEncodedField valuesField = null;
     for (Instruction user : value.aliasedUsers()) {
       switch (user.opcode()) {
@@ -291,9 +276,18 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
           if (index < 0 || index >= valuesSize) {
             return null;
           }
-          if (!updateEnumValueState(valuesState, index, arrayPut.value())) {
+          ObjectState objectState = computeEnumInstanceObjectState(arrayPut.value());
+          if (objectState == null || objectState.isEmpty()) {
+            // We need the state of all fields for the analysis to be valuable.
             return null;
           }
+          if (!valuesArrayIndexMatchesOrdinal(index, objectState)) {
+            return null;
+          }
+          if (valuesState[index] != null) {
+            return null;
+          }
+          valuesState[index] = objectState;
           break;
 
         case ASSUME:
@@ -334,34 +328,24 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
         .createSingleFieldValue(valuesField.getReference(), new EnumValuesObjectState(valuesState));
   }
 
-  private boolean updateEnumValueState(ObjectState[] valuesState, int index, Value value) {
+  private ObjectState computeEnumInstanceObjectState(Value value) {
     Value root = value.getAliasedValue();
     if (root.isPhi()) {
-      return false;
+      return ObjectState.empty();
     }
     Instruction definition = root.getDefinition();
+    if (definition.isNewInstance()) {
+      return computeObjectState(definition.outValue());
+    }
     if (definition.isStaticGet()) {
       // Enums with many instance rely on staticGets to set the $VALUES data instead of directly
       // keeping the values in registers, due to the max capacity of the redundant field load
       // elimination. The capacity has already been increased, so that this case is extremely
       // uncommon (very large enums).
       // TODO(b/169050248): We could consider analysing these to answer the object state here.
-      return false;
+      return ObjectState.empty();
     }
-    ObjectState objectState =
-        definition.isNewInstance() ? computeObjectState(definition.outValue()) : null;
-    if (objectState == null || objectState.isEmpty()) {
-      // We need the state of all fields for the analysis to be valuable.
-      return false;
-    }
-    if (!valuesArrayIndexMatchesOrdinal(index, objectState)) {
-      return false;
-    }
-    if (valuesState[index] != null) {
-      return false;
-    }
-    valuesState[index] = objectState;
-    return true;
+    return ObjectState.empty();
   }
 
   private boolean valuesArrayIndexMatchesOrdinal(int ordinal, ObjectState objectState) {

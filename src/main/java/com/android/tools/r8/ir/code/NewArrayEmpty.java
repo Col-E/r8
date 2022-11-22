@@ -49,6 +49,10 @@ public class NewArrayEmpty extends Instruction {
     return super.toString() + " " + type.toString();
   }
 
+  public Value dest() {
+    return outValue;
+  }
+
   public Value size() {
     return inValues.get(0);
   }
@@ -56,7 +60,7 @@ public class NewArrayEmpty extends Instruction {
   @Override
   public void buildDex(DexBuilder builder) {
     int size = builder.allocatedRegister(size(), getNumber());
-    int dest = builder.allocatedRegister(outValue, getNumber());
+    int dest = builder.allocatedRegister(dest(), getNumber());
     builder.add(this, new DexNewArray(dest, size, type));
   }
 
@@ -166,11 +170,5 @@ public class NewArrayEmpty extends Instruction {
   @Override
   void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
     registry.registerTypeReference(type);
-  }
-
-  // Returns the size of the array if it is known, -1 otherwise.
-  public int sizeIfConst() {
-    Value size = size();
-    return size.isConstNumber() ? size.getConstInstruction().asConstNumber().getIntValue() : -1;
   }
 }

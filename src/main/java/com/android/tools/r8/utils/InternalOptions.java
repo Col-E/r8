@@ -816,7 +816,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public boolean debug = false;
 
-  private final RewriteArrayOptions rewriteArrayOptions = new RewriteArrayOptions();
   private final CallSiteOptimizationOptions callSiteOptimizationOptions =
       new CallSiteOptimizationOptions();
   private final CfCodeAnalysisOptions cfCodeAnalysisOptions = new CfCodeAnalysisOptions();
@@ -850,10 +849,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean enableInheritanceClassInDexDistributor = true;
 
   public LineNumberOptimization lineNumberOptimization = LineNumberOptimization.ON;
-
-  public RewriteArrayOptions rewriteArrayOptions() {
-    return rewriteArrayOptions;
-  }
 
   public CallSiteOptimizationOptions callSiteOptimizationOptions() {
     return callSiteOptimizationOptions;
@@ -1386,42 +1381,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     // See b/182065081 for why this is here.
     public boolean lambdaClassFieldsFinal =
         System.getProperty("com.android.tools.r8.lambdaClassFieldsNotFinal") == null;
-  }
-
-  public class RewriteArrayOptions {
-    // Arbitrary limit of number of inputs to new-filled-array/range.
-    // The technical limit is 255 (Constants.U8BIT_MAX).
-    public int maxRangeInputs = 200;
-    // Arbitrary limit of number of inputs to fill-array-data.
-    public int maxFillArrayDataInputs = 8 * 1024;
-
-    // Dalvik x86-atom backend had a bug that made it crash on filled-new-array instructions for
-    // arrays of objects. This is unfortunate, since this never hits arm devices, but we have
-    // to disallow filled-new-array of objects for dalvik until kitkat. The buggy code was
-    // removed during the jelly-bean release cycle and is not there from kitkat.
-    //
-    // Buggy code that accidentally call code that only works on primitives arrays.
-    //
-    // https://android.googlesource.com/platform/dalvik/+/ics-mr0/vm/mterp/out/InterpAsm-x86-atom.S#25106
-    public boolean canUseFilledNewArrayOfStrings() {
-      assert isGeneratingDex();
-      return hasFeaturePresentFrom(AndroidApiLevel.K);
-    }
-
-    // When adding support for emitting new-filled-array for non-String types, ART 6.0.1 had issues.
-    // https://ci.chromium.org/ui/p/r8/builders/ci/linux-android-6.0.1/6507/overview
-    // It somehow had a new-array-filled return null.
-    public boolean canUseFilledNewArrayOfObjects() {
-      assert isGeneratingDex();
-      return hasFeaturePresentFrom(AndroidApiLevel.N);
-    }
-
-    // Dalvik doesn't handle new-filled-array with arrays as values. It fails with:
-    // W(629880) VFY: [Ljava/lang/Integer; is not instance of Ljava/lang/Integer;  (dalvikvm)
-    public boolean canUseFilledNewArrayOfArrays() {
-      assert isGeneratingDex();
-      return hasFeaturePresentFrom(AndroidApiLevel.L);
-    }
   }
 
   public class CallSiteOptimizationOptions {
@@ -2429,6 +2388,19 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // https://android.googlesource.com/platform/libcore/+/refs/heads/ics-mr1/luni/src/main/java/java/lang/AssertionError.java#56
   public boolean canInitCauseAfterAssertionErrorObjectConstructor() {
     return hasFeaturePresentFrom(AndroidApiLevel.J);
+  }
+
+  // Dalvik x86-atom backend had a bug that made it crash on filled-new-array instructions for
+  // arrays of objects. This is unfortunate, since this never hits arm devices, but we have
+  // to disallow filled-new-array of objects for dalvik until kitkat. The buggy code was
+  // removed during the jelly-bean release cycle and is not there from kitkat.
+  //
+  // Buggy code that accidentally call code that only works on primitives arrays.
+  //
+  // https://android.googlesource.com/platform/dalvik/+/ics-mr0/vm/mterp/out/InterpAsm-x86-atom.S#25106
+  public boolean canUseFilledNewArrayOfObjects() {
+    assert isGeneratingDex();
+    return hasFeaturePresentFrom(AndroidApiLevel.K);
   }
 
   // Art had a bug (b/68761724) for Android N and O in the arm32 interpreter
