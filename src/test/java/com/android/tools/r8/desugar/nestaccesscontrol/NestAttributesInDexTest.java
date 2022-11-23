@@ -9,13 +9,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.TestRuntime;
-import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.desugar.nestaccesscontrol.NestAttributesInDexTest.Host.Member1;
 import com.android.tools.r8.desugar.nestaccesscontrol.NestAttributesInDexTest.Host.Member2;
 import com.android.tools.r8.transformers.ClassFileTransformer;
@@ -40,7 +36,7 @@ import org.junit.runners.Parameterized.Parameters;
 import org.objectweb.asm.Opcodes;
 
 @RunWith(Parameterized.class)
-public class NestAttributesInDexTest extends TestBase {
+public class NestAttributesInDexTest extends NestAttributesInDexTestBase {
 
   @Parameter() public TestParameters parameters;
 
@@ -63,23 +59,6 @@ public class NestAttributesInDexTest extends TestBase {
           "false", "false", "false", "true", "false", "false", "true", "false", "false", "false",
           "false", "false", "true", "false", "false", "false", "false", "false", "true", "false",
           "false", "true", "true", "true");
-
-  private boolean isRuntimeWithNestSupport(TestRuntime runtime) {
-    if (runtime.isCf()) {
-      return isRuntimeWithNestSupport(runtime.asCf());
-    } else {
-      return isRuntimeWithNestSupport(runtime.asDex());
-    }
-  }
-
-  private boolean isRuntimeWithNestSupport(CfRuntime runtime) {
-    return runtime.isNewerThanOrEqual(CfVm.JDK11);
-  }
-
-  private boolean isRuntimeWithNestSupport(DexRuntime runtime) {
-    // No Art versions have support for nest attributes yet.
-    return false;
-  }
 
   private void checkResult(TestRunResult<?> result) {
     if (isRuntimeWithNestSupport(parameters.getRuntime())) {
