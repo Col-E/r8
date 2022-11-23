@@ -21,12 +21,13 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 @RunWith(Parameterized.class)
-public class NestAttributesInDexShrinkingTest extends NestAttributesInDexTestBase
+public class NestAttributesInDexShrinkingFieldsTest extends NestAttributesInDexTestBase
     implements Opcodes {
 
   @Parameter() public TestParameters parameters;
@@ -136,30 +137,30 @@ public class NestAttributesInDexShrinkingTest extends NestAttributesInDexTestBas
     Dump of:
 
     public class Host {
+      private String s1 = ", ";
+      private String s2 = "!";
       public static void main(String[] args) {
         new Host().h1();
         System.out.println();
       }
 
       static class Member1 {
-        private void m(Host host) {  // private or public
-          host.h2("Hello");
-        }
+        private String s = "Hello";
       }
 
       static class Member2 {
-        private void m(Host host) {  // private or public
-          host.h2(", world!");
+        private String s = "world";
+
+        public void m(Host host) {
+          System.out.println(host.s1);
         }
       }
 
-      private void h1() {  // private or public
-        new Member1().m(this);
+      public void h1() {
+        System.out.print(new Member1().s);
+        System.out.print(s1);
+        System.out.print(new Member2().s);
         new Member2().m(this);
-      }
-
-      private void h2(String message) {  // private or public
-        System.out.print(message);
       }
     }
 
@@ -167,28 +168,55 @@ public class NestAttributesInDexShrinkingTest extends NestAttributesInDexTestBas
     access methods is not feasible.
   */
 
-  public static byte[] dumpHost(int methodAccess) throws Exception {
-    assert methodAccess == ACC_PUBLIC || methodAccess == ACC_PRIVATE;
+  public static byte[] dumpHost(int fieldAccess) throws Exception {
+    assert fieldAccess == ACC_PUBLIC || fieldAccess == ACC_PRIVATE;
 
     ClassWriter classWriter = new ClassWriter(0);
+    FieldVisitor fieldVisitor;
     MethodVisitor methodVisitor;
 
     classWriter.visit(V11, ACC_PUBLIC | ACC_SUPER, "Host", null, "java/lang/Object", null);
+
     classWriter.visitSource("Host.java", null);
+
     classWriter.visitNestMember("Host$Member2");
+
     classWriter.visitNestMember("Host$Member1");
+
     classWriter.visitInnerClass("Host$Member2", "Host", "Member2", ACC_STATIC);
+
     classWriter.visitInnerClass("Host$Member1", "Host", "Member1", ACC_STATIC);
+
+    {
+      fieldVisitor = classWriter.visitField(fieldAccess, "s1", "Ljava/lang/String;", null, null);
+      fieldVisitor.visitEnd();
+    }
+    {
+      fieldVisitor = classWriter.visitField(fieldAccess, "s2", "Ljava/lang/String;", null, null);
+      fieldVisitor.visitEnd();
+    }
     {
       methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
       methodVisitor.visitCode();
       Label label0 = new Label();
       methodVisitor.visitLabel(label0);
-      methodVisitor.visitLineNumber(1, label0);
+      methodVisitor.visitLineNumber(2, label0);
       methodVisitor.visitVarInsn(ALOAD, 0);
       methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+      Label label1 = new Label();
+      methodVisitor.visitLabel(label1);
+      methodVisitor.visitLineNumber(3, label1);
+      methodVisitor.visitVarInsn(ALOAD, 0);
+      methodVisitor.visitLdcInsn(", ");
+      methodVisitor.visitFieldInsn(PUTFIELD, "Host", "s1", "Ljava/lang/String;");
+      Label label2 = new Label();
+      methodVisitor.visitLabel(label2);
+      methodVisitor.visitLineNumber(4, label2);
+      methodVisitor.visitVarInsn(ALOAD, 0);
+      methodVisitor.visitLdcInsn("!");
+      methodVisitor.visitFieldInsn(PUTFIELD, "Host", "s2", "Ljava/lang/String;");
       methodVisitor.visitInsn(RETURN);
-      methodVisitor.visitMaxs(1, 1);
+      methodVisitor.visitMaxs(2, 1);
       methodVisitor.visitEnd();
     }
     {
@@ -198,146 +226,167 @@ public class NestAttributesInDexShrinkingTest extends NestAttributesInDexTestBas
       methodVisitor.visitCode();
       Label label0 = new Label();
       methodVisitor.visitLabel(label0);
-      methodVisitor.visitLineNumber(3, label0);
+      methodVisitor.visitLineNumber(5, label0);
       methodVisitor.visitTypeInsn(NEW, "Host");
       methodVisitor.visitInsn(DUP);
       methodVisitor.visitMethodInsn(INVOKESPECIAL, "Host", "<init>", "()V", false);
       methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "Host", "h1", "()V", false);
       Label label1 = new Label();
       methodVisitor.visitLabel(label1);
-      methodVisitor.visitLineNumber(4, label1);
+      methodVisitor.visitLineNumber(6, label1);
       methodVisitor.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
       methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "()V", false);
       Label label2 = new Label();
       methodVisitor.visitLabel(label2);
-      methodVisitor.visitLineNumber(5, label2);
+      methodVisitor.visitLineNumber(7, label2);
       methodVisitor.visitInsn(RETURN);
       methodVisitor.visitMaxs(2, 1);
       methodVisitor.visitEnd();
     }
     {
-      methodVisitor = classWriter.visitMethod(methodAccess, "h1", "()V", null, null);
+      methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "h1", "()V", null, null);
       methodVisitor.visitCode();
       Label label0 = new Label();
       methodVisitor.visitLabel(label0);
-      methodVisitor.visitLineNumber(18, label0);
+      methodVisitor.visitLineNumber(26, label0);
+      methodVisitor.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
       methodVisitor.visitTypeInsn(NEW, "Host$Member1");
       methodVisitor.visitInsn(DUP);
       methodVisitor.visitMethodInsn(INVOKESPECIAL, "Host$Member1", "<init>", "()V", false);
-      methodVisitor.visitVarInsn(ALOAD, 0);
-      methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "Host$Member1", "m", "(LHost;)V", false);
+      methodVisitor.visitFieldInsn(GETFIELD, "Host$Member1", "s", "Ljava/lang/String;");
+      methodVisitor.visitMethodInsn(
+          INVOKEVIRTUAL, "java/io/PrintStream", "print", "(Ljava/lang/String;)V", false);
       Label label1 = new Label();
       methodVisitor.visitLabel(label1);
-      methodVisitor.visitLineNumber(19, label1);
+      methodVisitor.visitLineNumber(27, label1);
+      methodVisitor.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+      methodVisitor.visitVarInsn(ALOAD, 0);
+      methodVisitor.visitFieldInsn(GETFIELD, "Host", "s1", "Ljava/lang/String;");
+      methodVisitor.visitMethodInsn(
+          INVOKEVIRTUAL, "java/io/PrintStream", "print", "(Ljava/lang/String;)V", false);
+      Label label2 = new Label();
+      methodVisitor.visitLabel(label2);
+      methodVisitor.visitLineNumber(28, label2);
+      methodVisitor.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+      methodVisitor.visitTypeInsn(NEW, "Host$Member2");
+      methodVisitor.visitInsn(DUP);
+      methodVisitor.visitMethodInsn(INVOKESPECIAL, "Host$Member2", "<init>", "()V", false);
+      methodVisitor.visitFieldInsn(GETFIELD, "Host$Member2", "s", "Ljava/lang/String;");
+      methodVisitor.visitMethodInsn(
+          INVOKEVIRTUAL, "java/io/PrintStream", "print", "(Ljava/lang/String;)V", false);
+      Label label3 = new Label();
+      methodVisitor.visitLabel(label3);
+      methodVisitor.visitLineNumber(30, label3);
       methodVisitor.visitTypeInsn(NEW, "Host$Member2");
       methodVisitor.visitInsn(DUP);
       methodVisitor.visitMethodInsn(INVOKESPECIAL, "Host$Member2", "<init>", "()V", false);
       methodVisitor.visitVarInsn(ALOAD, 0);
       methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "Host$Member2", "m", "(LHost;)V", false);
-      Label label2 = new Label();
-      methodVisitor.visitLabel(label2);
-      methodVisitor.visitLineNumber(20, label2);
+      Label label4 = new Label();
+      methodVisitor.visitLabel(label4);
+      methodVisitor.visitLineNumber(31, label4);
+      methodVisitor.visitInsn(RETURN);
+      methodVisitor.visitMaxs(3, 1);
+      methodVisitor.visitEnd();
+    }
+    classWriter.visitEnd();
+
+    return classWriter.toByteArray();
+  }
+
+  public static byte[] dumpMember1(int fieldAccess) throws Exception {
+    assert fieldAccess == ACC_PUBLIC || fieldAccess == ACC_PRIVATE;
+
+    ClassWriter classWriter = new ClassWriter(0);
+    FieldVisitor fieldVisitor;
+    MethodVisitor methodVisitor;
+
+    classWriter.visit(V11, ACC_SUPER, "Host$Member1", null, "java/lang/Object", null);
+
+    classWriter.visitSource("Host.java", null);
+
+    classWriter.visitNestHost("Host");
+
+    classWriter.visitInnerClass("Host$Member1", "Host", "Member1", ACC_STATIC);
+
+    {
+      fieldVisitor = classWriter.visitField(fieldAccess, "s", "Ljava/lang/String;", null, null);
+      fieldVisitor.visitEnd();
+    }
+    {
+      methodVisitor = classWriter.visitMethod(0, "<init>", "()V", null, null);
+      methodVisitor.visitCode();
+      Label label0 = new Label();
+      methodVisitor.visitLabel(label0);
+      methodVisitor.visitLineNumber(9, label0);
+      methodVisitor.visitVarInsn(ALOAD, 0);
+      methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+      Label label1 = new Label();
+      methodVisitor.visitLabel(label1);
+      methodVisitor.visitLineNumber(10, label1);
+      methodVisitor.visitVarInsn(ALOAD, 0);
+      methodVisitor.visitLdcInsn("Hello");
+      methodVisitor.visitFieldInsn(PUTFIELD, "Host$Member1", "s", "Ljava/lang/String;");
+      methodVisitor.visitInsn(RETURN);
+      methodVisitor.visitMaxs(2, 1);
+      methodVisitor.visitEnd();
+    }
+    classWriter.visitEnd();
+
+    return classWriter.toByteArray();
+  }
+
+  public static byte[] dumpMember2(int fieldAccess) throws Exception {
+    assert fieldAccess == ACC_PUBLIC || fieldAccess == ACC_PRIVATE;
+
+    ClassWriter classWriter = new ClassWriter(0);
+    FieldVisitor fieldVisitor;
+    MethodVisitor methodVisitor;
+
+    classWriter.visit(V11, ACC_SUPER, "Host$Member2", null, "java/lang/Object", null);
+
+    classWriter.visitSource("Host.java", null);
+
+    classWriter.visitNestHost("Host");
+
+    classWriter.visitInnerClass("Host$Member2", "Host", "Member2", ACC_STATIC);
+
+    {
+      fieldVisitor = classWriter.visitField(fieldAccess, "s", "Ljava/lang/String;", null, null);
+      fieldVisitor.visitEnd();
+    }
+    {
+      methodVisitor = classWriter.visitMethod(0, "<init>", "()V", null, null);
+      methodVisitor.visitCode();
+      Label label0 = new Label();
+      methodVisitor.visitLabel(label0);
+      methodVisitor.visitLineNumber(16, label0);
+      methodVisitor.visitVarInsn(ALOAD, 0);
+      methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+      Label label1 = new Label();
+      methodVisitor.visitLabel(label1);
+      methodVisitor.visitLineNumber(17, label1);
+      methodVisitor.visitVarInsn(ALOAD, 0);
+      methodVisitor.visitLdcInsn("world");
+      methodVisitor.visitFieldInsn(PUTFIELD, "Host$Member2", "s", "Ljava/lang/String;");
       methodVisitor.visitInsn(RETURN);
       methodVisitor.visitMaxs(2, 1);
       methodVisitor.visitEnd();
     }
     {
-      methodVisitor =
-          classWriter.visitMethod(methodAccess, "h2", "(Ljava/lang/String;)V", null, null);
+      methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "m", "(LHost;)V", null, null);
       methodVisitor.visitCode();
       Label label0 = new Label();
       methodVisitor.visitLabel(label0);
-      methodVisitor.visitLineNumber(23, label0);
+      methodVisitor.visitLineNumber(20, label0);
       methodVisitor.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
       methodVisitor.visitVarInsn(ALOAD, 1);
+      methodVisitor.visitFieldInsn(GETFIELD, "Host", "s2", "Ljava/lang/String;");
       methodVisitor.visitMethodInsn(
           INVOKEVIRTUAL, "java/io/PrintStream", "print", "(Ljava/lang/String;)V", false);
       Label label1 = new Label();
       methodVisitor.visitLabel(label1);
-      methodVisitor.visitLineNumber(24, label1);
-      methodVisitor.visitInsn(RETURN);
-      methodVisitor.visitMaxs(2, 2);
-      methodVisitor.visitEnd();
-    }
-    classWriter.visitEnd();
-
-    return classWriter.toByteArray();
-  }
-
-  public static byte[] dumpMember1(int methodAccess) throws Exception {
-    assert methodAccess == ACC_PUBLIC || methodAccess == ACC_PRIVATE;
-
-    ClassWriter classWriter = new ClassWriter(0);
-    MethodVisitor methodVisitor;
-
-    classWriter.visit(V11, ACC_SUPER, "Host$Member1", null, "java/lang/Object", null);
-    classWriter.visitSource("Host.java", null);
-    classWriter.visitNestHost("Host");
-    classWriter.visitInnerClass("Host$Member1", "Host", "Member1", ACC_STATIC);
-    {
-      methodVisitor = classWriter.visitMethod(0, "<init>", "()V", null, null);
-      methodVisitor.visitCode();
-      Label label0 = new Label();
-      methodVisitor.visitLabel(label0);
-      methodVisitor.visitLineNumber(7, label0);
-      methodVisitor.visitVarInsn(ALOAD, 0);
-      methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
-      methodVisitor.visitInsn(RETURN);
-      methodVisitor.visitMaxs(1, 1);
-      methodVisitor.visitEnd();
-    }
-    {
-      methodVisitor = classWriter.visitMethod(methodAccess, "m", "(LHost;)V", null, null);
-      methodVisitor.visitCode();
-      Label label0 = new Label();
-      methodVisitor.visitLabel(label0);
-      methodVisitor.visitLineNumber(9, label0);
-      methodVisitor.visitVarInsn(ALOAD, 1);
-      methodVisitor.visitLdcInsn("Hello");
-      methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "Host", "h2", "(Ljava/lang/String;)V", false);
-      Label label1 = new Label();
-      methodVisitor.visitLabel(label1);
-      methodVisitor.visitLineNumber(10, label1);
-      methodVisitor.visitInsn(RETURN);
-      methodVisitor.visitMaxs(2, 2);
-      methodVisitor.visitEnd();
-    }
-    classWriter.visitEnd();
-
-    return classWriter.toByteArray();
-  }
-
-  public static byte[] dumpMember2(int methodAccess) throws Exception {
-    assert methodAccess == ACC_PUBLIC || methodAccess == ACC_PRIVATE;
-
-    ClassWriter classWriter = new ClassWriter(0);
-    MethodVisitor methodVisitor;
-
-    classWriter.visit(V11, ACC_SUPER, "Host$Member2", null, "java/lang/Object", null);
-    classWriter.visitSource("Host.java", null);
-    classWriter.visitNestHost("Host");
-    classWriter.visitInnerClass("Host$Member2", "Host", "Member2", ACC_STATIC);
-    {
-      methodVisitor = classWriter.visitMethod(0, "<init>", "()V", null, null);
-      methodVisitor.visitCode();
-      Label label0 = new Label();
-      methodVisitor.visitLabel(label0);
-      methodVisitor.visitLineNumber(13, label0);
-      methodVisitor.visitVarInsn(ALOAD, 0);
-      methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
-      methodVisitor.visitInsn(RETURN);
-      methodVisitor.visitMaxs(1, 1);
-      methodVisitor.visitEnd();
-    }
-    {
-      methodVisitor = classWriter.visitMethod(methodAccess, "m", "(LHost;)V", null, null);
-      methodVisitor.visitCode();
-      Label label0 = new Label();
-      methodVisitor.visitLabel(label0);
-      methodVisitor.visitLineNumber(14, label0);
-      methodVisitor.visitVarInsn(ALOAD, 1);
-      methodVisitor.visitLdcInsn(", world!");
-      methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "Host", "h2", "(Ljava/lang/String;)V", false);
+      methodVisitor.visitLineNumber(21, label1);
       methodVisitor.visitInsn(RETURN);
       methodVisitor.visitMaxs(2, 2);
       methodVisitor.visitEnd();
