@@ -141,6 +141,11 @@ public class AbsentKmClassSubject extends KmClassSubject {
   }
 
   @Override
+  public List<String> getEnumEntries() {
+    return null;
+  }
+
+  @Override
   public String getCompanionObject() {
     return null;
   }

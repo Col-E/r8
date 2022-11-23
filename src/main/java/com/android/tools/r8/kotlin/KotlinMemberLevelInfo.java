@@ -43,4 +43,12 @@ public interface KotlinMemberLevelInfo extends EnqueuerMetadataTraceable {
   default KotlinPropertyInfo asProperty() {
     return null;
   }
+
+  default boolean isEnumEntry() {
+    return false;
+  }
+
+  default KotlinEnumEntryInfo asEnumEntry() {
+    return null;
+  }
 }

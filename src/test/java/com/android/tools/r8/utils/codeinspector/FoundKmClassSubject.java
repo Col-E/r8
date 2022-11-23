@@ -127,6 +127,11 @@ public class FoundKmClassSubject extends KmClassSubject
   }
 
   @Override
+  public List<String> getEnumEntries() {
+    return kmClass.getEnumEntries();
+  }
+
+  @Override
   public List<KmTypeParameter> getKmTypeParameters() {
     return kmClass.getTypeParameters();
   }

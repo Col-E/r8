@@ -20,6 +20,8 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -157,7 +159,6 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
             keepByteCode,
             extensionInformation,
             originalMembersWithKotlinInfo);
-    String companionObjectName = setCompanionObject(kmClass, hostClass, reporter);
     KotlinTypeReference anonymousObjectOrigin = getAnonymousObjectOrigin(kmClass, factory);
     boolean nameCanBeDeducedFromClassOrOrigin =
         kmClass.name.equals(
@@ -176,7 +177,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
         getSuperTypes(kmClass.getSupertypes(), factory, reporter),
         getSealedSubClasses(kmClass.getSealedSubclasses(), factory),
         getNestedClasses(hostClass, kmClass.getNestedClasses(), factory),
-        kmClass.getEnumEntries(),
+        setEnumEntries(kmClass, hostClass),
         KotlinVersionRequirementInfo.create(kmClass.getVersionRequirements()),
         anonymousObjectOrigin,
         packageName,
@@ -187,7 +188,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
         KotlinTypeInfo.create(kmClass.getInlineClassUnderlyingType(), factory, reporter),
         originalMembersWithKotlinInfo,
         JvmExtensionsKt.getJvmFlags(kmClass),
-        companionObjectName);
+        setCompanionObject(kmClass, hostClass, reporter));
   }
 
   private static KotlinTypeReference getAnonymousObjectOrigin(
@@ -248,6 +249,25 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     return companionObjectName;
   }
 
+  private static List<String> setEnumEntries(KmClass kmClass, DexClass hostClass) {
+    List<String> enumEntries = kmClass.getEnumEntries();
+    if (enumEntries.isEmpty()) {
+      return enumEntries;
+    }
+    Collection<String> enumEntryStrings =
+        enumEntries.size() < 16 ? enumEntries : Sets.newHashSet(enumEntries);
+    hostClass
+        .fields()
+        .forEach(
+            field -> {
+              String fieldName = field.getName().toString();
+              if (enumEntryStrings.contains(fieldName)) {
+                field.setKotlinMemberInfo(new KotlinEnumEntryInfo(fieldName));
+              }
+            });
+    return enumEntries;
+  }
+
   @Override
   public boolean isClass() {
     return true;
@@ -290,19 +310,34 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     }
     // Find a companion object.
     boolean foundCompanion = false;
+    int numberOfEnumEntries = 0;
     for (DexEncodedField field : clazz.fields()) {
-      if (field.getKotlinInfo().isCompanion()) {
+      KotlinFieldLevelInfo kotlinInfo = field.getKotlinInfo();
+      if (kotlinInfo.isCompanion()) {
         rewritten |=
-            field
-                .getKotlinInfo()
+            kotlinInfo
                 .asCompanion()
                 .rewrite(kmClass, field.getReference(), appView.getNamingLens());
         foundCompanion = true;
+      } else if (kotlinInfo.isEnumEntry()) {
+        KotlinEnumEntryInfo kotlinEnumEntryInfo = kotlinInfo.asEnumEntry();
+        rewritten |=
+            kotlinEnumEntryInfo.rewrite(kmClass, field.getReference(), appView.getNamingLens());
+        if (numberOfEnumEntries >= enumEntries.size()
+            || !enumEntries.get(numberOfEnumEntries).equals(kotlinEnumEntryInfo.getEnumEntry())) {
+          rewritten = true;
+        }
+        numberOfEnumEntries += 1;
       }
     }
     // If we did not find a companion but it was there on input we have to emit a new metadata
     // object.
     if (!foundCompanion && companionObjectName != null) {
+      rewritten = true;
+    }
+    // If we could remove enum entries but were unable to rename them we still have to emit a new
+    // metadata object.
+    if (numberOfEnumEntries < enumEntries.size()) {
       rewritten = true;
     }
     // Take all not backed constructors because we will never find them in definitions.
@@ -373,8 +408,6 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
               appView,
               null);
     }
-    // TODO(b/154347404): Understand enum entries.
-    kmClass.getEnumEntries().addAll(enumEntries);
     rewritten |= versionRequirements.rewrite(kmClass::visitVersionRequirement);
     if (inlineClassUnderlyingPropertyName != null && inlineClassUnderlyingType != null) {
       kmClass.setInlineClassUnderlyingPropertyName(inlineClassUnderlyingPropertyName);

@@ -26,5 +26,7 @@ public abstract class KmClassSubject extends Subject
 
   public abstract List<ClassSubject> getSealedSubclasses();
 
+  public abstract List<String> getEnumEntries();
+
   public abstract String getCompanionObject();
 }
