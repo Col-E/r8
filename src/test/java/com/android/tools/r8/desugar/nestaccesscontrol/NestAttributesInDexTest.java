@@ -11,7 +11,11 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.TestRuntime;
+import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.desugar.nestaccesscontrol.NestAttributesInDexTest.Host.Member1;
 import com.android.tools.r8.desugar.nestaccesscontrol.NestAttributesInDexTest.Host.Member2;
 import com.android.tools.r8.transformers.ClassFileTransformer;
@@ -52,11 +56,52 @@ public class NestAttributesInDexTest extends TestBase {
           "true", "true", "true", "false", "false", "true", "true", "true", "false", "false",
           "true", "true", "true");
 
+  // Right now R8 removes the nest attributes if they are not required for runtime execution, so
+  // most reflective calls will return false.
+  private static final String R8_EXPECTED_OUTPUT =
+      StringUtils.lines(
+          "false", "false", "false", "true", "false", "false", "true", "false", "false", "false",
+          "false", "false", "true", "false", "false", "false", "false", "false", "true", "false",
+          "false", "true", "true", "true");
+
+  private boolean isRuntimeWithNestSupport(TestRuntime runtime) {
+    if (runtime.isCf()) {
+      return isRuntimeWithNestSupport(runtime.asCf());
+    } else {
+      return isRuntimeWithNestSupport(runtime.asDex());
+    }
+  }
+
+  private boolean isRuntimeWithNestSupport(CfRuntime runtime) {
+    return runtime.isNewerThanOrEqual(CfVm.JDK11);
+  }
+
+  private boolean isRuntimeWithNestSupport(DexRuntime runtime) {
+    // No Art versions have support for nest attributes yet.
+    return false;
+  }
+
+  private void checkResult(TestRunResult<?> result) {
+    if (isRuntimeWithNestSupport(parameters.getRuntime())) {
+      result.assertSuccessWithOutput(EXPECTED_OUTPUT);
+    } else {
+      result.assertFailureWithErrorThatThrows(NoSuchMethodError.class);
+    }
+  }
+
+  private void checkResultR8(TestRunResult<?> result) {
+    if (isRuntimeWithNestSupport(parameters.getRuntime())) {
+      result.assertSuccessWithOutput(R8_EXPECTED_OUTPUT);
+    } else {
+      result.assertFailureWithErrorThatThrows(NoSuchMethodError.class);
+    }
+  }
+
   @Test
   public void testRuntime() throws Exception {
     assumeTrue(
         parameters.isCfRuntime()
-            && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK11)
+            && isRuntimeWithNestSupport(parameters.asCfRuntime())
             && parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
     testForJvm()
         .addProgramClassFileData(getTransformedClasses())
@@ -93,8 +138,7 @@ public class NestAttributesInDexTest extends TestBase {
         .compile()
         .inspect(inspector -> inspect(inspector, true))
         .run(parameters.getRuntime(), TestClass.class)
-        // No Art versions have support for nest attributes yet.
-        .assertFailureWithErrorThatThrows(NoSuchMethodError.class);
+        .apply(this::checkResult);
   }
 
   @Test
@@ -109,7 +153,84 @@ public class NestAttributesInDexTest extends TestBase {
         .compile()
         .inspect(inspector -> inspect(inspector, false))
         .run(parameters.getRuntime(), TestClass.class)
-        .assertFailureWithErrorThatThrows(NoSuchMethodError.class);
+        .apply(this::checkResult);
+  }
+
+  @Test
+  public void testR8NoKeep() throws Exception {
+    assumeTrue(parameters.isDexRuntime() || isRuntimeWithNestSupport(parameters.asCfRuntime()));
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(getTransformedClasses())
+        .addProgramClasses(OtherHost.class)
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
+        .addKeepMainRule(TestClass.class)
+        .compile()
+        // Don't expect any nest info. The classes Host, Member1, Member2 and OtherHost remains
+        // due to the use of class constants in the code, but they have no methods so no nest
+        // attributes are required for runtime execution.
+        .inspect(inspector -> inspect(inspector, false))
+        .run(parameters.getRuntime(), TestClass.class)
+        .apply(this::checkResultR8);
+  }
+
+  @Test
+  public void testR8KeepHost() throws Exception {
+    assumeTrue(parameters.isDexRuntime() || isRuntimeWithNestSupport(parameters.asCfRuntime()));
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(getTransformedClasses())
+        .addProgramClasses(OtherHost.class)
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
+        .addKeepMainRule(TestClass.class)
+        .addKeepClassRules(Host.class)
+        .compile()
+        // Don't expect any nest info. Class Host is kept and the classes Member1, Members and
+        // OtherHost remains due to the use of class constants in the code, but they have no methods
+        // so no nest attributes are required for runtime execution.
+        // TODO(b/130716228#comment5): How to keep nest attributes?
+        .inspect(inspector -> inspect(inspector, false))
+        .run(parameters.getRuntime(), TestClass.class)
+        .apply(this::checkResultR8);
+  }
+
+  @Test
+  public void testR8KeepMembers() throws Exception {
+    assumeTrue(parameters.isDexRuntime() || isRuntimeWithNestSupport(parameters.asCfRuntime()));
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(getTransformedClasses())
+        .addProgramClasses(OtherHost.class)
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
+        .addKeepMainRule(TestClass.class)
+        .addKeepClassRules(Member1.class, Member2.class)
+        .compile()
+        // Don't expect any nest info. Member1 and Member2 are kept and the classes Host and
+        // OtherHost remains due to the use of class constants in the code, but they have no
+        // methods so no nest attributes are required for runtime execution.
+        // TODO(b/130716228#comment5): How to keep nest attributes?
+        .inspect(inspector -> inspect(inspector, false))
+        .run(parameters.getRuntime(), TestClass.class)
+        .apply(this::checkResultR8);
+  }
+
+  @Test
+  public void testR8KeepBoth() throws Exception {
+    assumeTrue(parameters.isDexRuntime() || isRuntimeWithNestSupport(parameters.asCfRuntime()));
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(getTransformedClasses())
+        .addProgramClasses(OtherHost.class)
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(options -> options.emitNestAnnotationsInDex = true)
+        .addKeepMainRule(TestClass.class)
+        .addKeepClassRules(Host.class, Member1.class, Member2.class)
+        .compile()
+        // Don't expect any nest info. All of Host, Member1 and Member2 are kept,
+        // but they have no methods so no nest attributes are required for runtime execution.
+        // TODO(b/130716228#comment5): How to keep nest attributes?
+        .inspect(inspector -> inspect(inspector, false))
+        .run(parameters.getRuntime(), TestClass.class)
+        .apply(this::checkResultR8);
   }
 
   public Collection<byte[]> getTransformedClasses() throws Exception {
