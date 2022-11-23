@@ -69,12 +69,7 @@ public class NestAttributesInDexShrinkingTest extends NestAttributesInDexTestBas
   }
 
   private void expectNestAttributes(CodeInspector inspector) {
-    if (parameters.isCfRuntime()) {
-      inspect(inspector, true);
-    } else {
-      // TODO(b/236125275): DEX should also have the nest attributes.
-      expectNoNestAttributes(inspector);
-    }
+    inspect(inspector, true);
   }
 
   private void expectNoNestAttributes(CodeInspector inspector) {

@@ -769,7 +769,8 @@ public class ApplicationWriter {
     List<InnerClassAttribute> innerClasses = clazz.getInnerClasses();
     if (enclosingMethod == null
         && innerClasses.isEmpty()
-        && clazz.getClassSignature().hasNoSignature()) {
+        && clazz.getClassSignature().hasNoSignature()
+        && !clazz.isInANest()) {
       return;
     }
 
