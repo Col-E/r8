@@ -85,7 +85,7 @@ public class ApiModelOutlineCheckCastTest extends TestBase {
         .setMode(CompilationMode.DEBUG)
         .apply(this::setupTestBuilder)
         .compile()
-        .inspect(inspector -> inspect(inspector, false))
+        .inspect(this::inspect)
         .applyIf(
             addToBootClasspath(),
             b -> b.addBootClasspathClasses(LibraryClass.class, LibraryProvider.class),
@@ -101,7 +101,7 @@ public class ApiModelOutlineCheckCastTest extends TestBase {
         .setMode(CompilationMode.RELEASE)
         .apply(this::setupTestBuilder)
         .compile()
-        .inspect(inspector -> inspect(inspector, false))
+        .inspect(this::inspect)
         .applyIf(
             addToBootClasspath(),
             b -> b.addBootClasspathClasses(LibraryClass.class, LibraryProvider.class),
@@ -116,7 +116,7 @@ public class ApiModelOutlineCheckCastTest extends TestBase {
         .apply(this::setupTestBuilder)
         .addKeepMainRule(Main.class)
         .compile()
-        .inspect(inspector -> inspect(inspector, true))
+        .inspect(this::inspect)
         .applyIf(
             addToBootClasspath(),
             b -> b.addBootClasspathClasses(LibraryClass.class, LibraryProvider.class),
@@ -125,10 +125,9 @@ public class ApiModelOutlineCheckCastTest extends TestBase {
         .apply(this::checkOutput);
   }
 
-  private void inspect(CodeInspector inspector, boolean isR8) throws Exception {
+  private void inspect(CodeInspector inspector) throws Exception {
     verifyThat(inspector, parameters, LibraryClass.class)
-        // TODO(b/b/258270051): We should outline the check cast.
-        .hasNotCheckCastOutlinedFrom(Main.class.getMethod("main", String[].class));
+        .hasCheckCastOutlinedFromUntil(Main.class.getMethod("main", String[].class), classApiLevel);
   }
 
   private void checkOutput(SingleTestRunResult<?> runResult) {

@@ -51,12 +51,18 @@ public class ApiModelFieldTypeReferenceTest extends TestBase {
         .apply(
             addTracedApiReferenceLevelCallBack(
                 (method, apiLevel) -> {
-                  if (Reference.methodFromMethod(readApiField).equals(method)
-                      || Reference.methodFromMethod(setApiField).equals(method)) {
+                  if (Reference.methodFromMethod(readApiField).equals(method)) {
                     if (parameters.isCfRuntime()) {
                       assertEquals(AndroidApiLevel.B, apiLevel);
                     } else {
                       assertEquals(AndroidApiLevel.B.max(parameters.getApiLevel()), apiLevel);
+                    }
+                  }
+                  if (Reference.methodFromMethod(setApiField).equals(method)) {
+                    if (parameters.isCfRuntime()) {
+                      assertEquals(AndroidApiLevel.L_MR1, apiLevel);
+                    } else {
+                      assertEquals(AndroidApiLevel.L_MR1.max(parameters.getApiLevel()), apiLevel);
                     }
                   }
                 }))

@@ -5,8 +5,8 @@
 package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
-import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -38,7 +38,6 @@ public class ApiModelInlineMethodWithApiTypeTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     Method apiCallerApiLevel22 = ApiCaller.class.getDeclaredMethod("apiLevel22");
-    Method apiCallerCallerApiLevel22 = ApiCallerCaller.class.getDeclaredMethod("apiLevel22");
     testForR8(parameters.getBackend())
         .addProgramClasses(ApiCaller.class, ApiCallerCaller.class, OtherCaller.class, Main.class)
         .addLibraryClasses(ApiType.class)
@@ -55,8 +54,14 @@ public class ApiModelInlineMethodWithApiTypeTest extends TestBase {
         .assertSuccessWithOutputLines(ApiType.class.getName())
         .inspect(
             inspector -> {
-              verifyThat(inspector, parameters, apiCallerApiLevel22)
-                  .inlinedInto(apiCallerCallerApiLevel22);
+              assertThat(
+                  inspector.method(apiCallerApiLevel22),
+                  notIf(
+                      isPresent(),
+                      parameters.isDexRuntime()
+                          && parameters
+                              .getApiLevel()
+                              .isGreaterThanOrEqualTo(AndroidApiLevel.L_MR1)));
               assertThat(inspector.clazz(OtherCaller.class), not(isPresent()));
             });
   }
@@ -68,7 +73,7 @@ public class ApiModelInlineMethodWithApiTypeTest extends TestBase {
 
     public static ApiType apiLevel22() throws Exception {
       // The reflective call here is to ensure that the setting of A's api level is not based on
-      // a method reference to `Api` and only because of the type reference in the field `api`.
+      // a method reference to `Api` and only because of the type reference in the checkcast.
       Class<?> reflectiveCall =
           Class.forName(
               "com.android.tools.r8.apimodel.ApiModelInlineMethodWithApiTypeTest_ApiType"
@@ -82,7 +87,7 @@ public class ApiModelInlineMethodWithApiTypeTest extends TestBase {
 
     public static void apiLevel22() throws Exception {
       // This is referencing the proto of ApiCaller.foo and thus have a reference to ApiType. It is
-      // therefore OK to inline ApiCaller.foo() into ApiCallerCaller.bar().
+      // therefore OK to inline ApiCaller.apiLevel22() into ApiCallerCaller.apiLevel22().
       System.out.println(ApiCaller.apiLevel22().getClass().getName());
     }
   }

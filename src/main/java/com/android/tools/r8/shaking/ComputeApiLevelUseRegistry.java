@@ -118,12 +118,12 @@ public class ComputeApiLevelUseRegistry extends UseRegistry<ProgramMethod> {
 
   @Override
   public void registerCheckCast(DexType type, boolean ignoreCompatRules) {
-    // CheckCast are not causing soft verification issues
+    setMaxApiReferenceLevel(type);
   }
 
   @Override
   public void registerSafeCheckCast(DexType type) {
-    // CheckCast are not causing soft verification issues
+    setMaxApiReferenceLevel(type);
   }
 
   @Override

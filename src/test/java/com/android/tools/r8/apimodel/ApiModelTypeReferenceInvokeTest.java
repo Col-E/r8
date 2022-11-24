@@ -6,7 +6,8 @@ package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
-import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
@@ -34,8 +35,6 @@ public class ApiModelTypeReferenceInvokeTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     Method apiMethod = LibraryClass.class.getDeclaredMethod("apiMethod");
-    Method apiCaller = ApiHelper.class.getDeclaredMethod("apiCaller", LibraryClass.class);
-    Method apiCallerCaller = Main.class.getDeclaredMethod("typeReference", Object.class);
     boolean libraryClassOnBoot =
         parameters.isDexRuntime()
             && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.M);
@@ -53,10 +52,7 @@ public class ApiModelTypeReferenceInvokeTest extends TestBase {
         .enableInliningAnnotations()
         .addAndroidBuildVersion()
         .compile()
-        .inspect(
-            inspector ->
-                verifyThat(inspector, parameters, apiCaller)
-                    .inlinedIntoFromApiLevel(apiCallerCaller, AndroidApiLevel.M))
+        .inspect(inspector -> assertThat(inspector.clazz(ApiHelper.class), isAbsent()))
         .addRunClasspathClasses(LibraryClass.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLinesIf(

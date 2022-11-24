@@ -412,4 +412,12 @@ public abstract class CfInstruction implements CfOrDexInstruction {
 
   public abstract CfFrameState evaluate(
       CfFrameState frame, AppView<?> appView, CfAnalysisConfig config);
+
+  public boolean isCheckCast() {
+    return false;
+  }
+
+  public CfCheckCast asCheckCast() {
+    return null;
+  }
 }

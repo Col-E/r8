@@ -144,4 +144,14 @@ public class CfCheckCast extends CfInstruction implements CfTypeInstruction {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     return frame.popInitialized(appView, config, dexItemFactory.objectType).push(config, type);
   }
+
+  @Override
+  public boolean isCheckCast() {
+    return true;
+  }
+
+  @Override
+  public CfCheckCast asCheckCast() {
+    return this;
+  }
 }

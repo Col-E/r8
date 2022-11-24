@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.apimodel;
 
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 
@@ -48,6 +49,7 @@ public class ApiModelNoInliningOfHigherApiLevelInterfaceTest extends TestBase {
         .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
+        .apply(setMockApiLevelForClass(Api.class, AndroidApiLevel.L_MR1))
         .apply(setMockApiLevelForMethod(apiMethod, AndroidApiLevel.L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         // We are testing that we do not inline/merge higher api-levels
