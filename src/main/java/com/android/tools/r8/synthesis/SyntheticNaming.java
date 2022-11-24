@@ -423,7 +423,7 @@ public class SyntheticNaming {
     return factory.createType(createDescriptor(separator, kind, externalSyntheticTypePrefix, id));
   }
 
-  private static String createDescriptor(
+  public static String createDescriptor(
       String separator, SyntheticKind kind, String externalSyntheticTypePrefix, String id) {
     return DescriptorUtils.getDescriptorFromClassBinaryName(
         externalSyntheticTypePrefix + separator + kind.descriptor + id);

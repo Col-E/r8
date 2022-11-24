@@ -5,6 +5,7 @@
 package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.accessesField;
+import static com.android.tools.r8.utils.codeinspector.CodeMatchers.containsCheckCast;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethodWithHolderAndName;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethodWithName;
@@ -18,9 +19,11 @@ import static org.junit.Assert.assertFalse;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
+import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.CodeMatchers;
@@ -257,6 +260,46 @@ public abstract class ApiModelingTestHelper {
               isPresent(),
               parameters.isCfRuntime()
                   || parameters.getApiLevel().isGreaterThanOrEqualTo(finalApiLevel)));
+    }
+
+    void hasCheckCastOutlinedFromUntil(Method method, AndroidApiLevel apiLevel) {
+      if (parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(apiLevel)) {
+        hasCheckCastOutlinedFrom(method);
+      } else {
+        hasNotCheckCastOutlinedFrom(method);
+      }
+    }
+
+    public void hasCheckCastOutlinedFrom(Method method) {
+      // Check that we call is in a synthetic class with a check cast
+      ClassReference classOfInterestReference = Reference.classFromClass(classOfInterest);
+      List<FoundMethodSubject> outlinedMethod =
+          inspector.allClasses().stream()
+              .filter(
+                  clazz ->
+                      clazz
+                          .getOriginalName()
+                          .startsWith(
+                              SyntheticItemsTestUtils.syntheticApiOutlineClassPrefix(
+                                  method.getDeclaringClass())))
+              .flatMap(clazz -> clazz.allMethods().stream())
+              .filter(
+                  methodSubject ->
+                      methodSubject.isSynthetic()
+                          && containsCheckCast(classOfInterestReference).matches(methodSubject))
+              .collect(Collectors.toList());
+      assertFalse(outlinedMethod.isEmpty());
+      // Assert that method invokes the outline
+      MethodSubject caller = inspector.method(method);
+      assertThat(caller, isPresent());
+      assertThat(caller, invokesMethod(outlinedMethod.get(0)));
+    }
+
+    public void hasNotCheckCastOutlinedFrom(Method method) {
+      ClassReference classOfInterestReference = Reference.classFromClass(classOfInterest);
+      MethodSubject caller = inspector.method(method);
+      assertThat(caller, isPresent());
+      assertThat(caller, containsCheckCast(classOfInterestReference));
     }
   }
 

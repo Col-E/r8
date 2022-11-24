@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.synthesis;
 
+import static com.android.tools.r8.synthesis.SyntheticNaming.EXTERNAL_SYNTHETIC_CLASS_SEPARATOR;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting;
@@ -68,6 +69,12 @@ public class SyntheticItemsTestUtils {
 
   public static ClassReference syntheticApiOutlineClass(ClassReference classReference, int id) {
     return syntheticClass(classReference, naming.API_MODEL_OUTLINE, id);
+  }
+
+  public static String syntheticApiOutlineClassPrefix(Class<?> clazz) {
+    return clazz.getTypeName()
+        + EXTERNAL_SYNTHETIC_CLASS_SEPARATOR
+        + naming.API_MODEL_OUTLINE.getDescriptor();
   }
 
   public static ClassReference syntheticBackportClass(Class<?> clazz, int id) {

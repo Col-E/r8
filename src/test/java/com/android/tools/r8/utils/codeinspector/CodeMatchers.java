@@ -5,6 +5,7 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.MethodReferenceUtils;
@@ -62,6 +63,31 @@ public class CodeMatchers {
       @Override
       public void describeTo(Description description) {
         description.appendText("contains throw");
+      }
+
+      @Override
+      public void describeMismatchSafely(final MethodSubject subject, Description description) {
+        description.appendText("method did not");
+      }
+    };
+  }
+
+  public static Matcher<MethodSubject> containsCheckCast(ClassReference classReference) {
+    return new TypeSafeMatcher<MethodSubject>() {
+      @Override
+      protected boolean matchesSafely(MethodSubject subject) {
+        return subject.isPresent()
+            && subject.getMethod().hasCode()
+            && subject
+                .streamInstructions()
+                .anyMatch(
+                    instructionSubject ->
+                        instructionSubject.isCheckCast(classReference.getTypeName()));
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("contains checkcast");
       }
 
       @Override
