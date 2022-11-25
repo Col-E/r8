@@ -7,9 +7,6 @@ package com.android.tools.r8.apimodel;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
-import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
@@ -23,8 +20,8 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.lang.reflect.Method;
+import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -133,13 +130,14 @@ public class ApiModelOutlineSubTypeStaticReferenceTest extends TestBase {
     Method otherMethod = Sub.class.getMethod("otherMethod");
     Method libraryMethod = LibraryClass.class.getMethod("foo");
     // TODO(b/254510678): R8 should not member-rebind to a potential non-existing method.
-    if (isR8) {
-      MethodSubject method = inspector.method(otherMethod);
-      assertThat(method, isPresent());
-      assertThat(method, invokesMethod(Reference.methodFromMethod(libraryMethod)));
-    }
-    // TODO(b/254510678): We should outline this up until library api level.
-    verifyThat(inspector, parameters, libraryMethod).isNotOutlinedFrom(otherMethod);
+    verifyThat(
+            inspector,
+            parameters,
+            isR8
+                ? Reference.methodFromMethod(libraryMethod)
+                : Reference.method(
+                    Reference.classFromClass(Sub.class), "foo", Collections.emptyList(), null))
+        .isOutlinedFromUntil(Sub.class.getDeclaredMethod("otherMethod"), libraryApiLevel);
   }
 
   private void checkResultOnBootClassPath(SingleTestRunResult<?> runResult) {
