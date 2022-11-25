@@ -6,6 +6,7 @@ package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.accessesField;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.containsCheckCast;
+import static com.android.tools.r8.utils.codeinspector.CodeMatchers.containsInstanceOf;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethodWithHolderAndName;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethodWithName;
@@ -300,6 +301,46 @@ public abstract class ApiModelingTestHelper {
       MethodSubject caller = inspector.method(method);
       assertThat(caller, isPresent());
       assertThat(caller, containsCheckCast(classOfInterestReference));
+    }
+
+    void hasInstanceOfOutlinedFromUntil(Method method, AndroidApiLevel apiLevel) {
+      if (parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(apiLevel)) {
+        hasInstanceOfOutlinedFrom(method);
+      } else {
+        hasNotInstanceOfOutlinedFrom(method);
+      }
+    }
+
+    public void hasInstanceOfOutlinedFrom(Method method) {
+      // Check that we call is in a synthetic class with an instance of.
+      ClassReference classOfInterestReference = Reference.classFromClass(classOfInterest);
+      List<FoundMethodSubject> outlinedMethod =
+          inspector.allClasses().stream()
+              .filter(
+                  clazz ->
+                      clazz
+                          .getOriginalName()
+                          .startsWith(
+                              SyntheticItemsTestUtils.syntheticApiOutlineClassPrefix(
+                                  method.getDeclaringClass())))
+              .flatMap(clazz -> clazz.allMethods().stream())
+              .filter(
+                  methodSubject ->
+                      methodSubject.isSynthetic()
+                          && containsInstanceOf(classOfInterestReference).matches(methodSubject))
+              .collect(Collectors.toList());
+      assertFalse(outlinedMethod.isEmpty());
+      // Assert that method invokes the outline
+      MethodSubject caller = inspector.method(method);
+      assertThat(caller, isPresent());
+      assertThat(caller, invokesMethod(outlinedMethod.get(0)));
+    }
+
+    public void hasNotInstanceOfOutlinedFrom(Method method) {
+      ClassReference classOfInterestReference = Reference.classFromClass(classOfInterest);
+      MethodSubject caller = inspector.method(method);
+      assertThat(caller, isPresent());
+      assertThat(caller, containsInstanceOf(classOfInterestReference));
     }
   }
 

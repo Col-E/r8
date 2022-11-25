@@ -97,6 +97,31 @@ public class CodeMatchers {
     };
   }
 
+  public static Matcher<MethodSubject> containsInstanceOf(ClassReference classReference) {
+    return new TypeSafeMatcher<MethodSubject>() {
+      @Override
+      protected boolean matchesSafely(MethodSubject subject) {
+        return subject.isPresent()
+            && subject.getMethod().hasCode()
+            && subject
+                .streamInstructions()
+                .anyMatch(
+                    instructionSubject ->
+                        instructionSubject.isInstanceOf(classReference.getTypeName()));
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("contains instanceof");
+      }
+
+      @Override
+      public void describeMismatchSafely(final MethodSubject subject, Description description) {
+        description.appendText("method did not");
+      }
+    };
+  }
+
   public static Matcher<MethodSubject> instantiatesClass(Class<?> clazz) {
     return instantiatesClass(clazz.getTypeName());
   }
