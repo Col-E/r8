@@ -16,6 +16,7 @@ import com.android.tools.r8.cf.code.CfIinc;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
+import com.android.tools.r8.cf.code.CfMonitor;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfTryCatch;
@@ -531,6 +532,16 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
       }
     }
     return true;
+  }
+
+  @Override
+  public boolean hasMonitorInstructions() {
+    for (CfInstruction instruction : getInstructions()) {
+      if (instruction instanceof CfMonitor) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override

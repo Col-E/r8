@@ -2824,4 +2824,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     // TODO(b/246679983): Turned off while diagnosing b/246679983.
     return false && isGeneratingDex() && minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.L);
   }
+
+  // b/238399429 Some art 6 vms have issues with multiple monitors in the same method
+  // Don't inline code with monitors into methods that already have monitors.
+  public boolean canHaveIssueWithInlinedMonitors() {
+    return canHaveBugPresentUntil(AndroidApiLevel.N);
+  }
 }

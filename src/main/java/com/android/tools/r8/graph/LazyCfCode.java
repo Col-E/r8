@@ -229,6 +229,11 @@ public class LazyCfCode extends Code {
   }
 
   @Override
+  public boolean hasMonitorInstructions() {
+    return asCfCode().hasMonitorInstructions();
+  }
+
+  @Override
   public int estimatedSizeForInlining() {
     return asCfCode().estimatedSizeForInlining();
   }

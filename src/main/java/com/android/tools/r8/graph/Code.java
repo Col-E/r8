@@ -117,6 +117,10 @@ public abstract class Code extends CachedHashValueDexItem {
     return false;
   }
 
+  public boolean hasMonitorInstructions() {
+    return false;
+  }
+
   public boolean isThrowExceptionCode() {
     return false;
   }

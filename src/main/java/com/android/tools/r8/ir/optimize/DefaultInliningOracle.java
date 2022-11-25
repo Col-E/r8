@@ -15,6 +15,7 @@ import com.android.tools.r8.features.FeatureSplitBoundaryOptimizationUtils;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -153,6 +154,10 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return false;
     }
 
+    if (canHaveIssuesWithMonitors(singleTarget, method)) {
+      return false;
+    }
+
     // We should never even try to inline something that is processed concurrently. It can lead
     // to non-deterministic behaviour as the inlining IR could be built from either original output
     // or optimized code. Right now this happens for the class class staticizer, as it just
@@ -197,6 +202,22 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
         || !mainDexInfo.disallowInliningIntoContext(
             appView, method, singleTarget, appView.getSyntheticItems());
     return true;
+  }
+
+  private boolean canHaveIssuesWithMonitors(ProgramMethod singleTarget, ProgramMethod context) {
+    if (appView.options().canHaveIssueWithInlinedMonitors()) {
+      if (hasMonitorsOrIsSynchronized(singleTarget.getDefinition())) {
+        if (context.getOptimizationInfo().forceInline()
+            || hasMonitorsOrIsSynchronized(context.getDefinition())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  public static boolean hasMonitorsOrIsSynchronized(DexEncodedMethod definition) {
+    return definition.isSynchronized() || definition.getCode().hasMonitorInstructions();
   }
 
   public boolean satisfiesRequirementsForSimpleInlining(InvokeMethod invoke, ProgramMethod target) {
@@ -301,6 +322,17 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     if (!passesInliningConstraints(
         invoke, resolutionResult, singleTarget, reason, whyAreYouNotInliningReporter)) {
       return null;
+    }
+
+    // Ensure that we don't introduce several monitors in the same method on old device that can
+    // choke on this. If a context is forceinline, e.g., from class merging, don't ever inline
+    // monitors, since that may conflict with a similar other constructor.
+    if (appView.options().canHaveIssueWithInlinedMonitors()) {
+      if (hasMonitorsOrIsSynchronized(singleTarget.getDefinition())
+          && (context.getOptimizationInfo().forceInline()
+              || code.metadata().mayHaveMonitorInstruction())) {
+        return null;
+      }
     }
 
     InlineAction action =

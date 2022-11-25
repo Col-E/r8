@@ -9,6 +9,7 @@ import com.android.tools.r8.dex.JumboStringRewriter;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.dex.code.CfOrDexInstruction;
 import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexMonitorEnter;
 import com.android.tools.r8.dex.code.DexReturnVoid;
 import com.android.tools.r8.dex.code.DexSwitchPayload;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
@@ -374,6 +375,16 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
   @Override
   public boolean isEmptyVoidMethod() {
     return instructions.length == 1 && instructions[0] instanceof DexReturnVoid;
+  }
+
+  @Override
+  public boolean hasMonitorInstructions() {
+    for (DexInstruction instruction : instructions) {
+      if (instruction instanceof DexMonitorEnter) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override

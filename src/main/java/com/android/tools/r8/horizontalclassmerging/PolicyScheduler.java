@@ -46,6 +46,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.NoVerticallyMergedCl
 import com.android.tools.r8.horizontalclassmerging.policies.NoVirtualMethodMerging;
 import com.android.tools.r8.horizontalclassmerging.policies.NoWeakerAccessPrivileges;
 import com.android.tools.r8.horizontalclassmerging.policies.NotMatchedByNoHorizontalClassMerging;
+import com.android.tools.r8.horizontalclassmerging.policies.NotTwoInitsWithMonitors;
 import com.android.tools.r8.horizontalclassmerging.policies.OnlyClassesWithStaticDefinitionsAndNoClassInitializer;
 import com.android.tools.r8.horizontalclassmerging.policies.OnlyDirectlyConnectedOrUnrelatedInterfaces;
 import com.android.tools.r8.horizontalclassmerging.policies.PreserveMethodCharacteristics;
@@ -292,6 +293,9 @@ public class PolicyScheduler {
         new NoIndirectRuntimeTypeChecks(appView, runtimeTypeCheckInfo),
         new NoWeakerAccessPrivileges(appView, immediateSubtypingInfo),
         new PreventClassMethodAndDefaultMethodCollisions(appView, immediateSubtypingInfo));
+    if (appView.options().canHaveIssueWithInlinedMonitors()) {
+      builder.add(new NotTwoInitsWithMonitors());
+    }
   }
 
   private static void addMultiClassPoliciesForMergingNonSyntheticClasses(
