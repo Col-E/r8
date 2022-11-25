@@ -133,7 +133,7 @@ public class ComputeApiLevelUseRegistry extends UseRegistry<ProgramMethod> {
 
   @Override
   public void registerInstanceOf(DexType type) {
-    // InstanceOf are not causing soft verification issues
+    setMaxApiReferenceLevel(type);
   }
 
   @Override

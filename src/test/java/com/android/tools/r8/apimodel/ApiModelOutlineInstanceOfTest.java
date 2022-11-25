@@ -126,8 +126,8 @@ public class ApiModelOutlineInstanceOfTest extends TestBase {
 
   private void inspect(CodeInspector inspector) throws Exception {
     verifyThat(inspector, parameters, LibraryClass.class)
-        // TODO(b/258270051): We should outline the call on lower api levels.
-        .hasNotInstanceOfOutlinedFrom(Main.class.getMethod("main", String[].class));
+        .hasInstanceOfOutlinedFromUntil(
+            Main.class.getMethod("main", String[].class), classApiLevel);
   }
 
   private void checkOutput(SingleTestRunResult<?> runResult) {
