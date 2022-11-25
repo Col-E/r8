@@ -32,6 +32,9 @@ public class FileApiFlips {
     if (attributesClass == java.nio.file.attribute.PosixFileAttributes.class) {
       return j$.nio.file.attribute.PosixFileAttributes.class;
     }
+    if (attributesClass == java.nio.file.attribute.DosFileAttributes.class) {
+      return j$.nio.file.attribute.DosFileAttributes.class;
+    }
     throw exception("java.nio.file.attribute.BasicFileAttributes", attributesClass);
   }
 
@@ -56,6 +59,9 @@ public class FileApiFlips {
     }
     if (attributeView == java.nio.file.attribute.FileOwnerAttributeView.class) {
       return j$.nio.file.attribute.FileOwnerAttributeView.class;
+    }
+    if (attributeView == java.nio.file.attribute.DosFileAttributeView.class) {
+      return j$.nio.file.attribute.DosFileAttributeView.class;
     }
     throw exception("java.nio.file.attribute.FileAttributeView", attributeView);
   }
