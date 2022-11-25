@@ -73,7 +73,7 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
       CfInstructionDesugaringCollection desugaringCollection,
       DexItemFactory dexItemFactory) {
     ComputedApiLevel computedApiLevel =
-        getComputedApiLevelInstructionOnHolderWithMinApi(instruction);
+        getComputedApiLevelInstructionOnHolderWithMinApi(instruction, context);
     if (computedApiLevel.isGreaterThan(appView.computedMinApiLevel())) {
       return desugarLibraryCall(
           methodProcessingContext.createUniqueContext(),
@@ -88,15 +88,15 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
 
   @Override
   public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    if (context.getDefinition().isD8R8Synthesized()) {
-      return false;
-    }
-    return getComputedApiLevelInstructionOnHolderWithMinApi(instruction)
+    return getComputedApiLevelInstructionOnHolderWithMinApi(instruction, context)
         .isGreaterThan(appView.computedMinApiLevel());
   }
 
   private ComputedApiLevel getComputedApiLevelInstructionOnHolderWithMinApi(
-      CfInstruction instruction) {
+      CfInstruction instruction, ProgramMethod context) {
+    if (context.getDefinition().isD8R8Synthesized()) {
+      return appView.computedMinApiLevel();
+    }
     DexReference reference;
     if (instruction.isInvoke()) {
       CfInvoke cfInvoke = instruction.asInvoke();
