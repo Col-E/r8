@@ -447,6 +447,14 @@ public abstract class ApiModelingTestHelper {
       }
     }
 
+    void isOutlinedFromUntilAlsoForCf(Executable method, AndroidApiLevel apiLevel) {
+      if (parameters.getApiLevel().isLessThan(apiLevel)) {
+        isOutlinedFrom(method);
+      } else {
+        isNotOutlinedFrom(method);
+      }
+    }
+
     void isOutlinedFrom(Executable method) {
       // Check that the call is in a synthetic class.
       List<FoundMethodSubject> outlinedMethod =
