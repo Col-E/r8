@@ -5,6 +5,8 @@
 package com.android.tools.r8.desugar.desugaredlibrary.jdk11;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.jdk11.FilesMoveCopyTest.TestClass.CopyOrMove.COPY;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdk11.FilesMoveCopyTest.TestClass.CopyOrMove.COPY_FROM_INPUT_STREAM;
+import static com.android.tools.r8.desugar.desugaredlibrary.jdk11.FilesMoveCopyTest.TestClass.CopyOrMove.COPY_TO_OUTPUT_STREAM;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdk11.FilesMoveCopyTest.TestClass.CopyOrMove.MOVE;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdk11.FilesMoveCopyTest.TestClass.NewFile.EXISTING;
 import static com.android.tools.r8.desugar.desugaredlibrary.jdk11.FilesMoveCopyTest.TestClass.NewFile.NEW;
@@ -19,6 +21,8 @@ import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecificati
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.CopyOption;
@@ -46,36 +50,52 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class FilesMoveCopyTest extends DesugaredLibraryTestBase {
 
-  private static final String EXPECTED_RESULT =
+  private static final String EXPECTED_RESULT_FORMAT =
       StringUtils.lines(
+          "Testing COPY_TO_OUTPUT_STREAM EXISTING NONE",
+          "COPY_TO_OUTPUT_STREAM_NONE",
           "Testing MOVE NEW NONE",
           "MOVE_NONE",
           "Testing COPY NEW NONE",
           "COPY_NONE",
+          "Testing COPY_FROM_INPUT_STREAM NEW NONE",
+          "COPY_FROM_INPUT_STREAM_NONE",
           "Testing MOVE EXISTING NONE",
           "Failure: class java.nio.file.FileAlreadyExistsException :: dest",
           "Testing COPY EXISTING NONE",
           "Failure: class java.nio.file.FileAlreadyExistsException :: dest",
+          "Testing COPY_FROM_INPUT_STREAM EXISTING NONE",
+          "%s",
           "Testing MOVE NEW ATOMIC_MOVE",
           "MOVE_ATOMIC_MOVE",
           "Testing COPY NEW ATOMIC_MOVE",
           "Failure: class java.lang.UnsupportedOperationException :: Unsupported copy option",
+          "Testing COPY_FROM_INPUT_STREAM NEW ATOMIC_MOVE",
+          "Failure: class java.lang.UnsupportedOperationException :: ATOMIC_MOVE not supported",
           "Testing MOVE NEW COPY_ATTRIBUTES",
           "Failure: class java.lang.UnsupportedOperationException :: Unsupported copy option",
           "Testing COPY NEW COPY_ATTRIBUTES",
           "COPY_COPY_ATTRIBUTES",
+          "Testing COPY_FROM_INPUT_STREAM NEW COPY_ATTRIBUTES",
+          "Failure: class java.lang.UnsupportedOperationException :: COPY_ATTRIBUTES not supported",
           "Testing MOVE NEW REPLACE_EXISTING",
           "MOVE_REPLACE_EXISTING",
           "Testing COPY NEW REPLACE_EXISTING",
           "COPY_REPLACE_EXISTING",
+          "Testing COPY_FROM_INPUT_STREAM NEW REPLACE_EXISTING",
+          "COPY_FROM_INPUT_STREAM_REPLACE_EXISTING",
           "Testing MOVE EXISTING REPLACE_EXISTING",
           "MOVE_REPLACE_EXISTING",
           "Testing COPY EXISTING REPLACE_EXISTING",
           "COPY_REPLACE_EXISTING",
+          "Testing COPY_FROM_INPUT_STREAM EXISTING REPLACE_EXISTING",
+          "COPY_FROM_INPUT_STREAM_REPLACE_EXISTING",
           "Testing MOVE NEW NOFOLLOW_LINKS",
           "MOVE_NOFOLLOW_LINKS",
           "Testing COPY NEW NOFOLLOW_LINKS",
-          "COPY_NOFOLLOW_LINKS");
+          "COPY_NOFOLLOW_LINKS",
+          "Testing COPY_FROM_INPUT_STREAM NEW NOFOLLOW_LINKS",
+          "Failure: class java.lang.UnsupportedOperationException :: NOFOLLOW_LINKS not supported");
 
   private final TestParameters parameters;
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
@@ -104,6 +124,19 @@ public class FilesMoveCopyTest extends DesugaredLibraryTestBase {
     this.compilationSpecification = compilationSpecification;
   }
 
+  private String getExpectedResult() {
+    // TODO(b/260208125): Fix invalid behavior.
+    // When copying from the input stream into an existing file and no options,
+    // the desugared version succeeds by deleting the file while the regular version fails
+    // with FileAlreadyExistsException exception.
+    String result =
+        (parameters.isDexRuntime()
+                && !libraryDesugaringSpecification.usesPlatformFileSystem(parameters))
+            ? "COPY_FROM_INPUT_STREAM_NONE"
+            : "Failure: class java.nio.file.FileAlreadyExistsException :: dest";
+    return String.format(EXPECTED_RESULT_FORMAT, result);
+  }
+
   @Test
   public void test() throws Throwable {
     if (parameters.isCfRuntime()) {
@@ -113,7 +146,7 @@ public class FilesMoveCopyTest extends DesugaredLibraryTestBase {
       testForJvm()
           .addInnerClasses(getClass())
           .run(parameters.getRuntime(), TestClass.class)
-          .assertSuccessWithOutput(EXPECTED_RESULT);
+          .assertSuccessWithOutput(getExpectedResult());
       return;
     }
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
@@ -122,13 +155,15 @@ public class FilesMoveCopyTest extends DesugaredLibraryTestBase {
         .compile()
         .withArt6Plus64BitsLib()
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+        .assertSuccessWithOutput(getExpectedResult());
   }
 
   public static class TestClass {
 
     enum CopyOrMove {
       COPY,
+      COPY_FROM_INPUT_STREAM,
+      COPY_TO_OUTPUT_STREAM,
       MOVE
     }
 
@@ -138,12 +173,15 @@ public class FilesMoveCopyTest extends DesugaredLibraryTestBase {
     }
 
     public static void main(String[] args) throws Throwable {
+      test(COPY_TO_OUTPUT_STREAM, EXISTING, null);
       for (CopyOption copyOption : allOptions()) {
         test(MOVE, NEW, copyOption);
         test(COPY, NEW, copyOption);
+        test(COPY_FROM_INPUT_STREAM, NEW, copyOption);
         if (copyOption == null || copyOption == StandardCopyOption.REPLACE_EXISTING) {
           test(MOVE, EXISTING, copyOption);
           test(COPY, EXISTING, copyOption);
+          test(COPY_FROM_INPUT_STREAM, EXISTING, copyOption);
         }
       }
     }
@@ -180,10 +218,26 @@ public class FilesMoveCopyTest extends DesugaredLibraryTestBase {
       String toWrite = copyOrMove + "_" + copyOptionString;
       Files.write(src, toWrite.getBytes(StandardCharsets.UTF_8), StandardOpenOption.WRITE);
       try {
-        if (copyOrMove == COPY) {
-          Files.copy(src, dest, opts);
-        } else {
-          Files.move(src, dest, opts);
+        switch (copyOrMove) {
+          case COPY:
+            Files.copy(src, dest, opts);
+            break;
+          case MOVE:
+            Files.move(src, dest, opts);
+            break;
+          case COPY_FROM_INPUT_STREAM:
+            FileInputStream in = new FileInputStream(src.toFile());
+            Files.copy(in, dest, opts);
+            in.close();
+            break;
+          case COPY_TO_OUTPUT_STREAM:
+            if (opts.length != 0) {
+              throw new UnsupportedOperationException("Api does not encode options");
+            }
+            FileOutputStream out = new FileOutputStream(dest.toFile());
+            Files.copy(src, out);
+            out.close();
+            break;
         }
         System.out.println(Files.readAllLines(dest).get(0));
       } catch (Throwable t) {
