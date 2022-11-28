@@ -51,6 +51,11 @@ public class SingleLineInfoInlineRemoveTest extends TestBase {
             .map(StackTrace::extractFromJvm);
   }
 
+  private boolean compileApiHasPcLineSupport() {
+    return parameters.isDexRuntime()
+        && parameters.getApiLevel().isGreaterThanOrEqualTo(apiLevelWithPcAsLineNumberSupport());
+  }
+
   @Test
   public void testDefaultSourceFile() throws Exception {
     testForR8(parameters.getBackend())
@@ -70,7 +75,7 @@ public class SingleLineInfoInlineRemoveTest extends TestBase {
               assertThat(mainSubject.uniqueMethodWithOriginalName("inlinee"), not(isPresent()));
               assertThat(
                   mainSubject.uniqueMethodWithOriginalName("shouldRemoveLineNumberForInline"),
-                  notIf(hasLineNumberTable(), parameters.isDexRuntime()));
+                  notIf(hasLineNumberTable(), compileApiHasPcLineSupport()));
             });
   }
 
@@ -94,7 +99,7 @@ public class SingleLineInfoInlineRemoveTest extends TestBase {
               assertThat(mainSubject.uniqueMethodWithOriginalName("inlinee"), not(isPresent()));
               assertThat(
                   mainSubject.uniqueMethodWithOriginalName("shouldRemoveLineNumberForInline"),
-                  notIf(hasLineNumberTable(), parameters.isDexRuntime()));
+                  notIf(hasLineNumberTable(), compileApiHasPcLineSupport()));
             });
   }
 
@@ -118,7 +123,7 @@ public class SingleLineInfoInlineRemoveTest extends TestBase {
               assertThat(mainSubject.uniqueMethodWithOriginalName("inlinee"), not(isPresent()));
               assertThat(
                   mainSubject.uniqueMethodWithOriginalName("shouldRemoveLineNumberForInline"),
-                  notIf(hasLineNumberTable(), parameters.isDexRuntime()));
+                  notIf(hasLineNumberTable(), compileApiHasPcLineSupport()));
             });
   }
 

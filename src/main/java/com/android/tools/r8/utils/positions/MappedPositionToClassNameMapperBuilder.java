@@ -9,7 +9,6 @@ import static com.android.tools.r8.utils.positions.PositionUtils.mustHaveResidua
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
-import com.android.tools.r8.graph.DexDebugInfoForSingleLineMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
@@ -291,17 +290,10 @@ public class MappedPositionToClassNameMapperBuilder {
             lastPosition = currentPosition;
           }
         }
-        Range obfuscatedRange;
-        if (definition.getCode().isDexCode()
-            && definition.getCode().asDexCode().getDebugInfo()
-                == DexDebugInfoForSingleLineMethod.getInstance()) {
-          assert firstPosition.getOriginalLine() == lastPosition.getOriginalLine();
-          obfuscatedRange = nonCardinalRangeCache.get(0, MAX_LINE_NUMBER);
-        } else {
-          obfuscatedRange =
-              nonCardinalRangeCache.get(
-                  firstPosition.getObfuscatedLine(), lastPosition.getObfuscatedLine());
-        }
+        Range obfuscatedRange =
+            nonCardinalRangeCache.get(
+                firstPosition.getObfuscatedLine(), lastPosition.getObfuscatedLine());
+
         MappedRange lastMappedRange =
             getMappedRangesForPosition(
                 appView,

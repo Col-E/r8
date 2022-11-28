@@ -5,9 +5,6 @@
 package com.android.tools.r8.debuginfo;
 
 import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
-import static com.android.tools.r8.utils.codeinspector.Matchers.hasLineNumberTable;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -17,7 +14,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.naming.retrace.StackTrace;
-import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -63,20 +59,7 @@ public class SingleLineInfoMultipleCallsRemoveTest extends TestBase {
         .enableInliningAnnotations()
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(NullPointerException.class)
-        .inspectStackTrace(
-            (stackTrace, inspector) -> {
-              assertThat(stackTrace, isSame(expectedStackTrace));
-              assertThat(inspector.clazz(Builder.class), isPresent());
-              ClassSubject mainSubject = inspector.clazz(Main.class);
-              assertThat(mainSubject, isPresent());
-              assertThat(
-                  mainSubject.uniqueMethodWithOriginalName(
-                      "shouldRemoveLineNumberForMultipleInvokes"),
-                  notIf(hasLineNumberTable(), parameters.isDexRuntime()));
-              assertThat(
-                  mainSubject.uniqueMethodWithOriginalName("main"),
-                  notIf(hasLineNumberTable(), parameters.isDexRuntime()));
-            });
+        .inspectStackTrace(stackTrace -> assertThat(stackTrace, isSame(expectedStackTrace)));
   }
 
   @NeverClassInline

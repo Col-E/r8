@@ -5,7 +5,6 @@
 package com.android.tools.r8.utils.positions;
 
 import com.android.tools.r8.debuginfo.DebugRepresentation;
-import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugEvent;
@@ -13,7 +12,6 @@ import com.android.tools.r8.graph.DexDebugEvent.Default;
 import com.android.tools.r8.graph.DexDebugEventVisitor;
 import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
-import com.android.tools.r8.graph.DexDebugInfoForSingleLineMethod;
 import com.android.tools.r8.graph.DexDebugPositionState;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -23,7 +21,6 @@ import com.android.tools.r8.ir.code.Position.OutlineCallerPosition.OutlineCaller
 import com.android.tools.r8.ir.code.Position.OutlinePosition;
 import com.android.tools.r8.ir.code.Position.PositionBuilder;
 import com.android.tools.r8.ir.code.Position.SourcePosition;
-import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.positions.PositionToMappedRangeMapper.PcBasedDebugInfoRecorder;
@@ -49,7 +46,6 @@ public class DexPositionToPcMappedRangeMapper {
     EventBasedDebugInfo debugInfo =
         getEventBasedDebugInfo(method.getDefinition(), dexCode, appView);
     IntBox firstDefaultEventPc = new IntBox(-1);
-    BooleanBox singleOriginalLine = new BooleanBox(true);
     Pair<Integer, Position> lastPosition = new Pair<>();
     DexDebugEventVisitor visitor =
         new DexDebugPositionState(
@@ -64,10 +60,6 @@ public class DexPositionToPcMappedRangeMapper {
             }
             Position currentPosition = getPositionFromPositionState(this);
             if (lastPosition.getSecond() != null) {
-              if (singleOriginalLine.isTrue()
-                  && !currentPosition.equals(lastPosition.getSecond())) {
-                singleOriginalLine.set(false);
-              }
               remapAndAddForPc(
                   pcBasedDebugInfo,
                   lastPosition.getFirst(),
@@ -86,20 +78,6 @@ public class DexPositionToPcMappedRangeMapper {
       event.accept(visitor);
     }
 
-    // If the method has a single non-preamble line, check that the preamble is not active on any
-    // throwing instruction before the single line becomes active.
-    if (singleOriginalLine.isTrue() && firstDefaultEventPc.get() > 0) {
-      for (DexInstruction instruction : dexCode.instructions) {
-        if (instruction.getOffset() < firstDefaultEventPc.get()) {
-          if (instruction.canThrow()) {
-            singleOriginalLine.set(false);
-          }
-        } else {
-          break;
-        }
-      }
-    }
-
     int lastInstructionPc = DebugRepresentation.getLastExecutableInstruction(dexCode).getOffset();
     if (lastPosition.getSecond() != null) {
       remapAndAddForPc(
@@ -112,14 +90,7 @@ public class DexPositionToPcMappedRangeMapper {
     }
 
     assert !mappedPositions.isEmpty() || dexCode.instructions.length == 1;
-    if (singleOriginalLine.isTrue()
-        && lastPosition.getSecond() != null
-        && (mappedPositions.isEmpty() || !mappedPositions.get(0).isOutlineCaller())) {
-      dexCode.setDebugInfo(DexDebugInfoForSingleLineMethod.getInstance());
-      pcBasedDebugInfo.recordSingleLineFor(method, pcEncodingCutoff);
-    } else {
-      pcBasedDebugInfo.recordPcMappingFor(method, pcEncodingCutoff);
-    }
+    pcBasedDebugInfo.recordPcMappingFor(method, pcEncodingCutoff);
     return mappedPositions;
   }
 

@@ -98,7 +98,9 @@ public class SingleLineInfoRemoveTest extends TestBase {
   }
 
   private boolean canSingleLineDebugInfoBeDiscarded() {
-    return parameters.isDexRuntime() && !customSourceFile;
+    return parameters.isDexRuntime()
+        && !customSourceFile
+        && parameters.getApiLevel().isGreaterThanOrEqualTo(apiLevelWithPcAsLineNumberSupport());
   }
 
   public static class Main {

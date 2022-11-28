@@ -14,12 +14,12 @@ import com.android.tools.r8.graph.DexDebugEvent.EndLocal;
 import com.android.tools.r8.graph.DexDebugEvent.RestartLocal;
 import com.android.tools.r8.graph.DexDebugEvent.SetEpilogueBegin;
 import com.android.tools.r8.graph.DexDebugEvent.SetFile;
+import com.android.tools.r8.graph.DexDebugEvent.SetPositionFrame;
 import com.android.tools.r8.graph.DexDebugEvent.SetPrologueEnd;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
 import com.android.tools.r8.graph.DexDebugEventBuilder;
 import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
-import com.android.tools.r8.graph.DexDebugInfoForSingleLineMethod;
 import com.android.tools.r8.graph.DexDebugPositionState;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -53,6 +53,10 @@ public class DexPositionToNoPcMappedRangeMapper {
       this.dexItemFactory = dexItemFactory;
       this.method = method;
       this.processedEvents = processedEvents;
+    }
+
+    public boolean didEmitLineEvents() {
+      return startLine != -1;
     }
 
     private void emitAdvancePc(int pc) {
@@ -183,24 +187,25 @@ public class DexPositionToNoPcMappedRangeMapper {
           }
         };
 
-    for (DexDebugEvent event : debugInfo.events) {
-      event.accept(visitor);
-    }
-
-    // If we only have one line event we can always retrace back uniquely.
-    if (mappedPositions.size() <= 1
-        && !hasOverloads
-        && !appView.options().debug
-        && appView.options().lineNumberOptimization != LineNumberOptimization.OFF
-        && appView.options().allowDiscardingResidualDebugInfo()
-        && (mappedPositions.isEmpty() || !mappedPositions.get(0).isOutlineCaller())) {
-      dexCode.setDebugInfo(DexDebugInfoForSingleLineMethod.getInstance());
-      return mappedPositions;
+    DexDebugEvent[] events = debugInfo.events;
+    if (events.length > 0) {
+      SetPositionFrame preambleFrame = getAsPreambleFrame(events[0]);
+      if (preambleFrame != null) {
+        // The preamble is specially identified here as it is active at method entry and thus not
+        // part of the instruction stream events.
+        Position position = preambleFrame.getPosition();
+        Position newPosition =
+            PositionUtils.remapAndAdd(position, positionRemapper, mappedPositions);
+        processedEvents.add(appView.dexItemFactory().createPositionFrame(newPosition));
+      }
+      for (int i = (preambleFrame == null) ? 0 : 1; i < events.length; i++) {
+        events[i].accept(visitor);
+      }
     }
 
     EventBasedDebugInfo optimizedDebugInfo =
         new EventBasedDebugInfo(
-            positionEventEmitter.getStartLine(),
+            positionEventEmitter.didEmitLineEvents() ? positionEventEmitter.getStartLine() : 0,
             debugInfo.parameters,
             processedEvents.toArray(DexDebugEvent.EMPTY_ARRAY));
 
@@ -210,6 +215,16 @@ public class DexPositionToNoPcMappedRangeMapper {
 
     dexCode.setDebugInfo(optimizedDebugInfo);
     return mappedPositions;
+  }
+
+  private SetPositionFrame getAsPreambleFrame(DexDebugEvent event) {
+    SetPositionFrame positionFrame = event.asSetPositionFrame();
+    if (positionFrame != null
+        && positionFrame.getPosition().isSyntheticPosition()
+        && positionFrame.getPosition().getLine() == 0) {
+      return positionFrame;
+    }
+    return null;
   }
 
   // This conversion *always* creates an event based debug info encoding as any non-info will

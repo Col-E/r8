@@ -8,8 +8,6 @@ import com.android.tools.r8.debuginfo.DebugRepresentation;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugInfo;
-import com.android.tools.r8.graph.DexDebugInfoForSingleLineMethod;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -45,7 +43,7 @@ public interface PositionToMappedRangeMapper {
       pcBasedDebugInfoRecorder =
           appView.options().canUseNativeDexPcInsteadOfDebugInfo()
               ? new NativePcSupport()
-              : new Pc2PcMappingSupport(appView.options().allowDiscardingResidualDebugInfo());
+              : new Pc2PcMappingSupport();
       noPcMapper = new DexPositionToNoPcMappedRangeMapper(appView);
       pcMapper = new DexPositionToPcMappedRangeMapper(appView, pcBasedDebugInfoRecorder);
     }
@@ -57,17 +55,9 @@ public interface PositionToMappedRangeMapper {
         boolean hasOverloads,
         boolean canUseDexPc,
         int pcEncodingCutoff) {
-      List<MappedPosition> mappedPositions =
-          canUseDexPc
-              ? pcMapper.optimizeDexCodePositionsForPc(method, positionRemapper, pcEncodingCutoff)
-              : noPcMapper.optimizeDexCodePositions(method, positionRemapper, hasOverloads);
-      DexEncodedMethod definition = method.getDefinition();
-      if (definition.getCode().isDexCode()
-          && definition.getCode().asDexCode().getDebugInfo()
-              == DexDebugInfoForSingleLineMethod.getInstance()) {
-        pcBasedDebugInfoRecorder.recordSingleLineFor(method, pcEncodingCutoff);
-      }
-      return mappedPositions;
+      return canUseDexPc
+          ? pcMapper.optimizeDexCodePositionsForPc(method, positionRemapper, pcEncodingCutoff)
+          : noPcMapper.optimizeDexCodePositions(method, positionRemapper, hasOverloads);
     }
 
     @Override
@@ -79,9 +69,6 @@ public interface PositionToMappedRangeMapper {
   interface PcBasedDebugInfoRecorder {
     /** Callback to record a code object with a given max instruction PC and parameter count. */
     void recordPcMappingFor(ProgramMethod method, int maxEncodingPc);
-
-    /** Callback to record a code object with only a single "line". */
-    void recordSingleLineFor(ProgramMethod method, int maxEncodingPc);
 
     /**
      * Install the correct debug info objects.
@@ -124,27 +111,10 @@ public interface PositionToMappedRangeMapper {
 
     private final List<UpdateInfo> codesToUpdate = new ArrayList<>();
 
-    // We can only drop single-line debug info if it is OK to lose the source-file info.
-    // This list is null if we must retain single-line entries.
-    private final List<DexCode> singleLineCodesToClear;
-
-    public Pc2PcMappingSupport(boolean allowDiscardingSourceFile) {
-      singleLineCodesToClear = allowDiscardingSourceFile ? new ArrayList<>() : null;
-    }
-
     @Override
     public int getPcEncoding(int pc) {
       assert pc >= 0;
       return pc + 1;
-    }
-
-    private boolean cantAddToClearSet(ProgramMethod method) {
-      assert method.getDefinition().getCode().isDexCode();
-      if (singleLineCodesToClear == null) {
-        return true;
-      }
-      singleLineCodesToClear.add(method.getDefinition().getCode().asDexCode());
-      return false;
     }
 
     @Override
@@ -154,13 +124,6 @@ public interface PositionToMappedRangeMapper {
       DexCode code = method.getDefinition().getCode().asDexCode();
       assert DebugRepresentation.verifyLastExecutableInstructionWithinBound(code, maxEncodingPc);
       codesToUpdate.add(new UpdateInfo(code, parameterCount, maxEncodingPc));
-    }
-
-    @Override
-    public void recordSingleLineFor(ProgramMethod method, int maxEncodingPc) {
-      if (cantAddToClearSet(method)) {
-        recordPcMappingFor(method, maxEncodingPc);
-      }
     }
 
     @Override
@@ -175,9 +138,6 @@ public interface PositionToMappedRangeMapper {
             assert debugInfo.asPcBasedInfo().getMaxPc() == entry.maxEncodingPc;
             entry.code.setDebugInfo(debugInfo);
           });
-      if (singleLineCodesToClear != null) {
-        singleLineCodesToClear.forEach(c -> c.setDebugInfo(null));
-      }
     }
 
     private static DexDebugInfo buildPc2PcDebugInfo(UpdateInfo info) {
@@ -200,11 +160,6 @@ public interface PositionToMappedRangeMapper {
 
     @Override
     public void recordPcMappingFor(ProgramMethod method, int maxEncodingPc) {
-      clearDebugInfo(method);
-    }
-
-    @Override
-    public void recordSingleLineFor(ProgramMethod method, int maxEncodingPc) {
       clearDebugInfo(method);
     }
 

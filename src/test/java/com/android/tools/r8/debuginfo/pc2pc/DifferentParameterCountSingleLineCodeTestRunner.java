@@ -5,7 +5,6 @@ package com.android.tools.r8.debuginfo.pc2pc;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
@@ -58,15 +57,13 @@ public class DifferentParameterCountSingleLineCodeTestRunner extends TestBase {
                   // For a custom source file, all debug info must be present.
                   assertEquals("X", line.fileName);
                   assertTrue("Expected line number in: " + line, line.hasLineNumber());
-                } else if (vmHasPcSupport()) {
-                  // Single line debug info is stripped. If running with PC support the PC is
-                  // printed.
+                } else if (compileApiHasPcSupport()) {
                   assertEquals("Unknown Source", line.fileName);
                   assertTrue("Expected PC in: " + line, line.hasLineNumber());
                 } else {
-                  // Otherwise, just the bare source file is printed.
+                  // Otherwise, the bare source file is printed and a line.
                   assertEquals("SourceFile", line.fileName);
-                  assertFalse("Expected no line number in: " + line, line.hasLineNumber());
+                  assertTrue("Expected line number in: " + line, line.hasLineNumber());
                 }
               }
               assertEquals("Expected 4 stack frames in:\n" + s, 4, s.getStackTraceLines().size());
@@ -84,11 +81,8 @@ public class DifferentParameterCountSingleLineCodeTestRunner extends TestBase {
                             .build())));
   }
 
-  private boolean vmHasPcSupport() {
-    return parameters
-        .asDexRuntime()
-        .maxSupportedApiLevel()
-        .isGreaterThanOrEqualTo(apiLevelWithPcAsLineNumberSupport());
+  private boolean compileApiHasPcSupport() {
+    return parameters.getApiLevel().isGreaterThanOrEqualTo(apiLevelWithPcAsLineNumberSupport());
   }
 
   private StackTraceLine makeLine(String methodName, int lineNumber) {

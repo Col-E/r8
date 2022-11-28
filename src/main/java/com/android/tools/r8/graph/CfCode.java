@@ -911,7 +911,13 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
                 oldPosition.getPosition().withOutermostCallerPosition(callerPosition)));
       } else {
         if (!instruction.isLabel() && !seenPosition) {
-          newInstructions.add(new CfPosition(firstLabel, callerPosition));
+          Position preamblePosition =
+              SyntheticPosition.builder()
+                  .setMethod(callee)
+                  .setCallerPosition(callerPosition)
+                  .setLine(0)
+                  .build();
+          newInstructions.add(new CfPosition(firstLabel, preamblePosition));
           seenPosition = true;
         }
         newInstructions.add(instruction);

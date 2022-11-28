@@ -129,26 +129,6 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
         compileResult -> setSyntheticMethod(compileResult, syntheticMethod));
   }
 
-  @Test
-  public void testNoLineNumberTable() throws Exception {
-    assumeTrue(compat);
-    assumeTrue(parameters.isDexRuntime());
-    Box<MethodSubject> syntheticMethod = new Box<>();
-    runTest(
-        ImmutableList.of(),
-        (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
-          StackTrace reprocessedStackTrace =
-              retracedStackTrace.filter(
-                  stackTraceLine -> filterSynthesizedMethod(stackTraceLine, syntheticMethod.get()));
-          assertThat(
-              reprocessedStackTrace.filter(this::isNotDalvikNativeStartMethod),
-              isSameExceptForFileNameAndLineNumber(
-                  expectedStackTrace.filter(this::isNotDalvikNativeStartMethod)));
-          assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
-        },
-        compileResult -> setSyntheticMethod(compileResult, syntheticMethod));
-  }
-
   private void setSyntheticMethod(
       R8TestCompileResult compileResult, Box<MethodSubject> syntheticMethod) throws IOException {
     compileResult.inspect(

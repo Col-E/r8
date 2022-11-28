@@ -108,7 +108,21 @@ public class LambdaInStacktraceTest extends TestBase {
             .getStdOut();
     assertTrue(
         StringUtils.splitLines(stdout).stream()
-            .allMatch(s -> s.contains(isAndroidOOrLater ? "NULL" : "SourceFile")));
+            .allMatch(
+                s -> {
+                  if (parameters
+                      .getApiLevel()
+                      .isGreaterThanOrEqualTo(apiLevelWithPcAsLineNumberSupport())) {
+                    return s.contains("(NULL)");
+                  } else if (isAndroidOOrLater) {
+                    // On VMs with native support, no line info results in no source file printing.
+                    // TODO(b/260384637): Create debug info for such methods to avoid this.
+                    return s.equals("main(NULL)")
+                        || (!s.startsWith("main") && s.contains("(SourceFile)"));
+                  } else {
+                    return s.contains("(SourceFile)");
+                  }
+                }));
   }
 
   static class TestRunner {

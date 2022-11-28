@@ -13,6 +13,7 @@ import com.android.tools.r8.dex.code.DexMonitorEnter;
 import com.android.tools.r8.dex.code.DexReturnVoid;
 import com.android.tools.r8.dex.code.DexSwitchPayload;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
+import com.android.tools.r8.graph.DexDebugEvent.Default;
 import com.android.tools.r8.graph.DexDebugEvent.SetPositionFrame;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
 import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
@@ -22,6 +23,8 @@ import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.PositionBuilder;
+import com.android.tools.r8.ir.code.Position.SourcePosition;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.conversion.DexSourceCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
@@ -30,6 +33,7 @@ import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodC
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.ThrowingMethodConversionOptions;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.ArrayUtils;
+import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.structural.Equatable;
@@ -290,27 +294,34 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       DexMethod caller, DexMethod callee, DexItemFactory factory) {
     Position callerPosition = SyntheticPosition.builder().setLine(0).setMethod(caller).build();
     EventBasedDebugInfo eventBasedInfo = DexDebugInfo.convertToEventBased(this, factory);
-    Position inlinePosition =
-        SyntheticPosition.builder()
-            .setMethod(caller)
-            .setCallerPosition(callerPosition)
-            .disableLineCheck()
-            .build();
     if (eventBasedInfo == null) {
       // If the method has no debug info we generate a preamble position to denote the inlining.
       // This is consistent with the building IR for inlining which will always ensure the method
       // has a position.
+      Position preamblePosition =
+          SyntheticPosition.builder()
+              .setMethod(callee)
+              .setCallerPosition(callerPosition)
+              .setLine(0)
+              .build();
       return new EventBasedDebugInfo(
           0,
           new DexString[callee.getArity()],
-          new DexDebugEvent[] {
-            new SetPositionFrame(inlinePosition), factory.zeroChangeDefaultEvent
-          });
+          new DexDebugEvent[] {new SetPositionFrame(preamblePosition)});
     }
+    // The inline position should match the first actual callee position, so either its actual line
+    // at first instruction or it is a synthetic preamble.
+    int lineAtPcZero = findLineAtPcZero(callee, eventBasedInfo);
+    PositionBuilder<?, ?> frameBuilder =
+        lineAtPcZero == -1
+            ? SyntheticPosition.builder().setLine(0)
+            : SourcePosition.builder().setLine(lineAtPcZero);
     DexDebugEvent[] oldEvents = eventBasedInfo.events;
     DexDebugEvent[] newEvents = new DexDebugEvent[oldEvents.length + 1];
     int i = 0;
-    newEvents[i++] = new SetPositionFrame(inlinePosition);
+    newEvents[i++] =
+        new SetPositionFrame(
+            frameBuilder.setMethod(callee).setCallerPosition(callerPosition).build());
     for (DexDebugEvent event : oldEvents) {
       if (event instanceof SetPositionFrame) {
         SetPositionFrame oldFrame = (SetPositionFrame) event;
@@ -323,6 +334,27 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       }
     }
     return new EventBasedDebugInfo(eventBasedInfo.startLine, eventBasedInfo.parameters, newEvents);
+  }
+
+  private static int findLineAtPcZero(DexMethod method, EventBasedDebugInfo debugInfo) {
+    IntBox lineAtPcZero = new IntBox(-1);
+    DexDebugPositionState visitor =
+        new DexDebugPositionState(debugInfo.startLine, method) {
+          @Override
+          public void visit(Default defaultEvent) {
+            super.visit(defaultEvent);
+            if (getCurrentPc() == 0) {
+              lineAtPcZero.set(getCurrentLine());
+            }
+          }
+        };
+    for (DexDebugEvent event : debugInfo.events) {
+      event.accept(visitor);
+      if (visitor.getCurrentPc() > 0) {
+        break;
+      }
+    }
+    return lineAtPcZero.get();
   }
 
   public static int getLargestPrefix(DexItemFactory factory, DexString name) {

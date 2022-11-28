@@ -3,24 +3,18 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debuginfo;
 
-import static org.junit.Assert.assertNull;
 
 import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.DexParser;
 import com.android.tools.r8.dex.DexSection;
-import com.android.tools.r8.graph.DexDebugInfo;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -54,7 +48,7 @@ public class CanonicalizeWithInline extends TestBase {
     Class<?> clazzA = ClassA.class;
     Class<?> clazzB = ClassB.class;
 
-    R8TestCompileResult result =
+    Path classesPath =
         testForR8(Backend.DEX)
             .setMinApi(AndroidApiLevel.B)
             .addProgramClasses(clazzA, clazzB)
@@ -63,19 +57,11 @@ public class CanonicalizeWithInline extends TestBase {
                 "-keep class ** { public void call(int); }")
             .enableInliningAnnotations()
             .enableSideEffectAnnotations()
-            .compile();
-    result.inspect(
-        inspector -> {
-          DexEncodedMethod method =
-              inspector.clazz(ClassA.class).uniqueMethodWithOriginalName("call").getMethod();
-          DexDebugInfo debugInfo = method.getCode().asDexCode().getDebugInfo();
-          assertNull(debugInfo);
-        });
-    Path classesPath = temp.getRoot().toPath();
-    result.app.write(classesPath, OutputMode.DexIndexed);
-    int numberOfDebugInfos =
-        getNumberOfDebugInfos(Paths.get(temp.getRoot().getCanonicalPath(), "classes.dex"));
-    Assert.assertEquals(0, numberOfDebugInfos);
+            .compile()
+            .writeToDirectory();
+    int numberOfDebugInfos = getNumberOfDebugInfos(classesPath.resolve("classes.dex"));
+    // All methods have one parameter and use a single shared pc2pc item.
+    Assert.assertEquals(1, numberOfDebugInfos);
   }
 
   // Two classes which has debug info that looks exactly the same, except for SetInlineFrame.
