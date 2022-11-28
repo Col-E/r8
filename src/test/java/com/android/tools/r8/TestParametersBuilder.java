@@ -153,13 +153,6 @@ public class TestParametersBuilder {
     return withDexRuntimeFilter(vm -> vm == runtime);
   }
 
-  /** Add all available CF runtimes between {@param startInclusive} and {@param endInclusive}. */
-  public TestParametersBuilder withDexRuntimes(
-      DexVm.Version startInclusive, DexVm.Version endInclusive) {
-    return withDexRuntimeFilter(
-        vm -> startInclusive.isOlderThanOrEqual(vm) && vm.isOlderThanOrEqual(endInclusive));
-  }
-
   /** Add all available DEX runtimes that support native multidex. */
   public TestParametersBuilder withNativeMultidexDexRuntimes() {
     return withDexRuntimesStartingFromIncluding(DexVm.Version.V5_1_1);
