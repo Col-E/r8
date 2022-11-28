@@ -420,4 +420,12 @@ public abstract class CfInstruction implements CfOrDexInstruction {
   public CfCheckCast asCheckCast() {
     return null;
   }
+
+  public boolean isConstClass() {
+    return false;
+  }
+
+  public CfConstClass asConstClass() {
+    return null;
+  }
 }

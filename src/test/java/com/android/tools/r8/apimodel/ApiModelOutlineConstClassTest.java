@@ -110,8 +110,8 @@ public class ApiModelOutlineConstClassTest extends TestBase {
 
   private void inspect(CodeInspector inspector) throws Exception {
     verifyThat(inspector, parameters, LibraryClass.class)
-        // TODO(b/258270051): We should outline const class references to new api levels.
-        .hasNotConstClassOutlinedFrom(Main.class.getMethod("main", String[].class));
+        .hasConstClassOutlinedFromUntil(
+            Main.class.getMethod("main", String[].class), classApiLevel);
   }
 
   private void checkOutput(SingleTestRunResult<?> runResult) {

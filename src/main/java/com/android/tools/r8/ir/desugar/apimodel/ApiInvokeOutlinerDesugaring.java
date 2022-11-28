@@ -9,6 +9,7 @@ import static org.objectweb.asm.Opcodes.INVOKESTATIC;
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.cf.code.CfCheckCast;
+import com.android.tools.r8.cf.code.CfConstClass;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfInstanceOf;
 import com.android.tools.r8.cf.code.CfInstruction;
@@ -35,6 +36,7 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.ir.synthetic.CheckCastSourceCode;
+import com.android.tools.r8.ir.synthetic.ConstClassSourceCode;
 import com.android.tools.r8.ir.synthetic.FieldAccessorBuilder;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.ir.synthetic.InstanceOfSourceCode;
@@ -114,6 +116,8 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
       reference = instruction.asCheckCast().getType();
     } else if (instruction.isInstanceOf()) {
       reference = instruction.asInstanceOf().getType();
+    } else if (instruction.isConstClass()) {
+      reference = instruction.asConstClass().getType();
     } else {
       return appView.computedMinApiLevel();
     }
@@ -147,7 +151,8 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
     // Check for protected or package private access flags before outlining.
     if (firstLibraryClass.isInterface()
         || instruction.isCheckCast()
-        || instruction.isInstanceOf()) {
+        || instruction.isInstanceOf()
+        || instruction.isConstClass()) {
       return referenceApiLevel;
     } else {
       DexEncodedMember<?, ?> definition =
@@ -198,7 +203,8 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
     assert instruction.isInvoke()
         || instruction.isFieldInstruction()
         || instruction.isCheckCast()
-        || instruction.isInstanceOf();
+        || instruction.isInstanceOf()
+        || instruction.isConstClass();
     ProgramMethod outlinedMethod =
         ensureOutlineMethod(uniqueContext, instruction, computedApiLevel, factory, context);
     eventConsumer.acceptOutlinedMethod(outlinedMethod, context);
@@ -234,6 +240,8 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
                 setCodeForCheckCast(syntheticMethodBuilder, instruction.asCheckCast(), factory);
               } else if (instruction.isInstanceOf()) {
                 setCodeForInstanceOf(syntheticMethodBuilder, instruction.asInstanceOf(), factory);
+              } else if (instruction.isConstClass()) {
+                setCodeForConstClass(syntheticMethodBuilder, instruction.asConstClass(), factory);
               } else {
                 assert instruction.isCfInstruction();
                 setCodeForFieldInstruction(
@@ -329,6 +337,18 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
         .setCode(
             m ->
                 InstanceOfSourceCode.create(appView, m.getHolderType(), target.getType())
+                    .generateCfCode());
+  }
+
+  private void setCodeForConstClass(
+      SyntheticMethodBuilder methodBuilder, CfConstClass instruction, DexItemFactory factory) {
+    DexClass target = appView.definitionFor(instruction.getType());
+    assert target != null;
+    methodBuilder
+        .setProto(factory.createProto(factory.classType))
+        .setCode(
+            m ->
+                ConstClassSourceCode.create(appView, m.getHolderType(), target.getType())
                     .generateCfCode());
   }
 

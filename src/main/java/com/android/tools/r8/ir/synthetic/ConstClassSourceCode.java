@@ -4,9 +4,8 @@
 
 package com.android.tools.r8.ir.synthetic;
 
-import com.android.tools.r8.cf.code.CfInstanceOf;
+import com.android.tools.r8.cf.code.CfConstClass;
 import com.android.tools.r8.cf.code.CfInstruction;
-import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -15,27 +14,26 @@ import com.android.tools.r8.ir.code.ValueType;
 import java.util.ArrayList;
 import java.util.List;
 
-// Source code representing a simple call to instance-of.
-public final class InstanceOfSourceCode extends SyntheticCfCodeProvider {
+// Source code representing a simple call to a const class.
+public final class ConstClassSourceCode extends SyntheticCfCodeProvider {
 
-  private final DexType instanceOfType;
+  private final DexType constClassType;
 
-  private InstanceOfSourceCode(AppView<?> appView, DexType holder, DexType instanceOfType) {
+  private ConstClassSourceCode(AppView<?> appView, DexType holder, DexType constClassType) {
     super(appView, holder);
-    this.instanceOfType = instanceOfType;
+    this.constClassType = constClassType;
   }
 
-  public static InstanceOfSourceCode create(
+  public static ConstClassSourceCode create(
       AppView<?> appView, DexType holder, DexType checkCastType) {
-    return new InstanceOfSourceCode(appView, holder, checkCastType);
+    return new ConstClassSourceCode(appView, holder, checkCastType);
   }
 
   @Override
   public CfCode generateCfCode() {
     List<CfInstruction> instructions = new ArrayList<>();
-    instructions.add(new CfLoad(ValueType.OBJECT, 0));
-    instructions.add(new CfInstanceOf(instanceOfType));
-    instructions.add(new CfReturn(ValueType.INT));
+    instructions.add(new CfConstClass(constClassType));
+    instructions.add(new CfReturn(ValueType.OBJECT));
     return standardCfCodeFromInstructions(instructions);
   }
 }

@@ -47,6 +47,16 @@ public class CfConstClass extends CfInstruction implements CfTypeInstruction {
     this.ignoreCompatRules = ignoreCompatRules;
   }
 
+  @Override
+  public boolean isConstClass() {
+    return true;
+  }
+
+  @Override
+  public CfConstClass asConstClass() {
+    return this;
+  }
+
   public boolean ignoreCompatRules() {
     return ignoreCompatRules;
   }
