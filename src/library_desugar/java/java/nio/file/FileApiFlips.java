@@ -23,17 +23,20 @@ public class FileApiFlips {
     if (attributesClass == j$.nio.file.attribute.BasicFileAttributes.class) {
       return java.nio.file.attribute.BasicFileAttributes.class;
     }
-    if (attributesClass == j$.nio.file.attribute.PosixFileAttributes.class) {
-      return java.nio.file.attribute.PosixFileAttributes.class;
-    }
     if (attributesClass == java.nio.file.attribute.BasicFileAttributes.class) {
       return j$.nio.file.attribute.BasicFileAttributes.class;
+    }
+    if (attributesClass == j$.nio.file.attribute.PosixFileAttributes.class) {
+      return java.nio.file.attribute.PosixFileAttributes.class;
     }
     if (attributesClass == java.nio.file.attribute.PosixFileAttributes.class) {
       return j$.nio.file.attribute.PosixFileAttributes.class;
     }
     if (attributesClass == java.nio.file.attribute.DosFileAttributes.class) {
       return j$.nio.file.attribute.DosFileAttributes.class;
+    }
+    if (attributesClass == j$.nio.file.attribute.DosFileAttributes.class) {
+      return java.nio.file.attribute.DosFileAttributes.class;
     }
     throw exception("java.nio.file.attribute.BasicFileAttributes", attributesClass);
   }
@@ -45,23 +48,40 @@ public class FileApiFlips {
     if (attributeView == j$.nio.file.attribute.BasicFileAttributeView.class) {
       return java.nio.file.attribute.BasicFileAttributeView.class;
     }
-    if (attributeView == j$.nio.file.attribute.PosixFileAttributeView.class) {
-      return java.nio.file.attribute.PosixFileAttributeView.class;
-    }
-    if (attributeView == j$.nio.file.attribute.FileOwnerAttributeView.class) {
-      return java.nio.file.attribute.FileOwnerAttributeView.class;
-    }
     if (attributeView == java.nio.file.attribute.BasicFileAttributeView.class) {
       return j$.nio.file.attribute.BasicFileAttributeView.class;
+    }
+    if (attributeView == j$.nio.file.attribute.PosixFileAttributeView.class) {
+      return java.nio.file.attribute.PosixFileAttributeView.class;
     }
     if (attributeView == java.nio.file.attribute.PosixFileAttributeView.class) {
       return j$.nio.file.attribute.PosixFileAttributeView.class;
     }
+    if (attributeView == j$.nio.file.attribute.FileOwnerAttributeView.class) {
+      return java.nio.file.attribute.FileOwnerAttributeView.class;
+    }
     if (attributeView == java.nio.file.attribute.FileOwnerAttributeView.class) {
       return j$.nio.file.attribute.FileOwnerAttributeView.class;
     }
+    // The following ones don't seem to work on any version in Android, but it's still possible
+    // for generic java code to use them and get null as a result.
     if (attributeView == java.nio.file.attribute.DosFileAttributeView.class) {
       return j$.nio.file.attribute.DosFileAttributeView.class;
+    }
+    if (attributeView == j$.nio.file.attribute.DosFileAttributeView.class) {
+      return java.nio.file.attribute.DosFileAttributeView.class;
+    }
+    if (attributeView == java.nio.file.attribute.UserDefinedFileAttributeView.class) {
+      return j$.nio.file.attribute.UserDefinedFileAttributeView.class;
+    }
+    if (attributeView == j$.nio.file.attribute.UserDefinedFileAttributeView.class) {
+      return java.nio.file.attribute.UserDefinedFileAttributeView.class;
+    }
+    if (attributeView == java.nio.file.attribute.AclFileAttributeView.class) {
+      return j$.nio.file.attribute.AclFileAttributeView.class;
+    }
+    if (attributeView == j$.nio.file.attribute.AclFileAttributeView.class) {
+      return java.nio.file.attribute.AclFileAttributeView.class;
     }
     throw exception("java.nio.file.attribute.FileAttributeView", attributeView);
   }
