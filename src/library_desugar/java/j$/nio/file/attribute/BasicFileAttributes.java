@@ -5,13 +5,4 @@
 package j$.nio.file.attribute;
 
 public class BasicFileAttributes {
-  public static java.nio.file.attribute.BasicFileAttributes wrap_convert(
-      j$.nio.file.attribute.BasicFileAttributes fileAttributes) {
-    return null;
-  }
-
-  public static j$.nio.file.attribute.BasicFileAttributes wrap_convert(
-      java.nio.file.attribute.BasicFileAttributes fileAttributes) {
-    return null;
-  }
 }

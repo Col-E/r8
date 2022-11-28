@@ -5,13 +5,4 @@
 package j$.nio.file.attribute;
 
 public class FileOwnerAttributeView extends FileAttributeView {
-  public static java.nio.file.attribute.FileOwnerAttributeView wrap_convert(
-      j$.nio.file.attribute.FileOwnerAttributeView fileAttributeView) {
-    return null;
-  }
-
-  public static j$.nio.file.attribute.FileOwnerAttributeView wrap_convert(
-      java.nio.file.attribute.FileOwnerAttributeView fileAttributeView) {
-    return null;
-  }
 }

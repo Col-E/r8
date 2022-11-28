@@ -28,24 +28,23 @@ public class CustomConversionAsmRewriteDescription {
           "j$/nio/file/spi/FileTypeDetector",
           "j$/nio/file/Path",
           "j$/nio/file/WatchEvent",
-          "j$/nio/file/OpenOption");
+          "j$/nio/file/OpenOption",
+          "j$/nio/file/attribute/FileAttribute");
 
-  static Map<String, String> getJavaWrapConvertOwnerMap() {
-    return computeConvertOwnerMap("$Wrapper");
-  }
-
-  static Map<String, String> getJ$WrapConvertOwnerMap() {
-    return computeConvertOwnerMap("$VivifiedWrapper");
-  }
-
-  private static HashMap<String, String> computeConvertOwnerMap(String suffix) {
+  static Map<String, String> getWrapConvertOwnerMap() {
     HashMap<String, String> map = new HashMap<>();
     for (String theEnum : ENUM_WRAP_CONVERT_OWNER) {
       map.put(theEnum, theEnum + "$EnumConversion");
+      map.put(withJavaPrefix(theEnum), theEnum + "$EnumConversion");
     }
     for (String owner : WRAP_CONVERT_OWNER) {
-      map.put(owner, owner + suffix);
+      map.put(withJavaPrefix(owner), owner + "$Wrapper");
+      map.put(owner, owner + "$VivifiedWrapper");
     }
     return map;
+  }
+
+  private static String withJavaPrefix(String descriptor) {
+    return "java" + descriptor.substring(2);
   }
 }

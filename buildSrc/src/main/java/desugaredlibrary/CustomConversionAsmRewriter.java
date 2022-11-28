@@ -39,10 +39,8 @@ public class CustomConversionAsmRewriter {
   }
 
   private final CustomConversionVersion legacy;
-  private final Map<String, String> javaWrapConvertOwnerMap =
-      CustomConversionAsmRewriteDescription.getJavaWrapConvertOwnerMap();
-  private final Map<String, String> j$WrapConvertOwnerMap =
-      CustomConversionAsmRewriteDescription.getJ$WrapConvertOwnerMap();
+  private final Map<String, String> wrapConvertOwnerMap =
+      CustomConversionAsmRewriteDescription.getWrapConvertOwnerMap();
 
   public static void generateJars(Path jar, Path outputDirectory) throws IOException {
     for (CustomConversionVersion version : CustomConversionVersion.values()) {
@@ -148,30 +146,14 @@ public class CustomConversionAsmRewriter {
 
     private void convertInvoke(int opcode, String owner, String descriptor, boolean isInterface) {
       String firstArg = extractFirstArg(descriptor);
-      assert sameBaseName(firstArg, owner);
-      if (!javaWrapConvertOwnerMap.containsKey(owner)
-          || !j$WrapConvertOwnerMap.containsKey(owner)
+      if (!wrapConvertOwnerMap.containsKey(firstArg)
           || !(firstArg.startsWith("java") || firstArg.startsWith("j$"))) {
         throw new RuntimeException(
             "Cannot transform wrap_convert method for " + firstArg + " (owner: " + owner + ")");
       }
-      if (firstArg.startsWith("java")) {
-        String newOwner = javaWrapConvertOwnerMap.get(owner);
-        super.visitMethodInsn(opcode, newOwner, CONVERT, descriptor, isInterface);
-        return;
-      }
-      assert firstArg.startsWith("j$");
-      String newOwner = j$WrapConvertOwnerMap.get(owner);
+      String newOwner = wrapConvertOwnerMap.get(firstArg);
       super.visitMethodInsn(opcode, newOwner, CONVERT, descriptor, isInterface);
     }
 
-    private boolean sameBaseName(String firstArg, String owner) {
-      assert owner.startsWith("j$");
-      if (firstArg.equals(owner)) {
-        return true;
-      }
-      String javaName = owner.replace("j$", "java");
-      return firstArg.equals(javaName);
-    }
   }
 }

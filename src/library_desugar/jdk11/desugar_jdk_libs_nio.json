@@ -257,7 +257,6 @@
         "java.nio.file.CopyOption",
         "java.nio.file.StandardCopyOption",
         "java.nio.file.attribute.GroupPrincipal",
-        "java.nio.file.attribute.FileAttribute",
         "java.nio.file.attribute.UserPrincipal",
         "java.nio.file.FileStore",
         "java.nio.file.attribute.FileStoreAttributeView",
@@ -265,6 +264,7 @@
         "java.nio.file.attribute.BasicFileAttributes",
         "java.nio.file.attribute.DosFileAttributes",
         "java.nio.file.attribute.PosixFileAttributes",
+        "java.nio.file.attribute.FileAttribute",
         "java.nio.file.attribute.FileAttributeView",
         "java.nio.file.attribute.FileOwnerAttributeView",
         "java.nio.file.attribute.DosFileAttributeView",
@@ -279,7 +279,8 @@
         ]
       },
       "custom_conversion": {
-        "java.nio.file.attribute.FileTime": "java.nio.file.attribute.FileAttributeConversions"
+        "java.nio.file.attribute.FileTime": "java.nio.file.attribute.FileAttributeConversions",
+        "java.nio.file.attribute.FileAttribute": "java.nio.file.attribute.FileAttributeConversions"
       }
     },
     {

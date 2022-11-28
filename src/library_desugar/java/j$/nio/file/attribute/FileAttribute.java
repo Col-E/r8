@@ -4,5 +4,9 @@
 
 package j$.nio.file.attribute;
 
-public class PosixFileAttributeView extends FileAttributeView {
+public interface FileAttribute<T> {
+
+  String name();
+
+  T value();
 }

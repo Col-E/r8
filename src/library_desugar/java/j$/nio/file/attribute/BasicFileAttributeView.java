@@ -5,13 +5,4 @@
 package j$.nio.file.attribute;
 
 public class BasicFileAttributeView extends FileAttributeView {
-  public static java.nio.file.attribute.BasicFileAttributeView wrap_convert(
-      j$.nio.file.attribute.BasicFileAttributeView fileAttributeView) {
-    return null;
-  }
-
-  public static j$.nio.file.attribute.BasicFileAttributeView wrap_convert(
-      java.nio.file.attribute.BasicFileAttributeView fileAttributeView) {
-    return null;
-  }
 }
