@@ -7,9 +7,7 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.dex.code.CfOrDexInstruction;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
@@ -17,13 +15,11 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.utils.AndroidApiLevelUtils;
 import java.util.ListIterator;
 
 public class ComputeApiLevelUseRegistry extends UseRegistry<ProgramMethod> {
 
   protected final AppView<?> appView;
-  private final AppInfoWithClassHierarchy appInfoWithClassHierarchy;
   private final AndroidApiLevelCompute apiLevelCompute;
   private final boolean isEnabled;
   private ComputedApiLevel maxApiReferenceLevel;
@@ -32,7 +28,6 @@ public class ComputeApiLevelUseRegistry extends UseRegistry<ProgramMethod> {
       AppView<?> appView, ProgramMethod context, AndroidApiLevelCompute apiLevelCompute) {
     super(appView, context);
     this.appView = appView;
-    this.appInfoWithClassHierarchy = appView.appInfoForDesugaring();
     this.apiLevelCompute = apiLevelCompute;
     isEnabled = apiLevelCompute.isEnabled();
     maxApiReferenceLevel = appView.computedMinApiLevel();
@@ -153,28 +148,10 @@ public class ComputeApiLevelUseRegistry extends UseRegistry<ProgramMethod> {
 
   private void setMaxApiReferenceLevel(DexReference reference) {
     if (isEnabled) {
-      if (reference.isDexType()) {
-        maxApiReferenceLevel =
-            maxApiReferenceLevel.max(
-                apiLevelCompute.computeApiLevelForLibraryReference(
-                    reference, apiLevelCompute.getPlatformApiLevelOrUnknown(appView)));
-      } else if (!reference.getContextType().isClassType()) {
-        maxApiReferenceLevel = maxApiReferenceLevel.max(appView.computedMinApiLevel());
-      } else {
-        DexClass holder = appView.definitionFor(reference.getContextType());
-        ComputedApiLevel referenceApiLevel = ComputedApiLevel.unknown();
-        if (holder != null) {
-          referenceApiLevel =
-              AndroidApiLevelUtils.findAndComputeApiLevelForLibraryDefinition(
-                      appView, appInfoWithClassHierarchy, holder, reference.asDexMember())
-                  .getSecond();
-        }
-        maxApiReferenceLevel =
-            maxApiReferenceLevel.max(
-                referenceApiLevel.isUnknownApiLevel()
-                    ? apiLevelCompute.getPlatformApiLevelOrUnknown(appView)
-                    : referenceApiLevel);
-      }
+      maxApiReferenceLevel =
+          maxApiReferenceLevel.max(
+              apiLevelCompute.computeApiLevelForLibraryReference(
+                  reference, apiLevelCompute.getPlatformApiLevelOrUnknown(appView)));
     }
   }
 

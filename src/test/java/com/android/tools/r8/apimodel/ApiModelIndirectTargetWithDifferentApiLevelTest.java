@@ -20,7 +20,6 @@ import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.apimodel.ApiModelingTestHelper.ApiModelingMethodVerificationHelper;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -104,7 +103,7 @@ public class ApiModelIndirectTargetWithDifferentApiLevelTest extends TestBase {
         .apply(this::setupTestBuilder)
         .compile()
         .apply(this::setupRunEnvironment)
-        .inspect(inspector -> inspect(inspector, false))
+        .inspect(this::inspect)
         .run(parameters.getRuntime(), Main.class)
         .apply(result -> checkOutput(result, false));
   }
@@ -116,7 +115,7 @@ public class ApiModelIndirectTargetWithDifferentApiLevelTest extends TestBase {
         .apply(this::setupTestBuilder)
         .compile()
         .apply(this::setupRunEnvironment)
-        .inspect(inspector -> inspect(inspector, false))
+        .inspect(this::inspect)
         .run(parameters.getRuntime(), Main.class)
         .apply(result -> checkOutput(result, false));
   }
@@ -128,7 +127,7 @@ public class ApiModelIndirectTargetWithDifferentApiLevelTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addKeepClassAndMembersRules(ProgramJoiner.class)
         .compile()
-        .inspect(inspector -> inspect(inspector, true))
+        .inspect(this::inspect)
         .apply(this::setupRunEnvironment)
         .run(parameters.getRuntime(), Main.class)
         .apply(result -> checkOutput(result, true));
@@ -156,25 +155,17 @@ public class ApiModelIndirectTargetWithDifferentApiLevelTest extends TestBase {
         result -> result.assertStderrMatches(not(containsString("This dex file is invalid"))));
   }
 
-  private void inspect(CodeInspector inspector, boolean isR8) throws Exception {
-    ApiModelingMethodVerificationHelper verifyHelper =
-        verifyThat(
+  private void inspect(CodeInspector inspector) throws Exception {
+    // TODO(b/254510678): We should outline the call to ProgramJoiner.foo.
+    verifyThat(
             inspector,
             parameters,
             Reference.method(
-                // TODO(b/254510678): Due to member rebinding, we rebind ProgramJoiner.foo() to
-                //  LibraryClass.foo().
-                Reference.classFromClass(isR8 ? LibraryClass.class : ProgramJoiner.class),
+                Reference.classFromClass(ProgramJoiner.class),
                 "foo",
                 Collections.emptyList(),
-                null));
-    if (isR8 && parameters.isCfRuntime()) {
-      verifyHelper.isOutlinedFromUntil(
-          Main.class.getDeclaredMethod("main", String[].class), classMethodApiLevel);
-    } else {
-      verifyHelper.isOutlinedFromUntilAlsoForCf(
-          Main.class.getDeclaredMethod("main", String[].class), classMethodApiLevel);
-    }
+                null))
+        .isNotOutlinedFrom(Main.class.getDeclaredMethod("main", String[].class));
   }
 
   // Only present from api level 23.

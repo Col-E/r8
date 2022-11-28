@@ -40,8 +40,6 @@ import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.ir.synthetic.InstanceOfSourceCode;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.AndroidApiLevelUtils;
-import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -121,33 +119,23 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
       return appView.computedMinApiLevel();
     }
     DexClass holder = appView.definitionFor(reference.getContextType());
-    if (holder == null) {
+    if (holder == null || !holder.isLibraryClass()) {
       return appView.computedMinApiLevel();
     }
-    Pair<DexClass, ComputedApiLevel> classAndApiLevel =
-        AndroidApiLevelUtils.findAndComputeApiLevelForLibraryDefinition(
-            appView, appView.appInfoForDesugaring(), holder, reference.asDexMember());
-    ComputedApiLevel referenceApiLevel = classAndApiLevel.getSecond();
+    ComputedApiLevel referenceApiLevel =
+        apiLevelCompute.computeApiLevelForLibraryReference(reference, ComputedApiLevel.unknown());
     if (appView.computedMinApiLevel().isGreaterThanOrEqualTo(referenceApiLevel)
         || isApiLevelLessThanOrEqualTo9(referenceApiLevel)
         || referenceApiLevel.isUnknownApiLevel()) {
       return appView.computedMinApiLevel();
     }
-    assert referenceApiLevel.isKnownApiLevel();
-    DexClass firstLibraryClass = classAndApiLevel.getFirst();
-    if (firstLibraryClass == null || !firstLibraryClass.isLibraryClass()) {
-      assert false : "When computed a known api level we should always have a library class";
-      return appView.computedMinApiLevel();
-    }
     // Check for protected or package private access flags before outlining.
-    if (firstLibraryClass.isInterface()
-        || instruction.isCheckCast()
-        || instruction.isInstanceOf()) {
+    if (holder.isInterface() || instruction.isCheckCast() || instruction.isInstanceOf()) {
       return referenceApiLevel;
     } else {
       DexEncodedMember<?, ?> definition =
           simpleLookupInClassHierarchy(
-              firstLibraryClass.asLibraryClass(),
+              holder.asLibraryClass(),
               reference.isDexMethod()
                   ? x -> x.lookupMethod(reference.asDexMethod())
                   : x -> x.lookupField(reference.asDexField()));

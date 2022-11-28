@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -23,9 +22,6 @@ import com.android.tools.r8.graph.LibraryMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
-import com.google.common.collect.Sets;
-import java.util.Collections;
-import java.util.Set;
 
 public class AndroidApiLevelUtils {
 
@@ -194,111 +190,5 @@ public class AndroidApiLevelUtils {
     LibraryClass oldBaseLibraryClass = asLibraryClassOrNull(appView.definitionFor(oldBaseType));
     return oldBaseLibraryClass != null
         && isApiSafeForReference(newBaseLibraryClass, oldBaseLibraryClass, appView);
-  }
-
-  public static Pair<DexClass, ComputedApiLevel> findAndComputeApiLevelForLibraryDefinition(
-      AppView<?> appView,
-      AppInfoWithClassHierarchy appInfo,
-      DexClass holder,
-      DexMember<?, ?> reference) {
-    AndroidApiLevelCompute apiLevelCompute = appView.apiLevelCompute();
-    if (holder.isLibraryClass()) {
-      return Pair.create(
-          holder,
-          apiLevelCompute.computeApiLevelForLibraryReference(
-              reference, ComputedApiLevel.unknown()));
-    }
-    // The API database do not allow for resolving into it (since that is not stable), and it is
-    // therefore designed in a way where all members of classes can be queried on any sub-type with
-    // the api level for where it is reachable. It is therefore sufficient for us, to figure out if
-    // an instruction is a library call, to either find a program definition or to find the library
-    // frontier.
-    // Scan through the type hierarchy to find the first library class or program definition.
-    DexClass firstClassWithReferenceOrLibraryClass =
-        firstLibraryClassOrProgramClassWithDefinition(appInfo, holder, reference);
-    if (firstClassWithReferenceOrLibraryClass == null) {
-      return Pair.create(null, ComputedApiLevel.unknown());
-    }
-    if (!firstClassWithReferenceOrLibraryClass.isLibraryClass()) {
-      return Pair.create(firstClassWithReferenceOrLibraryClass, appView.computedMinApiLevel());
-    }
-    ComputedApiLevel apiLevel =
-        apiLevelCompute.computeApiLevelForLibraryReference(
-            reference.withHolder(
-                firstClassWithReferenceOrLibraryClass.getType(), appView.dexItemFactory()),
-            ComputedApiLevel.unknown());
-    if (apiLevel.isKnownApiLevel()) {
-      return Pair.create(firstClassWithReferenceOrLibraryClass, apiLevel);
-    }
-    // We were unable to find a definition in the class hierarchy, check all interfaces for a
-    // definition or the library interfaces for the first interface definition.
-    Set<DexClass> firstLibraryInterfaces =
-        findAllFirstLibraryInterfacesOrProgramClassWithDefinition(appInfo, holder, reference);
-    if (firstLibraryInterfaces.size() == 1) {
-      DexClass firstClass = firstLibraryInterfaces.iterator().next();
-      if (firstClass.isProgramClass()) {
-        return Pair.create(firstClass, appView.computedMinApiLevel());
-      }
-    }
-    DexClass foundClass = null;
-    ComputedApiLevel minApiLevel = ComputedApiLevel.unknown();
-    for (DexClass libraryInterface : firstLibraryInterfaces) {
-      assert libraryInterface.isLibraryClass();
-      ComputedApiLevel libraryIfaceApiLevel =
-          apiLevelCompute.computeApiLevelForLibraryReference(
-              reference.withHolder(
-                  firstClassWithReferenceOrLibraryClass.getType(), appView.dexItemFactory()),
-              ComputedApiLevel.unknown());
-      if (minApiLevel.isGreaterThan(libraryIfaceApiLevel)) {
-        minApiLevel = libraryIfaceApiLevel;
-        foundClass = libraryInterface;
-      }
-    }
-    return Pair.create(foundClass, minApiLevel);
-  }
-
-  private static DexClass firstLibraryClassOrProgramClassWithDefinition(
-      AppInfoWithClassHierarchy appInfo, DexClass originalClass, DexMember<?, ?> reference) {
-    if (originalClass.isLibraryClass()) {
-      return originalClass;
-    }
-    WorkList<DexClass> workList = WorkList.newIdentityWorkList(originalClass);
-    while (workList.hasNext()) {
-      DexClass clazz = workList.next();
-      if (clazz.isLibraryClass()) {
-        return clazz;
-      } else if (clazz.lookupMember(reference) != null) {
-        return clazz;
-      } else if (clazz.getSuperType() != null) {
-        appInfo
-            .contextIndependentDefinitionForWithResolutionResult(clazz.getSuperType())
-            .forEachClassResolutionResult(workList::addIfNotSeen);
-      }
-    }
-    return null;
-  }
-
-  private static Set<DexClass> findAllFirstLibraryInterfacesOrProgramClassWithDefinition(
-      AppInfoWithClassHierarchy appInfo, DexClass originalClass, DexMember<?, ?> reference) {
-    Set<DexClass> interfaces = Sets.newLinkedHashSet();
-    WorkList<DexClass> workList = WorkList.newIdentityWorkList(originalClass);
-    while (workList.hasNext()) {
-      DexClass clazz = workList.next();
-      if (clazz.isLibraryClass()) {
-        if (clazz.isInterface()) {
-          interfaces.add(clazz);
-        }
-      } else if (clazz.lookupMember(reference) != null) {
-        return Collections.singleton(clazz);
-      } else {
-        clazz.forEachImmediateSupertype(
-            superType -> {
-              appInfo
-                  .contextIndependentDefinitionForWithResolutionResult(superType)
-                  .forEachClassResolutionResult(workList::addIfNotSeen);
-            });
-      }
-    }
-    return interfaces;
   }
 }
