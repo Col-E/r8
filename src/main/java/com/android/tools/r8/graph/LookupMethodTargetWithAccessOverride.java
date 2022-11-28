@@ -15,6 +15,11 @@ public class LookupMethodTargetWithAccessOverride implements LookupMethodTarget 
   }
 
   @Override
+  public LookupTarget toLookupTarget(DexClassAndMethod classAndMethod) {
+    return new LookupMethodTargetWithAccessOverride(classAndMethod, accessOverride);
+  }
+
+  @Override
   public DexClassAndMethod getAccessOverride() {
     return accessOverride;
   }

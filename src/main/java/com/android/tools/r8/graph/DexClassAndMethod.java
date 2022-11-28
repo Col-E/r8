@@ -41,6 +41,11 @@ public abstract class DexClassAndMethod extends DexClassAndMember<DexEncodedMeth
   }
 
   @Override
+  public LookupTarget toLookupTarget(DexClassAndMethod classAndMethod) {
+    return classAndMethod;
+  }
+
+  @Override
   public MethodAccessFlags getAccessFlags() {
     return getDefinition().getAccessFlags();
   }

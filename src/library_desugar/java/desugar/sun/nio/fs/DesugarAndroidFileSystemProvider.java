@@ -9,8 +9,12 @@ import java.io.IOException;
 import java.nio.channels.DesugarChannels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
+import java.nio.file.CopyOption;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.Set;
@@ -25,6 +29,37 @@ public class DesugarAndroidFileSystemProvider
 
   DesugarAndroidFileSystemProvider(String userDir, String rootDir) {
     super(userDir, rootDir);
+  }
+
+  @Override
+  public void copy(Path source, Path target, CopyOption... options) throws IOException {
+    if (!containsCopyOption(options, StandardCopyOption.REPLACE_EXISTING) && Files.exists(target)) {
+      throw new FileAlreadyExistsException(target.toString());
+    }
+    if (containsCopyOption(options, StandardCopyOption.ATOMIC_MOVE)) {
+      throw new UnsupportedOperationException("Unsupported copy option");
+    }
+    super.copy(source, target, options);
+  }
+
+  @Override
+  public void move(Path source, Path target, CopyOption... options) throws IOException {
+    if (!containsCopyOption(options, StandardCopyOption.REPLACE_EXISTING) && Files.exists(target)) {
+      throw new FileAlreadyExistsException(target.toString());
+    }
+    if (containsCopyOption(options, StandardCopyOption.COPY_ATTRIBUTES)) {
+      throw new UnsupportedOperationException("Unsupported copy option");
+    }
+    super.move(source, target, options);
+  }
+
+  private boolean containsCopyOption(CopyOption[] options, CopyOption option) {
+    for (CopyOption copyOption : options) {
+      if (copyOption == option) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override

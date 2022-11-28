@@ -30,4 +30,9 @@ public interface LookupMethodTarget extends LookupTarget {
   DexEncodedMethod getDefinition();
 
   DexClassAndMethod getTarget();
+
+  @Override
+  default DexClassAndMethod getTargetOrImplementationMethod() {
+    return getTarget();
+  }
 }

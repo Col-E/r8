@@ -41,6 +41,7 @@ import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexDefinition;
@@ -146,6 +147,7 @@ import com.android.tools.r8.shaking.RootSetUtils.RootSetBuilder;
 import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
 import com.android.tools.r8.synthesis.SyntheticItems.SynthesizingContextOracle;
 import com.android.tools.r8.utils.Action;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.OptionalBool;
@@ -1092,15 +1094,24 @@ public class Enqueuer {
       DexField field, ProgramMethod context, boolean isRead, boolean isReflective) {
     FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field);
     if (info == null) {
-      DexEncodedField encodedField = resolveField(field, context).getResolvedField();
+      Box<DexClassAndField> seenResult = new Box<>();
+      resolveField(field, context)
+          .forEachSuccessfulFieldResolutionResult(
+              singleResolutionResult -> {
+                DexClassAndField resolutionPair = singleResolutionResult.getResolutionPair();
+                if (!seenResult.isSet() || resolutionPair.isProgramField()) {
+                  seenResult.set(resolutionPair);
+                }
+              });
 
       // If the field does not exist, then record this in the mapping, such that we don't have to
       // resolve the field the next time.
-      if (encodedField == null) {
+      if (!seenResult.isSet()) {
         fieldAccessInfoCollection.extend(field, MISSING_FIELD_ACCESS_INFO);
         return true;
       }
 
+      DexEncodedField encodedField = seenResult.get().getDefinition();
       info = getOrCreateFieldAccessInfo(encodedField);
 
       // If `field` is an indirect reference, then create a mapping for it, such that we don't have

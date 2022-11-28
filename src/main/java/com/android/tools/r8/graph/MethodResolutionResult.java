@@ -348,9 +348,11 @@ public abstract class MethodResolutionResult
       if (type == null) {
         return null;
       }
-      return appInfo
-          .contextIndependentDefinitionForWithResolutionResult(type)
-          .toSingleClassWithLibraryOverProgram();
+      ClassResolutionResult resolutionResult =
+          appInfo.contextIndependentDefinitionForWithResolutionResult(type);
+      return appInfo.options().lookupLibraryBeforeProgram
+          ? resolutionResult.toSingleClassWithLibraryOverProgram()
+          : resolutionResult.toSingleClassWithProgramOverLibrary();
     }
 
     /**

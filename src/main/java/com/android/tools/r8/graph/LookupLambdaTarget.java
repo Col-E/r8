@@ -29,6 +29,11 @@ public class LookupLambdaTarget implements LookupTarget {
   }
 
   @Override
+  public LookupTarget toLookupTarget(DexClassAndMethod classAndMethod) {
+    return new LookupLambdaTarget(lambda, classAndMethod);
+  }
+
+  @Override
   public void accept(
       Consumer<LookupMethodTarget> methodConsumer, Consumer<LookupLambdaTarget> lambdaConsumer) {
     lambdaConsumer.accept(this);
@@ -36,5 +41,10 @@ public class LookupLambdaTarget implements LookupTarget {
 
   public DexClassAndMethod getImplementationMethod() {
     return method;
+  }
+
+  @Override
+  public DexClassAndMethod getTargetOrImplementationMethod() {
+    return getImplementationMethod();
   }
 }

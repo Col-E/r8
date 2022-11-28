@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
+import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
@@ -135,7 +136,11 @@ public class RepackagingUseRegistry extends UseRegistry<ProgramDefinition> {
       // For fields and methods that cannot be found the chance of recovering by repackaging is
       // pretty slim thus we allow for repackaging the callers.
       if (resolutionResult.isFieldResolutionResult()) {
-        assert resolutionResult.asFieldResolutionResult().isFailedResolution();
+        FieldResolutionResult fieldResolutionResult = resolutionResult.asFieldResolutionResult();
+        assert fieldResolutionResult.isFailedResolution()
+            || (fieldResolutionResult.isMultiFieldResolutionResult()
+                && fieldResolutionResult.getProgramField() != null
+                && fieldResolutionResult.getProgramField().getDefinition().isPrivate());
         return;
       }
       MethodResolutionResult methodResult = resolutionResult.asMethodResolutionResult();

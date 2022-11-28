@@ -26,6 +26,10 @@ public interface LookupTarget {
     return null;
   }
 
+  LookupTarget toLookupTarget(DexClassAndMethod classAndMethod);
+
   void accept(
       Consumer<LookupMethodTarget> methodConsumer, Consumer<LookupLambdaTarget> lambdaConsumer);
+
+  DexClassAndMethod getTargetOrImplementationMethod();
 }
