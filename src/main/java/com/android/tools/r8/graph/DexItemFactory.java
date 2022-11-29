@@ -517,12 +517,6 @@ public class DexItemFactory {
 
   public final DexType retentionType =
       createStaticallyKnownType("Ljava/lang/annotation/Retention;");
-  public final DexType recentlyNonNull =
-      createStaticallyKnownType("Landroidx/annotation/RecentlyNonNull;");
-  public final DexType recentlyNullable =
-      createStaticallyKnownType("Landroidx/annotation/RecentlyNullable;");
-  public final DexType nullable = createStaticallyKnownType("Landroidx/annotation/Nullable;");
-  public final DexType nonNull = createStaticallyKnownType("Landroidx/annotation/NonNull;");
   public final DexType runtimeExceptionType = createStaticallyKnownType(runtimeExceptionDescriptor);
   public final DexType assertionErrorType = createStaticallyKnownType(assertionErrorDescriptor);
   public final DexType throwableType = createStaticallyKnownType(throwableDescriptor);

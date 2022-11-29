@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.shaking.librarymethodoverride;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
@@ -60,26 +58,13 @@ public class LibraryMethodOverrideDefaultMethodTest extends TestBase {
 
   private void verifyLibraryOverrideInformation(AppInfoWithLiveness appInfo, Enqueuer.Mode mode) {
     DexItemFactory dexItemFactory = appInfo.dexItemFactory();
-    DexProgramClass programI =
+    DexProgramClass clazz =
         appInfo
             .definitionFor(dexItemFactory.createType(descriptor(ProgramI.class)))
             .asProgramClass();
-    DexEncodedMethod programIFoo =
-        programI.lookupVirtualMethod(m -> m.getReference().name.toString().equals("foo"));
-    assertEquals(
-        parameters.canUseDefaultAndStaticInterfaceMethods(),
-        programIFoo.isLibraryMethodOverride().isTrue());
-    DexProgramClass programClass =
-        appInfo
-            .definitionFor(dexItemFactory.createType(descriptor(ProgramClass.class)))
-            .asProgramClass();
-    DexEncodedMethod programClassFoo =
-        programClass.lookupVirtualMethod(m -> m.getReference().name.toString().equals("foo"));
-    if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
-      assertNull(programClassFoo);
-    } else {
-      assertTrue(programClassFoo.isLibraryMethodOverride().isTrue());
-    }
+    DexEncodedMethod method =
+        clazz.lookupVirtualMethod(m -> m.getReference().name.toString().equals("foo"));
+    assertTrue(method.isLibraryMethodOverride().isTrue());
   }
 
   public interface LibraryI {

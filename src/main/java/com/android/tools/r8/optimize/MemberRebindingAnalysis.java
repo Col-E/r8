@@ -6,7 +6,6 @@ package com.android.tools.r8.optimize;
 import static com.android.tools.r8.utils.AndroidApiLevelUtils.isApiSafeForMemberRebinding;
 
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
-import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndField;
@@ -19,8 +18,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.LibraryMethod;
-import com.android.tools.r8.graph.MemberRebindingBridgeCode;
-import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodAccessInfoCollection;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
@@ -56,7 +53,6 @@ public class MemberRebindingAnalysis {
   private final InternalOptions options;
 
   private final MemberRebindingLens.Builder lensBuilder;
-  private final Map<DexMethod, DexClassAndMethod> insertedLibraryBridges = new IdentityHashMap<>();
 
   public MemberRebindingAnalysis(AppView<AppInfoWithLiveness> appView) {
     assert appView.graphLens().isContextFreeForMethods();
@@ -78,66 +74,69 @@ public class MemberRebindingAnalysis {
       return original;
     }
 
-    if (!invokeType.isSuper() || !options.canHaveSuperInvokeBug()) {
-      LibraryMethod eligibleLibraryMethod = null;
-      SingleResolutionResult<?> currentResolutionResult = resolutionResult;
-      while (currentResolutionResult != null) {
-        DexClassAndMethod currentResolvedMethod = currentResolutionResult.getResolutionPair();
-        if (canRebindDirectlyToLibraryMethod(
-            currentResolvedMethod,
-            currentResolutionResult.withInitialResolutionHolder(
-                currentResolutionResult.getResolvedHolder()),
-            contexts,
-            invokeType,
-            original)) {
-          eligibleLibraryMethod = currentResolvedMethod.asLibraryMethod();
-        }
-        if (appView.getAssumeInfoCollection().contains(currentResolvedMethod)) {
-          break;
-        }
-        DexClass currentResolvedHolder = currentResolvedMethod.getHolder();
-        if (resolvedMethod.getDefinition().belongsToVirtualPool()
-            && !currentResolvedHolder.isInterface()
-            && currentResolvedHolder.getSuperType() != null) {
-          currentResolutionResult =
-              appView
-                  .appInfo()
-                  .resolveMethodOnClassLegacy(currentResolvedHolder.getSuperType(), original)
-                  .asSingleResolution();
-        } else {
-          break;
-        }
+    if (invokeType.isSuper() && options.canHaveSuperInvokeBug()) {
+      // To preserve semantics we should find the first library method on the boundary.
+      DexType firstLibraryTarget =
+          firstLibraryClassOrFirstInterfaceTarget(
+              resolutionResult.getResolvedHolder(),
+              appView,
+              resolvedMethod.getReference(),
+              original.getHolderType(),
+              DexClass::lookupMethod);
+      if (firstLibraryTarget == null) {
+        return original;
       }
-      if (eligibleLibraryMethod != null) {
-        return eligibleLibraryMethod.getReference();
+      DexClass libraryHolder = appView.definitionFor(firstLibraryTarget);
+      if (libraryHolder == null) {
+        return original;
       }
+      if (libraryHolder == resolvedMethod.getHolder()) {
+        return resolvedMethod.getReference();
+      }
+      return resolvedMethod.getReference().withHolder(libraryHolder, appView.dexItemFactory());
     }
 
-    if (resolvedMethod.getDefinition().isStatic()) {
-      return original;
+    LibraryMethod eligibleLibraryMethod = null;
+    SingleResolutionResult<?> currentResolutionResult = resolutionResult;
+    while (currentResolutionResult != null) {
+      DexClassAndMethod currentResolvedMethod = currentResolutionResult.getResolutionPair();
+      if (canRebindDirectlyToLibraryMethod(
+          currentResolvedMethod,
+          currentResolutionResult.withInitialResolutionHolder(
+              currentResolutionResult.getResolvedHolder()),
+          contexts,
+          invokeType,
+          original)) {
+        eligibleLibraryMethod = currentResolvedMethod.asLibraryMethod();
+      }
+      if (appView.getAssumeInfoCollection().contains(currentResolvedMethod)) {
+        break;
+      }
+      DexClass currentResolvedHolder = currentResolvedMethod.getHolder();
+      if (resolvedMethod.getDefinition().belongsToVirtualPool()
+          && !currentResolvedHolder.isInterface()
+          && currentResolvedHolder.getSuperType() != null) {
+        currentResolutionResult =
+            appView
+                .appInfo()
+                .resolveMethodOnClassLegacy(currentResolvedHolder.getSuperType(), original)
+                .asSingleResolution();
+      } else {
+        break;
+      }
+    }
+    if (eligibleLibraryMethod != null) {
+      return eligibleLibraryMethod.getReference();
     }
 
-    // If we could not find a valid library method to rebind to then create a bridge on the top most
-    // program class before crossing into library.
-    DexClass newHolder =
-        resolvedMethod.getHolder().isInterface()
-            ? firstProgramClassForTarget(
-                appView, resolvedMethod.getReference(), original.getHolderType())
-            : firstProgramClass(appView, original.getHolderType());
-    if (newHolder == null || newHolder.isNotProgramClass()) {
-      return original;
-    }
-    // We cannot insert default methods on interfaces after desugaring, so we return the resolved
-    // method.
-    if (newHolder.isInterface() && !options.canUseDefaultAndStaticInterfaceMethods()) {
-      return resolvedMethod.getReference();
-    }
-    if (!appView.getAssumeInfoCollection().get(resolvedMethod).isEmpty()) {
-      return original;
-    }
-    DexMethod bridge = original.withHolder(newHolder, appView.dexItemFactory());
-    insertedLibraryBridges.put(bridge, resolvedMethod);
-    return bridge;
+    DexType newHolder =
+        firstLibraryClassOrFirstInterfaceTarget(
+            resolvedMethod.getHolder(),
+            appView,
+            resolvedMethod.getReference(),
+            original.getHolderType(),
+            DexClass::lookupMethod);
+    return newHolder != null ? original.withHolder(newHolder, appView.dexItemFactory()) : original;
   }
 
   private boolean canRebindDirectlyToLibraryMethod(
@@ -147,8 +146,8 @@ public class MemberRebindingAnalysis {
       Type invokeType,
       DexMethod original) {
     // TODO(b/194422791): It could potentially be that `original.holder` is not a subtype of
-    //  `resolvedMethod.holder` on all API levels, in which case it is not OK to rebind to the
-    //  resolved method.
+    //  `original.holder` on all API levels, in which case it is not OK to rebind to the resolved
+    //  method.
     return resolvedMethod.isLibraryMethod()
         && isAccessibleInAllContexts(resolvedMethod, resolutionResult, contexts)
         && !isInvokeSuperToInterfaceMethod(resolvedMethod, invokeType)
@@ -239,34 +238,6 @@ public class MemberRebindingAnalysis {
     return null;
   }
 
-  private static DexClass firstProgramClassForTarget(
-      DexDefinitionSupplier definitions, DexMethod target, DexType current) {
-    DexClass clazz = definitions.contextIndependentDefinitionFor(current);
-    if (clazz == null) {
-      return null;
-    }
-    DexEncodedMethod potential = clazz.lookupMethod(target);
-    if (potential != null) {
-      // Found, return type.
-      return clazz;
-    }
-    if (clazz.superType != null) {
-      DexClass matchingSuper = firstProgramClassForTarget(definitions, target, clazz.superType);
-      if (matchingSuper != null) {
-        // Found in supertype, return first program class.
-        return matchingSuper.isNotProgramClass() ? clazz : matchingSuper;
-      }
-    }
-    for (DexType iface : clazz.getInterfaces()) {
-      DexClass matchingIface = firstProgramClassForTarget(definitions, target, iface);
-      if (matchingIface != null) {
-        // Found in interface, return first program class.
-        return matchingIface.isNotProgramClass() ? clazz : matchingIface;
-      }
-    }
-    return null;
-  }
-
   private static DexType firstLibraryClass(DexDefinitionSupplier definitions, DexType bottom) {
     DexClass searchClass = definitions.contextIndependentDefinitionFor(bottom);
     while (searchClass != null && searchClass.isProgramClass()) {
@@ -274,21 +245,6 @@ public class MemberRebindingAnalysis {
           definitions.definitionFor(searchClass.getSuperType(), searchClass.asProgramClass());
     }
     return searchClass != null ? searchClass.getType() : null;
-  }
-
-  private static DexProgramClass firstProgramClass(
-      DexDefinitionSupplier definitions, DexType bottom) {
-    DexProgramClass searchClass =
-        DexProgramClass.asProgramClassOrNull(definitions.contextIndependentDefinitionFor(bottom));
-    while (searchClass != null && searchClass.isProgramClass()) {
-      DexClass superClass =
-          definitions.definitionFor(searchClass.getSuperType(), searchClass.asProgramClass());
-      if (superClass.isNotProgramClass()) {
-        return searchClass;
-      }
-      searchClass = superClass.asProgramClass();
-    }
-    return null;
   }
 
   private MethodResolutionResult resolveMethodOnClass(DexMethod method) {
@@ -415,7 +371,7 @@ public class MemberRebindingAnalysis {
                       builder -> {
                         if (!targetDefinition.isAbstract()
                             && targetDefinition.getApiLevelForCode().isNotSetApiLevel()) {
-                          assert !target.isProgramMethod();
+                          assert target.isLibraryMethod();
                           builder.setApiLevelForCode(
                               appView
                                   .apiLevelCompute()
@@ -424,8 +380,7 @@ public class MemberRebindingAnalysis {
                                       appView.computedMinApiLevel()));
                         }
                         builder.setIsLibraryMethodOverrideIf(
-                            !target.isProgramMethod() && !targetDefinition.isStatic(),
-                            OptionalBool.TRUE);
+                            target.isLibraryMethod(), OptionalBool.TRUE);
                       });
               bridgeHolder.addMethod(bridgeMethodDefinition);
             }
@@ -557,37 +512,7 @@ public class MemberRebindingAnalysis {
     computeMethodRebinding(appInfo.getMethodAccessInfoCollection());
     recordNonReboundFieldAccesses(executorService);
     appInfo.getFieldAccessInfoCollection().flattenAccessContexts();
-    insertLibraryBridges();
     return lensBuilder.build();
-  }
-
-  private void insertLibraryBridges() {
-    insertedLibraryBridges.forEach(
-        (method, resolvedMethod) -> {
-          assert !resolvedMethod.isProgramMethod();
-          DexProgramClass holder =
-              DexProgramClass.asProgramClassOrNull(appView.definitionFor(method.getHolderType()));
-          assert holder != null;
-          assert !holder.isInterface() || options.canUseDefaultAndStaticInterfaceMethods();
-          DexEncodedMethod resolvedDefinition = resolvedMethod.getDefinition();
-          holder.addMethod(
-              DexEncodedMethod.syntheticBuilder()
-                  .setMethod(method)
-                  .setApiLevelForDefinition(resolvedDefinition.getApiLevelForDefinition())
-                  // Since we could not member rebind to this definition it is at least higher than
-                  // min-api.
-                  .setApiLevelForCode(ComputedApiLevel.unknown())
-                  .setCode(
-                      MemberRebindingBridgeCode.builder()
-                          .setTarget(resolvedMethod.getDefinition().getReference())
-                          .setInterface(resolvedMethod.getHolder().isInterface())
-                          .build())
-                  .setAccessFlags(MethodAccessFlags.builder().setPublic().setSynthetic().build())
-                  .setClassFileVersion(resolvedDefinition.getClassFileVersion())
-                  .setDeprecated(resolvedDefinition.deprecated)
-                  .setIsLibraryMethodOverride(OptionalBool.TRUE)
-                  .build());
-        });
   }
 
   private boolean verifyFieldAccessCollectionContainsAllNonReboundFieldReferences(

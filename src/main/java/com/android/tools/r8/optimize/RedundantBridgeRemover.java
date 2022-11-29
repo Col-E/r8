@@ -5,7 +5,6 @@ package com.android.tools.r8.optimize;
 
 import static com.android.tools.r8.utils.ThreadUtils.processItems;
 
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -20,6 +19,7 @@ import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.optimize.InvokeSingleTargetExtractor.InvokeKind;
 import com.android.tools.r8.optimize.redundantbridgeremoval.RedundantBridgeRemovalLens;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.Map;
@@ -29,23 +29,20 @@ import java.util.concurrent.ExecutorService;
 
 public class RedundantBridgeRemover {
 
-  private final AppView<? extends AppInfoWithClassHierarchy> appView;
+  private final AppView<AppInfoWithLiveness> appView;
 
-  public RedundantBridgeRemover(AppView<? extends AppInfoWithClassHierarchy> appView) {
+  public RedundantBridgeRemover(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
   }
 
   private DexClassAndMethod getTargetForRedundantBridge(ProgramMethod method) {
-    assert appView.hasLiveness();
     DexEncodedMethod definition = method.getDefinition();
     BridgeInfo bridgeInfo = definition.getOptimizationInfo().getBridgeInfo();
     boolean isBridge = definition.isBridge() || bridgeInfo != null;
-    // TODO(b/258176116): We can only remove bridges if they are marked as bridge or abstract.
     if (!isBridge || definition.isAbstract()) {
       return null;
     }
-    InvokeSingleTargetExtractor targetExtractor =
-        new InvokeSingleTargetExtractor(appView.withLiveness(), method);
+    InvokeSingleTargetExtractor targetExtractor = new InvokeSingleTargetExtractor(appView, method);
     method.registerCodeReferences(targetExtractor);
     DexMethod target = targetExtractor.getTarget();
     // javac-generated visibility forward bridge method has same descriptor (name, signature and
@@ -137,27 +134,12 @@ public class RedundantBridgeRemover {
       RedundantBridgeRemovalLens.Builder lensBuilder, ExecutorService executorService)
       throws ExecutionException {
     Map<DexProgramClass, ProgramMethodSet> bridgesToRemove = new ConcurrentHashMap<>();
-    boolean hasLiveness = appView.hasLiveness();
-    // If we don't have AppInfoWithLiveness here, it must be because we are not shrinking. When we
-    // are not shrinking, we can't remove visibility bridges. In principle, though, it would be
-    // possible to remove visibility bridges that have been synthesized by R8, but we currently do
-    // not have this information.
-    assert hasLiveness || !appView.options().isShrinking();
     processItems(
         appView.appInfo().classes(),
         clazz -> {
           ProgramMethodSet bridgesToRemoveForClass = ProgramMethodSet.create();
           clazz.forEachProgramMethod(
               method -> {
-                DexEncodedMethod definition = method.getDefinition();
-                if (definition.getCode() != null
-                    && definition.getCode().isMemberRebindingBridgeCode()) {
-                  bridgesToRemoveForClass.add(method);
-                  return;
-                }
-                if (!hasLiveness) {
-                  return;
-                }
                 KeepMethodInfo keepInfo = appView.getKeepInfo(method);
                 if (!keepInfo.isShrinkingAllowed(appView.options())
                     || !keepInfo.isOptimizationAllowed(appView.options())) {
@@ -179,7 +161,7 @@ public class RedundantBridgeRemover {
                   //  the target is not public, but still accessible to call sites.
                   boolean isEligibleForRetargeting =
                       appView.testing().enableRetargetingConstructorBridgeCalls
-                          || !definition.isInstanceInitializer();
+                          || !method.getDefinition().isInstanceInitializer();
                   if (isEligibleForRetargeting
                       && target.getAccessFlags().isPublic()
                       && target.getHolder().isPublic()) {

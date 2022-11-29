@@ -138,7 +138,14 @@ public class ApiModelIndirectTargetWithDifferentApiLevelTest extends TestBase {
     if (isGreaterOrEqualToClassMethodMockLevel()) {
       runResult.assertSuccessWithOutputLines("LibraryClass::foo");
     } else if (isGreaterOrEqualToIfaceMockLevel()) {
-      runResult.assertFailureWithErrorThatThrows(AbstractMethodError.class);
+      if (isR8) {
+        runResult.assertFailureWithErrorThatThrows(NoSuchMethodError.class);
+      } else {
+        runResult.assertFailureWithErrorThatThrows(AbstractMethodError.class);
+      }
+    } else if (isR8 && parameters.isCfRuntime()) {
+      // TODO(b/254510678): R8 should not rebind to the library method.
+      runResult.assertFailureWithErrorThatThrows(NoClassDefFoundError.class);
     } else {
       runResult.assertSuccessWithOutputLines("Hello World");
     }

@@ -47,7 +47,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -1683,18 +1682,6 @@ public abstract class Instruction
 
     public B setPosition(Position position) {
       this.position = position;
-      return self();
-    }
-
-    public B apply(Consumer<B> consumer) {
-      consumer.accept(self());
-      return self();
-    }
-
-    public B applyIf(boolean condition, Consumer<B> consumer) {
-      if (condition) {
-        consumer.accept(self());
-      }
       return self();
     }
 
