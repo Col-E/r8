@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.shaking;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.utils.OptionalBool;
 import java.util.AbstractList;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,17 +50,17 @@ public class LibraryMethodOverrideInInterfaceMarkingTest extends TestBase {
   private void verifyLibraryOverrideInformation(AppInfoWithLiveness appInfo, Enqueuer.Mode mode) {
     DexItemFactory dexItemFactory = appInfo.dexItemFactory();
     verifyIsEmptyMarkedAsOverridingLibraryMethod(
-        appInfo, dexItemFactory.createType(descriptor(A.class)));
+        appInfo, dexItemFactory.createType(descriptor(A.class)), OptionalBool.TRUE);
     verifyIsEmptyMarkedAsOverridingLibraryMethod(
-        appInfo, dexItemFactory.createType(descriptor(I.class)));
+        appInfo, dexItemFactory.createType(descriptor(I.class)), OptionalBool.FALSE);
   }
 
   private void verifyIsEmptyMarkedAsOverridingLibraryMethod(
-      AppInfoWithLiveness appInfo, DexType type) {
+      AppInfoWithLiveness appInfo, DexType type, OptionalBool expected) {
     DexProgramClass clazz = appInfo.definitionFor(type).asProgramClass();
     DexEncodedMethod method =
         clazz.lookupVirtualMethod(m -> m.getReference().name.toString().equals("isEmpty"));
-    assertTrue(method.isLibraryMethodOverride().isTrue());
+    assertEquals(expected, method.isLibraryMethodOverride());
   }
 
   static class TestClass {

@@ -95,6 +95,7 @@ import com.android.tools.r8.graph.analysis.EnqueuerExceptionGuardAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerFieldAccessAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerInstanceOfAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerInvokeAnalysis;
+import com.android.tools.r8.graph.analysis.EnqueuerLibraryOverrideAnalysis;
 import com.android.tools.r8.graph.analysis.GetArrayOfMissingTypeVerifyErrorWorkaround;
 import com.android.tools.r8.graph.analysis.InvokeVirtualToInterfaceVerifyErrorWorkaround;
 import com.android.tools.r8.ir.analysis.proto.ProtoEnqueuerUseRegistry;
@@ -535,6 +536,10 @@ public class Enqueuer {
     return graphReporter;
   }
 
+  public Set<DexProgramClass> getLiveProgramTypes() {
+    return liveTypes.getItems();
+  }
+
   private EnqueuerUseRegistryFactory createUseRegistryFactory() {
     if (mode.isFinalTreeShaking()) {
       return appView.withGeneratedMessageLiteShrinker(
@@ -677,17 +682,6 @@ public class Enqueuer {
 
   public DexClass definitionFor(DexType type, ProgramDefinition context) {
     return definitionFor(type, context, this::recordNonProgramClass, this::reportMissingClass);
-  }
-
-  public DexLibraryClass definitionForLibraryClassOrIgnore(DexType type) {
-    assert type.isClassType();
-    ClassResolutionResult classResolutionResult =
-        appInfo().contextIndependentDefinitionForWithResolutionResult(type);
-    return classResolutionResult.hasClassResolutionResult()
-            && !classResolutionResult.isMultipleClassResolutionResult()
-        ? DexLibraryClass.asLibraryClassOrNull(
-            classResolutionResult.toSingleClassWithProgramOverLibrary())
-        : null;
   }
 
   public boolean hasAlternativeLibraryDefinition(DexProgramClass programClass) {
@@ -2869,10 +2863,7 @@ public class Enqueuer {
             } else {
               markLibraryAndClasspathMethodOverridesAsLive(instantiation, clazz);
             }
-            if (clazz.superType != null) {
-              worklist.addIfNotSeen(clazz.superType);
-            }
-            worklist.addIfNotSeen(clazz.interfaces);
+            clazz.forEachImmediateSupertype(worklist::addIfNotSeen);
           });
     }
   }
@@ -2969,7 +2960,7 @@ public class Enqueuer {
       // class comment of DesugaredLibraryAPIConverter and vivifiedType logic.
       // In the first enqueuer phase, the signature has not been desugared, so firstResolution
       // maintains the library override. In the second enqueuer phase, the signature has been
-      // desugared, and the second resolution maintains the the library override.
+      // desugared, and the second resolution maintains the library override.
       if (instantiation.isClass()
           && appView.typeRewriter.hasRewrittenTypeInSignature(
               method.getReference().proto, appView)) {
@@ -3001,11 +2992,6 @@ public class Enqueuer {
         method ->
             graphReporter.reportLibraryMethodAsLive(
                 instantiation, method, libraryOrClasspathClass));
-    if (instantiation.isClass()) {
-      // TODO(b/149976493): We need to mark these for lambdas too!
-      markOverridesAsLibraryMethodOverrides(
-          instantiation.asClass(), lookup.asMethodTarget().getDefinition().getReference());
-    }
   }
 
   private void markOverridesAsLibraryMethodOverrides(
@@ -3618,6 +3604,9 @@ public class Enqueuer {
     if (options.apiModelingOptions().enableLibraryApiModeling) {
       registerAnalysis(new ApiModelAnalysis(appView));
     }
+    if (!mode.isMainDexTracing()) {
+      registerAnalysis(new EnqueuerLibraryOverrideAnalysis(appView));
+    }
 
     // Transfer the minimum keep info from the root set into the Enqueuer state.
     includeMinimumKeepInfo(rootSet);
@@ -3640,8 +3629,8 @@ public class Enqueuer {
     enqueueAllIfNotShrinking();
     trace(executorService, timing);
     options.reporter.failIfPendingErrors();
-    finalizeLibraryMethodOverrideInformation();
     analyses.forEach(analyses -> analyses.done(this));
+    finalizeLibraryMethodOverrideInformation();
     assert verifyKeptGraph();
     if (mode.isInitialTreeShaking() && forceProguardCompatibility) {
       appView.setProguardCompatibilityActions(proguardCompatibilityActionsBuilder.build());

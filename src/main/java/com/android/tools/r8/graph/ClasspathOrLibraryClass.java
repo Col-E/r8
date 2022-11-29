@@ -15,4 +15,10 @@ public interface ClasspathOrLibraryClass extends ClassDefinition, ClasspathOrLib
   static ClasspathOrLibraryClass asClasspathOrLibraryClass(DexClass clazz) {
     return clazz != null ? clazz.asClasspathOrLibraryClass() : null;
   }
+
+  DexEncodedMethod lookupMethod(DexMethod method);
+
+  DexEncodedMethod lookupVirtualMethod(DexMethod method);
+
+  Iterable<DexEncodedMethod> virtualMethods();
 }

@@ -21,9 +21,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class LibraryMethodOverrideOfClassMethodWithInterfaceTest extends TestBase {
-
-  private final String EXPECTED = "ProgramClass::foo";
+public class LibraryMethodOverrideAbstractTest extends TestBase {
 
   @Parameter() public TestParameters parameters;
 
@@ -35,17 +33,21 @@ public class LibraryMethodOverrideOfClassMethodWithInterfaceTest extends TestBas
   @Test
   public void testRuntime() throws Exception {
     testForRuntime(parameters)
-        .addProgramClasses(ProgramClass.class, ProgramInterface.class, Main.class)
+        .addProgramClasses(SubProgramClass.class, Main.class)
+        .addProgramClassFileData(
+            transformer(ProgramClass.class).removeMethodsWithName("foo").transform())
         .addLibraryClasses(LibraryClass.class)
         .addRunClasspathFiles(buildOnDexRuntime(parameters, LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(EXPECTED);
+        .assertFailureWithErrorThatThrows(AbstractMethodError.class);
   }
 
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClasses(ProgramClass.class, ProgramInterface.class, Main.class)
+        .addProgramClasses(SubProgramClass.class, Main.class)
+        .addProgramClassFileData(
+            transformer(ProgramClass.class).removeMethodsWithName("foo").transform())
         .addDefaultRuntimeLibrary(parameters)
         .addLibraryClasses(LibraryClass.class)
         .addOptionsModification(
@@ -55,46 +57,49 @@ public class LibraryMethodOverrideOfClassMethodWithInterfaceTest extends TestBas
         .compile()
         .addBootClasspathClasses(LibraryClass.class)
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(EXPECTED);
+        .assertFailureWithErrorThatThrows(AbstractMethodError.class);
   }
 
   private void verifyLibraryOverrideInformation(AppInfoWithLiveness appInfo, Enqueuer.Mode mode) {
-    DexItemFactory dexItemFactory = appInfo.dexItemFactory();
-    DexProgramClass clazz =
-        appInfo
-            .definitionFor(dexItemFactory.createType(descriptor(ProgramInterface.class)))
-            .asProgramClass();
-    DexEncodedMethod method =
-        clazz.lookupVirtualMethod(m -> m.getReference().name.toString().equals("foo"));
-    assertTrue(method.isLibraryMethodOverride().isFalse());
+    if (mode.isInitialTreeShaking()) {
+      DexItemFactory dexItemFactory = appInfo.dexItemFactory();
+      DexProgramClass clazz =
+          appInfo
+              .definitionFor(dexItemFactory.createType(descriptor(SubProgramClass.class)))
+              .asProgramClass();
+      DexEncodedMethod method =
+          clazz.lookupVirtualMethod(m -> m.getReference().name.toString().equals("foo"));
+      assertTrue(method.isLibraryMethodOverride().isTrue());
+    }
   }
 
   public abstract static class LibraryClass {
 
     abstract void foo();
+
+    public static void callFoo(LibraryClass libraryClass) {
+      libraryClass.foo();
+    }
   }
 
-  public interface ProgramInterface {
-
-    void foo();
-  }
-
-  public static class ProgramClass extends LibraryClass implements ProgramInterface {
+  public abstract static class SubProgramClass extends LibraryClass {
 
     @Override
-    public void foo() {
-      System.out.println("ProgramClass::foo");
+    abstract void foo();
+  }
+
+  public static class ProgramClass extends SubProgramClass {
+
+    @Override
+    void foo() {
+      throw new RuntimeException("Should have been removed.");
     }
   }
 
   public static class Main {
 
     public static void main(String[] args) {
-      callFoo(new ProgramClass());
-    }
-
-    public static void callFoo(ProgramInterface i) {
-      i.foo();
+      LibraryClass.callFoo(new ProgramClass());
     }
   }
 }
