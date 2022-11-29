@@ -125,9 +125,6 @@ public class ApiModelIndirectTargetWithSameApiLevelTest extends TestBase {
   private void checkOutput(SingleTestRunResult<?> runResult, boolean isR8) {
     if (isGreaterOrEqualToMockLevel()) {
       runResult.assertSuccessWithOutputLines("LibraryClass::foo");
-    } else if (isR8 && parameters.isCfRuntime()) {
-      // TODO(b/254510678): R8 should not rebind to the library method.
-      runResult.assertFailureWithErrorThatThrows(NoClassDefFoundError.class);
     } else {
       runResult.assertSuccessWithOutputLines("Hello World");
     }

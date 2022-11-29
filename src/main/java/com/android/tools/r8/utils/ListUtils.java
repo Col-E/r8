@@ -197,6 +197,16 @@ public class ListUtils {
     return list;
   }
 
+  public static <T> ArrayList<T> newArrayList(T element, List<T> otherOrNull) {
+    int size = otherOrNull == null ? 1 : otherOrNull.size() + 1;
+    ArrayList<T> list = new ArrayList<>(size);
+    list.add(element);
+    if (otherOrNull != null) {
+      list.addAll(otherOrNull);
+    }
+    return list;
+  }
+
   public static <T> ArrayList<T> newArrayList(ForEachable<T> forEachable) {
     ArrayList<T> list = new ArrayList<>();
     forEachable.forEach(list::add);

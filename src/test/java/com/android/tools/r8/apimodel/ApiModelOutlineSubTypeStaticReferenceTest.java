@@ -20,7 +20,6 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import java.lang.reflect.Method;
 import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -127,16 +126,11 @@ public class ApiModelOutlineSubTypeStaticReferenceTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector, boolean isR8) throws Exception {
-    Method otherMethod = Sub.class.getMethod("otherMethod");
-    Method libraryMethod = LibraryClass.class.getMethod("foo");
-    // TODO(b/254510678): R8 should not member-rebind to a potential non-existing method.
     verifyThat(
             inspector,
             parameters,
-            isR8
-                ? Reference.methodFromMethod(libraryMethod)
-                : Reference.method(
-                    Reference.classFromClass(Sub.class), "foo", Collections.emptyList(), null))
+            Reference.method(
+                Reference.classFromClass(Sub.class), "foo", Collections.emptyList(), null))
         .isOutlinedFromUntil(Sub.class.getDeclaredMethod("otherMethod"), libraryApiLevel);
   }
 

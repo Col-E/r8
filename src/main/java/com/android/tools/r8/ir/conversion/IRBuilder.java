@@ -114,6 +114,7 @@ import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Ushr;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.ValueFactory;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.ValueTypeConstraint;
 import com.android.tools.r8.ir.code.Xor;
@@ -148,11 +149,11 @@ import java.util.function.BiConsumer;
 /**
  * Builder object for constructing high-level IR from dex bytecode.
  *
- * <p>The generated IR is in SSA form. The SSA construction is based on the paper
- * "Simple and Efficient Construction of Static Single Assignment Form" available at
+ * <p>The generated IR is in SSA form. The SSA construction is based on the paper "Simple and
+ * Efficient Construction of Static Single Assignment Form" available at
  * http://compilers.cs.uni-saarland.de/papers/bbhlmz13cc.pdf
  */
-public class IRBuilder {
+public class IRBuilder implements ValueFactory {
 
   public static final int INITIAL_BLOCK_OFFSET = -1;
 
@@ -179,6 +180,11 @@ public class IRBuilder {
       default:
         throw new Unreachable("Unexpected member type: " + type);
     }
+  }
+
+  @Override
+  public Value createValue(TypeElement type, DebugLocalInfo localInfo) {
+    return new Value(valueNumberGenerator.next(), type, localInfo);
   }
 
   // SSA construction uses a worklist of basic blocks reachable from the entry and their
@@ -1830,7 +1836,7 @@ public class IRBuilder {
     addReturn(new Return());
   }
 
-  private void addReturn(Return ret) {
+  public void addReturn(Return ret) {
     // Attach the live locals to the return instruction to avoid a local change on monitor exit.
     attachLocalValues(ret);
     source.buildPostlude(this);
