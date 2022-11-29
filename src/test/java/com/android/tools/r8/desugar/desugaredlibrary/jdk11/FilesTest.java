@@ -69,6 +69,7 @@ public class FilesTest extends DesugaredLibraryTestBase {
           "tmp",
           "/",
           "true",
+          "tmpFile",
           "This",
           "is",
           "fun!",
@@ -236,7 +237,9 @@ public class FilesTest extends DesugaredLibraryTestBase {
       Iterable<Path> rootDirectories = tmpFile.getFileSystem().getRootDirectories();
       System.out.println(rootDirectories.iterator().next());
       DirectoryStream<Path> paths = Files.newDirectoryStream(tmpDict);
-      System.out.println(paths.iterator().hasNext());
+      Iterator<Path> theIterator = paths.iterator();
+      System.out.println(theIterator.hasNext());
+      System.out.println(theIterator.next().getFileName());
     }
 
     private static void fspMethodsWithGeneric(Path path) throws IOException {

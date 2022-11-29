@@ -104,11 +104,6 @@ public class PathApiFlips {
     public void remove() {
       iterator.remove();
     }
-
-    @Override
-    public void forEachRemaining(Consumer<? super T> action) {
-      iterator.forEachRemaining(path -> action.accept(convertPath(path)));
-    }
   }
 
   public static class DirectoryStreamPathWrapper<T> implements DirectoryStream<T> {

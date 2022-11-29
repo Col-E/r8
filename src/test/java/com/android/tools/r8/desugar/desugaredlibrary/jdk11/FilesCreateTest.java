@@ -121,11 +121,7 @@ public class FilesCreateTest extends DesugaredLibraryTestBase {
     return (libraryDesugaringSpecification.usesPlatformFileSystem(parameters)
             ? EXPECTED_RESULT
             : EXPECTED_RESULT_DESUGARING)
-        // We cannot print on such devices due to conversions errors.
-        + ((libraryDesugaringSpecification.usesPlatformFileSystem(parameters)
-                && libraryDesugaringSpecification.hasNioFileDesugaring(parameters))
-            ? ""
-            : EXPECTED_FILES);
+        + EXPECTED_FILES;
   }
 
   public static class TestClass {
@@ -178,22 +174,16 @@ public class FilesCreateTest extends DesugaredLibraryTestBase {
       Files.createFile(root.resolve("f3.txt"));
       Files.createFile(root.resolve("f4.txt"), getFileAttribute());
 
-      // Clear the temp directory.
-      // We need to fix Files#walk on high Api levels.
-      try {
-        Files.walk(root)
-            .sorted(Comparator.reverseOrder())
-            .map(
-                f -> {
-                  if (f != root) {
-                    System.out.println(f.subpath(2, f.getNameCount()));
-                  }
-                  return f.toFile();
-                })
-            .forEach(File::delete);
-      } catch (Throwable t) {
-
-      }
+      Files.walk(root)
+          .sorted(Comparator.reverseOrder())
+          .map(
+              f -> {
+                if (f != root) {
+                  System.out.println(f.subpath(2, f.getNameCount()));
+                }
+                return f.toFile();
+              })
+          .forEach(File::delete);
     }
 
     public static FileAttribute<Set<PosixFilePermission>> getFileAttribute() {
