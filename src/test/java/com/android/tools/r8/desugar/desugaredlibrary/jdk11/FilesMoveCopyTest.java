@@ -15,6 +15,7 @@ import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugari
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
@@ -142,7 +143,7 @@ public class FilesMoveCopyTest extends DesugaredLibraryTestBase {
     if (parameters.isCfRuntime()) {
       // Reference runtime, we use Jdk 11 since this is Jdk 11 desugared library, not that Jdk 8
       // behaves differently on this test.
-      Assume.assumeTrue(parameters.isCfRuntime(CfVm.JDK11));
+      Assume.assumeTrue(parameters.isCfRuntime(CfVm.JDK11) && !ToolHelper.isWindows());
       testForJvm()
           .addInnerClasses(getClass())
           .run(parameters.getRuntime(), TestClass.class)
