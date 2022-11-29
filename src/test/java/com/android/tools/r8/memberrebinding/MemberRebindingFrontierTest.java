@@ -4,7 +4,9 @@
 
 package com.android.tools.r8.memberrebinding;
 
+import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethodWithHolderAndName;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
@@ -14,7 +16,6 @@ import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.CodeMatchers;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -43,7 +44,7 @@ public class MemberRebindingFrontierTest extends TestBase {
         .compile()
         .apply(this::setupRunclasspath)
         .run(parameters.getRuntime(), Main.class)
-        .apply(result -> checkOutput(result, false));
+        .apply(this::checkOutput);
   }
 
   @Test
@@ -61,15 +62,13 @@ public class MemberRebindingFrontierTest extends TestBase {
         .apply(this::setupRunclasspath)
         .inspect(
             inspector -> {
-              // TODO(b/254510678): We should not rebind to I.foo
               ClassSubject mainClass = inspector.clazz(Main.class);
               assertThat(mainClass, isPresent());
               MethodSubject foo = mainClass.mainMethod();
-              assertThat(
-                  foo, CodeMatchers.invokesMethodWithHolderAndName(typeName(I.class), "foo"));
+              assertThat(foo, not(invokesMethodWithHolderAndName(typeName(I.class), "foo")));
             })
         .run(parameters.getRuntime(), Main.class)
-        .apply(result -> checkOutput(result, true));
+        .apply(this::checkOutput);
   }
 
   private byte[] removeFooMethod(Class<?> clazz) throws Exception {
@@ -92,17 +91,12 @@ public class MemberRebindingFrontierTest extends TestBase {
                     .addRunClasspathClassFileData(removeFooMethod(I.class)));
   }
 
-  private void checkOutput(SingleTestRunResult<?> runResult, boolean r8) {
+  private void checkOutput(SingleTestRunResult<?> runResult) {
     if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
       runResult.assertSuccessWithOutputLines("I::foo");
       return;
     }
-    // TODO(b/254510678): We should not rebind to I.foo
-    if (r8) {
-      runResult.assertFailureWithErrorThatThrows(NoSuchMethodError.class);
-    } else {
-      runResult.assertSuccessWithOutputLines("Base::foo");
-    }
+    runResult.assertSuccessWithOutputLines("Base::foo");
   }
 
   private interface I {

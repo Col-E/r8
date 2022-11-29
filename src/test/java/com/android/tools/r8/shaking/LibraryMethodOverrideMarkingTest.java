@@ -6,7 +6,6 @@ package com.android.tools.r8.shaking;
 
 import static com.google.common.base.Predicates.alwaysTrue;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
@@ -16,6 +15,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.utils.OptionalBool;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,17 +49,17 @@ public class LibraryMethodOverrideMarkingTest extends TestBase {
   private void verifyLibraryOverrideInformation(AppInfoWithLiveness appInfo, Enqueuer.Mode mode) {
     DexItemFactory dexItemFactory = appInfo.dexItemFactory();
     verifySingleVirtualMethodMarkedAsOverridingLibraryMethod(
-        appInfo, dexItemFactory.createType(descriptor(A.class)));
+        appInfo, dexItemFactory.createType(descriptor(A.class)), OptionalBool.FALSE);
     verifySingleVirtualMethodMarkedAsOverridingLibraryMethod(
-        appInfo, dexItemFactory.createType(descriptor(B.class)));
+        appInfo, dexItemFactory.createType(descriptor(B.class)), OptionalBool.TRUE);
   }
 
   private void verifySingleVirtualMethodMarkedAsOverridingLibraryMethod(
-      AppInfoWithLiveness appInfo, DexType type) {
+      AppInfoWithLiveness appInfo, DexType type, OptionalBool expected) {
     DexProgramClass clazz = appInfo.definitionFor(type).asProgramClass();
     assertEquals(1, clazz.getMethodCollection().numberOfVirtualMethods());
     DexEncodedMethod method = clazz.lookupVirtualMethod(alwaysTrue());
-    assertTrue(method.isLibraryMethodOverride().isTrue());
+    assertEquals(expected, method.isLibraryMethodOverride());
   }
 
   static class TestClass {

@@ -700,17 +700,8 @@ public class R8 {
       appView.setGraphLens(memberRebindingIdentityLens);
 
       // Remove redundant bridges that have been inserted for member rebinding.
-      // This can only be done if we have AppInfoWithLiveness.
-      if (appView.appInfo().hasLiveness()) {
-        new RedundantBridgeRemover(appView.withLiveness())
-            .run(memberRebindingIdentityLens, executorService);
-      } else {
-        // If we don't have AppInfoWithLiveness here, it must be because we are not shrinking. When
-        // we are not shrinking, we can't move visibility bridges. In principle, though, it would be
-        // possible to remove visibility bridges that have been synthesized by R8, but we currently
-        // do not have this information.
-        assert !options.isShrinking();
-      }
+      new RedundantBridgeRemover(appView.withLiveness())
+          .run(memberRebindingIdentityLens, executorService);
 
       if (appView.appInfo().hasLiveness()) {
         SyntheticFinalization.finalizeWithLiveness(appView.withLiveness(), executorService, timing);

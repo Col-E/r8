@@ -138,14 +138,7 @@ public class ApiModelIndirectTargetWithDifferentApiLevelTest extends TestBase {
     if (isGreaterOrEqualToClassMethodMockLevel()) {
       runResult.assertSuccessWithOutputLines("LibraryClass::foo");
     } else if (isGreaterOrEqualToIfaceMockLevel()) {
-      if (isR8) {
-        runResult.assertFailureWithErrorThatThrows(NoSuchMethodError.class);
-      } else {
-        runResult.assertFailureWithErrorThatThrows(AbstractMethodError.class);
-      }
-    } else if (isR8 && parameters.isCfRuntime()) {
-      // TODO(b/254510678): R8 should not rebind to the library method.
-      runResult.assertFailureWithErrorThatThrows(NoClassDefFoundError.class);
+      runResult.assertFailureWithErrorThatThrows(AbstractMethodError.class);
     } else {
       runResult.assertSuccessWithOutputLines("Hello World");
     }
@@ -162,9 +155,7 @@ public class ApiModelIndirectTargetWithDifferentApiLevelTest extends TestBase {
             inspector,
             parameters,
             Reference.method(
-                // TODO(b/254510678): Due to member rebinding, we rebind ProgramJoiner.foo() to
-                //  LibraryClass.foo().
-                Reference.classFromClass(isR8 ? LibraryClass.class : ProgramJoiner.class),
+                Reference.classFromClass(ProgramJoiner.class),
                 "foo",
                 Collections.emptyList(),
                 null));

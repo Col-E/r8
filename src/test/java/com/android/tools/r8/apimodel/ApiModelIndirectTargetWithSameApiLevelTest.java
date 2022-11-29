@@ -125,9 +125,6 @@ public class ApiModelIndirectTargetWithSameApiLevelTest extends TestBase {
   private void checkOutput(SingleTestRunResult<?> runResult, boolean isR8) {
     if (isGreaterOrEqualToMockLevel()) {
       runResult.assertSuccessWithOutputLines("LibraryClass::foo");
-    } else if (isR8 && parameters.isCfRuntime()) {
-      // TODO(b/254510678): R8 should not rebind to the library method.
-      runResult.assertFailureWithErrorThatThrows(NoClassDefFoundError.class);
     } else {
       runResult.assertSuccessWithOutputLines("Hello World");
     }
@@ -144,9 +141,7 @@ public class ApiModelIndirectTargetWithSameApiLevelTest extends TestBase {
             inspector,
             parameters,
             Reference.method(
-                // TODO(b/254510678): Due to member rebinding, we rebind ProgramJoiner.foo() to
-                //  LibraryClass.foo().
-                Reference.classFromClass(isR8 ? LibraryClass.class : ProgramJoiner.class),
+                Reference.classFromClass(ProgramJoiner.class),
                 "foo",
                 Collections.emptyList(),
                 null));

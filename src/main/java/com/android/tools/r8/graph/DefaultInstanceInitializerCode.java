@@ -67,6 +67,11 @@ public class DefaultInstanceInitializerCode extends Code
     return INSTANCE;
   }
 
+  @Override
+  public boolean passThroughDesugarAndIRConversion() {
+    return true;
+  }
+
   public static boolean canonicalizeCodeIfPossible(AppView<?> appView, ProgramMethod method) {
     if (hasDefaultInstanceInitializerCode(method, appView)) {
       method.setCode(get(), appView);

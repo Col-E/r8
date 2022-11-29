@@ -1566,7 +1566,7 @@ public class IRConverter {
     }
     Code code = method.getDefinition().getCode();
     assert !code.isThrowNullCode();
-    return code.isDefaultInstanceInitializerCode();
+    return code.passThroughDesugarAndIRConversion();
   }
 
   // Compute optimization info summary for the current method unless it is pinned

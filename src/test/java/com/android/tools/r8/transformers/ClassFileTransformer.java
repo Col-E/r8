@@ -1139,6 +1139,25 @@ public class ClassFileTransformer {
         });
   }
 
+  public ClassFileTransformer removeCode(MethodPredicate predicate) {
+    return addMethodTransformer(
+        new MethodTransformer() {
+          @Override
+          public void visitCode() {
+            if (!MethodPredicate.testContext(predicate, getContext())) {
+              super.visitCode();
+            }
+          }
+
+          @Override
+          public void visitInsn(int opcode) {
+            if (!MethodPredicate.testContext(predicate, getContext())) {
+              super.visitInsn(opcode);
+            }
+          }
+        });
+  }
+
   public ClassFileTransformer transformInvokeDynamicInsnInMethod(
       String methodName, InvokeDynamicInsnTransform transform) {
     return addMethodTransformer(

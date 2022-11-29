@@ -119,7 +119,11 @@ public class MaximallySpecificSingleDominatingAfterJoinTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     runTest(
-        testForR8(parameters.getBackend()).addKeepMainRule(Main.class), AbstractMethodError.class);
+        testForR8(parameters.getBackend()).addKeepMainRule(Main.class),
+        parameters.isDexRuntime() && parameters.getDexRuntimeVersion().isDalvik()
+            ? VerifyError.class
+            // TODO(b/214382176): Extend resolution to support multiple definition results.
+            : AbstractMethodError.class);
   }
 
   private void runTest(
