@@ -233,10 +233,13 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
         specification.getWrappers().keySet().stream()
             .map(DexType::toString)
             .collect(Collectors.toSet());
-    Set<String> customConversionsInSpec =
+    Set<String> customConversionsOnly =
         specification.getCustomConversions().keySet().stream()
             .map(DexType::toString)
             .collect(Collectors.toSet());
+    // Some types are present both as custom conversions and wrappers, so that the custom conversion
+    // can catch some specific cases on top of the wrapper. We are not interested in those.
+    customConversionsOnly.removeAll(wrappersInSpec);
     Set<String> maintainTypeInSet =
         specification.getMaintainType().stream().map(DexType::toString).collect(Collectors.toSet());
     Map<String, boolean[]> genericConversionsInSpec = new HashMap<>();
@@ -251,9 +254,6 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
               genericConversionsInSpec.put(method.toString(), indexes);
             });
 
-    assertEquals(
-        Collections.emptySet(), Sets.intersection(wrappersInSpec, customConversionsInSpec));
-
     CodeInspector nonDesugaredJar = new CodeInspector(ToolHelper.getAndroidJar(targetApi));
     Set<DexEncodedMethod> genericDependencies = new HashSet<>();
     Map<ClassReference, Set<MethodReference>> directWrappers =
@@ -261,7 +261,7 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
             desugaredApiJar,
             preDesugarTypes,
             nonDesugaredJar,
-            customConversionsInSpec,
+            customConversionsOnly,
             maintainTypeInSet,
             genericConversionsInSpec,
             genericDependencies);
@@ -270,7 +270,7 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
             directWrappers,
             preDesugarTypes,
             nonDesugaredJar,
-            customConversionsInSpec,
+            customConversionsOnly,
             maintainTypeInSet,
             specification.getWrappers(),
             genericConversionsInSpec,
