@@ -123,7 +123,13 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
 
   // TODO(b/238179854): Investigate how to fix these.
   private static final Set<String> MISSING_GENERIC_TYPE_CONVERSION_PATH =
-      ImmutableSet.of("java.lang.Iterable java.nio.file.FileSystem.getFileStores()");
+      ImmutableSet.of(
+          "java.lang.Iterable java.nio.file.FileSystem.getFileStores()",
+          // The Acl seems to be unusable on Android anyway.
+          "java.util.Set java.nio.file.attribute.AclEntry.permissions()",
+          "java.util.Set java.nio.file.attribute.AclEntry.flags()",
+          "java.util.List java.nio.file.attribute.AclFileAttributeView.getAcl()",
+          "void java.nio.file.attribute.AclFileAttributeView.setAcl(java.util.List)");
 
   // TODO(b/238179854): Investigate how to fix these.
   private static final Set<String> MISSING_GENERIC_TYPE_CONVERSION_FLOW =
@@ -301,7 +307,10 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
     // java.util.stream.Collector$Characteristics is required for api generic type conversion
     // on JDK8, but that is not supported on legacy specification used for JDK8 and on old
     // R8 compiler versions.
-    int expectedMissingWrappers = libraryDesugaringSpecification == JDK8 ? 1 : 0;
+    int expectedMissingWrappers =
+        libraryDesugaringSpecification == JDK8
+            ? 1
+            : (libraryDesugaringSpecification == JDK11_PATH ? 4 : 0);
 
     {
       Set<String> missingWrappers = getMissingWrappers(indirectWrappers, wrappersInSpec);

@@ -65,7 +65,7 @@ public class DesugarAndroidFileSystemProvider
 
   @Override
   public void createDirectory(Path dir, FileAttribute<?>... attrs) throws IOException {
-    if (!Files.exists(dir.getParent())) {
+    if (dir.getParent() != null && !Files.exists(dir.getParent())) {
       throw new NoSuchFileException(dir.toString());
     }
     super.createDirectory(dir, attrs);
