@@ -12,12 +12,16 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.CopyOption;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.spi.FileSystemProvider;
+import java.util.Map;
 import java.util.Set;
 
 /** Linux implementation of {@link FileSystemProvider} for desugar support. */
@@ -69,6 +73,62 @@ public class DesugarAndroidFileSystemProvider
       throw new NoSuchFileException(dir.toString());
     }
     super.createDirectory(dir, attrs);
+  }
+
+  @Override
+  public <V extends FileAttributeView> V getFileAttributeView(
+      Path path, Class<V> type, LinkOption... options) {
+    if (type == null) {
+      throw new NullPointerException();
+    }
+    if (type == BasicFileAttributeView.class) {
+      return type.cast(new DesugarAndroidBasicFileAttributeView(path));
+    }
+    return null;
+  }
+
+  @Override
+  public Map<String, Object> readAttributes(Path path, String attributes, LinkOption... options)
+      throws IOException {
+    int attributesTypeIndexEnd = attributes.indexOf(":");
+    final Class<? extends BasicFileAttributeView> attributeViewType;
+    final String[] requestedAttributes;
+    if (attributesTypeIndexEnd == -1) {
+      attributeViewType = BasicFileAttributeView.class;
+      requestedAttributes = attributes.split(",");
+    } else {
+      String attributeTypeSpec = attributes.substring(0, attributesTypeIndexEnd);
+      if ("basic".equals(attributeTypeSpec)) {
+        attributeViewType = BasicFileAttributeView.class;
+      } else {
+        throw new UnsupportedOperationException(
+            String.format("Requested attribute type for: %s is not available.", attributeTypeSpec));
+      }
+      requestedAttributes = attributes.substring(attributesTypeIndexEnd + 1).split(",");
+    }
+    if (attributeViewType == BasicFileAttributeView.class) {
+      DesugarBasicFileAttributeView attrView = new DesugarAndroidBasicFileAttributeView(path);
+      return attrView.readAttributes(requestedAttributes);
+    }
+    throw new AssertionError("Unexpected View '" + attributeViewType + "' requested");
+  }
+
+  private boolean exists(Path file) {
+    try {
+      checkAccess(file);
+      return true;
+    } catch (IOException ioe) {
+      return false;
+    }
+  }
+
+  @Override
+  public void delete(Path path) throws IOException {
+    if (exists(path)) {
+      deleteIfExists(path);
+      return;
+    }
+    throw new NoSuchFileException(path.toString());
   }
 
   @Override

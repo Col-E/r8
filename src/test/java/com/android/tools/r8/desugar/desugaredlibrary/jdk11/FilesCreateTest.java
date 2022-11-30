@@ -41,14 +41,7 @@ public class FilesCreateTest extends DesugaredLibraryTestBase {
           "ind3f class java.nio.file.NoSuchFileException :: dir",
           "ind4f class java.nio.file.NoSuchFileException :: dir",
           "ind5f class java.nio.file.NoSuchFileException :: f.txt",
-          "ind6f class java.nio.file.NoSuchFileException :: f.txt",
-          "true",
-          "true",
-          "notExisting1 class java.nio.file.NoSuchFileException :: notExisting1.txt",
-          "false",
-          "false",
-          "readAttributes class java.nio.file.NoSuchFileException :: f1.txt",
-          "readAttributes class java.nio.file.NoSuchFileException :: f1.txt");
+          "ind6f class java.nio.file.NoSuchFileException :: f.txt");
   private static final String EXPECTED_RESULT_DESUGARING =
       StringUtils.lines(
           "ind3f class java.nio.file.NoSuchFileException :: dir",
@@ -56,17 +49,24 @@ public class FilesCreateTest extends DesugaredLibraryTestBase {
           "ind5f class java.io.FileNotFoundException :: f.txt: open failed: ENOENT (No such file or"
               + " directory)",
           "ind6f class java.io.FileNotFoundException :: f.txt: open failed: ENOENT (No such file or"
-              + " directory)",
-          "true",
-          "true",
-          "notExisting1 class java.io.IOException :: notExisting1.txt before deletion.",
-          "false",
-          "true",
-          "1970-01-01T00:00:00Z",
-          "1970-01-01T00:00:00Z");
-  private static final String EXPECTED_FILES =
+              + " directory)");
+  private static final String COMMON_EXPECTATIONS =
       StringUtils.lines(
-          "ind2s/dir", "ind2s", "ind1s/dir", "ind1s", "f4.txt", "f3.txt", "dir2s", "dir1s");
+          "true",
+          "true",
+          "notExisting1 class java.nio.file.NoSuchFileException :: notExisting1.txt",
+          "false",
+          "false",
+          "readAttributes class java.nio.file.NoSuchFileException :: f1.txt",
+          "readAttributes class java.nio.file.NoSuchFileException :: f1.txt",
+          "ind2s/dir",
+          "ind2s",
+          "ind1s/dir",
+          "ind1s",
+          "f4.txt",
+          "f3.txt",
+          "dir2s",
+          "dir1s");
 
   private final TestParameters parameters;
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
@@ -122,12 +122,12 @@ public class FilesCreateTest extends DesugaredLibraryTestBase {
 
   private String getExpectedResult() {
     if (parameters.isCfRuntime()) {
-      return EXPECTED_RESULT + EXPECTED_FILES;
+      return EXPECTED_RESULT + COMMON_EXPECTATIONS;
     }
     return (libraryDesugaringSpecification.usesPlatformFileSystem(parameters)
             ? EXPECTED_RESULT
             : EXPECTED_RESULT_DESUGARING)
-        + EXPECTED_FILES;
+        + COMMON_EXPECTATIONS;
   }
 
   public static class TestClass {

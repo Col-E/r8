@@ -27,17 +27,9 @@ import java.nio.file.LinkOption;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.nio.file.attribute.AclFileAttributeView;
-import java.nio.file.attribute.BasicFileAttributeView;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.DosFileAttributeView;
-import java.nio.file.attribute.DosFileAttributes;
-import java.nio.file.attribute.FileOwnerAttributeView;
 import java.nio.file.attribute.FileTime;
-import java.nio.file.attribute.PosixFileAttributeView;
-import java.nio.file.attribute.PosixFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.UserDefinedFileAttributeView;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -63,15 +55,6 @@ public class FilesTest extends DesugaredLibraryTestBase {
           "String read: Hello World",
           "bytes read: 11",
           "String read: Hello World",
-          "true",
-          "%s",
-          "null",
-          "null",
-          "%s",
-          "null",
-          "true",
-          "%s",
-          "unsupported",
           "tmp",
           "/",
           "true",
@@ -85,17 +68,11 @@ public class FilesTest extends DesugaredLibraryTestBase {
           "%s");
   private static final List<String> EXPECTED_RESULT_POSIX =
       ImmutableList.of(
-          "true",
-          "true",
-          "true",
           "Succeeded with POSIX RO:false",
           "Successfully set RO with POSIX",
           "Succeeded with POSIX RO:true");
   private static final List<String> EXPECTED_RESULT_DESUGARING_NON_POSIX =
       ImmutableList.of(
-          "null",
-          "null",
-          "unsupported",
           "Fail to understand if the file is read-only: class"
               + " java.lang.UnsupportedOperationException",
           "Fail to set file as read-only: class java.lang.UnsupportedOperationException",
@@ -161,8 +138,6 @@ public class FilesTest extends DesugaredLibraryTestBase {
       Path path = Files.createTempFile("example", ".txt");
       readWriteThroughFilesAPI(path);
       readThroughFileChannelAPI(path);
-      attributeViewAccess(path);
-      attributeAccess(path);
       Files.setAttribute(path, "basic:lastModifiedTime", FileTime.from(Instant.EPOCH));
       pathGeneric();
       lines(path);
@@ -254,101 +229,6 @@ public class FilesTest extends DesugaredLibraryTestBase {
     private static void fspMethodsWithGeneric(Path path) throws IOException {
       Map<String, Object> mapping = Files.readAttributes(path, "lastModifiedTime");
       System.out.println(mapping.values().iterator().next().getClass().getPackage().getName());
-    }
-
-    private static void attributeViewAccess(Path path) throws IOException {
-      BasicFileAttributeView basicView =
-          Files.getFileAttributeView(path, BasicFileAttributeView.class);
-      if (basicView != null) {
-        System.out.println(basicView.readAttributes().isRegularFile());
-      } else {
-        System.out.println("null");
-      }
-
-      PosixFileAttributeView posixView =
-          Files.getFileAttributeView(path, PosixFileAttributeView.class);
-      if (posixView != null) {
-        System.out.println(posixView.readAttributes().permissions().contains(OWNER_READ));
-      } else {
-        System.out.println("null");
-      }
-
-      try {
-        DosFileAttributeView dosView = Files.getFileAttributeView(path, DosFileAttributeView.class);
-        if (dosView != null) {
-          System.out.println(dosView.readAttributes().isReadOnly());
-        } else {
-          System.out.println("null");
-        }
-      } catch (UnsupportedOperationException e) {
-        System.out.println("unsupported");
-      }
-
-      try {
-        AclFileAttributeView aclView = Files.getFileAttributeView(path, AclFileAttributeView.class);
-        if (aclView != null) {
-          System.out.println(aclView.getAcl().isEmpty());
-        } else {
-          System.out.println("null");
-        }
-      } catch (UnsupportedOperationException e) {
-        System.out.println("unsupported");
-      }
-
-      try {
-        FileOwnerAttributeView foView =
-            Files.getFileAttributeView(path, FileOwnerAttributeView.class);
-        if (foView != null) {
-          System.out.println(foView.getOwner() != null);
-        } else {
-          System.out.println("null");
-        }
-      } catch (UnsupportedOperationException e) {
-        System.out.println("unsupported");
-      }
-
-      try {
-        UserDefinedFileAttributeView udView =
-            Files.getFileAttributeView(path, UserDefinedFileAttributeView.class);
-        if (udView != null) {
-          System.out.println(udView.name());
-        } else {
-          System.out.println("null");
-        }
-      } catch (UnsupportedOperationException e) {
-        System.out.println("unsupported");
-      }
-    }
-
-    private static void attributeAccess(Path path) throws IOException {
-      BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
-      if (attributes != null) {
-        System.out.println(attributes.isRegularFile());
-      } else {
-        System.out.println("null");
-      }
-
-      try {
-        PosixFileAttributes posixAttributes = Files.readAttributes(path, PosixFileAttributes.class);
-        if (posixAttributes != null) {
-          System.out.println(posixAttributes.permissions().contains(OWNER_READ));
-        } else {
-          System.out.println("null");
-        }
-      } catch (UnsupportedOperationException e) {
-        System.out.println("unsupported");
-      }
-
-      try {
-        DosFileAttributes dosFileAttributes = Files.readAttributes(path, DosFileAttributes.class);
-        if (dosFileAttributes != null) {
-          System.out.println(dosFileAttributes.isReadOnly());
-        } else {
-          System.out.println("null");
-        }
-      } catch (UnsupportedOperationException e) {
-        System.out.println("unsupported");
-      }
     }
 
     private static void lines(Path path) throws IOException {
