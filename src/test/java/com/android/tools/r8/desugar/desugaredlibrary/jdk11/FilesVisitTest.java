@@ -84,7 +84,7 @@ public class FilesVisitTest extends DesugaredLibraryTestBase {
     if (parameters.isCfRuntime() && !ToolHelper.isWindows()) {
       // Reference runtime, we use Jdk 11 since this is Jdk 11 desugared library, not that Jdk 8
       // behaves differently on this test.
-      Assume.assumeTrue(parameters.isCfRuntime(CfVm.JDK11));
+      Assume.assumeTrue(parameters.isCfRuntime(CfVm.JDK11) && !ToolHelper.isWindows());
       testForJvm()
           .addInnerClasses(getClass())
           .run(parameters.getRuntime(), TestClass.class)

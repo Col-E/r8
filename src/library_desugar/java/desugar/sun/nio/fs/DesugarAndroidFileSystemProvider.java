@@ -12,6 +12,7 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.CopyOption;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -60,6 +61,14 @@ public class DesugarAndroidFileSystemProvider
       }
     }
     return false;
+  }
+
+  @Override
+  public void createDirectory(Path dir, FileAttribute<?>... attrs) throws IOException {
+    if (!Files.exists(dir.getParent())) {
+      throw new NoSuchFileException(dir.toString());
+    }
+    super.createDirectory(dir, attrs);
   }
 
   @Override

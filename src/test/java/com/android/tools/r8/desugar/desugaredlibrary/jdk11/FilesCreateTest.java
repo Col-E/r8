@@ -9,6 +9,7 @@ import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugari
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
@@ -19,6 +20,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
@@ -36,28 +38,32 @@ public class FilesCreateTest extends DesugaredLibraryTestBase {
 
   private static final String EXPECTED_RESULT =
       StringUtils.lines(
-          "ind3f class java.nio.file.NoSuchFileException",
-          "ind4f class java.nio.file.NoSuchFileException",
-          "ind5f class java.nio.file.NoSuchFileException",
-          "ind6f class java.nio.file.NoSuchFileException",
+          "ind3f class java.nio.file.NoSuchFileException :: dir",
+          "ind4f class java.nio.file.NoSuchFileException :: dir",
+          "ind5f class java.nio.file.NoSuchFileException :: f.txt",
+          "ind6f class java.nio.file.NoSuchFileException :: f.txt",
           "true",
           "true",
-          "notExisting1class java.nio.file.NoSuchFileException",
+          "notExisting1 class java.nio.file.NoSuchFileException :: notExisting1.txt",
           "false",
-          "false");
+          "false",
+          "readAttributes class java.nio.file.NoSuchFileException :: f1.txt",
+          "readAttributes class java.nio.file.NoSuchFileException :: f1.txt");
   private static final String EXPECTED_RESULT_DESUGARING =
       StringUtils.lines(
-          "ind5f class java.io.FileNotFoundException",
-          "ind6f class java.io.FileNotFoundException",
+          "ind3f class java.nio.file.NoSuchFileException :: dir",
+          "ind4f class java.nio.file.NoSuchFileException :: dir",
+          "ind5f class java.io.FileNotFoundException :: f.txt: open failed: ENOENT (No such file or"
+              + " directory)",
+          "ind6f class java.io.FileNotFoundException :: f.txt: open failed: ENOENT (No such file or"
+              + " directory)",
           "true",
           "true",
-          "notExisting1class java.io.IOException",
+          "notExisting1 class java.io.IOException :: notExisting1.txt before deletion.",
           "false",
           "true",
-          "ind4f/dir",
-          "ind4f",
-          "ind3f/dir",
-          "ind3f");
+          "1970-01-01T00:00:00Z",
+          "1970-01-01T00:00:00Z");
   private static final String EXPECTED_FILES =
       StringUtils.lines(
           "ind2s/dir", "ind2s", "ind1s/dir", "ind1s", "f4.txt", "f3.txt", "dir2s", "dir1s");
@@ -94,7 +100,7 @@ public class FilesCreateTest extends DesugaredLibraryTestBase {
     if (parameters.isCfRuntime()) {
       // Reference runtime, we use Jdk 11 since this is Jdk 11 desugared library, not that Jdk 8
       // behaves differently on this test.
-      Assume.assumeTrue(parameters.isCfRuntime(CfVm.JDK11));
+      Assume.assumeTrue(parameters.isCfRuntime(CfVm.JDK11) && !ToolHelper.isWindows());
       testForJvm()
           .addInnerClasses(getClass())
           .run(parameters.getRuntime(), TestClass.class)
@@ -126,6 +132,12 @@ public class FilesCreateTest extends DesugaredLibraryTestBase {
 
   public static class TestClass {
 
+    private static void printError(Throwable t, String prefix) {
+      String[] split =
+          t.getMessage() == null ? new String[] {"no-message"} : t.getMessage().split("/");
+      System.out.println(prefix + " " + t.getClass() + " :: " + split[split.length - 1]);
+    }
+
     public static void main(String[] args) throws Throwable {
       Path root = Files.createTempDirectory("tmp_test");
       Files.createDirectories(root.resolve("ind1s/dir"));
@@ -133,24 +145,24 @@ public class FilesCreateTest extends DesugaredLibraryTestBase {
       try {
         Files.createDirectory(root.resolve("ind3f/dir"));
       } catch (Throwable t) {
-        System.out.println("ind3f " + t.getClass());
+        printError(t, "ind3f");
       }
       try {
         Files.createDirectory(root.resolve("ind4f/dir"), getFileAttribute());
       } catch (Throwable t) {
-        System.out.println("ind4f " + t.getClass());
+        printError(t, "ind4f");
       }
       Files.createDirectory(root.resolve("dir1s"));
       Files.createDirectory(root.resolve("dir2s"), getFileAttribute());
       try {
         Files.createFile(root.resolve("ind5f/f.txt"));
       } catch (Throwable t) {
-        System.out.println("ind5f " + t.getClass());
+        printError(t, "ind5f");
       }
       try {
         Files.createFile(root.resolve("ind6f/f.txt"), getFileAttribute());
       } catch (Throwable t) {
-        System.out.println("ind6f " + t.getClass());
+        printError(t, "ind6f");
       }
       Files.createFile(root.resolve("f1.txt"));
       Files.createFile(root.resolve("f2.txt"), getFileAttribute());
@@ -162,13 +174,28 @@ public class FilesCreateTest extends DesugaredLibraryTestBase {
       try {
         Files.delete(root.resolve("notExisting1.txt"));
       } catch (Throwable t) {
-        System.out.println("notExisting1" + t.getClass());
+        printError(t, "notExisting1");
       }
       Files.deleteIfExists(root.resolve("f2.txt"));
       Files.deleteIfExists(root.resolve("notExisting2.txt"));
 
       System.out.println(Files.exists(root.resolve("f1.txt")));
       System.out.println(Files.exists(root.resolve("f1.txt"), LinkOption.NOFOLLOW_LINKS));
+      try {
+        System.out.println(
+            Files.readAttributes(root.resolve("f1.txt"), BasicFileAttributes.class)
+                .lastAccessTime());
+      } catch (Throwable t) {
+        printError(t, "readAttributes");
+      }
+      try {
+        System.out.println(
+            Files.readAttributes(
+                    root.resolve("f1.txt"), BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS)
+                .lastAccessTime());
+      } catch (Throwable t) {
+        printError(t, "readAttributes");
+      }
 
       // Recreate for the final print.
       Files.createFile(root.resolve("f3.txt"));
