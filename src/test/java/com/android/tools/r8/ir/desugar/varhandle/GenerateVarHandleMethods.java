@@ -140,6 +140,7 @@ public class GenerateVarHandleMethods extends MethodGenerationBase {
           .setField(
               factory.createField(
                   field.getHolderType(), factory.createType("Lsun/misc/Unsafe;"), field.getName()))
+          .disableAndroidApiLevelCheck()
           .build();
     }
     return field;
@@ -186,7 +187,8 @@ public class GenerateVarHandleMethods extends MethodGenerationBase {
     for (String prefix : ImmutableList.of("get", "set", "compareAndSet")) {
       if (method.getName().startsWith(prefix)) {
         assert method.getName().toString().substring(prefix.length()).equals("Int")
-            || method.getName().toString().substring(prefix.length()).equals("Long");
+            || method.getName().toString().substring(prefix.length()).equals("Long")
+            || method.getName().toString().equals(prefix);
         return methodWithName(method, prefix);
       }
     }
