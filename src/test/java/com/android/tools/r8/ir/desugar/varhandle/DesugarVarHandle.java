@@ -22,7 +22,8 @@ public final class DesugarVarHandle {
   private final Class<?> type;
   private final long offset;
 
-  DesugarVarHandle(Class<?> recv, String name, Class<?> type) throws Exception {
+  DesugarVarHandle(Class<?> recv, String name, Class<?> type)
+      throws NoSuchFieldException, IllegalAccessException {
     Field theUnsafe = UnsafeStub.class.getDeclaredField("theUnsafe");
     theUnsafe.setAccessible(true);
     U = (UnsafeStub) theUnsafe.get(null);

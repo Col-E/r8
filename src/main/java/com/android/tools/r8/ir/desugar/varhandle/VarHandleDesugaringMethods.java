@@ -18,8 +18,10 @@ import com.android.tools.r8.cf.code.CfInstanceFieldWrite;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
+import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
+import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.CfCode;
@@ -218,6 +220,45 @@ public final class VarHandleDesugaringMethods {
                     MethodAccessFlags.fromSharedAccessFlags(
                         Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
                 .setCode(DesugarVarHandle_compareAndSetLong(factory, compareAndSetLong))
+                .disableAndroidApiLevelCheck()
+                .build()));
+  }
+
+  public static void generateDesugarMethodHandlesLookupClass(
+      SyntheticProgramClassBuilder builder, DexItemFactory factory) {
+    builder.setInstanceFields(ImmutableList.of());
+    DexMethod findVarHandle =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.createType(factory.createString("Lcom/android/tools/r8/DesugarVarHandle;")),
+                factory.createType(factory.createString("Ljava/lang/Class;")),
+                factory.createType(factory.createString("Ljava/lang/String;")),
+                factory.createType(factory.createString("Ljava/lang/Class;"))),
+            factory.createString("findVarHandle"));
+    DexMethod constructor_0 =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(factory.voidType),
+            factory.createString("<init>"));
+    builder.setDirectMethods(
+        ImmutableList.of(
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(constructor_0)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, true))
+                .setCode(DesugarMethodHandlesLookup_constructor_0(factory, constructor_0))
+                .disableAndroidApiLevelCheck()
+                .build()));
+    builder.setVirtualMethods(
+        ImmutableList.of(
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(findVarHandle)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarMethodHandlesLookup_findVarHandle(factory, findVarHandle))
                 .disableAndroidApiLevelCheck()
                 .build()));
   }
@@ -469,6 +510,59 @@ public final class VarHandleDesugaringMethods {
         0,
         4,
         ImmutableList.of(label0, new CfReturnVoid(), label1),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode DesugarMethodHandlesLookup_constructor_0(
+      DexItemFactory factory, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        1,
+        1,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                183,
+                factory.createMethod(
+                    factory.objectType,
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
+                false),
+            new CfReturnVoid(),
+            label1),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode DesugarMethodHandlesLookup_findVarHandle(
+      DexItemFactory factory, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        5,
+        4,
+        ImmutableList.of(
+            label0,
+            new CfNew(factory.createType("Lcom/android/tools/r8/DesugarVarHandle;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfLoad(ValueType.OBJECT, 1),
+            new CfLoad(ValueType.OBJECT, 2),
+            new CfLoad(ValueType.OBJECT, 3),
+            new CfInvoke(
+                183,
+                factory.createMethod(
+                    factory.createType("Lcom/android/tools/r8/DesugarVarHandle;"),
+                    factory.createProto(
+                        factory.voidType, factory.classType, factory.stringType, factory.classType),
+                    factory.createString("<init>")),
+                false),
+            new CfReturn(ValueType.OBJECT),
+            label1),
         ImmutableList.of(),
         ImmutableList.of());
   }

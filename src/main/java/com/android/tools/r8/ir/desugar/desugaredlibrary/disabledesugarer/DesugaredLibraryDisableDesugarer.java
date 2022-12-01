@@ -62,6 +62,7 @@ public class DesugaredLibraryDisableDesugarer implements CfInstructionDesugaring
     return rewriteInstruction(instruction, context) != null;
   }
 
+  // TODO(b/261024278): Share this code.
   private CfInstruction rewriteInstruction(CfInstruction instruction, ProgramMethod context) {
     if (!appView.dexItemFactory().multiDexTypes.contains(context.getHolderType())) {
       return null;
