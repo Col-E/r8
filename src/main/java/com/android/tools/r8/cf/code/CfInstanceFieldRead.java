@@ -47,6 +47,7 @@ public class CfInstanceFieldRead extends CfFieldInstruction implements CfOrDexIn
     return true;
   }
 
+  @Override
   public CfInstanceFieldRead asInstanceFieldGet() {
     return this;
   }
