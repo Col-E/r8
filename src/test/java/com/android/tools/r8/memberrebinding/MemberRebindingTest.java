@@ -165,13 +165,10 @@ public class MemberRebindingTest {
     assertTrue(iterator.next().holder().is("java.util.AbstractList"));
     assertTrue(iterator.next().holder().is("memberrebinding.subpackage.PublicClassInTheMiddle"));
     assertTrue(iterator.next().holder().is("memberrebinding.subpackage.PublicClassInTheMiddle"));
-    // For the next three - test that we do not rebind but keep the static holder.
-    assertTrue(
-        iterator.next().holder().is("memberrebinding.SuperClassOfClassExtendsOtherLibraryClass"));
-    assertTrue(
-        iterator.next().holder().is("memberrebinding.SuperClassOfClassExtendsOtherLibraryClass"));
-    assertTrue(
-        iterator.next().holder().is("memberrebinding.SuperClassOfClassExtendsOtherLibraryClass"));
+    // For the next three - test that we re-bind to the lowest library class.
+    assertTrue(iterator.next().holder().is("memberrebindinglib.SubClass"));
+    assertTrue(iterator.next().holder().is("memberrebindinglib.SubClass"));
+    assertTrue(iterator.next().holder().is("memberrebindinglib.SubClass"));
     // The next one is already precise.
     assertTrue(
         iterator.next().holder().is("memberrebinding.SuperClassOfClassExtendsOtherLibraryClass"));
@@ -180,10 +177,8 @@ public class MemberRebindingTest {
     assertTrue(iterator.next().holder().is("memberrebindinglib.AnIndependentInterface"));
     // Some dispatches on classes.
     assertTrue(iterator.next().holder().is("java.lang.System"));
-    assertTrue(
-        iterator.next().holder().is("memberrebinding.SuperClassOfClassExtendsOtherLibraryClass"));
-    assertTrue(
-        iterator.next().holder().is("memberrebinding.SuperClassOfClassExtendsOtherLibraryClass"));
+    assertTrue(iterator.next().holder().is("memberrebindinglib.SubClass"));
+    assertTrue(iterator.next().holder().is("memberrebindinglib.ImplementedInProgramClass"));
     assertFalse(iterator.hasNext());
   }
 

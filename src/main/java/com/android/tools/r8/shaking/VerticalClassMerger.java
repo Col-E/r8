@@ -52,7 +52,6 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
-import com.android.tools.r8.graph.MemberRebindingBridgeCode;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
@@ -803,20 +802,6 @@ public class VerticalClassMerger {
               graphLens.getOriginalMethodSignature(implementationMethod);
           assert originalMethod == originalImplementationMethod;
           assert implementationMethod == renamedMethod;
-        } else if (encodedMethod.hasCode()
-            && encodedMethod.getCode().isMemberRebindingBridgeCode()
-            && renamedMethod != originalMethod) {
-          MemberRebindingBridgeCode memberRebindingBridgeCode =
-              encodedMethod.getCode().asMemberRebindingBridgeCode();
-          DexEncodedMethod resolvedMethod =
-              appView
-                  .appInfo()
-                  .resolveMethodOn(
-                      originalMethod.getHolderType(),
-                      originalMethod,
-                      memberRebindingBridgeCode.getInterface())
-                  .getResolvedMethod();
-          assert resolvedMethod.getReference() == memberRebindingBridgeCode.getTarget();
         } else {
           assert method == renamedMethod;
         }
@@ -872,8 +857,8 @@ public class VerticalClassMerger {
                 .resolveMethodOnInterfaceLegacy(method.getHolderType(), method.getReference())
                 .lookupVirtualDispatchTargets(target, appInfo)
                 .asLookupResultSuccess();
+        assert lookupResult != null;
         if (lookupResult == null) {
-          assert false;
           return true;
         }
         if (lookupResult.contains(method)) {
@@ -1560,29 +1545,19 @@ public class VerticalClassMerger {
       assert invocationTarget.isStatic()
           || invocationTarget.isNonPrivateVirtualMethod()
           || invocationTarget.isNonStaticPrivateMethod();
+      SynthesizedBridgeCode code =
+          new SynthesizedBridgeCode(
+              newMethod,
+              appView.graphLens().getOriginalMethodSignature(method.getReference()),
+              invocationTarget.getReference(),
+              invocationTarget.isStatic()
+                  ? STATIC
+                  : (invocationTarget.isNonPrivateVirtualMethod() ? VIRTUAL : DIRECT),
+              target.isInterface());
 
-      Code code;
-      if (invocationTarget.getCode().isMemberRebindingBridgeCode()) {
-        // Duplicate the code object, it should never be emitted anyway. The bridge is also
-        // inserted for signatures defined in the library and these are not subject to be rewritten
-        // after.
-        code = invocationTarget.getCode();
-      } else {
-        SynthesizedBridgeCode bridgeCode =
-            new SynthesizedBridgeCode(
-                newMethod,
-                appView.graphLens().getOriginalMethodSignature(method.getReference()),
-                invocationTarget.getReference(),
-                invocationTarget.isStatic()
-                    ? STATIC
-                    : (invocationTarget.isNonPrivateVirtualMethod() ? VIRTUAL : DIRECT),
-                target.isInterface());
-
-        // Add the bridge to the list of synthesized bridges such that the method signatures will
-        // be updated by the end of vertical class merging.
-        synthesizedBridges.add(bridgeCode);
-        code = bridgeCode;
-      }
+      // Add the bridge to the list of synthesized bridges such that the method signatures will
+      // be updated by the end of vertical class merging.
+      synthesizedBridges.add(code);
 
       CfVersion classFileVersion =
           method.hasClassFileVersion() ? method.getClassFileVersion() : null;
@@ -2023,10 +1998,6 @@ public class VerticalClassMerger {
     return AbortReason.UNSAFE_INLINING;
   }
 
-  public Collection<DexType> getRemovedClasses() {
-    return Collections.unmodifiableCollection(mergedClasses.keySet());
-  }
-
   public class SingleTypeMapperGraphLens extends NonIdentityGraphLens {
 
     private final DexType source;
@@ -2440,5 +2411,9 @@ public class VerticalClassMerger {
         }
       };
     }
+  }
+
+  public Collection<DexType> getRemovedClasses() {
+    return Collections.unmodifiableCollection(mergedClasses.keySet());
   }
 }

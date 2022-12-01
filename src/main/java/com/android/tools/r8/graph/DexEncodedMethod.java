@@ -365,10 +365,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     this.isLibraryMethodOverride = isLibraryMethodOverride;
   }
 
-  public void clearLibraryOverride() {
-    isLibraryMethodOverride = OptionalBool.UNKNOWN;
-  }
-
   public boolean isProgramMethod(DexDefinitionSupplier definitions) {
     if (getReference().holder.isClassType()) {
       DexClass clazz = definitions.definitionFor(getReference().holder);

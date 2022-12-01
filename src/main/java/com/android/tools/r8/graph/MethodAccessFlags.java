@@ -7,7 +7,6 @@ import com.android.tools.r8.dex.Constants;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
-import java.util.function.Consumer;
 
 public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
 
@@ -265,17 +264,17 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
 
     public Builder set(int flag) {
       flags.set(flag);
-      return self();
+      return this;
     }
 
     public Builder setBridge() {
       flags.setBridge();
-      return self();
+      return this;
     }
 
     public Builder setConstructor() {
       flags.setConstructor();
-      return self();
+      return this;
     }
 
     public Builder setStrict(boolean value) {
@@ -284,7 +283,7 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
       } else {
         flags.unsetStrict();
       }
-      return self();
+      return this;
     }
 
     public Builder setSynchronized(boolean value) {
@@ -293,23 +292,7 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
       } else {
         flags.unsetSynchronized();
       }
-      return self();
-    }
-
-    public Builder setAbstract(boolean value) {
-      if (value) {
-        flags.setAbstract();
-      } else {
-        flags.unsetAbstract();
-      }
-      return self();
-    }
-
-    public Builder applyIf(boolean condition, Consumer<Builder> consumer) {
-      if (condition) {
-        consumer.accept(self());
-      }
-      return self();
+      return this;
     }
 
     @Override

@@ -208,7 +208,9 @@ public class DesugaredLibraryConversionCfProvider {
             .generateCfCode();
     DexEncodedMethod newMethod = wrapperSynthesizer.newSynthesizedMethod(methodToInstall, cfCode);
     newMethod.setCode(cfCode, DexEncodedMethod.NO_PARAMETER_INFO);
-    newMethod.setLibraryMethodOverride(OptionalBool.TRUE);
+    if (method.getDefinition().isLibraryMethodOverride().isTrue()) {
+      newMethod.setLibraryMethodOverride(OptionalBool.TRUE);
+    }
     ProgramMethod callback = new ProgramMethod(clazz, newMethod);
     assert eventConsumer != null;
     eventConsumer.acceptAPIConversionCallback(callback);

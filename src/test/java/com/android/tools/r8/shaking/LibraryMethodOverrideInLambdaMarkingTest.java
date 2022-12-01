@@ -4,8 +4,7 @@
 
 package com.android.tools.r8.shaking;
 
-import static com.android.tools.r8.CollectorsUtils.toSingle;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
@@ -16,7 +15,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.Enqueuer.Mode;
-import com.android.tools.r8.utils.OptionalBool;
 import java.util.Iterator;
 import java.util.Spliterator;
 import java.util.function.Consumer;
@@ -54,29 +52,21 @@ public class LibraryMethodOverrideInLambdaMarkingTest extends TestBase {
   private void verifyLibraryOverrideInformation(AppInfoWithLiveness appInfo, Mode mode) {
     DexItemFactory dexItemFactory = appInfo.dexItemFactory();
     verifyIteratorMethodMarkedAsOverridingLibraryMethod(
-        appInfo, dexItemFactory.createType(descriptor(I.class)), OptionalBool.FALSE);
+        appInfo, dexItemFactory.createType(descriptor(I.class)));
     verifyIteratorMethodMarkedAsOverridingLibraryMethod(
-        appInfo, dexItemFactory.createType(descriptor(J.class)), OptionalBool.FALSE);
-    if (parameters.isDexRuntime()) {
-      DexProgramClass lambda =
-          appInfo.classes().stream()
-              .filter(x -> x.toSourceString().contains("$InternalSyntheticLambda"))
-              .collect(toSingle());
-      verifyIteratorMethodMarkedAsOverridingLibraryMethod(
-          appInfo, lambda.getType(), OptionalBool.TRUE);
-    }
+        appInfo, dexItemFactory.createType(descriptor(J.class)));
   }
 
   private void verifyIteratorMethodMarkedAsOverridingLibraryMethod(
-      AppInfoWithLiveness appInfo, DexType type, OptionalBool expected) {
+      AppInfoWithLiveness appInfo, DexType type) {
     DexProgramClass clazz = appInfo.definitionFor(type).asProgramClass();
     DexEncodedMethod method =
         clazz.lookupVirtualMethod(m -> m.getReference().name.toString().equals("iterator"));
     // TODO(b/149976493): Mark library overrides from lambda instances.
     if (parameters.isCfRuntime()) {
-      assertEquals(OptionalBool.FALSE, method.isLibraryMethodOverride());
+      assertTrue(method.isLibraryMethodOverride().isFalse());
     } else {
-      assertEquals(expected, method.isLibraryMethodOverride());
+      assertTrue(method.isLibraryMethodOverride().isTrue());
     }
   }
 

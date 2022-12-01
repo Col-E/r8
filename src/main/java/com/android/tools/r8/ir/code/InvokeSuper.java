@@ -140,28 +140,4 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
   void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
     registry.registerInvokeSuper(getInvokedMethod());
   }
-
-  public static Builder builder() {
-    return new Builder();
-  }
-
-  public static class Builder extends InvokeMethod.Builder<InvokeSuper.Builder, InvokeSuper> {
-
-    private boolean isInterface;
-
-    @Override
-    public InvokeSuper build() {
-      return amend(new InvokeSuper(method, outValue, arguments, isInterface));
-    }
-
-    public Builder setInterface(boolean isInterface) {
-      this.isInterface = isInterface;
-      return self();
-    }
-
-    @Override
-    public Builder self() {
-      return this;
-    }
-  }
 }

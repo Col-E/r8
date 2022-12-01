@@ -152,12 +152,10 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
       String holder =
           libraryDesugaringSpecification.hasTimeDesugaring(parameters)
               ? "j$.time.temporal.TemporalAccessor"
-              : "com.android.tools.r8.desugar.desugaredlibrary.JavaTimeTest$TemporalAccessorImpl";
-      ClassSubject temporalAccessor = inspector.clazz(holder);
-      assertThat(temporalAccessor, isPresent());
+              : "java.time.temporal.TemporalAccessor";
       assertThat(
           inspector.clazz(TemporalAccessorImplSub.class).uniqueMethodWithFinalName("query"),
-          CodeMatchers.invokesMethod(null, temporalAccessor.getFinalName(), "query", null));
+          CodeMatchers.invokesMethod(null, holder, "query", null));
     } else {
       if (!parameters
               .getApiLevel()

@@ -73,10 +73,6 @@ public abstract class Code extends CachedHashValueDexItem {
 
   public abstract String toString(DexEncodedMethod method, RetracerForCodePrinting retracer);
 
-  public boolean passThroughDesugarAndIRConversion() {
-    return false;
-  }
-
   public boolean isCfCode() {
     return false;
   }
@@ -127,14 +123,6 @@ public abstract class Code extends CachedHashValueDexItem {
 
   public boolean isThrowExceptionCode() {
     return false;
-  }
-
-  public boolean isMemberRebindingBridgeCode() {
-    return false;
-  }
-
-  public MemberRebindingBridgeCode asMemberRebindingBridgeCode() {
-    return null;
   }
 
   public ThrowNullCode asThrowNullCode() {

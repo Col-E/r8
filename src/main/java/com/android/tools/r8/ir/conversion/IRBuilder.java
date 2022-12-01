@@ -114,7 +114,6 @@ import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Ushr;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.code.ValueFactory;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.ValueTypeConstraint;
 import com.android.tools.r8.ir.code.Xor;
@@ -153,7 +152,7 @@ import java.util.function.BiConsumer;
  * Efficient Construction of Static Single Assignment Form" available at
  * http://compilers.cs.uni-saarland.de/papers/bbhlmz13cc.pdf
  */
-public class IRBuilder implements ValueFactory {
+public class IRBuilder {
 
   public static final int INITIAL_BLOCK_OFFSET = -1;
 
@@ -180,11 +179,6 @@ public class IRBuilder implements ValueFactory {
       default:
         throw new Unreachable("Unexpected member type: " + type);
     }
-  }
-
-  @Override
-  public Value createValue(TypeElement type, DebugLocalInfo localInfo) {
-    return new Value(valueNumberGenerator.next(), type, localInfo);
   }
 
   // SSA construction uses a worklist of basic blocks reachable from the entry and their
@@ -1836,7 +1830,7 @@ public class IRBuilder implements ValueFactory {
     addReturn(new Return());
   }
 
-  public void addReturn(Return ret) {
+  private void addReturn(Return ret) {
     // Attach the live locals to the return instruction to avoid a local change on monitor exit.
     attachLocalValues(ret);
     source.buildPostlude(this);
