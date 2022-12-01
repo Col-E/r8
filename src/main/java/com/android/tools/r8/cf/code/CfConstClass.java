@@ -98,16 +98,6 @@ public class CfConstClass extends CfInstruction implements CfTypeInstruction {
   }
 
   @Override
-  public CfConstClass asConstClass() {
-    return this;
-  }
-
-  @Override
-  public boolean isConstClass() {
-    return true;
-  }
-
-  @Override
   public void write(
       AppView<?> appView,
       ProgramMethod context,

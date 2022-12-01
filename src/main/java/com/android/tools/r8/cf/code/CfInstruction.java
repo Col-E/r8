@@ -182,14 +182,6 @@ public abstract class CfInstruction implements CfOrDexInstruction {
     return false;
   }
 
-  public CfConstClass asConstClass() {
-    return null;
-  }
-
-  public boolean isConstClass() {
-    return false;
-  }
-
   public CfConstString asConstString() {
     return null;
   }
