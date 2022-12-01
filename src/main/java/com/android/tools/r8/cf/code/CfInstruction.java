@@ -174,6 +174,22 @@ public abstract class CfInstruction implements CfOrDexInstruction {
     return false;
   }
 
+  public CfNew asNew() {
+    return null;
+  }
+
+  public boolean isNew() {
+    return false;
+  }
+
+  public CfConstClass asConstClass() {
+    return null;
+  }
+
+  public boolean isConstClass() {
+    return false;
+  }
+
   public CfConstString asConstString() {
     return null;
   }
@@ -204,6 +220,10 @@ public abstract class CfInstruction implements CfOrDexInstruction {
 
   public boolean isInstanceFieldGet() {
     return false;
+  }
+
+  public CfInstanceFieldRead asInstanceFieldGet() {
+    return null;
   }
 
   public boolean isStaticFieldGet() {

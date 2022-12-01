@@ -56,6 +56,16 @@ public class CfNew extends CfInstruction implements CfTypeInstruction {
   }
 
   @Override
+  public CfNew asNew() {
+    return this;
+  }
+
+  @Override
+  public boolean isNew() {
+    return true;
+  }
+
+  @Override
   public CfTypeInstruction asTypeInstruction() {
     return this;
   }
