@@ -353,7 +353,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     return new Builder(false);
   }
 
-  private static Builder builder(DexEncodedField from) {
+  public static Builder builder(DexEncodedField from) {
     return new Builder(from.isD8R8Synthesized(), from);
   }
 

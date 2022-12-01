@@ -75,6 +75,9 @@ public class DexItemFactory {
   public static final String dalvikAnnotationSignatureString = "Ldalvik/annotation/Signature;";
   public static final String recordTagDescriptorString = "Lcom/android/tools/r8/RecordTag;";
   public static final String recordDescriptorString = "Ljava/lang/Record;";
+  public static final String desugarVarHandleDescriptorString =
+      "Lcom/android/tools/r8/DesugarVarHandle;";
+  public static final String varHandleDescriptorString = "Ljava/lang/invoke/VarHandle;";
   public static final String dalvikAnnotationOptimizationPrefixString =
       "Ldalvik/annotation/optimization/";
 
@@ -266,7 +269,7 @@ public class DexItemFactory {
   public final DexString stringBuilderDescriptor = createString("Ljava/lang/StringBuilder;");
   public final DexString stringBufferDescriptor = createString("Ljava/lang/StringBuffer;");
 
-  public final DexString varHandleDescriptor = createString("Ljava/lang/invoke/VarHandle;");
+  public final DexString varHandleDescriptor = createString(varHandleDescriptorString);
   public final DexString methodHandleDescriptor = createString("Ljava/lang/invoke/MethodHandle;");
   public final DexString methodTypeDescriptor = createString("Ljava/lang/invoke/MethodType;");
   public final DexString invocationHandlerDescriptor =
@@ -738,6 +741,8 @@ public class DexItemFactory {
   public final DexType stringConcatFactoryType =
       createStaticallyKnownType("Ljava/lang/invoke/StringConcatFactory;");
   public final DexType unsafeType = createStaticallyKnownType("Lsun/misc/Unsafe;");
+  public final DexType desugarVarHandleType =
+      createStaticallyKnownType(desugarVarHandleDescriptorString);
 
   public final ObjectMethodsMembers objectMethodsMembers = new ObjectMethodsMembers();
   public final ServiceLoaderMethods serviceLoaderMethods = new ServiceLoaderMethods();

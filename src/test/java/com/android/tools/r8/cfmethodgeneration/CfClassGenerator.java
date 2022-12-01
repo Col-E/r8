@@ -363,7 +363,7 @@ public abstract class CfClassGenerator extends CodeGenerationBase {
       codePrinter.visitMethod(generatedMethodName, method.getCode().asCfCode());
       index++;
     }
-    codePrinter.getImports().forEach(imports::addImport);
+    codePrinter.getImportsSorted().forEach(imports::addImport);
     return createCfCodeMethodNames;
   }
 

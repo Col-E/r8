@@ -100,7 +100,11 @@ public class CfCodePrinter extends CfPrinter {
 
   public CfCodePrinter() {}
 
-  public List<String> getImports() {
+  public Set<String> getImports() {
+    return imports;
+  }
+
+  public List<String> getImportsSorted() {
     ArrayList<String> sorted = new ArrayList<>(imports);
     sorted.sort(String::compareTo);
     return sorted;
