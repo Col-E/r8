@@ -2174,8 +2174,6 @@ public class CodeRewriter {
       // optimization so that we do not transform half-initialized arrays into fully initialized
       // arrays on exceptional edges. If the block has no handlers it is not observable so
       // we perform the rewriting.
-      // TODO(b/246971330): Allow simplification when all users of the array are in the same
-      //   try/catch.
       if (block.hasCatchHandlers() && instruction.instructionInstanceCanThrow()) {
         return null;
       }
@@ -2280,8 +2278,7 @@ public class CodeRewriter {
     }
     DexType arrayType = newArrayEmpty.type;
     boolean encodeAsFilledNewArray = canUseFilledNewArray(arrayType, size, options);
-    if (!encodeAsFilledNewArray
-        && !canUseFilledArrayData(arrayType, size, instruction.getBlock(), options)) {
+    if (!encodeAsFilledNewArray && !canUseFilledArrayData(arrayType, size, options)) {
       return null;
     }
     return new FilledArrayCandidate(newArrayEmpty, size, encodeAsFilledNewArray);
@@ -2316,23 +2313,13 @@ public class CodeRewriter {
     return false;
   }
 
-  private boolean canUseFilledArrayData(
-      DexType arrayType, int size, BasicBlock block, RewriteArrayOptions options) {
+  private boolean canUseFilledArrayData(DexType arrayType, int size, RewriteArrayOptions options) {
     // If there is only one element it is typically smaller to generate the array put
     // instruction instead of fill array data.
     if (size < options.minSizeForFilledArrayData || size > options.maxSizeForFilledArrayData) {
       return false;
     }
-    if (!arrayType.isPrimitiveArrayType()) {
-      return false;
-    }
-    // NewArrayFilledData can throw, so creating one as done below would add a second
-    // throwing instruction to the same block (the first one being NewArrayEmpty).
-    // TODO(b/246971330): Support splitting the block when inserting the additional instruction.
-    if (block.hasCatchHandlers()) {
-      return false;
-    }
-    return true;
+    return arrayType.isPrimitiveArrayType();
   }
 
   /**
@@ -2394,15 +2381,16 @@ public class CodeRewriter {
     WorkList<BasicBlock> worklist = WorkList.newIdentityWorkList(code.blocks);
     while (worklist.hasNext()) {
       BasicBlock block = worklist.next();
-      simplifyArrayConstructionBlock(block, worklist, code, options.rewriteArrayOptions());
+      simplifyArrayConstructionBlock(block, worklist, code, options);
     }
   }
 
   private void simplifyArrayConstructionBlock(
-      BasicBlock block, WorkList<BasicBlock> worklist, IRCode code, RewriteArrayOptions options) {
+      BasicBlock block, WorkList<BasicBlock> worklist, IRCode code, InternalOptions options) {
+    RewriteArrayOptions rewriteOptions = options.rewriteArrayOptions();
     InstructionListIterator it = block.listIterator(code);
     while (it.hasNext()) {
-      FilledArrayCandidate candidate = computeFilledArrayCandiate(it.next(), options);
+      FilledArrayCandidate candidate = computeFilledArrayCandiate(it.next(), rewriteOptions);
       if (candidate == null) {
         continue;
       }
@@ -2431,7 +2419,7 @@ public class CodeRewriter {
         newArrayEmpty.outValue().replaceUsers(invokeValue);
         instructionsToRemove.add(newArrayEmpty);
 
-        boolean originalAllocationPointHasHandlers = newArrayEmpty.getBlock().hasCatchHandlers();
+        boolean originalAllocationPointHasHandlers = block.hasCatchHandlers();
         boolean insertionPointHasHandlers = lastArrayPut.getBlock().hasCatchHandlers();
 
         if (!insertionPointHasHandlers && !originalAllocationPointHasHandlers) {
@@ -2462,7 +2450,11 @@ public class CodeRewriter {
         NewArrayFilledData fillArray =
             new NewArrayFilledData(newArrayEmpty.outValue(), elementSize, size, contents);
         fillArray.setPosition(newArrayEmpty.getPosition());
-        it.add(fillArray);
+        BasicBlock newBlock =
+            it.addThrowingInstructionToPossiblyThrowingBlock(code, null, fillArray, options);
+        if (newBlock != null) {
+          worklist.addIfNotSeen(newBlock);
+        }
       }
 
       instructionsToRemove.addAll(info.arrayPutsToRemove);

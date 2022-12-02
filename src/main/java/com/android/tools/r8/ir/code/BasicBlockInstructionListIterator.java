@@ -129,7 +129,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   }
 
   @Override
-  public void addThrowingInstructionToPossiblyThrowingBlock(
+  public BasicBlock addThrowingInstructionToPossiblyThrowingBlock(
       IRCode code,
       ListIterator<BasicBlock> blockIterator,
       Instruction instruction,
@@ -140,11 +140,15 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       assert !block.hasCatchHandlers();
       assert splitBlock.hasCatchHandlers();
       block.copyCatchHandlers(code, blockIterator, splitBlock, options);
-      while (IteratorUtils.peekPrevious(blockIterator) != splitBlock) {
-        blockIterator.previous();
+      if (blockIterator != null) {
+        while (IteratorUtils.peekPrevious(blockIterator) != splitBlock) {
+          blockIterator.previous();
+        }
       }
+      return splitBlock;
     } else {
       add(instruction);
+      return null;
     }
   }
 

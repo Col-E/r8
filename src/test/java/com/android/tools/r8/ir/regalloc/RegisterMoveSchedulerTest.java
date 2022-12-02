@@ -191,7 +191,7 @@ public class RegisterMoveSchedulerTest {
     }
 
     @Override
-    public void addThrowingInstructionToPossiblyThrowingBlock(
+    public BasicBlock addThrowingInstructionToPossiblyThrowingBlock(
         IRCode code,
         ListIterator<BasicBlock> blockIterator,
         Instruction instruction,

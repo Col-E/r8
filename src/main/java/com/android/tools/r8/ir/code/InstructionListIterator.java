@@ -26,7 +26,7 @@ import java.util.function.UnaryOperator;
 public interface InstructionListIterator
     extends InstructionIterator, ListIterator<Instruction>, PreviousUntilIterator<Instruction> {
 
-  void addThrowingInstructionToPossiblyThrowingBlock(
+  BasicBlock addThrowingInstructionToPossiblyThrowingBlock(
       IRCode code,
       ListIterator<BasicBlock> blockIterator,
       Instruction instruction,

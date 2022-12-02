@@ -1921,8 +1921,11 @@ public class BasicBlock {
       newBlock.getMutableSuccessors().add(this);
       newBlock.getMutablePredecessors().add(predecessor);
       predecessor.replaceSuccessor(this, newBlock);
-      blockIterator.add(newBlock);
-      assert newBlock.getNumber() >= 0 : "Number must be assigned by `onNewBlock`";
+      if (blockIterator == null) {
+        code.blocks.add(newBlock);
+      } else {
+        blockIterator.add(newBlock);
+      }
     }
     // Replace the blocks predecessors with the new ones.
     predecessors.clear();

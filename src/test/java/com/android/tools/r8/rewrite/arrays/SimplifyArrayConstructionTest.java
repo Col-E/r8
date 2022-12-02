@@ -201,6 +201,7 @@ public class SimplifyArrayConstructionTest extends TestBase {
     assertArrayTypes(arraysThatUseNewArrayEmpty, DexNewArray.class);
     assertArrayTypes(intsThatUseFilledNewArray, DexFilledNewArray.class);
     assertFilledArrayData(arraysThatUseFilledData);
+    assertFilledArrayData(catchHandlerNonThrowingFillArrayData);
 
     if (compilationMode == CompilationMode.DEBUG) {
       // The explicit assignments can't be collapsed without breaking the debugger's ability to
@@ -256,7 +257,6 @@ public class SimplifyArrayConstructionTest extends TestBase {
     assertArrayTypes(arrayWithCorrectCountButIncompleteCoverage, DexNewArray.class);
 
     assertArrayTypes(catchHandlerThrowing, DexNewArray.class);
-    assertArrayTypes(catchHandlerNonThrowingFillArrayData, DexNewArray.class);
     assertArrayTypes(catchHandlerNonThrowingFilledNewArray, DexFilledNewArray.class);
   }
 
