@@ -263,6 +263,59 @@ public final class VarHandleDesugaringMethods {
                 .build()));
   }
 
+  public static CfCode DesugarMethodHandlesLookup_constructor_0(
+      DexItemFactory factory, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        1,
+        1,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                183,
+                factory.createMethod(
+                    factory.objectType,
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
+                false),
+            new CfReturnVoid(),
+            label1),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode DesugarMethodHandlesLookup_findVarHandle(
+      DexItemFactory factory, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        5,
+        4,
+        ImmutableList.of(
+            label0,
+            new CfNew(factory.createType("Lcom/android/tools/r8/DesugarVarHandle;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfLoad(ValueType.OBJECT, 1),
+            new CfLoad(ValueType.OBJECT, 2),
+            new CfLoad(ValueType.OBJECT, 3),
+            new CfInvoke(
+                183,
+                factory.createMethod(
+                    factory.createType("Lcom/android/tools/r8/DesugarVarHandle;"),
+                    factory.createProto(
+                        factory.voidType, factory.classType, factory.stringType, factory.classType),
+                    factory.createString("<init>")),
+                false),
+            new CfReturn(ValueType.OBJECT),
+            label1),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
   public static CfCode DesugarVarHandle_constructor_3(DexItemFactory factory, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
@@ -510,59 +563,6 @@ public final class VarHandleDesugaringMethods {
         0,
         4,
         ImmutableList.of(label0, new CfReturnVoid(), label1),
-        ImmutableList.of(),
-        ImmutableList.of());
-  }
-
-  public static CfCode DesugarMethodHandlesLookup_constructor_0(
-      DexItemFactory factory, DexMethod method) {
-    CfLabel label0 = new CfLabel();
-    CfLabel label1 = new CfLabel();
-    return new CfCode(
-        method.holder,
-        1,
-        1,
-        ImmutableList.of(
-            label0,
-            new CfLoad(ValueType.OBJECT, 0),
-            new CfInvoke(
-                183,
-                factory.createMethod(
-                    factory.objectType,
-                    factory.createProto(factory.voidType),
-                    factory.createString("<init>")),
-                false),
-            new CfReturnVoid(),
-            label1),
-        ImmutableList.of(),
-        ImmutableList.of());
-  }
-
-  public static CfCode DesugarMethodHandlesLookup_findVarHandle(
-      DexItemFactory factory, DexMethod method) {
-    CfLabel label0 = new CfLabel();
-    CfLabel label1 = new CfLabel();
-    return new CfCode(
-        method.holder,
-        5,
-        4,
-        ImmutableList.of(
-            label0,
-            new CfNew(factory.createType("Lcom/android/tools/r8/DesugarVarHandle;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.OBJECT, 2),
-            new CfLoad(ValueType.OBJECT, 3),
-            new CfInvoke(
-                183,
-                factory.createMethod(
-                    factory.createType("Lcom/android/tools/r8/DesugarVarHandle;"),
-                    factory.createProto(
-                        factory.voidType, factory.classType, factory.stringType, factory.classType),
-                    factory.createString("<init>")),
-                false),
-            new CfReturn(ValueType.OBJECT),
-            label1),
         ImmutableList.of(),
         ImmutableList.of());
   }

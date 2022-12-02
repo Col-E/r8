@@ -41,7 +41,7 @@ public class GenerateVarHandleMethods extends MethodGenerationBase {
   private final DexType GENERATED_TYPE =
       factory.createType("Lcom/android/tools/r8/ir/desugar/varhandle/VarHandleDesugaringMethods;");
   private final List<Class<?>> METHOD_TEMPLATE_CLASSES =
-      ImmutableList.of(DesugarVarHandle.class, DesugarMethodHandlesLookup.class);
+      ImmutableList.of(DesugarMethodHandlesLookup.class, DesugarVarHandle.class);
 
   protected final TestParameters parameters;
 
