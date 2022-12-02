@@ -73,20 +73,25 @@ public class IRCodeUtils {
    * <p>Use with caution!
    */
   public static void removeArrayAndTransitiveInputsIfNotUsed(IRCode code, Instruction definition) {
-    Deque<InstructionOrPhi> worklist = new ArrayDeque<>();
     if (definition.isConstNumber()) {
       // No need to explicitly remove `null`, it will be removed by ordinary dead code elimination
       // anyway.
       assert definition.asConstNumber().isZero();
       return;
     }
-
-    if (definition.isNewArrayEmpty()) {
-      Value arrayValue = definition.outValue();
-      if (arrayValue.hasPhiUsers() || arrayValue.hasDebugUsers()) {
-        return;
-      }
-
+    Value arrayValue = definition.outValue();
+    if (arrayValue.hasPhiUsers() || arrayValue.hasDebugUsers()) {
+      return;
+    }
+    if (!definition.isNewArrayEmptyOrInvokeNewArray()) {
+      assert false;
+      return;
+    }
+    Deque<InstructionOrPhi> worklist = new ArrayDeque<>();
+    InvokeNewArray invokeNewArray = definition.asInvokeNewArray();
+    if (invokeNewArray != null) {
+      worklist.add(definition);
+    } else if (definition.isNewArrayEmpty()) {
       for (Instruction user : arrayValue.uniqueUsers()) {
         // If we encounter an Assume instruction here, we also need to consider indirect users.
         assert !user.isAssume();
@@ -95,11 +100,10 @@ public class IRCodeUtils {
         }
         worklist.add(user);
       }
-      internalRemoveInstructionAndTransitiveInputsIfNotUsed(code, worklist);
-      return;
+    } else {
+      assert false;
     }
-
-    assert false;
+    internalRemoveInstructionAndTransitiveInputsIfNotUsed(code, worklist);
   }
 
   /**

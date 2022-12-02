@@ -27,6 +27,7 @@ import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
@@ -424,12 +425,16 @@ public final class IdentifierNameStringUtils {
 
   // Perform a conservative evaluation of an array content of dex type values from its construction
   // until its use at a given instruction.
-  private static DexType[] evaluateTypeArrayContentFromConstructionToUse(
-      NewArrayEmpty newArray,
-      List<CheckCast> aliases,
-      int size,
-      Instruction user,
-      DexItemFactory factory) {
+  private static DexTypeList evaluateTypeArrayContentFromConstructionToUse(
+      NewArrayEmpty newArray, List<CheckCast> aliases, Instruction user, DexItemFactory factory) {
+    int size = newArray.sizeIfConst();
+    if (size < 0) {
+      return null;
+    } else if (size == 0) {
+      // TODO: We should likely still scan to ensure no ArrayPut instructions exist.
+      return DexTypeList.empty();
+    }
+
     DexType[] values = new DexType[size];
     int remaining = size;
     Set<Instruction> users = Sets.newIdentityHashSet();
@@ -453,7 +458,7 @@ public final class IdentifierNameStringUtils {
         if (instruction == user) {
           // Return the array content if all elements are known when hitting the user for which
           // the content was requested.
-          return remaining == 0 ? values : null;
+          return remaining == 0 ? new DexTypeList(values) : null;
         }
         // Any other kinds of use besides array-put mean that the array escapes and its content
         // could be altered.
@@ -496,6 +501,21 @@ public final class IdentifierNameStringUtils {
       iterator = block.iterator();
     } while (iterator != null);
     return null;
+  }
+
+  private static DexTypeList evaluateTypeArrayContent(
+      InvokeNewArray newArray, DexItemFactory factory) {
+    List<Value> arrayValues = newArray.inValues();
+    int size = arrayValues.size();
+    DexType[] values = new DexType[size];
+    for (int i = 0; i < size; ++i) {
+      DexType type = getTypeFromConstClassOrBoxedPrimitive(arrayValues.get(i), factory);
+      if (type == null) {
+        return null;
+      }
+      values[i] = type;
+    }
+    return new DexTypeList(values);
   }
 
   /**
@@ -551,30 +571,13 @@ public final class IdentifierNameStringUtils {
     }
 
     // Make sure this Value refers to a new array.
-    if (!classListValue.definition.isNewArrayEmpty()
-        || !classListValue.definition.asNewArrayEmpty().size().isConstant()) {
+    if (classListValue.definition.isNewArrayEmpty()) {
+      return evaluateTypeArrayContentFromConstructionToUse(
+          classListValue.definition.asNewArrayEmpty(), aliases, invoke, factory);
+    } else if (classListValue.definition.isInvokeNewArray()) {
+      return evaluateTypeArrayContent(classListValue.definition.asInvokeNewArray(), factory);
+    } else {
       return null;
     }
-
-    int size =
-        classListValue
-            .definition
-            .asNewArrayEmpty()
-            .size()
-            .getConstInstruction()
-            .asConstNumber()
-            .getIntValue();
-    if (size == 0) {
-      return DexTypeList.empty();
-    }
-
-    DexType[] arrayContent =
-        evaluateTypeArrayContentFromConstructionToUse(
-            classListValue.definition.asNewArrayEmpty(), aliases, size, invoke, factory);
-
-    if (arrayContent == null) {
-      return null;
-    }
-    return new DexTypeList(arrayContent);
   }
 }

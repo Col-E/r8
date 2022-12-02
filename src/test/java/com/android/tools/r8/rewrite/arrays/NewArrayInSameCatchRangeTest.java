@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.rewrite.arrays;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -13,17 +12,13 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.dex.code.DexFilledNewArray;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.InstructionOffsetSubject;
-import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class NewArrayInCatchRangeTest extends TestBase {
+public class NewArrayInSameCatchRangeTest extends TestBase {
 
   static final String EXPECTED = StringUtils.lines("1");
 
@@ -34,14 +29,14 @@ public class NewArrayInCatchRangeTest extends TestBase {
     return getTestParameters().withAllRuntimes().withAllApiLevels().build();
   }
 
-  public NewArrayInCatchRangeTest(TestParameters parameters) {
+  public NewArrayInSameCatchRangeTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void test() throws Exception {
     testForRuntime(parameters)
-        .addInnerClasses(NewArrayInCatchRangeTest.class)
+        .addInnerClasses(NewArrayInSameCatchRangeTest.class)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }
@@ -52,35 +47,31 @@ public class NewArrayInCatchRangeTest extends TestBase {
     testForD8(parameters.getBackend())
         .release()
         .setMinApi(parameters.getApiLevel())
-        .addInnerClasses(NewArrayInCatchRangeTest.class)
+        .addInnerClasses(NewArrayInSameCatchRangeTest.class)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
-        .inspect(this::checkInstructions);
+        .inspect(this::checkHasFilledNewArray);
   }
 
-  private void checkInstructions(CodeInspector inspector) {
+  private void checkHasFilledNewArray(CodeInspector inspector) {
     MethodSubject foo = inspector.clazz(TestClass.class).uniqueMethodWithFinalName("foo");
-    List<InstructionSubject> filledArrayInstructions =
+    assertTrue(
         foo.streamInstructions()
-            .filter(i -> i.asDexInstruction().getInstruction() instanceof DexFilledNewArray)
-            .collect(Collectors.toList());
-    assertEquals(1, filledArrayInstructions.size());
-    InstructionOffsetSubject offset = filledArrayInstructions.get(0).getOffset(foo);
-    assertTrue(foo.streamTryCatches().allMatch(r -> r.getRange().includes(offset)));
+            .anyMatch(i -> i.asDexInstruction().getInstruction() instanceof DexFilledNewArray));
   }
 
   static class TestClass {
 
     public static int foo() {
       int value = 1;
-      int[] array = null;
       try {
-        array = new int[1];
-      } catch (Exception e) {
-        return array == null ? -1 : array.length;
+        int[] array = new int[2];
+        array[0] = value;
+        array[1] = value;
+        return System.nanoTime() > 0 ? array[0] : 2;
+      } catch (RuntimeException e) {
+        return 42;
       }
-      array[0] = value;
-      return array[0];
     }
 
     public static void main(String[] args) {

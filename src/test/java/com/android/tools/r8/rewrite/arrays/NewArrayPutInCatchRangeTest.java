@@ -13,17 +13,16 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.dex.code.DexFilledNewArray;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.InstructionOffsetSubject;
-import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import java.util.List;
+import java.util.Collections;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+// Regression test for issue found in b/259986613
 @RunWith(Parameterized.class)
-public class NewArrayInCatchRangeTest extends TestBase {
+public class NewArrayPutInCatchRangeTest extends TestBase {
 
   static final String EXPECTED = StringUtils.lines("1");
 
@@ -34,14 +33,14 @@ public class NewArrayInCatchRangeTest extends TestBase {
     return getTestParameters().withAllRuntimes().withAllApiLevels().build();
   }
 
-  public NewArrayInCatchRangeTest(TestParameters parameters) {
+  public NewArrayPutInCatchRangeTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void test() throws Exception {
     testForRuntime(parameters)
-        .addInnerClasses(NewArrayInCatchRangeTest.class)
+        .addInnerClasses(NewArrayPutInCatchRangeTest.class)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }
@@ -52,34 +51,30 @@ public class NewArrayInCatchRangeTest extends TestBase {
     testForD8(parameters.getBackend())
         .release()
         .setMinApi(parameters.getApiLevel())
-        .addInnerClasses(NewArrayInCatchRangeTest.class)
+        .addInnerClasses(NewArrayPutInCatchRangeTest.class)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
-        .inspect(this::checkInstructions);
+        .inspect(this::checkHasFilledNewArray);
   }
 
-  private void checkInstructions(CodeInspector inspector) {
+  private void checkHasFilledNewArray(CodeInspector inspector) {
     MethodSubject foo = inspector.clazz(TestClass.class).uniqueMethodWithFinalName("foo");
-    List<InstructionSubject> filledArrayInstructions =
+    assertTrue(
         foo.streamInstructions()
-            .filter(i -> i.asDexInstruction().getInstruction() instanceof DexFilledNewArray)
-            .collect(Collectors.toList());
-    assertEquals(1, filledArrayInstructions.size());
-    InstructionOffsetSubject offset = filledArrayInstructions.get(0).getOffset(foo);
-    assertTrue(foo.streamTryCatches().allMatch(r -> r.getRange().includes(offset)));
+            .anyMatch(i -> i.asDexInstruction().getInstruction() instanceof DexFilledNewArray));
+    assertEquals(Collections.emptyList(), foo.streamTryCatches().collect(Collectors.toList()));
   }
 
   static class TestClass {
 
     public static int foo() {
       int value = 1;
-      int[] array = null;
+      int[] array = new int[1];
       try {
-        array = new int[1];
-      } catch (Exception e) {
-        return array == null ? -1 : array.length;
+        array[0] = value;
+      } catch (RuntimeException e) {
+        return array[0];
       }
-      array[0] = value;
       return array[0];
     }
 

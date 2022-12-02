@@ -23,7 +23,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class NewArrayInCatchRangeTest extends TestBase {
+public class NewArrayMonitorTest extends TestBase {
 
   static final String EXPECTED = StringUtils.lines("1");
 
@@ -34,14 +34,14 @@ public class NewArrayInCatchRangeTest extends TestBase {
     return getTestParameters().withAllRuntimes().withAllApiLevels().build();
   }
 
-  public NewArrayInCatchRangeTest(TestParameters parameters) {
+  public NewArrayMonitorTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void test() throws Exception {
     testForRuntime(parameters)
-        .addInnerClasses(NewArrayInCatchRangeTest.class)
+        .addInnerClasses(NewArrayMonitorTest.class)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }
@@ -52,7 +52,7 @@ public class NewArrayInCatchRangeTest extends TestBase {
     testForD8(parameters.getBackend())
         .release()
         .setMinApi(parameters.getApiLevel())
-        .addInnerClasses(NewArrayInCatchRangeTest.class)
+        .addInnerClasses(NewArrayMonitorTest.class)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(this::checkInstructions);
@@ -71,15 +71,14 @@ public class NewArrayInCatchRangeTest extends TestBase {
 
   static class TestClass {
 
-    public static int foo() {
+    public static synchronized int foo() {
       int value = 1;
-      int[] array = null;
+      int[] array = new int[1];
       try {
-        array = new int[1];
-      } catch (Exception e) {
-        return array == null ? -1 : array.length;
+        array[0] = value;
+      } catch (RuntimeException e) {
+        return array[0];
       }
-      array[0] = value;
       return array[0];
     }
 

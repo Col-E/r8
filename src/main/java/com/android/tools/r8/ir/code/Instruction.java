@@ -1038,6 +1038,10 @@ public abstract class Instruction
     return false;
   }
 
+  public boolean isNewArrayEmptyOrInvokeNewArray() {
+    return isNewArrayEmpty() || isInvokeNewArray();
+  }
+
   public NewArrayEmpty asNewArrayEmpty() {
     return null;
   }

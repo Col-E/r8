@@ -16,7 +16,6 @@ import static com.android.tools.r8.ir.code.Opcodes.STATIC_GET;
 
 import com.android.tools.r8.algorithms.scc.SCC;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessControl;
@@ -55,7 +54,6 @@ import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.CatchHandlers.CatchHandler;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstClass;
-import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DebugLocalWrite;
@@ -84,6 +82,7 @@ import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
+import com.android.tools.r8.ir.code.LinearFlowInstructionListIterator;
 import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
@@ -107,9 +106,12 @@ import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.RewriteArrayOptions;
 import com.android.tools.r8.utils.InternalOutputMode;
 import com.android.tools.r8.utils.LazyBox;
 import com.android.tools.r8.utils.LongInterval;
+import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.WorkList;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ArrayListMultimap;
@@ -138,10 +140,10 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -162,7 +164,6 @@ public class CodeRewriter {
     FALSE
   }
 
-  private static final int MAX_FILL_ARRAY_SIZE = 8 * Constants.KILOBYTE;
   // This constant was determined by experimentation.
   private static final int STOP_SHARED_CONSTANT_THRESHOLD = 50;
 
@@ -2101,16 +2102,21 @@ public class CodeRewriter {
     }
   }
 
-  private short[] computeArrayFilledData(ConstInstruction[] values, int size, int elementSize) {
-    if (values == null) {
-      return null;
+  private short[] computeArrayFilledData(Value[] values, int size, int elementSize) {
+    for (Value v : values) {
+      if (!v.isConstant()) {
+        return null;
+      }
     }
     if (elementSize == 1) {
       short[] result = new short[(size + 1) / 2];
       for (int i = 0; i < size; i += 2) {
-        short value = (short) (values[i].asConstNumber().getIntValue() & 0xFF);
+        short value =
+            (short) (values[i].getConstInstruction().asConstNumber().getIntValue() & 0xFF);
         if (i + 1 < size) {
-          value |= (short) ((values[i + 1].asConstNumber().getIntValue() & 0xFF) << 8);
+          value |=
+              (short)
+                  ((values[i + 1].getConstInstruction().asConstNumber().getIntValue() & 0xFF) << 8);
         }
         result[i / 2] = value;
       }
@@ -2120,7 +2126,7 @@ public class CodeRewriter {
     int shortsPerConstant = elementSize / 2;
     short[] result = new short[size * shortsPerConstant];
     for (int i = 0; i < size; i++) {
-      long value = values[i].asConstNumber().getRawValue();
+      long value = values[i].getConstInstruction().asConstNumber().getRawValue();
       for (int part = 0; part < shortsPerConstant; part++) {
         result[i * shortsPerConstant + part] = (short) ((value >> (16 * part)) & 0xFFFFL);
       }
@@ -2128,185 +2134,354 @@ public class CodeRewriter {
     return result;
   }
 
-  private ConstInstruction[] computeConstantArrayValues(
-      NewArrayEmpty newArray, BasicBlock block, int size) {
-    if (size > MAX_FILL_ARRAY_SIZE) {
-      return null;
+  private static class FilledArrayConversionInfo {
+
+    Value[] values;
+    List<ArrayPut> arrayPutsToRemove;
+    LinearFlowInstructionListIterator lastArrayPutIterator;
+
+    public FilledArrayConversionInfo(int size) {
+      values = new Value[size];
+      arrayPutsToRemove = new ArrayList<>(size);
     }
-    ConstInstruction[] values = new ConstInstruction[size];
+  }
+
+  private FilledArrayConversionInfo computeConversionInfo(
+      FilledArrayCandidate candidate, LinearFlowInstructionListIterator it) {
+    NewArrayEmpty newArrayEmpty = candidate.newArrayEmpty;
+    assert it.peekPrevious() == newArrayEmpty;
+    Value arrayValue = newArrayEmpty.outValue();
+    int size = candidate.size;
+
+    // aput-object allows any object for arrays of interfaces, but new-filled-array fails to verify
+    // if types require a cast.
+    // TODO(b/246971330): Check if adding a checked-cast would have the same observable result. E.g.
+    //   if aput-object throws a ClassCastException if given an object that does not implement the
+    //   desired interface, then we could add check-cast instructions for arguments we're not sure
+    //   about.
+    DexType elementType = newArrayEmpty.type.toDimensionMinusOneType(dexItemFactory);
+    boolean needsTypeCheck =
+        !elementType.isPrimitiveType() && elementType != dexItemFactory.objectType;
+
+    FilledArrayConversionInfo info = new FilledArrayConversionInfo(size);
+    Value[] values = info.values;
     int remaining = size;
-    Set<Instruction> users = newArray.outValue().uniqueUsers();
-    Set<BasicBlock> visitedBlocks = Sets.newIdentityHashSet();
-    // We allow the array instantiations to cross block boundaries as long as it hasn't encountered
-    // an instruction instance that can throw an exception.
-    InstructionIterator it = block.iterator();
-    it.nextUntil(i -> i == newArray);
-    do {
-      visitedBlocks.add(block);
-      while (it.hasNext()) {
-        Instruction instruction = it.next();
-        // If we encounter an instruction that can throw an exception we need to bail out of the
-        // optimization so that we do not transform half-initialized arrays into fully initialized
-        // arrays on exceptional edges. If the block has no handlers it is not observable so
-        // we perform the rewriting.
-        if (block.hasCatchHandlers() && instruction.instructionInstanceCanThrow()) {
+    Set<Instruction> users = newArrayEmpty.outValue().uniqueUsers();
+    while (it.hasNext()) {
+      Instruction instruction = it.next();
+      BasicBlock block = instruction.getBlock();
+      // If we encounter an instruction that can throw an exception we need to bail out of the
+      // optimization so that we do not transform half-initialized arrays into fully initialized
+      // arrays on exceptional edges. If the block has no handlers it is not observable so
+      // we perform the rewriting.
+      // TODO(b/246971330): Allow simplification when all users of the array are in the same
+      //   try/catch.
+      if (block.hasCatchHandlers() && instruction.instructionInstanceCanThrow()) {
+        return null;
+      }
+      if (!users.contains(instruction)) {
+        // If any instruction can transfer control between the new-array and the last array put
+        // then it is not safe to move the new array to the point of the last put.
+        if (block.hasCatchHandlers() && instruction.instructionTypeCanThrow()) {
           return null;
         }
-        if (!users.contains(instruction)) {
-          continue;
-        }
-        // If the initialization sequence is broken by another use we cannot use a
-        // fill-array-data instruction.
-        if (!instruction.isArrayPut()) {
+        continue;
+      }
+      ArrayPut arrayPut = instruction.asArrayPut();
+      // If the initialization sequence is broken by another use we cannot use a fill-array-data
+      // instruction.
+      if (arrayPut == null || arrayPut.array() != arrayValue) {
+        return null;
+      }
+      if (!arrayPut.index().isConstNumber()) {
+        return null;
+      }
+      if (arrayPut.instructionInstanceCanThrow()) {
+        assert false;
+        return null;
+      }
+      int index = arrayPut.index().getConstInstruction().asConstNumber().getIntValue();
+      if (index < 0 || index >= values.length) {
+        return null;
+      }
+      if (values[index] != null) {
+        return null;
+      }
+      Value value = arrayPut.value();
+      if (needsTypeCheck && !value.isAlwaysNull(appView)) {
+        DexType valueDexType = value.getType().asReferenceType().toDexType(dexItemFactory);
+        if (elementType.isArrayType()) {
+          if (elementType != valueDexType) {
+            return null;
+          }
+        } else if (valueDexType.isArrayType()) {
+          // isSubtype asserts for this case.
           return null;
-        }
-        ArrayPut arrayPut = instruction.asArrayPut();
-        if (!(arrayPut.value().isConstant() && arrayPut.index().isConstNumber())) {
-          return null;
-        }
-        int index = arrayPut.index().getConstInstruction().asConstNumber().getIntValue();
-        if (index < 0 || index >= values.length) {
-          return null;
-        }
-        if (values[index] != null) {
-          return null;
-        }
-        ConstInstruction value = arrayPut.value().getConstInstruction();
-        values[index] = value;
-        --remaining;
-        if (remaining == 0) {
-          return values;
+        } else if (valueDexType.isNullValueType()) {
+          // Assume instructions can cause value.isAlwaysNull() == false while the DexType is null.
+          // TODO(b/246971330): Figure out how to write a test in SimplifyArrayConstructionTest
+          //   that hits this case.
+        } else {
+          // TODO(b/246971330): When in d8 mode, we might still be able to see if this is true for
+          //   library types (which this helper does not do).
+          if (appView.isSubtype(valueDexType, elementType).isPossiblyFalse()) {
+            return null;
+          }
         }
       }
-      BasicBlock nextBlock = block.exit().isGoto() ? block.exit().asGoto().getTarget() : null;
-      block = nextBlock != null && !visitedBlocks.contains(nextBlock) ? nextBlock : null;
-      it = block != null ? block.iterator() : null;
-    } while (it != null);
+      info.arrayPutsToRemove.add(arrayPut);
+      values[index] = value;
+      --remaining;
+      if (remaining == 0) {
+        info.lastArrayPutIterator = it;
+        return info;
+      }
+    }
     return null;
   }
 
-  private boolean allowNewFilledArrayConstruction(Instruction instruction) {
-    if (!(instruction instanceof NewArrayEmpty)) {
+  private static class FilledArrayCandidate {
+    final NewArrayEmpty newArrayEmpty;
+    final int size;
+    final boolean encodeAsFilledNewArray;
+
+    public FilledArrayCandidate(
+        NewArrayEmpty newArrayEmpty, int size, boolean encodeAsFilledNewArray) {
+      assert size > 0;
+      this.newArrayEmpty = newArrayEmpty;
+      this.size = size;
+      this.encodeAsFilledNewArray = encodeAsFilledNewArray;
+    }
+
+    public boolean useFilledNewArray() {
+      return encodeAsFilledNewArray;
+    }
+
+    public boolean useFilledArrayData() {
+      return !useFilledNewArray();
+    }
+  }
+
+  private FilledArrayCandidate computeFilledArrayCandiate(
+      Instruction instruction, RewriteArrayOptions options) {
+    NewArrayEmpty newArrayEmpty = instruction.asNewArrayEmpty();
+    if (newArrayEmpty == null) {
+      return null;
+    }
+    if (instruction.getLocalInfo() != null) {
+      return null;
+    }
+    if (!newArrayEmpty.size().isConstant()) {
+      return null;
+    }
+    int size = newArrayEmpty.size().getConstInstruction().asConstNumber().getIntValue();
+    if (!options.isPotentialSize(size)) {
+      return null;
+    }
+    DexType arrayType = newArrayEmpty.type;
+    boolean encodeAsFilledNewArray = canUseFilledNewArray(arrayType, size, options);
+    if (!encodeAsFilledNewArray
+        && !canUseFilledArrayData(arrayType, size, instruction.getBlock(), options)) {
+      return null;
+    }
+    return new FilledArrayCandidate(newArrayEmpty, size, encodeAsFilledNewArray);
+  }
+
+  private boolean canUseFilledNewArray(DexType arrayType, int size, RewriteArrayOptions options) {
+    if (size < options.minSizeForFilledNewArray) {
       return false;
     }
-    NewArrayEmpty newArray = instruction.asNewArrayEmpty();
-    if (!newArray.size().isConstant()) {
-      return false;
-    }
-    assert newArray.size().isConstNumber();
-    int size = newArray.size().getConstInstruction().asConstNumber().getIntValue();
-    if (size < 1) {
-      return false;
-    }
-    if (newArray.type.isPrimitiveArrayType()) {
+    // filled-new-array is implemented only for int[] and Object[].
+    // For int[], using filled-new-array is usually smaller than filled-array-data.
+    // filled-new-array supports up to 5 registers before it's filled-new-array/range.
+    if (!arrayType.isPrimitiveArrayType()) {
+      if (size > options.maxSizeForFilledNewArrayOfReferences) {
+        return false;
+      }
+      if (arrayType == dexItemFactory.stringArrayType) {
+        return options.canUseFilledNewArrayOfStrings();
+      }
+      if (!options.canUseFilledNewArrayOfNonStringObjects()) {
+        return false;
+      }
+      if (!options.canUseFilledNewArrayOfArrays()
+          && arrayType.getNumberOfLeadingSquareBrackets() > 1) {
+        return false;
+      }
       return true;
     }
-    return newArray.type == dexItemFactory.stringArrayType
-        && options.canUseFilledNewArrayOfObjects();
+    if (arrayType == dexItemFactory.intArrayType) {
+      return size <= options.maxSizeForFilledNewArrayOfInts;
+    }
+    return false;
+  }
+
+  private boolean canUseFilledArrayData(
+      DexType arrayType, int size, BasicBlock block, RewriteArrayOptions options) {
+    // If there is only one element it is typically smaller to generate the array put
+    // instruction instead of fill array data.
+    if (size < options.minSizeForFilledArrayData || size > options.maxSizeForFilledArrayData) {
+      return false;
+    }
+    if (!arrayType.isPrimitiveArrayType()) {
+      return false;
+    }
+    // NewArrayFilledData can throw, so creating one as done below would add a second
+    // throwing instruction to the same block (the first one being NewArrayEmpty).
+    // TODO(b/246971330): Support splitting the block when inserting the additional instruction.
+    if (block.hasCatchHandlers()) {
+      return false;
+    }
+    return true;
   }
 
   /**
-   * Replace new-array followed by stores of constants to all entries with new-array
-   * and fill-array-data / filled-new-array.
+   * Replace new-array followed by stores of constants to all entries with new-array and
+   * fill-array-data / filled-new-array.
+   *
+   * <p>The format of the new-array and its puts must be of the form:
+   *
+   * <pre>
+   *   v0 <- new-array T vSize
+   *   ...
+   *   array-put v0 vValue1 vIndex1
+   *   ...
+   *   array-put v0 vValueN vIndexN
+   * </pre>
+   *
+   * <p>The flow between the array v0 and its puts must be linear with no other uses of v0 besides
+   * the array-put instructions, thus any no intermediate instruction (... above) must use v0 and
+   * also cannot have catch handlers that would transfer out control (those could then have uses of
+   * v0).
+   *
+   * <p>The allocation of the new-array can itself have catch handlers, in which case, those are to
+   * remain active on the translated code. Translated code can have two forms.
+   *
+   * <p>The first is using the original array allocation and filling in its data if it can be
+   * encoded:
+   *
+   * <pre>
+   *   v0 <- new-array T vSize
+   *   filled-array-data v0
+   *   ...
+   *   ...
+   * </pre>
+   *
+   * The data payload is encoded directly in the instruction so no dependencies are needed for
+   * filling the data array. Thus, the fill is inserted at the point of the allocation. If the
+   * allocation has catch handlers its block must be split and the handlers put on the fill
+   * instruction too. This is correct only because there are no exceptional transfers in (...) that
+   * could observe the early initialization of the data.
+   *
+   * <p>The second is using filled-new-array and has the form:
+   *
+   * <pre>
+   * ...
+   * ...
+   * v0 <- filled-new-array T vValue1 ... vValueN
+   * </pre>
+   *
+   * Here the correctness relies on no exceptional transfers in (...) that could observe the missing
+   * allocation of the array. The late allocation ensures that the values are available at
+   * allocation time. If the original allocation has catch handlers then the new allocation needs to
+   * link those too. In general that may require splitting the block twice so that the new
+   * allocation is the single throwing instruction in its block.
    */
   public void simplifyArrayConstruction(IRCode code) {
     if (options.isGeneratingClassFiles()) {
       return;
     }
-    for (BasicBlock block : code.blocks) {
-      // Map from the array value to the number of array put instruction to remove for that value.
-      Map<Value, Instruction> instructionToInsertForArray = new HashMap<>();
-      Map<Value, Integer> storesToRemoveForArray = new HashMap<>();
-      // First pass: identify candidates and insert fill array data instruction.
-      InstructionListIterator it = block.listIterator(code);
-      while (it.hasNext()) {
-        Instruction instruction = it.next();
-        if (instruction.getLocalInfo() != null || !allowNewFilledArrayConstruction(instruction)) {
-          continue;
-        }
-        NewArrayEmpty newArray = instruction.asNewArrayEmpty();
-        int size = newArray.size().getConstInstruction().asConstNumber().getIntValue();
-        ConstInstruction[] values = computeConstantArrayValues(newArray, block, size);
-        if (values == null) {
-          continue;
-        }
-        if (newArray.type == dexItemFactory.stringArrayType) {
-          // Don't replace with filled-new-array if it requires more than 200 consecutive registers.
-          if (size > 200) {
-            continue;
-          }
-          List<Value> stringValues = new ArrayList<>(size);
-          for (ConstInstruction value : values) {
-            stringValues.add(value.outValue());
-          }
-          Value invokeValue = code.createValue(newArray.getOutType(), newArray.getLocalInfo());
-          InvokeNewArray invoke =
-              new InvokeNewArray(dexItemFactory.stringArrayType, invokeValue, stringValues);
-          for (Value value : newArray.inValues()) {
-            value.removeUser(newArray);
-          }
-          newArray.outValue().replaceUsers(invokeValue);
-          it.removeOrReplaceByDebugLocalRead();
-          instructionToInsertForArray.put(invokeValue, invoke);
-          storesToRemoveForArray.put(invokeValue, size);
-        } else {
-          // If there is only one element it is typically smaller to generate the array put
-          // instruction instead of fill array data.
-          if (size == 1) {
-            continue;
-          }
-          int elementSize = newArray.type.elementSizeForPrimitiveArrayType();
-          short[] contents = computeArrayFilledData(values, size, elementSize);
-          if (contents == null) {
-            continue;
-          }
-          if (block.hasCatchHandlers()) {
-            continue;
-          }
-          int arraySize = newArray.size().getConstInstruction().asConstNumber().getIntValue();
-          NewArrayFilledData fillArray =
-              new NewArrayFilledData(newArray.outValue(), elementSize, arraySize, contents);
-          fillArray.setPosition(newArray.getPosition());
-          it.add(fillArray);
-          storesToRemoveForArray.put(newArray.outValue(), size);
-        }
+    WorkList<BasicBlock> worklist = WorkList.newIdentityWorkList(code.blocks);
+    while (worklist.hasNext()) {
+      BasicBlock block = worklist.next();
+      simplifyArrayConstructionBlock(block, worklist, code, options.rewriteArrayOptions());
+    }
+  }
+
+  private void simplifyArrayConstructionBlock(
+      BasicBlock block, WorkList<BasicBlock> worklist, IRCode code, RewriteArrayOptions options) {
+    InstructionListIterator it = block.listIterator(code);
+    while (it.hasNext()) {
+      FilledArrayCandidate candidate = computeFilledArrayCandiate(it.next(), options);
+      if (candidate == null) {
+        continue;
       }
-      // Second pass: remove all the array put instructions for the array for which we have
-      // inserted a fill array data instruction instead.
-      if (!storesToRemoveForArray.isEmpty()) {
-        Set<BasicBlock> visitedBlocks = Sets.newIdentityHashSet();
-        do {
-          visitedBlocks.add(block);
-          it = block.listIterator(code);
-          while (it.hasNext()) {
-            Instruction instruction = it.next();
-            if (instruction.isArrayPut()) {
-              Value array = instruction.asArrayPut().array();
-              Integer toRemoveCount = storesToRemoveForArray.get(array);
-              if (toRemoveCount != null) {
-                if (toRemoveCount > 0) {
-                  storesToRemoveForArray.put(array, --toRemoveCount);
-                  it.remove();
-                }
-                if (toRemoveCount == 0) {
-                  storesToRemoveForArray.put(array, --toRemoveCount);
-                  Instruction construction = instructionToInsertForArray.get(array);
-                  if (construction != null) {
-                    // Set the position of the new array construction to be the position of the
-                    // last removed put at which point we are now adding the construction.
-                    construction.setPosition(instruction.getPosition());
-                    it.add(construction);
-                  }
-                }
-              }
+      FilledArrayConversionInfo info =
+          computeConversionInfo(
+              candidate, new LinearFlowInstructionListIterator(code, block, it.nextIndex()));
+      if (info == null) {
+        continue;
+      }
+
+      Instruction instructionAfterCandidate = it.peekNext();
+      NewArrayEmpty newArrayEmpty = candidate.newArrayEmpty;
+      DexType arrayType = newArrayEmpty.type;
+      int size = candidate.size;
+      Set<Instruction> instructionsToRemove = SetUtils.newIdentityHashSet(size + 1);
+      if (candidate.useFilledNewArray()) {
+        assert newArrayEmpty.getLocalInfo() == null;
+        Instruction lastArrayPut = info.lastArrayPutIterator.peekPrevious();
+        Value invokeValue = code.createValue(newArrayEmpty.getOutType(), null);
+        InvokeNewArray invoke =
+            new InvokeNewArray(arrayType, invokeValue, Arrays.asList(info.values));
+        invoke.setPosition(lastArrayPut.getPosition());
+        for (Value value : newArrayEmpty.inValues()) {
+          value.removeUser(newArrayEmpty);
+        }
+        newArrayEmpty.outValue().replaceUsers(invokeValue);
+        instructionsToRemove.add(newArrayEmpty);
+
+        boolean originalAllocationPointHasHandlers = newArrayEmpty.getBlock().hasCatchHandlers();
+        boolean insertionPointHasHandlers = lastArrayPut.getBlock().hasCatchHandlers();
+
+        if (!insertionPointHasHandlers && !originalAllocationPointHasHandlers) {
+          info.lastArrayPutIterator.add(invoke);
+        } else {
+          BasicBlock insertionBlock = info.lastArrayPutIterator.split(code);
+          if (originalAllocationPointHasHandlers) {
+            if (!insertionBlock.isTrivialGoto()) {
+              BasicBlock blockAfterInsertion = insertionBlock.listIterator(code).split(code);
+              assert insertionBlock.isTrivialGoto();
+              worklist.addIfNotSeen(blockAfterInsertion);
+            }
+            insertionBlock.moveCatchHandlers(block);
+          } else {
+            worklist.addIfNotSeen(insertionBlock);
+          }
+          insertionBlock.listIterator(code).add(invoke);
+        }
+      } else {
+        assert candidate.useFilledArrayData();
+        int elementSize = arrayType.elementSizeForPrimitiveArrayType();
+        short[] contents = computeArrayFilledData(info.values, size, elementSize);
+        if (contents == null) {
+          continue;
+        }
+        // fill-array-data requires the new-array-empty instruction to remain, as it does not
+        // itself create an array.
+        NewArrayFilledData fillArray =
+            new NewArrayFilledData(newArrayEmpty.outValue(), elementSize, size, contents);
+        fillArray.setPosition(newArrayEmpty.getPosition());
+        it.add(fillArray);
+      }
+
+      instructionsToRemove.addAll(info.arrayPutsToRemove);
+      Set<BasicBlock> visitedBlocks = Sets.newIdentityHashSet();
+      for (Instruction instruction : instructionsToRemove) {
+        BasicBlock ownerBlock = instruction.getBlock();
+        if (visitedBlocks.add(ownerBlock)) {
+          InstructionListIterator removeIt = ownerBlock.listIterator(code);
+          while (removeIt.hasNext()) {
+            if (instructionsToRemove.contains(removeIt.next())) {
+              removeIt.removeOrReplaceByDebugLocalRead();
             }
           }
-          BasicBlock nextBlock = block.exit().isGoto() ? block.exit().asGoto().getTarget() : null;
-          block = nextBlock != null && !visitedBlocks.contains(nextBlock) ? nextBlock : null;
-        } while (block != null);
+        }
       }
+
+      // The above has invalidated the block iterator so reset it and continue.
+      it = block.listIterator(code, instructionAfterCandidate);
     }
-    assert code.isConsistentSSA(appView);
   }
 
   // TODO(mikaelpeltier) Manage that from and to instruction do not belong to the same block.

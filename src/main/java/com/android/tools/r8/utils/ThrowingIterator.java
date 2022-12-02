@@ -5,6 +5,7 @@
 package com.android.tools.r8.utils;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -31,5 +32,19 @@ public abstract class ThrowingIterator<T, E extends Exception> {
       number--;
     }
     return result;
+  }
+
+  public static <T, E extends Exception> ThrowingIterator<T, E> fromIterator(Iterator<T> it) {
+    return new ThrowingIterator<>() {
+      @Override
+      public boolean hasNext() {
+        return it.hasNext();
+      }
+
+      @Override
+      public T next() throws E {
+        return it.next();
+      }
+    };
   }
 }
