@@ -1463,6 +1463,10 @@ public class ClassFileTransformer {
         });
   }
 
+  public ClassFileTransformer removeAllAnnotations() {
+    return removeClassAnnotations().removeMethodAnnotations().removeFieldAnnotations();
+  }
+
   public ClassFileTransformer removeClassAnnotations() {
     return addClassTransformer(
         new ClassTransformer() {

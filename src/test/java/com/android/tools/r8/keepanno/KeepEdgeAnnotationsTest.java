@@ -193,7 +193,7 @@ public class KeepEdgeAnnotationsTest extends TestBase {
         .assertSuccessWithOutput(getExpected());
   }
 
-  private List<String> getKeepRulesForClass(Class<?> clazz) throws IOException {
+  public static List<String> getKeepRulesForClass(Class<?> clazz) throws IOException {
     Set<KeepEdge> keepEdges = KeepEdgeReader.readKeepEdges(ToolHelper.getClassAsBytes(clazz));
     List<String> rules = new ArrayList<>();
     KeepRuleExtractor extractor = new KeepRuleExtractor(rules::add);

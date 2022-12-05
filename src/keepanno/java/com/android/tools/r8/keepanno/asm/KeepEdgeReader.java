@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.asm;
 
+import com.android.tools.r8.keepanno.annotations.KeepConstants;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Condition;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Edge;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Item;
@@ -43,17 +44,44 @@ public class KeepEdgeReader implements Opcodes {
 
   private static class KeepEdgeClassVisitor extends ClassVisitor {
     private final Parent<KeepEdge> parent;
+    private String className;
 
     KeepEdgeClassVisitor(Parent<KeepEdge> parent) {
       super(ASM_VERSION);
       this.parent = parent;
     }
 
+    private static String binaryNameToTypeName(String binaryName) {
+      return binaryName.replace('/', '.');
+    }
+
+    @Override
+    public void visit(
+        int version,
+        int access,
+        String name,
+        String signature,
+        String superName,
+        String[] interfaces) {
+      super.visit(version, access, name, signature, superName, interfaces);
+      this.className = binaryNameToTypeName(name);
+    }
+
     @Override
     public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+      if (visible) {
+        return null;
+      }
       // Skip any visible annotations as @KeepEdge is not runtime visible.
-      if (!visible && descriptor.equals(Edge.DESCRIPTOR)) {
+      if (descriptor.equals(Edge.DESCRIPTOR)) {
         return new KeepEdgeVisitor(parent);
+      }
+      if (descriptor.equals(KeepConstants.UsesReflection.DESCRIPTOR)) {
+        KeepItemPattern classItem =
+            KeepItemPattern.builder()
+                .setClassPattern(KeepQualifiedClassNamePattern.exact(className))
+                .build();
+        return new UsesReflectionVisitor(parent, classItem);
       }
       return null;
     }
@@ -61,29 +89,55 @@ public class KeepEdgeReader implements Opcodes {
     @Override
     public MethodVisitor visitMethod(
         int access, String name, String descriptor, String signature, String[] exceptions) {
-      return new KeepEdgeMethodVisitor(parent);
+      return new KeepEdgeMethodVisitor(parent, className, name, descriptor);
     }
 
     @Override
     public FieldVisitor visitField(
         int access, String name, String descriptor, String signature, Object value) {
-      return new KeepEdgeFieldVisitor(parent);
+      return new KeepEdgeFieldVisitor(parent, className, name, descriptor);
     }
   }
 
   private static class KeepEdgeMethodVisitor extends MethodVisitor {
     private final Parent<KeepEdge> parent;
+    private final String className;
+    private final String methodName;
+    private final String methodDescriptor;
 
-    KeepEdgeMethodVisitor(Parent<KeepEdge> parent) {
+    KeepEdgeMethodVisitor(
+        Parent<KeepEdge> parent, String className, String methodName, String methodDescriptor) {
       super(ASM_VERSION);
       this.parent = parent;
+      this.className = className;
+      this.methodName = methodName;
+      this.methodDescriptor = methodDescriptor;
+    }
+
+    private KeepItemPattern createItemContext() {
+      Type returnType = Type.getReturnType(methodDescriptor);
+      Type[] argumentTypes = Type.getArgumentTypes(methodDescriptor);
+      // TODO(b/248408342): Defaults are "any", support setting actual return type and params.
+      return KeepItemPattern.builder()
+          .setClassPattern(KeepQualifiedClassNamePattern.exact(className))
+          .setMemberPattern(
+              KeepMethodPattern.builder()
+                  .setNamePattern(KeepMethodNamePattern.exact(methodName))
+                  .build())
+          .build();
     }
 
     @Override
     public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
       // Skip any visible annotations as @KeepEdge is not runtime visible.
-      if (!visible && descriptor.equals(Edge.DESCRIPTOR)) {
+      if (visible) {
+        return null;
+      }
+      if (descriptor.equals(Edge.DESCRIPTOR)) {
         return new KeepEdgeVisitor(parent);
+      }
+      if (descriptor.equals(KeepConstants.UsesReflection.DESCRIPTOR)) {
+        return new UsesReflectionVisitor(parent, createItemContext());
       }
       return null;
     }
@@ -91,17 +145,41 @@ public class KeepEdgeReader implements Opcodes {
 
   private static class KeepEdgeFieldVisitor extends FieldVisitor {
     private final Parent<KeepEdge> parent;
+    private final String className;
+    private final String fieldName;
+    private final String fieldDescriptor;
 
-    KeepEdgeFieldVisitor(Parent<KeepEdge> parent) {
+    KeepEdgeFieldVisitor(
+        Parent<KeepEdge> parent, String className, String fieldName, String fieldDescriptor) {
       super(ASM_VERSION);
       this.parent = parent;
+      this.className = className;
+      this.fieldName = fieldName;
+      this.fieldDescriptor = fieldDescriptor;
+    }
+
+    private KeepItemPattern createItemContext() {
+      // TODO(b/248408342): Default type is "any", support setting actual field type.
+      return KeepItemPattern.builder()
+          .setClassPattern(KeepQualifiedClassNamePattern.exact(className))
+          .setMemberPattern(
+              KeepFieldPattern.builder()
+                  .setNamePattern(KeepFieldNamePattern.exact(fieldName))
+                  .build())
+          .build();
     }
 
     @Override
     public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
       // Skip any visible annotations as @KeepEdge is not runtime visible.
-      if (!visible && descriptor.equals(Edge.DESCRIPTOR)) {
+      if (visible) {
+        return null;
+      }
+      if (descriptor.equals(Edge.DESCRIPTOR)) {
         return new KeepEdgeVisitor(parent);
+      }
+      if (descriptor.equals(KeepConstants.UsesReflection.DESCRIPTOR)) {
+        return new UsesReflectionVisitor(parent, createItemContext());
       }
       return null;
     }
@@ -153,6 +231,32 @@ public class KeepEdgeReader implements Opcodes {
         return new KeepPreconditionsVisitor(builder::setPreconditions);
       }
       if (name.equals(Edge.consequences)) {
+        return new KeepConsequencesVisitor(builder::setConsequences);
+      }
+      return super.visitArray(name);
+    }
+
+    @Override
+    public void visitEnd() {
+      parent.accept(builder.build());
+    }
+  }
+
+  private static class UsesReflectionVisitor extends AnnotationVisitorBase {
+    private final Parent<KeepEdge> parent;
+    private final KeepEdge.Builder builder = KeepEdge.builder();
+
+    UsesReflectionVisitor(Parent<KeepEdge> parent, KeepItemPattern context) {
+      this.parent = parent;
+      builder.setPreconditions(
+          KeepPreconditions.builder()
+              .addCondition(KeepCondition.builder().setItem(context).build())
+              .build());
+    }
+
+    @Override
+    public AnnotationVisitor visitArray(String name) {
+      if (name.equals(KeepConstants.UsesReflection.value)) {
         return new KeepConsequencesVisitor(builder::setConsequences);
       }
       return super.visitArray(name);
