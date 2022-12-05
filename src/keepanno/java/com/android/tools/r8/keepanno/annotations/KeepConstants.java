@@ -31,6 +31,7 @@ public final class KeepConstants {
         com.android.tools.r8.keepanno.annotations.UsesReflection.class;
     public static final String DESCRIPTOR = getDescriptor(CLASS);
     public static final String value = "value";
+    public static final String additionalPreconditions = "additionalPreconditions";
   }
 
   // Implicit hidden item which is "super type" of Condition and Target.

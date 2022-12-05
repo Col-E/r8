@@ -245,13 +245,11 @@ public class KeepEdgeReader implements Opcodes {
   private static class UsesReflectionVisitor extends AnnotationVisitorBase {
     private final Parent<KeepEdge> parent;
     private final KeepEdge.Builder builder = KeepEdge.builder();
+    private final KeepPreconditions.Builder preconditions = KeepPreconditions.builder();
 
     UsesReflectionVisitor(Parent<KeepEdge> parent, KeepItemPattern context) {
       this.parent = parent;
-      builder.setPreconditions(
-          KeepPreconditions.builder()
-              .addCondition(KeepCondition.builder().setItem(context).build())
-              .build());
+      preconditions.addCondition(KeepCondition.builder().setItem(context).build());
     }
 
     @Override
@@ -259,12 +257,18 @@ public class KeepEdgeReader implements Opcodes {
       if (name.equals(KeepConstants.UsesReflection.value)) {
         return new KeepConsequencesVisitor(builder::setConsequences);
       }
+      if (name.equals(KeepConstants.UsesReflection.additionalPreconditions)) {
+        return new KeepPreconditionsVisitor(
+            additionalPreconditions -> {
+              additionalPreconditions.forEach(preconditions::addCondition);
+            });
+      }
       return super.visitArray(name);
     }
 
     @Override
     public void visitEnd() {
-      parent.accept(builder.build());
+      parent.accept(builder.setPreconditions(preconditions.build()).build());
     }
   }
 

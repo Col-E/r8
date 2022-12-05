@@ -11,36 +11,40 @@ import java.lang.annotation.Target;
 /**
  * Annotation to declare the reflective usages made by an item.
  *
- * <p>The annotation 'value' is a list of targets which are to be kept if the annotated item is
- * kept. The structure of 'value' is identical to the 'consequences' field of a @KeepEdge
- * annotation.
+ * <p>The annotation's 'value' is a list of targets to be kept if the annotated item is used. The
+ * annotated item is a precondition for keeping any of the specified targets. Thus, if an annotated
+ * method is determined to be unused by the program, the annotation itself will not be in effect and
+ * the targets will not be kept (assuming nothing else is otherwise keeping them).
+ *
+ * <p>The annotation's 'additionalPreconditions' is optional and can specify additional conditions
+ * that should be satisfied for the annotation to be in effect.
  *
  * <p>The translation of the @UsesReflection annotation into a @KeepEdge is as follows:
  *
- * <p>Assume the item of the annotation is denoted by 'CTX' which and referred to as its context.
+ * <p>Assume the item of the annotation is denoted by 'CTX' and referred to as its context.
  *
  * <pre>
- * @UsesReflection(targets)
+ * @UsesReflection(value = targets, [additionalPreconditions = preconditions])
  * ==>
  * @KeepEdge(
  *   consequences = targets,
- *   preconditions = {createConditionFromContext(CTX)}
+ *   preconditions = {createConditionFromContext(CTX)} + preconditions
  * )
  *
  * where
  *   KeepCondition createConditionFromContext(ctx) {
  *     if (ctx.isClass()) {
- *       return KeepItem(classTypeName = ctx.getClassTypeName());
+ *       return new KeepCondition(classTypeName = ctx.getClassTypeName());
  *     }
  *     if (ctx.isMethod()) {
- *       return KeepCondition(
+ *       return new KeepCondition(
  *         classTypeName = ctx.getClassTypeName(),
  *         methodName = ctx.getMethodName(),
  *         methodReturnType = ctx.getMethodReturnType(),
  *         methodParameterTypes = ctx.getMethodParameterTypes());
  *     }
  *     if (ctx.isField()) {
- *       return KeepCondition(
+ *       return new KeepCondition(
  *         classTypeName = ctx.getClassTypeName(),
  *         fieldName = ctx.getFieldName()
  *         fieldType = ctx.getFieldType());
@@ -53,4 +57,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.CLASS)
 public @interface UsesReflection {
   KeepTarget[] value();
+
+  KeepCondition[] additionalPreconditions() default {};
 }
