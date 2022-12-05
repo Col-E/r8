@@ -354,7 +354,7 @@ public class SyntheticFinalization {
           assert !prefix.contains(SyntheticNaming.getPhaseSeparator(Phase.INTERNAL));
           DexType context =
               dexItemFactory.createType(DescriptorUtils.getDescriptorFromClassBinaryName(prefix));
-          assert isNotSyntheticType(context) || context == dexItemFactory.desugarVarHandleType;
+          assert isNotSyntheticType(context) || synthetics.isGlobalSyntheticClass(context);
         });
     return true;
   }

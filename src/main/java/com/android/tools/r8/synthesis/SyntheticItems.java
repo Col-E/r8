@@ -401,12 +401,16 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return isSyntheticClass(clazz.type);
   }
 
-  public boolean isGlobalSyntheticClass(DexProgramClass clazz) {
-    SyntheticDefinition<?, ?, ?> definition = pending.definitions.get(clazz.type);
+  public boolean isGlobalSyntheticClass(DexType type) {
+    SyntheticDefinition<?, ?, ?> definition = pending.definitions.get(type);
     if (definition != null) {
       return definition.getKind().isGlobal();
     }
-    return isGlobalReferences(committed.getClasses().get(clazz.type));
+    return isGlobalReferences(committed.getClasses().get(type));
+  }
+
+  public boolean isGlobalSyntheticClass(DexProgramClass clazz) {
+    return isGlobalSyntheticClass(clazz.getType());
   }
 
   private static boolean isGlobalReferences(List<SyntheticProgramClassReference> references) {
