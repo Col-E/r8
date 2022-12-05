@@ -2461,7 +2461,9 @@ public class CodeRewriter {
       Set<BasicBlock> visitedBlocks = Sets.newIdentityHashSet();
       for (Instruction instruction : instructionsToRemove) {
         BasicBlock ownerBlock = instruction.getBlock();
-        if (visitedBlocks.add(ownerBlock)) {
+        // If owner block is null, then the instruction has been removed already. We can't rely on
+        // just having the block pointer nulled, so the visited blocks guards reprocessing.
+        if (ownerBlock != null && visitedBlocks.add(ownerBlock)) {
           InstructionListIterator removeIt = ownerBlock.listIterator(code);
           while (removeIt.hasNext()) {
             if (instructionsToRemove.contains(removeIt.next())) {
