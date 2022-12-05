@@ -21,6 +21,7 @@ import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.keeprules.KeepRuleExtractor;
 import com.android.tools.r8.keepanno.processor.KeepEdgeProcessor;
 import com.android.tools.r8.keepanno.testsource.KeepClassAndDefaultConstructorSource;
+import com.android.tools.r8.keepanno.testsource.KeepDependentFieldSource;
 import com.android.tools.r8.keepanno.testsource.KeepFieldSource;
 import com.android.tools.r8.keepanno.testsource.KeepSourceEdges;
 import com.android.tools.r8.references.ClassReference;
@@ -42,7 +43,6 @@ import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.objectweb.asm.AnnotationVisitor;
 
 @RunWith(Parameterized.class)
 public class KeepEdgeAnnotationsTest extends TestBase {
@@ -66,7 +66,10 @@ public class KeepEdgeAnnotationsTest extends TestBase {
       Paths.get(ToolHelper.BUILD_DIR, "classes", "java", "keepanno");
 
   private static List<Class<?>> getTestClasses() {
-    return ImmutableList.of(KeepClassAndDefaultConstructorSource.class, KeepFieldSource.class);
+    return ImmutableList.of(
+        KeepClassAndDefaultConstructorSource.class,
+        KeepFieldSource.class,
+        KeepDependentFieldSource.class);
   }
 
   private final TestParameters parameters;
@@ -145,14 +148,9 @@ public class KeepEdgeAnnotationsTest extends TestBase {
     // Strip out all the annotations to ensure they are actually added again.
     byte[] stripped =
         transformer(source)
-            .addClassTransformer(
-                new ClassTransformer() {
-                  @Override
-                  public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-                    // Ignore all input annotations.
-                    return null;
-                  }
-                })
+            .removeClassAnnotations()
+            .removeMethodAnnotations()
+            .removeFieldAnnotations()
             .transform();
     // Manually add in the expected edges again.
     byte[] readded =

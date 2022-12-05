@@ -3,7 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.asm;
 
+import com.android.tools.r8.keepanno.annotations.KeepConstants;
+import com.android.tools.r8.keepanno.annotations.KeepConstants.Condition;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Edge;
+import com.android.tools.r8.keepanno.annotations.KeepConstants.Item;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Target;
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
@@ -44,7 +47,15 @@ public class KeepEdgeWriter implements Opcodes {
     if (preconditions.isAlways()) {
       return;
     }
-    throw new Unimplemented();
+    String ignoredArrayValueName = null;
+    AnnotationVisitor arrayVisitor = visitor.visitArray(Edge.preconditions);
+    preconditions.forEach(
+        condition -> {
+          AnnotationVisitor conditionVisitor =
+              arrayVisitor.visitAnnotation(ignoredArrayValueName, Condition.DESCRIPTOR);
+          writeItem(conditionVisitor, condition.getItemPattern());
+        });
+    arrayVisitor.visitEnd();
   }
 
   private void writeConsequences(AnnotationVisitor visitor, KeepConsequences consequences) {
@@ -59,24 +70,27 @@ public class KeepEdgeWriter implements Opcodes {
           if (!target.getOptions().isKeepAll()) {
             throw new Unimplemented();
           }
-          KeepItemPattern item = target.getItem();
-          if (item.isAny()) {
-            throw new Unimplemented();
-          }
-          KeepQualifiedClassNamePattern namePattern = item.getClassNamePattern();
-          if (namePattern.isExact()) {
-            Type typeConstant = Type.getType(namePattern.getExactDescriptor());
-            targetVisitor.visit(Target.classConstant, typeConstant);
-          } else {
-            throw new Unimplemented();
-          }
-          if (!item.getExtendsPattern().isAny()) {
-            throw new Unimplemented();
-          }
-          writeMember(item.getMemberPattern(), targetVisitor);
-          targetVisitor.visitEnd();
+          writeItem(targetVisitor, target.getItem());
         });
     arrayVisitor.visitEnd();
+  }
+
+  private void writeItem(AnnotationVisitor itemVisitor, KeepItemPattern item) {
+    if (item.isAny()) {
+      throw new Unimplemented();
+    }
+    KeepQualifiedClassNamePattern namePattern = item.getClassNamePattern();
+    if (namePattern.isExact()) {
+      Type typeConstant = Type.getType(namePattern.getExactDescriptor());
+      itemVisitor.visit(KeepConstants.Item.classConstant, typeConstant);
+    } else {
+      throw new Unimplemented();
+    }
+    if (!item.getExtendsPattern().isAny()) {
+      throw new Unimplemented();
+    }
+    writeMember(item.getMemberPattern(), itemVisitor);
+    itemVisitor.visitEnd();
   }
 
   private void writeMember(KeepMemberPattern memberPattern, AnnotationVisitor targetVisitor) {
@@ -99,7 +113,7 @@ public class KeepEdgeWriter implements Opcodes {
   private void writeField(KeepFieldPattern field, AnnotationVisitor targetVisitor) {
     KeepFieldNameExactPattern exactFieldName = field.getNamePattern().asExact();
     if (exactFieldName != null) {
-      targetVisitor.visit(Target.fieldName, exactFieldName.getName());
+      targetVisitor.visit(Item.fieldName, exactFieldName.getName());
     } else {
       throw new Unimplemented();
     }
@@ -114,7 +128,7 @@ public class KeepEdgeWriter implements Opcodes {
   private void writeMethod(KeepMethodPattern method, AnnotationVisitor targetVisitor) {
     KeepMethodNameExactPattern exactMethodName = method.getNamePattern().asExact();
     if (exactMethodName != null) {
-      targetVisitor.visit(Target.methodName, exactMethodName.getName());
+      targetVisitor.visit(Item.methodName, exactMethodName.getName());
     } else {
       throw new Unimplemented();
     }

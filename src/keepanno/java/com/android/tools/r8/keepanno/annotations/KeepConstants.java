@@ -26,11 +26,20 @@ public final class KeepConstants {
     public static final String consequences = "consequences";
   }
 
-  public static final class Target {
-    public static final Class<KeepTarget> CLASS = KeepTarget.class;
-    public static final String DESCRIPTOR = getDescriptor(CLASS);
+  // Implicit hidden item which is "super type" of Condition and Target.
+  public static final class Item {
     public static final String classConstant = "classConstant";
     public static final String methodName = "methodName";
     public static final String fieldName = "fieldName";
+  }
+
+  public static final class Condition {
+    public static final Class<KeepCondition> CLASS = KeepCondition.class;
+    public static final String DESCRIPTOR = getDescriptor(CLASS);
+  }
+
+  public static final class Target {
+    public static final Class<KeepTarget> CLASS = KeepTarget.class;
+    public static final String DESCRIPTOR = getDescriptor(CLASS);
   }
 }

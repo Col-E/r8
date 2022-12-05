@@ -9,9 +9,10 @@ import static org.objectweb.asm.Opcodes.ACC_SUPER;
 
 import com.android.tools.r8.keepanno.annotations.KeepConstants;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Edge;
-import com.android.tools.r8.keepanno.annotations.KeepConstants.Target;
+import com.android.tools.r8.keepanno.annotations.KeepConstants.Item;
 import com.android.tools.r8.keepanno.asm.KeepEdgeReader;
 import com.android.tools.r8.keepanno.asm.KeepEdgeWriter;
+import com.android.tools.r8.keepanno.ast.KeepCondition;
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepEdge.Builder;
@@ -21,12 +22,15 @@ import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodPattern;
+import com.android.tools.r8.keepanno.ast.KeepPreconditions;
 import com.android.tools.r8.keepanno.ast.KeepQualifiedClassNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepTarget;
-import com.android.tools.r8.keepanno.utils.Unimplemented;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Consumer;
 import javax.annotation.processing.AbstractProcessor;
@@ -58,26 +62,33 @@ public class KeepEdgeProcessor extends AbstractProcessor {
 
   @Override
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-    for (Element rootElement : roundEnv.getRootElements()) {
-      TypeElement typeElement = getEnclosingTypeElement(rootElement);
-      KeepEdge edge = processKeepEdge(typeElement, roundEnv);
-      if (edge != null) {
-        String edgeTargetClass =
-            getClassTypeNameForSynthesizedEdges(typeElement.getQualifiedName().toString());
-        byte[] writtenEdge = writeEdge(edge, edgeTargetClass);
-        Filer filer = processingEnv.getFiler();
-        try {
-          JavaFileObject classFile = filer.createClassFile(edgeTargetClass);
-          classFile.openOutputStream().write(writtenEdge);
-        } catch (IOException e) {
-          error(e.getMessage());
+    Map<String, List<KeepEdge>> collectedEdges = new HashMap<>();
+    for (TypeElement annotation : annotations) {
+      for (Element element : roundEnv.getElementsAnnotatedWith(annotation)) {
+        KeepEdge edge = processKeepEdge(element, roundEnv);
+        if (edge != null) {
+          TypeElement enclosingType = getEnclosingTypeElement(element);
+          String enclosingTypeName = enclosingType.getQualifiedName().toString();
+          collectedEdges.computeIfAbsent(enclosingTypeName, k -> new ArrayList<>()).add(edge);
         }
+      }
+    }
+    for (Entry<String, List<KeepEdge>> entry : collectedEdges.entrySet()) {
+      String enclosingTypeName = entry.getKey();
+      String edgeTargetClass = getClassTypeNameForSynthesizedEdges(enclosingTypeName);
+      byte[] writtenEdge = writeEdges(entry.getValue(), edgeTargetClass);
+      Filer filer = processingEnv.getFiler();
+      try {
+        JavaFileObject classFile = filer.createClassFile(edgeTargetClass);
+        classFile.openOutputStream().write(writtenEdge);
+      } catch (IOException e) {
+        error(e.getMessage());
       }
     }
     return true;
   }
 
-  private static byte[] writeEdge(KeepEdge edge, String classTypeName) {
+  private static byte[] writeEdges(List<KeepEdge> edges, String classTypeName) {
     String classBinaryName = KeepConstants.getBinaryNameFromClassTypeName(classTypeName);
     ClassWriter classWriter = new ClassWriter(0);
     classWriter.visit(
@@ -88,13 +99,15 @@ public class KeepEdgeProcessor extends AbstractProcessor {
         "java/lang/Object",
         null);
     classWriter.visitSource("SynthesizedKeepEdge", null);
-    KeepEdgeWriter.writeEdge(edge, classWriter);
+    for (KeepEdge edge : edges) {
+      KeepEdgeWriter.writeEdge(edge, classWriter);
+    }
     classWriter.visitEnd();
     return classWriter.toByteArray();
   }
 
-  private KeepEdge processKeepEdge(TypeElement keepEdge, RoundEnvironment roundEnv) {
-    AnnotationMirror mirror = getAnnotationMirror(keepEdge, KeepConstants.Edge.CLASS);
+  private KeepEdge processKeepEdge(Element element, RoundEnvironment roundEnv) {
+    AnnotationMirror mirror = getAnnotationMirror(element, KeepConstants.Edge.CLASS);
     if (mirror == null) {
       return null;
     }
@@ -109,7 +122,15 @@ public class KeepEdgeProcessor extends AbstractProcessor {
     if (preconditions == null) {
       return;
     }
-    throw new Unimplemented();
+    KeepPreconditions.Builder preconditionsBuilder = KeepPreconditions.builder();
+    new AnnotationListValueVisitor(
+            value -> {
+              KeepCondition.Builder conditionBuilder = KeepCondition.builder();
+              processCondition(conditionBuilder, AnnotationMirrorValueVisitor.getMirror(value));
+              preconditionsBuilder.addCondition(conditionBuilder.build());
+            })
+        .onValue(preconditions);
+    edgeBuilder.setPreconditions(preconditionsBuilder.build());
   }
 
   private void processConsequences(Builder edgeBuilder, AnnotationMirror mirror) {
@@ -141,31 +162,41 @@ public class KeepEdgeProcessor extends AbstractProcessor {
     }
   }
 
+  private void processCondition(KeepCondition.Builder builder, AnnotationMirror mirror) {
+    KeepItemPattern.Builder itemBuilder = KeepItemPattern.builder();
+    processItem(itemBuilder, mirror);
+    builder.setItem(itemBuilder.build());
+  }
+
   private void processTarget(KeepTarget.Builder builder, AnnotationMirror mirror) {
     KeepItemPattern.Builder itemBuilder = KeepItemPattern.builder();
-    AnnotationValue classConstantValue = getAnnotationValue(mirror, Target.classConstant);
+    processItem(itemBuilder, mirror);
+    builder.setItem(itemBuilder.build());
+  }
+
+  private void processItem(KeepItemPattern.Builder builder, AnnotationMirror mirror) {
+    AnnotationValue classConstantValue = getAnnotationValue(mirror, Item.classConstant);
     if (classConstantValue != null) {
       DeclaredType type = AnnotationClassValueVisitor.getType(classConstantValue);
       String typeName = getTypeNameForClassConstantElement(type);
-      itemBuilder.setClassPattern(KeepQualifiedClassNamePattern.exact(typeName));
+      builder.setClassPattern(KeepQualifiedClassNamePattern.exact(typeName));
     }
-    AnnotationValue methodNameValue = getAnnotationValue(mirror, Target.methodName);
-    AnnotationValue fieldNameValue = getAnnotationValue(mirror, Target.fieldName);
+    AnnotationValue methodNameValue = getAnnotationValue(mirror, Item.methodName);
+    AnnotationValue fieldNameValue = getAnnotationValue(mirror, Item.fieldName);
     if (methodNameValue != null && fieldNameValue != null) {
       throw new KeepEdgeException("Cannot define both a method and a field name pattern");
     }
     if (methodNameValue != null) {
       String methodName = AnnotationStringValueVisitor.getString(methodNameValue);
-      itemBuilder.setMemberPattern(
+      builder.setMemberPattern(
           KeepMethodPattern.builder()
               .setNamePattern(KeepMethodNamePattern.exact(methodName))
               .build());
     } else if (fieldNameValue != null) {
       String fieldName = AnnotationStringValueVisitor.getString(fieldNameValue);
-      itemBuilder.setMemberPattern(
+      builder.setMemberPattern(
           KeepFieldPattern.builder().setNamePattern(KeepFieldNamePattern.exact(fieldName)).build());
     }
-    builder.setItem(itemBuilder.build());
   }
 
   private void error(String message) {
@@ -181,9 +212,9 @@ public class KeepEdgeProcessor extends AbstractProcessor {
     }
   }
 
-  private static AnnotationMirror getAnnotationMirror(TypeElement typeElement, Class<?> clazz) {
+  private static AnnotationMirror getAnnotationMirror(Element element, Class<?> clazz) {
     String clazzName = clazz.getName();
-    for (AnnotationMirror m : typeElement.getAnnotationMirrors()) {
+    for (AnnotationMirror m : element.getAnnotationMirrors()) {
       if (m.getAnnotationType().toString().equals(clazzName)) {
         return m;
       }

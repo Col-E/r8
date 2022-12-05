@@ -1463,4 +1463,42 @@ public class ClassFileTransformer {
           }
         });
   }
+
+  public ClassFileTransformer removeClassAnnotations() {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+            // Ignore all input annotations.
+            return null;
+          }
+        });
+  }
+
+  public ClassFileTransformer removeMethodAnnotations() {
+    return addMethodTransformer(
+        new MethodTransformer() {
+          @Override
+          public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+            return null;
+          }
+        });
+  }
+
+  public ClassFileTransformer removeFieldAnnotations() {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public FieldVisitor visitField(
+              int access, String name, String descriptor, String signature, Object value) {
+            FieldVisitor fv = visitField(access, name, descriptor, signature, value);
+            return new FieldVisitor(ASM_VERSION, fv) {
+              @Override
+              public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+                return null;
+              }
+            };
+          }
+        });
+  }
 }

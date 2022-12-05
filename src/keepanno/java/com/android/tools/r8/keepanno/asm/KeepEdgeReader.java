@@ -3,8 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.asm;
 
+import com.android.tools.r8.keepanno.annotations.KeepConstants.Condition;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Edge;
+import com.android.tools.r8.keepanno.annotations.KeepConstants.Item;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Target;
+import com.android.tools.r8.keepanno.ast.KeepCondition;
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
@@ -22,6 +25,8 @@ import java.util.Set;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
@@ -40,6 +45,54 @@ public class KeepEdgeReader implements Opcodes {
     private final Parent<KeepEdge> parent;
 
     KeepEdgeClassVisitor(Parent<KeepEdge> parent) {
+      super(ASM_VERSION);
+      this.parent = parent;
+    }
+
+    @Override
+    public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+      // Skip any visible annotations as @KeepEdge is not runtime visible.
+      if (!visible && descriptor.equals(Edge.DESCRIPTOR)) {
+        return new KeepEdgeVisitor(parent);
+      }
+      return null;
+    }
+
+    @Override
+    public MethodVisitor visitMethod(
+        int access, String name, String descriptor, String signature, String[] exceptions) {
+      return new KeepEdgeMethodVisitor(parent);
+    }
+
+    @Override
+    public FieldVisitor visitField(
+        int access, String name, String descriptor, String signature, Object value) {
+      return new KeepEdgeFieldVisitor(parent);
+    }
+  }
+
+  private static class KeepEdgeMethodVisitor extends MethodVisitor {
+    private final Parent<KeepEdge> parent;
+
+    KeepEdgeMethodVisitor(Parent<KeepEdge> parent) {
+      super(ASM_VERSION);
+      this.parent = parent;
+    }
+
+    @Override
+    public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+      // Skip any visible annotations as @KeepEdge is not runtime visible.
+      if (!visible && descriptor.equals(Edge.DESCRIPTOR)) {
+        return new KeepEdgeVisitor(parent);
+      }
+      return null;
+    }
+  }
+
+  private static class KeepEdgeFieldVisitor extends FieldVisitor {
+    private final Parent<KeepEdge> parent;
+
+    KeepEdgeFieldVisitor(Parent<KeepEdge> parent) {
       super(ASM_VERSION);
       this.parent = parent;
     }
@@ -113,9 +166,23 @@ public class KeepEdgeReader implements Opcodes {
 
   private static class KeepPreconditionsVisitor extends AnnotationVisitorBase {
     private final Parent<KeepPreconditions> parent;
+    private final KeepPreconditions.Builder builder = KeepPreconditions.builder();
 
     public KeepPreconditionsVisitor(Parent<KeepPreconditions> parent) {
       this.parent = parent;
+    }
+
+    @Override
+    public AnnotationVisitor visitAnnotation(String name, String descriptor) {
+      if (descriptor.equals(Condition.DESCRIPTOR)) {
+        return new KeepConditionVisitor(builder::addCondition);
+      }
+      return super.visitAnnotation(name, descriptor);
+    }
+
+    @Override
+    public void visitEnd() {
+      parent.accept(builder.build());
     }
   }
 
@@ -141,27 +208,28 @@ public class KeepEdgeReader implements Opcodes {
     }
   }
 
-  private static class KeepTargetVisitor extends AnnotationVisitorBase {
-    private final Parent<KeepTarget> parent;
+  private abstract static class KeepItemVisitorBase extends AnnotationVisitorBase {
+    private final Parent<KeepItemPattern> parent;
+
     private KeepQualifiedClassNamePattern classNamePattern = null;
     private KeepMethodNamePattern methodName = null;
     private KeepFieldNamePattern fieldName = null;
 
-    public KeepTargetVisitor(Parent<KeepTarget> parent) {
+    public KeepItemVisitorBase(Parent<KeepItemPattern> parent) {
       this.parent = parent;
     }
 
     @Override
     public void visit(String name, Object value) {
-      if (name.equals(Target.classConstant) && value instanceof Type) {
+      if (name.equals(Item.classConstant) && value instanceof Type) {
         classNamePattern = KeepQualifiedClassNamePattern.exact(((Type) value).getClassName());
         return;
       }
-      if (name.equals(Target.methodName) && value instanceof String) {
+      if (name.equals(Item.methodName) && value instanceof String) {
         methodName = KeepMethodNamePattern.exact((String) value);
         return;
       }
-      if (name.equals(Target.fieldName) && value instanceof String) {
+      if (name.equals(Item.fieldName) && value instanceof String) {
         fieldName = KeepFieldNamePattern.exact((String) value);
         return;
       }
@@ -184,8 +252,21 @@ public class KeepEdgeReader implements Opcodes {
       if (fieldName != null) {
         itemBuilder.setMemberPattern(KeepFieldPattern.builder().setNamePattern(fieldName).build());
       }
-      KeepTarget target = KeepTarget.builder().setItem(itemBuilder.build()).build();
-      parent.accept(target);
+      parent.accept(itemBuilder.build());
+    }
+  }
+
+  private static class KeepTargetVisitor extends KeepItemVisitorBase {
+
+    public KeepTargetVisitor(Parent<KeepTarget> parent) {
+      super(item -> parent.accept(KeepTarget.builder().setItem(item).build()));
+    }
+  }
+
+  private static class KeepConditionVisitor extends KeepItemVisitorBase {
+
+    public KeepConditionVisitor(Parent<KeepCondition> parent) {
+      super(item -> parent.accept(KeepCondition.builder().setItem(item).build()));
     }
   }
 }

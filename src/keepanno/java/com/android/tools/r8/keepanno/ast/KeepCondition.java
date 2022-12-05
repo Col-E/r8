@@ -36,10 +36,33 @@ public final class KeepCondition {
   private final KeepItemPattern itemPattern;
 
   private KeepCondition(KeepItemPattern itemPattern) {
+    assert itemPattern != null;
     this.itemPattern = itemPattern;
   }
 
   public KeepItemPattern getItemPattern() {
     return itemPattern;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    KeepCondition that = (KeepCondition) o;
+    return itemPattern.equals(that.itemPattern);
+  }
+
+  @Override
+  public int hashCode() {
+    return itemPattern.hashCode();
+  }
+
+  @Override
+  public String toString() {
+    return itemPattern.toString();
   }
 }
