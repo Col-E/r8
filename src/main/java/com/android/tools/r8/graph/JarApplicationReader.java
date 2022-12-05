@@ -5,6 +5,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.ir.desugar.records.RecordDesugaring;
+import com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaring;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
@@ -28,6 +29,8 @@ public class JarApplicationReader {
   private final ConcurrentHashMap<String, DexString> stringCache = new ConcurrentHashMap<>();
   private final ApplicationReaderMap applicationReaderMap;
   private final Set<DexType> recordWitnesses = Sets.newConcurrentHashSet();
+  private final Set<DexType> varHandleWitnesses = Sets.newConcurrentHashSet();
+  private final Set<DexType> methodHandlesLookupWitnesses = Sets.newConcurrentHashSet();
 
   private boolean hasReadRecordReferenceFromProgramClass = false;
 
@@ -175,6 +178,54 @@ public class JarApplicationReader {
     if (options.shouldDesugarRecords()
         && RecordDesugaring.refersToRecord(dexMethod, getFactory())) {
       addRecordWitness(dexMethod.getHolderType(), classKind);
+    }
+  }
+
+  public void addVarHandleWitness(DexType witness, ClassKind<?> classKind) {
+    if (classKind == ClassKind.PROGRAM) {
+      varHandleWitnesses.add(witness);
+    }
+  }
+
+  public Set<DexType> getVarHandleWitnesses() {
+    return varHandleWitnesses;
+  }
+
+  public void checkFieldForVarHandle(DexField dexField, ClassKind<?> classKind) {
+    if (options.shouldDesugarVarHandle()
+        && VarHandleDesugaring.refersToVarHandle(dexField, getFactory())) {
+      addVarHandleWitness(dexField.getHolderType(), classKind);
+    }
+  }
+
+  public void checkMethodForVarHandle(DexMethod dexMethod, ClassKind<?> classKind) {
+    if (options.shouldDesugarVarHandle()
+        && VarHandleDesugaring.refersToVarHandle(dexMethod, getFactory())) {
+      addVarHandleWitness(dexMethod.getHolderType(), classKind);
+    }
+  }
+
+  public void addMethodHandlesLookupWitness(DexType witness, ClassKind<?> classKind) {
+    if (classKind == ClassKind.PROGRAM) {
+      methodHandlesLookupWitnesses.add(witness);
+    }
+  }
+
+  public Set<DexType> getMethodHandlesLookupWitnesses() {
+    return methodHandlesLookupWitnesses;
+  }
+
+  public void checkFieldForMethodHandlesLookup(DexField dexField, ClassKind<?> classKind) {
+    if (options.shouldDesugarVarHandle()
+        && VarHandleDesugaring.refersToMethodHandlesLookup(dexField, getFactory())) {
+      addMethodHandlesLookupWitness(dexField.getHolderType(), classKind);
+    }
+  }
+
+  public void checkMethodForMethodHandlesLookup(DexMethod dexMethod, ClassKind<?> classKind) {
+    if (options.shouldDesugarVarHandle()
+        && VarHandleDesugaring.refersToMethodHandlesLookup(dexMethod, getFactory())) {
+      addMethodHandlesLookupWitness(dexMethod.getHolderType(), classKind);
     }
   }
 }

@@ -84,4 +84,9 @@ public class VarHandleDesugaringInstanceIntFieldTest extends VarHandleDesugaring
   protected String getExpectedOutput() {
     return EXPECTED_OUTPUT;
   }
+
+  @Override
+  protected boolean getTestWithDesugaring() {
+    return true;
+  }
 }

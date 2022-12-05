@@ -601,6 +601,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return desugarState.isOn() && !canUseRecords();
   }
 
+  public boolean shouldDesugarVarHandle() {
+    return desugarState.isOn() && !canUseVarHandle() && enableVarHandleDesugaring;
+  }
+
   public Set<String> extensiveLoggingFilter = getExtensiveLoggingFilter();
   public Set<String> extensiveInterfaceMethodMinifierLoggingFilter =
       getExtensiveInterfaceMethodMinifierLoggingFilter();
@@ -622,6 +626,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean enableLoadStoreOptimization = true;
   // Flag to turn on/off desugaring in D8/R8.
   public DesugarState desugarState = DesugarState.ON;
+  // Flag to turn on/off partial VarHandle desugaring.
+  public boolean enableVarHandleDesugaring = false;
   // Flag to turn on/off backport methods.
   public boolean enableBackportMethods = true;
   // Flag to turn on/off reduction of nest to improve class merging optimizations.
@@ -2349,6 +2355,14 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public boolean canUsePrivateInterfaceMethods() {
     return hasFeaturePresentFrom(privateInterfaceMethodsApiLevel());
+  }
+
+  public static AndroidApiLevel varHandleApiLevel() {
+    return AndroidApiLevel.T;
+  }
+
+  public boolean canUseVarHandle() {
+    return hasFeaturePresentFrom(varHandleApiLevel());
   }
 
   public boolean canUseNestBasedAccess() {

@@ -358,5 +358,4 @@ public abstract class MethodGenerationBase extends CodeGenerationBase {
       printer.println("}");
     }
   }
-
 }

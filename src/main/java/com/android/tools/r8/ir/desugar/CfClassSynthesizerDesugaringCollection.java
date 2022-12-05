@@ -10,6 +10,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredL
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterL8Synthesizer;
 import com.android.tools.r8.ir.desugar.itf.ProgramEmulatedInterfaceSynthesizer;
 import com.android.tools.r8.ir.desugar.records.RecordDesugaring;
+import com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaring;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,6 +38,10 @@ public abstract class CfClassSynthesizerDesugaringCollection {
     RecordDesugaring recordRewriter = RecordDesugaring.create(appView);
     if (recordRewriter != null) {
       synthesizers.add(recordRewriter);
+    }
+    VarHandleDesugaring varHandleDesugaring = VarHandleDesugaring.create(appView);
+    if (varHandleDesugaring != null) {
+      synthesizers.add(varHandleDesugaring);
     }
     if (synthesizers.isEmpty()) {
       return new EmptyCfClassSynthesizerCollection();

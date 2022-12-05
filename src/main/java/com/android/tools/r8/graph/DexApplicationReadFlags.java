@@ -12,14 +12,20 @@ public class DexApplicationReadFlags {
   private final boolean hasReadProgramClassFromDex;
   private final boolean hasReadProgramClassFromCf;
   private final Set<DexType> recordWitnesses;
+  private final Set<DexType> varHandleWitnesses;
+  private final Set<DexType> methodHandlesLookupWitnesses;
 
   public DexApplicationReadFlags(
       boolean hasReadProgramClassFromDex,
       boolean hasReadProgramClassFromCf,
-      Set<DexType> recordWitnesses) {
+      Set<DexType> recordWitnesses,
+      Set<DexType> varHandleWitnesses,
+      Set<DexType> methodHandlesLookupWitnesses) {
     this.hasReadProgramClassFromDex = hasReadProgramClassFromDex;
     this.hasReadProgramClassFromCf = hasReadProgramClassFromCf;
     this.recordWitnesses = recordWitnesses;
+    this.varHandleWitnesses = varHandleWitnesses;
+    this.methodHandlesLookupWitnesses = methodHandlesLookupWitnesses;
   }
 
   public boolean hasReadProgramClassFromCf() {
@@ -36,5 +42,13 @@ public class DexApplicationReadFlags {
 
   public Set<DexType> getRecordWitnesses() {
     return recordWitnesses;
+  }
+
+  public boolean hasReadVarHandleReferenceFromProgramClass() {
+    return !varHandleWitnesses.isEmpty();
+  }
+
+  public Set<DexType> getVarHandleWitnesses() {
+    return varHandleWitnesses;
   }
 }

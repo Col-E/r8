@@ -12,6 +12,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -373,6 +375,13 @@ public class StringUtils {
       }
     }
     return string.length();
+  }
+
+  public static String replaceAll(String subject, Map<String, String> map) {
+    for (Entry<String, String> entry : map.entrySet()) {
+      subject = replaceAll(subject, entry.getKey(), entry.getValue());
+    }
+    return subject;
   }
 
   public static String replaceAll(String subject, String target, String replacement) {

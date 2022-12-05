@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -96,9 +97,11 @@ public class GenerateVarHandleMethods extends MethodGenerationBase {
   // TODO(b/261024278): Share this code.
   private class InstructionTypeMapper {
     private final Map<DexType, DexType> typeMap;
+    private final Function<String, String> methodNameMap;
 
-    InstructionTypeMapper(Map<DexType, DexType> typeMap) {
+    InstructionTypeMapper(Map<DexType, DexType> typeMap, Function<String, String> methodNameMap) {
       this.typeMap = typeMap;
+      this.methodNameMap = methodNameMap;
     }
 
     private CfInstruction rewriteInstruction(CfInstruction instruction) {
@@ -124,12 +127,14 @@ public class GenerateVarHandleMethods extends MethodGenerationBase {
       String name = method.getName().toString();
       DexType holderType = invoke.getMethod().getHolderType();
       DexType rewrittenType = typeMap.getOrDefault(holderType, holderType);
+      String rewrittenName =
+          rewrittenType == factory.desugarVarHandleType ? methodNameMap.apply(name) : name;
       if (rewrittenType != holderType) {
         // TODO(b/261024278): If sharing this code also rewrite signature.
         return new CfInvoke(
             invoke.getOpcode(),
             factory.createMethod(
-                rewrittenType, invoke.getMethod().getProto(), factory.createString(name)),
+                rewrittenType, invoke.getMethod().getProto(), factory.createString(rewrittenName)),
             invoke.isInterface());
       }
       return instruction;
@@ -178,7 +183,8 @@ public class GenerateVarHandleMethods extends MethodGenerationBase {
                 factory.desugarVarHandleType,
                 factory.createType(
                     "L" + DesugarVarHandle.class.getTypeName().replace('.', '/') + "$UnsafeStub;"),
-                factory.unsafeType));
+                factory.unsafeType),
+            GenerateVarHandleMethods::mapMethodName);
     code.setInstructions(
         code.getInstructions().stream()
             .map(instructionTypeMapper::rewriteInstruction)
@@ -207,15 +213,18 @@ public class GenerateVarHandleMethods extends MethodGenerationBase {
   @Override
   protected DexEncodedMethod mapMethod(DexEncodedMethod method) {
     // Map VarHandle access mode methods to not have the Int/Long postfix.
+    return methodWithName(method, mapMethodName(method.getName().toString()));
+  }
+
+  private static String mapMethodName(String name) {
     for (String prefix : ImmutableList.of("get", "set", "compareAndSet")) {
-      if (method.getName().startsWith(prefix)) {
-        assert method.getName().toString().substring(prefix.length()).equals("Int")
-            || method.getName().toString().substring(prefix.length()).equals("Long")
-            || method.getName().toString().equals(prefix);
-        return methodWithName(method, prefix);
+      if (name.startsWith(prefix)
+          && (name.substring(prefix.length()).equals("Int")
+              || name.substring(prefix.length()).equals("Long"))) {
+        return prefix;
       }
     }
-    return methodWithName(method, method.getName().toString());
+    return name;
   }
 
   @Test

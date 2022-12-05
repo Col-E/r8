@@ -320,7 +320,9 @@ public class ApplicationReader {
       return new DexApplicationReadFlags(
           hasReadProgramResourceFromDex,
           hasReadProgramResourceFromCf,
-          application.getRecordWitnesses());
+          application.getRecordWitnesses(),
+          application.getVarHandleWitnesses(),
+          application.getMethodHandlesLookupWitnesses());
     }
 
     private void readDexSources(List<ProgramResource> dexSources, Queue<DexProgramClass> classes)

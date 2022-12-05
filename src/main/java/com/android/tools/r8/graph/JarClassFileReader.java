@@ -688,6 +688,8 @@ public class JarClassFileReader<T extends DexClass> {
       FieldAccessFlags flags = createFieldAccessFlags(access);
       DexField dexField = parent.application.getField(parent.type, name, desc);
       parent.application.checkFieldForRecord(dexField, parent.classKind);
+      parent.application.checkFieldForMethodHandlesLookup(dexField, parent.classKind);
+      parent.application.checkFieldForVarHandle(dexField, parent.classKind);
       Wrapper<DexField> signature = FieldSignatureEquivalence.get().wrap(dexField);
       if (parent.fieldSignatures.add(signature)) {
         DexAnnotationSet annotationSet =
@@ -906,6 +908,8 @@ public class JarClassFileReader<T extends DexClass> {
     public void visitEnd() {
       InternalOptions options = parent.application.options;
       parent.application.checkMethodForRecord(method, parent.classKind);
+      parent.application.checkMethodForMethodHandlesLookup(method, parent.classKind);
+      parent.application.checkMethodForVarHandle(method, parent.classKind);
       if (!flags.isAbstract() && !flags.isNative() && classRequiresCode()) {
         code = new LazyCfCode(parent.origin, parent.context, parent.application);
       }

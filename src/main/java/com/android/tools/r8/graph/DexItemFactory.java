@@ -78,6 +78,10 @@ public class DexItemFactory {
   public static final String desugarVarHandleDescriptorString =
       "Lcom/android/tools/r8/DesugarVarHandle;";
   public static final String varHandleDescriptorString = "Ljava/lang/invoke/VarHandle;";
+  public static final String desugarMethodHandlesLookupDescriptorString =
+      "Lcom/android/tools/r8/DesugarMethodHandlesLookup;";
+  public static final String methodHandlesLookupDescriptorString =
+      "Ljava/lang/invoke/MethodHandles$Lookup;";
   public static final String dalvikAnnotationOptimizationPrefixString =
       "Ldalvik/annotation/optimization/";
 
@@ -271,6 +275,9 @@ public class DexItemFactory {
 
   public final DexString varHandleDescriptor = createString(varHandleDescriptorString);
   public final DexString methodHandleDescriptor = createString("Ljava/lang/invoke/MethodHandle;");
+  public final DexString methodHandlesDescriptor = createString("Ljava/lang/invoke/MethodHandles;");
+  public final DexString methodHandlesLookupDescriptor =
+      createString("Ljava/lang/invoke/MethodHandles$Lookup;");
   public final DexString methodTypeDescriptor = createString("Ljava/lang/invoke/MethodType;");
   public final DexString invocationHandlerDescriptor =
       createString("Ljava/lang/reflect/InvocationHandler;");
@@ -353,6 +360,11 @@ public class DexItemFactory {
   public final DexString dalvikAnnotationOptimizationPrefix =
       createString(dalvikAnnotationOptimizationPrefixString);
 
+  // Method names used on VarHandle.
+  public final DexString getString = createString("get");
+  public final DexString setString = createString("set");
+  public final DexString compareAndSetString = createString("compareAndSet");
+
   public final DexType booleanType = createStaticallyKnownType(booleanDescriptor);
   public final DexType byteType = createStaticallyKnownType(byteDescriptor);
   public final DexType charType = createStaticallyKnownType(charDescriptor);
@@ -426,6 +438,9 @@ public class DexItemFactory {
 
   public final DexType varHandleType = createStaticallyKnownType(varHandleDescriptor);
   public final DexType methodHandleType = createStaticallyKnownType(methodHandleDescriptor);
+  public final DexType methodHandlesType = createStaticallyKnownType(methodHandlesDescriptor);
+  public final DexType methodHandlesLookupType =
+      createStaticallyKnownType(methodHandlesLookupDescriptor);
   public final DexType methodTypeType = createStaticallyKnownType(methodTypeDescriptor);
   public final DexType invocationHandlerType =
       createStaticallyKnownType(invocationHandlerDescriptor);
@@ -737,6 +752,8 @@ public class DexItemFactory {
   public final DexType unsafeType = createStaticallyKnownType("Lsun/misc/Unsafe;");
   public final DexType desugarVarHandleType =
       createStaticallyKnownType(desugarVarHandleDescriptorString);
+  public final DexType desugarMethodHandlesLookupType =
+      createStaticallyKnownType(desugarMethodHandlesLookupDescriptorString);
 
   public final ObjectMethodsMembers objectMethodsMembers = new ObjectMethodsMembers();
   public final ServiceLoaderMethods serviceLoaderMethods = new ServiceLoaderMethods();
@@ -1092,7 +1109,8 @@ public class DexItemFactory {
     public final DexMethod put =
         createMethod(androidUtilSparseArrayType, createProto(voidType, intType, objectType), "put");
     public final DexMethod set =
-        createMethod(androidUtilSparseArrayType, createProto(voidType, intType, objectType), "set");
+        createMethod(
+            androidUtilSparseArrayType, createProto(voidType, intType, objectType), setString);
   }
 
   public class BooleanMembers extends BoxedPrimitiveMembers {
@@ -2232,7 +2250,7 @@ public class DexItemFactory {
 
   public class SupplierMembers extends LibraryMembers {
 
-    public final DexMethod get = createMethod(supplierType, createProto(objectType), "get");
+    public final DexMethod get = createMethod(supplierType, createProto(objectType), getString);
 
     private SupplierMembers() {}
   }
@@ -2248,7 +2266,7 @@ public class DexItemFactory {
             "compareAndExchange",
             "compareAndExchangeAcquire",
             "compareAndExchangeRelease",
-            "get",
+            getString,
             "getAcquire",
             "getAndAdd",
             "getAndAddAcquire",
@@ -2269,11 +2287,11 @@ public class DexItemFactory {
             "getVolatile");
 
     private final Set<DexString> varHandleSetMethods =
-        createStrings("set", "setOpaque", "setRelease", "setVolatile");
+        createStrings(setString, "setOpaque", "setRelease", "setVolatile");
 
     private final Set<DexString> varHandleCompareAndSetMethods =
         createStrings(
-            "compareAndSet",
+            compareAndSetString,
             "weakCompareAndSet",
             "weakCompareAndSetAcquire",
             "weakCompareAndSetPlain",
@@ -2298,10 +2316,11 @@ public class DexItemFactory {
       return result;
     }
 
-    private Set<DexString> createStrings(String... strings) {
+    private Set<DexString> createStrings(Object... strings) {
       IdentityHashMap<DexString, DexString> map = new IdentityHashMap<>();
-      for (String string : strings) {
-        DexString dexString = createString(string);
+      for (Object string : strings) {
+        DexString dexString =
+            string instanceof String ? createString((String) string) : (DexString) string;
         map.put(dexString, dexString);
       }
       return map.keySet();

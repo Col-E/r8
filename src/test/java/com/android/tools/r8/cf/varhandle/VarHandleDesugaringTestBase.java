@@ -32,7 +32,9 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
   public static TestParametersCollection data() {
     return getTestParameters()
         .withCfRuntimesStartingFromIncluding(CfVm.JDK9)
-        .withDexRuntimes()
+        // Running on 4.0.4 and 4.4.4 needs to be checked. Output seems correct, but at the
+        // same time there are VFY errors on stderr.
+        .withDexRuntimesStartingFromExcluding(Version.V4_4_4)
         .withAllApiLevels()
         .build();
   }
@@ -47,6 +49,11 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
 
   protected abstract String getExpectedOutput();
 
+  // TODO(b/247076137): Remove this when all tests can run with desugaring.
+  protected boolean getTestWithDesugaring() {
+    return false;
+  }
+
   @Test
   public void testReference() throws Throwable {
     assumeTrue(parameters.isCfRuntime());
@@ -59,34 +66,45 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
   @Test
   public void testD8() throws Throwable {
     assumeTrue(parameters.isDexRuntime());
-    testForD8(parameters.getBackend())
-        // Use android.jar from Android T to get the VarHandle type. This is not strictly needed
-        // to D8 as it does not fail on missing types.
-        // TODO(b/247076137): With desugaring removing VarHandle the type should not be needed in
-        //  the library and any android.jar should work.
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
-        .addProgramClassFileData(ZipUtils.readSingleEntry(VarHandle.jar(), getJarEntry()))
-        .setMinApi(parameters.getApiLevel())
-        .run(parameters.getRuntime(), getMainClass())
-        // TODO(b/247076137): Test should pass on all platforms with desugaring implemented.
-        .applyIf(
-            // VarHandle is available from Android 9, even though it was not a public API until 13.
-            parameters.asDexRuntime().getVersion().isOlderThanOrEqual(Version.V7_0_0),
-            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
-            parameters.getApiLevel().isLessThan(AndroidApiLevel.P)
-                || parameters.asDexRuntime().getVersion().isOlderThanOrEqual(Version.V8_1_0),
-            r -> r.assertFailure(),
-            r -> r.assertSuccessWithOutput(getExpectedOutput()));
+    if (getTestWithDesugaring()) {
+      testForD8(parameters.getBackend())
+          .addProgramClassFileData(ZipUtils.readSingleEntry(VarHandle.jar(), getJarEntry()))
+          .setMinApi(parameters.getApiLevel())
+          .addOptionsModification(options -> options.enableVarHandleDesugaring = true)
+          .run(parameters.getRuntime(), getMainClass())
+          .applyIf(
+              parameters.isDexRuntime()
+                  && parameters.asDexRuntime().getVersion().isOlderThanOrEqual(Version.V4_4_4),
+              // TODO(sgjesse): Running on 4.0.4 and 4.4.4 needs to be checked. Output seems
+              // correct,
+              //  but at the same time there are VFY errors on stderr.
+              r -> r.assertFailureWithErrorThatThrows(NoSuchFieldException.class),
+              r -> r.assertSuccessWithOutput(getExpectedOutput()));
+    } else {
+      testForD8(parameters.getBackend())
+          .addProgramClassFileData(ZipUtils.readSingleEntry(VarHandle.jar(), getJarEntry()))
+          .setMinApi(parameters.getApiLevel())
+          .run(parameters.getRuntime(), getMainClass())
+          .applyIf(
+              // VarHandle is available from Android 9, even though it was not a public API until
+              // 13.
+              parameters.asDexRuntime().getVersion().isOlderThanOrEqual(Version.V7_0_0),
+              r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
+              parameters.getApiLevel().isLessThan(AndroidApiLevel.P)
+                  || parameters.asDexRuntime().getVersion().isOlderThanOrEqual(Version.V8_1_0),
+              r -> r.assertFailure(),
+              r -> r.assertSuccessWithOutput(getExpectedOutput()));
+    }
   }
 
+  // TODO(b/247076137: Also turn on VarHandle desugaring for R8 tests.
   @Test
   public void testR8() throws Throwable {
     testForR8(parameters.getBackend())
         // Use android.jar from Android T to get the VarHandle type.
-        // TODO(b/247076137): With desugaring removing VarHandle the type should not be needed in
-        //  the library and any android.jar should work.
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
         .addProgramClassFileData(ZipUtils.readSingleEntry(VarHandle.jar(), getJarEntry()))
+        .addLibraryFiles()
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(getMainClass())
         .addKeepRules(getKeepRules())

@@ -15,6 +15,55 @@ public final class DesugarVarHandle {
     public long objectFieldOffset(Field f) {
       throw new RuntimeException("Stub called.");
     }
+
+    public boolean compareAndSwapInt(Object obj, long offset, int expectedValue, int newValue) {
+      throw new RuntimeException("Stub called.");
+    }
+
+    public boolean compareAndSwapLong(Object obj, long offset, long expectedValue, long newValue) {
+      throw new RuntimeException("Stub called.");
+    }
+
+    public boolean compareAndSwapObject(
+        Object receiver, long offset, Object expect, Object update) {
+      throw new RuntimeException("Stub called.");
+    }
+
+    public int getInt(Object obj, long offset) {
+      throw new RuntimeException("Stub called.");
+    }
+
+    public void putInt(Object obj, long offset, int newValue) {
+      throw new RuntimeException("Stub called.");
+    }
+
+    public long getLong(Object obj, long offset) {
+      throw new RuntimeException("Stub called.");
+    }
+
+    public void putLong(Object obj, long offset, long newValue) {
+      throw new RuntimeException("Stub called.");
+    }
+
+    public Object getObject(Object receiver, long offset) {
+      throw new RuntimeException("Stub called.");
+    }
+
+    public void putObject(Object obj, long offset, Object newValue) {
+      throw new RuntimeException("Stub called.");
+    }
+
+    public int getIntVolatile(Object obj, long offset) {
+      throw new RuntimeException("Stub called.");
+    }
+
+    public int arrayBaseOffset(Class<?> clazz) {
+      throw new RuntimeException("Stub called.");
+    }
+
+    public int arrayIndexScale(Class<?> clazz) {
+      throw new RuntimeException("Stub called.");
+    }
   }
 
   private final UnsafeStub U;
@@ -33,15 +82,56 @@ public final class DesugarVarHandle {
     this.offset = U.objectFieldOffset(recv.getDeclaredField(name));
   }
 
+  DesugarVarHandle(Class<?> arrayType) throws Exception {
+    Field theUnsafe = UnsafeStub.class.getDeclaredField("theUnsafe");
+    theUnsafe.setAccessible(true);
+    U = (UnsafeStub) theUnsafe.get(null);
+    this.recv = arrayType;
+    this.type = arrayType.getComponentType();
+    this.offset = U.arrayBaseOffset(recv);
+  }
+
+  // Helpers.
+  RuntimeException desugarWrongMethodTypeException() {
+    return new RuntimeException("java.lang.invoke.WrongMethodTypeException");
+  }
+
+  int toIntIfPossible(Object value) {
+    if (value instanceof Integer) {
+      return (Integer) value;
+    }
+    if (value instanceof Byte) {
+      return (Byte) value;
+    }
+    if (value instanceof Character) {
+      return (Character) value;
+    }
+    if (value instanceof Short) {
+      return (Short) value;
+    }
+    throw desugarWrongMethodTypeException();
+  }
+
+  long toLongIfPossible(Object value) {
+    if (value instanceof Long) {
+      return (Long) value;
+    }
+    return toIntIfPossible(value);
+  }
+
   // get variants.
   Object get(Object ct1) {
-    // TODO(b/247076137): Implement.
-    return null;
+    if (type == int.class) {
+      return U.getInt(ct1, offset);
+    }
+    if (type == long.class) {
+      return U.getLong(ct1, offset);
+    }
+    return U.getObject(ct1, offset);
   }
 
   int getInt(Object ct1) {
-    // TODO(b/247076137): Implement.
-    return -1;
+    return U.getInt(ct1, offset);
   }
 
   long getLong(Object ct1) {
@@ -51,29 +141,57 @@ public final class DesugarVarHandle {
 
   // set variants.
   void set(Object ct1, Object newValue) {
-    // TODO(b/247076137): Implement.
+    if (type == int.class) {
+      setInt(ct1, toIntIfPossible(newValue));
+    } else {
+      U.putObject(ct1, offset, newValue);
+    }
   }
 
   void setInt(Object ct1, int newValue) {
-    // TODO(b/247076137): Implement.
+    if (type == int.class) {
+      U.putInt(ct1, offset, newValue);
+    } else if (type == long.class) {
+      U.putLong(ct1, offset, newValue);
+    } else {
+      set(ct1, newValue);
+    }
   }
 
   void setLong(Object ct1, long newValue) {
-    // TODO(b/247076137): Implement.
+    if (type == long.class) {
+      U.putLong(ct1, offset, newValue);
+    } else {
+      throw desugarWrongMethodTypeException();
+    }
   }
 
-  boolean compareAndSet(Object ct1, Object expectedValue, Object newValue) {
-    // TODO(b/247076137): Implement.
-    return false;
+  boolean compareAndSet(Object ct1, Object expetedValue, Object newValue) {
+    if (type == int.class) {
+      return U.compareAndSwapInt(
+          ct1, offset, toIntIfPossible(expetedValue), toIntIfPossible((newValue)));
+    }
+    if (type == long.class) {
+      return U.compareAndSwapLong(
+          ct1, offset, toLongIfPossible(expetedValue), toLongIfPossible((newValue)));
+    }
+    return U.compareAndSwapObject(ct1, offset, expetedValue, newValue);
   }
 
-  boolean compareAndSetInt(Object ct1, int expectedValue, int newValue) {
-    // TODO(b/247076137): Implement.
-    return false;
+  boolean compareAndSetInt(Object ct1, int expetedValue, int newValue) {
+    if (type == int.class) {
+      return U.compareAndSwapInt(ct1, offset, expetedValue, newValue);
+    } else if (type == long.class) {
+      return U.compareAndSwapLong(ct1, offset, expetedValue, newValue);
+    } else {
+      return compareAndSet(ct1, expetedValue, newValue);
+    }
   }
 
-  boolean compareAndSetLong(Object ct1, long expectedValue, long newValue) {
-    // TODO(b/247076137): Implement.
-    return false;
+  boolean compareAndSetLong(Object ct1, long expetedValue, long newValue) {
+    if (type == long.class) {
+      return U.compareAndSwapLong(ct1, offset, expetedValue, newValue);
+    }
+    return compareAndSet(ct1, expetedValue, newValue);
   }
 }

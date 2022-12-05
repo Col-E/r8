@@ -95,6 +95,10 @@ public class DescriptorUtils {
     return internalToDescriptor(typeName, false, false);
   }
 
+  public static String javaClassToDescriptor(Class<?> clazz) {
+    return javaTypeToDescriptor(clazz.getTypeName());
+  }
+
   /**
    * Convert a Java type name to a descriptor string ignoring primitive types.
    *

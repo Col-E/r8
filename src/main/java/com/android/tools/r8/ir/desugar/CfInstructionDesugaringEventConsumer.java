@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.desugar.lambda.LambdaDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.records.RecordDesugaringEventConsumer.RecordInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.twr.TwrCloseResourceDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaringEventConsumer;
 import com.android.tools.r8.shaking.Enqueuer.SyntheticAdditions;
 import com.android.tools.r8.shaking.KeepMethodInfo.Joiner;
 import com.google.common.collect.Sets;
@@ -59,7 +60,8 @@ public abstract class CfInstructionDesugaringEventConsumer
         DesugaredLibraryRetargeterInstructionEventConsumer,
         DesugaredLibraryAPIConverterEventConsumer,
         ClasspathEmulatedInterfaceSynthesizerEventConsumer,
-        ApiInvokeOutlinerDesugaringEventConsumer {
+        ApiInvokeOutlinerDesugaringEventConsumer,
+        VarHandleDesugaringEventConsumer {
 
   public static D8CfInstructionDesugaringEventConsumer createForD8(
       D8MethodProcessor methodProcessor) {
@@ -149,6 +151,11 @@ public abstract class CfInstructionDesugaringEventConsumer
     @Override
     public void acceptRecordClass(DexProgramClass recordClass) {
       methodProcessor.scheduleDesugaredMethodsForProcessing(recordClass.programMethods());
+    }
+
+    @Override
+    public void acceptVarHandleDesugaringClass(DexProgramClass clazz) {
+      methodProcessor.scheduleDesugaredMethodsForProcessing(clazz.programMethods());
     }
 
     @Override
@@ -349,6 +356,11 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptRecordClass(DexProgramClass recordClass) {
+      // Intentionally empty. The class will be hit by tracing if required.
+    }
+
+    @Override
+    public void acceptVarHandleDesugaringClass(DexProgramClass clazz) {
       // Intentionally empty. The class will be hit by tracing if required.
     }
 

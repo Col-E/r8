@@ -5,6 +5,8 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.ImmutableMap;
+import java.util.Map;
 
 public abstract class ApplicationReaderMap {
 
@@ -17,10 +19,14 @@ public abstract class ApplicationReaderMap {
   public abstract DexType getInvertedType(DexType type);
 
   public static ApplicationReaderMap getInstance(InternalOptions options) {
+    ApplicationReaderMap result = new EmptyMap();
     if (options.shouldDesugarRecords() && !options.testing.disableRecordApplicationReaderMap) {
-      return new RecordMap(options.dexItemFactory());
+      result = new RecordMap(options.dexItemFactory());
     }
-    return new EmptyMap();
+    if (options.shouldDesugarVarHandle()) {
+      return new VarHandleMap(result);
+    }
+    return result;
   }
 
   public static class EmptyMap extends ApplicationReaderMap {
@@ -64,6 +70,36 @@ public abstract class ApplicationReaderMap {
     @Override
     public DexType getInvertedType(DexType type) {
       return type == factory.recordType ? factory.recordTagType : type;
+    }
+  }
+
+  public static class VarHandleMap extends ApplicationReaderMap {
+
+    private final ApplicationReaderMap previous;
+    private final Map<String, String> descriptorMap =
+        ImmutableMap.of(
+            DexItemFactory.varHandleDescriptorString,
+            DexItemFactory.desugarVarHandleDescriptorString,
+            DexItemFactory.methodHandlesLookupDescriptorString,
+            DexItemFactory.desugarMethodHandlesLookupDescriptorString);
+
+    public VarHandleMap(ApplicationReaderMap previous) {
+      this.previous = previous;
+    }
+
+    @Override
+    public String getDescriptor(String descriptor) {
+      return previous.getDescriptor(descriptorMap.getOrDefault(descriptor, descriptor));
+    }
+
+    @Override
+    public DexType getType(DexType type) {
+      return type;
+    }
+
+    @Override
+    public DexType getInvertedType(DexType type) {
+      return type;
     }
   }
 }

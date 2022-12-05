@@ -27,6 +27,8 @@ public class SyntheticNaming {
   // Global synthetics.
   public final SyntheticKind RECORD_TAG = generator.forGlobalClass();
   public final SyntheticKind API_MODEL_STUB = generator.forGlobalClass();
+  public final SyntheticKind METHOD_HANDLES_LOOKUP = generator.forGlobalClass();
+  public final SyntheticKind VAR_HANDLE = generator.forGlobalClass();
 
   // Classpath only synthetics in the global type namespace.
   public final SyntheticKind GENERIC_API_CONVERSION_STUB = generator.forGlobalClasspathClass();
@@ -438,7 +440,8 @@ public class SyntheticNaming {
   }
 
   public static boolean verifyNotInternalSynthetic(String typeBinaryNameOrDescriptor) {
-    assert !typeBinaryNameOrDescriptor.contains(INTERNAL_SYNTHETIC_CLASS_SEPARATOR);
+    assert !typeBinaryNameOrDescriptor.contains(INTERNAL_SYNTHETIC_CLASS_SEPARATOR)
+        : typeBinaryNameOrDescriptor;
     return true;
   }
 
