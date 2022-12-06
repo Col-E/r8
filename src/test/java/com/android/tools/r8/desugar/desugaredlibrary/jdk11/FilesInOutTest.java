@@ -51,9 +51,9 @@ public class FilesInOutTest extends DesugaredLibraryTestBase {
           "buffWrite[WRITE]:cwHello!",
           "newByte[WRITE]:c6",
           "inStream[APPEND]:class java.lang.UnsupportedOperationException :: 'APPEND' not allowed",
-          "outStream[APPEND]:%s",
-          "buffWrite[APPEND]:%s",
-          "newByte[APPEND]:%s",
+          "outStream[APPEND]:cwHello!Game over!",
+          "buffWrite[APPEND]:cwHello!",
+          "newByte[APPEND]:c6",
           "inStream[TRUNCATE_EXISTING]:cHello",
           "outStream[TRUNCATE_EXISTING]:cwGame over!",
           "buffWrite[TRUNCATE_EXISTING]:cwclass java.lang.IndexOutOfBoundsException :: index 0,"
@@ -125,11 +125,9 @@ public class FilesInOutTest extends DesugaredLibraryTestBase {
           "outStream[DSYNC]:class java.nio.file.NoSuchFileException :: notExisting",
           "buffWrite[DSYNC]:class java.nio.file.NoSuchFileException :: notExisting",
           "newByte[DSYNC]:class java.nio.file.NoSuchFileException :: notExisting");
+
   private static final String[] EXPECTED_RESULT_NO_DESUGARING =
       new String[] {
-        "cwHello!Game over!",
-        "cwHello!",
-        "c6",
         "cwclass java.nio.file.NoSuchFileException :: example",
         "cwclass java.nio.file.NoSuchFileException :: example",
         "class java.nio.file.NoSuchFileException :: notExisting",
@@ -140,11 +138,6 @@ public class FilesInOutTest extends DesugaredLibraryTestBase {
 
   private static final String[] EXPECTED_RESULT_DESUGARING =
       new String[] {
-        // APPEND not supported.
-        "class java.lang.UnsupportedOperationException :: APPEND not supported below api 26.",
-        "class java.lang.UnsupportedOperationException :: APPEND not supported below api 26.",
-        "class java.lang.UnsupportedOperationException :: APPEND not supported below api 26.",
-        // DELETE_ON_CLOSE not supported.
         "cwGame over!",
         "cwHello!",
         // In some cases the desugaring version raises FileNotFoundException instead of

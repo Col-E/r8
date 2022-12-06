@@ -22,17 +22,6 @@ import java.util.Set;
 
 public class DesugarChannels {
 
-  /** Special conversion for Channel to answer a converted FileChannel if required. */
-  public static Channel convertMaybeLegacyChannelFromLibrary(Channel raw) {
-    if (raw == null) {
-      return null;
-    }
-    if (raw instanceof FileChannel) {
-      return convertMaybeLegacyFileChannelFromLibrary((FileChannel) raw);
-    }
-    return raw;
-  }
-
   /**
    * Below Api 24 FileChannel does not implement SeekableByteChannel. When we get one from the
    * library, we wrap it to implement the interface.
@@ -48,32 +37,41 @@ public class DesugarChannels {
   }
 
   /**
-   * We unwrap when going to the library since we cannot intercept the calls to final methods in the
-   * library.
+   * All FileChannels below 24 are wrapped to support the new interface SeekableByteChannel.
+   * FileChannels between 24 and 26 are wrapped only to improve the emulation of program opened
+   * FileChannels, especially with the append and delete on close options.
    */
-  public static FileChannel convertMaybeLegacyFileChannelToLibrary(FileChannel raw) {
-    if (raw == null) {
-      return null;
-    }
-    if (raw instanceof WrappedFileChannel) {
-      return ((WrappedFileChannel) raw).delegate;
-    }
-    return raw;
-  }
-
   static class WrappedFileChannel extends FileChannel implements SeekableByteChannel {
 
     final FileChannel delegate;
+    final boolean deleteOnClose;
+    final boolean appendMode;
+    final Path path;
 
     public static FileChannel wrap(FileChannel channel) {
       if (channel instanceof WrappedFileChannel) {
         return channel;
       }
-      return new WrappedFileChannel(channel);
+      return new WrappedFileChannel(channel, false, false, null);
     }
 
-    private WrappedFileChannel(FileChannel delegate) {
+    public static FileChannel withExtraOptions(
+        FileChannel channel, Set<? extends OpenOption> options, Path path) {
+      FileChannel raw =
+          channel instanceof WrappedFileChannel ? ((WrappedFileChannel) channel).delegate : channel;
+      return new WrappedFileChannel(
+          raw,
+          options.contains(StandardOpenOption.DELETE_ON_CLOSE),
+          options.contains(StandardOpenOption.APPEND),
+          path);
+    }
+
+    private WrappedFileChannel(
+        FileChannel delegate, boolean deleteOnClose, boolean appendMode, Path path) {
       this.delegate = delegate;
+      this.deleteOnClose = deleteOnClose;
+      this.appendMode = appendMode;
+      this.path = deleteOnClose ? path : null;
     }
 
     @Override
@@ -88,6 +86,9 @@ public class DesugarChannels {
 
     @Override
     public int write(ByteBuffer src) throws IOException {
+      if (appendMode) {
+        return delegate.write(src, size());
+      }
       return delegate.write(src);
     }
 
@@ -148,20 +149,57 @@ public class DesugarChannels {
       return delegate.map(mode, position, size);
     }
 
+    // When using lock or tryLock the extra options are lost.
     @Override
     public FileLock lock(long position, long size, boolean shared) throws IOException {
-      return delegate.lock(position, size, shared);
+      return wrapLock(delegate.lock(position, size, shared));
     }
 
     @Override
     public FileLock tryLock(long position, long size, boolean shared) throws IOException {
-      return delegate.tryLock(position, size, shared);
+      return wrapLock(delegate.tryLock(position, size, shared));
+    }
+
+    private FileLock wrapLock(FileLock lock) {
+      if (lock == null) {
+        return null;
+      }
+      return new WrappedFileChannelFileLock(lock, this);
     }
 
     @Override
     public void implCloseChannel() throws IOException {
       // We cannot call the protected method, this should be effectively equivalent.
       delegate.close();
+      if (deleteOnClose) {
+        Files.deleteIfExists(path);
+      }
+    }
+  }
+
+  /**
+   * The FileLock state is final and duplicated in the wrapper, besides the FileChannel where the
+   * wrapped file channel is used. All methods in FileLock, even channel(), use the duplicated and
+   * corrected state. Only 2 methods require to dispatch to the delegate which is effectively
+   * holding the lock.
+   */
+  static class WrappedFileChannelFileLock extends FileLock {
+
+    private final FileLock delegate;
+
+    WrappedFileChannelFileLock(FileLock delegate, WrappedFileChannel wrappedFileChannel) {
+      super(wrappedFileChannel, delegate.position(), delegate.size(), delegate.isShared());
+      this.delegate = delegate;
+    }
+
+    @Override
+    public boolean isValid() {
+      return delegate.isValid();
+    }
+
+    @Override
+    public void release() throws IOException {
+      delegate.release();
     }
   }
 
@@ -205,15 +243,13 @@ public class DesugarChannels {
       randomAccessFile.setLength(0);
     }
 
-    if (!openOptions.contains(StandardOpenOption.APPEND)) {
+    if (!openOptions.contains(StandardOpenOption.APPEND)
+        && !openOptions.contains(StandardOpenOption.DELETE_ON_CLOSE)) {
       // This one may be retargeted, below 24, to support SeekableByteChannel.
       return randomAccessFile.getChannel();
     }
 
-    // TODO(b/259056135): Consider subclassing UnsupportedOperationException for desugared library.
-    // RandomAccessFile does not support APPEND.
-    // We could hack a wrapper to support APPEND in simple cases such as Files.write().
-    throw new UnsupportedOperationException("APPEND not supported below api 26.");
+    return WrappedFileChannel.withExtraOptions(randomAccessFile.getChannel(), openOptions, path);
   }
 
   private static void validateOpenOptions(Path path, Set<? extends OpenOption> openOptions)

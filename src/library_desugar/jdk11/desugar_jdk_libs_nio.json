@@ -355,12 +355,9 @@
         "java.util.stream.LongStream java.util.stream.Stream#flatMapToLong(java.util.function.Function)": [0, "java.util.function.Function java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.Function)"],
         "java.util.stream.LongStream java.util.stream.LongStream#flatMap(java.util.function.LongFunction)": [0, "java.util.function.LongFunction java.util.stream.FlatMapApiFlips#flipFunctionReturningStream(java.util.function.LongFunction)"],
         "java.lang.Object java.lang.StackWalker#walk(java.util.function.Function)": [0, "java.util.function.Function java.util.stream.StackWalkerApiFlips#flipFunctionStream(java.util.function.Function)"],
-        "java.nio.channels.FileChannel java.nio.channels.FileLock#channel()": [-1, "java.nio.channels.FileChannel java.nio.channels.DesugarChannels#convertMaybeLegacyFileChannelFromLibrary(java.nio.channels.FileChannel)"],
-        "java.nio.channels.Channel java.nio.channels.FileLock#acquiredBy()": [-1, "java.nio.channels.Channel java.nio.channels.DesugarChannels#convertMaybeLegacyChannelFromLibrary(java.nio.channels.Channel)"],
         "java.nio.channels.FileChannel java.io.RandomAccessFile#getChannel()": [-1, "java.nio.channels.FileChannel java.nio.channels.DesugarChannels#convertMaybeLegacyFileChannelFromLibrary(java.nio.channels.FileChannel)"],
         "java.nio.channels.FileChannel java.io.FileInputStream#getChannel()": [-1, "java.nio.channels.FileChannel java.nio.channels.DesugarChannels#convertMaybeLegacyFileChannelFromLibrary(java.nio.channels.FileChannel)"],
-        "java.nio.channels.FileChannel java.io.FileOutputStream#getChannel()": [-1, "java.nio.channels.FileChannel java.nio.channels.DesugarChannels#convertMaybeLegacyFileChannelFromLibrary(java.nio.channels.FileChannel)"],
-        "void java.nio.channels.FileLock#<init>(java.nio.channels.FileChannel,long, long, boolean)": [0, "java.nio.channels.FileChannel java.nio.channels.DesugarChannels#convertMaybeLegacyFileChannelToLibrary(java.nio.channels.FileChannel)"]
+        "java.nio.channels.FileChannel java.io.FileOutputStream#getChannel()": [-1, "java.nio.channels.FileChannel java.nio.channels.DesugarChannels#convertMaybeLegacyFileChannelFromLibrary(java.nio.channels.FileChannel)"]
       },
       "never_outline_api": [
         "java.lang.Object java.lang.StackWalker#walk(java.util.function.Function)"
