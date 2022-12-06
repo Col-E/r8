@@ -83,4 +83,9 @@ public class VarHandleDesugaringInstanceLongFieldTest extends VarHandleDesugarin
   protected String getExpectedOutput() {
     return EXPECTED_OUTPUT;
   }
+
+  @Override
+  protected boolean getTestWithDesugaring() {
+    return true;
+  }
 }

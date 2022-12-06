@@ -135,14 +135,15 @@ public final class DesugarVarHandle {
   }
 
   long getLong(Object ct1) {
-    // TODO(b/247076137): Implement.
-    return -1L;
+    return U.getLong(ct1, offset);
   }
 
   // set variants.
   void set(Object ct1, Object newValue) {
     if (type == int.class) {
       setInt(ct1, toIntIfPossible(newValue));
+    } else if (type == long.class) {
+      setLong(ct1, toLongIfPossible(newValue));
     } else {
       U.putObject(ct1, offset, newValue);
     }

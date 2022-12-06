@@ -1296,10 +1296,32 @@ public final class VarHandleDesugaringMethods {
     CfLabel label1 = new CfLabel();
     return new CfCode(
         method.holder,
-        2,
+        4,
         2,
         ImmutableList.of(
-            label0, new CfConstNumber(-1, ValueType.LONG), new CfReturn(ValueType.LONG), label1),
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInstanceFieldRead(
+                factory.createField(
+                    factory.createType("Lcom/android/tools/r8/DesugarVarHandle;"),
+                    factory.createType("Lsun/misc/Unsafe;"),
+                    factory.createString("U"))),
+            new CfLoad(ValueType.OBJECT, 1),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInstanceFieldRead(
+                factory.createField(
+                    factory.createType("Lcom/android/tools/r8/DesugarVarHandle;"),
+                    factory.longType,
+                    factory.createString("offset"))),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.createType("Lsun/misc/Unsafe;"),
+                    factory.createProto(factory.longType, factory.objectType, factory.longType),
+                    factory.createString("getLong")),
+                false),
+            new CfReturn(ValueType.LONG),
+            label1),
         ImmutableList.of(),
         ImmutableList.of());
   }
@@ -1310,6 +1332,8 @@ public final class VarHandleDesugaringMethods {
     CfLabel label2 = new CfLabel();
     CfLabel label3 = new CfLabel();
     CfLabel label4 = new CfLabel();
+    CfLabel label5 = new CfLabel();
+    CfLabel label6 = new CfLabel();
     return new CfCode(
         method.holder,
         5,
@@ -1347,8 +1371,50 @@ public final class VarHandleDesugaringMethods {
                     factory.createProto(factory.voidType, factory.objectType, factory.intType),
                     factory.createString("set")),
                 false),
-            new CfGoto(label3),
+            new CfGoto(label5),
             label2,
+            new CfFrame(
+                new Int2ObjectAVLTreeMap<>(
+                    new int[] {0, 1, 2},
+                    new FrameType[] {
+                      FrameType.initializedNonNullReference(
+                          factory.createType("Lcom/android/tools/r8/DesugarVarHandle;")),
+                      FrameType.initializedNonNullReference(factory.objectType),
+                      FrameType.initializedNonNullReference(factory.objectType)
+                    })),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInstanceFieldRead(
+                factory.createField(
+                    factory.createType("Lcom/android/tools/r8/DesugarVarHandle;"),
+                    factory.classType,
+                    factory.createString("type"))),
+            new CfStaticFieldRead(
+                factory.createField(
+                    factory.createType("Ljava/lang/Long;"),
+                    factory.classType,
+                    factory.createString("TYPE"))),
+            new CfIfCmp(If.Type.NE, ValueType.OBJECT, label4),
+            label3,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfLoad(ValueType.OBJECT, 1),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfLoad(ValueType.OBJECT, 2),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.createType("Lcom/android/tools/r8/DesugarVarHandle;"),
+                    factory.createProto(factory.longType, factory.objectType),
+                    factory.createString("toLongIfPossible")),
+                false),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.createType("Lcom/android/tools/r8/DesugarVarHandle;"),
+                    factory.createProto(factory.voidType, factory.objectType, factory.longType),
+                    factory.createString("set")),
+                false),
+            new CfGoto(label5),
+            label4,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
@@ -1380,7 +1446,7 @@ public final class VarHandleDesugaringMethods {
                         factory.voidType, factory.objectType, factory.longType, factory.objectType),
                     factory.createString("putObject")),
                 false),
-            label3,
+            label5,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1, 2},
@@ -1391,7 +1457,7 @@ public final class VarHandleDesugaringMethods {
                       FrameType.initializedNonNullReference(factory.objectType)
                     })),
             new CfReturnVoid(),
-            label4),
+            label6),
         ImmutableList.of(),
         ImmutableList.of());
   }
