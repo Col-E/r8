@@ -133,8 +133,8 @@ public class FilesAttributes2Test extends DesugaredLibraryTestBase {
           "symlink:%s",
           "ABSENT FILE",
           "fileStore:class java.lang.SecurityException :: getFileStore",
-          "lastModifiedTime:false",
-          "lastModifiedTime:false",
+          "lastModifiedTime:class java.nio.file.NoSuchFileException :: notExisting.txt",
+          "lastModifiedTime:class java.nio.file.NoSuchFileException :: notExisting.txt",
           "owner:class java.lang.UnsupportedOperationException :: no-message",
           "owner:class java.lang.UnsupportedOperationException :: no-message",
           "posix:class java.lang.UnsupportedOperationException :: no-message",
@@ -149,7 +149,7 @@ public class FilesAttributes2Test extends DesugaredLibraryTestBase {
           "regular:false",
           "same:true",
           "same:false",
-          "symlink:%s");
+          "symlink:false");
 
   private final TestParameters parameters;
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
@@ -195,9 +195,9 @@ public class FilesAttributes2Test extends DesugaredLibraryTestBase {
     }
     if (parameters.getDexRuntimeVersion().isEqualTo(Version.V7_0_0)) {
       // Everything is a symlink on 24.
-      return String.format(EXPECTED_RESULT_ANDROID_DESUGARING, true, true, true);
+      return String.format(EXPECTED_RESULT_ANDROID_DESUGARING, true, true);
     }
-    return String.format(EXPECTED_RESULT_ANDROID_DESUGARING, false, false, false);
+    return String.format(EXPECTED_RESULT_ANDROID_DESUGARING, false, false);
   }
 
   @Test
