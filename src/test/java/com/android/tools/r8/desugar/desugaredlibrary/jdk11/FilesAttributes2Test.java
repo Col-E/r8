@@ -38,10 +38,10 @@ public class FilesAttributes2Test extends DesugaredLibraryTestBase {
           "fileStore:%s",
           "lastModifiedTime:true",
           "lastModifiedTime:true",
-          "owner:true",
-          "owner:true",
-          "posix:true",
-          "posix:true",
+          "owner:%s",
+          "owner:%s",
+          "posix:%s",
+          "posix:%s",
           "dir:false",
           "dir:false",
           "hidden:false",
@@ -52,15 +52,15 @@ public class FilesAttributes2Test extends DesugaredLibraryTestBase {
           "regular:true",
           "same:true",
           "same:false",
-          "symlink:false",
+          "symlink:%s",
           "PRESENT DIR",
           "fileStore:%s",
           "lastModifiedTime:true",
           "lastModifiedTime:true",
-          "owner:true",
-          "owner:true",
-          "posix:true",
-          "posix:true",
+          "owner:%s",
+          "owner:%s",
+          "posix:%s",
+          "posix:%s",
           "dir:true",
           "dir:true",
           "hidden:false",
@@ -71,15 +71,15 @@ public class FilesAttributes2Test extends DesugaredLibraryTestBase {
           "regular:false",
           "same:true",
           "same:false",
-          "symlink:false",
+          "symlink:%s",
           "ABSENT FILE",
           "fileStore:%s",
           "lastModifiedTime:class java.nio.file.NoSuchFileException :: notExisting.txt",
           "lastModifiedTime:class java.nio.file.NoSuchFileException :: notExisting.txt",
-          "owner:class java.nio.file.NoSuchFileException :: notExisting.txt",
-          "owner:class java.nio.file.NoSuchFileException :: notExisting.txt",
-          "posix:class java.nio.file.NoSuchFileException :: notExisting.txt",
-          "posix:class java.nio.file.NoSuchFileException :: notExisting.txt",
+          "owner:%s",
+          "owner:%s",
+          "posix:%s",
+          "posix:%s",
           "dir:false",
           "dir:false",
           "hidden:false",
@@ -90,65 +90,6 @@ public class FilesAttributes2Test extends DesugaredLibraryTestBase {
           "regular:false",
           "same:true",
           "same:class java.nio.file.NoSuchFileException :: notExisting.txt",
-          "symlink:false");
-  private static final String EXPECTED_RESULT_ANDROID_DESUGARING =
-      StringUtils.lines(
-          "PRESENT FILE",
-          "fileStore:class java.lang.SecurityException :: getFileStore",
-          "lastModifiedTime:true",
-          "lastModifiedTime:true",
-          "owner:class java.lang.UnsupportedOperationException :: no-message",
-          "owner:class java.lang.UnsupportedOperationException :: no-message",
-          "posix:class java.lang.UnsupportedOperationException :: no-message",
-          "posix:class java.lang.UnsupportedOperationException :: no-message",
-          "dir:false",
-          "dir:false",
-          "hidden:false",
-          "readable:true",
-          "writable:true",
-          "executable:false",
-          "regular:true",
-          "regular:true",
-          "same:true",
-          "same:false",
-          "symlink:%s",
-          "PRESENT DIR",
-          "fileStore:class java.lang.SecurityException :: getFileStore",
-          "lastModifiedTime:true",
-          "lastModifiedTime:true",
-          "owner:class java.lang.UnsupportedOperationException :: no-message",
-          "owner:class java.lang.UnsupportedOperationException :: no-message",
-          "posix:class java.lang.UnsupportedOperationException :: no-message",
-          "posix:class java.lang.UnsupportedOperationException :: no-message",
-          "dir:true",
-          "dir:true",
-          "hidden:false",
-          "readable:true",
-          "writable:true",
-          "executable:true",
-          "regular:false",
-          "regular:false",
-          "same:true",
-          "same:false",
-          "symlink:%s",
-          "ABSENT FILE",
-          "fileStore:class java.lang.SecurityException :: getFileStore",
-          "lastModifiedTime:class java.nio.file.NoSuchFileException :: notExisting.txt",
-          "lastModifiedTime:class java.nio.file.NoSuchFileException :: notExisting.txt",
-          "owner:class java.lang.UnsupportedOperationException :: no-message",
-          "owner:class java.lang.UnsupportedOperationException :: no-message",
-          "posix:class java.lang.UnsupportedOperationException :: no-message",
-          "posix:class java.lang.UnsupportedOperationException :: no-message",
-          "dir:false",
-          "dir:false",
-          "hidden:false",
-          "readable:false",
-          "writable:false",
-          "executable:false",
-          "regular:false",
-          "regular:false",
-          "same:true",
-          "same:false",
           "symlink:false");
 
   private final TestParameters parameters;
@@ -179,25 +120,43 @@ public class FilesAttributes2Test extends DesugaredLibraryTestBase {
   }
 
   private String getExpectedResult() {
-    if (parameters.isCfRuntime()) {
-      return String.format(
-          EXPECTED_RESULT,
-          "true",
-          "true",
-          "class java.nio.file.NoSuchFileException :: notExisting.txt");
-    }
-    if (libraryDesugaringSpecification.usesPlatformFileSystem(parameters)) {
-      return String.format(
-          EXPECTED_RESULT,
-          "class java.lang.SecurityException :: getFileStore",
-          "class java.lang.SecurityException :: getFileStore",
-          "class java.lang.SecurityException :: getFileStore");
-    }
-    if (parameters.getDexRuntimeVersion().isEqualTo(Version.V7_0_0)) {
-      // Everything is a symlink on 24.
-      return String.format(EXPECTED_RESULT_ANDROID_DESUGARING, true, true);
-    }
-    return String.format(EXPECTED_RESULT_ANDROID_DESUGARING, false, false);
+    // On Android 24, everything seems to be considered a symlink due to canonicalFile being
+    // invalid. It seems it does not reproduce on real device, so this may be an issue from our
+    // test set-up.
+    boolean invalidSymlink =
+        parameters.isDexRuntime() && parameters.getDexRuntimeVersion().isEqualTo(Version.V7_0_0);
+    // On Dex, the security manager is not working in our test set-up.
+    boolean invalidFileStore = parameters.isDexRuntime();
+    // Posix attributes are not available on desugared nio.
+    boolean invalidPosix =
+        parameters.isDexRuntime()
+            && !libraryDesugaringSpecification.usesPlatformFileSystem(parameters);
+
+    String invalidFileStoreString = "class java.lang.SecurityException :: getFileStore";
+    String invalidPosixString = "class java.lang.UnsupportedOperationException :: no-message";
+    String missingFile = "class java.nio.file.NoSuchFileException :: notExisting.txt";
+    String success = "true";
+
+    Object[] vars = {
+      invalidFileStore ? invalidFileStoreString : success,
+      invalidPosix ? invalidPosixString : success,
+      invalidPosix ? invalidPosixString : success,
+      invalidPosix ? invalidPosixString : success,
+      invalidPosix ? invalidPosixString : success,
+      String.valueOf(invalidSymlink),
+      invalidFileStore ? invalidFileStoreString : success,
+      invalidPosix ? invalidPosixString : success,
+      invalidPosix ? invalidPosixString : success,
+      invalidPosix ? invalidPosixString : success,
+      invalidPosix ? invalidPosixString : success,
+      String.valueOf(invalidSymlink),
+      invalidFileStore ? invalidFileStoreString : missingFile,
+      invalidPosix ? invalidPosixString : missingFile,
+      invalidPosix ? invalidPosixString : missingFile,
+      invalidPosix ? invalidPosixString : missingFile,
+      invalidPosix ? invalidPosixString : missingFile,
+    };
+    return String.format(EXPECTED_RESULT, vars);
   }
 
   @Test

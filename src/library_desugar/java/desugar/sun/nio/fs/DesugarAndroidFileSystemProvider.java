@@ -150,4 +150,17 @@ public class DesugarAndroidFileSystemProvider
     }
     return DesugarChannels.openEmulatedFileChannel(path, options, attrs);
   }
+
+  @Override
+  public boolean isSameFile(Path path, Path path2) throws IOException {
+    // If the paths are equals, then it answers true even if they do not exist.
+    if (path.equals(path2)) {
+      return true;
+    }
+    // If the paths are not equal, they could still be equal due to symbolic link and so on, but
+    // in that case accessibility is checked.
+    checkAccess(path);
+    checkAccess(path2);
+    return super.isSameFile(path, path2);
+  }
 }
