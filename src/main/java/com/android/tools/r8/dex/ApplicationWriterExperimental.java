@@ -119,6 +119,9 @@ class ApplicationWriterExperimental extends ApplicationWriter {
       VirtualFile virtualFile = virtualFiles.get(i);
       Timing fileTiming = Timing.create("VirtualFile " + virtualFile.getId(), options);
       assert forcedStrings.size() == 0;
+      if (virtualFile.isEmpty()) {
+        continue;
+      }
       DexContainerSection section =
           writeVirtualFileSection(
               virtualFile,
@@ -146,10 +149,14 @@ class ApplicationWriterExperimental extends ApplicationWriter {
       fileTiming.end();
       timings.add(fileTiming);
     }
-    updateStringIdsSizeAndOffset(dexOutputBuffer, sections);
-
     merger.add(timings);
     merger.end();
+
+    if (sections.isEmpty()) {
+      return;
+    }
+
+    updateStringIdsSizeAndOffset(dexOutputBuffer, sections);
 
     ByteBufferResult result =
         new ByteBufferResult(
@@ -205,9 +212,7 @@ class ApplicationWriterExperimental extends ApplicationWriter {
       int offset,
       DexOutputBuffer outputBuffer,
       boolean last) {
-    if (virtualFile.isEmpty()) {
-      return null;
-    }
+    assert !virtualFile.isEmpty();
     printItemUseInfo(virtualFile);
 
     timing.begin("Reindex for lazy strings");
