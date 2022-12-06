@@ -108,8 +108,7 @@ public class FilesMoveCopyTest extends DesugaredLibraryTestBase {
         // Skip Android 4.4.4 due to missing libjavacrypto.
         getTestParameters()
             .withCfRuntime(CfVm.JDK11)
-            .withDexRuntime(Version.V4_0_4)
-            .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
+            .withDexRuntimesStartingFromIncluding(Version.V8_1_0)
             .withAllApiLevels()
             .build(),
         ImmutableList.of(JDK11_PATH),
