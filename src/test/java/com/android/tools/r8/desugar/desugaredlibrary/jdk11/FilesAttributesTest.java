@@ -173,6 +173,7 @@ public class FilesAttributesTest extends DesugaredLibraryTestBase {
       attributeAccess(path);
       System.out.println("ABSENT FILE");
       Path notExisting = Paths.get("notExisting.txt");
+      Files.deleteIfExists(notExisting);
       attributeViewAccess(notExisting);
       attributeAccess(notExisting);
     }

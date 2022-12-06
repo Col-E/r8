@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
@@ -196,7 +198,10 @@ public class DesugarChannels {
 
     RandomAccessFile randomAccessFile =
         new RandomAccessFile(path.toFile(), getFileAccessModeText(openOptions));
-    if (openOptions.contains(StandardOpenOption.TRUNCATE_EXISTING)) {
+    // TRUNCATE_EXISTING is ignored if the file is not writable.
+    // TRUNCATE_EXISTING is not compatible with APPEND, so we just need to check for WRITE.
+    if (openOptions.contains(StandardOpenOption.TRUNCATE_EXISTING)
+        && openOptions.contains(StandardOpenOption.WRITE)) {
       randomAccessFile.setLength(0);
     }
 
@@ -208,11 +213,22 @@ public class DesugarChannels {
     // TODO(b/259056135): Consider subclassing UnsupportedOperationException for desugared library.
     // RandomAccessFile does not support APPEND.
     // We could hack a wrapper to support APPEND in simple cases such as Files.write().
-    throw new UnsupportedOperationException();
+    throw new UnsupportedOperationException("APPEND not supported below api 26.");
   }
 
   private static void validateOpenOptions(Path path, Set<? extends OpenOption> openOptions)
-      throws NoSuchFileException {
+      throws IOException {
+    if (Files.exists(path)) {
+      if (openOptions.contains(StandardOpenOption.CREATE_NEW)
+          && openOptions.contains(StandardOpenOption.WRITE)) {
+        throw new FileAlreadyExistsException(path.toString());
+      }
+    } else {
+      if (!(openOptions.contains(StandardOpenOption.CREATE)
+          || openOptions.contains(StandardOpenOption.CREATE_NEW))) {
+        throw new NoSuchFileException(path.toString());
+      }
+    }
     // Validations that resemble sun.nio.fs.UnixChannelFactory#newFileChannel.
     if (openOptions.contains(StandardOpenOption.READ)
         && openOptions.contains(StandardOpenOption.APPEND)) {
@@ -222,13 +238,11 @@ public class DesugarChannels {
         && openOptions.contains(StandardOpenOption.TRUNCATE_EXISTING)) {
       throw new IllegalArgumentException("APPEND + TRUNCATE_EXISTING not allowed");
     }
-    if (openOptions.contains(StandardOpenOption.APPEND) && !path.toFile().exists()) {
-      throw new NoSuchFileException(path.toString());
-    }
   }
 
   private static String getFileAccessModeText(Set<? extends OpenOption> options) {
-    if (!options.contains(StandardOpenOption.WRITE)) {
+    if (!options.contains(StandardOpenOption.WRITE)
+        && !options.contains(StandardOpenOption.APPEND)) {
       return "r";
     }
     if (options.contains(StandardOpenOption.SYNC)) {
