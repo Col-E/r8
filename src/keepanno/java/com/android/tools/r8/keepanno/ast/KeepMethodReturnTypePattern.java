@@ -14,6 +14,10 @@ public abstract class KeepMethodReturnTypePattern {
     return VoidType.getInstance();
   }
 
+  public static KeepMethodReturnTypePattern fromType(KeepTypePattern typePattern) {
+    return typePattern.isAny() ? any() : new SomeType(typePattern);
+  }
+
   public boolean isAny() {
     return isType() && asType().isAny();
   }

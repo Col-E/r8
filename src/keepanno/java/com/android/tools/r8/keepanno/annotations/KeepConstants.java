@@ -37,8 +37,16 @@ public final class KeepConstants {
   // Implicit hidden item which is "super type" of Condition and Target.
   public static final class Item {
     public static final String classConstant = "classConstant";
+
     public static final String methodName = "methodName";
+    public static final String methodReturnType = "methodReturnType";
+    public static final String methodParameters = "methodParameters";
+    public static final String methodNameDefaultValue = "";
+    public static final String methodReturnTypeDefaultValue = "";
+    public static final String[] methodParametersDefaultValue = new String[] {"<any>"};
+
     public static final String fieldName = "fieldName";
+    public static final String fieldNameDefaultValue = "";
   }
 
   public static final class Condition {

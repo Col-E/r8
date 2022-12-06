@@ -33,7 +33,7 @@ import java.util.Objects;
  *     ::= any
  *       | class QUALIFIED_CLASS_NAME_PATTERN extends EXTENDS_PATTERN { MEMBER_PATTERN }
  *
- *   TYPE_PATTERN ::= any
+ *   TYPE_PATTERN ::= any | exact type-descriptor
  *   PACKAGE_PATTERN ::= any | exact package-name
  *   QUALIFIED_CLASS_NAME_PATTERN ::= any | PACKAGE_PATTERN | UNQUALIFIED_CLASS_NAME_PATTERN
  *   UNQUALIFIED_CLASS_NAME_PATTERN ::= any | exact simple-class-name

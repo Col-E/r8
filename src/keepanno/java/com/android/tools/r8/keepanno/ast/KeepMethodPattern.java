@@ -35,9 +35,13 @@ public final class KeepMethodPattern extends KeepMemberPattern {
       return self();
     }
 
-    public Builder setReturnTypeVoid() {
-      returnTypePattern = KeepMethodReturnTypePattern.voidType();
+    public Builder setReturnTypePattern(KeepMethodReturnTypePattern returnTypePattern) {
+      this.returnTypePattern = returnTypePattern;
       return self();
+    }
+
+    public Builder setReturnTypeVoid() {
+      return setReturnTypePattern(KeepMethodReturnTypePattern.voidType());
     }
 
     public Builder setParametersPattern(KeepMethodParametersPattern parametersPattern) {

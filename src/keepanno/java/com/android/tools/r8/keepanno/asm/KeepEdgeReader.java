@@ -17,12 +17,19 @@ import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern.Builder;
 import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern;
+import com.android.tools.r8.keepanno.ast.KeepMethodParametersPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodPattern;
+import com.android.tools.r8.keepanno.ast.KeepMethodReturnTypePattern;
 import com.android.tools.r8.keepanno.ast.KeepPreconditions;
 import com.android.tools.r8.keepanno.ast.KeepQualifiedClassNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepTarget;
+import com.android.tools.r8.keepanno.ast.KeepTypePattern;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -115,14 +122,24 @@ public class KeepEdgeReader implements Opcodes {
     }
 
     private KeepItemPattern createItemContext() {
-      Type returnType = Type.getReturnType(methodDescriptor);
+      String returnTypeDescriptor = Type.getReturnType(methodDescriptor).getDescriptor();
       Type[] argumentTypes = Type.getArgumentTypes(methodDescriptor);
-      // TODO(b/248408342): Defaults are "any", support setting actual return type and params.
+      KeepMethodParametersPattern.Builder builder = KeepMethodParametersPattern.builder();
+      for (Type type : argumentTypes) {
+        builder.addParameterTypePattern(KeepTypePattern.fromDescriptor(type.getDescriptor()));
+      }
+      KeepMethodReturnTypePattern returnTypePattern =
+          "V".equals(returnTypeDescriptor)
+              ? KeepMethodReturnTypePattern.voidType()
+              : KeepMethodReturnTypePattern.fromType(
+                  KeepTypePattern.fromDescriptor(returnTypeDescriptor));
       return KeepItemPattern.builder()
           .setClassPattern(KeepQualifiedClassNamePattern.exact(className))
           .setMemberPattern(
               KeepMethodPattern.builder()
                   .setNamePattern(KeepMethodNamePattern.exact(methodName))
+                  .setReturnTypePattern(returnTypePattern)
+                  .setParametersPattern(builder.build())
                   .build())
           .build();
     }
@@ -320,11 +337,31 @@ public class KeepEdgeReader implements Opcodes {
     private final Parent<KeepItemPattern> parent;
 
     private KeepQualifiedClassNamePattern classNamePattern = null;
-    private KeepMethodNamePattern methodName = null;
-    private KeepFieldNamePattern fieldName = null;
+    private KeepMethodPattern.Builder lazyMethodBuilder = null;
+    private KeepFieldPattern.Builder lazyFieldBuilder = null;
 
     public KeepItemVisitorBase(Parent<KeepItemPattern> parent) {
       this.parent = parent;
+    }
+
+    private KeepMethodPattern.Builder methodBuilder() {
+      if (lazyFieldBuilder != null) {
+        throw new KeepEdgeException("Cannot define both a field and a method pattern");
+      }
+      if (lazyMethodBuilder == null) {
+        lazyMethodBuilder = KeepMethodPattern.builder();
+      }
+      return lazyMethodBuilder;
+    }
+
+    private KeepFieldPattern.Builder fieldBuilder() {
+      if (lazyMethodBuilder != null) {
+        throw new KeepEdgeException("Cannot define both a field and a method pattern");
+      }
+      if (lazyFieldBuilder == null) {
+        lazyFieldBuilder = KeepFieldPattern.builder();
+      }
+      return lazyFieldBuilder;
     }
 
     @Override
@@ -334,33 +371,87 @@ public class KeepEdgeReader implements Opcodes {
         return;
       }
       if (name.equals(Item.methodName) && value instanceof String) {
-        methodName = KeepMethodNamePattern.exact((String) value);
+        String methodName = (String) value;
+        if (!Item.methodNameDefaultValue.equals(methodName)) {
+          methodBuilder().setNamePattern(KeepMethodNamePattern.exact(methodName));
+        }
+        return;
+      }
+      if (name.equals(Item.methodReturnType) && value instanceof String) {
+        String returnType = (String) value;
+        if (!Item.methodReturnTypeDefaultValue.equals(returnType)) {
+          methodBuilder()
+              .setReturnTypePattern(KeepEdgeReaderUtils.methodReturnTypeFromString(returnType));
+        }
         return;
       }
       if (name.equals(Item.fieldName) && value instanceof String) {
-        fieldName = KeepFieldNamePattern.exact((String) value);
+        String fieldName = (String) value;
+        if (!Item.fieldNameDefaultValue.equals(fieldName)) {
+          fieldBuilder().setNamePattern(KeepFieldNamePattern.exact(fieldName));
+        }
         return;
       }
       super.visit(name, value);
     }
 
     @Override
+    public AnnotationVisitor visitArray(String name) {
+      if (name.equals(Item.methodParameters)) {
+        return new StringArrayVisitor(
+            params -> {
+              if (Arrays.asList(Item.methodParametersDefaultValue).equals(params)) {
+                return;
+              }
+              KeepMethodParametersPattern.Builder builder = KeepMethodParametersPattern.builder();
+              for (String param : params) {
+                builder.addParameterTypePattern(KeepEdgeReaderUtils.typePatternFromString(param));
+              }
+              methodBuilder().setParametersPattern(builder.build());
+            });
+      }
+      return super.visitArray(name);
+    }
+
+    @Override
     public void visitEnd() {
+      assert lazyMethodBuilder == null || lazyFieldBuilder == null;
       Builder itemBuilder = KeepItemPattern.builder();
       if (classNamePattern != null) {
         itemBuilder.setClassPattern(classNamePattern);
       }
-      if (methodName != null && fieldName != null) {
-        throw new KeepEdgeException("Cannot define both a field and a method pattern.");
+      if (lazyMethodBuilder != null) {
+        itemBuilder.setMemberPattern(lazyMethodBuilder.build());
       }
-      if (methodName != null) {
-        itemBuilder.setMemberPattern(
-            KeepMethodPattern.builder().setNamePattern(methodName).build());
-      }
-      if (fieldName != null) {
-        itemBuilder.setMemberPattern(KeepFieldPattern.builder().setNamePattern(fieldName).build());
+      if (lazyFieldBuilder != null) {
+        itemBuilder.setMemberPattern(lazyFieldBuilder.build());
       }
       parent.accept(itemBuilder.build());
+    }
+  }
+
+  private static class StringArrayVisitor extends AnnotationVisitorBase {
+
+    private final Consumer<List<String>> fn;
+    private final List<String> strings = new ArrayList<>();
+
+    public StringArrayVisitor(Consumer<List<String>> fn) {
+      this.fn = fn;
+    }
+
+    @Override
+    public void visit(String name, Object value) {
+      if (value instanceof String) {
+        strings.add((String) value);
+      } else {
+        super.visit(name, value);
+      }
+    }
+
+    @Override
+    public void visitEnd() {
+      super.visitEnd();
+      fn.accept(strings);
     }
   }
 

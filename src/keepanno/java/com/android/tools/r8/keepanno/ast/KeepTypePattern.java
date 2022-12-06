@@ -9,7 +9,57 @@ public abstract class KeepTypePattern {
     return Any.getInstance();
   }
 
+  public static KeepTypePattern fromDescriptor(String typeDescriptor) {
+    return new Some(typeDescriptor);
+  }
+
+  public boolean isAny() {
+    return false;
+  }
+
+  public String getDescriptor() {
+    return null;
+  }
+
+  private static class Some extends KeepTypePattern {
+
+    private final String descriptor;
+
+    private Some(String descriptor) {
+      assert descriptor != null;
+      this.descriptor = descriptor;
+    }
+
+    @Override
+    public String getDescriptor() {
+      return descriptor;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      Some some = (Some) o;
+      return descriptor.equals(some.descriptor);
+    }
+
+    @Override
+    public int hashCode() {
+      return descriptor.hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return descriptor;
+    }
+  }
+
   private static class Any extends KeepTypePattern {
+
     private static final Any INSTANCE = new Any();
 
     public static Any getInstance() {
@@ -33,9 +83,7 @@ public abstract class KeepTypePattern {
 
     @Override
     public String toString() {
-      return "*";
+      return "<any>";
     }
   }
-
-  public abstract boolean isAny();
 }

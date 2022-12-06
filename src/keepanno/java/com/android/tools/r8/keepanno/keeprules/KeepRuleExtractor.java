@@ -5,6 +5,7 @@ package com.android.tools.r8.keepanno.keeprules;
 
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
+import com.android.tools.r8.keepanno.ast.KeepEdgeException;
 import com.android.tools.r8.keepanno.ast.KeepFieldAccessPattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
@@ -157,7 +158,7 @@ public class KeepRuleExtractor {
         .append('(')
         .append(
             parametersPattern.asList().stream()
-                .map(Object::toString)
+                .map(KeepRuleExtractor::getTypePatternString)
                 .collect(Collectors.joining(", ")))
         .append(')');
   }
@@ -185,10 +186,7 @@ public class KeepRuleExtractor {
   }
 
   private static StringBuilder printType(StringBuilder builder, KeepTypePattern typePattern) {
-    if (typePattern.isAny()) {
-      return builder.append("***");
-    }
-    throw new Unimplemented();
+    return builder.append(getTypePatternString(typePattern));
   }
 
   private static StringBuilder printAccess(
@@ -254,6 +252,70 @@ public class KeepRuleExtractor {
       default:
         throw new Unimplemented();
     }
+  }
+
+  private static String getTypePatternString(KeepTypePattern typePattern) {
+    if (typePattern.isAny()) {
+      return "***";
+    }
+    return descriptorToJavaType(typePattern.getDescriptor());
+  }
+
+  private static String descriptorToJavaType(String descriptor) {
+    if (descriptor.isEmpty()) {
+      throw new KeepEdgeException("Invalid empty type descriptor");
+    }
+    if (descriptor.length() == 1) {
+      return primitiveDescriptorToJavaType(descriptor.charAt(0));
+    }
+    if (descriptor.charAt(0) == '[') {
+      return arrayDescriptorToJavaType(descriptor);
+    }
+    return classDescriptorToJavaType(descriptor);
+  }
+
+  private static String primitiveDescriptorToJavaType(char descriptor) {
+    switch (descriptor) {
+      case 'Z':
+        return "boolean";
+      case 'B':
+        return "byte";
+      case 'S':
+        return "short";
+      case 'I':
+        return "int";
+      case 'J':
+        return "long";
+      case 'F':
+        return "float";
+      case 'D':
+        return "double";
+      default:
+        throw new KeepEdgeException("Invalid primitive descriptor: " + descriptor);
+    }
+  }
+
+  private static String classDescriptorToJavaType(String descriptor) {
+    int last = descriptor.length() - 1;
+    if (descriptor.charAt(0) != 'L' || descriptor.charAt(last) != ';') {
+      throw new KeepEdgeException("Invalid class descriptor: " + descriptor);
+    }
+    return descriptor.substring(1, last).replace('/', '.');
+  }
+
+  private static String arrayDescriptorToJavaType(String descriptor) {
+    for (int i = 0; i < descriptor.length(); i++) {
+      char c = descriptor.charAt(i);
+      if (c != '[') {
+        StringBuilder builder = new StringBuilder();
+        builder.append(descriptorToJavaType(descriptor.substring(i)));
+        for (int j = 0; j < i; j++) {
+          builder.append("[]");
+        }
+        return builder.toString();
+      }
+    }
+    throw new KeepEdgeException("Invalid array descriptor: " + descriptor);
   }
 
   private static class ItemRule {

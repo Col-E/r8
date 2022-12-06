@@ -3,10 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.ast;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
 
 public abstract class KeepMethodParametersPattern {
+
+  public static Builder builder() {
+    return new Builder();
+  }
 
   public static KeepMethodParametersPattern any() {
     return Any.getInstance();
@@ -28,6 +33,25 @@ public abstract class KeepMethodParametersPattern {
 
   public List<KeepTypePattern> asList() {
     return null;
+  }
+
+  public static class Builder {
+    ImmutableList.Builder<KeepTypePattern> parameterPatterns = ImmutableList.builder();
+
+    private Builder() {}
+
+    public Builder addParameterTypePattern(KeepTypePattern typePattern) {
+      parameterPatterns.add(typePattern);
+      return this;
+    }
+
+    public KeepMethodParametersPattern build() {
+      List<KeepTypePattern> list = parameterPatterns.build();
+      if (list.isEmpty()) {
+        return Some.EMPTY_INSTANCE;
+      }
+      return new Some(list);
+    }
   }
 
   private static class Some extends KeepMethodParametersPattern {

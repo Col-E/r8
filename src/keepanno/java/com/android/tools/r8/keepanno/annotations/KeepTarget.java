@@ -17,5 +17,9 @@ public @interface KeepTarget {
 
   String methodName() default "";
 
+  String methodReturnType() default "";
+
+  String[] methodParameters() default {"<any>"};
+
   String fieldName() default "";
 }
