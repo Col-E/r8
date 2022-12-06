@@ -6,6 +6,7 @@ package com.android.tools.r8.cf.varhandle;
 
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.JdkClassFileProvider;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -16,6 +17,10 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.examples.jdk9.VarHandle;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ZipUtils;
+import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -45,7 +50,7 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
     return "";
   }
 
-  protected abstract String getJarEntry();
+  protected abstract List<String> getJarEntries();
 
   protected abstract String getExpectedOutput();
 
@@ -63,12 +68,27 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
         .assertSuccessWithOutput(getExpectedOutput());
   }
 
+  @Nullable
+  private List<byte[]> getProgramClassFileData() {
+    return getJarEntries().stream()
+        .map(
+            name -> {
+              try {
+                return ZipUtils.readSingleEntry(VarHandle.jar(), name);
+              } catch (IOException e) {
+                return null;
+              }
+            })
+        .collect(Collectors.toList());
+  }
+
+  // TODO(b/247076137: Also turn on VarHandle desugaring for R8 tests.
   @Test
   public void testD8() throws Throwable {
     assumeTrue(parameters.isDexRuntime());
     if (getTestWithDesugaring()) {
       testForD8(parameters.getBackend())
-          .addProgramClassFileData(ZipUtils.readSingleEntry(VarHandle.jar(), getJarEntry()))
+          .addProgramClassFileData(getProgramClassFileData())
           .setMinApi(parameters.getApiLevel())
           .addOptionsModification(options -> options.enableVarHandleDesugaring = true)
           .run(parameters.getRuntime(), getMainClass())
@@ -82,7 +102,7 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
               r -> r.assertSuccessWithOutput(getExpectedOutput()));
     } else {
       testForD8(parameters.getBackend())
-          .addProgramClassFileData(ZipUtils.readSingleEntry(VarHandle.jar(), getJarEntry()))
+          .addProgramClassFileData(getProgramClassFileData())
           .setMinApi(parameters.getApiLevel())
           .run(parameters.getRuntime(), getMainClass())
           .applyIf(
@@ -101,10 +121,13 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
   @Test
   public void testR8() throws Throwable {
     testForR8(parameters.getBackend())
-        // Use android.jar from Android T to get the VarHandle type.
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T))
-        .addProgramClassFileData(ZipUtils.readSingleEntry(VarHandle.jar(), getJarEntry()))
-        .addLibraryFiles()
+        .applyIf(
+            parameters.isDexRuntime(),
+            // Use android.jar from Android T to get the VarHandle type.
+            b -> b.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.T)),
+            // Use system JDK to have references types including StringConcatFactory.
+            b -> b.addLibraryProvider(JdkClassFileProvider.fromSystemJdk()))
+        .addProgramClassFileData(getProgramClassFileData())
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(getMainClass())
         .addKeepRules(getKeepRules())
