@@ -96,7 +96,7 @@ public final class DesugarVarHandle {
     return new RuntimeException("java.lang.invoke.WrongMethodTypeException");
   }
 
-  int toIntIfPossible(Object value) {
+  int toIntIfPossible(Object value, boolean forReturnType) {
     if (value instanceof Integer) {
       return (Integer) value;
     }
@@ -109,14 +109,18 @@ public final class DesugarVarHandle {
     if (value instanceof Short) {
       return (Short) value;
     }
-    throw desugarWrongMethodTypeException();
+    if (forReturnType) {
+      throw new ClassCastException();
+    } else {
+      throw desugarWrongMethodTypeException();
+    }
   }
 
-  long toLongIfPossible(Object value) {
+  long toLongIfPossible(Object value, boolean forReturnType) {
     if (value instanceof Long) {
       return (Long) value;
     }
-    return toIntIfPossible(value);
+    return toIntIfPossible(value, forReturnType);
   }
 
   // get variants.
@@ -131,19 +135,31 @@ public final class DesugarVarHandle {
   }
 
   int getInt(Object ct1) {
-    return U.getInt(ct1, offset);
+    if (type == int.class) {
+      return U.getInt(ct1, offset);
+    } else if (type == long.class) {
+      return (int) U.getLong(ct1, offset);
+    } else {
+      return toIntIfPossible(U.getObject(ct1, offset), true);
+    }
   }
 
   long getLong(Object ct1) {
-    return U.getLong(ct1, offset);
+    if (type == long.class) {
+      return U.getLong(ct1, offset);
+    } else if (type == int.class) {
+      return U.getInt(ct1, offset);
+    } else {
+      return toLongIfPossible(U.getObject(ct1, offset), true);
+    }
   }
 
   // set variants.
   void set(Object ct1, Object newValue) {
     if (type == int.class) {
-      setInt(ct1, toIntIfPossible(newValue));
+      setInt(ct1, toIntIfPossible(newValue, false));
     } else if (type == long.class) {
-      setLong(ct1, toLongIfPossible(newValue));
+      setLong(ct1, toLongIfPossible(newValue, false));
     } else {
       U.putObject(ct1, offset, newValue);
     }
@@ -162,37 +178,39 @@ public final class DesugarVarHandle {
   void setLong(Object ct1, long newValue) {
     if (type == long.class) {
       U.putLong(ct1, offset, newValue);
-    } else {
+    } else if (type == int.class) {
       throw desugarWrongMethodTypeException();
+    } else {
+      U.putObject(ct1, offset, Long.valueOf(newValue));
     }
   }
 
-  boolean compareAndSet(Object ct1, Object expetedValue, Object newValue) {
+  boolean compareAndSet(Object ct1, Object expectedValue, Object newValue) {
     if (type == int.class) {
       return U.compareAndSwapInt(
-          ct1, offset, toIntIfPossible(expetedValue), toIntIfPossible((newValue)));
+          ct1, offset, toIntIfPossible(expectedValue, false), toIntIfPossible(newValue, false));
     }
     if (type == long.class) {
       return U.compareAndSwapLong(
-          ct1, offset, toLongIfPossible(expetedValue), toLongIfPossible((newValue)));
+          ct1, offset, toLongIfPossible(expectedValue, false), toLongIfPossible(newValue, false));
     }
-    return U.compareAndSwapObject(ct1, offset, expetedValue, newValue);
+    return U.compareAndSwapObject(ct1, offset, expectedValue, newValue);
   }
 
-  boolean compareAndSetInt(Object ct1, int expetedValue, int newValue) {
+  boolean compareAndSetInt(Object ct1, int expectedValue, int newValue) {
     if (type == int.class) {
-      return U.compareAndSwapInt(ct1, offset, expetedValue, newValue);
+      return U.compareAndSwapInt(ct1, offset, expectedValue, newValue);
     } else if (type == long.class) {
-      return U.compareAndSwapLong(ct1, offset, expetedValue, newValue);
+      return U.compareAndSwapLong(ct1, offset, expectedValue, newValue);
     } else {
-      return compareAndSet(ct1, expetedValue, newValue);
+      return compareAndSet(ct1, expectedValue, newValue);
     }
   }
 
-  boolean compareAndSetLong(Object ct1, long expetedValue, long newValue) {
+  boolean compareAndSetLong(Object ct1, long expectedValue, long newValue) {
     if (type == long.class) {
-      return U.compareAndSwapLong(ct1, offset, expetedValue, newValue);
+      return U.compareAndSwapLong(ct1, offset, expectedValue, newValue);
     }
-    return compareAndSet(ct1, expetedValue, newValue);
+    return compareAndSet(ct1, expectedValue, newValue);
   }
 }

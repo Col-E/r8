@@ -2289,7 +2289,7 @@ public class DexItemFactory {
     private final Set<DexString> varHandleSetMethods =
         createStrings(setString, "setOpaque", "setRelease", "setVolatile");
 
-    private final Set<DexString> varHandleCompareAndSetMethods =
+    public final Set<DexString> varHandleCompareAndSetMethodNames =
         createStrings(
             compareAndSetString,
             "weakCompareAndSet",
@@ -2308,7 +2308,7 @@ public class DexItemFactory {
           result = createMethod(varHandleType, signature, invokeProto.name);
         } else if (varHandleSetMethods.contains(invokeProto.name)) {
           result = createMethod(varHandleType, setSignature, invokeProto.name);
-        } else if (varHandleCompareAndSetMethods.contains(invokeProto.name)) {
+        } else if (varHandleCompareAndSetMethodNames.contains(invokeProto.name)) {
           result = createMethod(varHandleType, compareAndSetSignature, invokeProto.name);
         }
       }
@@ -2333,7 +2333,7 @@ public class DexItemFactory {
       if (invokeProto.holder == varHandleType) {
         return varHandleMethods.contains(invokeProto.name)
             || varHandleSetMethods.contains(invokeProto.name)
-            || varHandleCompareAndSetMethods.contains(invokeProto.name);
+            || varHandleCompareAndSetMethodNames.contains(invokeProto.name);
       }
       return false;
     }

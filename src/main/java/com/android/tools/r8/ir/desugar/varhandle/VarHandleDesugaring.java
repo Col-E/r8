@@ -379,7 +379,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
   }
 
   private DexType objectOrPrimitiveReturnType(DexType type) {
-    return type.isPrimitiveType() || type.isVoidType() ? type : factory.objectType;
+    return isPrimitiveThatIsNotBoxed(type) || type.isVoidType() ? type : factory.objectType;
   }
 
   private DexType objectOrPrimitiveParameterType(DexType type) {
@@ -456,13 +456,23 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
       }
     }
     assert newParameters.size() == proto.parameters.size();
-    // TODO(b/247076137): Also convert return type if reference type and not Object?.
+    DexString name = invoke.getMethod().getName();
     DexProto newProto =
-        factory.createProto(objectOrPrimitiveReturnType(proto.returnType), newParameters);
-    DexMethod newMethod =
-        factory.createMethod(factory.desugarVarHandleType, newProto, invoke.getMethod().getName());
+        factory.createProto(
+            factory.polymorphicMethods.varHandleCompareAndSetMethodNames.contains(name)
+                ? proto.returnType
+                : objectOrPrimitiveReturnType(proto.returnType),
+            newParameters);
+    DexMethod newMethod = factory.createMethod(factory.desugarVarHandleType, newProto, name);
     builder.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, newMethod, false));
-    if (proto.returnType.isClassType()
+    if (proto.returnType.isPrimitiveType() && !newProto.returnType.isPrimitiveType()) {
+      assert proto.returnType.isPrimitiveType();
+      assert newProto.returnType == factory.objectType;
+      builder.add(new CfCheckCast(factory.getBoxedForPrimitiveType(proto.returnType)));
+      builder.add(
+          new CfInvoke(
+              Opcodes.INVOKEVIRTUAL, factory.getUnboxPrimitiveMethod(proto.returnType), false));
+    } else if (proto.returnType.isClassType()
         && proto.returnType != factory.objectType
         && proto.returnType != factory.voidType) {
       builder.add(new CfCheckCast(proto.returnType));

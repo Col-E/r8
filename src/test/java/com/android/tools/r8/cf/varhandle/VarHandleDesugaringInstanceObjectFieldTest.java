@@ -97,7 +97,25 @@ public class VarHandleDesugaringInstanceObjectFieldTest extends VarHandleDesugar
           "8",
           "8",
           "8",
-          "8");
+          "8",
+          "false",
+          "8",
+          "false",
+          "8",
+          "8",
+          "8",
+          "8",
+          "8",
+          "8",
+          "8",
+          "8",
+          "8",
+          "8",
+          "8",
+          "8",
+          "8",
+          "8",
+          "testReturnValueClassCastException");
   private static final String MAIN_CLASS = VarHandle.InstanceObjectField.typeName();
   private static final List<String> JAR_ENTRIES =
       ImmutableList.of(
@@ -119,7 +137,24 @@ public class VarHandleDesugaringInstanceObjectFieldTest extends VarHandleDesugar
   }
 
   @Override
-  protected String getExpectedOutput() {
-    return EXPECTED_OUTPUT;
+  protected String getExpectedOutputForReferenceImplementation() {
+    String expectedOutputWithoutNewLine =
+        EXPECTED_OUTPUT.substring(0, EXPECTED_OUTPUT.length() - 1);
+    return StringUtils.lines(
+        expectedOutputWithoutNewLine, "Reference implementation", "Reference implementation");
+  }
+
+  @Override
+  protected String getExpectedOutputForArtImplementation() {
+    assert parameters.isDexRuntime();
+    String expectedOutputWithoutNewLine =
+        EXPECTED_OUTPUT.substring(0, EXPECTED_OUTPUT.length() - 1);
+    return StringUtils.lines(
+        expectedOutputWithoutNewLine, "Art implementation", "Art implementation");
+  }
+
+  @Override
+  protected boolean getTestWithDesugaring() {
+    return true;
   }
 }

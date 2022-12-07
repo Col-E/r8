@@ -5,6 +5,7 @@ package varhandle;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.lang.invoke.WrongMethodTypeException;
 
 public class InstanceObjectField {
 
@@ -205,6 +206,66 @@ public class InstanceObjectField {
     System.out.println(varHandle.get(instance));
     varHandle.compareAndSet(instance, (short) 8, 9);
     System.out.println(varHandle.get(instance));
+    System.out.println(varHandle.get(instance) == a1);
+    varHandle.compareAndSet(instance, a1, a2);
+    System.out.println(varHandle.get(instance));
+    System.out.println(varHandle.get(instance) == a2);
+
+    varHandle.compareAndSet(instance, a2, 1);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, Integer.valueOf(1), 2);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, Integer.valueOf(2), Integer.valueOf(3));
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, Integer.valueOf(3), 4);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, 4L, 5);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, (byte) 4, 5);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, (short) 4, 5);
+    System.out.println(varHandle.get(instance));
+
+    varHandle.compareAndSet(instance, 4, 5L);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, Long.valueOf(5), 6L);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, Long.valueOf(6), Long.valueOf(7));
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, Long.valueOf(7), 8L);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, 8, 9L);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, (byte) 8, 9);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, (short) 8, 9);
+    System.out.println(varHandle.get(instance));
+  }
+
+  public static void testReturnValueClassCastException(VarHandle varHandle) {
+    System.out.println("testReturnValueClassCastException");
+
+    InstanceObjectField instance = new InstanceObjectField();
+    A a = new A(1);
+
+    varHandle.set(instance, a);
+    try {
+      System.out.println((int) varHandle.get(instance));
+      System.out.println("Expected ClassCastException");
+    } catch (ClassCastException e) {
+      System.out.println("Reference implementation");
+    } catch (WrongMethodTypeException e) {
+      System.out.println("Art implementation");
+    }
+    varHandle.set(instance, a);
+    try {
+      System.out.println((int) (Integer) (int) varHandle.get(instance));
+      System.out.println("Expected ClassCastException");
+    } catch (ClassCastException e) {
+      System.out.println("Reference implementation");
+    } catch (WrongMethodTypeException e) {
+      System.out.println("Art implementation");
+    }
   }
 
   public static void main(String[] args) throws NoSuchFieldException, IllegalAccessException {
@@ -212,5 +273,6 @@ public class InstanceObjectField {
         MethodHandles.lookup().findVarHandle(InstanceObjectField.class, "field", Object.class);
     testSet(varHandle);
     testCompareAndSet(varHandle);
+    testReturnValueClassCastException(varHandle);
   }
 }

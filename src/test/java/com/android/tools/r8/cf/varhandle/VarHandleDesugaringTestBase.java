@@ -20,7 +20,6 @@ import com.android.tools.r8.utils.ZipUtils;
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -52,7 +51,11 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
 
   protected abstract List<String> getJarEntries();
 
-  protected abstract String getExpectedOutput();
+  protected abstract String getExpectedOutputForReferenceImplementation();
+
+  protected String getExpectedOutputForArtImplementation() {
+    return getExpectedOutputForReferenceImplementation();
+  }
 
   // TODO(b/247076137): Remove this when all tests can run with desugaring.
   protected boolean getTestWithDesugaring() {
@@ -65,18 +68,17 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
     testForJvm()
         .addProgramFiles(VarHandle.jar())
         .run(parameters.getRuntime(), getMainClass())
-        .assertSuccessWithOutput(getExpectedOutput());
+        .assertSuccessWithOutput(getExpectedOutputForReferenceImplementation());
   }
 
-  @Nullable
   private List<byte[]> getProgramClassFileData() {
     return getJarEntries().stream()
         .map(
-            name -> {
+            entry -> {
               try {
-                return ZipUtils.readSingleEntry(VarHandle.jar(), name);
+                return ZipUtils.readSingleEntry(VarHandle.jar(), entry);
               } catch (IOException e) {
-                return null;
+                throw new RuntimeException(e);
               }
             })
         .collect(Collectors.toList());
@@ -95,11 +97,17 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
           .applyIf(
               parameters.isDexRuntime()
                   && parameters.asDexRuntime().getVersion().isOlderThanOrEqual(Version.V4_4_4),
-              // TODO(sgjesse): Running on 4.0.4 and 4.4.4 needs to be checked. Output seems
-              // correct,
-              //  but at the same time there are VFY errors on stderr.
+              // TODO(b/247076137): Running on 4.0.4 and 4.4.4 needs to be checked. Output seems
+              // correct, but at the same time there are VFY errors on stderr.
               r -> r.assertFailureWithErrorThatThrows(NoSuchFieldException.class),
-              r -> r.assertSuccessWithOutput(getExpectedOutput()));
+              r ->
+                  r.assertSuccessWithOutput(
+                      parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.T)
+                              && parameters
+                                  .getDexRuntimeVersion()
+                                  .isNewerThanOrEqual(Version.V13_0_0)
+                          ? getExpectedOutputForArtImplementation()
+                          : getExpectedOutputForReferenceImplementation()));
     } else {
       testForD8(parameters.getBackend())
           .addProgramClassFileData(getProgramClassFileData())
@@ -113,7 +121,7 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
               parameters.getApiLevel().isLessThan(AndroidApiLevel.P)
                   || parameters.asDexRuntime().getVersion().isOlderThanOrEqual(Version.V8_1_0),
               r -> r.assertFailure(),
-              r -> r.assertSuccessWithOutput(getExpectedOutput()));
+              r -> r.assertSuccessWithOutput(getExpectedOutputForArtImplementation()));
     }
   }
 
@@ -144,6 +152,10 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
                 && (parameters.getApiLevel().isLessThan(AndroidApiLevel.P)
                     || parameters.asDexRuntime().getVersion().isOlderThanOrEqual(Version.V8_1_0)),
             r -> r.assertFailure(),
-            r -> r.assertSuccessWithOutput(getExpectedOutput()));
+            r ->
+                r.assertSuccessWithOutput(
+                    parameters.isCfRuntime()
+                        ? getExpectedOutputForReferenceImplementation()
+                        : getExpectedOutputForArtImplementation()));
   }
 }

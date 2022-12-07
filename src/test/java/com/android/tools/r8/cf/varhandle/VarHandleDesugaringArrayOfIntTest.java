@@ -30,7 +30,7 @@ public class VarHandleDesugaringArrayOfIntTest extends VarHandleDesugaringTestBa
   }
 
   @Override
-  protected String getExpectedOutput() {
+  protected String getExpectedOutputForReferenceImplementation() {
     return EXPECTED_OUTPUT;
   }
 }

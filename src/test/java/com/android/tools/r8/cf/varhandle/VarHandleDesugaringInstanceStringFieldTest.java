@@ -35,7 +35,7 @@ public class VarHandleDesugaringInstanceStringFieldTest extends VarHandleDesugar
   }
 
   @Override
-  protected String getExpectedOutput() {
+  protected String getExpectedOutputForReferenceImplementation() {
     return EXPECTED_OUTPUT;
   }
 }
