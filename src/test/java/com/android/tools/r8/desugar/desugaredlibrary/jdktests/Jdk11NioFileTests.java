@@ -12,6 +12,7 @@ import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpec
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8SHRINK;
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.D8TestCompileResult;
@@ -27,8 +28,10 @@ import com.android.tools.r8.desugar.desugaredlibrary.test.DesugaredLibraryTestCo
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.transformers.ClassFileTransformer;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -39,6 +42,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Assume;
@@ -74,7 +78,7 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
         // TODO(134732760): Support Dalvik VMs, currently fails because libjavacrypto is required
         // and present only in ART runtimes.
         getTestParameters()
-            .withDexRuntimesStartingFromIncluding(Version.V10_0_0)
+            .withDexRuntimesStartingFromIncluding(Version.V8_1_0)
             .withAllApiLevels()
             .build(),
         specs,
@@ -105,6 +109,16 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
             // Skip module info not used on Android.
             "module-info.java"
           });
+
+  private static final Set<String> EXPECTED_FAILING_CLASSES =
+      ImmutableSet.of(
+          // SecureDirectoryStream is not supported with desugared library, which leads to issues.
+          "DirectoryStreamSecureDS",
+          // Watch services are supported on high apis with desugared library, however, only
+          // equality
+          // and not identity is preserved which fails the tests.
+          "WatchServiceBasic",
+          "WatchServiceSensitivityModifier");
 
   // We distinguish 2 kinds of tests:
   // - Main tests, which are run by running the main method, and succeed if no error is raised.
@@ -272,12 +286,12 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
             .compile()
             .withArt6Plus64BitsLib();
     int success = 0;
-    int failures = 0;
+    List<String> failingClasses = new ArrayList<>();
     for (String mainTestClass : SUCCESSFUL_MAIN_TESTS) {
       SingleTestRunResult<?> run = compileResult.run(parameters.getRuntime(), mainTestClass);
       if (run.getExitCode() != 0) {
         System.out.println("Main Fail " + mainTestClass);
-        failures++;
+        failingClasses.add(mainTestClass);
       } else {
         success++;
       }
@@ -288,17 +302,23 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
               parameters.getRuntime(), "TestNGMainRunner", verbosity, testNGTestClass);
       if (!result.getStdOut().contains(StringUtils.lines(testNGTestClass + ": SUCCESS"))) {
         System.out.println("TestNG Fail " + testNGTestClass);
-        failures++;
+        failingClasses.add(testNGTestClass);
       } else {
         success++;
       }
     }
-    // TODO(b/234689867): Understand and fix these issues.
-    // Most issues seem to come from the missing secure.properties file. This file is not accessed
-    // in all tests on all API levels, hence a different number of failures on each level.
-    System.out.println("Successes :" + success + "; failures " + failures);
-    assertTrue(success >= 11);
-    assertTrue(failures <= 20);
+    System.out.println("Successes:" + success + "; failures:" + failingClasses.size());
+    if (!failingClasses.isEmpty()) {
+      System.out.println("Failing classes: " + failingClasses);
+    }
+    if (parameters.getApiLevel().isLessThan(AndroidApiLevel.O)) {
+      assertEquals(26, success);
+      assertEquals(3, failingClasses.size());
+      assertTrue(failingClasses.containsAll(EXPECTED_FAILING_CLASSES));
+    } else {
+      assertEquals(29, success);
+      assertEquals(0, failingClasses.size());
+    }
   }
 
   @Test

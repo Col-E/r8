@@ -13,4 +13,14 @@ public class WatchEvent<T> {
   public static j$.nio.file.WatchEvent<?> wrap_convert(java.nio.file.WatchEvent<?> option) {
     return null;
   }
+
+  public static java.nio.file.WatchEvent.Kind wrap_convert(j$.nio.file.WatchEvent.Kind kind) {
+    return null;
+  }
+
+  public static j$.nio.file.WatchEvent.Kind wrap_convert(java.nio.file.WatchEvent.Kind kind) {
+    return null;
+  }
+
+  public static interface Kind {}
 }

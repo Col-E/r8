@@ -283,7 +283,8 @@
       },
       "custom_conversion": {
         "java.nio.file.attribute.FileTime": "java.nio.file.attribute.FileAttributeConversions",
-        "java.nio.file.attribute.FileAttribute": "java.nio.file.attribute.FileAttributeConversions"
+        "java.nio.file.attribute.FileAttribute": "java.nio.file.attribute.FileAttributeConversions",
+        "java.nio.file.WatchEvent$Kind": "java.nio.file.WatchEventKindConversions"
       }
     },
     {
@@ -502,35 +503,11 @@
         "sun.misc.DesugarUnsafe": {
           "jdk.internal.misc.Unsafe" : "j$.sun.misc.DesugarUnsafe"
         },
-        "java.nio.file.attribute.": {
-          "j$.nio.file.attribute.": "java.nio.file.attribute."
-        },
-        "java.nio.file.OpenOption": {
-          "j$.nio.file.OpenOption": "java.nio.file.OpenOption"
-        },
-        "java.nio.file.StandardOpenOption": {
-          "j$.nio.file.StandardOpenOption": "java.nio.file.StandardOpenOption"
-        },
-        "java.nio.file.LinkOption": {
-          "j$.nio.file.LinkOption": "java.nio.file.LinkOption"
-        },
-        "java.nio.file.Files": {
-          "j$.nio.file.Files": "java.nio.file.Files"
-        },
-        "java.nio.file.FileSystem": {
-          "j$.nio.file.FileSystem": "java.nio.file.FileSystem"
-        },
-        "java.nio.file.spi.FileSystemProvider": {
-          "j$.nio.file.spi.FileSystemProvider": "java.nio.file.spi.FileSystemProvider"
-        },
-        "java.nio.file.Path": {
-          "j$.nio.file.Path": "java.nio.file.Path"
-        },
         "java.time.": {
           "j$.time.": "java.time."
         },
-        "java.nio.file.WatchEvent": {
-          "j$.nio.file.WatchEvent": "java.nio.file.WatchEvent"
+        "java.nio.file.": {
+          "j$.nio.file.": "java.nio.file."
         }
       },
       "retarget_method": {

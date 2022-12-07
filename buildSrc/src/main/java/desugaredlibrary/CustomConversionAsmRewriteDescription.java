@@ -28,6 +28,7 @@ public class CustomConversionAsmRewriteDescription {
           "j$/nio/file/spi/FileTypeDetector",
           "j$/nio/file/Path",
           "j$/nio/file/WatchEvent",
+          "j$/nio/file/WatchEvent$Kind",
           "j$/nio/file/OpenOption",
           "j$/nio/file/attribute/FileAttribute");
 
