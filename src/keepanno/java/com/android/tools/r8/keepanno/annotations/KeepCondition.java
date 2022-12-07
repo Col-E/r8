@@ -31,5 +31,9 @@ public @interface KeepCondition {
 
   String methodName() default "";
 
+  String methodReturnType() default "";
+
+  String[] methodParameters() default {""};
+
   String fieldName() default "";
 }

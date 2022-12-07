@@ -41,11 +41,16 @@ public final class KeepConstants {
     public static final String methodName = "methodName";
     public static final String methodReturnType = "methodReturnType";
     public static final String methodParameters = "methodParameters";
-    public static final String methodNameDefaultValue = "";
-    public static final String methodReturnTypeDefaultValue = "";
-    public static final String[] methodParametersDefaultValue = new String[] {"<any>"};
 
     public static final String fieldName = "fieldName";
+
+    // Default values for the optional entries. The defaults should be chosen such that they do
+    // not coincide with any actual valid value. E.g., the empty string in place of a name or type.
+    // These must be 1:1 with the value defined on the actual annotation definition.
+    public static final String methodNameDefaultValue = "";
+    public static final String methodReturnTypeDefaultValue = "";
+    public static final String[] methodParametersDefaultValue = new String[] {""};
+
     public static final String fieldNameDefaultValue = "";
   }
 
