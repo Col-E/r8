@@ -78,7 +78,8 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
         // TODO(134732760): Support Dalvik VMs, currently fails because libjavacrypto is required
         // and present only in ART runtimes.
         getTestParameters()
-            .withDexRuntimesStartingFromIncluding(Version.V8_1_0)
+            .withDexRuntime(Version.V4_0_4)
+            .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
             .withAllApiLevels()
             .build(),
         specs,
@@ -110,7 +111,7 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
             "module-info.java"
           });
 
-  private static final Set<String> EXPECTED_FAILING_CLASSES =
+  private static final Set<String> EXPECTED_FAILING_CLASSES_DESUGARING_26 =
       ImmutableSet.of(
           // SecureDirectoryStream is not supported with desugared library, which leads to issues.
           "DirectoryStreamSecureDS",
@@ -311,11 +312,19 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
     if (!failingClasses.isEmpty()) {
       System.out.println("Failing classes: " + failingClasses);
     }
-    if (parameters.getApiLevel().isLessThan(AndroidApiLevel.O)) {
+    if (parameters.getDexRuntimeVersion().isOlderThan(Version.V8_1_0)) {
+      // TODO(b/234689867): DesugaredFileSystemProvider is exercised, fix or understand remaining
+      // failures.
+      int sevenOffset = parameters.getDexRuntimeVersion() == Version.V7_0_0 ? -1 : 0;
+      int shrinkOffset = compilationSpecification.isL8Shrink() ? -1 : 0;
+      assertTrue(success >= 18 + sevenOffset + shrinkOffset);
+    } else if (parameters.getApiLevel().isLessThan(AndroidApiLevel.O)) {
+      // Desugaring high api level.
       assertEquals(26, success);
       assertEquals(3, failingClasses.size());
-      assertTrue(failingClasses.containsAll(EXPECTED_FAILING_CLASSES));
+      assertTrue(failingClasses.containsAll(EXPECTED_FAILING_CLASSES_DESUGARING_26));
     } else {
+      // No desugaring or partial desugaring, high api level.
       assertEquals(29, success);
       assertEquals(0, failingClasses.size());
     }
