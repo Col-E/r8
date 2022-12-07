@@ -36,4 +36,6 @@ public @interface KeepTarget {
   String[] methodParameters() default {""};
 
   String fieldName() default "";
+
+  String fieldType() default "";
 }

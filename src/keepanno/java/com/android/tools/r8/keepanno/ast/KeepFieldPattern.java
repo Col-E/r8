@@ -14,7 +14,7 @@ public final class KeepFieldPattern extends KeepMemberPattern {
   public static class Builder {
 
     private KeepFieldAccessPattern accessPattern = KeepFieldAccessPattern.any();
-    private KeepFieldNamePattern namePattern = null;
+    private KeepFieldNamePattern namePattern = KeepFieldNamePattern.any();
     private KeepFieldTypePattern typePattern = KeepFieldTypePattern.any();
 
     private Builder() {}
@@ -39,9 +39,6 @@ public final class KeepFieldPattern extends KeepMemberPattern {
     }
 
     public KeepFieldPattern build() {
-      if (namePattern == null) {
-        throw new KeepEdgeException("Field pattern must declare a name pattern");
-      }
       return new KeepFieldPattern(accessPattern, namePattern, typePattern);
     }
   }

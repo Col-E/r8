@@ -43,6 +43,7 @@ public final class KeepConstants {
     public static final String methodParameters = "methodParameters";
 
     public static final String fieldName = "fieldName";
+    public static final String fieldType = "fieldType";
 
     // Default values for the optional entries. The defaults should be chosen such that they do
     // not coincide with any actual valid value. E.g., the empty string in place of a name or type.
@@ -52,6 +53,7 @@ public final class KeepConstants {
     public static final String[] methodParametersDefaultValue = new String[] {""};
 
     public static final String fieldNameDefaultValue = "";
+    public static final String fieldTypeDefaultValue = "";
   }
 
   public static final class Condition {

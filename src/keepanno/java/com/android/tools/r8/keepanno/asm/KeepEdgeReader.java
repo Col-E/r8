@@ -395,6 +395,16 @@ public class KeepEdgeReader implements Opcodes {
         }
         return;
       }
+      if (name.equals(Item.fieldType) && value instanceof String) {
+        String fieldType = (String) value;
+        if (!Item.fieldTypeDefaultValue.equals(fieldType)) {
+          fieldBuilder()
+              .setTypePattern(
+                  KeepFieldTypePattern.fromType(
+                      KeepEdgeReaderUtils.typePatternFromString(fieldType)));
+        }
+        return;
+      }
       super.visit(name, value);
     }
 

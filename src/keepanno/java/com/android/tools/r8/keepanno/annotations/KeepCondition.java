@@ -36,4 +36,6 @@ public @interface KeepCondition {
   String[] methodParameters() default {""};
 
   String fieldName() default "";
+
+  String fieldType() default "";
 }
