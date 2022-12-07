@@ -1494,7 +1494,7 @@ public class ClassFileTransformer {
           @Override
           public FieldVisitor visitField(
               int access, String name, String descriptor, String signature, Object value) {
-            FieldVisitor fv = visitField(access, name, descriptor, signature, value);
+            FieldVisitor fv = super.visitField(access, name, descriptor, signature, value);
             return new FieldVisitor(ASM_VERSION, fv) {
               @Override
               public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {

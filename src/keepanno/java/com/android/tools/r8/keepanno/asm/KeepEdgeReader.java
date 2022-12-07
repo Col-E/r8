@@ -14,6 +14,7 @@ import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
 import com.android.tools.r8.keepanno.ast.KeepFieldNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
+import com.android.tools.r8.keepanno.ast.KeepFieldTypePattern;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern.Builder;
 import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern;
@@ -176,12 +177,14 @@ public class KeepEdgeReader implements Opcodes {
     }
 
     private KeepItemPattern createItemContext() {
-      // TODO(b/248408342): Default type is "any", support setting actual field type.
+      KeepFieldTypePattern typePattern =
+          KeepFieldTypePattern.fromType(KeepTypePattern.fromDescriptor(fieldDescriptor));
       return KeepItemPattern.builder()
           .setClassPattern(KeepQualifiedClassNamePattern.exact(className))
           .setMemberPattern(
               KeepFieldPattern.builder()
                   .setNamePattern(KeepFieldNamePattern.exact(fieldName))
+                  .setTypePattern(typePattern)
                   .build())
           .build();
     }

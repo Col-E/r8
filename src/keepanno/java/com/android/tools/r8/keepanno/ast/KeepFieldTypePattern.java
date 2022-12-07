@@ -9,6 +9,10 @@ public abstract class KeepFieldTypePattern {
     return SomeType.ANY_TYPE_INSTANCE;
   }
 
+  public static KeepFieldTypePattern fromType(KeepTypePattern typePattern) {
+    return typePattern.isAny() ? any() : new SomeType(typePattern);
+  }
+
   public boolean isAny() {
     return isType() && asType().isAny();
   }
