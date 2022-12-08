@@ -10,8 +10,10 @@ import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.synthesis.SyntheticNaming.Phase;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 import org.hamcrest.Matcher;
 
@@ -51,6 +53,24 @@ public class SyntheticItemsTestUtils {
         originalMethod.getMethodDescriptor());
   }
 
+  public static MethodReference syntheticBackportWithForwardingMethod(
+      ClassReference clazz, int id, MethodReference method) {
+    // For backports with forwarding the backported method is not static, so the original method
+    // signature has the receiver type pre-pended.
+    ImmutableList.Builder<TypeReference> builder = ImmutableList.builder();
+    builder.add(method.getHolderClass()).addAll(method.getFormalTypes());
+    MethodReference methodWithReceiverForForwarding =
+        Reference.method(
+            method.getHolderClass(),
+            method.getMethodName(),
+            builder.build(),
+            method.getReturnType());
+    return Reference.methodFromDescriptor(
+        syntheticBackportWithForwardingClass(clazz, id),
+        syntheticMethodName(),
+        methodWithReceiverForForwarding.getMethodDescriptor());
+  }
+
   public static ClassReference syntheticOutlineClass(Class<?> clazz, int id) {
     return syntheticClass(clazz, naming.OUTLINE, id);
   }
@@ -83,6 +103,11 @@ public class SyntheticItemsTestUtils {
 
   public static ClassReference syntheticBackportClass(ClassReference classReference, int id) {
     return syntheticClass(classReference, naming.BACKPORT, id);
+  }
+
+  public static ClassReference syntheticBackportWithForwardingClass(
+      ClassReference classReference, int id) {
+    return syntheticClass(classReference, naming.BACKPORT_WITH_FORWARDING, id);
   }
 
   public static ClassReference syntheticTwrCloseResourceClass(Class<?> clazz, int id) {

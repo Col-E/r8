@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.cf.varhandle;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.JdkClassFileProvider;
@@ -15,8 +18,17 @@ import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.examples.jdk9.VarHandle;
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.ZipUtils;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -84,6 +96,85 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
         .collect(Collectors.toList());
   }
 
+  private boolean willDesugarVarHandle() {
+    return parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.T);
+  }
+
+  private void inspect(CodeInspector inspector) {
+    IntBox unsafeCompareAndSwapInt = new IntBox();
+    IntBox unsafeCompareAndSwapLong = new IntBox();
+    IntBox unsafeCompareAndSwapObject = new IntBox();
+    DexString compareAndSwapInt = inspector.getFactory().createString("compareAndSwapInt");
+    DexString compareAndSwapLong = inspector.getFactory().createString("compareAndSwapLong");
+    DexString compareAndSwapObject = inspector.getFactory().createString("compareAndSwapObject");
+    // Right now we only expect one backport coming out of DesugarVarHandle - the backport with
+    // forwarding of Unsafe.compareAndSwapObject.
+    MethodReference firstBackportFromDesugarVarHandle =
+        SyntheticItemsTestUtils.syntheticBackportWithForwardingMethod(
+            Reference.classFromDescriptor(DexItemFactory.desugarVarHandleDescriptorString),
+            0,
+            Reference.method(
+                Reference.classFromDescriptor("Lsun/misc/Unsafe;"),
+                "compareAndSwapObject",
+                ImmutableList.of(
+                    Reference.typeFromDescriptor("Ljava/lang/Object;"),
+                    Reference.LONG,
+                    Reference.typeFromDescriptor("Ljava/lang/Object;"),
+                    Reference.typeFromDescriptor("Ljava/lang/Object;")),
+                Reference.BOOL));
+    inspector.forAllClasses(
+        clazz -> {
+          clazz.forAllMethods(
+              method -> {
+                method
+                    .instructions()
+                    .forEach(
+                        instruction -> {
+                          if (instruction.isInvoke()) {
+                            DexMethod target = instruction.getMethod();
+                            if (target.getHolderType() == inspector.getFactory().unsafeType) {
+                              if (target.getName() == compareAndSwapInt
+                                  || target.getName() == compareAndSwapLong) {
+                                // All compareAndSwapInt and compareAndSwapLong stay on
+                                // DesugarVarHandle.
+                                assertSame(
+                                    clazz.getDexProgramClass().getType(),
+                                    inspector.getFactory().desugarVarHandleType);
+                                unsafeCompareAndSwapInt.incrementIf(
+                                    target.getName() == compareAndSwapInt);
+                                unsafeCompareAndSwapLong.incrementIf(
+                                    target.getName() == compareAndSwapLong);
+                              } else if (target.getName() == compareAndSwapObject) {
+                                // compareAndSwapObject is not on DesugarVarHandle - it must be
+                                // backported.
+                                assertNotSame(
+                                    clazz.getDexProgramClass().getType(),
+                                    inspector.getFactory().desugarVarHandleType);
+                                assertEquals(
+                                    clazz.getFinalReference(),
+                                    firstBackportFromDesugarVarHandle.getHolderClass());
+                                assertEquals(1, clazz.allMethods().size());
+                                assertEquals(
+                                    firstBackportFromDesugarVarHandle,
+                                    clazz.allMethods().iterator().next().getFinalReference());
+                                unsafeCompareAndSwapObject.increment();
+                              }
+                            }
+                          }
+                        });
+              });
+        });
+    if (willDesugarVarHandle()) {
+      assertEquals(2, unsafeCompareAndSwapInt.get());
+      assertEquals(3, unsafeCompareAndSwapLong.get());
+      assertEquals(1, unsafeCompareAndSwapObject.get());
+    } else {
+      assertEquals(0, unsafeCompareAndSwapInt.get());
+      assertEquals(0, unsafeCompareAndSwapLong.get());
+      assertEquals(0, unsafeCompareAndSwapObject.get());
+    }
+  }
+
   // TODO(b/247076137: Also turn on VarHandle desugaring for R8 tests.
   @Test
   public void testD8() throws Throwable {
@@ -107,7 +198,8 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
                                   .getDexRuntimeVersion()
                                   .isNewerThanOrEqual(Version.V13_0_0)
                           ? getExpectedOutputForArtImplementation()
-                          : getExpectedOutputForReferenceImplementation()));
+                          : getExpectedOutputForReferenceImplementation()))
+          .inspect(this::inspect);
     } else {
       testForD8(parameters.getBackend())
           .addProgramClassFileData(getProgramClassFileData())

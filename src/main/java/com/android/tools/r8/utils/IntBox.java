@@ -48,6 +48,12 @@ public class IntBox {
     increment(1);
   }
 
+  public void incrementIf(boolean value) {
+    if (value) {
+      increment();
+    }
+  }
+
   public void increment(int i) {
     assert i >= 0;
     value += i;
