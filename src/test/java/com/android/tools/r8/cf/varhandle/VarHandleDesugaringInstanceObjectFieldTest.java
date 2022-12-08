@@ -138,19 +138,14 @@ public class VarHandleDesugaringInstanceObjectFieldTest extends VarHandleDesugar
 
   @Override
   protected String getExpectedOutputForReferenceImplementation() {
-    String expectedOutputWithoutNewLine =
-        EXPECTED_OUTPUT.substring(0, EXPECTED_OUTPUT.length() - 1);
     return StringUtils.lines(
-        expectedOutputWithoutNewLine, "Reference implementation", "Reference implementation");
+        EXPECTED_OUTPUT.trim(), "Reference implementation", "Reference implementation");
   }
 
   @Override
   protected String getExpectedOutputForArtImplementation() {
     assert parameters.isDexRuntime();
-    String expectedOutputWithoutNewLine =
-        EXPECTED_OUTPUT.substring(0, EXPECTED_OUTPUT.length() - 1);
-    return StringUtils.lines(
-        expectedOutputWithoutNewLine, "Art implementation", "Art implementation");
+    return StringUtils.lines(EXPECTED_OUTPUT.trim(), "Art implementation", "Art implementation");
   }
 
   @Override
