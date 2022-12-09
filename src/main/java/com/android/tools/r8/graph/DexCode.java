@@ -279,7 +279,8 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
   }
 
   @Override
-  public Code getCodeAsInlining(DexMethod caller, DexMethod callee, DexItemFactory factory) {
+  public Code getCodeAsInlining(
+      DexMethod caller, DexMethod callee, DexItemFactory factory, boolean isCalleeD8R8Synthesized) {
     return new DexCode(
         registerSize,
         incomingRegisterSize,
@@ -287,11 +288,11 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
         instructions,
         tries,
         handlers,
-        debugInfoAsInlining(caller, callee, factory));
+        debugInfoAsInlining(caller, callee, isCalleeD8R8Synthesized, factory));
   }
 
   private DexDebugInfo debugInfoAsInlining(
-      DexMethod caller, DexMethod callee, DexItemFactory factory) {
+      DexMethod caller, DexMethod callee, boolean isCalleeD8R8Synthesized, DexItemFactory factory) {
     Position callerPosition = SyntheticPosition.builder().setLine(0).setMethod(caller).build();
     EventBasedDebugInfo eventBasedInfo = DexDebugInfo.convertToEventBased(this, factory);
     if (eventBasedInfo == null) {
@@ -299,11 +300,13 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       // This is consistent with the building IR for inlining which will always ensure the method
       // has a position.
       Position preamblePosition =
-          SyntheticPosition.builder()
-              .setMethod(callee)
-              .setCallerPosition(callerPosition)
-              .setLine(0)
-              .build();
+          isCalleeD8R8Synthesized
+              ? callerPosition
+              : SyntheticPosition.builder()
+                  .setMethod(callee)
+                  .setCallerPosition(callerPosition)
+                  .setLine(0)
+                  .build();
       return new EventBasedDebugInfo(
           0,
           new DexString[callee.getArity()],
@@ -321,14 +324,17 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
     int i = 0;
     newEvents[i++] =
         new SetPositionFrame(
-            frameBuilder.setMethod(callee).setCallerPosition(callerPosition).build());
+            isCalleeD8R8Synthesized
+                ? callerPosition
+                : frameBuilder.setMethod(callee).setCallerPosition(callerPosition).build());
     for (DexDebugEvent event : oldEvents) {
       if (event instanceof SetPositionFrame) {
         SetPositionFrame oldFrame = (SetPositionFrame) event;
         assert oldFrame.getPosition() != null;
         newEvents[i++] =
             new SetPositionFrame(
-                oldFrame.getPosition().withOutermostCallerPosition(callerPosition));
+                newInlineePosition(
+                    callerPosition, oldFrame.getPosition(), isCalleeD8R8Synthesized));
       } else {
         newEvents[i++] = event;
       }

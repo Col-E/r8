@@ -898,7 +898,8 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
   }
 
   @Override
-  public Code getCodeAsInlining(DexMethod caller, DexMethod callee, DexItemFactory factory) {
+  public Code getCodeAsInlining(
+      DexMethod caller, DexMethod callee, DexItemFactory factory, boolean isCalleeD8R8Synthesized) {
     Position callerPosition = SyntheticPosition.builder().setLine(0).setMethod(caller).build();
     List<CfInstruction> newInstructions = new ArrayList<>(instructions.size() + 2);
     CfLabel firstLabel;
@@ -916,15 +917,18 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
         newInstructions.add(
             new CfPosition(
                 oldPosition.getLabel(),
-                oldPosition.getPosition().withOutermostCallerPosition(callerPosition)));
+                newInlineePosition(
+                    callerPosition, oldPosition.getPosition(), isCalleeD8R8Synthesized)));
       } else {
         if (!instruction.isLabel() && !seenPosition) {
           Position preamblePosition =
-              SyntheticPosition.builder()
-                  .setMethod(callee)
-                  .setCallerPosition(callerPosition)
-                  .setLine(0)
-                  .build();
+              isCalleeD8R8Synthesized
+                  ? callerPosition
+                  : SyntheticPosition.builder()
+                      .setMethod(callee)
+                      .setCallerPosition(callerPosition)
+                      .setLine(0)
+                      .build();
           newInstructions.add(new CfPosition(firstLabel, preamblePosition));
           seenPosition = true;
         }

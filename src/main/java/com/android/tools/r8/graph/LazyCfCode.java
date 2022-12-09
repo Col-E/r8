@@ -175,7 +175,7 @@ public class LazyCfCode extends Code {
   }
 
   @Override
-  public Code getCodeAsInlining(DexMethod caller, DexMethod callee, DexItemFactory factory) {
+  public Code getCodeAsInlining(DexMethod caller, DexEncodedMethod callee, DexItemFactory factory) {
     return asCfCode().getCodeAsInlining(caller, callee, factory);
   }
 

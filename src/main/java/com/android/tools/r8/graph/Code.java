@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.PositionBuilder;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
@@ -176,7 +177,35 @@ public abstract class Code extends CachedHashValueDexItem {
     return true;
   }
 
-  public Code getCodeAsInlining(DexMethod caller, DexMethod callee, DexItemFactory factory) {
+  public Code getCodeAsInlining(DexMethod caller, DexEncodedMethod callee, DexItemFactory factory) {
+    return getCodeAsInlining(caller, callee.getReference(), factory, callee.isD8R8Synthesized());
+  }
+
+  public Code getCodeAsInlining(
+      DexMethod caller, DexMethod callee, DexItemFactory factory, boolean isCalleeD8R8Synthesized) {
     throw new Unreachable();
+  }
+
+  public Position newInlineePosition(
+      Position callerPosition, Position oldPosition, boolean isCalleeD8R8Synthesized) {
+    Position outermostCaller = oldPosition.getOutermostCaller();
+    if (!isCalleeD8R8Synthesized) {
+      return oldPosition.withOutermostCallerPosition(callerPosition);
+    }
+    // We can replace the position since the callee was synthesized by the compiler, however, if
+    // the position carries special information we need to copy it.
+    if (!outermostCaller.isOutline() && !outermostCaller.isRemoveInnerFramesIfThrowingNpe()) {
+      return oldPosition.replacePosition(outermostCaller, callerPosition);
+    }
+    assert !callerPosition.isOutline();
+    PositionBuilder<?, ?> positionBuilder =
+        outermostCaller
+            .builderWithCopy()
+            .setMethod(callerPosition.getMethod())
+            .setLine(callerPosition.getLine());
+    if (callerPosition.isRemoveInnerFramesIfThrowingNpe()) {
+      positionBuilder.setRemoveInnerFramesIfThrowingNpe(true);
+    }
+    return oldPosition.replacePosition(outermostCaller, positionBuilder.build());
   }
 }
