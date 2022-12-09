@@ -248,7 +248,7 @@ public class MappedPositionToClassNameMapperBuilder {
                   m, key -> MethodSignature.fromDexMethod(m, m.holder != clazz.getType()));
 
       // Check if mapped position is an outline
-      DexMethod outlineMethod = getOutlineMethod(mappedPositions.get(0));
+      DexMethod outlineMethod = getOutlineMethod(mappedPositions.get(0).getPosition());
       if (outlineMethod != null) {
         outlinesToFix
             .computeIfAbsent(
@@ -261,38 +261,48 @@ public class MappedPositionToClassNameMapperBuilder {
       // Update memberNaming with the collected positions, merging multiple positions into a
       // single region whenever possible.
       for (int i = 0; i < mappedPositions.size(); /* updated in body */ ) {
-        MappedPosition firstPosition = mappedPositions.get(i);
+        MappedPosition firstMappedPosition = mappedPositions.get(i);
         int j = i + 1;
-        MappedPosition lastPosition = firstPosition;
+        MappedPosition lastMappedPosition = firstMappedPosition;
         MappedPositionRange mappedPositionRange = MappedPositionRange.SINGLE_LINE;
         for (; j < mappedPositions.size(); j++) {
           // Break if this position cannot be merged with lastPosition.
-          MappedPosition currentPosition = mappedPositions.get(j);
+          MappedPosition currentMappedPosition = mappedPositions.get(j);
           mappedPositionRange =
-              mappedPositionRange.canAddNextMappingToRange(lastPosition, currentPosition);
+              mappedPositionRange.canAddNextMappingToRange(
+                  lastMappedPosition, currentMappedPosition);
           // Note that currentPosition.caller and lastPosition.class must be deep-compared since
           // multiple inlining passes lose the canonical property of the positions.
+          Position currentPosition = currentMappedPosition.getPosition();
+          Position lastPosition = lastMappedPosition.getPosition();
           if (currentPosition.getMethod() != lastPosition.getMethod()
               || mappedPositionRange.isOutOfRange()
-              || !Objects.equals(currentPosition.getCaller(), lastPosition.getCaller())
+              || !Objects.equals(
+                  currentPosition.getCallerPosition(), lastPosition.getCallerPosition())
               // Break when we see a mapped outline
               || currentPosition.getOutlineCallee() != null
               // Ensure that we break when we start iterating with an outline caller again.
-              || firstPosition.getOutlineCallee() != null) {
+              || firstMappedPosition.getPosition().getOutlineCallee() != null) {
             break;
           }
           // The mapped positions are not guaranteed to be in order, so maintain first and last
           // position.
-          if (firstPosition.getObfuscatedLine() > currentPosition.getObfuscatedLine()) {
-            firstPosition = currentPosition;
+          if (firstMappedPosition.getObfuscatedLine() > currentMappedPosition.getObfuscatedLine()) {
+            firstMappedPosition = currentMappedPosition;
           }
-          if (lastPosition.getObfuscatedLine() < currentPosition.getObfuscatedLine()) {
-            lastPosition = currentPosition;
+          if (lastMappedPosition.getObfuscatedLine() < currentMappedPosition.getObfuscatedLine()) {
+            lastMappedPosition = currentMappedPosition;
           }
         }
         Range obfuscatedRange =
             nonCardinalRangeCache.get(
-                firstPosition.getObfuscatedLine(), lastPosition.getObfuscatedLine());
+                firstMappedPosition.getObfuscatedLine(), lastMappedPosition.getObfuscatedLine());
+
+        Position firstPosition = firstMappedPosition.getPosition();
+        Position lastPosition = lastMappedPosition.getPosition();
+
+        Range originalRange =
+            nonCardinalRangeCache.get(firstPosition.getLine(), lastPosition.getLine());
 
         MappedRange lastMappedRange =
             getMappedRangesForPosition(
@@ -302,9 +312,8 @@ public class MappedPositionToClassNameMapperBuilder {
                 firstPosition.getMethod(),
                 residualSignature,
                 obfuscatedRange,
-                nonCardinalRangeCache.get(
-                    firstPosition.getOriginalLine(), lastPosition.getOriginalLine()),
-                firstPosition.getCaller(),
+                originalRange,
+                firstPosition.getCallerPosition(),
                 prunedInlinedClasses,
                 cardinalRangeCache);
         methodSpecificMappingInformation.consume(
@@ -407,11 +416,11 @@ public class MappedPositionToClassNameMapperBuilder {
       return lastMappedRange;
     }
 
-    private DexMethod getOutlineMethod(MappedPosition mappedPosition) {
+    private DexMethod getOutlineMethod(Position mappedPosition) {
       if (mappedPosition.isOutline()) {
         return mappedPosition.getMethod();
       }
-      Position caller = mappedPosition.getCaller();
+      Position caller = mappedPosition.getCallerPosition();
       if (caller == null) {
         return null;
       }
@@ -500,8 +509,9 @@ public class MappedPositionToClassNameMapperBuilder {
       // is OK since retrace(a(:7)) = 42, however, the following is not OK:
       //   1:10:void foo():42:43 -> a
       // since retrace(a(:7)) = 49, which is not correct.
-      boolean hasSameRightHandSide =
-          lastPosition.getOriginalLine() == currentPosition.getOriginalLine();
+      int currentOriginalLine = currentPosition.getPosition().getLine();
+      int lastOriginalLine = lastPosition.getPosition().getLine();
+      boolean hasSameRightHandSide = lastOriginalLine == currentOriginalLine;
       if (hasSameRightHandSide) {
         if (isSameDelta()) {
           return OUT_OF_RANGE;
@@ -515,7 +525,7 @@ public class MappedPositionToClassNameMapperBuilder {
         return OUT_OF_RANGE;
       }
       boolean sameDelta =
-          currentPosition.getOriginalLine() - lastPosition.getOriginalLine()
+          currentOriginalLine - lastOriginalLine
               == currentPosition.getObfuscatedLine() - lastPosition.getObfuscatedLine();
       return sameDelta ? SAME_DELTA : OUT_OF_RANGE;
     }
@@ -569,7 +579,7 @@ public class MappedPositionToClassNameMapperBuilder {
     private int getMinifiedLinePosition(
         int originalPosition, List<MappedPosition> mappedPositions) {
       for (MappedPosition mappedPosition : mappedPositions) {
-        if (mappedPosition.getOriginalLine() == originalPosition) {
+        if (mappedPosition.getPosition().getLine() == originalPosition) {
           return mappedPosition.getObfuscatedLine();
         }
       }

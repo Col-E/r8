@@ -116,27 +116,7 @@ public class ClassFilePositionToMappedRangeMapper implements PositionToMappedRan
               positionRemapper.createRemappedPosition(currentPosition);
           Position oldPosition = remappedPosition.getFirst();
           Position newPosition = remappedPosition.getSecond();
-          if (isFirstEntry) {
-            mappedPositions.add(
-                new MappedPosition(
-                    oldPosition.getMethod(),
-                    oldPosition.getLine(),
-                    oldPosition.getCallerPosition(),
-                    newPosition.getLine(),
-                    oldPosition.isOutline(),
-                    oldPosition.getOutlineCallee(),
-                    oldPosition.getOutlinePositions()));
-          } else {
-            mappedPositions.add(
-                new MappedPosition(
-                    oldPosition.getMethod(),
-                    oldPosition.getLine(),
-                    oldPosition.getCallerPosition(),
-                    newPosition.getLine(),
-                    false,
-                    null,
-                    null));
-          }
+          mappedPositions.add(new MappedPosition(oldPosition, newPosition.getLine()));
           CfPosition position = new CfPosition(new CfLabel(), newPosition);
           newInstructions.add(position);
           newInstructions.add(position.getLabel());

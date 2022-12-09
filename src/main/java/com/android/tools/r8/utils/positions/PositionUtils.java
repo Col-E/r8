@@ -24,15 +24,7 @@ public class PositionUtils {
     Pair<Position, Position> remappedPosition = remapper.createRemappedPosition(position);
     Position oldPosition = remappedPosition.getFirst();
     Position newPosition = remappedPosition.getSecond();
-    mappedPositions.add(
-        new MappedPosition(
-            oldPosition.getMethod(),
-            oldPosition.getLine(),
-            oldPosition.getCallerPosition(),
-            newPosition.getLine(),
-            oldPosition.isOutline(),
-            oldPosition.getOutlineCallee(),
-            oldPosition.getOutlinePositions()));
+    mappedPositions.add(new MappedPosition(oldPosition, newPosition.getLine()));
     return newPosition;
   }
 

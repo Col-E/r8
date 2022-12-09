@@ -98,18 +98,8 @@ public class DexPositionToPcMappedRangeMapper {
     Pair<Position, Position> remappedPosition = remapper.createRemappedPosition(position);
     Position oldPosition = remappedPosition.getFirst();
     for (int currentPc = startPc; currentPc < endPc; currentPc++) {
-      boolean firstEntry = currentPc == startPc;
       mappedPositions.add(
-          new MappedPosition(
-              oldPosition.getMethod(),
-              oldPosition.getLine(),
-              oldPosition.getCallerPosition(),
-              debugInfoProvider.getPcEncoding(currentPc),
-              // Outline info is placed exactly on the positions that relate to it so we should
-              // only emit it for the first entry.
-              firstEntry && oldPosition.isOutline(),
-              firstEntry ? oldPosition.getOutlineCallee() : null,
-              firstEntry ? oldPosition.getOutlinePositions() : null));
+          new MappedPosition(oldPosition, debugInfoProvider.getPcEncoding(currentPc)));
     }
   }
 

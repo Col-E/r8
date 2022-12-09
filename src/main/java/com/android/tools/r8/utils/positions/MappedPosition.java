@@ -4,66 +4,23 @@
 
 package com.android.tools.r8.utils.positions;
 
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.utils.Int2StructuralItemArrayMap;
 
 public class MappedPosition {
 
-  private final DexMethod method;
-  private final int originalLine;
-  private final Position caller;
   private final int obfuscatedLine;
-  private final boolean isOutline;
-  private final DexMethod outlineCallee;
-  private final Int2StructuralItemArrayMap<Position> outlinePositions;
+  private final Position position;
 
-  public MappedPosition(
-      DexMethod method,
-      int originalLine,
-      Position caller,
-      int obfuscatedLine,
-      boolean isOutline,
-      DexMethod outlineCallee,
-      Int2StructuralItemArrayMap<Position> outlinePositions) {
-    this.method = method;
-    this.originalLine = originalLine;
-    this.caller = caller;
+  public MappedPosition(Position position, int obfuscatedLine) {
+    this.position = position;
     this.obfuscatedLine = obfuscatedLine;
-    this.isOutline = isOutline;
-    this.outlineCallee = outlineCallee;
-    this.outlinePositions = outlinePositions;
-  }
-
-  public DexMethod getMethod() {
-    return method;
-  }
-
-  public int getOriginalLine() {
-    return originalLine;
-  }
-
-  public Position getCaller() {
-    return caller;
   }
 
   public int getObfuscatedLine() {
     return obfuscatedLine;
   }
 
-  public boolean isOutline() {
-    return isOutline;
-  }
-
-  public DexMethod getOutlineCallee() {
-    return outlineCallee;
-  }
-
-  public Int2StructuralItemArrayMap<Position> getOutlinePositions() {
-    return outlinePositions;
-  }
-
-  public boolean isOutlineCaller() {
-    return outlineCallee != null;
+  public Position getPosition() {
+    return position;
   }
 }
