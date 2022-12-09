@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.DexDebugEvent.EndLocal;
 import com.android.tools.r8.graph.DexDebugEvent.RestartLocal;
 import com.android.tools.r8.graph.DexDebugEvent.SetEpilogueBegin;
 import com.android.tools.r8.graph.DexDebugEvent.SetFile;
-import com.android.tools.r8.graph.DexDebugEvent.SetPositionFrame;
 import com.android.tools.r8.graph.DexDebugEvent.SetPrologueEnd;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
 import com.android.tools.r8.graph.DexDebugEventBuilder;
@@ -26,12 +25,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.code.Position.OutlineCallerPosition;
-import com.android.tools.r8.ir.code.Position.OutlineCallerPosition.OutlineCallerPositionBuilder;
-import com.android.tools.r8.ir.code.Position.OutlinePosition;
-import com.android.tools.r8.ir.code.Position.PositionBuilder;
 import com.android.tools.r8.ir.code.Position.SourcePosition;
-import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import java.util.ArrayList;
 import java.util.List;
@@ -87,6 +81,122 @@ public class DexPositionToNoPcMappedRangeMapper {
     }
   }
 
+  private static class DexDebugPositionStateVisitor extends DexDebugPositionState {
+
+    private final PositionEventEmitter positionEventEmitter;
+    private final List<MappedPosition> mappedPositions;
+    private final PositionRemapper positionRemapper;
+    private final List<DexDebugEvent> processedEvents;
+    private final DexItemFactory factory;
+
+    private final DexMethod startMethod;
+
+    // Keep track of what PC has been emitted.
+    private int emittedPc = 0;
+
+    private boolean inlinedOriginalPosition;
+
+    public DexDebugPositionStateVisitor(
+        PositionEventEmitter positionEventEmitter,
+        List<MappedPosition> mappedPositions,
+        PositionRemapper positionRemapper,
+        List<DexDebugEvent> processedEvents,
+        DexItemFactory factory,
+        int startLine,
+        DexMethod method) {
+      super(startLine, method);
+      this.positionEventEmitter = positionEventEmitter;
+      this.mappedPositions = mappedPositions;
+      this.positionRemapper = positionRemapper;
+      this.processedEvents = processedEvents;
+      this.factory = factory;
+      this.startMethod = method;
+    }
+
+    // Force the current PC to emitted.
+    private void flushPc() {
+      if (emittedPc != getCurrentPc()) {
+        positionEventEmitter.emitAdvancePc(getCurrentPc());
+        emittedPc = getCurrentPc();
+      }
+    }
+
+    // A default event denotes a line table entry and must always be emitted. Remap its line.
+    @Override
+    public void visit(Default defaultEvent) {
+      if (hasPreamblePosition(defaultEvent)) {
+        emitPreamblePosition();
+      }
+      super.visit(defaultEvent);
+      assert getCurrentLine() >= 0;
+      Position position = getPosition();
+      Position mappedPosition =
+          PositionUtils.remapAndAdd(position, positionRemapper, mappedPositions);
+      positionEventEmitter.emitPositionEvents(getCurrentPc(), mappedPosition);
+      if (mappedPosition != position) {
+        inlinedOriginalPosition = true;
+      }
+      emittedPc = getCurrentPc();
+    }
+
+    private boolean hasPreamblePosition(Default defaultEvent) {
+      return getCurrentPc() == 0
+          && defaultEvent.getPCDelta() > 0
+          && currentPosition != null
+          && currentPosition.getLine() != getCurrentLine();
+    }
+
+    // Non-materializing events use super, ie, AdvancePC, AdvanceLine and SetInlineFrame.
+
+    // Materializing events are just amended to the stream.
+
+    @Override
+    public void visit(SetFile setFile) {
+      processedEvents.add(setFile);
+    }
+
+    @Override
+    public void visit(SetPrologueEnd setPrologueEnd) {
+      processedEvents.add(setPrologueEnd);
+    }
+
+    @Override
+    public void visit(SetEpilogueBegin setEpilogueBegin) {
+      processedEvents.add(setEpilogueBegin);
+    }
+
+    // Local changes must force flush the PC ensuing they pertain to the correct point.
+
+    @Override
+    public void visit(StartLocal startLocal) {
+      flushPc();
+      processedEvents.add(startLocal);
+    }
+
+    @Override
+    public void visit(EndLocal endLocal) {
+      flushPc();
+      processedEvents.add(endLocal);
+    }
+
+    @Override
+    public void visit(RestartLocal restartLocal) {
+      flushPc();
+      processedEvents.add(restartLocal);
+    }
+
+    public void emitPreamblePosition() {
+      if (currentPosition == null || positionEventEmitter.didEmitLineEvents()) {
+        return;
+      }
+      Position mappedPosition =
+          PositionUtils.remapAndAdd(currentPosition, positionRemapper, mappedPositions);
+      processedEvents.add(factory.createPositionFrame(mappedPosition));
+      currentPosition = null;
+      currentMethod = startMethod;
+    }
+  }
+
   private final AppView<?> appView;
   private final boolean isIdentityMapping;
 
@@ -112,95 +222,24 @@ public class DexPositionToNoPcMappedRangeMapper {
             appView.graphLens().getOriginalMethodSignature(method.getReference()),
             processedEvents);
 
-    Box<Boolean> inlinedOriginalPosition = new Box<>(false);
-
-    // Debug event visitor to map line numbers.
-    DexDebugPositionState visitor =
-        new DexDebugPositionState(
+    DexDebugPositionStateVisitor visitor =
+        new DexDebugPositionStateVisitor(
+            positionEventEmitter,
+            mappedPositions,
+            positionRemapper,
+            processedEvents,
+            appView.dexItemFactory(),
             debugInfo.startLine,
-            appView.graphLens().getOriginalMethodSignature(method.getReference())) {
-
-          // Keep track of what PC has been emitted.
-          private int emittedPc = 0;
-
-          // Force the current PC to emitted.
-          private void flushPc() {
-            if (emittedPc != getCurrentPc()) {
-              positionEventEmitter.emitAdvancePc(getCurrentPc());
-              emittedPc = getCurrentPc();
-            }
-          }
-
-          // A default event denotes a line table entry and must always be emitted. Remap its line.
-          @Override
-          public void visit(Default defaultEvent) {
-            super.visit(defaultEvent);
-            assert getCurrentLine() >= 0;
-            Position position = getPositionFromPositionState(this);
-            Position currentPosition =
-                PositionUtils.remapAndAdd(position, positionRemapper, mappedPositions);
-            positionEventEmitter.emitPositionEvents(getCurrentPc(), currentPosition);
-            if (currentPosition != position) {
-              inlinedOriginalPosition.set(true);
-            }
-            emittedPc = getCurrentPc();
-            resetOutlineInformation();
-          }
-
-          // Non-materializing events use super, ie, AdvancePC, AdvanceLine and SetInlineFrame.
-
-          // Materializing events are just amended to the stream.
-
-          @Override
-          public void visit(SetFile setFile) {
-            processedEvents.add(setFile);
-          }
-
-          @Override
-          public void visit(SetPrologueEnd setPrologueEnd) {
-            processedEvents.add(setPrologueEnd);
-          }
-
-          @Override
-          public void visit(SetEpilogueBegin setEpilogueBegin) {
-            processedEvents.add(setEpilogueBegin);
-          }
-
-          // Local changes must force flush the PC ensuing they pertain to the correct point.
-
-          @Override
-          public void visit(StartLocal startLocal) {
-            flushPc();
-            processedEvents.add(startLocal);
-          }
-
-          @Override
-          public void visit(EndLocal endLocal) {
-            flushPc();
-            processedEvents.add(endLocal);
-          }
-
-          @Override
-          public void visit(RestartLocal restartLocal) {
-            flushPc();
-            processedEvents.add(restartLocal);
-          }
-        };
+            appView.graphLens().getOriginalMethodSignature(method.getReference()));
 
     DexDebugEvent[] events = debugInfo.events;
-    if (events.length > 0) {
-      SetPositionFrame preambleFrame = getAsPreambleFrame(events[0]);
-      if (preambleFrame != null) {
-        // The preamble is specially identified here as it is active at method entry and thus not
-        // part of the instruction stream events.
-        Position position = preambleFrame.getPosition();
-        Position newPosition =
-            PositionUtils.remapAndAdd(position, positionRemapper, mappedPositions);
-        processedEvents.add(appView.dexItemFactory().createPositionFrame(newPosition));
-      }
-      for (int i = (preambleFrame == null) ? 0 : 1; i < events.length; i++) {
-        events[i].accept(visitor);
-      }
+    for (DexDebugEvent event : events) {
+      event.accept(visitor);
+    }
+
+    // We still need to emit a preamble if we did not materialize any other instructions.
+    if (mappedPositions.isEmpty()) {
+      visitor.emitPreamblePosition();
     }
 
     EventBasedDebugInfo optimizedDebugInfo =
@@ -210,21 +249,11 @@ public class DexPositionToNoPcMappedRangeMapper {
             processedEvents.toArray(DexDebugEvent.EMPTY_ARRAY));
 
     assert !isIdentityMapping
-        || inlinedOriginalPosition.get()
+        || visitor.inlinedOriginalPosition
         || verifyIdentityMapping(debugInfo, optimizedDebugInfo);
 
     dexCode.setDebugInfo(optimizedDebugInfo);
     return mappedPositions;
-  }
-
-  private SetPositionFrame getAsPreambleFrame(DexDebugEvent event) {
-    SetPositionFrame positionFrame = event.asSetPositionFrame();
-    if (positionFrame != null
-        && positionFrame.getPosition().isSyntheticPosition()
-        && positionFrame.getPosition().getLine() == 0) {
-      return positionFrame;
-    }
-    return null;
   }
 
   // This conversion *always* creates an event based debug info encoding as any non-info will
@@ -241,27 +270,6 @@ public class DexPositionToNoPcMappedRangeMapper {
         DexDebugInfo.convertToEventBased(dexCode, appView.dexItemFactory());
     assert debugInfo != null;
     return debugInfo;
-  }
-
-  private static Position getPositionFromPositionState(DexDebugPositionState state) {
-    PositionBuilder<?, ?> positionBuilder;
-    if (state.getOutlineCallee() != null) {
-      OutlineCallerPositionBuilder outlineCallerPositionBuilder =
-          OutlineCallerPosition.builder()
-              .setOutlineCallee(state.getOutlineCallee())
-              .setIsOutline(state.isOutline());
-      state.getOutlineCallerPositions().forEach(outlineCallerPositionBuilder::addOutlinePosition);
-      positionBuilder = outlineCallerPositionBuilder;
-    } else if (state.isOutline()) {
-      positionBuilder = OutlinePosition.builder();
-    } else {
-      positionBuilder = SourcePosition.builder().setFile(state.getCurrentFile());
-    }
-    return positionBuilder
-        .setLine(state.getCurrentLine())
-        .setMethod(state.getCurrentMethod())
-        .setCallerPosition(state.getCurrentCallerPosition())
-        .build();
   }
 
   private static boolean verifyIdentityMapping(

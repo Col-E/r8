@@ -259,10 +259,15 @@ public class DexSourceCode implements SourceCode {
 
   private Position getCanonicalPositionAppendCaller(DexDebugEntry entry) {
     // If this instruction has already been inlined then this.method must be the outermost caller.
-    assert entry.callerPosition == null
-        || entry.callerPosition.getOutermostCaller().getMethod() == originalMethod;
+    Position position = entry.getPosition();
+    assert !position.hasCallerPosition()
+        || position.getOutermostCaller().getMethod() == originalMethod;
     return canonicalPositions.getCanonical(
-        entry.toPosition(canonicalPositions::canonicalizeCallerPosition));
+        position
+            .builderWithCopy()
+            .setCallerPosition(
+                canonicalPositions.canonicalizeCallerPosition(position.getCallerPosition()))
+            .build());
   }
 
   @Override

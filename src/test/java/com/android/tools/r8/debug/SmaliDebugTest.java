@@ -122,7 +122,7 @@ public class SmaliDebugTest extends DebugTestBase {
     int target = cond.getTargets()[0] + cond.getOffset();
     int linePC = -1;
     for (DexDebugEntry entry : info.getEntries()) {
-      if (entry.line == 4) {
+      if (entry.getPosition().getLine() == 4) {
         linePC = entry.address;
         break;
       }

@@ -560,7 +560,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
             .append("(warning: has unhandled debug events @ pc:")
             .append(debugInfo.address)
             .append(", line:")
-            .append(debugInfo.line);
+            .append(debugInfo.getPosition().getLine());
       } else {
         builder.append("(has debug events past last pc)\n");
       }

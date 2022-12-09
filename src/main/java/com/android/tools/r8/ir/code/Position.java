@@ -217,6 +217,15 @@ public abstract class Position implements StructuralItem<Position> {
         caller = caller.callerPosition;
       }
     }
+    if (isOutline()) {
+      builder.append(", isOutline = true");
+    }
+    if (getOutlineCallee() != null) {
+      builder.append(", outlineCallee = ").append(getOutlineCallee());
+    }
+    if (getOutlinePositions() != null) {
+      builder.append(", outlineCallerPositions = ").append(getOutlinePositions());
+    }
     return builder.toString();
   }
 

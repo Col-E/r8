@@ -146,7 +146,8 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
     MethodSubject main = clazz.uniqueMethodWithOriginalName("main");
     List<DexDebugEntry> entries =
         new DexDebugEntryBuilder(main.getMethod(), inspector.getFactory()).build();
-    Set<Integer> lines = entries.stream().map(e -> e.line).collect(Collectors.toSet());
+    Set<Integer> lines =
+        entries.stream().map(e -> e.getPosition().getLine()).collect(Collectors.toSet());
     assertFalse(lines.isEmpty());
   }
 

@@ -46,7 +46,6 @@ public class DexDebugEntryBuilder implements DexDebugEventVisitor {
   private boolean epilogueBegin = false;
   private final Map<Integer, LocalEntry> locals = new HashMap<>();
   private final Int2ReferenceMap<DebugLocalInfo> arguments = new Int2ReferenceArrayMap<>();
-  private final DexMethod method;
 
   // Delayed construction of an entry. Is finalized once locals information has been collected.
   private DexDebugEntry pending = null;
@@ -60,13 +59,11 @@ public class DexDebugEntryBuilder implements DexDebugEventVisitor {
 
   public DexDebugEntryBuilder(int startLine, DexMethod method) {
     assert method != null;
-    this.method = method;
     positionState = new DexDebugPositionState(startLine, method);
   }
 
   public DexDebugEntryBuilder(DexEncodedMethod method, DexItemFactory factory) {
     assert method != null && method.getReference() != null;
-    this.method = method.getReference();
     DexCode code = method.getCode().asDexCode();
     EventBasedDebugInfo info = code.getDebugInfo().asEventBasedInfo();
     // Only event based debug info supports conversion to entries.
@@ -164,31 +161,21 @@ public class DexDebugEntryBuilder implements DexDebugEventVisitor {
           new DexDebugEntry(
               pending.lineEntry,
               pending.address,
-              pending.line,
               pending.sourceFile,
               pending.prologueEnd,
               pending.epilogueBegin,
               getLocals(),
-              pending.method,
-              pending.callerPosition,
-              pending.isOutline,
-              pending.outlineCallee,
-              pending.outlineCallerPositions));
+              pending.getPosition()));
     }
     pending =
         new DexDebugEntry(
             lineEntry,
             positionState.getCurrentPc(),
-            positionState.getCurrentLine(),
-            positionState.getCurrentFile(),
+            null,
             prologueEnd,
             epilogueBegin,
             null,
-            positionState.getCurrentMethod(),
-            positionState.getCurrentCallerPosition(),
-            positionState.isOutline(),
-            positionState.getOutlineCallee(),
-            positionState.getOutlineCallerPositions());
+            positionState.getPosition());
     prologueEnd = false;
     epilogueBegin = false;
   }

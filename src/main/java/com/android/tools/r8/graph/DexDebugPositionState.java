@@ -15,7 +15,8 @@ import com.android.tools.r8.graph.DexDebugEvent.SetPositionFrame;
 import com.android.tools.r8.graph.DexDebugEvent.SetPrologueEnd;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
 import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.utils.Int2StructuralItemArrayMap;
+import com.android.tools.r8.ir.code.Position.SourcePosition;
+import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 
 /**
  * State machine to process and accumulate position-related DexDebugEvents. Clients should retrieve
@@ -25,12 +26,8 @@ public class DexDebugPositionState implements DexDebugEventVisitor {
 
   private int currentPc = 0;
   private int currentLine;
-  private DexString currentFile = null;
-  private DexMethod currentMethod;
-  private Position currentCallerPosition = null;
-  private boolean isOutline;
-  private DexMethod outlineCallee;
-  private Int2StructuralItemArrayMap<Position> outlineCallerPositions;
+  protected DexMethod currentMethod;
+  protected Position currentPosition;
 
   public DexDebugPositionState(int startLine, DexMethod method) {
     currentLine = startLine;
@@ -53,10 +50,7 @@ public class DexDebugPositionState implements DexDebugEventVisitor {
     assert setPositionFrame.getPosition() != null;
     Position position = setPositionFrame.getPosition();
     currentMethod = position.getMethod();
-    currentCallerPosition = position.getCallerPosition();
-    outlineCallee = position.getOutlineCallee();
-    outlineCallerPositions = position.getOutlinePositions();
-    isOutline = position.isOutline();
+    currentPosition = position;
   }
 
   @Override
@@ -68,7 +62,7 @@ public class DexDebugPositionState implements DexDebugEventVisitor {
 
   @Override
   public void visit(SetFile setFile) {
-    currentFile = setFile.fileName;
+    // Empty.
   }
 
   @Override
@@ -104,33 +98,14 @@ public class DexDebugPositionState implements DexDebugEventVisitor {
     return currentLine;
   }
 
-  public DexString getCurrentFile() {
-    return currentFile;
-  }
-
-  public DexMethod getCurrentMethod() {
-    return currentMethod;
-  }
-
-  public Position getCurrentCallerPosition() {
-    return currentCallerPosition;
-  }
-
-  public boolean isOutline() {
-    return isOutline;
-  }
-
-  public DexMethod getOutlineCallee() {
-    return outlineCallee;
-  }
-
-  public Int2StructuralItemArrayMap<Position> getOutlineCallerPositions() {
-    return outlineCallerPositions;
-  }
-
-  public void resetOutlineInformation() {
-    isOutline = false;
-    outlineCallee = null;
-    outlineCallerPositions = null;
+  public Position getPosition() {
+    if (currentPosition == null) {
+      return (getCurrentLine() > 0 ? SourcePosition.builder() : SyntheticPosition.builder())
+          .setLine(getCurrentLine())
+          .setMethod(currentMethod)
+          .build();
+    } else {
+      return currentPosition.builderWithCopy().setLine(getCurrentLine()).build();
+    }
   }
 }

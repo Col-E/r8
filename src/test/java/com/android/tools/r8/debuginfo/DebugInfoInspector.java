@@ -125,7 +125,7 @@ public class DebugInfoInspector {
     for (int i = 0; i < entries.size(); i++) {
       DexDebugEntry entry = entries.get(i);
       // Matches each entry at 'line' that is not a zero-line increment.
-      if (entry.line == line && (i == 0 || entries.get(i - 1).line != line)) {
+      if (entry.getLine() == line && (i == 0 || entries.get(i - 1).getLine() != line)) {
         found++;
         check.accept(entry);
       }
@@ -139,7 +139,11 @@ public class DebugInfoInspector {
     for (DebugLocalInfo local : entry.locals.values()) {
       if (local.name.toString().equals(name)) {
         if (found != null) {
-          fail("Line " + entry.line + ". Local defined multiple times for name: " + name);
+          fail(
+              "Line "
+                  + entry.getPosition().getLine()
+                  + ". Local defined multiple times for name: "
+                  + name);
         }
         assertEquals(type, local.type.toString());
         if (typeParameters.length > 0) {
@@ -155,7 +159,7 @@ public class DebugInfoInspector {
         found = local;
       }
     }
-    assertNotNull("Line " + entry.line + ". Failed to find local with name: " + name, found);
+    assertNotNull("Line " + entry.getLine() + ". Failed to find local with name: " + name, found);
     return found;
   }
 
@@ -176,9 +180,14 @@ public class DebugInfoInspector {
         remaining.remove(local);
       }
     }
-    assertEquals("Line " + entry.line + ". Found unexpected locals: " +
-            String.join(",", remaining.stream().map(Object::toString).collect(Collectors.toList())),
-        expected, expected + remaining.size());
+    assertEquals(
+        "Line "
+            + entry.getLine()
+            + ". Found unexpected locals: "
+            + String.join(
+                ",", remaining.stream().map(Object::toString).collect(Collectors.toList())),
+        expected,
+        expected + remaining.size());
   }
 
   public DexEncodedMethod getMethod() {

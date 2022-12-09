@@ -16,11 +16,6 @@ import com.android.tools.r8.graph.DexDebugPositionState;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.code.Position.OutlineCallerPosition;
-import com.android.tools.r8.ir.code.Position.OutlineCallerPosition.OutlineCallerPositionBuilder;
-import com.android.tools.r8.ir.code.Position.OutlinePosition;
-import com.android.tools.r8.ir.code.Position.PositionBuilder;
-import com.android.tools.r8.ir.code.Position.SourcePosition;
 import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.positions.PositionToMappedRangeMapper.PcBasedDebugInfoRecorder;
@@ -58,7 +53,7 @@ public class DexPositionToPcMappedRangeMapper {
             if (firstDefaultEventPc.get() < 0) {
               firstDefaultEventPc.set(getCurrentPc());
             }
-            Position currentPosition = getPositionFromPositionState(this);
+            Position currentPosition = getPosition();
             if (lastPosition.getSecond() != null) {
               remapAndAddForPc(
                   pcBasedDebugInfo,
@@ -70,7 +65,6 @@ public class DexPositionToPcMappedRangeMapper {
             }
             lastPosition.setFirst(getCurrentPc());
             lastPosition.setSecond(currentPosition);
-            resetOutlineInformation();
           }
         };
 
@@ -133,27 +127,6 @@ public class DexPositionToPcMappedRangeMapper {
         DexDebugInfo.convertToEventBased(dexCode, appView.dexItemFactory());
     assert debugInfo != null;
     return debugInfo;
-  }
-
-  private static Position getPositionFromPositionState(DexDebugPositionState state) {
-    PositionBuilder<?, ?> positionBuilder;
-    if (state.getOutlineCallee() != null) {
-      OutlineCallerPositionBuilder outlineCallerPositionBuilder =
-          OutlineCallerPosition.builder()
-              .setOutlineCallee(state.getOutlineCallee())
-              .setIsOutline(state.isOutline());
-      state.getOutlineCallerPositions().forEach(outlineCallerPositionBuilder::addOutlinePosition);
-      positionBuilder = outlineCallerPositionBuilder;
-    } else if (state.isOutline()) {
-      positionBuilder = OutlinePosition.builder();
-    } else {
-      positionBuilder = SourcePosition.builder().setFile(state.getCurrentFile());
-    }
-    return positionBuilder
-        .setLine(state.getCurrentLine())
-        .setMethod(state.getCurrentMethod())
-        .setCallerPosition(state.getCurrentCallerPosition())
-        .build();
   }
 
   private static boolean verifyIdentityMapping(

@@ -97,7 +97,8 @@ public class InliningWithoutPositionsTestRunner extends TestBase {
               assertEquals(TEST_CLASS, line.className);
               assertEquals("main", line.methodName);
               // Expected line number could be PC based or increments.
-              // The test need not check what it is, just that all methods have been fully inlined.
+              // The test need not check what it is, just that all methods have been fully
+              // inlined.
               assertEquals(2, rawStackTrace.size());
             })
         .inspectStackTrace(
