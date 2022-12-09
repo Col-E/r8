@@ -117,6 +117,11 @@ public class CfFrameVerifier {
         if (appView.options().enableCheckAllInstructionsDuringStackMapVerification
             || instruction.canThrow()) {
           state = checkExceptionEdges(state, labelToFrameMap);
+          if (state.isError()) {
+            return fail(
+                CfCodeStackMapValidatingException.invalidStackMapForInstruction(
+                    method, i, instruction, state.asError().getMessage(), appView));
+          }
         }
       }
       eventConsumer.acceptInstructionState(instruction, state);
