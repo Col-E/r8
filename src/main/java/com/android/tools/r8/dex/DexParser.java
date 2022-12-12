@@ -1126,11 +1126,16 @@ public class DexParser<T extends DexClass> {
         boolean isValidOrder = stringIndex > prevStringIndex;
         assert isValidOrder
             : String.format(
-                "Out-of-order type ids (type #%s: `%s`, type #%s: `%s`)",
+                (indexedItems.getString(prevStringIndex).equals(indexedItems.getString(stringIndex))
+                        ? "Duplicate"
+                        : "Out-of-order")
+                    + " type ids (type #%s: `%s` string #%s, type #%s: `%s` string #%s)",
                 index - 1,
                 indexedItems.getString(prevStringIndex),
+                prevStringIndex,
                 index,
-                indexedItems.getString(stringIndex));
+                indexedItems.getString(stringIndex),
+                stringIndex);
 
         prevStringIndex = stringIndex;
       }
