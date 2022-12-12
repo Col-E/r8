@@ -79,6 +79,14 @@ public final class DesugarVarHandle {
     this.recv = recv;
     Field field = recv.getDeclaredField(name);
     this.type = field.getType();
+    if (type.isPrimitive() && type != int.class && type != long.class) {
+      throw new UnsupportedOperationException(
+          "Using a VarHandle for a field of type '"
+              + type.getName()
+              + "' requires native VarHandle support available from Android 13. "
+              + "VarHandle desugaring only supports primitive types int and long and "
+              + "reference types.");
+    }
     this.offset = U.objectFieldOffset(recv.getDeclaredField(name));
   }
 

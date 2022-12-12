@@ -57,6 +57,7 @@ public final class VarHandleDesugaringMethods {
     factory.createSynthesizedType("Ljava/lang/Long;");
     factory.createSynthesizedType("Ljava/lang/RuntimeException;");
     factory.createSynthesizedType("Ljava/lang/Short;");
+    factory.createSynthesizedType("Ljava/lang/UnsupportedOperationException;");
     factory.createSynthesizedType("Ljava/lang/reflect/Field;");
     factory.createSynthesizedType("Lsun/misc/Unsafe;");
   }
@@ -521,6 +522,9 @@ public final class VarHandleDesugaringMethods {
     CfLabel label7 = new CfLabel();
     CfLabel label8 = new CfLabel();
     CfLabel label9 = new CfLabel();
+    CfLabel label10 = new CfLabel();
+    CfLabel label11 = new CfLabel();
+    CfLabel label12 = new CfLabel();
     return new CfCode(
         method.holder,
         4,
@@ -610,6 +614,107 @@ public final class VarHandleDesugaringMethods {
                     factory.classType,
                     factory.createString("type"))),
             label7,
+            new CfLoad(ValueType.OBJECT, 3),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.classType,
+                    factory.createProto(factory.booleanType),
+                    factory.createString("isPrimitive")),
+                false),
+            new CfIf(If.Type.EQ, ValueType.INT, label10),
+            new CfLoad(ValueType.OBJECT, 3),
+            new CfStaticFieldRead(
+                factory.createField(
+                    factory.createType("Ljava/lang/Integer;"),
+                    factory.classType,
+                    factory.createString("TYPE"))),
+            new CfIfCmp(If.Type.EQ, ValueType.OBJECT, label10),
+            new CfLoad(ValueType.OBJECT, 3),
+            new CfStaticFieldRead(
+                factory.createField(
+                    factory.createType("Ljava/lang/Long;"),
+                    factory.classType,
+                    factory.createString("TYPE"))),
+            new CfIfCmp(If.Type.EQ, ValueType.OBJECT, label10),
+            label8,
+            new CfNew(factory.createType("Ljava/lang/UnsupportedOperationException;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfNew(factory.stringBuilderType),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfInvoke(
+                183,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.voidType),
+                    factory.createString("<init>")),
+                false),
+            new CfConstString(factory.createString("Using a VarHandle for a field of type '")),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
+                false),
+            new CfLoad(ValueType.OBJECT, 3),
+            label9,
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.classType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("getName")),
+                false),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
+                false),
+            new CfConstString(
+                factory.createString(
+                    "' requires native VarHandle support available from Android 13. VarHandle"
+                        + " desugaring only supports primitive types int and long and reference"
+                        + " types.")),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringBuilderType, factory.stringType),
+                    factory.createString("append")),
+                false),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.stringBuilderType,
+                    factory.createProto(factory.stringType),
+                    factory.createString("toString")),
+                false),
+            new CfInvoke(
+                183,
+                factory.createMethod(
+                    factory.createType("Ljava/lang/UnsupportedOperationException;"),
+                    factory.createProto(factory.voidType, factory.stringType),
+                    factory.createString("<init>")),
+                false),
+            new CfThrow(),
+            label10,
+            new CfFrame(
+                new Int2ObjectAVLTreeMap<>(
+                    new int[] {0, 1, 2, 3, 4, 5},
+                    new FrameType[] {
+                      FrameType.initializedNonNullReference(
+                          factory.createType("Lcom/android/tools/r8/DesugarVarHandle;")),
+                      FrameType.initializedNonNullReference(factory.classType),
+                      FrameType.initializedNonNullReference(factory.stringType),
+                      FrameType.initializedNonNullReference(factory.classType),
+                      FrameType.initializedNonNullReference(
+                          factory.createType("Ljava/lang/reflect/Field;")),
+                      FrameType.initializedNonNullReference(
+                          factory.createType("Ljava/lang/reflect/Field;"))
+                    })),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceFieldRead(
@@ -640,9 +745,9 @@ public final class VarHandleDesugaringMethods {
                     factory.createType("Lcom/android/tools/r8/DesugarVarHandle;"),
                     factory.longType,
                     factory.createString("offset"))),
-            label8,
+            label11,
             new CfReturnVoid(),
-            label9),
+            label12),
         ImmutableList.of(),
         ImmutableList.of());
   }

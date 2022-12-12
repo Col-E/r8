@@ -29,6 +29,21 @@ public class VarHandle {
   public static final JavaExampleClassProxy InstanceLongField =
       new JavaExampleClassProxy(EXAMPLE_FILE, "varhandle/InstanceLongField");
 
+  public static final JavaExampleClassProxy InstanceBooleanField =
+      new JavaExampleClassProxy(EXAMPLE_FILE, "varhandle/InstanceBooleanField");
+
+  public static final JavaExampleClassProxy InstanceByteField =
+      new JavaExampleClassProxy(EXAMPLE_FILE, "varhandle/InstanceByteField");
+
+  public static final JavaExampleClassProxy InstanceShortField =
+      new JavaExampleClassProxy(EXAMPLE_FILE, "varhandle/InstanceShortField");
+
+  public static final JavaExampleClassProxy InstanceFloatField =
+      new JavaExampleClassProxy(EXAMPLE_FILE, "varhandle/InstanceFloatField");
+
+  public static final JavaExampleClassProxy InstanceDoubleField =
+      new JavaExampleClassProxy(EXAMPLE_FILE, "varhandle/InstanceDoubleField");
+
   public static final JavaExampleClassProxy InstanceObjectField =
       new JavaExampleClassProxy(EXAMPLE_FILE, "varhandle/InstanceObjectField");
 
