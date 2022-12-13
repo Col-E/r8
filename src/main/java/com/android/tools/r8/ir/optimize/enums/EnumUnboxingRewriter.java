@@ -102,7 +102,8 @@ public class EnumUnboxingRewriter {
       assert next.isArgument();
       if (argumentInfo.isRewrittenTypeInfo()) {
         RewrittenTypeInfo rewrittenTypeInfo = argumentInfo.asRewrittenTypeInfo();
-        DexType enumType = getEnumTypeOrNull(rewrittenTypeInfo.getOldType().toBaseType(factory));
+        DexType enumType =
+            getEnumClassTypeOrNull(rewrittenTypeInfo.getOldType().toBaseType(factory));
         if (enumType != null) {
           convertedEnums.put(next, enumType);
         }
@@ -142,7 +143,7 @@ public class EnumUnboxingRewriter {
 
         if (instruction.isInitClass()) {
           InitClass initClass = instruction.asInitClass();
-          DexType enumType = getEnumTypeOrNull(initClass.getClassValue());
+          DexType enumType = getEnumClassTypeOrNull(initClass.getClassValue());
           if (enumType != null) {
             iterator.removeOrReplaceByDebugLocalRead();
           }
@@ -154,7 +155,7 @@ public class EnumUnboxingRewriter {
           if (!ifInstruction.isZeroTest()) {
             for (int operandIndex = 0; operandIndex < 2; operandIndex++) {
               Value operand = ifInstruction.getOperand(operandIndex);
-              DexType enumType = getEnumTypeOrNull(operand, convertedEnums);
+              DexType enumType = getEnumClassTypeOrNull(operand, convertedEnums);
               if (enumType != null) {
                 int otherOperandIndex = 1 - operandIndex;
                 Value otherOperand = ifInstruction.getOperand(otherOperandIndex);
@@ -179,7 +180,7 @@ public class EnumUnboxingRewriter {
         //   also in the unboxed enum class.
         if (instruction.isInvokeMethodWithReceiver()) {
           InvokeMethodWithReceiver invoke = instruction.asInvokeMethodWithReceiver();
-          DexType enumType = getEnumTypeOrNull(invoke.getReceiver(), convertedEnums);
+          DexType enumType = getEnumClassTypeOrNull(invoke.getReceiver(), convertedEnums);
           DexMethod invokedMethod = invoke.getInvokedMethod();
           if (enumType != null) {
             if (invokedMethod == factory.enumMembers.ordinalMethod
@@ -217,7 +218,7 @@ public class EnumUnboxingRewriter {
             // Rewrites stringBuilder.append(enumInstance) as if it was
             // stringBuilder.append(String.valueOf(unboxedEnumInstance));
             Value enumArg = invoke.getArgument(1);
-            DexType enumArgType = getEnumTypeOrNull(enumArg, convertedEnums);
+            DexType enumArgType = getEnumClassTypeOrNull(enumArg, convertedEnums);
             if (enumArgType != null) {
               ProgramMethod stringValueOfMethod =
                   getLocalUtilityClass(enumArgType).ensureStringValueOfMethod(appView);
@@ -330,7 +331,7 @@ public class EnumUnboxingRewriter {
         // Rewrite array accesses from MyEnum[] (OBJECT) to int[] (INT).
         if (instruction.isArrayAccess()) {
           ArrayAccess arrayAccess = instruction.asArrayAccess();
-          DexType enumType = getEnumTypeOrNull(arrayAccess, convertedEnums);
+          DexType enumType = getEnumArrayTypeOrNull(arrayAccess, convertedEnums);
           if (enumType != null) {
             if (arrayAccess.hasOutValue()) {
               affectedPhis.addAll(arrayAccess.outValue().uniquePhiUsers());
@@ -403,14 +404,14 @@ public class EnumUnboxingRewriter {
       if (invokedMethod == factory.objectsMethods.requireNonNull) {
         assert invoke.arguments().size() == 1;
         Value argument = invoke.getFirstArgument();
-        DexType enumType = getEnumTypeOrNull(argument, convertedEnums);
+        DexType enumType = getEnumClassTypeOrNull(argument, convertedEnums);
         if (enumType != null) {
           rewriteNullCheck(instructionIterator, invoke);
         }
       } else if (invokedMethod == factory.objectsMethods.requireNonNullWithMessage) {
         assert invoke.arguments().size() == 2;
         Value argument = invoke.getFirstArgument();
-        DexType enumType = getEnumTypeOrNull(argument, convertedEnums);
+        DexType enumType = getEnumClassTypeOrNull(argument, convertedEnums);
         if (enumType != null) {
           replaceEnumInvoke(
               instructionIterator,
@@ -426,7 +427,7 @@ public class EnumUnboxingRewriter {
       if (invokedMethod == factory.stringMembers.valueOf) {
         assert invoke.arguments().size() == 1;
         Value argument = invoke.getFirstArgument();
-        DexType enumType = getEnumTypeOrNull(argument, convertedEnums);
+        DexType enumType = getEnumClassTypeOrNull(argument, convertedEnums);
         if (enumType != null) {
           ProgramMethod stringValueOfMethod =
               getLocalUtilityClass(enumType).ensureStringValueOfMethod(appView);
@@ -445,7 +446,7 @@ public class EnumUnboxingRewriter {
       } else if (invokedMethod == factory.javaLangSystemMembers.identityHashCode) {
         assert invoke.arguments().size() == 1;
         Value argument = invoke.getFirstArgument();
-        DexType enumType = getEnumTypeOrNull(argument, convertedEnums);
+        DexType enumType = getEnumClassTypeOrNull(argument, convertedEnums);
         if (enumType != null) {
           invoke.outValue().replaceUsers(argument);
           instructionIterator.removeOrReplaceByDebugLocalRead();
@@ -470,7 +471,7 @@ public class EnumUnboxingRewriter {
           CheckNotNullEnumUnboxerMethodClassification checkNotNullClassification =
               classification.asCheckNotNullClassification();
           Value argument = invoke.getArgument(checkNotNullClassification.getArgumentIndex());
-          DexType enumType = getEnumTypeOrNull(argument, convertedEnums);
+          DexType enumType = getEnumClassTypeOrNull(argument, convertedEnums);
           if (enumType != null) {
             InvokeStatic replacement =
                 InvokeStatic.builder()
@@ -529,7 +530,7 @@ public class EnumUnboxingRewriter {
 
   private Value fixNullsInBlockPhis(IRCode code, BasicBlock block, Value zeroConstValue) {
     for (Phi phi : block.getPhis()) {
-      if (getEnumTypeOrNull(phi.getType()) != null) {
+      if (getEnumClassTypeOrNull(phi.getType()) != null) {
         for (int i = 0; i < phi.getOperands().size(); i++) {
           Value operand = phi.getOperand(i);
           if (operand.getType().isNullType()) {
@@ -585,26 +586,26 @@ public class EnumUnboxingRewriter {
     return true;
   }
 
-  private DexType getEnumTypeOrNull(Value receiver, Map<Instruction, DexType> convertedEnums) {
+  private DexType getEnumClassTypeOrNull(Value receiver, Map<Instruction, DexType> convertedEnums) {
     TypeElement type = receiver.getType();
-    if (type.isInt() || (type.isArrayType() && type.asArrayType().getBaseType().isInt())) {
+    if (type.isInt()) {
       return receiver.isPhi() ? null : convertedEnums.get(receiver.getDefinition());
     }
-    return getEnumTypeOrNull(type);
+    return getEnumClassTypeOrNull(type);
   }
 
-  private DexType getEnumTypeOrNull(TypeElement type) {
+  private DexType getEnumClassTypeOrNull(TypeElement type) {
     if (!type.isClassType()) {
       return null;
     }
-    return getEnumTypeOrNull(type.asClassType().getClassType());
+    return getEnumClassTypeOrNull(type.asClassType().getClassType());
   }
 
-  private DexType getEnumTypeOrNull(DexType type) {
+  private DexType getEnumClassTypeOrNull(DexType type) {
     return unboxedEnumsData.isUnboxedEnum(type) ? type : null;
   }
 
-  private DexType getEnumTypeOrNull(
+  private DexType getEnumArrayTypeOrNull(
       ArrayAccess arrayAccess, Map<Instruction, DexType> convertedEnums) {
     ArrayTypeElement arrayType = arrayAccess.array().getType().asArrayType();
     if (arrayType == null) {
@@ -616,9 +617,13 @@ public class EnumUnboxingRewriter {
     }
     TypeElement baseType = arrayType.getBaseType();
     if (baseType.isClassType()) {
-      DexType classType = baseType.asClassType().getClassType();
-      return unboxedEnumsData.isUnboxedEnum(classType) ? classType : null;
+      return getEnumClassTypeOrNull(baseType.asClassType().getClassType());
     }
-    return getEnumTypeOrNull(arrayAccess.array(), convertedEnums);
+    if (arrayType.getBaseType().isInt()) {
+      return arrayAccess.array().isPhi()
+          ? null
+          : convertedEnums.get(arrayAccess.array().getDefinition());
+    }
+    return null;
   }
 }
