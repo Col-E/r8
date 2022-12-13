@@ -80,8 +80,6 @@ public class DexItemFactory {
   public static final String varHandleDescriptorString = "Ljava/lang/invoke/VarHandle;";
   public static final String desugarMethodHandlesLookupDescriptorString =
       "Lcom/android/tools/r8/DesugarMethodHandlesLookup;";
-  public static final String methodHandlesLookupDescriptorString =
-      "Ljava/lang/invoke/MethodHandles$Lookup;";
   public static final String dalvikAnnotationOptimizationPrefixString =
       "Ldalvik/annotation/optimization/";
 

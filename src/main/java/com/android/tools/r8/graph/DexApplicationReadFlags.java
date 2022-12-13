@@ -44,6 +44,14 @@ public class DexApplicationReadFlags {
     return recordWitnesses;
   }
 
+  public boolean hasReadMethodHandlesLookupReferenceFromProgramClass() {
+    return !methodHandlesLookupWitnesses.isEmpty();
+  }
+
+  public Set<DexType> getMethodHandlesLookupWitnesses() {
+    return methodHandlesLookupWitnesses;
+  }
+
   public boolean hasReadVarHandleReferenceFromProgramClass() {
     return !varHandleWitnesses.isEmpty();
   }

@@ -179,6 +179,9 @@ public class GenerateVarHandleMethods extends MethodGenerationBase {
         new InstructionTypeMapper(
             ImmutableMap.of(
                 factory.createType(
+                    "L" + DesugarMethodHandlesLookup.class.getTypeName().replace('.', '/') + ";"),
+                factory.lookupType,
+                factory.createType(
                     "L" + DesugarVarHandle.class.getTypeName().replace('.', '/') + ";"),
                 factory.desugarVarHandleType,
                 factory.createType(

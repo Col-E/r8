@@ -20,7 +20,7 @@ public class InstanceObjectField {
     }
 
     public String toString() {
-      return new StringBuilder().append("A(").append(i).append(")").toString();
+      return "A(" + i + ")";
     }
   }
 

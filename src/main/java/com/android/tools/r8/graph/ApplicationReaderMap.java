@@ -79,9 +79,7 @@ public abstract class ApplicationReaderMap {
     private final Map<String, String> descriptorMap =
         ImmutableMap.of(
             DexItemFactory.varHandleDescriptorString,
-            DexItemFactory.desugarVarHandleDescriptorString,
-            DexItemFactory.methodHandlesLookupDescriptorString,
-            DexItemFactory.desugarMethodHandlesLookupDescriptorString);
+            DexItemFactory.desugarVarHandleDescriptorString);
 
     public VarHandleMap(ApplicationReaderMap previous) {
       this.previous = previous;

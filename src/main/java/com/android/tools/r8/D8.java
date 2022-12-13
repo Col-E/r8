@@ -34,6 +34,7 @@ import com.android.tools.r8.kotlin.KotlinMetadataRewriter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.naming.RecordRewritingNamingLens;
+import com.android.tools.r8.naming.VarHandleDesugaringRewritingNamingLens;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.origin.Origin;
@@ -292,6 +293,13 @@ public final class D8 {
           () ->
               appView.setNamingLens(
                   RecordRewritingNamingLens.createRecordRewritingNamingLens(appView)));
+
+      timing.time(
+          "Create MethodHandle.Lookup rewriting lens",
+          () ->
+              appView.setNamingLens(
+                  VarHandleDesugaringRewritingNamingLens
+                      .createVarHandleDesugaringRewritingNamingLens(appView)));
 
       if (options.isGeneratingDex()
           && hasDexResources

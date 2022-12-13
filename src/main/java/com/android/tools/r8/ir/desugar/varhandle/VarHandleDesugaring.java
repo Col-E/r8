@@ -39,6 +39,10 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import org.objectweb.asm.Opcodes;
 
 public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynthesizerDesugaring {
@@ -52,7 +56,6 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
 
   public static void registerSynthesizedCodeReferences(DexItemFactory factory) {
     VarHandleDesugaringMethods.registerSynthesizedCodeReferences(factory);
-    factory.createSynthesizedType(DexItemFactory.desugarMethodHandlesLookupDescriptorString);
   }
 
   public VarHandleDesugaring(AppView<?> appView) {
@@ -130,13 +133,13 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
   }
 
   private static boolean refersToMethodHandlesLookup(DexType type, DexItemFactory factory) {
-    if (type == factory.methodHandlesLookupType) {
+    if (type == factory.desugarMethodHandlesLookupType) {
       // All references to java.lang.invoke.MethodHandles$Lookup is rewritten during application
-      // reading.
+      // writing.
       assert false;
       return true;
     }
-    return type == factory.desugarMethodHandlesLookupType;
+    return type == factory.methodHandlesLookupType;
   }
 
   private static boolean refersToMethodHandlesLookup(DexType[] types, DexItemFactory factory) {
@@ -164,7 +167,6 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
 
   public static boolean refersToMethodHandlesLookup(DexField field, DexItemFactory factory) {
     if (refersToMethodHandlesLookup(field.holder, factory)) {
-      assert false : "The MethodHandles$Lookup class has no fields.";
       return true;
     }
     return refersToMethodHandlesLookup(field.type, factory);
@@ -177,7 +179,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
         .ensureGlobalClass(
             () -> new MissingGlobalSyntheticsConsumerDiagnostic("VarHandle desugaring"),
             kinds -> kinds.METHOD_HANDLES_LOOKUP,
-            factory.desugarMethodHandlesLookupType,
+            factory.lookupType,
             contexts,
             appView,
             builder ->
@@ -251,23 +253,12 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
     DexMethod method = invoke.getMethod();
     if (method.getHolderType() == factory.methodHandlesType) {
       if (method.getName().equals(factory.createString("lookup"))
-          && method.getReturnType() == factory.desugarMethodHandlesLookupType
+          && method.getReturnType() == factory.lookupType
           && method.getArity() == 0
           && invoke.isInvokeStatic()) {
         return computeMethodHandlesLookup(factory);
       } else {
         return DesugarDescription.nothing();
-      }
-    }
-
-    if (method.getHolderType() == factory.methodHandlesLookupType) {
-      assert invoke.isInvokeVirtual();
-
-      if (invoke.getMethod().getReturnType().equals(factory.desugarVarHandleType)) {
-        return computeInvokeMethodHandleLookupMethodReturningVarHandle(factory, invoke);
-      } else {
-        assert invoke.getMethod().getReturnType().equals(factory.methodHandleType);
-        return computeInvokeMethodHandleLookupMethodReturningMethodHandle(factory, invoke);
       }
     }
 
@@ -304,58 +295,14 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
                 methodProcessingContext,
                 dexItemFactory) ->
                 ImmutableList.of(
-                    new CfNew(factory.desugarMethodHandlesLookupType),
+                    new CfNew(factory.lookupType),
                     new CfStackInstruction(Opcode.Dup),
                     new CfInvoke(
                         Opcodes.INVOKESPECIAL,
                         factory.createMethod(
-                            factory.desugarMethodHandlesLookupType,
+                            factory.lookupType,
                             factory.createProto(factory.voidType),
                             factory.constructorMethodName),
-                        false)))
-        .build();
-  }
-
-  public DesugarDescription computeInvokeMethodHandleLookupMethodReturningVarHandle(
-      DexItemFactory factory, CfInvoke invoke) {
-    return DesugarDescription.builder()
-        .setDesugarRewrite(
-            (freshLocalProvider,
-                localStackAllocator,
-                eventConsumer,
-                context,
-                methodProcessingContext,
-                dexItemFactory) ->
-                ImmutableList.of(
-                    new CfInvoke(
-                        Opcodes.INVOKEVIRTUAL,
-                        factory.createMethod(
-                            factory.desugarMethodHandlesLookupType,
-                            factory.createProto(
-                                factory.desugarVarHandleType,
-                                invoke.getMethod().getProto().getParameters()),
-                            invoke.getMethod().getName()),
-                        false)))
-        .build();
-  }
-
-  public DesugarDescription computeInvokeMethodHandleLookupMethodReturningMethodHandle(
-      DexItemFactory factory, CfInvoke invoke) {
-    return DesugarDescription.builder()
-        .setDesugarRewrite(
-            (freshLocalProvider,
-                localStackAllocator,
-                eventConsumer,
-                context,
-                methodProcessingContext,
-                dexItemFactory) ->
-                ImmutableList.of(
-                    new CfInvoke(
-                        Opcodes.INVOKEVIRTUAL,
-                        factory.createMethod(
-                            factory.desugarMethodHandlesLookupType,
-                            invoke.getMethod().getProto(),
-                            invoke.getMethod().getName()),
                         false)))
         .build();
   }
@@ -487,20 +434,38 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
 
   @Override
   // TODO(b/247076137): Is synthesizeClasses needed? Can DesugarVarHandle be created during
-  //  desugaring instead?
+  //  desugaring instead? For R8 creating up-front and replacing the library definition seems to
+  //  be the way to go.
   public void synthesizeClasses(
       ClassSynthesisDesugaringContext processingContext,
       CfClassSynthesizerDesugaringEventConsumer eventConsumer) {
     DexApplicationReadFlags flags = appView.appInfo().app().getFlags();
-    if (flags.hasReadVarHandleReferenceFromProgramClass()) {
+    synthesizeClassIfReferenced(
+        flags,
+        DexApplicationReadFlags::hasReadMethodHandlesLookupReferenceFromProgramClass,
+        DexApplicationReadFlags::getMethodHandlesLookupWitnesses,
+        classes -> ensureMethodHandlesLookupClass(eventConsumer, classes));
+    synthesizeClassIfReferenced(
+        flags,
+        DexApplicationReadFlags::hasReadVarHandleReferenceFromProgramClass,
+        DexApplicationReadFlags::getVarHandleWitnesses,
+        classes -> ensureVarHandleClass(eventConsumer, classes));
+  }
+
+  private void synthesizeClassIfReferenced(
+      DexApplicationReadFlags flags,
+      Predicate<DexApplicationReadFlags> hasReadReferenceFromProgramClass,
+      Function<DexApplicationReadFlags, Set<DexType>> getWitnesses,
+      Consumer<List<ProgramDefinition>> consumeProgramWitnesses) {
+    if (hasReadReferenceFromProgramClass.test(flags)) {
       List<ProgramDefinition> classes = new ArrayList<>();
-      for (DexType varHandleWitness : flags.getVarHandleWitnesses()) {
-        DexClass dexClass = appView.contextIndependentDefinitionFor(varHandleWitness);
+      for (DexType witness : getWitnesses.apply(flags)) {
+        DexClass dexClass = appView.contextIndependentDefinitionFor(witness);
         assert dexClass != null;
         assert dexClass.isProgramClass();
         classes.add(dexClass.asProgramClass());
       }
-      ensureVarHandleClass(eventConsumer, classes);
+      consumeProgramWitnesses.accept(classes);
     }
   }
 }
