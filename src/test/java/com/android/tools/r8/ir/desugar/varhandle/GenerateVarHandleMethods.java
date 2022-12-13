@@ -128,7 +128,7 @@ public class GenerateVarHandleMethods extends MethodGenerationBase {
       DexType holderType = invoke.getMethod().getHolderType();
       DexType rewrittenType = typeMap.getOrDefault(holderType, holderType);
       String rewrittenName =
-          rewrittenType == factory.desugarVarHandleType ? methodNameMap.apply(name) : name;
+          rewrittenType == factory.varHandleType ? methodNameMap.apply(name) : name;
       if (rewrittenType != holderType) {
         // TODO(b/261024278): If sharing this code also rewrite signature.
         return new CfInvoke(
@@ -183,7 +183,7 @@ public class GenerateVarHandleMethods extends MethodGenerationBase {
                 factory.lookupType,
                 factory.createType(
                     "L" + DesugarVarHandle.class.getTypeName().replace('.', '/') + ";"),
-                factory.desugarVarHandleType,
+                factory.varHandleType,
                 factory.createType(
                     "L" + DesugarVarHandle.class.getTypeName().replace('.', '/') + "$UnsafeStub;"),
                 factory.unsafeType),
@@ -197,16 +197,16 @@ public class GenerateVarHandleMethods extends MethodGenerationBase {
 
   private DexEncodedMethod methodWithName(DexEncodedMethod method, String name) {
     DexType holder = method.getHolderType();
-    DexType desugarVarHandle = factory.desugarVarHandleType;
+    DexType varHandle = factory.varHandleType;
     DexType desugarVarHandleStub =
         factory.createType("L" + DesugarVarHandle.class.getTypeName().replace('.', '/') + ";");
     // Map methods to be on the final DesugarVarHandle class.
     if (holder == desugarVarHandleStub) {
-      holder = desugarVarHandle;
+      holder = varHandle;
     }
     DexProto proto = method.getProto();
     if (proto.getReturnType() == desugarVarHandleStub) {
-      proto = factory.createProto(desugarVarHandle, proto.parameters);
+      proto = factory.createProto(varHandle, proto.parameters);
     }
     return DexEncodedMethod.syntheticBuilder(method)
         .setMethod(factory.createMethod(holder, proto, factory.createString(name)))

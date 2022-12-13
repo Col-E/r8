@@ -66,7 +66,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
   @Override
   public void scan(
       ProgramMethod programMethod, CfInstructionDesugaringEventConsumer eventConsumer) {
-    if (programMethod.getHolderType() == factory.desugarVarHandleType) {
+    if (programMethod.getHolderType() == factory.varHandleType) {
       return;
     }
     CfCode cfCode = programMethod.getDefinition().getCode().asCfCode();
@@ -93,12 +93,12 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
   }
 
   private static boolean refersToVarHandle(DexType type, DexItemFactory factory) {
-    if (type == factory.varHandleType) {
-      // All references to java.lang.invoke.VarHandle is rewritten during application reading.
+    if (type == factory.desugarVarHandleType) {
+      // All references to java.lang.invoke.VarHandle is rewritten during application writing.
       assert false;
       return true;
     }
-    return type == factory.desugarVarHandleType;
+    return type == factory.varHandleType;
   }
 
   private static boolean refersToVarHandle(DexType[] types, DexItemFactory factory) {
@@ -200,7 +200,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
         .ensureGlobalClass(
             () -> new MissingGlobalSyntheticsConsumerDiagnostic("VarHandle desugaring"),
             kinds -> kinds.VAR_HANDLE,
-            factory.desugarVarHandleType,
+            factory.varHandleType,
             contexts,
             appView,
             builder ->
@@ -247,7 +247,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
     DexType holder = invoke.getMethod().getHolderType();
     if (holder != factory.methodHandlesType
         && holder != factory.methodHandlesLookupType
-        && holder != factory.desugarVarHandleType) {
+        && holder != factory.varHandleType) {
       return DesugarDescription.nothing();
     }
     DexMethod method = invoke.getMethod();
@@ -262,7 +262,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
       }
     }
 
-    if (method.getHolderType() == factory.desugarVarHandleType) {
+    if (method.getHolderType() == factory.varHandleType) {
       assert invoke.isInvokeVirtual();
       DexString name = method.getName();
       int arity = method.getProto().getArity();
@@ -410,7 +410,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
                 ? proto.returnType
                 : objectOrPrimitiveReturnType(proto.returnType),
             newParameters);
-    DexMethod newMethod = factory.createMethod(factory.desugarVarHandleType, newProto, name);
+    DexMethod newMethod = factory.createMethod(factory.varHandleType, newProto, name);
     builder.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, newMethod, false));
     if (proto.returnType.isPrimitiveType() && !newProto.returnType.isPrimitiveType()) {
       assert proto.returnType.isPrimitiveType();

@@ -223,8 +223,13 @@ public class CfInvoke extends CfInstruction {
             type = Type.VIRTUAL;
             canonicalMethod = method;
           } else {
-            type = Type.POLYMORPHIC;
-            callSiteProto = method.proto;
+            if (builder.appView.options().shouldDesugarVarHandle()) {
+              type = Type.VIRTUAL;
+              canonicalMethod = method;
+            } else {
+              type = Type.POLYMORPHIC;
+              callSiteProto = method.proto;
+            }
           }
           break;
         }

@@ -86,6 +86,7 @@ public abstract class Invoke extends Instruction {
           return Type.STATIC;
         case Opcodes.INVOKEVIRTUAL:
           return appView.dexItemFactory().polymorphicMethods.isPolymorphicInvoke(invokedMethod)
+                  && !appView.options().shouldDesugarVarHandle()
               ? Type.POLYMORPHIC
               : Type.VIRTUAL;
         default:

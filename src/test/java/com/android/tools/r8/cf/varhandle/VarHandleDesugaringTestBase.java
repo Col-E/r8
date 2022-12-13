@@ -18,7 +18,6 @@ import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.examples.jdk9.VarHandle;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.references.MethodReference;
@@ -115,7 +114,7 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
     // forwarding of Unsafe.compareAndSwapObject.
     MethodReference firstBackportFromDesugarVarHandle =
         SyntheticItemsTestUtils.syntheticBackportWithForwardingMethod(
-            Reference.classFromDescriptor(DexItemFactory.desugarVarHandleDescriptorString),
+            Reference.classFromDescriptor("Ljava/lang/invoke/VarHandle;"),
             0,
             Reference.method(
                 Reference.classFromDescriptor("Lsun/misc/Unsafe;"),

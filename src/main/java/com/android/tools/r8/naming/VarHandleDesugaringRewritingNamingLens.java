@@ -23,10 +23,14 @@ public class VarHandleDesugaringRewritingNamingLens extends NonIdentityNamingLen
 
   public static NamingLens createVarHandleDesugaringRewritingNamingLens(AppView<?> appView) {
     if (appView.options().shouldDesugarVarHandle()
-        && appView
-                .appInfo()
-                .definitionForWithoutExistenceAssert(appView.dexItemFactory().lookupType)
-            != null) {
+        && (appView
+                    .appInfo()
+                    .definitionForWithoutExistenceAssert(appView.dexItemFactory().lookupType)
+                != null
+            || appView
+                    .appInfo()
+                    .definitionForWithoutExistenceAssert(appView.dexItemFactory().varHandleType)
+                != null)) {
       return new VarHandleDesugaringRewritingNamingLens(appView);
     }
     return appView.getNamingLens();
@@ -43,8 +47,12 @@ public class VarHandleDesugaringRewritingNamingLens extends NonIdentityNamingLen
   }
 
   private DexString getRenaming(DexType type) {
+    assert type != factory.desugarMethodHandlesLookupType;
+    assert type != factory.desugarVarHandleType;
     if (type == factory.lookupType) {
       return factory.desugarMethodHandlesLookupType.descriptor;
+    } else if (type == factory.varHandleType) {
+      return factory.desugarVarHandleType.descriptor;
     }
     return null;
   }
