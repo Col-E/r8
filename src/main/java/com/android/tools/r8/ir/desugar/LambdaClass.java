@@ -753,7 +753,11 @@ public final class LambdaClass {
                             .setGenericSignature(encodedMethod.getGenericSignature())
                             .setAnnotations(encodedMethod.annotations())
                             .setParameterAnnotations(encodedMethod.parameterAnnotationsList)
-                            .setCode(encodedMethod.getCode())
+                            .setCode(
+                                encodedMethod
+                                    .getCode()
+                                    .getCodeAsInlining(
+                                        callTarget, encodedMethod, appView.dexItemFactory()))
                             .setApiLevelForDefinition(encodedMethod.getApiLevelForDefinition())
                             .setApiLevelForCode(encodedMethod.getApiLevelForCode())
                             .build();

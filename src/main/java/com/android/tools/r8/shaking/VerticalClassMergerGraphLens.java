@@ -153,6 +153,12 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
   }
 
   @Override
+  public DexMethod getPreviousMethodSignatureForMapping(DexMethod method) {
+    DexMethod orDefault = newMethodSignatures.getRepresentativeKeyOrDefault(method, method);
+    return super.getPreviousMethodSignature(orDefault);
+  }
+
+  @Override
   protected Type mapInvocationType(DexMethod newMethod, DexMethod originalMethod, Type type) {
     return mapVirtualInterfaceInvocationTypes(appView, newMethod, originalMethod, type);
   }

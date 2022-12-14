@@ -62,7 +62,7 @@ public final class AppliedGraphLens extends NonIdentityGraphLens {
       // Record original method signatures.
       for (DexEncodedMethod encodedMethod : clazz.methods()) {
         DexMethod method = encodedMethod.getReference();
-        DexMethod original = appView.graphLens().getOriginalMethodSignature(method);
+        DexMethod original = appView.graphLens().getOriginalMethodSignatureForMapping(method);
         DexMethod existing = originalMethodSignatures.inverse().get(original);
         if (existing == null) {
           originalMethodSignatures.put(method, original);

@@ -64,6 +64,10 @@ public abstract class Position implements StructuralItem<Position> {
     return false;
   }
 
+  public boolean isOutlineCaller() {
+    return false;
+  }
+
   public DexMethod getOutlineCallee() {
     return null;
   }
@@ -131,8 +135,17 @@ public abstract class Position implements StructuralItem<Position> {
       assert position.isNone();
       position = SourcePosition.builder().setMethod(context.getReference()).build();
     }
-    assert position.getOutermostCaller().method
-        == appView.graphLens().getOriginalMethodSignature(context.getReference());
+    if (context.getDefinition().isD8R8Synthesized()) {
+      // Some rewritings map a synthetic method back to an original in the program. To ensure we
+      // have correct line information we have to rewrite the positions as inline position
+      // therefore we only check if the original method is present.
+      DexMethod originalMethodSignature =
+          appView.graphLens().getOriginalMethodSignature(context.getReference());
+      assert position.hasMethodInChain(originalMethodSignature);
+    } else {
+      assert position.getOutermostCaller().method
+          == appView.graphLens().getOriginalMethodSignature(context.getReference());
+    }
     return position;
   }
 
@@ -176,6 +189,21 @@ public abstract class Position implements StructuralItem<Position> {
       return this;
     }
     return null;
+  }
+
+  public boolean hasPositionMatching(Predicate<Position> positionPredicate) {
+    Position lastPosition = this;
+    while (lastPosition != null) {
+      if (positionPredicate.test(lastPosition)) {
+        return true;
+      }
+      lastPosition = lastPosition.getCallerPosition();
+    }
+    return false;
+  }
+
+  public boolean hasMethodInChain(DexMethod method) {
+    return hasPositionMatching(position -> position.getMethod() == method);
   }
 
   public Position withOutermostCallerPosition(Position newOutermostCallerPosition) {
@@ -563,6 +591,11 @@ public abstract class Position implements StructuralItem<Position> {
     @Override
     public boolean isOutline() {
       return isOutline;
+    }
+
+    @Override
+    public boolean isOutlineCaller() {
+      return true;
     }
 
     @Override

@@ -66,15 +66,6 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
     return retracedStackTraceLine.lineNumber > 0;
   }
 
-  private boolean filterSynthesizedBridgeMethod(StackTraceLine retracedStackTraceLine) {
-    if (!haveSeenLines.add(retracedStackTraceLine)) {
-      return false;
-    }
-    return !retracedStackTraceLine.className.contains("ResourceWrapper")
-        || !retracedStackTraceLine.methodName.contains("foo")
-        || retracedStackTraceLine.lineNumber != 0;
-  }
-
   @Test
   public void testSourceFileAndLineNumberTable() throws Exception {
     runTest(

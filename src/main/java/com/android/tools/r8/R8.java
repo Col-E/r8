@@ -31,6 +31,7 @@ import com.android.tools.r8.graph.GenericSignatureContextBuilder;
 import com.android.tools.r8.graph.GenericSignatureCorrectnessHelper;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramDefinition;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
@@ -943,15 +944,33 @@ public class R8 {
                           return;
                         }
                         if (code.isCfCode() || code.isDexCode()) {
-                          code.forEachPositionOrInlineFrame(
-                              position -> {
-                                assert position.getMethod() == originalMethod;
-                              });
+                          assert verifyOriginalMethodInPosition(code, originalMethod, method);
                         } else {
                           assert code.isDefaultInstanceInitializerCode() || code.isThrowNullCode();
                         }
                       }
                     }));
+    return true;
+  }
+
+  private static boolean verifyOriginalMethodInPosition(
+      Code code, DexMethod originalMethod, ProgramMethod context) {
+    code.forEachPosition(
+        position -> {
+          if (position.isOutlineCaller()) {
+            // Check the outlined positions for the original method
+            position
+                .getOutlinePositions()
+                .forEach(
+                    (ignored, outlinePosition) -> {
+                      assert outlinePosition.hasMethodInChain(originalMethod);
+                    });
+          } else if (context.getDefinition().isD8R8Synthesized()) {
+            assert position.hasMethodInChain(originalMethod);
+          } else {
+            assert position.getOutermostCaller().getMethod() == originalMethod;
+          }
+        });
     return true;
   }
 

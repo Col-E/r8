@@ -70,6 +70,7 @@ public abstract class SyntheticSourceCode implements SourceCode {
             .setLine(0)
             .setMethod(originalMethod)
             .setCallerPosition(callerPosition)
+            .setIsD8R8Synthesized(true)
             .build();
   }
 

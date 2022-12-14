@@ -777,7 +777,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
   }
 
   @Override
-  public void forEachPositionOrInlineFrame(Consumer<Position> positionConsumer) {
+  public void forEachPosition(Consumer<Position> positionConsumer) {
     if (getDebugInfo() == null || getDebugInfo().isPcBasedInfo()) {
       return;
     }

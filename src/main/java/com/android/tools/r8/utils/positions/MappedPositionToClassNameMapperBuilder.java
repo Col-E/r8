@@ -192,7 +192,7 @@ public class MappedPositionToClassNameMapperBuilder {
         boolean canUseDexPc) {
       DexEncodedMethod definition = method.getDefinition();
       DexMethod originalMethod =
-          appView.graphLens().getOriginalMethodSignature(method.getReference());
+          appView.graphLens().getOriginalMethodSignatureForMapping(method.getReference());
       MethodSignature originalSignature =
           MethodSignature.fromDexMethod(originalMethod, originalMethod.holder != originalType);
 

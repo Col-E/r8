@@ -65,6 +65,7 @@ import com.android.tools.r8.graph.UseRegistryWithResult;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.MemberPoolCollection.MemberPool;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
@@ -2389,7 +2390,16 @@ public class VerticalClassMerger {
           .setTarget(invocationTarget)
           .setInvokeType(type)
           .setIsInterface(isInterface);
-      return forwardSourceCodeBuilder::build;
+      return (context, callerPosition) -> {
+        SyntheticPosition caller =
+            SyntheticPosition.builder()
+                .setLine(0)
+                .setMethod(method)
+                .setIsD8R8Synthesized(true)
+                .setCallerPosition(callerPosition)
+                .build();
+        return forwardSourceCodeBuilder.build(context, caller);
+      };
     }
 
     @Override

@@ -329,6 +329,18 @@ public abstract class GraphLens {
     return original;
   }
 
+  public final DexMethod getOriginalMethodSignatureForMapping(DexMethod method) {
+    GraphLens current = this;
+    DexMethod original = method;
+    while (current.isNonIdentityLens()) {
+      NonIdentityGraphLens nonIdentityLens = current.asNonIdentityLens();
+      original = nonIdentityLens.getPreviousMethodSignatureForMapping(original);
+      current = nonIdentityLens.getPrevious();
+    }
+    assert current.isIdentityLens();
+    return original;
+  }
+
   public final DexField getRenamedFieldSignature(DexField originalField) {
     return getRenamedFieldSignature(originalField, null);
   }
@@ -970,6 +982,15 @@ public abstract class GraphLens {
     protected abstract DexType internalDescribeLookupClassType(DexType previous);
 
     public abstract DexMethod getPreviousMethodSignature(DexMethod method);
+
+    /***
+     * The previous mapping for a method often coincides with the previous method signature, but it
+     * may not, for example for bridges inserted in vertically merged classes where the original
+     * signature is used for computing invoke-super but should not be used for mapping output.
+     */
+    public DexMethod getPreviousMethodSignatureForMapping(DexMethod method) {
+      return getPreviousMethodSignature(method);
+    }
 
     public abstract DexMethod getNextMethodSignature(DexMethod method);
 
