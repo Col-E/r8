@@ -11,6 +11,8 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE, ElementType.FIELD, ElementType.METHOD, ElementType.CONSTRUCTOR})
 @Retention(RetentionPolicy.CLASS)
 public @interface KeepEdge {
+  String description() default "";
+
   KeepCondition[] preconditions() default {};
 
   KeepTarget[] consequences();

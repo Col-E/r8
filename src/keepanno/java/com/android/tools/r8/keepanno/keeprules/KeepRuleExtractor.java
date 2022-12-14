@@ -6,6 +6,7 @@ package com.android.tools.r8.keepanno.keeprules;
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
+import com.android.tools.r8.keepanno.ast.KeepEdgeMetaInfo;
 import com.android.tools.r8.keepanno.ast.KeepExtendsPattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldAccessPattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldNamePattern;
@@ -41,7 +42,7 @@ public class KeepRuleExtractor {
 
   public void extract(KeepEdge edge) {
     List<ItemRule> consequentRules = getConsequentRules(edge.getConsequences());
-    printConditionalRules(consequentRules, edge.getPreconditions());
+    printConditionalRules(consequentRules, edge.getPreconditions(), edge.getMetaInfo());
   }
 
   private List<ItemRule> getConsequentRules(KeepConsequences consequences) {
@@ -50,8 +51,49 @@ public class KeepRuleExtractor {
     return consequentItems;
   }
 
+  private void printHeader(StringBuilder builder, KeepEdgeMetaInfo metaInfo) {
+    if (metaInfo.hasContext()) {
+      builder.append("# context: ").append(metaInfo.getContextDescriptorString()).append('\n');
+    }
+    if (metaInfo.hasDescription()) {
+      String escapedDescription = escapeLineBreaks(metaInfo.getDescriptionString());
+      builder.append("# description: ").append(escapedDescription).append('\n');
+    }
+  }
+
+  private String escapeChar(char c) {
+    if (c == '\n') {
+      return "\\n";
+    }
+    if (c == '\r') {
+      return "\\r";
+    }
+    return null;
+  }
+
+  private String escapeLineBreaks(String string) {
+    char[] charArray = string.toCharArray();
+    for (int i = 0; i < charArray.length; i++) {
+      // We don't expect escape chars, so wait with constructing a new string until found.
+      if (escapeChar(charArray[i]) != null) {
+        StringBuilder builder = new StringBuilder(string.substring(0, i));
+        for (int j = i; j < charArray.length; j++) {
+          char c = charArray[j];
+          String escaped = escapeChar(c);
+          if (escaped != null) {
+            builder.append(escaped);
+          } else {
+            builder.append(c);
+          }
+        }
+        return builder.toString();
+      }
+    }
+    return string;
+  }
+
   private void printConditionalRules(
-      List<ItemRule> consequentRules, KeepPreconditions preconditions) {
+      List<ItemRule> consequentRules, KeepPreconditions preconditions, KeepEdgeMetaInfo metaInfo) {
     boolean[] hasAtLeastOneConditionalClause = new boolean[1];
     preconditions.forEach(
         condition -> {
@@ -67,6 +109,7 @@ public class KeepRuleExtractor {
                 // disjunctions so conservatively we keep the consequences if any one of
                 // the preconditions hold.
                 StringBuilder builder = new StringBuilder();
+                printHeader(builder, metaInfo);
                 if (!consequentItem.isMemberOnlyConsequent()
                     || !conditionItem
                         .getClassNamePattern()
@@ -83,7 +126,11 @@ public class KeepRuleExtractor {
     if (!hasAtLeastOneConditionalClause[0]) {
       // If there are no preconditions, print each consequent as is.
       consequentRules.forEach(
-          r -> ruleConsumer.accept(printConsequentRule(new StringBuilder(), r).toString()));
+          r -> {
+            StringBuilder builder = new StringBuilder();
+            printHeader(builder, metaInfo);
+            ruleConsumer.accept(printConsequentRule(builder, r).toString());
+          });
     }
   }
 

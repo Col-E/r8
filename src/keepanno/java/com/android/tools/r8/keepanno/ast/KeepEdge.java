@@ -19,7 +19,10 @@ import java.util.Objects;
  * <p>TODO(b/248408342): Update the BNF and AST to be complete.
  *
  * <pre>
- *   EDGE ::= PRECONDITIONS -> CONSEQUENCES
+ *   EDGE ::= METAINFO PRECONDITIONS -> CONSEQUENCES
+ *   METAINFO = [CONTEXT] [DESCRIPTION]
+ *   CONTEXT = class-descriptor | method-descriptor | field-descriptor
+ *   DESCRIPTION = string-content
  *
  *   PRECONDITIONS ::= always | CONDITION+
  *   CONDITION ::= ITEM_PATTERN
@@ -61,6 +64,7 @@ import java.util.Objects;
 public final class KeepEdge {
 
   public static class Builder {
+    private KeepEdgeMetaInfo metaInfo = KeepEdgeMetaInfo.none();
     private KeepPreconditions preconditions = KeepPreconditions.always();
     private KeepConsequences consequences;
 
@@ -76,11 +80,16 @@ public final class KeepEdge {
       return this;
     }
 
+    public Builder setMetaInfo(KeepEdgeMetaInfo metaInfo) {
+      this.metaInfo = metaInfo;
+      return this;
+    }
+
     public KeepEdge build() {
       if (consequences.isEmpty()) {
         throw new KeepEdgeException("KeepEdge must have non-empty set of consequences.");
       }
-      return new KeepEdge(preconditions, consequences);
+      return new KeepEdge(preconditions, consequences, metaInfo);
     }
   }
 
@@ -88,14 +97,22 @@ public final class KeepEdge {
     return new Builder();
   }
 
+  private final KeepEdgeMetaInfo metaInfo;
   private final KeepPreconditions preconditions;
   private final KeepConsequences consequences;
 
-  private KeepEdge(KeepPreconditions preconditions, KeepConsequences consequences) {
+  private KeepEdge(
+      KeepPreconditions preconditions, KeepConsequences consequences, KeepEdgeMetaInfo metaInfo) {
     assert preconditions != null;
     assert consequences != null;
+    assert metaInfo != null;
     this.preconditions = preconditions;
     this.consequences = consequences;
+    this.metaInfo = metaInfo;
+  }
+
+  public KeepEdgeMetaInfo getMetaInfo() {
+    return metaInfo;
   }
 
   public KeepPreconditions getPreconditions() {

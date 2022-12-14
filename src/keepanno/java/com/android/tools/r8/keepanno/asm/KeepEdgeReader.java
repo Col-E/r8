@@ -13,6 +13,7 @@ import com.android.tools.r8.keepanno.ast.KeepCondition;
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
+import com.android.tools.r8.keepanno.ast.KeepEdgeMetaInfo;
 import com.android.tools.r8.keepanno.ast.KeepExtendsPattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
@@ -82,21 +83,25 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+      // Skip any visible annotations as @KeepEdge is not runtime visible.
       if (visible) {
         return null;
       }
-      // Skip any visible annotations as @KeepEdge is not runtime visible.
       if (descriptor.equals(Edge.DESCRIPTOR)) {
-        return new KeepEdgeVisitor(parent);
+        return new KeepEdgeVisitor(parent, this::setContext);
       }
       if (descriptor.equals(KeepConstants.UsesReflection.DESCRIPTOR)) {
         KeepItemPattern classItem =
             KeepItemPattern.builder()
                 .setClassPattern(KeepQualifiedClassNamePattern.exact(className))
                 .build();
-        return new UsesReflectionVisitor(parent, classItem);
+        return new UsesReflectionVisitor(parent, this::setContext, classItem);
       }
       return null;
+    }
+
+    private void setContext(KeepEdgeMetaInfo.Builder builder) {
+      builder.setContextFromClassDescriptor(KeepEdgeReaderUtils.javaTypeToDescriptor(className));
     }
 
     @Override
@@ -157,12 +162,17 @@ public class KeepEdgeReader implements Opcodes {
         return null;
       }
       if (descriptor.equals(Edge.DESCRIPTOR)) {
-        return new KeepEdgeVisitor(parent);
+        return new KeepEdgeVisitor(parent, this::setContext);
       }
       if (descriptor.equals(KeepConstants.UsesReflection.DESCRIPTOR)) {
-        return new UsesReflectionVisitor(parent, createItemContext());
+        return new UsesReflectionVisitor(parent, this::setContext, createItemContext());
       }
       return null;
+    }
+
+    private void setContext(KeepEdgeMetaInfo.Builder builder) {
+      builder.setContextFromMethodDescriptor(
+          KeepEdgeReaderUtils.javaTypeToDescriptor(className), methodName, methodDescriptor);
     }
   }
 
@@ -194,6 +204,11 @@ public class KeepEdgeReader implements Opcodes {
           .build();
     }
 
+    private void setContext(KeepEdgeMetaInfo.Builder builder) {
+      builder.setContextFromFieldDescriptor(
+          KeepEdgeReaderUtils.javaTypeToDescriptor(className), fieldName, fieldDescriptor);
+    }
+
     @Override
     public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
       // Skip any visible annotations as @KeepEdge is not runtime visible.
@@ -201,10 +216,10 @@ public class KeepEdgeReader implements Opcodes {
         return null;
       }
       if (descriptor.equals(Edge.DESCRIPTOR)) {
-        return new KeepEdgeVisitor(parent);
+        return new KeepEdgeVisitor(parent, this::setContext);
       }
       if (descriptor.equals(KeepConstants.UsesReflection.DESCRIPTOR)) {
-        return new UsesReflectionVisitor(parent, createItemContext());
+        return new UsesReflectionVisitor(parent, this::setContext, createItemContext());
       }
       return null;
     }
@@ -245,9 +260,20 @@ public class KeepEdgeReader implements Opcodes {
   private static class KeepEdgeVisitor extends AnnotationVisitorBase {
     private final Parent<KeepEdge> parent;
     private final KeepEdge.Builder builder = KeepEdge.builder();
+    private final KeepEdgeMetaInfo.Builder metaInfoBuilder = KeepEdgeMetaInfo.builder();
 
-    KeepEdgeVisitor(Parent<KeepEdge> parent) {
+    KeepEdgeVisitor(Parent<KeepEdge> parent, Consumer<KeepEdgeMetaInfo.Builder> addContext) {
       this.parent = parent;
+      addContext.accept(metaInfoBuilder);
+    }
+
+    @Override
+    public void visit(String name, Object value) {
+      if (name.equals(Edge.description) && value instanceof String) {
+        metaInfoBuilder.setDescription((String) value);
+        return;
+      }
+      super.visit(name, value);
     }
 
     @Override
@@ -263,7 +289,7 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     public void visitEnd() {
-      parent.accept(builder.build());
+      parent.accept(builder.setMetaInfo(metaInfoBuilder.build()).build());
     }
   }
 
@@ -271,10 +297,24 @@ public class KeepEdgeReader implements Opcodes {
     private final Parent<KeepEdge> parent;
     private final KeepEdge.Builder builder = KeepEdge.builder();
     private final KeepPreconditions.Builder preconditions = KeepPreconditions.builder();
+    private final KeepEdgeMetaInfo.Builder metaInfoBuilder = KeepEdgeMetaInfo.builder();
 
-    UsesReflectionVisitor(Parent<KeepEdge> parent, KeepItemPattern context) {
+    UsesReflectionVisitor(
+        Parent<KeepEdge> parent,
+        Consumer<KeepEdgeMetaInfo.Builder> addContext,
+        KeepItemPattern context) {
       this.parent = parent;
       preconditions.addCondition(KeepCondition.builder().setItem(context).build());
+      addContext.accept(metaInfoBuilder);
+    }
+
+    @Override
+    public void visit(String name, Object value) {
+      if (name.equals(Edge.description) && value instanceof String) {
+        metaInfoBuilder.setDescription((String) value);
+        return;
+      }
+      super.visit(name, value);
     }
 
     @Override
@@ -293,7 +333,11 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     public void visitEnd() {
-      parent.accept(builder.setPreconditions(preconditions.build()).build());
+      parent.accept(
+          builder
+              .setMetaInfo(metaInfoBuilder.build())
+              .setPreconditions(preconditions.build())
+              .build());
     }
   }
 

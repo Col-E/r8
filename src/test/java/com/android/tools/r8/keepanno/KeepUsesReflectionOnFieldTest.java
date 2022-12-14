@@ -5,7 +5,9 @@ package com.android.tools.r8.keepanno;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -50,7 +52,9 @@ public class KeepUsesReflectionOnFieldTest extends TestBase {
   @Test
   public void testWithRuleExtraction() throws Exception {
     List<String> rules = getExtractedKeepRules();
-    System.out.println(rules);
+    assertEquals(1, rules.size());
+    assertThat(rules.get(0), containsString("context: " + descriptor(A.class) + "foo()V"));
+    assertThat(rules.get(0), containsString("description: Keep the\\nstring-valued fields"));
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getInputClassesWithoutAnnotations())
         .addKeepRules(rules)
@@ -89,7 +93,9 @@ public class KeepUsesReflectionOnFieldTest extends TestBase {
     public String fieldA = "Hello, world";
     public Integer fieldB = 42;
 
-    @UsesReflection({@KeepTarget(classConstant = A.class, fieldType = "java.lang.String")})
+    @UsesReflection(
+        description = "Keep the\nstring-valued fields",
+        value = {@KeepTarget(classConstant = A.class, fieldType = "java.lang.String")})
     public void foo() throws Exception {
       for (Field field : getClass().getDeclaredFields()) {
         if (field.getType().equals(String.class)) {

@@ -32,6 +32,7 @@ public final class KeepConstants {
   public static final class Edge {
     public static final Class<KeepEdge> CLASS = KeepEdge.class;
     public static final String DESCRIPTOR = getDescriptor(CLASS);
+    public static final String description = "description";
     public static final String preconditions = "preconditions";
     public static final String consequences = "consequences";
   }
@@ -40,6 +41,7 @@ public final class KeepConstants {
     public static final Class<com.android.tools.r8.keepanno.annotations.UsesReflection> CLASS =
         com.android.tools.r8.keepanno.annotations.UsesReflection.class;
     public static final String DESCRIPTOR = getDescriptor(CLASS);
+    public static final String description = "description";
     public static final String value = "value";
     public static final String additionalPreconditions = "additionalPreconditions";
   }
