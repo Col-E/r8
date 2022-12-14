@@ -7,56 +7,33 @@ package com.android.tools.r8.keepanno.ast;
 public abstract class KeepExtendsPattern {
 
   public static KeepExtendsPattern any() {
-    return Any.getInstance();
+    return Some.getAnyInstance();
   }
 
   public static class Builder {
 
-    private KeepExtendsPattern pattern;
+    private KeepExtendsPattern pattern = KeepExtendsPattern.any();
 
     private Builder() {}
-
-    public Builder any() {
-      pattern = Any.getInstance();
-      return this;
-    }
 
     public Builder classPattern(KeepQualifiedClassNamePattern pattern) {
       this.pattern = new Some(pattern);
       return this;
     }
-  }
 
-  private static class Any extends KeepExtendsPattern {
-
-    private static final Any INSTANCE = new Any();
-
-    public static Any getInstance() {
-      return INSTANCE;
-    }
-
-    @Override
-    public boolean isAny() {
-      return true;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      return this == obj;
-    }
-
-    @Override
-    public int hashCode() {
-      return System.identityHashCode(this);
-    }
-
-    @Override
-    public String toString() {
-      return "*";
+    public KeepExtendsPattern build() {
+      return pattern;
     }
   }
 
   private static class Some extends KeepExtendsPattern {
+
+    private static final KeepExtendsPattern ANY_INSTANCE =
+        new Some(KeepQualifiedClassNamePattern.any());
+
+    private static KeepExtendsPattern getAnyInstance() {
+      return ANY_INSTANCE;
+    }
 
     private final KeepQualifiedClassNamePattern pattern;
 
@@ -68,6 +45,11 @@ public abstract class KeepExtendsPattern {
     @Override
     public boolean isAny() {
       return pattern.isAny();
+    }
+
+    @Override
+    public KeepQualifiedClassNamePattern asClassNamePattern() {
+      return pattern;
     }
 
     @Override
@@ -100,4 +82,6 @@ public abstract class KeepExtendsPattern {
   private KeepExtendsPattern() {}
 
   public abstract boolean isAny();
+
+  public abstract KeepQualifiedClassNamePattern asClassNamePattern();
 }

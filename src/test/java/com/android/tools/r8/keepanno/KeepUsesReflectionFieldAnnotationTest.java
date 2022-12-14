@@ -64,12 +64,7 @@ public class KeepUsesReflectionFieldAnnotationTest extends TestBase {
   }
 
   public List<byte[]> getInputClassesWithoutAnnotations() throws Exception {
-    List<Class<?>> classes = getInputClasses();
-    List<byte[]> transformed = new ArrayList<>(classes.size());
-    for (Class<?> clazz : classes) {
-      transformed.add(transformer(clazz).removeAllAnnotations().transform());
-    }
-    return transformed;
+    return KeepEdgeAnnotationsTest.getInputClassesWithoutKeepAnnotations(getInputClasses());
   }
 
   public List<String> getExtractedKeepRules() throws Exception {

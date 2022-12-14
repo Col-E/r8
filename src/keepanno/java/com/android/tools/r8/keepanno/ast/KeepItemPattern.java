@@ -29,7 +29,7 @@ public class KeepItemPattern {
 
   public static class Builder {
 
-    private KeepQualifiedClassNamePattern classNamePattern;
+    private KeepQualifiedClassNamePattern classNamePattern = KeepQualifiedClassNamePattern.any();
     private KeepExtendsPattern extendsPattern = KeepExtendsPattern.any();
     private KeepMemberPattern memberPattern = KeepMemberPattern.none();
 
@@ -58,9 +58,6 @@ public class KeepItemPattern {
     }
 
     public KeepItemPattern build() {
-      if (classNamePattern == null) {
-        throw new KeepEdgeException("Class pattern must define a class name pattern.");
-      }
       return new KeepItemPattern(classNamePattern, extendsPattern, memberPattern);
     }
   }

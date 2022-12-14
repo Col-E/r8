@@ -1463,32 +1463,51 @@ public class ClassFileTransformer {
         });
   }
 
-  public ClassFileTransformer removeAllAnnotations() {
-    return removeClassAnnotations().removeMethodAnnotations().removeFieldAnnotations();
+  public interface AnnotationPredicate {
+    boolean test(String descriptor, boolean visible);
+
+    static AnnotationPredicate any() {
+      return (descriptor, visible) -> true;
+    }
   }
 
-  public ClassFileTransformer removeClassAnnotations() {
+  public ClassFileTransformer removeAllAnnotations() {
+    return removeAnnotations(AnnotationPredicate.any());
+  }
+
+  public ClassFileTransformer removeAnnotations(AnnotationPredicate predicate) {
+    return removeClassAnnotations(predicate)
+        .removeMethodAnnotations(predicate)
+        .removeFieldAnnotations(predicate);
+  }
+
+  public ClassFileTransformer removeClassAnnotations(AnnotationPredicate predicate) {
     return addClassTransformer(
         new ClassTransformer() {
           @Override
           public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-            // Ignore all input annotations.
-            return null;
+            if (predicate.test(descriptor, visible)) {
+              return null;
+            }
+            return super.visitAnnotation(descriptor, visible);
           }
         });
   }
 
-  public ClassFileTransformer removeMethodAnnotations() {
+  public ClassFileTransformer removeMethodAnnotations(AnnotationPredicate predicate) {
     return addMethodTransformer(
         new MethodTransformer() {
           @Override
           public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-            return null;
+            if (predicate.test(descriptor, visible)) {
+              return null;
+            }
+            return super.visitAnnotation(descriptor, visible);
           }
         });
   }
 
-  public ClassFileTransformer removeFieldAnnotations() {
+  public ClassFileTransformer removeFieldAnnotations(AnnotationPredicate predicate) {
     return addClassTransformer(
         new ClassTransformer() {
           @Override
@@ -1498,7 +1517,10 @@ public class ClassFileTransformer {
             return new FieldVisitor(ASM_VERSION, fv) {
               @Override
               public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-                return null;
+                if (predicate.test(descriptor, visible)) {
+                  return null;
+                }
+                return super.visitAnnotation(descriptor, visible);
               }
             };
           }

@@ -3,19 +3,25 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.keepanno.annotations.KeepCondition;
+import com.android.tools.r8.keepanno.annotations.KeepOption;
 import com.android.tools.r8.keepanno.annotations.KeepTarget;
 import com.android.tools.r8.keepanno.annotations.UsesReflection;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
@@ -23,9 +29,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class KeepUsesReflectionAnnotationWithAdditionalPreconditionTest extends TestBase {
+public class KeepAnnotationViaSuperTest extends TestBase {
 
-  static final String EXPECTED = StringUtils.lines("Hello, world");
+  static final String EXPECTED = StringUtils.lines("42");
 
   private final TestParameters parameters;
 
@@ -34,7 +40,7 @@ public class KeepUsesReflectionAnnotationWithAdditionalPreconditionTest extends 
     return getTestParameters().withDefaultRuntimes().withApiLevel(AndroidApiLevel.B).build();
   }
 
-  public KeepUsesReflectionAnnotationWithAdditionalPreconditionTest(TestParameters parameters) {
+  public KeepAnnotationViaSuperTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -49,10 +55,12 @@ public class KeepUsesReflectionAnnotationWithAdditionalPreconditionTest extends 
   @Test
   public void testWithRuleExtraction() throws Exception {
     List<String> rules = getExtractedKeepRules();
+    System.out.println(rules);
     testForR8(parameters.getBackend())
-        .addProgramClassFileData(getInputClassesWithoutAnnotations())
+        .addProgramClassFileData(getInputClassesWithoutKeepAnnotations())
         .addKeepRules(rules)
         .addKeepMainRule(TestClass.class)
+        .addKeepRuntimeVisibleAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
@@ -60,10 +68,17 @@ public class KeepUsesReflectionAnnotationWithAdditionalPreconditionTest extends 
   }
 
   public List<Class<?>> getInputClasses() {
-    return ImmutableList.of(TestClass.class, A.class, B.class);
+    return ImmutableList.of(
+        TestClass.class,
+        Base.class,
+        SubA.class,
+        SubB.class,
+        SubC.class,
+        Anno.class,
+        UnusedAnno.class);
   }
 
-  public List<byte[]> getInputClassesWithoutAnnotations() throws Exception {
+  public List<byte[]> getInputClassesWithoutKeepAnnotations() throws Exception {
     return KeepEdgeAnnotationsTest.getInputClassesWithoutKeepAnnotations(getInputClasses());
   }
 
@@ -77,47 +92,60 @@ public class KeepUsesReflectionAnnotationWithAdditionalPreconditionTest extends 
   }
 
   private void checkOutput(CodeInspector inspector) {
-    assertThat(inspector.clazz(A.class), isPresent());
-    assertThat(inspector.clazz(B.class), isPresent());
-    assertThat(inspector.clazz(B.class).uniqueMethodWithOriginalName("<init>"), isPresent());
-    assertThat(inspector.clazz(B.class).uniqueMethodWithOriginalName("bar"), isPresent());
+    assertThat(inspector.clazz(Base.class), isPresent());
+
+    ClassSubject classA = inspector.clazz(SubA.class);
+    assertThat(classA, isPresent());
+    assertThat(classA.annotation(Anno.class), isPresent());
+    assertThat(classA.annotation(UnusedAnno.class), isAbsent());
+
+    ClassSubject classB = inspector.clazz(SubB.class);
+    assertThat(classB, isPresent());
+    assertThat(classB.annotation(Anno.class), isPresent());
+
+    assertThat(inspector.clazz(SubC.class), isAbsent());
   }
 
-  static class A {
+  @Target({ElementType.TYPE})
+  @Retention(RetentionPolicy.RUNTIME)
+  @interface Anno {
+    int value();
+  }
 
-    @UsesReflection(
-        value = {
-          // Ensure B's constructor and method 'bar' remain as they are invoked by reflection.
-          @KeepTarget(classConstant = B.class, methodName = "<init>"),
-          @KeepTarget(classConstant = B.class, methodName = "bar")
-        },
-        additionalPreconditions = {
-          // The reflection depends on the class constant being used in the program in addition to
-          // this method. In rule extraction, this will lead to an over-approximation as the rules
-          // will need to keep the above live if either of the two conditions are met. There is no
-          // way to express the conjunction with multiple distinct precondition classes in the
-          // rule language. With direct annotation interpretation this limitation is avoided and
-          // a more precise shrinking is possible.
-          // TODO(b/248408342): Check this once direct interpretation is supported.
-          @KeepCondition(classConstant = B.class)
-        })
-    public void foo(Class<B> clazz) throws Exception {
-      if (clazz != null) {
-        clazz.getDeclaredMethod("bar").invoke(clazz.getDeclaredConstructor().newInstance());
-      }
+  @Target({ElementType.TYPE})
+  @Retention(RetentionPolicy.RUNTIME)
+  @interface UnusedAnno {
+    int value();
+  }
+
+  abstract static class Base {
+
+    @UsesReflection({
+      @KeepTarget(
+          extendsClassConstant = Base.class,
+          disallow = {KeepOption.ANNOTATION_REMOVAL})
+    })
+    public Base() {
+      Anno annotation = getClass().getAnnotation(Anno.class);
+      System.out.println(annotation.value());
     }
   }
 
-  static class B {
-    public static void bar() {
-      System.out.println("Hello, world");
-    }
-  }
+  @Anno(42)
+  @UnusedAnno(123)
+  static class SubA extends Base {}
+
+  @Anno(7)
+  static class SubB extends Base {}
+
+  // Unused.
+  @Anno(-1)
+  static class SubC extends Base {}
 
   static class TestClass {
 
     public static void main(String[] args) throws Exception {
-      new A().foo(System.nanoTime() > 0 ? B.class : null);
+      Base b = System.nanoTime() > 0 ? new SubA() : new SubB();
     }
   }
 }

@@ -53,7 +53,7 @@ import java.lang.annotation.Target;
  *   }
  * </pre>
  */
-@Target({ElementType.TYPE, ElementType.FIELD, ElementType.METHOD})
+@Target({ElementType.TYPE, ElementType.FIELD, ElementType.METHOD, ElementType.CONSTRUCTOR})
 @Retention(RetentionPolicy.CLASS)
 public @interface UsesReflection {
   KeepTarget[] value();

@@ -11,6 +11,8 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.keepanno.ast.KeepOptions.KeepOption;
 import com.android.tools.r8.keepanno.keeprules.KeepRuleExtractor;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -62,10 +64,10 @@ public class KeepEdgeAstTest extends TestBase {
                     .build())
             .build();
     // Disallow will issue the full inverse of the known options, e.g., 'allowaccessmodification'.
-    assertEquals(
-        StringUtils.unixLines(
-            "-keep,allowshrinking,allowobfuscation,allowaccessmodification class * { *; }"),
-        extract(edge));
+    List<String> options =
+        ImmutableList.of("shrinking", "obfuscation", "accessmodification", "annotationremoval");
+    String allows = String.join(",allow", options);
+    assertEquals(StringUtils.unixLines("-keep,allow" + allows + " class * { *; }"), extract(edge));
   }
 
   @Test

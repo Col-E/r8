@@ -6,6 +6,7 @@ package com.android.tools.r8.keepanno.keeprules;
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
+import com.android.tools.r8.keepanno.ast.KeepExtendsPattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldAccessPattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
@@ -103,8 +104,10 @@ public class KeepRuleExtractor {
   private static StringBuilder printItem(StringBuilder builder, KeepItemPattern clazzPattern) {
     builder.append("class ");
     printClassName(builder, clazzPattern.getClassNamePattern());
-    if (!clazzPattern.getExtendsPattern().isAny()) {
-      throw new Unimplemented();
+    KeepExtendsPattern extendsPattern = clazzPattern.getExtendsPattern();
+    if (!extendsPattern.isAny()) {
+      builder.append(" extends ");
+      printClassName(builder, extendsPattern.asClassNamePattern());
     }
     KeepMemberPattern member = clazzPattern.getMemberPattern();
     if (member.isNone()) {
@@ -247,8 +250,10 @@ public class KeepRuleExtractor {
         return "optimization";
       case OBFUSCATING:
         return "obfuscation";
-      case ACCESS_MODIFYING:
+      case ACCESS_MODIFICATION:
         return "accessmodification";
+      case ANNOTATION_REMOVAL:
+        return "annotationremoval";
       default:
         throw new Unimplemented();
     }

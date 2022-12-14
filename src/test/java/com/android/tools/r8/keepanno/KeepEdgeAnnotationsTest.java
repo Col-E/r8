@@ -14,6 +14,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.keepanno.annotations.KeepConstants;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Edge;
 import com.android.tools.r8.keepanno.asm.KeepEdgeReader;
 import com.android.tools.r8.keepanno.asm.KeepEdgeWriter;
@@ -36,6 +37,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -138,6 +140,16 @@ public class KeepEdgeAnnotationsTest extends TestBase {
             });
   }
 
+  public static List<byte[]> getInputClassesWithoutKeepAnnotations(Collection<Class<?>> classes)
+      throws Exception {
+    List<byte[]> transformed = new ArrayList<>(classes.size());
+    for (Class<?> clazz : classes) {
+      transformed.add(
+          transformer(clazz).removeAnnotations(KeepConstants::isKeepAnnotation).transform());
+    }
+    return transformed;
+  }
+
   @Test
   public void testAsmReader() throws Exception {
     assumeTrue(parameters.isCfRuntime());
@@ -147,11 +159,7 @@ public class KeepEdgeAnnotationsTest extends TestBase {
     byte[] original = ToolHelper.getClassAsBytes(source);
     // Strip out all the annotations to ensure they are actually added again.
     byte[] stripped =
-        transformer(source)
-            .removeClassAnnotations()
-            .removeMethodAnnotations()
-            .removeFieldAnnotations()
-            .transform();
+        getInputClassesWithoutKeepAnnotations(Collections.singletonList(source)).get(0);
     // Manually add in the expected edges again.
     byte[] readded =
         transformer(stripped, clazz)

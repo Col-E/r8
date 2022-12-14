@@ -19,6 +19,16 @@ public final class KeepConstants {
     return classTypeName.replace('.', '/');
   }
 
+  public static boolean isKeepAnnotation(String descriptor, boolean visible) {
+    if (visible) {
+      return false;
+    }
+    return descriptor.equals(Edge.DESCRIPTOR)
+        || descriptor.equals(UsesReflection.DESCRIPTOR)
+        || descriptor.equals(Condition.DESCRIPTOR)
+        || descriptor.equals(Target.DESCRIPTOR);
+  }
+
   public static final class Edge {
     public static final Class<KeepEdge> CLASS = KeepEdge.class;
     public static final String DESCRIPTOR = getDescriptor(CLASS);
@@ -37,6 +47,9 @@ public final class KeepConstants {
   // Implicit hidden item which is "super type" of Condition and Target.
   public static final class Item {
     public static final String classConstant = "classConstant";
+
+    public static final String extendsClassConstant = "extendsClassConstant";
+    public static final String extendsTypeName = "extendsTypeName";
 
     public static final String methodName = "methodName";
     public static final String methodReturnType = "methodReturnType";
@@ -64,5 +77,19 @@ public final class KeepConstants {
   public static final class Target {
     public static final Class<KeepTarget> CLASS = KeepTarget.class;
     public static final String DESCRIPTOR = getDescriptor(CLASS);
+
+    public static final String allow = "allow";
+    public static final String disallow = "disallow";
+  }
+
+  public static final class Option {
+    public static final Class<KeepOption> CLASS = KeepOption.class;
+    public static final String DESCRIPTOR = getDescriptor(CLASS);
+
+    public static final String SHRINKING = "SHRINKING";
+    public static final String OBFUSCATION = "OBFUSCATION";
+    public static final String OPTIMIZATION = "OPTIMIZATION";
+    public static final String ACCESS_MODIFICATION = "ACCESS_MODIFICATION";
+    public static final String ANNOTATION_REMOVAL = "ANNOTATION_REMOVAL";
   }
 }

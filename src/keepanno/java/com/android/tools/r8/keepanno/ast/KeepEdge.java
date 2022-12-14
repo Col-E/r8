@@ -27,7 +27,7 @@ import java.util.Objects;
  *   CONSEQUENCES ::= TARGET+
  *   TARGET ::= OPTIONS ITEM_PATTERN
  *   OPTIONS ::= keep-all | OPTION+
- *   OPTION ::= shrinking | optimizing | obfuscating | access-modifying
+ *   OPTION ::= shrinking | optimizing | obfuscating | access-modification | annotation-removal
  *
  *   ITEM_PATTERN
  *     ::= any

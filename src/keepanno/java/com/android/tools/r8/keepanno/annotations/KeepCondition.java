@@ -29,6 +29,10 @@ public @interface KeepCondition {
 
   String classTypeName() default "";
 
+  String extendsClassTypeName() default "";
+
+  Class<?> extendsClassConstant() default Object.class;
+
   String methodName() default "";
 
   String methodReturnType() default "";
