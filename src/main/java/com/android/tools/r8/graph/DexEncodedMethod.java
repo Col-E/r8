@@ -1093,12 +1093,39 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public DexEncodedMethod toTypeSubstitutedMethod(DexMethod method) {
     checkIfObsolete();
-    return toTypeSubstitutedMethod(method, null);
+    return toTypeSubstitutedMethodHelper(method, isD8R8Synthesized(), null);
   }
 
   public DexEncodedMethod toTypeSubstitutedMethod(DexMethod method, Consumer<Builder> consumer) {
     checkIfObsolete();
-    Builder builder = builder(this);
+    return toTypeSubstitutedMethodHelper(method, isD8R8Synthesized(), consumer);
+  }
+
+  public DexEncodedMethod toTypeSubstitutedMethodAsInlining(
+      DexMethod method, DexItemFactory factory) {
+    checkIfObsolete();
+    return toTypeSubstitutedMethodAsInlining(method, factory, null);
+  }
+
+  public DexEncodedMethod toTypeSubstitutedMethodAsInlining(
+      DexMethod method, DexItemFactory factory, Consumer<Builder> consumer) {
+    return toTypeSubstitutedMethodHelper(
+        method,
+        true,
+        builder -> {
+          if (code != null) {
+            builder.setCode(getCode().getCodeAsInlining(method, this, factory));
+          }
+          if (consumer != null) {
+            consumer.accept(builder);
+          }
+        });
+  }
+
+  private DexEncodedMethod toTypeSubstitutedMethodHelper(
+      DexMethod method, boolean isD8R8Synthesized, Consumer<Builder> consumer) {
+    checkIfObsolete();
+    Builder builder = isD8R8Synthesized ? syntheticBuilder(this) : builder(this);
     if (isNonPrivateVirtualMethod() && isLibraryMethodOverride() != OptionalBool.unknown()) {
       builder.setIsLibraryMethodOverride(isLibraryMethodOverride());
     }
