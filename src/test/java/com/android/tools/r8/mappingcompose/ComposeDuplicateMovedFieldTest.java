@@ -47,14 +47,13 @@ public class ComposeDuplicateMovedFieldTest extends TestBase {
           "    boolean b.g2 -> h2");
   private static final String mappingResult =
       StringUtils.unixLines(
-          // TODO(b/241763080): We should support duplicating fields.
           "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
           "com.bar -> c:",
           "    boolean f2 -> h2",
           "    int some.other.Class.f1 -> h1",
           "com.baz -> d:",
-          "    int a.g1 -> h1", // This should be int some.other.Class.f1 -> h1
-          "    boolean b.g2 -> h2", // This should be boolean com.bar.f2 -> h2.
+          "    boolean com.bar.f2 -> h2",
+          "    int some.other.Class.f1 -> h1",
           "com.foo -> a:");
 
   @Test

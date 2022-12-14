@@ -23,6 +23,6 @@ public class MappingComposer {
     for (ClassNameMapper classNameMapper : classNameMappers) {
       builder.compose(classNameMapper);
     }
-    return builder.toString();
+    return builder.finish();
   }
 }

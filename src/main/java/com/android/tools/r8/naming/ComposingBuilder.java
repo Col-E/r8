@@ -7,6 +7,7 @@ package com.android.tools.r8.naming;
 import static com.android.tools.r8.naming.MappedRangeUtils.isInlineMappedRange;
 import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
@@ -128,9 +129,8 @@ public class ComposingBuilder {
     composingClassBuilder.compose(classNameMapper, classMapping);
   }
 
-
-  @Override
-  public String toString() {
+  public String finish() {
+    committed.finish();
     List<ComposingClassBuilder> classBuilders = new ArrayList<>(committed.classBuilders.values());
     classBuilders.sort(Comparator.comparing(ComposingClassBuilder::getOriginalName));
     StringBuilder sb = new StringBuilder();
@@ -167,6 +167,12 @@ public class ComposingBuilder {
     private final Map<ClassTypeNameAndMethodName, UpdateOutlineCallsiteInformation>
         outlineSourcePositionsUpdated = new HashMap<>();
 
+    /**
+     * Map of signatures that should be removed when finalizing the composed map. The key is the
+     * original name of a class.
+     */
+    private final Map<String, Set<Signature>> signaturesToRemove = new HashMap<>();
+
     private final List<String> preamble = new ArrayList<>();
 
     public void commit(ComposingData current, ClassNameMapper classNameMapper)
@@ -175,6 +181,7 @@ public class ComposingBuilder {
       commitClassBuilders(current, classNameMapper);
       commitRewriteFrameInformation(current, classNameMapper);
       commitOutlineCallsiteInformation(current, classNameMapper);
+      commitSignaturesToRemove(current);
     }
 
     private void commitClassBuilders(ComposingData current, ClassNameMapper classNameMapper)
@@ -209,6 +216,28 @@ public class ComposingBuilder {
         }
       }
       classBuilders = newClassBuilders;
+    }
+
+    private void commitSignaturesToRemove(ComposingData current) {
+      current.signaturesToRemove.forEach(
+          (originalName, signatures) -> {
+            signaturesToRemove.merge(
+                originalName,
+                signatures,
+                (signatures1, signatures2) -> {
+                  Set<Signature> joinedSignatures = Sets.newHashSet(signatures1);
+                  joinedSignatures.addAll(signatures2);
+                  return joinedSignatures;
+                });
+          });
+    }
+
+    public void addSignatureToRemove(
+        ComposingClassBuilder composingClassBuilder, Signature signature) {
+      signaturesToRemove
+          .computeIfAbsent(
+              composingClassBuilder.getOriginalName(), ignoreArgument(Sets::newHashSet))
+          .add(signature);
     }
 
     private void commitRewriteFrameInformation(
@@ -312,6 +341,25 @@ public class ComposingBuilder {
         String newTypeName = typeNameMap.get(typeReference.getTypeName());
         return newTypeName == null ? typeReference : Reference.classFromTypeName(newTypeName);
       }
+    }
+
+    public void finish() {
+      classBuilders.forEach(
+          (ignored, classBuilder) -> {
+            Set<Signature> signatures = signaturesToRemove.get(classBuilder.getOriginalName());
+            if (signatures == null) {
+              return;
+            }
+            signatures.forEach(
+                signature -> {
+                  if (signature.isFieldSignature()) {
+                    classBuilder.fieldMembers.remove(signature.asFieldSignature());
+                  } else {
+                    // TODO(b/241763080): Define removal of methods with and without signatures.
+                    throw new Unreachable();
+                  }
+                });
+          });
     }
   }
 
@@ -498,10 +546,13 @@ public class ComposingBuilder {
       if (composingClassBuilder == null) {
         return null;
       }
-      return composingClassBuilder.fieldMembers.remove(
-          originalSignature.isQualified()
-              ? originalSignature.toUnqualifiedSignature()
-              : originalSignature);
+      FieldSignature signature =
+          (originalSignature.isQualified()
+                  ? originalSignature.toUnqualifiedSignature()
+                  : originalSignature)
+              .asFieldSignature();
+      current.addSignatureToRemove(composingClassBuilder, signature);
+      return composingClassBuilder.fieldMembers.get(signature);
     }
 
     private void composeMethodNamings(
