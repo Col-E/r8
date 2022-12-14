@@ -59,6 +59,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
+import java.util.function.Consumer;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
@@ -971,5 +972,14 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
             .setEventConsumer(eventConsumer)
             .build();
     return helper.run();
+  }
+
+  @Override
+  public void forEachPositionOrInlineFrame(Consumer<Position> positionConsumer) {
+    for (CfInstruction instruction : getInstructions()) {
+      if (instruction.isPosition()) {
+        positionConsumer.accept(instruction.asPosition().getPosition());
+      }
+    }
   }
 }

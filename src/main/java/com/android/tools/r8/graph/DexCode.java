@@ -52,6 +52,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 // DexCode corresponds to code item in dalvik/dex-format.html
 public class DexCode extends Code implements DexWritableCode, StructuralItem<DexCode> {
@@ -772,6 +773,18 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       ObjectToOffsetMapping mapping) {
     for (DexInstruction instruction : instructions) {
       instruction.write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
+    }
+  }
+
+  @Override
+  public void forEachPositionOrInlineFrame(Consumer<Position> positionConsumer) {
+    if (getDebugInfo() == null || getDebugInfo().isPcBasedInfo()) {
+      return;
+    }
+    for (DexDebugEvent event : getDebugInfo().asEventBasedInfo().events) {
+      if (event.isPositionFrame()) {
+        positionConsumer.accept(event.asSetPositionFrame().getPosition());
+      }
     }
   }
 

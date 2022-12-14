@@ -7,8 +7,6 @@ import static com.android.tools.r8.utils.AssertionUtils.forTesting;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
 import com.android.tools.r8.androidapi.ApiReferenceStubber;
-import com.android.tools.r8.cf.code.CfInstruction;
-import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryKeepRuleGenerator;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
@@ -20,12 +18,9 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.AppliedGraphLens;
-import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexCode;
-import com.android.tools.r8.graph.DexDebugEvent;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -947,38 +942,16 @@ public class R8 {
                         if (code == null) {
                           return;
                         }
-                        if (code.isCfCode()) {
-                          assert verifyOriginalMethodInPosition(code.asCfCode(), originalMethod);
-                        } else if (code.isDexCode()) {
-                          assert verifyOriginalMethodInDebugInfo(code.asDexCode(), originalMethod);
+                        if (code.isCfCode() || code.isDexCode()) {
+                          code.forEachPositionOrInlineFrame(
+                              position -> {
+                                assert position.getMethod() == originalMethod;
+                              });
                         } else {
                           assert code.isDefaultInstanceInitializerCode() || code.isThrowNullCode();
                         }
                       }
                     }));
-    return true;
-  }
-
-  private static boolean verifyOriginalMethodInPosition(CfCode code, DexMethod originalMethod) {
-    for (CfInstruction instruction : code.getInstructions()) {
-      if (!instruction.isPosition()) {
-        continue;
-      }
-      CfPosition position = instruction.asPosition();
-      assert position.getPosition().getOutermostCaller().getMethod() == originalMethod;
-    }
-    return true;
-  }
-
-  private static boolean verifyOriginalMethodInDebugInfo(DexCode code, DexMethod originalMethod) {
-    if (code.getDebugInfo() == null || code.getDebugInfo().isPcBasedInfo()) {
-      return true;
-    }
-    for (DexDebugEvent event : code.getDebugInfo().asEventBasedInfo().events) {
-      assert !event.isPositionFrame()
-          || event.asSetPositionFrame().getPosition().getOutermostCaller().getMethod()
-              == originalMethod;
-    }
     return true;
   }
 

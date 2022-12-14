@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodC
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import java.util.function.Consumer;
 
 public abstract class Code extends CachedHashValueDexItem {
 
@@ -207,5 +208,9 @@ public abstract class Code extends CachedHashValueDexItem {
       positionBuilder.setRemoveInnerFramesIfThrowingNpe(true);
     }
     return oldPosition.replacePosition(outermostCaller, positionBuilder.build());
+  }
+
+  public void forEachPositionOrInlineFrame(Consumer<Position> positionConsumer) {
+    // Intentionally empty. Override where we have fully build CF or DEX code.
   }
 }
