@@ -417,6 +417,7 @@ public class ComposingBuilder {
     private final ComposingData committed;
     private final ComposingData current;
 
+    private final Map<String, ComposingClassBuilder> committedPreviousClassBuilders;
     private final ComposingClassBuilder committedPreviousClassBuilder;
     private final InternalOptions options;
 
@@ -431,7 +432,8 @@ public class ComposingBuilder {
       this.current = current;
       this.committed = committed;
       this.options = options;
-      committedPreviousClassBuilder = committed.classBuilders.get(originalName);
+      committedPreviousClassBuilders = committed.classBuilders;
+      committedPreviousClassBuilder = committedPreviousClassBuilders.get(originalName);
     }
 
     public String getOriginalName() {
@@ -465,18 +467,41 @@ public class ComposingBuilder {
                 fieldNaming
                     .computeResidualSignature(type -> inverseClassMapping.getOrDefault(type, type))
                     .asFieldSignature();
-            if (committedPreviousClassBuilder != null) {
-              MemberNaming existingMemberNaming =
-                  committedPreviousClassBuilder.fieldMembers.remove(originalSignature);
-              if (existingMemberNaming != null) {
-                fieldNamingToAdd =
-                    new MemberNaming(
-                        existingMemberNaming.getOriginalSignature(), residualSignature);
+            MemberNaming existingMemberNaming = getExistingMemberNaming(originalSignature);
+            if (existingMemberNaming != null) {
+              Signature existingOriginalSignature = existingMemberNaming.getOriginalSignature();
+              if (!existingOriginalSignature.isQualified() && originalSignature.isQualified()) {
+                String previousCommittedClassName =
+                    getPreviousCommittedClassName(originalSignature.toHolderFromQualified());
+                if (previousCommittedClassName != null) {
+                  existingOriginalSignature =
+                      existingOriginalSignature.toQualifiedSignature(previousCommittedClassName);
+                }
               }
+              fieldNamingToAdd = new MemberNaming(existingOriginalSignature, residualSignature);
             }
             MemberNaming existing = fieldMembers.put(residualSignature, fieldNamingToAdd);
             assert existing == null;
           });
+    }
+
+    private String getPreviousCommittedClassName(String holder) {
+      ComposingClassBuilder composingClassBuilder = committedPreviousClassBuilders.get(holder);
+      return composingClassBuilder == null ? null : composingClassBuilder.getOriginalName();
+    }
+
+    private MemberNaming getExistingMemberNaming(FieldSignature originalSignature) {
+      ComposingClassBuilder composingClassBuilder =
+          originalSignature.isQualified()
+              ? committedPreviousClassBuilders.get(originalSignature.toHolderFromQualified())
+              : committedPreviousClassBuilder;
+      if (composingClassBuilder == null) {
+        return null;
+      }
+      return composingClassBuilder.fieldMembers.remove(
+          originalSignature.isQualified()
+              ? originalSignature.toUnqualifiedSignature()
+              : originalSignature);
     }
 
     private void composeMethodNamings(

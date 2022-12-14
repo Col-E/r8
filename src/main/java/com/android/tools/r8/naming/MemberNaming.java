@@ -194,6 +194,10 @@ public class MemberNaming implements MappingWithResidualInfo {
     public abstract Signature computeResidualSignature(
         String renamedName, Function<String, String> typeNameMapper);
 
+    public abstract Signature toUnqualifiedSignature();
+
+    public abstract Signature toQualifiedSignature(String holder);
+
     public boolean isQualified() {
       return name.indexOf(JAVA_PACKAGE_SEPARATOR) != -1;
     }
@@ -291,6 +295,17 @@ public class MemberNaming implements MappingWithResidualInfo {
     public FieldSignature computeResidualSignature(
         String renamedName, Function<String, String> typeNameMapper) {
       return new FieldSignature(renamedName, DescriptorUtils.mapTypeName(type, typeNameMapper));
+    }
+
+    @Override
+    public Signature toUnqualifiedSignature() {
+      return new FieldSignature(toUnqualifiedName(), type);
+    }
+
+    @Override
+    public Signature toQualifiedSignature(String holder) {
+      assert !isQualified();
+      return new FieldSignature(holder + "." + name, type);
     }
 
     @Override
@@ -477,6 +492,16 @@ public class MemberNaming implements MappingWithResidualInfo {
           ArrayUtils.mapToStringArray(
               parameters,
               parameterTypeName -> DescriptorUtils.mapTypeName(parameterTypeName, typeNameMapper)));
+    }
+
+    @Override
+    public Signature toUnqualifiedSignature() {
+      return new MethodSignature(toUnqualifiedName(), type, parameters);
+    }
+
+    @Override
+    public Signature toQualifiedSignature(String holder) {
+      return new MethodSignature(holder + "." + name, type, parameters);
     }
 
     @Override

@@ -42,15 +42,12 @@ public class ComposeMovedFieldTest extends TestBase {
           "    int a.g1 -> h1",
           "    boolean a.g2 -> h2");
   private static final String mappingResult =
-      // TODO(b/241763080): Define composition for moved fields.
       StringUtils.unixLines(
           "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
           "com.bar -> b:",
-          "    int a.g1 -> h1",
-          "    boolean a.g2 -> h2",
-          "com.foo -> a:",
-          "    boolean f2 -> g2",
-          "    int some.other.Class.f1 -> g1");
+          "    boolean com.foo.f2 -> h2",
+          "    int some.other.Class.f1 -> h1",
+          "com.foo -> a:");
 
   @Test
   public void testCompose() throws Exception {
