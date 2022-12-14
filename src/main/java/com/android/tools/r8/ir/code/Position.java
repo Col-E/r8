@@ -33,13 +33,19 @@ public abstract class Position implements StructuralItem<Position> {
   protected final Position callerPosition;
 
   private final boolean removeInnerFramesIfThrowingNpe;
+  private final boolean isD8R8Synthesized;
 
   private Position(
-      int line, DexMethod method, Position callerPosition, boolean removeInnerFramesIfThrowingNpe) {
+      int line,
+      DexMethod method,
+      Position callerPosition,
+      boolean removeInnerFramesIfThrowingNpe,
+      boolean isD8R8Synthesized) {
     this.line = line;
     this.method = method;
     this.callerPosition = callerPosition;
     this.removeInnerFramesIfThrowingNpe = removeInnerFramesIfThrowingNpe;
+    this.isD8R8Synthesized = isD8R8Synthesized;
   }
 
   public boolean isSyntheticPosition() {
@@ -48,6 +54,10 @@ public abstract class Position implements StructuralItem<Position> {
 
   public boolean isRemoveInnerFramesIfThrowingNpe() {
     return removeInnerFramesIfThrowingNpe;
+  }
+
+  public boolean isD8R8Synthesized() {
+    return isD8R8Synthesized;
   }
 
   public boolean isOutline() {
@@ -106,7 +116,8 @@ public abstract class Position implements StructuralItem<Position> {
         .withInt(Position::getLine)
         .withNullableItem(Position::getMethod)
         .withNullableItem(Position::getCallerPosition)
-        .withBool(Position::isRemoveInnerFramesIfThrowingNpe);
+        .withBool(Position::isRemoveInnerFramesIfThrowingNpe)
+        .withBool(Position::isD8R8Synthesized);
   }
 
   public static Position syntheticNone() {
@@ -238,6 +249,7 @@ public abstract class Position implements StructuralItem<Position> {
     protected DexMethod method;
     protected Position callerPosition;
     protected boolean removeInnerFramesIfThrowingNpe;
+    protected boolean isD8R8Synthesized;
 
     protected boolean noCheckOfPosition;
     protected boolean noCheckOfMethod;
@@ -268,6 +280,11 @@ public abstract class Position implements StructuralItem<Position> {
       return self();
     }
 
+    public B setIsD8R8Synthesized(boolean isD8R8Synthesized) {
+      this.isD8R8Synthesized = isD8R8Synthesized;
+      return self();
+    }
+
     public B disableLineCheck() {
       noCheckOfPosition = true;
       return self();
@@ -286,7 +303,7 @@ public abstract class Position implements StructuralItem<Position> {
     // A no-position marker. Not having a position means the position is implicitly defined by the
     // context, e.g., the marker does not materialize anything concrete.
     private static final SourcePosition NO_POSITION =
-        new SourcePosition(-1, null, null, false, null);
+        new SourcePosition(-1, null, null, false, false, null);
 
     public final DexString file;
 
@@ -299,8 +316,9 @@ public abstract class Position implements StructuralItem<Position> {
         DexMethod method,
         Position callerPosition,
         boolean removeInnerFramesIfThrowingNpe,
+        boolean isD8R8Synthesized,
         DexString file) {
-      super(line, method, callerPosition, removeInnerFramesIfThrowingNpe);
+      super(line, method, callerPosition, removeInnerFramesIfThrowingNpe, isD8R8Synthesized);
       this.file = file;
       assert callerPosition == null || callerPosition.method != null;
     }
@@ -327,7 +345,8 @@ public abstract class Position implements StructuralItem<Position> {
           .setFile(file)
           .setMethod(method)
           .setCallerPosition(callerPosition)
-          .setRemoveInnerFramesIfThrowingNpe(isRemoveInnerFramesIfThrowingNpe());
+          .setRemoveInnerFramesIfThrowingNpe(isRemoveInnerFramesIfThrowingNpe())
+          .setIsD8R8Synthesized(isD8R8Synthesized());
     }
 
     @Override
@@ -359,7 +378,7 @@ public abstract class Position implements StructuralItem<Position> {
         assert noCheckOfPosition || line >= 0;
         assert noCheckOfMethod || method != null;
         return new SourcePosition(
-            line, method, callerPosition, removeInnerFramesIfThrowingNpe, file);
+            line, method, callerPosition, removeInnerFramesIfThrowingNpe, isD8R8Synthesized, file);
       }
     }
   }
@@ -370,14 +389,15 @@ public abstract class Position implements StructuralItem<Position> {
     // This is used specifically to mark exceptional exit blocks from synchronized methods in
     // release.
     private static final Position NO_POSITION_SYNTHETIC =
-        new SyntheticPosition(-1, null, null, false);
+        new SyntheticPosition(-1, null, null, false, false);
 
     private SyntheticPosition(
         int line,
         DexMethod method,
         Position callerPosition,
-        boolean removeInnerFramesIfThrowingNpe) {
-      super(line, method, callerPosition, removeInnerFramesIfThrowingNpe);
+        boolean removeInnerFramesIfThrowingNpe,
+        boolean isD8R8Synthesized) {
+      super(line, method, callerPosition, removeInnerFramesIfThrowingNpe, isD8R8Synthesized);
     }
 
     @Override
@@ -396,7 +416,8 @@ public abstract class Position implements StructuralItem<Position> {
           .setLine(line)
           .setMethod(method)
           .setCallerPosition(callerPosition)
-          .setRemoveInnerFramesIfThrowingNpe(isRemoveInnerFramesIfThrowingNpe());
+          .setRemoveInnerFramesIfThrowingNpe(isRemoveInnerFramesIfThrowingNpe())
+          .setIsD8R8Synthesized(isD8R8Synthesized());
     }
 
     @Override
@@ -422,7 +443,8 @@ public abstract class Position implements StructuralItem<Position> {
       public SyntheticPosition build() {
         assert noCheckOfPosition || line >= 0;
         assert noCheckOfMethod || method != null;
-        return new SyntheticPosition(line, method, callerPosition, removeInnerFramesIfThrowingNpe);
+        return new SyntheticPosition(
+            line, method, callerPosition, removeInnerFramesIfThrowingNpe, isD8R8Synthesized);
       }
     }
   }
@@ -433,8 +455,9 @@ public abstract class Position implements StructuralItem<Position> {
         int line,
         DexMethod method,
         Position callerPosition,
-        boolean removeInnerFramesIfThrowingNpe) {
-      super(line, method, callerPosition, removeInnerFramesIfThrowingNpe);
+        boolean removeInnerFramesIfThrowingNpe,
+        boolean isD8R8Synthesized) {
+      super(line, method, callerPosition, removeInnerFramesIfThrowingNpe, isD8R8Synthesized);
     }
 
     @Override
@@ -453,7 +476,8 @@ public abstract class Position implements StructuralItem<Position> {
           .setLine(line)
           .setMethod(method)
           .setCallerPosition(callerPosition)
-          .setRemoveInnerFramesIfThrowingNpe(isRemoveInnerFramesIfThrowingNpe());
+          .setRemoveInnerFramesIfThrowingNpe(isRemoveInnerFramesIfThrowingNpe())
+          .setIsD8R8Synthesized(isD8R8Synthesized());
     }
 
     @Override
@@ -477,7 +501,8 @@ public abstract class Position implements StructuralItem<Position> {
 
       @Override
       public OutlinePosition build() {
-        return new OutlinePosition(line, method, callerPosition, removeInnerFramesIfThrowingNpe);
+        return new OutlinePosition(
+            line, method, callerPosition, removeInnerFramesIfThrowingNpe, isD8R8Synthesized);
       }
     }
   }
@@ -500,10 +525,11 @@ public abstract class Position implements StructuralItem<Position> {
         DexMethod method,
         Position callerPosition,
         boolean removeInnerFramesIfThrowingNpe,
+        boolean isD8R8Synthesized,
         Int2StructuralItemArrayMap<Position> outlinePositions,
         DexMethod outlineCallee,
         boolean isOutline) {
-      super(line, method, callerPosition, removeInnerFramesIfThrowingNpe);
+      super(line, method, callerPosition, removeInnerFramesIfThrowingNpe, isD8R8Synthesized);
       this.outlinePositions = outlinePositions;
       this.outlineCallee = outlineCallee;
       this.isOutline = isOutline;
@@ -528,7 +554,8 @@ public abstract class Position implements StructuralItem<Position> {
               .setCallerPosition(callerPosition)
               .setOutlineCallee(outlineCallee)
               .setIsOutline(isOutline)
-              .setRemoveInnerFramesIfThrowingNpe(isRemoveInnerFramesIfThrowingNpe());
+              .setRemoveInnerFramesIfThrowingNpe(isRemoveInnerFramesIfThrowingNpe())
+              .setIsD8R8Synthesized(isD8R8Synthesized());
       outlinePositions.forEach(outlineCallerPositionBuilder::addOutlinePosition);
       return outlineCallerPositionBuilder;
     }
@@ -600,6 +627,7 @@ public abstract class Position implements StructuralItem<Position> {
             method,
             callerPosition,
             removeInnerFramesIfThrowingNpe,
+            isD8R8Synthesized,
             outlinePositionsBuilder.build(),
             outlineCallee,
             isOutline);

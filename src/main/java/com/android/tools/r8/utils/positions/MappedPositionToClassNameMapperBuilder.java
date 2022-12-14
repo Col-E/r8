@@ -198,7 +198,9 @@ public class MappedPositionToClassNameMapperBuilder {
 
       OneShotCollectionConsumer<MappingInformation> methodSpecificMappingInformation =
           OneShotCollectionConsumer.wrap(new ArrayList<>());
-      if (method.getDefinition().isD8R8Synthesized()) {
+      if (method.getDefinition().isD8R8Synthesized()
+          || (!mappedPositions.isEmpty()
+              && mappedPositions.get(0).getPosition().isD8R8Synthesized())) {
         methodSpecificMappingInformation.add(
             CompilerSynthesizedMappingInformation.builder().build());
       }
@@ -309,11 +311,10 @@ public class MappedPositionToClassNameMapperBuilder {
                 appView,
                 getOriginalMethodSignature,
                 getBuilder(),
-                firstPosition.getMethod(),
+                firstPosition,
                 residualSignature,
                 obfuscatedRange,
                 originalRange,
-                firstPosition.getCallerPosition(),
                 prunedInlinedClasses,
                 cardinalRangeCache);
         methodSpecificMappingInformation.consume(
@@ -338,12 +339,11 @@ public class MappedPositionToClassNameMapperBuilder {
                         appView,
                         getOriginalMethodSignature,
                         getBuilder(),
-                        position.getMethod(),
+                        position,
                         residualSignature,
                         nonCardinalRangeCache.get(
                             placeHolderLineToBeFixed, placeHolderLineToBeFixed),
                         nonCardinalRangeCache.get(position.getLine(), position.getLine()),
-                        position.getCallerPosition(),
                         prunedInlinedClasses,
                         cardinalRangeCache);
                   });
@@ -370,37 +370,36 @@ public class MappedPositionToClassNameMapperBuilder {
         AppView<?> appView,
         Function<DexMethod, MethodSignature> getOriginalMethodSignature,
         ClassNaming.Builder classNamingBuilder,
-        DexMethod method,
+        Position position,
         MethodSignature residualSignature,
         Range obfuscatedRange,
         Range originalLine,
-        Position caller,
         Map<DexType, String> prunedInlineHolder,
         CardinalPositionRangeAllocator cardinalRangeCache) {
-      MappedRange lastMappedRange =
-          classNamingBuilder.addMappedRange(
-              obfuscatedRange,
-              getOriginalMethodSignature.apply(method),
-              originalLine,
-              residualSignature.getName());
-      int inlineFramesCount = 0;
-      while (caller != null) {
+      MappedRange lastMappedRange = null;
+      int inlineFramesCount = -1;
+      do {
+        if (position.isD8R8Synthesized() && position.hasCallerPosition()) {
+          position = position.getCallerPosition();
+          continue;
+        }
         inlineFramesCount += 1;
-        String prunedClassSourceFileInfo =
-            appView.getPrunedClassSourceFileInfo(method.getHolderType());
+        DexType holderType = position.getMethod().getHolderType();
+        String prunedClassSourceFileInfo = appView.getPrunedClassSourceFileInfo(holderType);
         if (prunedClassSourceFileInfo != null) {
-          String originalValue =
-              prunedInlineHolder.put(method.getHolderType(), prunedClassSourceFileInfo);
+          String originalValue = prunedInlineHolder.put(holderType, prunedClassSourceFileInfo);
           assert originalValue == null || originalValue.equals(prunedClassSourceFileInfo);
         }
         lastMappedRange =
             classNamingBuilder.addMappedRange(
                 obfuscatedRange,
-                getOriginalMethodSignature.apply(caller.getMethod()),
-                cardinalRangeCache.get(
-                    Math.max(caller.getLine(), 0)), // Prevent against "no-position".
+                getOriginalMethodSignature.apply(position.getMethod()),
+                inlineFramesCount == 0
+                    ? originalLine
+                    : cardinalRangeCache.get(
+                        Math.max(position.getLine(), 0)), // Prevent against "no-position".
                 residualSignature.getName());
-        if (caller.isRemoveInnerFramesIfThrowingNpe()) {
+        if (position.isRemoveInnerFramesIfThrowingNpe()) {
           lastMappedRange.addMappingInformation(
               RewriteFrameMappingInformation.builder()
                   .addCondition(
@@ -411,8 +410,9 @@ public class MappedPositionToClassNameMapperBuilder {
                   .build(),
               Unreachable::raise);
         }
-        caller = caller.getCallerPosition();
-      }
+        position = position.getCallerPosition();
+      } while (position != null);
+      assert lastMappedRange != null;
       return lastMappedRange;
     }
 
