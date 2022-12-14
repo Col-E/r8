@@ -5,7 +5,6 @@
 package com.android.tools.r8.naming.retrace;
 
 import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
@@ -85,14 +84,6 @@ public class DesugarPrivateLambdaRetraceTest extends TestBase {
         .internalEnableMappingOutput()
         .run(parameters.getRuntime(), DesugarInterfaceInstanceLambdaRetrace.Main.class)
         .assertFailureWithErrorThatThrows(NullPointerException.class)
-        .inspectStackTrace(
-            stackTrace -> {
-              if (parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring()) {
-                // TODO(b/255292908): Should always be the same.
-                assertThat(stackTrace, not(isSame(expectedStackTrace)));
-              } else {
-                assertThat(stackTrace, isSame(expectedStackTrace));
-              }
-            });
+        .inspectStackTrace(stackTrace -> assertThat(stackTrace, isSame(expectedStackTrace)));
   }
 }
