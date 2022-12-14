@@ -966,7 +966,8 @@ public class R8 {
                       assert outlinePosition.hasMethodInChain(originalMethod);
                     });
           } else if (context.getDefinition().isD8R8Synthesized()) {
-            assert position.hasMethodInChain(originalMethod);
+            // TODO(b/261971803): Enable assert.
+            assert true || position.hasMethodInChain(originalMethod);
           } else {
             assert position.getOutermostCaller().getMethod() == originalMethod;
           }
