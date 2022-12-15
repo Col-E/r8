@@ -11,6 +11,7 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.keepanno.annotations.KeepOption;
 import com.android.tools.r8.keepanno.annotations.KeepTarget;
 import com.android.tools.r8.keepanno.annotations.UsesReflection;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
@@ -91,13 +92,32 @@ public class KeepInvalidTargetTest extends TestBase {
 
   static class MultipleMemberDeclarations {
 
-    @UsesReflection(
-        @KeepTarget(
-            classConstant = MultipleClassDeclarations.class,
-            methodName = "foo",
-            fieldName = "bar"))
+    @UsesReflection(@KeepTarget(classConstant = A.class, methodName = "foo", fieldName = "bar"))
     public static void main(String[] args) throws Exception {
       System.out.println("Hello, world");
     }
+  }
+
+  @Test
+  public void testInvalidOptionsDecl() throws Exception {
+    assertThrowsWith(
+        () -> KeepEdgeAnnotationsTest.getKeepRulesForClass(MultipleOptionDeclarations.class),
+        allOf(containsString("options"), containsString("allow"), containsString("disallow")));
+  }
+
+  static class MultipleOptionDeclarations {
+
+    @UsesReflection(
+        @KeepTarget(
+            classConstant = A.class,
+            allow = {KeepOption.OPTIMIZATION},
+            disallow = {KeepOption.SHRINKING}))
+    public static void main(String[] args) throws Exception {
+      System.out.println("Hello, world");
+    }
+  }
+
+  static class A {
+    // just a target.
   }
 }

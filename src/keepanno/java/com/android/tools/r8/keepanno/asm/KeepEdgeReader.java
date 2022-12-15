@@ -394,7 +394,7 @@ public class KeepEdgeReader implements Opcodes {
       return false;
     }
 
-    AnnotationVisitor tryParseArray(String name) {
+    AnnotationVisitor tryParseArray(String name, Consumer<T> onValue) {
       return null;
     }
   }
@@ -402,10 +402,30 @@ public class KeepEdgeReader implements Opcodes {
   private abstract static class SingleDeclaration<T> extends Declaration<T> {
     private String declarationName = null;
     private T declarationValue = null;
+    private AnnotationVisitor declarationVisitor = null;
 
     abstract T getDefaultValue();
 
     abstract T parse(String name, Object value);
+
+    AnnotationVisitor parseArray(String name, Consumer<T> setValue) {
+      return null;
+    }
+
+    private boolean hasDeclaration() {
+      return declarationValue != null || declarationVisitor != null;
+    }
+
+    private void error(String name) {
+      throw new KeepEdgeException(
+          "Multiple declarations defining "
+              + kind()
+              + ": '"
+              + declarationName
+              + "' and '"
+              + name
+              + "'");
+    }
 
     @Override
     public final T getValue() {
@@ -416,21 +436,28 @@ public class KeepEdgeReader implements Opcodes {
     final boolean tryParse(String name, Object value) {
       T result = parse(name, value);
       if (result != null) {
-        if (declarationName != null) {
-          throw new KeepEdgeException(
-              "Multiple declarations defining "
-                  + kind()
-                  + ": '"
-                  + declarationName
-                  + "' and '"
-                  + name
-                  + "'");
+        if (hasDeclaration()) {
+          error(name);
         }
         declarationName = name;
         declarationValue = result;
         return true;
       }
       return false;
+    }
+
+    @Override
+    AnnotationVisitor tryParseArray(String name, Consumer<T> setValue) {
+      AnnotationVisitor visitor = parseArray(name, setValue.andThen(v -> declarationValue = v));
+      if (visitor != null) {
+        if (hasDeclaration()) {
+          error(name);
+        }
+        declarationName = name;
+        declarationVisitor = visitor;
+        return visitor;
+      }
+      return null;
     }
   }
 
@@ -527,7 +554,7 @@ public class KeepEdgeReader implements Opcodes {
     }
 
     @Override
-    AnnotationVisitor tryParseArray(String name) {
+    AnnotationVisitor tryParseArray(String name, Consumer<KeepMethodPattern> ignored) {
       if (name.equals(Item.methodParameters)) {
         return new StringArrayVisitor(
             params -> {
@@ -538,7 +565,8 @@ public class KeepEdgeReader implements Opcodes {
               for (String param : params) {
                 builder.addParameterTypePattern(KeepEdgeReaderUtils.typePatternFromString(param));
               }
-              getBuilder().setParametersPattern(builder.build());
+              KeepMethodParametersPattern result = builder.build();
+              getBuilder().setParametersPattern(result);
             });
       }
       return null;
@@ -621,12 +649,12 @@ public class KeepEdgeReader implements Opcodes {
     }
 
     @Override
-    AnnotationVisitor tryParseArray(String name) {
-      AnnotationVisitor visitor = methodDeclaration.tryParseArray(name);
+    AnnotationVisitor tryParseArray(String name, Consumer<KeepMemberPattern> ignored) {
+      AnnotationVisitor visitor = methodDeclaration.tryParseArray(name, v -> {});
       if (visitor != null) {
         return visitor;
       }
-      return fieldDeclaration.tryParseArray(name);
+      return fieldDeclaration.tryParseArray(name, v -> {});
     }
   }
 
@@ -652,7 +680,7 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     public AnnotationVisitor visitArray(String name) {
-      AnnotationVisitor visitor = memberDeclaration.tryParseArray(name);
+      AnnotationVisitor visitor = memberDeclaration.tryParseArray(name, v -> {});
       if (visitor != null) {
         return visitor;
       }
@@ -695,9 +723,41 @@ public class KeepEdgeReader implements Opcodes {
     }
   }
 
+  private static class OptionsDeclaration extends SingleDeclaration<KeepOptions> {
+
+    @Override
+    String kind() {
+      return "options";
+    }
+
+    @Override
+    KeepOptions getDefaultValue() {
+      return KeepOptions.keepAll();
+    }
+
+    @Override
+    KeepOptions parse(String name, Object value) {
+      return null;
+    }
+
+    @Override
+    AnnotationVisitor parseArray(String name, Consumer<KeepOptions> setValue) {
+      if (name.equals(KeepConstants.Target.disallow)) {
+        return new KeepOptionsVisitor(
+            options -> setValue.accept(KeepOptions.disallowBuilder().addAll(options).build()));
+      }
+      if (name.equals(KeepConstants.Target.allow)) {
+        return new KeepOptionsVisitor(
+            options -> setValue.accept(KeepOptions.allowBuilder().addAll(options).build()));
+      }
+      return null;
+    }
+  }
+
   private static class KeepTargetVisitor extends KeepItemVisitorBase {
 
     private final KeepTarget.Builder builder;
+    private final OptionsDeclaration optionsDeclaration = new OptionsDeclaration();
 
     static KeepTargetVisitor create(Parent<KeepTarget> parent) {
       KeepTarget.Builder builder = KeepTarget.builder();
@@ -711,9 +771,9 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     public AnnotationVisitor visitArray(String name) {
-      if (name.equals(KeepConstants.Target.disallow)) {
-        return new KeepOptionsVisitor(
-            options -> builder.setOptions(KeepOptions.disallowBuilder().addAll(options).build()));
+      AnnotationVisitor visitor = optionsDeclaration.tryParseArray(name, builder::setOptions);
+      if (visitor != null) {
+        return visitor;
       }
       return super.visitArray(name);
     }
