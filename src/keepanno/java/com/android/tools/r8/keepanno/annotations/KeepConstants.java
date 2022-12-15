@@ -48,10 +48,11 @@ public final class KeepConstants {
 
   // Implicit hidden item which is "super type" of Condition and Target.
   public static final class Item {
+    public static final String className = "className";
     public static final String classConstant = "classConstant";
 
+    public static final String extendsClassName = "extendsClassName";
     public static final String extendsClassConstant = "extendsClassConstant";
-    public static final String extendsTypeName = "extendsTypeName";
 
     public static final String methodName = "methodName";
     public static final String methodReturnType = "methodReturnType";
@@ -63,6 +64,12 @@ public final class KeepConstants {
     // Default values for the optional entries. The defaults should be chosen such that they do
     // not coincide with any actual valid value. E.g., the empty string in place of a name or type.
     // These must be 1:1 with the value defined on the actual annotation definition.
+    public static final String classNameDefault = "";
+    public static final Class<?> classConstantDefault = Object.class;
+
+    public static final String extendsClassNameDefault = "";
+    public static final Class<?> extendsClassConstantDefault = Object.class;
+
     public static final String methodNameDefaultValue = "";
     public static final String methodReturnTypeDefaultValue = "";
     public static final String[] methodParametersDefaultValue = new String[] {""};

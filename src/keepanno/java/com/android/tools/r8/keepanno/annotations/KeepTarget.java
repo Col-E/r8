@@ -34,11 +34,11 @@ public @interface KeepTarget {
 
   // Shared KeepItem content ========================
 
+  String className() default "";
+
   Class<?> classConstant() default Object.class;
 
-  String classTypeName() default "";
-
-  String extendsClassTypeName() default "";
+  String extendsClassName() default "";
 
   Class<?> extendsClassConstant() default Object.class;
 

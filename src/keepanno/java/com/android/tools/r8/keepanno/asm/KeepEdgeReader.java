@@ -19,7 +19,7 @@ import com.android.tools.r8.keepanno.ast.KeepFieldNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldTypePattern;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
-import com.android.tools.r8.keepanno.ast.KeepItemPattern.Builder;
+import com.android.tools.r8.keepanno.ast.KeepMemberPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodParametersPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodPattern;
@@ -385,118 +385,149 @@ public class KeepEdgeReader implements Opcodes {
     }
   }
 
-  private abstract static class KeepItemVisitorBase extends AnnotationVisitorBase {
-    private final Parent<KeepItemPattern> parent;
+  private abstract static class Declaration<T> {
+    abstract String kind();
 
-    private KeepQualifiedClassNamePattern classNamePattern = null;
-    private KeepMethodPattern.Builder lazyMethodBuilder = null;
-    private KeepFieldPattern.Builder lazyFieldBuilder = null;
+    abstract T getValue();
 
-    private KeepExtendsPattern extendsPattern = null;
-    private String extendPatternDeclaration = null;
-
-    public KeepItemVisitorBase(Parent<KeepItemPattern> parent) {
-      this.parent = parent;
+    boolean tryParse(String name, Object value) {
+      return false;
     }
 
-    private KeepMethodPattern.Builder methodBuilder() {
-      if (lazyFieldBuilder != null) {
-        throw new KeepEdgeException("Cannot define both a field and a method pattern");
-      }
-      if (lazyMethodBuilder == null) {
-        lazyMethodBuilder = KeepMethodPattern.builder();
-      }
-      return lazyMethodBuilder;
+    AnnotationVisitor tryParseArray(String name) {
+      return null;
     }
+  }
 
-    private KeepFieldPattern.Builder fieldBuilder() {
-      if (lazyMethodBuilder != null) {
-        throw new KeepEdgeException("Cannot define both a field and a method pattern");
-      }
-      if (lazyFieldBuilder == null) {
-        lazyFieldBuilder = KeepFieldPattern.builder();
-      }
-      return lazyFieldBuilder;
+  private abstract static class SingleDeclaration<T> extends Declaration<T> {
+    private String declarationName = null;
+    private T declarationValue = null;
+
+    abstract T getDefaultValue();
+
+    abstract T parse(String name, Object value);
+
+    @Override
+    public final T getValue() {
+      return declarationValue == null ? getDefaultValue() : declarationValue;
     }
 
     @Override
-    public void visit(String name, Object value) {
+    final boolean tryParse(String name, Object value) {
+      T result = parse(name, value);
+      if (result != null) {
+        if (declarationName != null) {
+          throw new KeepEdgeException(
+              "Multiple declarations defining "
+                  + kind()
+                  + ": '"
+                  + declarationName
+                  + "' and '"
+                  + name
+                  + "'");
+        }
+        declarationName = name;
+        declarationValue = result;
+        return true;
+      }
+      return false;
+    }
+  }
+
+  private static class ClassDeclaration extends SingleDeclaration<KeepQualifiedClassNamePattern> {
+    @Override
+    String kind() {
+      return "class";
+    }
+
+    @Override
+    KeepQualifiedClassNamePattern getDefaultValue() {
+      return KeepQualifiedClassNamePattern.any();
+    }
+
+    @Override
+    KeepQualifiedClassNamePattern parse(String name, Object value) {
       if (name.equals(Item.classConstant) && value instanceof Type) {
-        classNamePattern = KeepQualifiedClassNamePattern.exact(((Type) value).getClassName());
-        return;
+        return KeepQualifiedClassNamePattern.exact(((Type) value).getClassName());
       }
-      if (tryParseExtendsPattern(name, value)) {
-        return;
+      if (name.equals(Item.className) && value instanceof String) {
+        return KeepQualifiedClassNamePattern.exact(((String) value));
       }
+      return null;
+    }
+  }
+
+  private static class ExtendsDeclaration extends SingleDeclaration<KeepExtendsPattern> {
+
+    @Override
+    String kind() {
+      return "extends";
+    }
+
+    @Override
+    KeepExtendsPattern getDefaultValue() {
+      return KeepExtendsPattern.any();
+    }
+
+    @Override
+    KeepExtendsPattern parse(String name, Object value) {
+      if (name.equals(Item.extendsClassConstant) && value instanceof Type) {
+        return KeepExtendsPattern.builder()
+            .classPattern(KeepQualifiedClassNamePattern.exact(((Type) value).getClassName()))
+            .build();
+      }
+      if (name.equals(Item.extendsClassName) && value instanceof String) {
+        return KeepExtendsPattern.builder()
+            .classPattern(KeepQualifiedClassNamePattern.exact(((String) value)))
+            .build();
+      }
+      return null;
+    }
+  }
+
+  private static class MethodDeclaration extends Declaration<KeepMethodPattern> {
+
+    private KeepMethodPattern.Builder builder = null;
+
+    private KeepMethodPattern.Builder getBuilder() {
+      if (builder == null) {
+        builder = KeepMethodPattern.builder();
+      }
+      return builder;
+    }
+
+    @Override
+    String kind() {
+      return "method";
+    }
+
+    @Override
+    KeepMethodPattern getValue() {
+      return builder != null ? builder.build() : null;
+    }
+
+    @Override
+    boolean tryParse(String name, Object value) {
       if (name.equals(Item.methodName) && value instanceof String) {
         String methodName = (String) value;
         if (!Item.methodNameDefaultValue.equals(methodName)) {
-          methodBuilder().setNamePattern(KeepMethodNamePattern.exact(methodName));
+          getBuilder().setNamePattern(KeepMethodNamePattern.exact(methodName));
         }
-        return;
+        return true;
       }
       if (name.equals(Item.methodReturnType) && value instanceof String) {
         String returnType = (String) value;
         if (!Item.methodReturnTypeDefaultValue.equals(returnType)) {
-          methodBuilder()
+          getBuilder()
               .setReturnTypePattern(KeepEdgeReaderUtils.methodReturnTypeFromString(returnType));
         }
-        return;
-      }
-      if (name.equals(Item.fieldName) && value instanceof String) {
-        String fieldName = (String) value;
-        if (!Item.fieldNameDefaultValue.equals(fieldName)) {
-          fieldBuilder().setNamePattern(KeepFieldNamePattern.exact(fieldName));
-        }
-        return;
-      }
-      if (name.equals(Item.fieldType) && value instanceof String) {
-        String fieldType = (String) value;
-        if (!Item.fieldTypeDefaultValue.equals(fieldType)) {
-          fieldBuilder()
-              .setTypePattern(
-                  KeepFieldTypePattern.fromType(
-                      KeepEdgeReaderUtils.typePatternFromString(fieldType)));
-        }
-        return;
-      }
-      super.visit(name, value);
-    }
-
-    private boolean tryParseExtendsPattern(String name, Object value) {
-      if (name.equals(Item.extendsClassConstant) && value instanceof Type) {
-        checkExtendsDeclaration(name);
-        extendsPattern =
-            KeepExtendsPattern.builder()
-                .classPattern(KeepQualifiedClassNamePattern.exact(((Type) value).getClassName()))
-                .build();
-        return true;
-      }
-      if (name.equals(Item.extendsTypeName) && value instanceof String) {
-        checkExtendsDeclaration(name);
-        extendsPattern =
-            KeepExtendsPattern.builder()
-                .classPattern(KeepQualifiedClassNamePattern.exact(((String) value)))
-                .build();
         return true;
       }
       return false;
     }
 
-    private void checkExtendsDeclaration(String declaration) {
-      if (extendPatternDeclaration != null) {
-        throw new KeepEdgeException(
-            "Multiple declarations defining an extends pattern: '"
-                + extendPatternDeclaration
-                + "' and '"
-                + declaration
-                + "'");
-      }
-      extendPatternDeclaration = declaration;
-    }
-
     @Override
-    public AnnotationVisitor visitArray(String name) {
+    AnnotationVisitor tryParseArray(String name) {
       if (name.equals(Item.methodParameters)) {
         return new StringArrayVisitor(
             params -> {
@@ -507,29 +538,135 @@ public class KeepEdgeReader implements Opcodes {
               for (String param : params) {
                 builder.addParameterTypePattern(KeepEdgeReaderUtils.typePatternFromString(param));
               }
-              methodBuilder().setParametersPattern(builder.build());
+              getBuilder().setParametersPattern(builder.build());
             });
+      }
+      return null;
+    }
+  }
+
+  private static class FieldDeclaration extends Declaration<KeepFieldPattern> {
+
+    private KeepFieldPattern.Builder builder = null;
+
+    private KeepFieldPattern.Builder getBuilder() {
+      if (builder == null) {
+        builder = KeepFieldPattern.builder();
+      }
+      return builder;
+    }
+
+    @Override
+    String kind() {
+      return "field";
+    }
+
+    @Override
+    KeepFieldPattern getValue() {
+      return builder != null ? builder.build() : null;
+    }
+
+    @Override
+    boolean tryParse(String name, Object value) {
+      if (name.equals(Item.fieldName) && value instanceof String) {
+        String fieldName = (String) value;
+        if (!Item.fieldNameDefaultValue.equals(fieldName)) {
+          getBuilder().setNamePattern(KeepFieldNamePattern.exact(fieldName));
+        }
+        return true;
+      }
+      if (name.equals(Item.fieldType) && value instanceof String) {
+        String fieldType = (String) value;
+        if (!Item.fieldTypeDefaultValue.equals(fieldType)) {
+          getBuilder()
+              .setTypePattern(
+                  KeepFieldTypePattern.fromType(
+                      KeepEdgeReaderUtils.typePatternFromString(fieldType)));
+        }
+        return true;
+      }
+      return false;
+    }
+  }
+
+  private static class MemberDeclaration extends Declaration<KeepMemberPattern> {
+
+    private MethodDeclaration methodDeclaration = new MethodDeclaration();
+    private FieldDeclaration fieldDeclaration = new FieldDeclaration();
+
+    @Override
+    String kind() {
+      return "member";
+    }
+
+    @Override
+    public KeepMemberPattern getValue() {
+      KeepMethodPattern method = methodDeclaration.getValue();
+      KeepFieldPattern field = fieldDeclaration.getValue();
+      if (method != null && field != null) {
+        throw new KeepEdgeException("Cannot define both a field and a method pattern");
+      }
+      if (method != null) {
+        return method;
+      }
+      if (field != null) {
+        return field;
+      }
+      return KeepMemberPattern.none();
+    }
+
+    @Override
+    boolean tryParse(String name, Object value) {
+      return methodDeclaration.tryParse(name, value) || fieldDeclaration.tryParse(name, value);
+    }
+
+    @Override
+    AnnotationVisitor tryParseArray(String name) {
+      AnnotationVisitor visitor = methodDeclaration.tryParseArray(name);
+      if (visitor != null) {
+        return visitor;
+      }
+      return fieldDeclaration.tryParseArray(name);
+    }
+  }
+
+  private abstract static class KeepItemVisitorBase extends AnnotationVisitorBase {
+    private final Parent<KeepItemPattern> parent;
+    private final ClassDeclaration classDeclaration = new ClassDeclaration();
+    private final ExtendsDeclaration extendsDeclaration = new ExtendsDeclaration();
+    private final MemberDeclaration memberDeclaration = new MemberDeclaration();
+
+    public KeepItemVisitorBase(Parent<KeepItemPattern> parent) {
+      this.parent = parent;
+    }
+
+    @Override
+    public void visit(String name, Object value) {
+      if (classDeclaration.tryParse(name, value)
+          || extendsDeclaration.tryParse(name, value)
+          || memberDeclaration.tryParse(name, value)) {
+        return;
+      }
+      super.visit(name, value);
+    }
+
+    @Override
+    public AnnotationVisitor visitArray(String name) {
+      AnnotationVisitor visitor = memberDeclaration.tryParseArray(name);
+      if (visitor != null) {
+        return visitor;
       }
       return super.visitArray(name);
     }
 
     @Override
     public void visitEnd() {
-      assert lazyMethodBuilder == null || lazyFieldBuilder == null;
-      Builder itemBuilder = KeepItemPattern.builder();
-      if (classNamePattern != null) {
-        itemBuilder.setClassPattern(classNamePattern);
-      }
-      if (extendsPattern != null) {
-        itemBuilder.setExtendsPattern(extendsPattern);
-      }
-      if (lazyMethodBuilder != null) {
-        itemBuilder.setMemberPattern(lazyMethodBuilder.build());
-      }
-      if (lazyFieldBuilder != null) {
-        itemBuilder.setMemberPattern(lazyFieldBuilder.build());
-      }
-      parent.accept(itemBuilder.build());
+      parent.accept(
+          KeepItemPattern.builder()
+              .setClassPattern(classDeclaration.getValue())
+              .setExtendsPattern(extendsDeclaration.getValue())
+              .setMemberPattern(memberDeclaration.getValue())
+              .build());
     }
   }
 

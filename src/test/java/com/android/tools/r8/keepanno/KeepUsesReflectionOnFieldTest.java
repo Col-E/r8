@@ -95,7 +95,11 @@ public class KeepUsesReflectionOnFieldTest extends TestBase {
 
     @UsesReflection(
         description = "Keep the\nstring-valued fields",
-        value = {@KeepTarget(classConstant = A.class, fieldType = "java.lang.String")})
+        value = {
+          @KeepTarget(
+              className = "com.android.tools.r8.keepanno.KeepUsesReflectionOnFieldTest$A",
+              fieldType = "java.lang.String")
+        })
     public void foo() throws Exception {
       for (Field field : getClass().getDeclaredFields()) {
         if (field.getType().equals(String.class)) {
