@@ -162,7 +162,7 @@ public class MappedPositionToClassNameMapperBuilder {
       if (syntheticItems.isSyntheticClass(clazz)) {
         getBuilder()
             .addMappingInformation(
-                CompilerSynthesizedMappingInformation.builder().build(), Unreachable::raise);
+                CompilerSynthesizedMappingInformation.getInstance(), Unreachable::raise);
       }
       return this;
     }
@@ -201,8 +201,7 @@ public class MappedPositionToClassNameMapperBuilder {
       if (method.getDefinition().isD8R8Synthesized()
           || (!mappedPositions.isEmpty()
               && mappedPositions.get(0).getPosition().isD8R8Synthesized())) {
-        methodSpecificMappingInformation.add(
-            CompilerSynthesizedMappingInformation.builder().build());
+        methodSpecificMappingInformation.add(CompilerSynthesizedMappingInformation.getInstance());
       }
 
       DexMethod residualMethod =

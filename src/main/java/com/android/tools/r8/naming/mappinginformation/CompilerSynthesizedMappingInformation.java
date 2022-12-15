@@ -13,15 +13,10 @@ import java.util.function.Consumer;
 
 public class CompilerSynthesizedMappingInformation extends ReferentialMappingInformation {
 
+  private static final CompilerSynthesizedMappingInformation INSTANCE =
+      new CompilerSynthesizedMappingInformation();
   public static final MapVersion SUPPORTED_VERSION = MapVersion.MAP_VERSION_1_0;
   public static final String ID = "com.android.tools.r8.synthesized";
-
-  public static class Builder {
-
-    public CompilerSynthesizedMappingInformation build() {
-      return new CompilerSynthesizedMappingInformation();
-    }
-  }
 
   public static boolean isSupported(MapVersion version) {
     return version.isGreaterThanOrEqualTo(SUPPORTED_VERSION);
@@ -29,8 +24,8 @@ public class CompilerSynthesizedMappingInformation extends ReferentialMappingInf
 
   private CompilerSynthesizedMappingInformation() {}
 
-  public static Builder builder() {
-    return new Builder();
+  public static CompilerSynthesizedMappingInformation getInstance() {
+    return INSTANCE;
   }
 
   @Override
@@ -70,7 +65,7 @@ public class CompilerSynthesizedMappingInformation extends ReferentialMappingInf
       MapVersion version,
       Consumer<MappingInformation> onMappingInfo) {
     if (isSupported(version)) {
-      onMappingInfo.accept(builder().build());
+      onMappingInfo.accept(getInstance());
     }
   }
 }
