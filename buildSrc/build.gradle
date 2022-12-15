@@ -8,7 +8,7 @@ repositories {
     mavenCentral()
 }
 ext {
-    asmVersion = '9.3'
+    asmVersion = '9.4'
 }
 
 dependencies {
