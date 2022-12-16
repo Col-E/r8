@@ -27,11 +27,13 @@ import com.android.tools.r8.graph.PermittedSubclassAttribute;
 import com.android.tools.r8.kotlin.KotlinClassMetadataReader;
 import com.android.tools.r8.kotlin.KotlinMetadataException;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
+import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
+import com.android.tools.r8.naming.mappinginformation.ResidualSignatureMappingInformation;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
@@ -624,6 +626,12 @@ public class FoundClassSubject extends ClassSubject {
   @Override
   public ClassNamingForNameMapper getNaming() {
     return mapping.getNaming();
+  }
+
+  @Override
+  public boolean hasResidualSignatureMapping() {
+    MapVersion mapVersion = mapping.getMapVersion();
+    return !mapVersion.isUnknown() && ResidualSignatureMappingInformation.isSupported(mapVersion);
   }
 
   @Override

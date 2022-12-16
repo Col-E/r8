@@ -59,8 +59,6 @@ public class KeepNonVisibilityBridgeMethodsTest extends TestBase {
                 + " !synthetic <methods>; }",
             "-noparametertypestrengthening class * { synthetic <methods>; }")
         .enableNeverClassInliningAnnotations()
-        // TODO(b/120764902): MemberSubject.getOriginalName() is not working without the @NeverMerge
-        //  annotation on DataAdapter.Observer.
         .enableNoVerticalClassMergingAnnotations()
         .enableProguardTestOptions()
         .minification(minification)

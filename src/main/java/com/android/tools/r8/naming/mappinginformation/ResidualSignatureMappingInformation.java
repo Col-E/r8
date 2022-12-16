@@ -23,7 +23,7 @@ import java.util.function.Consumer;
 
 public abstract class ResidualSignatureMappingInformation extends ReferentialMappingInformation {
 
-  public static final MapVersion SUPPORTED_VERSION = MapVersion.MAP_VERSION_EXPERIMENTAL;
+  public static final MapVersion SUPPORTED_VERSION = MapVersion.MAP_VERSION_2_2;
   public static final String ID = "com.android.tools.r8.residualsignature";
   public static final String SIGNATURE_KEY = "signature";
 
@@ -91,6 +91,11 @@ public abstract class ResidualSignatureMappingInformation extends ReferentialMap
           ArrayUtils.mapToStringArray(method.getParameters().values, DexType::toDescriptorString);
       return new ResidualMethodSignatureMappingInformation(
           parameters, method.getReturnType().toDescriptorString());
+    }
+
+    public static ResidualFieldSignatureMappingInformation fromDexField(DexField residualField) {
+      return new ResidualFieldSignatureMappingInformation(
+          residualField.getType().toDescriptorString());
     }
 
     @Override

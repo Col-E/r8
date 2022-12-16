@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.SwitchPayloadResolver;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
+import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.naming.signature.GenericSignatureAction;
@@ -328,6 +329,13 @@ public class CodeInspector {
     public ClassNamingForNameMapper getNaming() {
       assert naming != null;
       return naming;
+    }
+
+    public MapVersion getMapVersion() {
+      if (mapper.getMapVersions().isEmpty()) {
+        return MapVersion.MAP_VERSION_UNKNOWN;
+      }
+      return mapper.getMapVersions().iterator().next().getMapVersion();
     }
   }
 

@@ -264,6 +264,10 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
 
   public abstract ClassNamingForNameMapper getNaming();
 
+  public boolean hasResidualSignatureMapping() {
+    return false;
+  }
+
   public abstract String javap(boolean verbose) throws Exception;
 
   public void disassembleUsingJavap(boolean verbose) throws Exception {

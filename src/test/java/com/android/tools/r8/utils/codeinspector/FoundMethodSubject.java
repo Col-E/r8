@@ -180,6 +180,13 @@ public class FoundMethodSubject extends MethodSubject {
       return signature;
     }
 
+    if (clazz.hasResidualSignatureMapping()) {
+      MemberNaming memberNaming = clazz.getNaming().lookup(signature);
+      if (memberNaming != null) {
+        return memberNaming.getOriginalSignature().asMethodSignature();
+      }
+    }
+
     // Map the parameters and return type to original names. This is needed as the in the
     // Proguard map the names on the left side are the original names. E.g.
     //
@@ -197,7 +204,9 @@ public class FoundMethodSubject extends MethodSubject {
         new MethodSignature(signature.name, returnType, originalParameters);
 
     MemberNaming memberNaming = clazz.getNaming().lookup(lookupSignature);
-    return memberNaming != null ? (MethodSignature) memberNaming.getOriginalSignature() : signature;
+    return memberNaming != null
+        ? memberNaming.getOriginalSignature().asMethodSignature()
+        : signature;
   }
 
   @Override
