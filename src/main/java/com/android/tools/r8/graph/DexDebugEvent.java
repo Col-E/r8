@@ -89,6 +89,10 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
 
   public abstract void accept(DexDebugEventVisitor visitor);
 
+  public boolean isDefaultEvent() {
+    return false;
+  }
+
   public boolean isPositionFrame() {
     return false;
   }
@@ -636,6 +640,11 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
     // Use DexDebugEventBuilder.addDefaultEventWithAdvancePcIfNecessary instead.
     public static Default create(int lineDelta, int pcDelta) {
       return new Default(computeSpecialOpcode(lineDelta, pcDelta));
+    }
+
+    @Override
+    public boolean isDefaultEvent() {
+      return true;
     }
 
     @Override

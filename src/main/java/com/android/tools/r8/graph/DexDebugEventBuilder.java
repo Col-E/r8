@@ -121,7 +121,18 @@ public class DexDebugEventBuilder {
         params[i] = (local == null || local.signature != null) ? null : local.name;
       }
     }
+    assert verifySetPositionFramesFollowedByDefaultEvent(events);
     return new EventBasedDebugInfo(startLine, params, events.toArray(DexDebugEvent.EMPTY_ARRAY));
+  }
+
+  private static boolean verifySetPositionFramesFollowedByDefaultEvent(List<DexDebugEvent> events) {
+    for (int i = events.size() - 1; i >= 0; i--) {
+      if (events.get(i).isDefaultEvent()) {
+        return true;
+      }
+      assert !events.get(i).isPositionFrame();
+    }
+    return true;
   }
 
   private void updateBlockEntry(Instruction instruction) {
