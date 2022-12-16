@@ -34,7 +34,6 @@ import com.android.tools.r8.naming.mappinginformation.FileNameInformation;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.naming.mappinginformation.OutlineCallsiteMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.OutlineMappingInformation;
-import com.android.tools.r8.naming.mappinginformation.ResidualSignatureMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.ResidualSignatureMappingInformation.ResidualMethodSignatureMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation.RemoveInnerFramesAction;
@@ -53,7 +52,6 @@ import it.unimi.dsi.fastutil.ints.Int2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntSortedMap;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -170,7 +168,6 @@ public class MappedPositionToClassNameMapperBuilder {
     }
 
     private MappedPositionToClassNamingBuilder addFields() {
-      MapVersion mapFileVersion = appView.options().getMapFileVersion();
       clazz.forEachField(
           dexEncodedField -> {
             DexField dexField = dexEncodedField.getReference();
@@ -182,16 +179,6 @@ public class MappedPositionToClassNameMapperBuilder {
                   FieldSignature.fromDexField(originalField, originalField.holder != originalType);
               FieldSignature residualSignature = FieldSignature.fromDexField(residualField);
               MemberNaming memberNaming = new MemberNaming(originalSignature, residualSignature);
-              if (ResidualSignatureMappingInformation.isSupported(mapFileVersion)
-                  && !originalSignature.type.equals(residualSignature.type)) {
-                memberNaming.addMappingInformation(
-                    ResidualMethodSignatureMappingInformation.fromDexField(residualField),
-                    Unreachable::raise);
-              }
-              if (dexEncodedField.isD8R8Synthesized()) {
-                memberNaming.addMappingInformation(
-                    CompilerSynthesizedMappingInformation.getInstance(), Unreachable::raise);
-              }
               getBuilder().addMemberEntry(memberNaming);
             }
           });
@@ -225,7 +212,8 @@ public class MappedPositionToClassNameMapperBuilder {
           mapFileVersion,
           mappedPositions,
           methodSpecificMappingInformation,
-          residualMethod,
+          method,
+          residualMethod.getName(),
           originalMethod,
           originalType)) {
         assert appView.options().lineNumberOptimization == LineNumberOptimization.OFF
@@ -233,14 +221,13 @@ public class MappedPositionToClassNameMapperBuilder {
             || appView.isCfByteCodePassThrough(definition);
         return this;
       }
-      MethodSignature residualSignature = MethodSignature.fromDexMethod(residualMethod);
-
-      if (ResidualSignatureMappingInformation.isSupported(mapFileVersion)
-          && (!originalSignature.type.equals(residualSignature.type)
-              || !Arrays.equals(originalSignature.parameters, residualSignature.parameters))) {
+      if (mapFileVersion.isGreaterThan(MapVersion.MAP_VERSION_2_1)
+          && originalMethod != method.getReference()
+          && !appView.graphLens().isSimpleRenaming(residualMethod)) {
         methodSpecificMappingInformation.add(
             ResidualMethodSignatureMappingInformation.fromDexMethod(residualMethod));
       }
+      MethodSignature residualSignature = MethodSignature.fromDexMethod(residualMethod);
 
       MemberNaming memberNaming = new MemberNaming(originalSignature, residualSignature);
       getBuilder().addMemberEntry(memberNaming);
@@ -444,19 +431,20 @@ public class MappedPositionToClassNameMapperBuilder {
         MapVersion mapFileVersion,
         List<MappedPosition> mappedPositions,
         OneShotCollectionConsumer<MappingInformation> methodMappingInfo,
-        DexMethod residualMethod,
+        ProgramMethod method,
+        DexString obfuscatedNameDexString,
         DexMethod originalMethod,
         DexType originalType) {
-      if (ResidualSignatureMappingInformation.isSupported(mapFileVersion)) {
+      if (mapFileVersion.isGreaterThan(MapVersion.MAP_VERSION_2_1)) {
         // Don't emit pure identity mappings.
         return mappedPositions.isEmpty()
             && methodMappingInfo.isEmpty()
-            && originalMethod == residualMethod;
+            && originalMethod == method.getReference();
       } else {
         // Don't emit pure identity mappings.
         return mappedPositions.isEmpty()
             && methodMappingInfo.isEmpty()
-            && residualMethod.getName() == originalMethod.name
+            && obfuscatedNameDexString == originalMethod.name
             && originalMethod.holder == originalType;
       }
     }

@@ -93,11 +93,6 @@ public abstract class ResidualSignatureMappingInformation extends ReferentialMap
           parameters, method.getReturnType().toDescriptorString());
     }
 
-    public static ResidualFieldSignatureMappingInformation fromDexField(DexField residualField) {
-      return new ResidualFieldSignatureMappingInformation(
-          residualField.getType().toDescriptorString());
-    }
-
     @Override
     protected String serializeInternal() {
       return StringUtils.join("", Arrays.asList(parameters), BraceType.PARENS) + returnType;
