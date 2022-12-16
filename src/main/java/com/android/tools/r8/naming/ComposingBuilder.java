@@ -17,7 +17,6 @@ import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformati
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.naming.mappinginformation.OutlineCallsiteMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.OutlineMappingInformation;
-import com.android.tools.r8.naming.mappinginformation.ResidualSignatureMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation.ThrowsCondition;
 import com.android.tools.r8.references.ArrayReference;
@@ -91,12 +90,11 @@ public class ComposingBuilder {
           "Composition of mapping files supported from map version 2.2.");
     }
     MapVersion newMapVersion = newMapVersionInfo.getMapVersion();
-    if (!ResidualSignatureMappingInformation.isSupported(newMapVersion)
+    // TODO(b/241763080): Should be stable map version.
+    if (newMapVersion.isLessThan(MapVersion.MAP_VERSION_EXPERIMENTAL)
         || newMapVersion.isUnknown()) {
       throw new MappingComposeException(
-          "Composition of mapping files supported from map version "
-              + ResidualSignatureMappingInformation.SUPPORTED_VERSION
-              + ".");
+          "Composition of mapping files supported from map version 2.2.");
     }
     if (currentMapVersion == null) {
       currentMapVersion = newMapVersionInfo;

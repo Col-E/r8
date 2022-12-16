@@ -23,7 +23,7 @@ import java.util.function.Consumer;
 
 public abstract class ResidualSignatureMappingInformation extends ReferentialMappingInformation {
 
-  public static final MapVersion SUPPORTED_VERSION = MapVersion.MAP_VERSION_2_2;
+  public static final MapVersion SUPPORTED_VERSION = MapVersion.MAP_VERSION_EXPERIMENTAL;
   public static final String ID = "com.android.tools.r8.residualsignature";
   public static final String SIGNATURE_KEY = "signature";
 
