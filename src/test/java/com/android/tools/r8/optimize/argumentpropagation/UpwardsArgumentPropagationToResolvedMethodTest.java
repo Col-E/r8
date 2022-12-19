@@ -45,8 +45,6 @@ public class UpwardsArgumentPropagationToResolvedMethodTest extends TestBase {
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        // TODO(b/173398086): uniqueMethodWithName() does not work with argument removal.
-        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(

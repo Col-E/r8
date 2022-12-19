@@ -14,9 +14,6 @@ import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.analysis.value.AbstractValue;
-import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -51,23 +48,10 @@ public class InvokeInterfacePositiveTest extends TestBase {
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        // TODO(b/173398086): uniqueMethodWithName() does not work with argument removal.
-        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("non-null")
         .inspect(this::inspect);
-  }
-
-  private void callSiteOptimizationInfoInspect(ProgramMethod method) {
-    assert method.getReference().name.toString().equals("m")
-        : "Unexpected revisit: " + method.toSourceString();
-    CallSiteOptimizationInfo callSiteOptimizationInfo =
-        method.getOptimizationInfo().getArgumentInfos();
-    assert callSiteOptimizationInfo.getDynamicType(1).getNullability().isDefinitelyNotNull();
-    AbstractValue abstractValue = callSiteOptimizationInfo.getAbstractArgumentValue(1);
-    assert abstractValue.isSingleStringValue()
-        && abstractValue.asSingleStringValue().getDexString().toString().equals("nul");
   }
 
   private void inspect(CodeInspector inspector) {

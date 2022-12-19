@@ -43,8 +43,6 @@ public class ReturnTypeStrengtheningTest extends TestBase {
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        // TODO(b/173398086): uniqueMethodWithName() does not work with argument changes.
-        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(

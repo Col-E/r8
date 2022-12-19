@@ -49,8 +49,8 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
     final String extraRules =
         StringUtils.lines(
             neverInlineMethod(mainClassName, testMethodSignature),
-            // TODO(b/173398086): uniqueMethodWithName() does not work with argument removal.
-            "-keepclassmembers,allowoptimization,allowshrinking class non_null.Example1Kt {",
+            "-keepclassmembers,allowoptimization,allowshrinking,allowobfuscation class"
+                + " non_null.Example1Kt {",
             "  *** forMakeAndModel(...);",
             "}");
     runTest(

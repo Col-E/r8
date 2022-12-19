@@ -38,15 +38,12 @@ public class CheckNotZeroMethodWithArgumentRemovalTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(MyEnum.class))
         .enableInliningAnnotations()
-        // TODO(b/173398086): uniqueMethodWithName() does not work with argument removal.
-        .addDontObfuscate()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
             inspector -> {
               ClassSubject mainClassSubject = inspector.clazz(Main.class);
               assertThat(mainClassSubject, isPresent());
-
               MethodSubject checkNotNullSubject =
                   mainClassSubject.uniqueMethodWithOriginalName("checkNotNull");
               assertThat(checkNotNullSubject, isPresent());
