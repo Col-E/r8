@@ -157,7 +157,8 @@ public class ArgumentPropagatorCodeScanner {
       return;
     }
 
-    if (invoke.isInvokeMethodWithReceiver()
+    if (appView.options().testing.checkReceiverAlwaysNullInCallSiteOptimization
+        && invoke.isInvokeMethodWithReceiver()
         && invoke.asInvokeMethodWithReceiver().getReceiver().isAlwaysNull(appView)) {
       // Nothing to propagate; the invoke instruction always fails.
       return;
