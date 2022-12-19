@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.optimize.argumentpropagation;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertThrows;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -40,24 +41,45 @@ public class PolymorphicMethodWithNullReceiverBoundTest extends TestBase {
   }
 
   @Test
-  public void test() throws Exception {
-    // TODO(b/250634405): Check for null in dynamic receiver type.
+  public void testR8WithTestAssertionsEnabled() {
     assertThrows(
         CompilationFailedException.class,
-        () ->
-            testForR8(parameters.getBackend())
-                .addInnerClasses(getClass())
-                .addKeepMainRule(Main.class)
-                .enableNoHorizontalClassMergingAnnotations()
-                .enableNoVerticalClassMergingAnnotations()
-                .setMinApi(parameters.getApiLevel())
-                .addOptionsModification(
-                    options -> {
-                      options.testing.cfByteCodePassThrough =
-                          method -> method.getName().startsWith("main");
-                      options.testing.checkReceiverAlwaysNullInCallSiteOptimization = false;
-                    })
-                .compile());
+        () -> {
+          testForR8(parameters.getBackend())
+              .addInnerClasses(getClass())
+              .addKeepMainRule(Main.class)
+              .enableNoHorizontalClassMergingAnnotations()
+              .enableNoVerticalClassMergingAnnotations()
+              .setMinApi(parameters.getApiLevel())
+              .addOptionsModification(
+                  options -> {
+                    options.testing.cfByteCodePassThrough =
+                        method -> method.getName().startsWith("main");
+                    options.testing.checkReceiverAlwaysNullInCallSiteOptimization = false;
+                  })
+              .compileWithExpectedDiagnostics(
+                  diagnostics -> {
+                    diagnostics.assertErrorMessageThatMatches(containsString("b/250634405"));
+                  });
+        });
+  }
+
+  @Test
+  public void testR8WithoutTestAssertions() throws Exception {
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Main.class)
+        .enableNoHorizontalClassMergingAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(
+            options -> {
+              options.testing.cfByteCodePassThrough = method -> method.getName().startsWith("main");
+              options.testing.checkReceiverAlwaysNullInCallSiteOptimization = false;
+              options.testing.enableTestAssertions = false;
+            })
+        .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatThrows(NullPointerException.class);
   }
 
   static class Main {

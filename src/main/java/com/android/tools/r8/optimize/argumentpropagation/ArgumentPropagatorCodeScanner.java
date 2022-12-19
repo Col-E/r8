@@ -284,7 +284,13 @@ public class ArgumentPropagatorCodeScanner {
       ProgramMethod context,
       ConcretePolymorphicMethodStateOrBottom existingMethodState) {
     DynamicTypeWithUpperBound dynamicReceiverType = invoke.getReceiver().getDynamicType(appView);
-    assert !dynamicReceiverType.getDynamicUpperBoundType().nullability().isDefinitelyNull();
+    if (dynamicReceiverType.isNullType()) {
+      // This can happen if we were unable to determine that the receiver is a phi value where null
+      // information has not been propagated down. See if we can improve the test here or ensure
+      // that all phi's are normalized before computing the optimization info.
+      assert appView.checkForTesting(() -> false) : "b/250634405";
+      return MethodState.unknown();
+    }
 
     ProgramMethod singleTarget = invoke.lookupSingleProgramTarget(appView, context);
     DynamicTypeWithUpperBound bounds =
