@@ -132,7 +132,6 @@ public class ComposingBuilder {
   }
 
   public String finish() {
-    committed.finish();
     List<ComposingClassBuilder> classBuilders = new ArrayList<>(committed.classBuilders.values());
     classBuilders.sort(Comparator.comparing(ComposingClassBuilder::getOriginalName));
     StringBuilder sb = new StringBuilder();
@@ -183,7 +182,6 @@ public class ComposingBuilder {
       commitClassBuilders(current, classNameMapper);
       commitRewriteFrameInformation(current, classNameMapper);
       commitOutlineCallsiteInformation(current, classNameMapper);
-      commitSignaturesToRemove(current);
     }
 
     private void commitClassBuilders(ComposingData current, ClassNameMapper classNameMapper)
@@ -196,6 +194,7 @@ public class ComposingBuilder {
         updatedClassBuilders.add(classBuilder.originalName);
         ComposingClassBuilder existingBuilder = classBuilders.get(classBuilder.originalName);
         if (existingBuilder != null) {
+          removeSignaturesFromBuilder(current, existingBuilder);
           classBuilder = existingBuilder.commit(classBuilder);
         }
         newClassBuilders.put(renamedName, classBuilder);
@@ -203,6 +202,7 @@ public class ComposingBuilder {
       for (Entry<String, ComposingClassBuilder> existingEntry : classBuilders.entrySet()) {
         if (!updatedClassBuilders.contains(existingEntry.getKey())) {
           ComposingClassBuilder classBuilder = existingEntry.getValue();
+          removeSignaturesFromBuilder(current, classBuilder);
           ComposingClassBuilder duplicateMapping =
               newClassBuilders.put(existingEntry.getKey(), classBuilder);
           if (duplicateMapping != null) {
@@ -220,17 +220,21 @@ public class ComposingBuilder {
       classBuilders = newClassBuilders;
     }
 
-    private void commitSignaturesToRemove(ComposingData current) {
-      current.signaturesToRemove.forEach(
-          (originalName, signatures) -> {
-            signaturesToRemove.merge(
-                originalName,
-                signatures,
-                (signatures1, signatures2) -> {
-                  Set<Signature> joinedSignatures = Sets.newHashSet(signatures1);
-                  joinedSignatures.addAll(signatures2);
-                  return joinedSignatures;
-                });
+    private void removeSignaturesFromBuilder(
+        ComposingData current, ComposingClassBuilder classBuilder) {
+      Set<Signature> signaturesToRemove =
+          current.signaturesToRemove.get(classBuilder.getOriginalName());
+      if (signaturesToRemove == null) {
+        return;
+      }
+      signaturesToRemove.forEach(
+          signatureToRemove -> {
+            if (signatureToRemove.isFieldSignature()) {
+              classBuilder.fieldMembers.remove(signatureToRemove.asFieldSignature());
+            } else {
+              // TODO(b/241763080): Define removal of methods with and without signatures.
+              throw new Unreachable();
+            }
           });
     }
 
@@ -343,25 +347,6 @@ public class ComposingBuilder {
         String newTypeName = typeNameMap.get(typeReference.getTypeName());
         return newTypeName == null ? typeReference : Reference.classFromTypeName(newTypeName);
       }
-    }
-
-    public void finish() {
-      classBuilders.forEach(
-          (ignored, classBuilder) -> {
-            Set<Signature> signatures = signaturesToRemove.get(classBuilder.getOriginalName());
-            if (signatures == null) {
-              return;
-            }
-            signatures.forEach(
-                signature -> {
-                  if (signature.isFieldSignature()) {
-                    classBuilder.fieldMembers.remove(signature.asFieldSignature());
-                  } else {
-                    // TODO(b/241763080): Define removal of methods with and without signatures.
-                    throw new Unreachable();
-                  }
-                });
-          });
     }
   }
 
