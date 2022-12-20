@@ -1671,6 +1671,7 @@ public class IRConverter {
       finalizeToDex(code, feedback, bytecodeMetadataProvider, timing);
       timing.end();
     }
+    printMethod(code.context(), "After finalization");
   }
 
   private IRCode roundtripThroughLIR(
@@ -1792,6 +1793,19 @@ public class IRConverter {
       return current;
     }
     return previous;
+  }
+
+  public void printMethod(ProgramMethod method, String title) {
+    if (options.extensiveLoggingFilter.size() > 0
+        && options.extensiveLoggingFilter.contains(method.getReference().toSourceString())) {
+      String current = method.getDefinition().codeToString();
+      System.out.println();
+      System.out.println("-----------------------------------------------------------------------");
+      System.out.println(title);
+      System.out.println("-----------------------------------------------------------------------");
+      System.out.println(current);
+      System.out.println("-----------------------------------------------------------------------");
+    }
   }
 
   /**
