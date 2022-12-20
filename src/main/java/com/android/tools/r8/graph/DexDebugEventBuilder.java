@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.utils.DexDebugUtils.verifySetPositionFramesFollowedByDefaultEvent;
+
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexDebugEvent.Default;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
@@ -123,16 +125,6 @@ public class DexDebugEventBuilder {
     }
     assert verifySetPositionFramesFollowedByDefaultEvent(events);
     return new EventBasedDebugInfo(startLine, params, events.toArray(DexDebugEvent.EMPTY_ARRAY));
-  }
-
-  private static boolean verifySetPositionFramesFollowedByDefaultEvent(List<DexDebugEvent> events) {
-    for (int i = events.size() - 1; i >= 0; i--) {
-      if (events.get(i).isDefaultEvent()) {
-        return true;
-      }
-      assert !events.get(i).isPositionFrame();
-    }
-    return true;
   }
 
   private void updateBlockEntry(Instruction instruction) {

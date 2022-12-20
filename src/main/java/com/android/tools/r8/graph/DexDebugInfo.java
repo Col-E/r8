@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.utils.DexDebugUtils.verifySetPositionFramesFollowedByDefaultEvent;
+
 import com.android.tools.r8.debuginfo.DebugRepresentation;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.DebugBytecodeWriter;
@@ -361,6 +363,7 @@ public abstract class DexDebugInfo extends CachedHashValueDexItem
 
     @Override
     public void collectMixedSectionItems(MixedSectionCollection collection) {
+      assert verifySetPositionFramesFollowedByDefaultEvent(this);
       collection.add(this);
     }
 

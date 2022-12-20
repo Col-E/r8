@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.utils.DexDebugUtils.verifySetPositionFramesFollowedByDefaultEvent;
+
 import com.android.tools.r8.dex.CodeToKeep;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.JumboStringRewriter;
@@ -133,6 +135,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
     assert tries != null;
     assert handlers != null;
     assert instructions != null;
+    assert verifySetPositionFramesFollowedByDefaultEvent(debugInfo);
     hashCode();  // Cache the hash code eagerly.
   }
 
@@ -311,7 +314,9 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       return new EventBasedDebugInfo(
           0,
           new DexString[callee.getArity()],
-          new DexDebugEvent[] {new SetPositionFrame(preamblePosition)});
+          new DexDebugEvent[] {
+            factory.createPositionFrame(preamblePosition), factory.zeroChangeDefaultEvent
+          });
     }
     // The inline position should match the first actual callee position, so either its actual line
     // at first instruction or it is a synthetic preamble.
