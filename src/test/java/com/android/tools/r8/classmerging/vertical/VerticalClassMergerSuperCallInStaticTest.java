@@ -61,10 +61,7 @@ public class VerticalClassMergerSuperCallInStaticTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED)
-        .inspect(
-            inspector -> {
-              assertThat(inspector.clazz(A.class), not(isPresent()));
-            });
+        .inspect(inspector -> assertThat(inspector.clazz(A.class), not(isPresent())));
   }
 
   private byte[] getAWithRewrittenInvokeSpecialToBase() throws IOException {
