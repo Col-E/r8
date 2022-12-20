@@ -42,15 +42,12 @@ public class ComposeMovedMethodTest extends TestBase {
           "    int a.g1() -> h1",
           "    void a.g2() -> h2");
   private static final String mappingResult =
-      // TODO(b/241763080): Define composition for moved methods.
       StringUtils.unixLines(
           "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
           "com.bar -> b:",
-          "    int a.g1() -> h1",
-          "    void a.g2() -> h2",
-          "com.foo -> a:",
-          "    void f2() -> g2",
-          "    int some.other.Class.f1() -> g1");
+          "    int some.other.Class.f1() -> h1",
+          "    void f2() -> h2",
+          "com.foo -> a:");
 
   @Test
   public void testCompose() throws Exception {

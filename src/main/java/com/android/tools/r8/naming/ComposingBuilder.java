@@ -7,7 +7,6 @@ package com.android.tools.r8.naming;
 import static com.android.tools.r8.naming.MappedRangeUtils.isInlineMappedRange;
 import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
@@ -232,8 +231,7 @@ public class ComposingBuilder {
             if (signatureToRemove.isFieldSignature()) {
               classBuilder.fieldMembers.remove(signatureToRemove.asFieldSignature());
             } else {
-              // TODO(b/241763080): Define removal of methods with and without signatures.
-              throw new Unreachable();
+              classBuilder.methodsWithoutPosition.remove(signatureToRemove.asMethodSignature());
             }
           });
     }
@@ -565,9 +563,16 @@ public class ComposingBuilder {
               memberNaming.getOriginalSignature().asMethodSignature();
           // Remove the existing entry if it exists.
           List<MappedRange> existingMappedRanges = null;
-          if (committedPreviousClassBuilder != null) {
+          ComposingClassBuilder existingClassBuilder = getExistingClassBuilder(originalSignature);
+          if (existingClassBuilder != null) {
+            MethodSignature signature =
+                (originalSignature.isQualified()
+                        ? originalSignature.toUnqualifiedSignature()
+                        : originalSignature)
+                    .asMethodSignature();
+            current.addSignatureToRemove(existingClassBuilder, signature);
             SegmentTree<List<MappedRange>> listSegmentTree =
-                committedPreviousClassBuilder.methodsWithPosition.get(originalSignature);
+                existingClassBuilder.methodsWithPosition.get(signature);
             if (listSegmentTree != null) {
               // Any new transformation can be lossy - for example, D8 only promises to keep line
               // positions if the method is not throwing (and is not debug). Additionally, R8/PG
@@ -596,7 +601,7 @@ public class ComposingBuilder {
               assert minified.hasValue();
             } else {
               MappedRange existingMappedRange =
-                  committedPreviousClassBuilder.methodsWithoutPosition.remove(originalSignature);
+                  existingClassBuilder.methodsWithoutPosition.get(signature);
               existingMappedRanges =
                   existingMappedRange == null
                       ? null
@@ -623,6 +628,12 @@ public class ComposingBuilder {
           }
         }
       }
+    }
+
+    private ComposingClassBuilder getExistingClassBuilder(MethodSignature originalSignature) {
+      return originalSignature.isQualified()
+          ? committedPreviousClassBuilders.get(originalSignature.toHolderFromQualified())
+          : committedPreviousClassBuilder;
     }
 
     private void registerMappingInformationFromMappedRanges(MappedRange mappedRange)
