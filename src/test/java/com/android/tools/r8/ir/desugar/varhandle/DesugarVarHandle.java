@@ -142,11 +142,38 @@ public final class DesugarVarHandle {
     return U.getObject(ct1, offset);
   }
 
+  Object getInBox(Object ct1, Class<?> expectedBox) {
+    if (type == int.class) {
+      int value = U.getInt(ct1, offset);
+      if (expectedBox == Long.class) {
+        return Long.valueOf(value);
+      }
+      if (expectedBox == Float.class) {
+        return Float.valueOf(value);
+      }
+      if (expectedBox == Double.class) {
+        return Double.valueOf(value);
+      }
+      throw desugarWrongMethodTypeException();
+    }
+    if (type == long.class) {
+      long value = U.getLong(ct1, offset);
+      if (expectedBox == Float.class) {
+        return Float.valueOf(value);
+      }
+      if (expectedBox == Double.class) {
+        return Double.valueOf(value);
+      }
+      throw desugarWrongMethodTypeException();
+    }
+    return U.getObject(ct1, offset);
+  }
+
   int getInt(Object ct1) {
     if (type == int.class) {
       return U.getInt(ct1, offset);
     } else if (type == long.class) {
-      return (int) U.getLong(ct1, offset);
+      throw desugarWrongMethodTypeException();
     } else {
       return toIntIfPossible(U.getObject(ct1, offset), true);
     }

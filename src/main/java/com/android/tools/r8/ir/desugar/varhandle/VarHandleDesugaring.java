@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.desugar.varhandle;
 
 import com.android.tools.r8.cf.code.CfCheckCast;
+import com.android.tools.r8.cf.code.CfConstClass;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLoad;
@@ -404,16 +405,22 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
     }
     assert newParameters.size() == proto.parameters.size();
     DexString name = invoke.getMethod().getName();
-    DexProto newProto =
-        factory.createProto(
-            factory.polymorphicMethods.varHandleCompareAndSetMethodNames.contains(name)
-                ? proto.returnType
-                : objectOrPrimitiveReturnType(proto.returnType),
-            newParameters);
+    DexType returnType =
+        factory.polymorphicMethods.varHandleCompareAndSetMethodNames.contains(name)
+            ? proto.returnType
+            : objectOrPrimitiveReturnType(proto.returnType);
+    if (proto.returnType != returnType) {
+      if (proto.returnType.isPrimitiveType()) {
+        builder.add(new CfConstClass(factory.getBoxedForPrimitiveType(proto.returnType)));
+      } else {
+        builder.add(new CfConstClass(proto.returnType));
+      }
+      newParameters.add(factory.classType);
+    }
+    DexProto newProto = factory.createProto(returnType, newParameters);
     DexMethod newMethod = factory.createMethod(factory.varHandleType, newProto, name);
     builder.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, newMethod, false));
     if (proto.returnType.isPrimitiveType() && !newProto.returnType.isPrimitiveType()) {
-      assert proto.returnType.isPrimitiveType();
       assert newProto.returnType == factory.objectType;
       builder.add(new CfCheckCast(factory.getBoxedForPrimitiveType(proto.returnType)));
       builder.add(

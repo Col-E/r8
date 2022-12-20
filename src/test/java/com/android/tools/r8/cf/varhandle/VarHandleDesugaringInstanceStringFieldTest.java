@@ -15,7 +15,19 @@ import org.junit.runners.Parameterized;
 public class VarHandleDesugaringInstanceStringFieldTest extends VarHandleDesugaringTestBase {
 
   private static final String EXPECTED_OUTPUT =
-      StringUtils.lines("testGet", "null", "1", "testCompareAndSet", "null", "1");
+      StringUtils.lines(
+          "testGet",
+          "null",
+          "1",
+          "1",
+          "1",
+          "1",
+          "testSet",
+          "null",
+          "1",
+          "testCompareAndSet",
+          "null",
+          "1");
   private static final String MAIN_CLASS = VarHandle.InstanceStringField.typeName();
   private static final String JAR_ENTRY = "varhandle/InstanceStringField.class";
 
@@ -37,5 +49,10 @@ public class VarHandleDesugaringInstanceStringFieldTest extends VarHandleDesugar
   @Override
   protected String getExpectedOutputForReferenceImplementation() {
     return EXPECTED_OUTPUT;
+  }
+
+  @Override
+  protected boolean getTestWithDesugaring() {
+    return true;
   }
 }

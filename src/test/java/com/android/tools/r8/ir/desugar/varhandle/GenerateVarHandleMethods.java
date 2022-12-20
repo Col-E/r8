@@ -223,7 +223,8 @@ public class GenerateVarHandleMethods extends MethodGenerationBase {
     for (String prefix : ImmutableList.of("get", "set", "compareAndSet")) {
       if (name.startsWith(prefix)
           && (name.substring(prefix.length()).equals("Int")
-              || name.substring(prefix.length()).equals("Long"))) {
+              || name.substring(prefix.length()).equals("Long")
+              || name.substring(prefix.length()).equals("InBox"))) {
         return prefix;
       }
     }

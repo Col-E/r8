@@ -18,6 +18,55 @@ public class InstanceLongField {
     throw e;
   }
 
+  public static void testGet(VarHandle varHandle) {
+    System.out.println("testGet");
+
+    InstanceLongField instance = new InstanceLongField();
+    varHandle.set(instance, 1L);
+
+    System.out.println(varHandle.get(instance));
+    System.out.println((Object) varHandle.get(instance));
+    System.out.println((long) varHandle.get(instance));
+    System.out.println((float) varHandle.get(instance));
+    System.out.println((double) varHandle.get(instance));
+    try {
+      System.out.println((boolean) varHandle.get(instance));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((byte) varHandle.get(instance));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((short) varHandle.get(instance));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((char) varHandle.get(instance));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((int) varHandle.get(instance));
+      System.out.println("Unexpected success 5");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((String) varHandle.get(instance));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+  }
+
   public static void testSet(VarHandle varHandle) {
     System.out.println("testSet");
 
@@ -187,6 +236,7 @@ public class InstanceLongField {
   public static void main(String[] args) throws NoSuchFieldException, IllegalAccessException {
     VarHandle varHandle =
         MethodHandles.lookup().findVarHandle(InstanceLongField.class, "field", long.class);
+    testGet(varHandle);
     testSet(varHandle);
     testCompareAndSet(varHandle);
   }
