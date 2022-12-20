@@ -4,7 +4,8 @@
 
 package com.android.tools.r8.mappingcompose;
 
-import static org.junit.Assert.assertThrows;
+import static com.android.tools.r8.mappingcompose.ComposeTestHelpers.doubleToSingleQuote;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -41,12 +42,20 @@ public class ComposeMovedMethodWithPositionTest extends TestBase {
           "    12:14:int a.g1():2:4 -> h11",
           "    15:16:int a.g1():2:3 -> h12",
           "    22:23:void a.g2():14:14 -> h2");
+  private static final String mappingResult =
+      StringUtils.unixLines(
+          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
+          "com.bar -> b:",
+          "    12:14:int some.other.Class.f1():102:104 -> h11",
+          "    15:16:int some.other.Class.f1():102:103 -> h12",
+          "    22:23:void f2():114:114 -> h2",
+          "com.foo -> a:");
 
   @Test
   public void testCompose() throws Exception {
     ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromString(mappingFoo);
     ClassNameMapper mappingForBar = ClassNameMapper.mapperFromString(mappingBar);
-    // TODO(b/241763080): Define composition for moved methods.
-    assertThrows(AssertionError.class, () -> MappingComposer.compose(mappingForFoo, mappingForBar));
+    String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
+    assertEquals(mappingResult, doubleToSingleQuote(composed));
   }
 }

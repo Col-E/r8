@@ -232,6 +232,7 @@ public class ComposingBuilder {
               classBuilder.fieldMembers.remove(signatureToRemove.asFieldSignature());
             } else {
               classBuilder.methodsWithoutPosition.remove(signatureToRemove.asMethodSignature());
+              classBuilder.methodsWithPosition.remove(signatureToRemove.asMethodSignature());
             }
           });
     }
@@ -583,7 +584,6 @@ public class ComposingBuilder {
               // We assume that all new minified ranges for a method are rewritten in the new map
               // such that no previous existing positions exists.
               if (existingEntry != null) {
-                listSegmentTree.removeSegment(existingEntry.getKey());
                 existingMappedRanges = existingEntry.getValue();
               } else {
                 // The original can be discarded if it no longer exists or if the method is
@@ -1027,7 +1027,6 @@ public class ComposingBuilder {
     }
 
     private void writeMethods(ChainableStringConsumer consumer) {
-      Map<String, List<MappedRange>> signatureToMappedRanges = new HashMap<>();
       methodsWithoutPosition.forEach(
           (ignored, mapped) -> {
             consumer.accept(INDENTATION).accept(mapped.toString()).accept("\n");
@@ -1035,31 +1034,25 @@ public class ComposingBuilder {
               consumer.accept(INDENTATION).accept("# ").accept(info.serialize()).accept("\n");
             }
           });
-      methodsWithPosition
-          .values()
-          .forEach(
-              segmentTree -> {
-                segmentTree.visitSegments(
-                    mappedRanges -> {
-                      MethodSignature originalSignature = ListUtils.last(mappedRanges).signature;
-                      List<MappedRange> put =
-                          signatureToMappedRanges.put(
-                              originalSignature.getName() + "_" + originalSignature, mappedRanges);
-                      assert put == null;
-                    });
-              });
-      ArrayList<String> strings = new ArrayList<>(signatureToMappedRanges.keySet());
-      Collections.sort(strings);
-      for (String key : strings) {
-        signatureToMappedRanges
+      ArrayList<MethodSignature> sortedSignatures = new ArrayList<>(methodsWithPosition.keySet());
+      sortedSignatures.sort(Comparator.comparing(Signature::getName));
+      for (MethodSignature key : sortedSignatures) {
+        methodsWithPosition
             .get(key)
-            .forEach(
-                mappedRange -> {
-                  consumer.accept(INDENTATION).accept(mappedRange.toString()).accept("\n");
-                  for (MappingInformation info : mappedRange.getAdditionalMappingInformation()) {
-                    consumer.accept(INDENTATION).accept("# ").accept(info.serialize()).accept("\n");
-                  }
-                });
+            .visitSegments(
+                mappedRanges ->
+                    mappedRanges.forEach(
+                        mappedRange -> {
+                          consumer.accept(INDENTATION).accept(mappedRange.toString()).accept("\n");
+                          for (MappingInformation info :
+                              mappedRange.getAdditionalMappingInformation()) {
+                            consumer
+                                .accept(INDENTATION)
+                                .accept("# ")
+                                .accept(info.serialize())
+                                .accept("\n");
+                          }
+                        }));
       }
     }
 
