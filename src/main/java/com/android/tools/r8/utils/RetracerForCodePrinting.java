@@ -11,8 +11,6 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.references.FieldReference;
-import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.RetraceClassElement;
 import com.android.tools.r8.retrace.RetraceElement;
 import com.android.tools.r8.retrace.RetraceMethodResult;
@@ -81,12 +79,7 @@ public class RetracerForCodePrinting {
     if (retracer == null) {
       return noRetraceString.apply(method);
     }
-    // TODO(b/169953605): Use retracer.retraceMethod() when we have enough information.
-    MethodReference methodReference = method.asMethodReference();
-    RetraceMethodResult retraceMethodResult =
-        retracer
-            .retraceClass(methodReference.getHolderClass())
-            .lookupMethod(methodReference.getMethodName());
+    RetraceMethodResult retraceMethodResult = retracer.retraceMethod(method.asMethodReference());
     return joinAmbiguousResults(
         retraceMethodResult,
         element -> {
@@ -124,12 +117,8 @@ public class RetracerForCodePrinting {
     if (retracer == null) {
       return noRetraceString.apply(field);
     }
-    // TODO(b/169953605): Use retracer.retraceField() when we have enough information.
-    FieldReference fieldReference = field.asFieldReference();
     return joinAmbiguousResults(
-        retracer
-            .retraceClass(fieldReference.getHolderClass())
-            .lookupField(fieldReference.getFieldName()),
+        retracer.retraceField(field.asFieldReference()),
         element -> {
           if (element.isUnknown()) {
             return unknownToString.apply(element.getField());
