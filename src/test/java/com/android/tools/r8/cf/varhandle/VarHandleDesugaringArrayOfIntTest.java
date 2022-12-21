@@ -15,7 +15,74 @@ import org.junit.runners.Parameterized;
 public class VarHandleDesugaringArrayOfIntTest extends VarHandleDesugaringTestBase {
 
   private static final String EXPECTED_OUTPUT =
-      StringUtils.lines("1", "0", "1", "0", "1", "2", "1", "3");
+      StringUtils.lines(
+          "testGet",
+          "1",
+          "2",
+          "1",
+          "2",
+          "1",
+          "2",
+          "1",
+          "2",
+          "1.0",
+          "2.0",
+          "1.0",
+          "2.0",
+          "testSet",
+          "1",
+          "0",
+          "1",
+          "2",
+          "3",
+          "2",
+          "3",
+          "4",
+          "5",
+          "4",
+          "5",
+          "6",
+          "7",
+          "6",
+          "7",
+          "8",
+          "48",
+          "8",
+          "48",
+          "49",
+          "50",
+          "49",
+          "50",
+          "51",
+          "9",
+          "51",
+          "9",
+          "10",
+          "11",
+          "10",
+          "11",
+          "12",
+          "11",
+          "12",
+          "11",
+          "12",
+          "11",
+          "12",
+          "11",
+          "12",
+          "11",
+          "12",
+          "11",
+          "12",
+          "11",
+          "12",
+          "11",
+          "12",
+          "11",
+          "12",
+          "testArrayVarHandleForNonSingleDimension",
+          "IllegalArgumentException");
+
   private static final String MAIN_CLASS = VarHandle.ArrayOfInt.typeName();
   private static final String JAR_ENTRY = "varhandle/ArrayOfInt.class";
 
@@ -31,6 +98,11 @@ public class VarHandleDesugaringArrayOfIntTest extends VarHandleDesugaringTestBa
 
   @Override
   protected String getExpectedOutputForReferenceImplementation() {
-    return EXPECTED_OUTPUT;
+    return StringUtils.lines(EXPECTED_OUTPUT.trim(), "Got array element VarHandle");
+  }
+
+  @Override
+  protected String getExpectedOutputForDesugaringImplementation() {
+    return StringUtils.lines(EXPECTED_OUTPUT.trim(), "UnsupportedOperationException");
   }
 }

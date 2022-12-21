@@ -45,9 +45,4 @@ public class VarHandleDesugaringInstanceDoubleFieldTest extends VarHandleDesugar
   protected String getExpectedOutputForDesugaringImplementation() {
     return StringUtils.lines("Got UnsupportedOperationException");
   }
-
-  @Override
-  protected boolean getTestWithDesugaring() {
-    return true;
-  }
 }

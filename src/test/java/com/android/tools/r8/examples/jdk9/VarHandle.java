@@ -18,6 +18,8 @@ public class VarHandle {
       new JavaExampleClassProxy(EXAMPLE_FILE, "varhandle/ArrayOfInt");
   public static final JavaExampleClassProxy ArrayOfLong =
       new JavaExampleClassProxy(EXAMPLE_FILE, "varhandle/ArrayOfLong");
+  public static final JavaExampleClassProxy ArrayOfObject =
+      new JavaExampleClassProxy(EXAMPLE_FILE, "varhandle/ArrayOfObject");
 
   public static final JavaExampleClassProxy InstanceIntField =
       new JavaExampleClassProxy(EXAMPLE_FILE, "varhandle/InstanceIntField");

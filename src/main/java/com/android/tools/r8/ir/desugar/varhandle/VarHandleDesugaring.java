@@ -258,24 +258,36 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
           && method.getArity() == 0
           && invoke.isInvokeStatic()) {
         return computeMethodHandlesLookup(factory);
+      } else if (method.getName().equals(factory.createString("arrayElementVarHandle"))
+          && method.getReturnType() == factory.varHandleType
+          && method.getArity() == 1
+          && method.getParameter(0) == factory.classType
+          && invoke.isInvokeStatic()) {
+        return computeMethodHandlesArrayElementVarHandle(factory);
       } else {
         return DesugarDescription.nothing();
       }
     }
 
     if (method.getHolderType() == factory.varHandleType) {
+      if (!invoke.isInvokeVirtual()) {
+        // Right now only <init> should be hit from MethodHandles.Lookup desugaring creating
+        // a VarHandle instance.
+        assert invoke.isInvokeSpecial();
+        return DesugarDescription.nothing();
+      }
       assert invoke.isInvokeVirtual();
       DexString name = method.getName();
       int arity = method.getProto().getArity();
       // TODO(b/247076137): Support two coordinates (array element VarHandle).
       if (name.equals(factory.compareAndSetString)) {
-        assert arity == 3;
+        assert arity == 3 || arity == 4;
         return computeDesugarSignaturePolymorphicMethod(invoke, arity - 2);
       } else if (name.equals(factory.getString)) {
-        assert arity == 1;
+        assert arity == 1 || arity == 2;
         return computeDesugarSignaturePolymorphicMethod(invoke, arity);
       } else if (name.equals(factory.setString)) {
-        assert arity == 2;
+        assert arity == 2 || arity == 3;
         return computeDesugarSignaturePolymorphicMethod(invoke, arity - 1);
       } else {
         // TODO(b/247076137): Insert runtime exception - unsupported VarHandle operation.
@@ -303,6 +315,29 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
                         factory.createMethod(
                             factory.lookupType,
                             factory.createProto(factory.voidType),
+                            factory.constructorMethodName),
+                        false)))
+        .build();
+  }
+
+  public DesugarDescription computeMethodHandlesArrayElementVarHandle(DexItemFactory factory) {
+    return DesugarDescription.builder()
+        .setDesugarRewrite(
+            (freshLocalProvider,
+                localStackAllocator,
+                eventConsumer,
+                context,
+                methodProcessingContext,
+                dexItemFactory) ->
+                ImmutableList.of(
+                    new CfNew(factory.varHandleType),
+                    new CfStackInstruction(Opcode.DupX1),
+                    new CfStackInstruction(Opcode.Swap),
+                    new CfInvoke(
+                        Opcodes.INVOKESPECIAL,
+                        factory.createMethod(
+                            factory.varHandleType,
+                            factory.createProto(factory.voidType, factory.classType),
                             factory.constructorMethodName),
                         false)))
         .build();
@@ -338,24 +373,38 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
       CfInvoke invoke, int coordinates, FreshLocalProvider freshLocalProvider) {
     assert invoke.isInvokeVirtual();
     // TODO(b/247076137): Support two coordinates (array element VarHandle).
-    assert coordinates == 1 && invoke.getMethod().getProto().getArity() >= coordinates;
+    assert (coordinates == 1 || coordinates == 2)
+        && invoke.getMethod().getProto().getArity() >= coordinates;
     // Only support zero, one and two arguments after coordinates.
     int nonCoordinateArguments = invoke.getMethod().getProto().getArity() - coordinates;
     assert nonCoordinateArguments <= 2;
 
     DexProto proto = invoke.getMethod().getProto();
     DexType ct1Type = invoke.getMethod().getProto().getParameter(0);
-    if (!ct1Type.isClassType()) {
+    if (!ct1Type.isClassType() && !ct1Type.isArrayType()) {
       return null;
+    }
+    DexType ct1ElementType = null;
+    if (ct1Type.isArrayType()) {
+      ct1ElementType = ct1Type.toDimensionMinusOneType(factory);
+      if (ct1ElementType != factory.intType
+          && ct1ElementType != factory.longType
+          && !ct1ElementType.isReferenceType()) {
+        return null;
+      }
+      DexType ct2Type = invoke.getMethod().getProto().getParameter(1);
+      if (ct2Type != factory.intType) {
+        return null;
+      }
     }
 
     // Convert the arguments by boxing except for primitive int and long.
     ImmutableList.Builder<CfInstruction> builder = ImmutableList.builder();
     List<DexType> newParameters = new ArrayList<>(proto.parameters.size());
-    newParameters.add(factory.objectType);
+    DexType argumentType = null;
+    boolean hasWideArgument = false;
     if (nonCoordinateArguments > 0) {
-      DexType argumentType = objectOrPrimitiveParameterType(proto.parameters.get(coordinates));
-      boolean hasWideArgument = false;
+      argumentType = objectOrPrimitiveParameterType(proto.parameters.get(coordinates));
       for (int i = coordinates; i < proto.parameters.size(); i++) {
         hasWideArgument = hasWideArgument || proto.parameters.get(i).isWideType();
         DexType type = objectOrPrimitiveParameterType(proto.parameters.get(i));
@@ -364,51 +413,78 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
         }
       }
       assert isPrimitiveThatIsNotBoxed(argumentType) || argumentType == factory.objectType;
-      // Ensure all arguments are boxed.
-      for (int i = coordinates; i < proto.parameters.size(); i++) {
-        if (argumentType.isPrimitiveType()) {
-          newParameters.add(argumentType);
-        } else {
-          boolean lastArgument = i == proto.parameters.size() - 1;
-          // Pass all boxed objects as Object.
-          newParameters.add(factory.objectType);
-          if (!proto.parameters.get(i).isPrimitiveType()) {
-            continue;
-          }
-          int local = -1;
-          // For boxing of the second to last argument (we only have one or two) bring it to TOS.
-          if (!lastArgument) {
-            if (hasWideArgument) {
-              local = freshLocalProvider.getFreshLocal(2);
-              builder.add(new CfStore(ValueType.fromDexType(proto.parameters.get(i + 1)), local));
-            } else {
-              builder.add(new CfStackInstruction(Opcode.Swap));
-            }
-          }
-          builder.add(
-              new CfInvoke(
-                  Opcodes.INVOKESTATIC,
-                  factory.getBoxPrimitiveMethod(proto.parameters.get(i)),
-                  false));
-          // When boxing of the second to last argument (we only have one or two) bring last
-          // argument back to TOS.
-          if (!lastArgument) {
-            if (hasWideArgument) {
-              assert local != -1;
-              builder.add(new CfLoad(ValueType.fromDexType(proto.parameters.get(i + 1)), local));
-            } else {
-              builder.add(new CfStackInstruction(Opcode.Swap));
-            }
-          }
-        }
-      }
     }
-    assert newParameters.size() == proto.parameters.size();
     DexString name = invoke.getMethod().getName();
     DexType returnType =
         factory.polymorphicMethods.varHandleCompareAndSetMethodNames.contains(name)
             ? proto.returnType
             : objectOrPrimitiveReturnType(proto.returnType);
+
+    if (coordinates == 1) {
+      newParameters.add(factory.objectType);
+    } else {
+      assert coordinates == 2;
+      // For array VarHandle only use the method with primitive arguments if all relevant parts of
+      // the signature has the same primitive type.
+      assert ct1ElementType != null;
+      boolean usePrimitiveArray =
+          ct1ElementType.isPrimitiveType()
+              && (argumentType == null || argumentType == ct1ElementType)
+              && (factory.polymorphicMethods.varHandleCompareAndSetMethodNames.contains(name)
+                  || returnType.isVoidType()
+                  || returnType == ct1ElementType);
+      newParameters.add(usePrimitiveArray ? ct1Type : factory.objectType);
+      newParameters.add(factory.intType);
+      if (!usePrimitiveArray) {
+        if (argumentType != null) {
+          argumentType = factory.objectType;
+        }
+        if (!factory.polymorphicMethods.varHandleCompareAndSetMethodNames.contains(name)
+            && !returnType.isVoidType()) {
+          returnType = factory.objectType;
+        }
+      }
+    }
+
+    // Ensure all arguments are boxed if required.
+    for (int i = coordinates; i < proto.parameters.size(); i++) {
+      if (argumentType.isPrimitiveType()) {
+        newParameters.add(argumentType);
+      } else {
+        boolean lastArgument = i == proto.parameters.size() - 1;
+        // Pass all boxed objects as Object.
+        newParameters.add(factory.objectType);
+        if (!proto.parameters.get(i).isPrimitiveType()) {
+          continue;
+        }
+        int local = -1;
+        // For boxing of the second to last argument (we only have one or two) bring it to TOS.
+        if (!lastArgument) {
+          if (hasWideArgument) {
+            local = freshLocalProvider.getFreshLocal(2);
+            builder.add(new CfStore(ValueType.fromDexType(proto.parameters.get(i + 1)), local));
+          } else {
+            builder.add(new CfStackInstruction(Opcode.Swap));
+          }
+        }
+        builder.add(
+            new CfInvoke(
+                Opcodes.INVOKESTATIC,
+                factory.getBoxPrimitiveMethod(proto.parameters.get(i)),
+                false));
+        // When boxing of the second to last argument (we only have one or two) bring last
+        // argument back to TOS.
+        if (!lastArgument) {
+          if (hasWideArgument) {
+            assert local != -1;
+            builder.add(new CfLoad(ValueType.fromDexType(proto.parameters.get(i + 1)), local));
+          } else {
+            builder.add(new CfStackInstruction(Opcode.Swap));
+          }
+        }
+      }
+    }
+    assert newParameters.size() == proto.parameters.size();
     if (proto.returnType != returnType) {
       if (proto.returnType.isPrimitiveType()) {
         builder.add(new CfConstClass(factory.getBoxedForPrimitiveType(proto.returnType)));

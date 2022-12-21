@@ -72,11 +72,6 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
     return getExpectedOutputForReferenceImplementation();
   }
 
-  // TODO(b/247076137): Remove this when all tests can run with desugaring.
-  protected boolean getTestWithDesugaring() {
-    return false;
-  }
-
   @Test
   public void testReference() throws Throwable {
     assumeTrue(parameters.isCfRuntime());
@@ -168,8 +163,8 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
               });
         });
     if (willDesugarVarHandle()) {
-      assertEquals(2, unsafeCompareAndSwapInt.get());
-      assertEquals(3, unsafeCompareAndSwapLong.get());
+      assertEquals(4, unsafeCompareAndSwapInt.get());
+      assertEquals(5, unsafeCompareAndSwapLong.get());
       assertEquals(1, unsafeCompareAndSwapObject.get());
     } else {
       assertEquals(0, unsafeCompareAndSwapInt.get());
@@ -182,42 +177,24 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
   @Test
   public void testD8() throws Throwable {
     assumeTrue(parameters.isDexRuntime());
-    if (getTestWithDesugaring()) {
-      testForD8(parameters.getBackend())
-          .addProgramClassFileData(getProgramClassFileData())
-          .setMinApi(parameters.getApiLevel())
-          .addOptionsModification(options -> options.enableVarHandleDesugaring = true)
-          .run(parameters.getRuntime(), getMainClass())
-          .applyIf(
-              parameters.isDexRuntime()
-                  && parameters.asDexRuntime().getVersion().isOlderThanOrEqual(Version.V4_4_4),
-              // TODO(b/247076137): Running on 4.0.4 and 4.4.4 needs to be checked. Output seems
-              // correct, but at the same time there are VFY errors on stderr.
-              r -> r.assertFailureWithErrorThatThrows(NoSuchFieldException.class),
-              r ->
-                  r.assertSuccessWithOutput(
-                      parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.T)
-                              && parameters
-                                  .getDexRuntimeVersion()
-                                  .isNewerThanOrEqual(Version.V13_0_0)
-                          ? getExpectedOutputForArtImplementation()
-                          : getExpectedOutputForDesugaringImplementation()))
-          .inspect(this::inspect);
-    } else {
-      testForD8(parameters.getBackend())
-          .addProgramClassFileData(getProgramClassFileData())
-          .setMinApi(parameters.getApiLevel())
-          .run(parameters.getRuntime(), getMainClass())
-          .applyIf(
-              // VarHandle is available from Android 9, even though it was not a public API until
-              // 13.
-              parameters.asDexRuntime().getVersion().isOlderThanOrEqual(Version.V7_0_0),
-              r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
-              parameters.getApiLevel().isLessThan(AndroidApiLevel.P)
-                  || parameters.asDexRuntime().getVersion().isOlderThanOrEqual(Version.V8_1_0),
-              r -> r.assertFailure(),
-              r -> r.assertSuccessWithOutput(getExpectedOutputForArtImplementation()));
-    }
+    testForD8(parameters.getBackend())
+        .addProgramClassFileData(getProgramClassFileData())
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(options -> options.enableVarHandleDesugaring = true)
+        .run(parameters.getRuntime(), getMainClass())
+        .applyIf(
+            parameters.isDexRuntime()
+                && parameters.asDexRuntime().getVersion().isOlderThanOrEqual(Version.V4_4_4),
+            // TODO(b/247076137): Running on 4.0.4 and 4.4.4 needs to be checked. Output seems
+            // correct, but at the same time there are VFY errors on stderr.
+            r -> r.assertFailureWithErrorThatThrows(NoSuchFieldException.class),
+            r ->
+                r.assertSuccessWithOutput(
+                    parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.T)
+                            && parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V13_0_0)
+                        ? getExpectedOutputForArtImplementation()
+                        : getExpectedOutputForDesugaringImplementation()))
+        .inspect(this::inspect);
   }
 
   // TODO(b/247076137: Also turn on VarHandle desugaring for R8 tests.

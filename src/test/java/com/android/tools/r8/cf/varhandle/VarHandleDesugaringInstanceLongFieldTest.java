@@ -91,9 +91,4 @@ public class VarHandleDesugaringInstanceLongFieldTest extends VarHandleDesugarin
   protected String getExpectedOutputForReferenceImplementation() {
     return EXPECTED_OUTPUT;
   }
-
-  @Override
-  protected boolean getTestWithDesugaring() {
-    return true;
-  }
 }

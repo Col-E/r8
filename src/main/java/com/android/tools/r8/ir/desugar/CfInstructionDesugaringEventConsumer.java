@@ -155,7 +155,9 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptVarHandleDesugaringClass(DexProgramClass clazz) {
-      methodProcessor.scheduleDesugaredMethodsForProcessing(clazz.programMethods());
+      clazz
+          .programMethods()
+          .forEach(method -> methodProcessor.scheduleMethodForProcessing(method, this));
     }
 
     @Override

@@ -24,11 +24,13 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.junit.Test;
@@ -220,12 +222,14 @@ public class GenerateVarHandleMethods extends MethodGenerationBase {
   }
 
   private static String mapMethodName(String name) {
+    Set<String> postfixes =
+        ImmutableSet.of("InBox", "Int", "Long", "Array", "ArrayInBox", "ArrayInt", "ArrayLong");
     for (String prefix : ImmutableList.of("get", "set", "compareAndSet")) {
-      if (name.startsWith(prefix)
-          && (name.substring(prefix.length()).equals("Int")
-              || name.substring(prefix.length()).equals("Long")
-              || name.substring(prefix.length()).equals("InBox"))) {
-        return prefix;
+      if (name.startsWith(prefix)) {
+        String postfix = name.substring(prefix.length());
+        if (postfixes.contains(postfix)) {
+          return prefix;
+        }
       }
     }
     return name;

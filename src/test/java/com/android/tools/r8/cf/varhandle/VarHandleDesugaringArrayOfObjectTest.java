@@ -12,32 +12,34 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class VarHandleDesugaringInstanceObjectFieldTest extends VarHandleDesugaringTestBase {
+public class VarHandleDesugaringArrayOfObjectTest extends VarHandleDesugaringTestBase {
 
   private static final String EXPECTED_OUTPUT =
       StringUtils.lines(
+          "testGet",
+          "1",
+          "2",
+          "1",
+          "2",
+          "1",
+          "2",
+          "1",
+          "2",
+          "1.0",
+          "2.0",
+          "1.0",
+          "2.0",
+          "3",
+          "4",
+          "3",
+          "4",
+          "3",
+          "4",
+          "3.0",
+          "4.0",
+          "3.0",
+          "4.0",
           "testSet",
-          "null",
-          "A(1)",
-          "true",
-          "A(2)",
-          "true",
-          "1",
-          "1",
-          "true",
-          "true",
-          "2",
-          "2",
-          "true",
-          "true",
-          "3",
-          "3",
-          "true",
-          "true",
-          "4",
-          "4",
-          "true",
-          "true",
           "5",
           "5",
           "true",
@@ -115,20 +117,16 @@ public class VarHandleDesugaringInstanceObjectFieldTest extends VarHandleDesugar
           "8",
           "8",
           "8",
-          "testReturnValueClassCastException");
-  private static final String MAIN_CLASS = VarHandle.InstanceObjectField.typeName();
+          "testArrayVarHandleForNonSingleDimension",
+          "IllegalArgumentException");
+
+  private static final String MAIN_CLASS = VarHandle.ArrayOfObject.typeName();
   private static final List<String> JAR_ENTRIES =
-      ImmutableList.of(
-          "varhandle/InstanceObjectField.class", "varhandle/InstanceObjectField$A.class");
+      ImmutableList.of("varhandle/ArrayOfObject.class", "varhandle/ArrayOfObject$A.class");
 
   @Override
   protected String getMainClass() {
     return MAIN_CLASS;
-  }
-
-  @Override
-  protected String getKeepRules() {
-    return "-keep class " + getMainClass() + "{ <fields>; }";
   }
 
   @Override
@@ -138,13 +136,11 @@ public class VarHandleDesugaringInstanceObjectFieldTest extends VarHandleDesugar
 
   @Override
   protected String getExpectedOutputForReferenceImplementation() {
-    return StringUtils.lines(
-        EXPECTED_OUTPUT.trim(), "Reference implementation", "Reference implementation");
+    return StringUtils.lines(EXPECTED_OUTPUT.trim(), "Got array element VarHandle");
   }
 
   @Override
-  protected String getExpectedOutputForArtImplementation() {
-    assert parameters.isDexRuntime();
-    return StringUtils.lines(EXPECTED_OUTPUT.trim(), "Art implementation", "Art implementation");
+  protected String getExpectedOutputForDesugaringImplementation() {
+    return StringUtils.lines(EXPECTED_OUTPUT.trim(), "UnsupportedOperationException");
   }
 }

@@ -44,9 +44,4 @@ public class VarHandleDesugaringInstanceShortFieldTest extends VarHandleDesugari
   protected String getExpectedOutputForDesugaringImplementation() {
     return StringUtils.lines("Got UnsupportedOperationException");
   }
-
-  @Override
-  protected boolean getTestWithDesugaring() {
-    return true;
-  }
 }

@@ -70,6 +70,7 @@ public final class DesugarVarHandle {
   private final Class<?> recv;
   private final Class<?> type;
   private final long offset;
+  private final long arrayIndexScale;
 
   DesugarVarHandle(Class<?> recv, String name, Class<?> type)
       throws NoSuchFieldException, IllegalAccessException {
@@ -88,18 +89,41 @@ public final class DesugarVarHandle {
               + "reference types.");
     }
     this.offset = U.objectFieldOffset(recv.getDeclaredField(name));
+    this.arrayIndexScale = 0;
   }
 
   DesugarVarHandle(Class<?> arrayType) throws Exception {
     Field theUnsafe = UnsafeStub.class.getDeclaredField("theUnsafe");
     theUnsafe.setAccessible(true);
     U = (UnsafeStub) theUnsafe.get(null);
+    if (!arrayType.isArray()) {
+      throw new IllegalArgumentException("not an array " + arrayType.getSimpleName());
+    }
+    Class<?> componentType = arrayType.getComponentType();
+    if (componentType.isArray()) {
+      throw new UnsupportedOperationException(
+          "Using a VarHandle for a multidimensional array " + arrayRequiringNativeSupport());
+    }
+    if (componentType.isPrimitive() && componentType != int.class && componentType != long.class) {
+      throw new UnsupportedOperationException(
+          "Using a VarHandle for an array of type '"
+              + componentType.getName()
+              + "' "
+              + arrayRequiringNativeSupport());
+    }
     this.recv = arrayType;
     this.type = arrayType.getComponentType();
     this.offset = U.arrayBaseOffset(recv);
+    this.arrayIndexScale = U.arrayIndexScale(recv);
   }
 
   // Helpers.
+  String arrayRequiringNativeSupport() {
+    return "requires native VarHandle support available from Android 13. "
+        + "VarHandle desugaring only supports single dimensional arrays of primitive types"
+        + "int and long and reference types.";
+  }
+
   RuntimeException desugarWrongMethodTypeException() {
     return new RuntimeException("java.lang.invoke.WrongMethodTypeException");
   }
@@ -131,6 +155,29 @@ public final class DesugarVarHandle {
     return toIntIfPossible(value, forReturnType);
   }
 
+  Object boxIntIfPossible(int value, Class<?> expectedBox) {
+    if (expectedBox == Long.class) {
+      return Long.valueOf(value);
+    }
+    if (expectedBox == Float.class) {
+      return Float.valueOf(value);
+    }
+    if (expectedBox == Double.class) {
+      return Double.valueOf(value);
+    }
+    throw desugarWrongMethodTypeException();
+  }
+
+  Object boxLongIfPossible(long value, Class<?> expectedBox) {
+    if (expectedBox == Float.class) {
+      return Float.valueOf(value);
+    }
+    if (expectedBox == Double.class) {
+      return Double.valueOf(value);
+    }
+    throw desugarWrongMethodTypeException();
+  }
+
   // get variants.
   Object get(Object ct1) {
     if (type == int.class) {
@@ -144,27 +191,10 @@ public final class DesugarVarHandle {
 
   Object getInBox(Object ct1, Class<?> expectedBox) {
     if (type == int.class) {
-      int value = U.getInt(ct1, offset);
-      if (expectedBox == Long.class) {
-        return Long.valueOf(value);
-      }
-      if (expectedBox == Float.class) {
-        return Float.valueOf(value);
-      }
-      if (expectedBox == Double.class) {
-        return Double.valueOf(value);
-      }
-      throw desugarWrongMethodTypeException();
+      return boxIntIfPossible(U.getInt(ct1, offset), expectedBox);
     }
     if (type == long.class) {
-      long value = U.getLong(ct1, offset);
-      if (expectedBox == Float.class) {
-        return Float.valueOf(value);
-      }
-      if (expectedBox == Double.class) {
-        return Double.valueOf(value);
-      }
-      throw desugarWrongMethodTypeException();
+      return boxLongIfPossible(U.getLong(ct1, offset), expectedBox);
     }
     return U.getObject(ct1, offset);
   }
@@ -247,5 +277,127 @@ public final class DesugarVarHandle {
       return U.compareAndSwapLong(ct1, offset, expectedValue, newValue);
     }
     return compareAndSet(ct1, expectedValue, newValue);
+  }
+
+  // get array variants.
+  Object getArray(Object ct1, int ct2) {
+    if (!recv.isArray() || recv != ct1.getClass()) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    if (type == int.class) {
+      return U.getInt(ct1, elementOffset);
+    } else if (type == long.class) {
+      return (int) U.getLong(ct1, elementOffset);
+    } else {
+      return U.getObject(ct1, elementOffset);
+    }
+  }
+
+  Object getArrayInBox(Object ct1, int ct2, Class<?> expectedBox) {
+    if (!recv.isArray() || recv != ct1.getClass()) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    if (type == int.class) {
+      return boxIntIfPossible(U.getInt(ct1, elementOffset), expectedBox);
+    } else if (type == long.class) {
+      return boxLongIfPossible(U.getLong(ct1, elementOffset), expectedBox);
+    } else {
+      Object value = U.getObject(ct1, elementOffset);
+      if (value instanceof Integer && expectedBox != Integer.class) {
+        return boxIntIfPossible(((Integer) value).intValue(), expectedBox);
+      }
+      if (value instanceof Long && expectedBox != Long.class) {
+        return boxLongIfPossible(((Long) value).longValue(), expectedBox);
+      }
+      return value;
+    }
+  }
+
+  int getArrayInt(int[] ct1, int ct2) {
+    if (recv != int[].class) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    return U.getInt(ct1, elementOffset);
+  }
+
+  long getArrayLong(long[] ct1, int ct2) {
+    if (recv != long[].class) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    return U.getLong(ct1, elementOffset);
+  }
+
+  // get array variants.
+  void setArray(Object ct1, int ct2, Object newValue) {
+    if (!recv.isArray() || recv != ct1.getClass()) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    if (recv == int[].class) {
+      U.putInt(ct1, elementOffset, toIntIfPossible(newValue, false));
+    } else if (recv == long[].class) {
+      U.putLong(ct1, elementOffset, toLongIfPossible(newValue, false));
+    } else {
+      U.putObject(ct1, elementOffset, newValue);
+    }
+  }
+
+  void setArrayInt(int[] ct1, int ct2, int newValue) {
+    if (recv != int[].class) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    U.putInt(ct1, elementOffset, newValue);
+  }
+
+  void setArrayLong(long[] ct1, int ct2, long newValue) {
+    if (recv != long[].class) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    U.putLong(ct1, elementOffset, newValue);
+  }
+
+  // compareAndSet array variants.
+  boolean compareAndSetArray(Object ct1, int ct2, Object expetedValue, Object newValue) {
+    if (!recv.isArray() || recv != ct1.getClass()) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    if (recv == int[].class) {
+      return U.compareAndSwapInt(
+          ct1,
+          elementOffset,
+          toIntIfPossible(expetedValue, false),
+          toIntIfPossible(newValue, false));
+    } else if (recv == long[].class) {
+      return U.compareAndSwapLong(
+          ct1,
+          elementOffset,
+          toLongIfPossible(expetedValue, false),
+          toLongIfPossible(newValue, false));
+    } else {
+      return U.compareAndSwapObject(ct1, elementOffset, expetedValue, newValue);
+    }
+  }
+
+  boolean compareAndSetArrayInt(int[] ct1, int ct2, int expetedValue, int newValue) {
+    if (recv != int[].class) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    return U.compareAndSwapInt(ct1, elementOffset, expetedValue, newValue);
+  }
+
+  boolean compareAndSetArrayLong(long[] ct1, int ct2, long expetedValue, long newValue) {
+    if (recv != long[].class) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    return U.compareAndSwapLong(ct1, elementOffset, expetedValue, newValue);
   }
 }
