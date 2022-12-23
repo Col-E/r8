@@ -12,7 +12,6 @@ import com.android.tools.r8.Keep;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
-import com.android.tools.r8.retrace.RetraceCommand.Builder;
 import com.android.tools.r8.retrace.internal.ResultWithContextImpl;
 import com.android.tools.r8.retrace.internal.RetraceAbortException;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy;
@@ -64,9 +63,10 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
               + "[--regex <regexp>, --verbose, --info, --quiet, --verify-mapping-file-hash]",
           "  where <proguard-map> is an r8 generated mapping file.");
 
-  private static Builder parseArguments(String[] args, DiagnosticsHandler diagnosticsHandler) {
+  private static RetraceCommand.Builder parseArguments(
+      String[] args, DiagnosticsHandler diagnosticsHandler) {
     ParseContext context = new ParseContext(args);
-    Builder builder = RetraceCommand.builder(diagnosticsHandler);
+    RetraceCommand.Builder builder = RetraceCommand.builder(diagnosticsHandler);
     boolean hasSetProguardMap = false;
     boolean hasSetStackTrace = false;
     boolean hasSetQuiet = false;
@@ -430,7 +430,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
   }
 
   private static void run(String[] args, DiagnosticsHandler diagnosticsHandler) {
-    Builder builder = parseArguments(args, diagnosticsHandler);
+    RetraceCommand.Builder builder = parseArguments(args, diagnosticsHandler);
     if (builder == null) {
       // --help or --version was an argument to list
       if (Arrays.asList(args).contains("--version")) {
@@ -488,6 +488,48 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
       throw new RuntimeException("Retrace failed", e);
     } catch (Throwable t) {
       throw new RuntimeException("Retrace failed with an internal error.", t);
+    }
+  }
+
+  public static <T, ST extends StackTraceElementProxy<T, ST>> Builder<T, ST> builder() {
+    return new Builder<>();
+  }
+
+  @Keep
+  public static class Builder<T, ST extends StackTraceElementProxy<T, ST>> {
+
+    private StackTraceLineParser<T, ST> stackTraceLineParser;
+    private StackTraceElementProxyRetracer<T, ST> proxyRetracer;
+    private DiagnosticsHandler diagnosticsHandler;
+    protected boolean isVerbose;
+
+    public Builder<T, ST> setStackTraceLineParser(
+        StackTraceLineParser<T, ST> stackTraceLineParser) {
+      this.stackTraceLineParser = stackTraceLineParser;
+      return this;
+    }
+
+    public Builder<T, ST> setRetracer(Retracer retracer) {
+      return setProxyRetracer(StackTraceElementProxyRetracer.createDefault(retracer));
+    }
+
+    public Builder<T, ST> setProxyRetracer(StackTraceElementProxyRetracer<T, ST> proxyRetracer) {
+      this.proxyRetracer = proxyRetracer;
+      return this;
+    }
+
+    public Builder<T, ST> setDiagnosticsHandler(DiagnosticsHandler diagnosticsHandler) {
+      this.diagnosticsHandler = diagnosticsHandler;
+      return this;
+    }
+
+    public Builder<T, ST> setVerbose(boolean isVerbose) {
+      this.isVerbose = isVerbose;
+      return this;
+    }
+
+    public Retrace<T, ST> build() {
+      return new Retrace<>(stackTraceLineParser, proxyRetracer, diagnosticsHandler, isVerbose);
     }
   }
 
