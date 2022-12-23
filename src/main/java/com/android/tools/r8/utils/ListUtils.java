@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -262,6 +263,10 @@ public class ListUtils {
     for (int i = 0; i < items.size(); i++) {
       consumer.accept(items.get(i), i);
     }
+  }
+
+  public static MappedRange lastOrNull(List<MappedRange> existingMappedRanges) {
+    return existingMappedRanges == null ? null : last(existingMappedRanges);
   }
 
   public interface ReferenceAndIntConsumer<T> {

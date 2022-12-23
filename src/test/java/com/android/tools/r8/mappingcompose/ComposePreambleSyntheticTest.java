@@ -19,14 +19,14 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class ComposePreambleTest extends TestBase {
+public class ComposePreambleSyntheticTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public ComposePreambleTest(TestParameters parameters) {
+  public ComposePreambleSyntheticTest(TestParameters parameters) {
     parameters.assertNoneRuntime();
   }
 
@@ -34,21 +34,23 @@ public class ComposePreambleTest extends TestBase {
       StringUtils.unixLines(
           "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
           "com.foo -> a:",
-          "    1:2:int f1():41:42 -> g1",
-          "    112:112:void f2():112:112 -> g2");
+          "    1:1:void lambda$0(boolean):355:355 ->" + " lambda$0");
   private static final String mappingBar =
       StringUtils.unixLines(
           "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
           "a -> b:",
-          "    1:3:int g1():0:2 -> h1",
-          "    0:65535:void g2():112:112 -> h2");
+          "    1:2:void lambda$0(boolean):0:1 ->" + " lambda$0$com-r8-Base",
+          "    1:2:void" + " lambda$0$com-r8-Base(boolean):0" + " -> lambda$0$com-r8-Base",
+          "    # {'id':'com.android.tools.r8.synthesized'}");
   private static final String mappingResult =
       StringUtils.unixLines(
           "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
           "com.foo -> b:",
-          "    1:1:int f1():0:0 -> h1",
-          "    2:3:int f1():41:42 -> h1",
-          "    0:65535:void f2():112:112 -> h2");
+          "    1:1:void lambda$0(boolean):0:0 -> lambda$0$com-r8-Base",
+          "    1:1:void lambda$0$com-r8-Base(boolean):0:0 -> lambda$0$com-r8-Base",
+          "    2:2:void lambda$0(boolean):355:355 -> lambda$0$com-r8-Base",
+          "    2:2:void lambda$0$com-r8-Base(boolean):0:0 -> lambda$0$com-r8-Base",
+          "    # {'id':'com.android.tools.r8.synthesized'}");
 
   @Test
   public void testCompose() throws Exception {
