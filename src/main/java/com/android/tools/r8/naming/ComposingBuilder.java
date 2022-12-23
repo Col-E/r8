@@ -547,8 +547,9 @@ public class ComposingBuilder {
       Map<String, String> inverseClassMapping =
           classNameMapper.getObfuscatedToOriginalMapping().inverse;
       for (Entry<String, MappedRangesOfName> entry : mapper.mappedRangesByRenamedName.entrySet()) {
-        MappedRangesOfName mappedRangesOfName = entry.getValue();
-        for (MappedRangesOfName rangesOfName : mappedRangesOfName.partitionOnMethodSignature()) {
+        List<MappedRangesOfName> mappedRangesOfNames =
+            entry.getValue().partitionOnMethodSignature();
+        for (MappedRangesOfName rangesOfName : mappedRangesOfNames) {
           MemberNaming memberNaming = rangesOfName.getMemberNaming(mapper);
           List<MappedRange> newMappedRanges = rangesOfName.getMappedRanges();
           RangeBuilder minified = new RangeBuilder();
@@ -575,7 +576,9 @@ public class ComposingBuilder {
           //  ...
           List<MappedRange> composedRanges = new ArrayList<>();
           ComputedOutlineInformation computedOutlineInformation = new ComputedOutlineInformation();
-          for (MappedRange mappedRange : newMappedRanges) {
+          List<List<MappedRange>> composedInlineFrames = new ArrayList<>();
+          for (int i = 0; i < newMappedRanges.size(); i++) {
+            MappedRange mappedRange = newMappedRanges.get(i);
             minified.addRange(mappedRange.minifiedRange);
             // Register mapping information that is dependent on the residual naming to allow
             // updating later on.
@@ -631,9 +634,34 @@ public class ComposingBuilder {
                         : Collections.singletonList(existingMappedRange);
               }
             }
-            composedRanges.addAll(
-                composeMappedRangesForMethod(
-                    existingMappedRanges, mappedRange, computedOutlineInformation));
+            // Mapping the original ranges all the way back may cause the minified map range and the
+            // original mapped range to have different spans. We therefore maintain a collection of
+            // inline frames to add when we see the last mapped range.
+            List<List<MappedRange>> newComposedInlineFrames = new ArrayList<>();
+            if (composedInlineFrames.isEmpty()) {
+              splitOnNewMinifiedRange(
+                  composeMappedRangesForMethod(
+                      existingMappedRanges, mappedRange, computedOutlineInformation),
+                  Collections.emptyList(),
+                  newComposedInlineFrames::add);
+            } else {
+              for (List<MappedRange> composedInlineFrame : composedInlineFrames) {
+                MappedRange splitMappedRange =
+                    mappedRange.partitionOnMinifiedRange(composedInlineFrame.get(0).minifiedRange);
+                splitOnNewMinifiedRange(
+                    composeMappedRangesForMethod(
+                        existingMappedRanges, splitMappedRange, computedOutlineInformation),
+                    composedInlineFrame,
+                    newComposedInlineFrames::add);
+              }
+            }
+            composedInlineFrames = newComposedInlineFrames;
+            if (!isInlineMappedRange(newMappedRanges, i)) {
+              for (List<MappedRange> composedInlineFrame : composedInlineFrames) {
+                composedRanges.addAll(composedInlineFrame);
+              }
+              composedInlineFrames = Collections.emptyList();
+            }
           }
           MappedRange lastComposedRange = ListUtils.last(composedRanges);
           if (computedOutlineInformation.seenOutlineMappingInformation != null) {
@@ -682,6 +710,38 @@ public class ComposingBuilder {
           }
         }
       }
+    }
+
+    private void splitOnNewMinifiedRange(
+        List<MappedRange> mappedRanges,
+        List<MappedRange> previouslyMapped,
+        Consumer<List<MappedRange>> consumer) {
+      assert !mappedRanges.isEmpty();
+      Range minifiedRange = mappedRanges.get(0).minifiedRange;
+      if (minifiedRange == null) {
+        consumer.accept(ListUtils.joinNewArrayList(previouslyMapped, mappedRanges));
+        return;
+      }
+      Box<Range> lastMinifiedRange = new Box<>(minifiedRange);
+      int lastMappedIndex = 0;
+      for (int i = 0; i < mappedRanges.size(); i++) {
+        MappedRange mappedRange = mappedRanges.get(i);
+        Range lastMinifiedRangeFinal = lastMinifiedRange.get();
+        if (!mappedRange.minifiedRange.equals(lastMinifiedRangeFinal)) {
+          consumer.accept(
+              ListUtils.joinNewArrayList(
+                  ListUtils.map(
+                      previouslyMapped, x -> x.partitionOnMinifiedRange(lastMinifiedRangeFinal)),
+                  mappedRanges.subList(lastMappedIndex, i)));
+          lastMinifiedRange.set(mappedRange.minifiedRange);
+          lastMappedIndex = i;
+        }
+      }
+      consumer.accept(
+          ListUtils.joinNewArrayList(
+              ListUtils.map(
+                  previouslyMapped, x -> x.partitionOnMinifiedRange(lastMinifiedRange.get())),
+              mappedRanges.subList(lastMappedIndex, mappedRanges.size())));
     }
 
     private ComposingClassBuilder getExistingClassBuilder(MethodSignature originalSignature) {

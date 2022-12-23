@@ -328,4 +328,11 @@ public class ListUtils {
     }
     return true;
   }
+
+  public static <T> List<T> joinNewArrayList(List<T> one, List<T> other) {
+    ArrayList<T> ts = new ArrayList<>(one.size() + other.size());
+    ts.addAll(one);
+    ts.addAll(other);
+    return ts;
+  }
 }

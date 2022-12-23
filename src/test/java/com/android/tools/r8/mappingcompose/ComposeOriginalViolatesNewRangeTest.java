@@ -19,14 +19,14 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class ComposeInlineOfPositionsThatViolateNewRangeTest extends TestBase {
+public class ComposeOriginalViolatesNewRangeTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public ComposeInlineOfPositionsThatViolateNewRangeTest(TestParameters parameters) {
+  public ComposeOriginalViolatesNewRangeTest(TestParameters parameters) {
     parameters.assertNoneRuntime();
   }
 
@@ -34,40 +34,25 @@ public class ComposeInlineOfPositionsThatViolateNewRangeTest extends TestBase {
       StringUtils.unixLines(
           "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
           "com.foo -> a:",
-          "    1:1:void m1():10 -> x",
-          "    2:2:void m2(int):20 -> x",
-          "    3:4:void y():30:31 -> y");
+          "    1:1:void m1():10:10 -> x",
+          "    2:2:void m1():20:20 -> x");
   private static final String mappingBar =
       StringUtils.unixLines(
           "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
           "a -> b:",
-          "    3:3:void x():1:1 -> z",
-          "    3:3:void y():3 -> z",
-          "    4:4:void x(int):2:2 -> z",
-          "    4:4:void y():4 -> z");
-  private static final String mappingBaz =
-      StringUtils.unixLines(
-          "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
-          "b -> c:",
-          "    10:11:void z():3:4 -> w",
-          "    10:11:void new_synthetic_method():0 -> w");
+          "    3:4:void x():1:2 -> z");
   private static final String mappingResult =
       StringUtils.unixLines(
           "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
-          "com.foo -> c:",
-          "    10:10:void m1():10 -> w",
-          "    10:10:void y():30:30 -> w",
-          "    10:10:void new_synthetic_method():0:0 -> w",
-          "    11:11:void m2(int):20 -> w",
-          "    11:11:void y():31:31 -> w",
-          "    11:11:void new_synthetic_method():0:0 -> w");
+          "com.foo -> b:",
+          "    3:3:void m1():10:10 -> z",
+          "    4:4:void m1():20:20 -> z");
 
   @Test
   public void testCompose() throws Exception {
     ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromString(mappingFoo);
     ClassNameMapper mappingForBar = ClassNameMapper.mapperFromString(mappingBar);
-    ClassNameMapper mappingForBaz = ClassNameMapper.mapperFromString(mappingBaz);
-    String composed = MappingComposer.compose(mappingForFoo, mappingForBar, mappingForBaz);
+    String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
     assertEquals(mappingResult, doubleToSingleQuote(composed));
   }
 }

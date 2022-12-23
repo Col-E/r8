@@ -728,5 +728,20 @@ public class ClassNamingForNameMapper implements ClassNaming {
     public List<MappingInformation> getAdditionalMappingInformation() {
       return Collections.unmodifiableList(additionalMappingInformation);
     }
+
+    public MappedRange partitionOnMinifiedRange(Range minifiedRange) {
+      if (minifiedRange.equals(this.minifiedRange)) {
+        return this;
+      }
+      Range splitOriginalRange =
+          new Range(
+              getOriginalLineNumber(minifiedRange.from), getOriginalLineNumber(minifiedRange.to));
+      MappedRange splitMappedRange =
+          new MappedRange(minifiedRange, signature, splitOriginalRange, renamedName);
+      if (minifiedRange.to >= this.minifiedRange.to) {
+        splitMappedRange.additionalMappingInformation = this.getAdditionalMappingInformation();
+      }
+      return splitMappedRange;
+    }
   }
 }
