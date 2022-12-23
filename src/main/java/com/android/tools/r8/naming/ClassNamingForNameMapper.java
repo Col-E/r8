@@ -739,7 +739,8 @@ public class ClassNamingForNameMapper implements ClassNaming {
       MappedRange splitMappedRange =
           new MappedRange(minifiedRange, signature, splitOriginalRange, renamedName);
       if (minifiedRange.to >= this.minifiedRange.to) {
-        splitMappedRange.additionalMappingInformation = this.getAdditionalMappingInformation();
+        splitMappedRange.additionalMappingInformation =
+            new ArrayList<>(this.additionalMappingInformation);
       }
       return splitMappedRange;
     }
