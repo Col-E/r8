@@ -52,14 +52,14 @@ public class ComposeInlineOfPositionsThatViolateNewRangeTest extends TestBase {
           "    10:11:void z():3:4 -> w",
           "    10:11:void new_synthetic_method():0 -> w");
   private static final String mappingResult =
-      // TODO(b/241763080): This is wrong in so many different ways.
+      // TODO(b/241763080): This is now only a bit wrong.
       StringUtils.unixLines(
           "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
           "com.foo -> c:",
           "    10:10:void m1():10 -> w",
-          "    10:10:void y():3 -> w",
-          "    11:11:void x(int):2:2 -> w", // Should be m2.
-          "    11:11:void y():4 -> w",
+          "    10:10:void y():30:30 -> w",
+          "    11:11:void m2(int):20 -> w",
+          "    11:11:void y():31:31 -> w",
           "    10:11:void new_synthetic_method():0 -> w"); // The range here is invalid.
 
   @Test
