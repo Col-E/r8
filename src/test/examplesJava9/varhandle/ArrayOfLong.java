@@ -108,6 +108,98 @@ public class ArrayOfLong {
     }
   }
 
+  public static void testGetVolatile() {
+    System.out.println("testGetVolatile");
+    VarHandle arrayVarHandle = MethodHandles.arrayElementVarHandle(long[].class);
+    long[] array = new long[2];
+
+    arrayVarHandle.set(array, 0, 1L);
+    arrayVarHandle.set(array, 1, 2L);
+
+    System.out.println(arrayVarHandle.getVolatile(array, 0));
+    System.out.println(arrayVarHandle.getVolatile(array, 1));
+    System.out.println((Object) arrayVarHandle.getVolatile(array, 0));
+    System.out.println((Object) arrayVarHandle.getVolatile(array, 1));
+    System.out.println((long) arrayVarHandle.getVolatile(array, 0));
+    System.out.println((long) arrayVarHandle.getVolatile(array, 1));
+    System.out.println((float) arrayVarHandle.getVolatile(array, 0));
+    System.out.println((float) arrayVarHandle.getVolatile(array, 1));
+    System.out.println((double) arrayVarHandle.getVolatile(array, 0));
+    System.out.println((double) arrayVarHandle.getVolatile(array, 1));
+    try {
+      System.out.println((boolean) arrayVarHandle.getVolatile(array, 0));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((boolean) arrayVarHandle.getVolatile(array, 1));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((byte) arrayVarHandle.getVolatile(array, 0));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((byte) arrayVarHandle.getVolatile(array, 1));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((short) arrayVarHandle.getVolatile(array, 0));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((short) arrayVarHandle.getVolatile(array, 1));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((char) arrayVarHandle.getVolatile(array, 0));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((char) arrayVarHandle.getVolatile(array, 1));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((int) arrayVarHandle.getVolatile(array, 0));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((int) arrayVarHandle.getVolatile(array, 1));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((String) arrayVarHandle.getVolatile(array, 0));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((String) arrayVarHandle.getVolatile(array, 1));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+  }
+
   public static void testSet() {
     System.out.println("testSet");
 
@@ -260,6 +352,7 @@ public class ArrayOfLong {
 
   public static void main(String[] args) throws NoSuchFieldException, IllegalAccessException {
     testGet();
+    testGetVolatile();
     testSet();
     testArrayVarHandleForNonSingleDimension();
   }

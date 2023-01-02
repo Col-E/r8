@@ -290,7 +290,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
       if (name.equals(factory.compareAndSetString)) {
         assert arity == 3 || arity == 4;
         return computeDesugarSignaturePolymorphicMethod(invoke, arity - 2);
-      } else if (name.equals(factory.getString)) {
+      } else if (name.equals(factory.getString) || name.equals(factory.getVolatileString)) {
         assert arity == 1 || arity == 2;
         return computeDesugarSignaturePolymorphicMethod(invoke, arity);
       } else if (name.equals(factory.setString)) {

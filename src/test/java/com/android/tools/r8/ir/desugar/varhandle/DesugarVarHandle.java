@@ -57,6 +57,14 @@ public final class DesugarVarHandle {
       throw new RuntimeException("Stub called.");
     }
 
+    public long getLongVolatile(Object obj, long offset) {
+      throw new RuntimeException("Stub called.");
+    }
+
+    public Object getObjectVolatile(Object obj, long offset) {
+      throw new RuntimeException("Stub called.");
+    }
+
     public int arrayBaseOffset(Class<?> clazz) {
       throw new RuntimeException("Stub called.");
     }
@@ -250,6 +258,47 @@ public final class DesugarVarHandle {
     }
   }
 
+  // getVolatile variants.
+  Object getVolatile(Object ct1) {
+    if (type == int.class) {
+      return U.getIntVolatile(ct1, offset);
+    }
+    if (type == long.class) {
+      return U.getLongVolatile(ct1, offset);
+    }
+    return U.getObjectVolatile(ct1, offset);
+  }
+
+  Object getVolatileInBox(Object ct1, Class<?> expectedBox) {
+    if (type == int.class) {
+      return boxIntIfPossible(U.getIntVolatile(ct1, offset), expectedBox);
+    }
+    if (type == long.class) {
+      return boxLongIfPossible(U.getLongVolatile(ct1, offset), expectedBox);
+    }
+    return U.getObjectVolatile(ct1, offset);
+  }
+
+  int getVolatileInt(Object ct1) {
+    if (type == int.class) {
+      return U.getIntVolatile(ct1, offset);
+    } else if (type == long.class) {
+      throw desugarWrongMethodTypeException();
+    } else {
+      return toIntIfPossible(U.getObjectVolatile(ct1, offset), true);
+    }
+  }
+
+  long getVolatileLong(Object ct1) {
+    if (type == long.class) {
+      return U.getLongVolatile(ct1, offset);
+    } else if (type == int.class) {
+      return U.getIntVolatile(ct1, offset);
+    } else {
+      return toLongIfPossible(U.getObjectVolatile(ct1, offset), true);
+    }
+  }
+
   boolean compareAndSet(Object ct1, Object expectedValue, Object newValue) {
     if (type == int.class) {
       return U.compareAndSwapInt(
@@ -331,7 +380,59 @@ public final class DesugarVarHandle {
     return U.getLong(ct1, elementOffset);
   }
 
-  // get array variants.
+  // getVolatile array variants.
+  Object getVolatileArray(Object ct1, int ct2) {
+    if (!recv.isArray() || recv != ct1.getClass()) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    if (type == int.class) {
+      return U.getIntVolatile(ct1, elementOffset);
+    } else if (type == long.class) {
+      return (int) U.getLongVolatile(ct1, elementOffset);
+    } else {
+      return U.getObjectVolatile(ct1, elementOffset);
+    }
+  }
+
+  Object getVolatileArrayInBox(Object ct1, int ct2, Class<?> expectedBox) {
+    if (!recv.isArray() || recv != ct1.getClass()) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    if (type == int.class) {
+      return boxIntIfPossible(U.getIntVolatile(ct1, elementOffset), expectedBox);
+    } else if (type == long.class) {
+      return boxLongIfPossible(U.getLongVolatile(ct1, elementOffset), expectedBox);
+    } else {
+      Object value = U.getObjectVolatile(ct1, elementOffset);
+      if (value instanceof Integer && expectedBox != Integer.class) {
+        return boxIntIfPossible(((Integer) value).intValue(), expectedBox);
+      }
+      if (value instanceof Long && expectedBox != Long.class) {
+        return boxLongIfPossible(((Long) value).longValue(), expectedBox);
+      }
+      return value;
+    }
+  }
+
+  int getVolatileArrayInt(int[] ct1, int ct2) {
+    if (recv != int[].class) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    return U.getIntVolatile(ct1, elementOffset);
+  }
+
+  long getVolatileArrayLong(long[] ct1, int ct2) {
+    if (recv != long[].class) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    return U.getLongVolatile(ct1, elementOffset);
+  }
+
+  // set array variants.
   void setArray(Object ct1, int ct2, Object newValue) {
     if (!recv.isArray() || recv != ct1.getClass()) {
       throw new UnsupportedOperationException();

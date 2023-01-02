@@ -166,6 +166,143 @@ public class ArrayOfObject {
     }
   }
 
+  public static void unsupportedGetVolatileConversion(VarHandle arrayVarHandle, Object[] array) {
+    try {
+      System.out.println((boolean) arrayVarHandle.getVolatile(array, 0));
+      System.out.println("Unexpected success");
+    } catch (ClassCastException e) {
+      // The reference implementation throws ClassCastException.
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((boolean) arrayVarHandle.getVolatile(array, 1));
+      System.out.println("Unexpected success");
+    } catch (ClassCastException e) {
+      // The reference implementation throws ClassCastException.
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((byte) arrayVarHandle.getVolatile(array, 0));
+      System.out.println("Unexpected success");
+    } catch (ClassCastException e) {
+      // The reference implementation throws ClassCastException.
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((byte) arrayVarHandle.getVolatile(array, 1));
+      System.out.println("Unexpected success");
+    } catch (ClassCastException e) {
+      // The reference implementation throws ClassCastException.
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((short) arrayVarHandle.getVolatile(array, 0));
+      System.out.println("Unexpected success");
+    } catch (ClassCastException e) {
+      // The reference implementation throws ClassCastException.
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((short) arrayVarHandle.getVolatile(array, 1));
+      System.out.println("Unexpected success");
+    } catch (ClassCastException e) {
+      // The reference implementation throws ClassCastException.
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((char) arrayVarHandle.getVolatile(array, 0));
+      System.out.println("Unexpected success");
+    } catch (ClassCastException e) {
+      // The reference implementation throws ClassCastException.
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((char) arrayVarHandle.getVolatile(array, 1));
+      System.out.println("Unexpected success");
+    } catch (ClassCastException e) {
+      // The reference implementation throws ClassCastException.
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((String) arrayVarHandle.getVolatile(array, 0));
+      System.out.println("Unexpected success");
+    } catch (ClassCastException e) {
+      // The reference implementation throws ClassCastException.
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((String) arrayVarHandle.getVolatile(array, 1));
+      System.out.println("Unexpected success");
+    } catch (ClassCastException e) {
+      // The reference implementation throws ClassCastException.
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+  }
+
+  public static void testGetVolatile() {
+    System.out.println("testGetVolatile");
+    VarHandle arrayVarHandle = MethodHandles.arrayElementVarHandle(Object[].class);
+    Object[] array = new Object[2];
+
+    arrayVarHandle.set(array, 0, 1);
+    arrayVarHandle.set(array, 1, 2);
+
+    System.out.println(arrayVarHandle.getVolatile(array, 0));
+    System.out.println(arrayVarHandle.getVolatile(array, 1));
+    System.out.println((Object) arrayVarHandle.getVolatile(array, 0));
+    System.out.println((Object) arrayVarHandle.getVolatile(array, 1));
+    System.out.println((int) arrayVarHandle.getVolatile(array, 0));
+    System.out.println((int) arrayVarHandle.getVolatile(array, 1));
+    System.out.println((long) arrayVarHandle.getVolatile(array, 0));
+    System.out.println((long) arrayVarHandle.getVolatile(array, 1));
+    System.out.println((float) arrayVarHandle.getVolatile(array, 0));
+    System.out.println((float) arrayVarHandle.getVolatile(array, 1));
+    System.out.println((double) arrayVarHandle.getVolatile(array, 0));
+    System.out.println((double) arrayVarHandle.getVolatile(array, 1));
+    unsupportedGetVolatileConversion(arrayVarHandle, array);
+
+    arrayVarHandle.set(array, 0, 3L);
+    arrayVarHandle.set(array, 1, 4L);
+
+    System.out.println(arrayVarHandle.getVolatile(array, 0));
+    System.out.println(arrayVarHandle.getVolatile(array, 1));
+    System.out.println((Object) arrayVarHandle.getVolatile(array, 0));
+    System.out.println((Object) arrayVarHandle.getVolatile(array, 1));
+    System.out.println((long) arrayVarHandle.getVolatile(array, 0));
+    System.out.println((long) arrayVarHandle.getVolatile(array, 1));
+    System.out.println((float) arrayVarHandle.getVolatile(array, 0));
+    System.out.println((float) arrayVarHandle.getVolatile(array, 1));
+    System.out.println((double) arrayVarHandle.getVolatile(array, 0));
+    System.out.println((double) arrayVarHandle.getVolatile(array, 1));
+    unsupportedGetVolatileConversion(arrayVarHandle, array);
+    try {
+      System.out.println((int) arrayVarHandle.getVolatile(array, 0));
+      System.out.println("Unexpected success");
+    } catch (ClassCastException e) {
+      // The reference implementation throws ClassCastException.
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((int) arrayVarHandle.getVolatile(array, 1));
+      System.out.println("Unexpected success");
+    } catch (ClassCastException e) {
+      // The reference implementation throws ClassCastException.
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+  }
+
   public static void testSet() {
     System.out.println("testSet");
 
@@ -366,6 +503,7 @@ public class ArrayOfObject {
 
   public static void main(String[] args) throws NoSuchFieldException, IllegalAccessException {
     testGet();
+    testGetVolatile();
     testSet();
     testCompareAndSet();
     testArrayVarHandleForNonSingleDimension();

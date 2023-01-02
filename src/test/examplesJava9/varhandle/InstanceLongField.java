@@ -67,6 +67,55 @@ public class InstanceLongField {
     }
   }
 
+  public static void testGetVolatile(VarHandle varHandle) {
+    System.out.println("testGetVolatile");
+
+    InstanceLongField instance = new InstanceLongField();
+    varHandle.set(instance, 1);
+
+    System.out.println(varHandle.getVolatile(instance));
+    System.out.println((Object) varHandle.getVolatile(instance));
+    System.out.println((long) varHandle.getVolatile(instance));
+    System.out.println((float) varHandle.getVolatile(instance));
+    System.out.println((double) varHandle.getVolatile(instance));
+    try {
+      System.out.println((boolean) varHandle.getVolatile(instance));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((byte) varHandle.getVolatile(instance));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((short) varHandle.getVolatile(instance));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((char) varHandle.getVolatile(instance));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((int) varHandle.getVolatile(instance));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+    try {
+      System.out.println((String) varHandle.getVolatile(instance));
+      System.out.println("Unexpected success");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+    }
+  }
+
   public static void testSet(VarHandle varHandle) {
     System.out.println("testSet");
 
@@ -237,6 +286,7 @@ public class InstanceLongField {
     VarHandle varHandle =
         MethodHandles.lookup().findVarHandle(InstanceLongField.class, "field", long.class);
     testGet(varHandle);
+    testGetVolatile(varHandle);
     testSet(varHandle);
     testCompareAndSet(varHandle);
   }
