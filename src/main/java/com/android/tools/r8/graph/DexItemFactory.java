@@ -363,6 +363,7 @@ public class DexItemFactory {
   public final DexString setString = createString("set");
   public final DexString compareAndSetString = createString("compareAndSet");
   public final DexString getVolatileString = createString("getVolatile");
+  public final DexString setVolatileString = createString("setVolatile");
 
   // Method names used on MethodHandles.
   public final DexString lookupString = createString("lookup");

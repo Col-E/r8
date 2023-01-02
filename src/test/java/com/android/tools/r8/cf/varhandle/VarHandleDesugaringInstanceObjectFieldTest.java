@@ -78,7 +78,7 @@ public class VarHandleDesugaringInstanceObjectFieldTest extends VarHandleDesugar
           "B",
           "true",
           "true",
-          "testSetGetVolatile",
+          "testSetVolatileGetVolatile",
           "null",
           "A(1)",
           "true",

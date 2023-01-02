@@ -57,11 +57,23 @@ public final class DesugarVarHandle {
       throw new RuntimeException("Stub called.");
     }
 
+    public void putIntVolatile(Object obj, long offset, int newValue) {
+      throw new RuntimeException("Stub called.");
+    }
+
     public long getLongVolatile(Object obj, long offset) {
       throw new RuntimeException("Stub called.");
     }
 
+    public void putLongVolatile(Object obj, long offset, long newValue) {
+      throw new RuntimeException("Stub called.");
+    }
+
     public Object getObjectVolatile(Object obj, long offset) {
+      throw new RuntimeException("Stub called.");
+    }
+
+    public void putObjectVolatile(Object obj, long offset, Object newValue) {
       throw new RuntimeException("Stub called.");
     }
 
@@ -299,6 +311,37 @@ public final class DesugarVarHandle {
     }
   }
 
+  // setVolatile variants.
+  void setVolatile(Object ct1, Object newValue) {
+    if (type == int.class) {
+      setVolatileInt(ct1, toIntIfPossible(newValue, false));
+    } else if (type == long.class) {
+      setVolatileLong(ct1, toLongIfPossible(newValue, false));
+    } else {
+      U.putObjectVolatile(ct1, offset, newValue);
+    }
+  }
+
+  void setVolatileInt(Object ct1, int newValue) {
+    if (type == int.class) {
+      U.putIntVolatile(ct1, offset, newValue);
+    } else if (type == long.class) {
+      U.putLongVolatile(ct1, offset, newValue);
+    } else {
+      setVolatile(ct1, newValue);
+    }
+  }
+
+  void setVolatileLong(Object ct1, long newValue) {
+    if (type == long.class) {
+      U.putLongVolatile(ct1, offset, newValue);
+    } else if (type == int.class) {
+      throw desugarWrongMethodTypeException();
+    } else {
+      U.putObjectVolatile(ct1, offset, Long.valueOf(newValue));
+    }
+  }
+
   boolean compareAndSet(Object ct1, Object expectedValue, Object newValue) {
     if (type == int.class) {
       return U.compareAndSwapInt(
@@ -461,6 +504,37 @@ public final class DesugarVarHandle {
     }
     long elementOffset = offset + ((long) ct2) * arrayIndexScale;
     U.putLong(ct1, elementOffset, newValue);
+  }
+
+  // setVolatile array variants.
+  void setVolatileArray(Object ct1, int ct2, Object newValue) {
+    if (!recv.isArray() || recv != ct1.getClass()) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    if (recv == int[].class) {
+      U.putIntVolatile(ct1, elementOffset, toIntIfPossible(newValue, false));
+    } else if (recv == long[].class) {
+      U.putLongVolatile(ct1, elementOffset, toLongIfPossible(newValue, false));
+    } else {
+      U.putObjectVolatile(ct1, elementOffset, newValue);
+    }
+  }
+
+  void setVolatileArrayInt(int[] ct1, int ct2, int newValue) {
+    if (recv != int[].class) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    U.putIntVolatile(ct1, elementOffset, newValue);
+  }
+
+  void setVolatileArrayLong(long[] ct1, int ct2, long newValue) {
+    if (recv != long[].class) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    U.putLongVolatile(ct1, elementOffset, newValue);
   }
 
   // compareAndSet array variants.

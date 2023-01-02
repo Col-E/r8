@@ -402,6 +402,105 @@ public class ArrayOfObject {
     }
   }
 
+  public static void testSetVolatile() {
+    System.out.println("testSetVolatile");
+
+    VarHandle arrayVarHandle = MethodHandles.arrayElementVarHandle(Object[].class);
+    Object[] array = new Object[2];
+
+    Object o;
+    {
+      int index = 0;
+      byte b;
+      arrayVarHandle.setVolatile(array, index, (byte) 5);
+      System.out.println(arrayVarHandle.get(array, index));
+      System.out.println((byte) arrayVarHandle.get(array, index));
+      o = arrayVarHandle.get(array, index);
+      System.out.println(o instanceof Byte);
+      b = (byte) arrayVarHandle.get(array, index);
+      System.out.println(b == (byte) 5);
+      arrayVarHandle.setVolatile(array, index, Byte.valueOf((byte) 6));
+      System.out.println(arrayVarHandle.get(array, index));
+      System.out.println((byte) arrayVarHandle.get(array, index));
+      o = arrayVarHandle.get(array, index);
+      System.out.println(o instanceof Byte);
+      b = (byte) arrayVarHandle.get(array, index);
+      System.out.println(b == 6);
+    }
+    {
+      int index = 0;
+      short s;
+      arrayVarHandle.setVolatile(array, index, (short) 7);
+      System.out.println(arrayVarHandle.get(array, index));
+      System.out.println((short) arrayVarHandle.get(array, index));
+      o = arrayVarHandle.get(array, index);
+      System.out.println(o instanceof Short);
+      s = (short) arrayVarHandle.get(array, index);
+      System.out.println(s == (short) 7);
+      arrayVarHandle.setVolatile(array, index, Short.valueOf((short) 8));
+      System.out.println(arrayVarHandle.get(array, index));
+      System.out.println((short) arrayVarHandle.get(array, index));
+      o = arrayVarHandle.get(array, index);
+      System.out.println(o instanceof Short);
+      s = (short) arrayVarHandle.get(array, index);
+      System.out.println(s == 8);
+    }
+    {
+      int index = 0;
+      float f;
+      arrayVarHandle.setVolatile(array, index, (float) 9.0f);
+      System.out.println(arrayVarHandle.get(array, index));
+      System.out.println((float) arrayVarHandle.get(array, index));
+      o = arrayVarHandle.get(array, index);
+      System.out.println(o instanceof Float);
+      f = (float) arrayVarHandle.get(array, index);
+      System.out.println(f == (float) 9.0f);
+      arrayVarHandle.setVolatile(array, index, Float.valueOf(10.0f));
+      System.out.println(arrayVarHandle.get(array, index));
+      System.out.println((float) arrayVarHandle.get(array, index));
+      o = arrayVarHandle.get(array, index);
+      System.out.println(o instanceof Float);
+      f = (float) arrayVarHandle.get(array, index);
+      System.out.println(f == 10.0f);
+    }
+    {
+      int index = 0;
+      double d;
+      arrayVarHandle.setVolatile(array, index, (double) 11.0);
+      System.out.println(arrayVarHandle.get(array, index));
+      System.out.println((double) arrayVarHandle.get(array, index));
+      o = arrayVarHandle.get(array, index);
+      System.out.println(o instanceof Double);
+      d = (double) arrayVarHandle.get(array, index);
+      System.out.println(d == (double) 11.0);
+      arrayVarHandle.setVolatile(array, index, Double.valueOf(12.0));
+      System.out.println(arrayVarHandle.get(array, index));
+      System.out.println((double) arrayVarHandle.get(array, index));
+      o = arrayVarHandle.get(array, index);
+      System.out.println(o instanceof Double);
+      d = (double) arrayVarHandle.get(array, index);
+      System.out.println(d == 12.0);
+    }
+    {
+      int index = 0;
+      char c;
+      arrayVarHandle.setVolatile(array, index, 'A');
+      System.out.println(arrayVarHandle.get(array, index));
+      System.out.println((char) arrayVarHandle.get(array, index));
+      o = arrayVarHandle.get(array, index);
+      System.out.println(o instanceof Character);
+      c = (char) arrayVarHandle.get(array, index);
+      System.out.println(c == 'A');
+      arrayVarHandle.setVolatile(array, index, Character.valueOf('B'));
+      System.out.println(arrayVarHandle.get(array, index));
+      System.out.println((char) arrayVarHandle.get(array, index));
+      o = arrayVarHandle.get(array, index);
+      System.out.println(o instanceof Character);
+      c = (char) arrayVarHandle.get(array, index);
+      System.out.println(c == 'B');
+    }
+  }
+
   public static void testCompareAndSet() {
     System.out.println("testCompareAndSet");
 
@@ -505,6 +604,7 @@ public class ArrayOfObject {
     testGet();
     testGetVolatile();
     testSet();
+    testSetVolatile();
     testCompareAndSet();
     testArrayVarHandleForNonSingleDimension();
   }

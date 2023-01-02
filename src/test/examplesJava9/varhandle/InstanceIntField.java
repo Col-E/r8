@@ -171,6 +171,71 @@ public class InstanceIntField {
     }
   }
 
+  public static void testSetVolatile(VarHandle varHandle) {
+    System.out.println("testSetVolatile");
+
+    InstanceIntField instance = new InstanceIntField();
+    System.out.println((int) varHandle.get(instance));
+
+    // int and Integer values.
+    varHandle.setVolatile(instance, (int) 1);
+    System.out.println((int) varHandle.get(instance));
+    varHandle.setVolatile(instance, Integer.valueOf(2));
+    System.out.println(varHandle.get(instance));
+
+    // int and Integer compatible values.
+    varHandle.setVolatile(instance, (byte) 3);
+    System.out.println((int) varHandle.get(instance));
+    varHandle.setVolatile(instance, Byte.valueOf((byte) 4));
+    System.out.println((int) varHandle.get(instance));
+    varHandle.setVolatile(instance, '0');
+    System.out.println((int) varHandle.get(instance));
+    varHandle.setVolatile(instance, Character.valueOf('1'));
+    System.out.println((int) varHandle.get(instance));
+    varHandle.setVolatile(instance, (short) 5);
+    System.out.println((int) varHandle.get(instance));
+    varHandle.setVolatile(instance, Short.valueOf((short) 6));
+    System.out.println((int) varHandle.get(instance));
+
+    // int and Integer non-compatible values.
+    try {
+      varHandle.setVolatile(instance, true);
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+    try {
+      varHandle.setVolatile(instance, 3L);
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+    try {
+      varHandle.setVolatile(instance, Long.valueOf(3));
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+    try {
+      varHandle.setVolatile(instance, "3");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+    try {
+      varHandle.setVolatile(instance, 3.0f);
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+    try {
+      varHandle.setVolatile(instance, 3.0);
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+  }
+
   public static void testCompareAndSet(VarHandle varHandle) {
     System.out.println("testCompareAndSet");
 
@@ -308,6 +373,7 @@ public class InstanceIntField {
     testGet(varHandle);
     testGetVolatile(varHandle);
     testSet(varHandle);
+    testSetVolatile(varHandle);
     testCompareAndSet(varHandle);
   }
 }
