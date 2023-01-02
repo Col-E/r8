@@ -10,7 +10,7 @@ import java.lang.reflect.Field;
 public final class DesugarVarHandle {
 
   // This only have methods found in libcore/libart/src/main/java/sun/misc/Unsafe.java for Lollipop.
-  private static class UnsafeStub {
+  public static class UnsafeStub {
 
     public long objectFieldOffset(Field f) {
       throw new RuntimeException("Stub called.");

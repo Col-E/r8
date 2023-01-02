@@ -547,6 +547,13 @@ public final class VarHandleDesugaringMethods {
                 factory.createType(factory.createString("Ljava/lang/String;")),
                 factory.createType(factory.createString("Ljava/lang/Class;"))),
             factory.createString("findVarHandle"));
+    DexMethod toPrivateLookupIn =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.createType(factory.createString("Ljava/lang/invoke/MethodHandles$Lookup;")),
+                factory.createType(factory.createString("Ljava/lang/Class;"))),
+            factory.createString("toPrivateLookupIn"));
     DexMethod constructor_0 =
         factory.createMethod(
             builder.getType(),
@@ -570,6 +577,14 @@ public final class VarHandleDesugaringMethods {
                     MethodAccessFlags.fromSharedAccessFlags(
                         Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
                 .setCode(DesugarMethodHandlesLookup_findVarHandle(factory, findVarHandle))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(toPrivateLookupIn)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarMethodHandlesLookup_toPrivateLookupIn(factory, toPrivateLookupIn))
                 .disableAndroidApiLevelCheck()
                 .build()));
   }
@@ -623,6 +638,20 @@ public final class VarHandleDesugaringMethods {
                 false),
             new CfReturn(ValueType.OBJECT),
             label1),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode DesugarMethodHandlesLookup_toPrivateLookupIn(
+      DexItemFactory factory, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        1,
+        2,
+        ImmutableList.of(
+            label0, new CfLoad(ValueType.OBJECT, 0), new CfReturn(ValueType.OBJECT), label1),
         ImmutableList.of(),
         ImmutableList.of());
   }

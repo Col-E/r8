@@ -55,6 +55,9 @@ public class VarHandle {
   public static final JavaExampleClassProxy NoDesugaredTypesInSignatures =
       new JavaExampleClassProxy(EXAMPLE_FILE, "varhandle/NoDesugaredTypesInSignatures");
 
+  public static final JavaExampleClassProxy MethodHandlesPrivateLookupIn =
+      new JavaExampleClassProxy(EXAMPLE_FILE, "varhandle/MethodHandlesPrivateLookupIn");
+
   public static Path jar() {
     return JavaExampleClassProxy.examplesJar(EXAMPLE_FILE);
   }

@@ -55,8 +55,8 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
 
   protected abstract String getMainClass();
 
-  protected String getKeepRules() {
-    return "";
+  protected List<String> getKeepRules() {
+    return ImmutableList.of("");
   }
 
   protected abstract List<String> getJarEntries();

@@ -10,6 +10,10 @@ public final class DesugarMethodHandlesLookup {
     return new DesugarVarHandle(recv, name, type);
   }
 
+  // Emulation of MethodHandled.privateLookupIn
+  public DesugarMethodHandlesLookup toPrivateLookupIn(Class<?> targetClass) {
+    return this;
+  }
   /*
    * Remaining methods on MethodHandles.Lookup.
    *

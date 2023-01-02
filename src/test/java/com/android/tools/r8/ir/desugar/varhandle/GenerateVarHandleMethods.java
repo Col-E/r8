@@ -21,6 +21,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -42,7 +43,7 @@ import org.junit.runners.Parameterized.Parameters;
 public class GenerateVarHandleMethods extends MethodGenerationBase {
 
   private final DexType GENERATED_TYPE =
-      factory.createType("Lcom/android/tools/r8/ir/desugar/varhandle/VarHandleDesugaringMethods;");
+      factory.createType(DescriptorUtils.javaClassToDescriptor(VarHandleDesugaringMethods.class));
   private final List<Class<?>> METHOD_TEMPLATE_CLASSES =
       ImmutableList.of(DesugarMethodHandlesLookup.class, DesugarVarHandle.class);
 
@@ -87,9 +88,7 @@ public class GenerateVarHandleMethods extends MethodGenerationBase {
   protected DexEncodedField getField(DexEncodedField field) {
     if (field.getType().getTypeName().endsWith("$UnsafeStub")) {
       return DexEncodedField.builder(field)
-          .setField(
-              factory.createField(
-                  field.getHolderType(), factory.createType("Lsun/misc/Unsafe;"), field.getName()))
+          .setField(factory.createField(field.getHolderType(), factory.unsafeType, field.getName()))
           .disableAndroidApiLevelCheck()
           .build();
     }
@@ -181,13 +180,12 @@ public class GenerateVarHandleMethods extends MethodGenerationBase {
         new InstructionTypeMapper(
             ImmutableMap.of(
                 factory.createType(
-                    "L" + DesugarMethodHandlesLookup.class.getTypeName().replace('.', '/') + ";"),
+                    DescriptorUtils.javaClassToDescriptor(DesugarMethodHandlesLookup.class)),
                 factory.lookupType,
-                factory.createType(
-                    "L" + DesugarVarHandle.class.getTypeName().replace('.', '/') + ";"),
+                factory.createType(DescriptorUtils.javaClassToDescriptor(DesugarVarHandle.class)),
                 factory.varHandleType,
                 factory.createType(
-                    "L" + DesugarVarHandle.class.getTypeName().replace('.', '/') + "$UnsafeStub;"),
+                    DescriptorUtils.javaClassToDescriptor(DesugarVarHandle.UnsafeStub.class)),
                 factory.unsafeType),
             GenerateVarHandleMethods::mapMethodName);
     code.setInstructions(
@@ -200,15 +198,22 @@ public class GenerateVarHandleMethods extends MethodGenerationBase {
   private DexEncodedMethod methodWithName(DexEncodedMethod method, String name) {
     DexType holder = method.getHolderType();
     DexType varHandle = factory.varHandleType;
+    DexType methodHandlesLookup = factory.lookupType;
     DexType desugarVarHandleStub =
-        factory.createType("L" + DesugarVarHandle.class.getTypeName().replace('.', '/') + ";");
+        factory.createType(DescriptorUtils.javaClassToDescriptor(DesugarVarHandle.class));
+    DexType desugarMethodHandlesLookupStub =
+        factory.createType(DescriptorUtils.javaClassToDescriptor(DesugarMethodHandlesLookup.class));
     // Map methods to be on the final DesugarVarHandle class.
     if (holder == desugarVarHandleStub) {
       holder = varHandle;
+    } else if (holder == desugarMethodHandlesLookupStub) {
+      holder = methodHandlesLookup;
     }
     DexProto proto = method.getProto();
     if (proto.getReturnType() == desugarVarHandleStub) {
       proto = factory.createProto(varHandle, proto.parameters);
+    } else if (proto.getReturnType() == desugarMethodHandlesLookupStub) {
+      proto = factory.createProto(methodHandlesLookup, proto.parameters);
     }
     return DexEncodedMethod.syntheticBuilder(method)
         .setMethod(factory.createMethod(holder, proto, factory.createString(name)))

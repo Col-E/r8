@@ -78,8 +78,8 @@ public class VarHandleDesugaringInstanceLongFieldTest extends VarHandleDesugarin
   }
 
   @Override
-  protected String getKeepRules() {
-    return "-keep class " + getMainClass() + "{ <fields>; }";
+  protected List<String> getKeepRules() {
+    return ImmutableList.of("-keep class " + getMainClass() + "{ <fields>; }");
   }
 
   @Override
