@@ -133,7 +133,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
     return refersToVarHandle(field.type, factory);
   }
 
-  private static boolean refersToMethodHandlesLookup(DexType type, DexItemFactory factory) {
+  public static boolean refersToMethodHandlesLookup(DexType type, DexItemFactory factory) {
     if (type == factory.desugarMethodHandlesLookupType) {
       // All references to java.lang.invoke.MethodHandles$Lookup is rewritten during application
       // writing.
@@ -251,6 +251,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
         && holder != factory.varHandleType) {
       return DesugarDescription.nothing();
     }
+
     DexMethod method = invoke.getMethod();
     if (method.getHolderType() == factory.methodHandlesType) {
       if (method.getName().equals(factory.createString("lookup"))
@@ -306,17 +307,20 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
                 eventConsumer,
                 context,
                 methodProcessingContext,
-                dexItemFactory) ->
-                ImmutableList.of(
-                    new CfNew(factory.lookupType),
-                    new CfStackInstruction(Opcode.Dup),
-                    new CfInvoke(
-                        Opcodes.INVOKESPECIAL,
-                        factory.createMethod(
-                            factory.lookupType,
-                            factory.createProto(factory.voidType),
-                            factory.constructorMethodName),
-                        false)))
+                dexItemFactory) -> {
+              ensureMethodHandlesLookupClass(eventConsumer, context);
+              localStackAllocator.allocateLocalStack(2);
+              return ImmutableList.of(
+                  new CfNew(factory.lookupType),
+                  new CfStackInstruction(Opcode.Dup),
+                  new CfInvoke(
+                      Opcodes.INVOKESPECIAL,
+                      factory.createMethod(
+                          factory.lookupType,
+                          factory.createProto(factory.voidType),
+                          factory.constructorMethodName),
+                      false));
+            })
         .build();
   }
 
@@ -328,18 +332,20 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
                 eventConsumer,
                 context,
                 methodProcessingContext,
-                dexItemFactory) ->
-                ImmutableList.of(
-                    new CfNew(factory.varHandleType),
-                    new CfStackInstruction(Opcode.DupX1),
-                    new CfStackInstruction(Opcode.Swap),
-                    new CfInvoke(
-                        Opcodes.INVOKESPECIAL,
-                        factory.createMethod(
-                            factory.varHandleType,
-                            factory.createProto(factory.voidType, factory.classType),
-                            factory.constructorMethodName),
-                        false)))
+                dexItemFactory) -> {
+              localStackAllocator.allocateLocalStack(2);
+              return ImmutableList.of(
+                  new CfNew(factory.varHandleType),
+                  new CfStackInstruction(Opcode.DupX1),
+                  new CfStackInstruction(Opcode.Swap),
+                  new CfInvoke(
+                      Opcodes.INVOKESPECIAL,
+                      factory.createMethod(
+                          factory.varHandleType,
+                          factory.createProto(factory.voidType, factory.classType),
+                          factory.constructorMethodName),
+                      false));
+            })
         .build();
   }
 
@@ -352,8 +358,11 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
                 eventConsumer,
                 context,
                 methodProcessingContext,
-                dexItemFactory) ->
-                desugarSignaturePolymorphicMethod(invoke, coordinates, freshLocalProvider))
+                dexItemFactory) -> {
+              ensureVarHandleClass(eventConsumer, context);
+              return desugarSignaturePolymorphicMethod(
+                  invoke, coordinates, freshLocalProvider, localStackAllocator);
+            })
         .build();
   }
 
@@ -370,7 +379,10 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
   }
 
   private Collection<CfInstruction> desugarSignaturePolymorphicMethod(
-      CfInvoke invoke, int coordinates, FreshLocalProvider freshLocalProvider) {
+      CfInvoke invoke,
+      int coordinates,
+      FreshLocalProvider freshLocalProvider,
+      LocalStackAllocator localStackAllocator) {
     assert invoke.isInvokeVirtual();
     // TODO(b/247076137): Support two coordinates (array element VarHandle).
     assert (coordinates == 1 || coordinates == 2)
@@ -462,11 +474,13 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
         if (!lastArgument) {
           if (hasWideArgument) {
             local = freshLocalProvider.getFreshLocal(2);
+            localStackAllocator.allocateLocalStack(1);
             builder.add(new CfStore(ValueType.fromDexType(proto.parameters.get(i + 1)), local));
           } else {
             builder.add(new CfStackInstruction(Opcode.Swap));
           }
         }
+        localStackAllocator.allocateLocalStack(1);
         builder.add(
             new CfInvoke(
                 Opcodes.INVOKESTATIC,
@@ -486,6 +500,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
     }
     assert newParameters.size() == proto.parameters.size();
     if (proto.returnType != returnType) {
+      localStackAllocator.allocateLocalStack(1);
       if (proto.returnType.isPrimitiveType()) {
         builder.add(new CfConstClass(factory.getBoxedForPrimitiveType(proto.returnType)));
       } else {
@@ -498,6 +513,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
     builder.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, newMethod, false));
     if (proto.returnType.isPrimitiveType() && !newProto.returnType.isPrimitiveType()) {
       assert newProto.returnType == factory.objectType;
+      localStackAllocator.allocateLocalStack(2);
       builder.add(new CfCheckCast(factory.getBoxedForPrimitiveType(proto.returnType)));
       builder.add(
           new CfInvoke(
@@ -505,6 +521,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
     } else if (proto.returnType.isClassType()
         && proto.returnType != factory.objectType
         && proto.returnType != factory.voidType) {
+      localStackAllocator.allocateLocalStack(1);
       builder.add(new CfCheckCast(proto.returnType));
     }
     return builder.build();

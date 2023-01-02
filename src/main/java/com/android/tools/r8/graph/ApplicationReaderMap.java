@@ -8,8 +8,6 @@ import com.android.tools.r8.utils.InternalOptions;
 
 public abstract class ApplicationReaderMap {
 
-  public static ApplicationReaderMap INSTANCE;
-
   public abstract String getDescriptor(String descriptor);
 
   public abstract DexType getType(DexType type);

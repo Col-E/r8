@@ -10,7 +10,6 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.JdkClassFileProvider;
-import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -74,7 +73,7 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
 
   @Test
   public void testReference() throws Throwable {
-    assumeTrue(parameters.isCfRuntime());
+    assumeTrue(parameters.isCfRuntime() && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK9));
     testForJvm()
         .addProgramFiles(VarHandle.jar())
         .run(parameters.getRuntime(), getMainClass())
@@ -197,21 +196,8 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
         .inspect(this::inspect);
   }
 
-  // TODO(b/247076137: Also turn on VarHandle desugaring for R8 tests.
   @Test
   public void testR8() throws Throwable {
-    // TODO(b/247076137: The "default" VM is acting up on some tests - skip these as they will
-    // be fixed when VarHandle desugaring is enabled for R8.
-    if (parameters.isDexRuntime()
-        && parameters.asDexRuntime().getVersion().isEqualTo(Version.DEFAULT)
-        && parameters.getApiLevel().equals(AndroidApiLevel.B)
-        && (this instanceof VarHandleDesugaringInstanceBooleanFieldTest
-            || this instanceof VarHandleDesugaringInstanceByteFieldTest
-            || this instanceof VarHandleDesugaringInstanceShortFieldTest
-            || this instanceof VarHandleDesugaringInstanceFloatFieldTest
-            || this instanceof VarHandleDesugaringInstanceDoubleFieldTest)) {
-      return;
-    }
     testForR8(parameters.getBackend())
         .applyIf(
             parameters.isDexRuntime(),
@@ -220,26 +206,25 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
             // Use system JDK to have references types including StringConcatFactory.
             b -> b.addLibraryProvider(JdkClassFileProvider.fromSystemJdk()))
         .addProgramClassFileData(getProgramClassFileData())
+        .addOptionsModification(options -> options.enableVarHandleDesugaring = true)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(getMainClass())
         .addKeepRules(getKeepRules())
-        .applyIf(
-            parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.O),
-            R8TestBuilder::allowDiagnosticWarningMessages)
         .run(parameters.getRuntime(), getMainClass())
         .applyIf(
-            // VarHandle is available from Android 9, even though it was not a public API until 13.
             parameters.isDexRuntime()
-                && parameters.asDexRuntime().getVersion().isOlderThanOrEqual(Version.V7_0_0),
-            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
-            parameters.isDexRuntime()
-                && (parameters.getApiLevel().isLessThan(AndroidApiLevel.P)
-                    || parameters.asDexRuntime().getVersion().isOlderThanOrEqual(Version.V8_1_0)),
-            r -> r.assertFailure(),
+                && parameters.asDexRuntime().getVersion().isOlderThanOrEqual(Version.V4_4_4),
+            // TODO(b/247076137): Running on 4.0.4 and 4.4.4 needs to be checked. Output seems
+            // correct, but at the same time there are VFY errors on stderr.
+            r -> r.assertFailureWithErrorThatThrows(NoSuchFieldException.class),
             r ->
                 r.assertSuccessWithOutput(
-                    parameters.isCfRuntime()
-                        ? getExpectedOutputForReferenceImplementation()
-                        : getExpectedOutputForArtImplementation()));
+                    parameters.isDexRuntime()
+                            && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.T)
+                            && parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V13_0_0)
+                        ? getExpectedOutputForArtImplementation()
+                        : (parameters.isDexRuntime()
+                            ? getExpectedOutputForDesugaringImplementation()
+                            : getExpectedOutputForReferenceImplementation())));
   }
 }

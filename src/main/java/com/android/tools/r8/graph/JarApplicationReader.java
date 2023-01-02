@@ -215,6 +215,31 @@ public class JarApplicationReader {
     return methodHandlesLookupWitnesses;
   }
 
+  public void checkClassForMethodHandlesLookup(DexClass dexClass, ClassKind<?> classKind) {
+    if (options.shouldDesugarVarHandle()) {
+      if (VarHandleDesugaring.refersToMethodHandlesLookup(dexClass.getType(), getFactory())) {
+        addVarHandleWitness(dexClass.getType(), classKind);
+      }
+      dexClass
+          .getInnerClasses()
+          .forEach(
+              attribute -> {
+                // MethodHandles$Lookup has no inner classes.
+                assert !VarHandleDesugaring.refersToMethodHandlesLookup(
+                    attribute.getOuter(), getFactory());
+                if (VarHandleDesugaring.refersToMethodHandlesLookup(
+                    attribute.getInner(), getFactory())) {
+                  addMethodHandlesLookupWitness(dexClass.getType(), classKind);
+                  // When the inner MethodHandles$Lookup is present the outer is MethodHandles, and
+                  // in that case the enqueuer will process all methods in the library class
+                  // MethodHandles which have references to VarHandle.
+                  assert attribute.getOuter() == getFactory().methodHandlesType;
+                  addVarHandleWitness(dexClass.getType(), classKind);
+                }
+              });
+    }
+  }
+
   public void checkFieldForMethodHandlesLookup(DexField dexField, ClassKind<?> classKind) {
     if (options.shouldDesugarVarHandle()
         && VarHandleDesugaring.refersToMethodHandlesLookup(dexField, getFactory())) {

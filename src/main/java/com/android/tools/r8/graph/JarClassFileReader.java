@@ -487,6 +487,7 @@ public class JarClassFileReader<T extends DexClass> {
               application.getFactory().getSkipNameValidationForTesting(),
               getChecksumSupplier(classKind),
               syntheticMarker);
+      application.checkClassForMethodHandlesLookup(clazz, classKind);
       InnerClassAttribute innerClassAttribute = clazz.getInnerClassAttributeForThisClass();
       // A member class should not be a local or anonymous class.
       if (innerClassAttribute != null && innerClassAttribute.getOuter() != null) {

@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class LazyLoadedDexApplication extends DexApplication {
@@ -140,10 +141,18 @@ public class LazyLoadedDexApplication extends DexApplication {
         ProgramClassCollection programClassesLoader,
         InternalOptions options) {
 
+      // When desugaring VarHandle do not read the VarHandle and MethodHandles$Lookup classes
+      // from the library as they will be synthesized during desugaring.
+      Predicate<DexType> forceLoadPredicate =
+          type ->
+              !(options.shouldDesugarVarHandle()
+                  && (type == options.dexItemFactory().varHandleType
+                      || type == options.dexItemFactory().lookupType));
+
       // Force-load library classes.
       ImmutableMap<DexType, DexLibraryClass> allLibraryClasses;
       if (libraryClassesLoader != null) {
-        libraryClassesLoader.forceLoad(type -> true);
+        libraryClassesLoader.forceLoad(forceLoadPredicate);
         allLibraryClasses = libraryClassesLoader.getAllClassesInMap();
       } else {
         allLibraryClasses = ImmutableMap.of();
