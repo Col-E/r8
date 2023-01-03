@@ -49,3 +49,5 @@
 -keep class com.android.tools.r8.jetbrains.kotlin.SafePublicationLazyImpl {
   java.lang.Object getValue();
 }
+# Test in this class is using the class name to fing the original .java file.
+-keep class com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaringMethods
