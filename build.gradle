@@ -2315,7 +2315,7 @@ test { task ->
                 if (desc.parent == null) {
                     def sortedTimes = testTimes.sort({ e1, e2 -> e2.value <=> e1.value })
                     sortedTimes.eachWithIndex { key, value, i ->
-                        if (i < numberOfTestTimesToPrint) println "$key: $value"
+                        println "$key: $value"
                     }
                 }
             }
