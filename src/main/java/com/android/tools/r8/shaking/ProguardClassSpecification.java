@@ -346,7 +346,7 @@ public abstract class ProguardClassSpecification {
     return result;
   }
 
-  protected StringBuilder append(StringBuilder builder, boolean includeMemberRules) {
+  protected StringBuilder append(StringBuilder builder) {
     appendAnnotations(classAnnotations, builder);
     boolean needsSpaceBeforeClassType =
         StringUtils.appendNonEmpty(builder, null, classAccessFlags, null)
@@ -366,7 +366,7 @@ public abstract class ProguardClassSpecification {
       appendAnnotations(inheritanceAnnotations, builder);
       builder.append(inheritanceClassName);
     }
-    if (includeMemberRules && !memberRules.isEmpty()) {
+    if (!memberRules.isEmpty()) {
       builder.append(" {").append(System.lineSeparator());
       memberRules.forEach(memberRule -> {
         builder.append("  ");
@@ -390,15 +390,8 @@ public abstract class ProguardClassSpecification {
     }
   }
 
-  /**
-   * Short String representation without member rules.
-   */
-  public String toShortString() {
-    return append(new StringBuilder(), false).toString();
-  }
-
   @Override
   public String toString() {
-    return append(new StringBuilder(), true).toString();
+    return append(new StringBuilder()).toString();
   }
 }

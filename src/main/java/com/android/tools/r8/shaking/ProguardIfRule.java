@@ -298,4 +298,11 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
   String typeString() {
     return "if";
   }
+
+  @Override
+  protected StringBuilder append(StringBuilder builder) {
+    super.append(builder);
+    builder.append('\n');
+    return subsequentRule.append(builder);
+  }
 }

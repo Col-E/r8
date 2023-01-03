@@ -683,7 +683,7 @@ public class ProguardConfiguration {
       builder.append('\n');
     }
     for (ProguardConfigurationRule rule : rules) {
-      rule.append(builder, true);
+      rule.append(builder);
       builder.append('\n');
     }
     return builder.toString();
