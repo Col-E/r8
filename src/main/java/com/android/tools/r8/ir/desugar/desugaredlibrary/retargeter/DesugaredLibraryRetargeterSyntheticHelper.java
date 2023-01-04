@@ -91,7 +91,7 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
   }
 
   DexMethod forwardingMethod(EmulatedDispatchMethodDescriptor descriptor) {
-    assert descriptor.getForwardingMethod().getHolderKind() == null;
+    assert descriptor.getForwardingMethod().getHolderKind(appView) == null;
     return descriptor.getForwardingMethod().getMethod();
   }
 
@@ -103,7 +103,7 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
 
   private boolean verifyKind(DerivedMethod method, SyntheticKindSelector kindSelector) {
     SyntheticKind kind = kindSelector.select(appView.getSyntheticItems().getNaming());
-    assert method.getHolderKind().equals(kind);
+    assert method.getHolderKind(appView).equals(kind);
     return true;
   }
 
@@ -139,7 +139,7 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
           appView
               .getSyntheticItems()
               .getExistingFixedClass(
-                  ignored -> emulatedDispatchMethod.getHolderKind(), holderContext, appView);
+                  ignored -> emulatedDispatchMethod.getHolderKind(appView), holderContext, appView);
       DexMethod dispatchMethod =
           emulatedHolderDispatchMethod(syntheticClass.type, emulatedDispatchMethod);
       assert syntheticClass.lookupMethod(dispatchMethod) != null;
@@ -177,7 +177,7 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
     appView
         .getSyntheticItems()
         .ensureFixedClass(
-            ignored -> emulatedDispatchMethod.getHolderKind(),
+            ignored -> emulatedDispatchMethod.getHolderKind(appView),
             holderContext,
             appView,
             classBuilder -> buildHolderDispatchMethod(classBuilder, itfClass, descriptor, null),
@@ -193,7 +193,7 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
     if (appView.options().isDesugaredLibraryCompilation()) {
       return appView
           .getSyntheticItems()
-          .getExistingFixedClass(ignored -> itfMethod.getHolderKind(), itfContext, appView);
+          .getExistingFixedClass(ignored -> itfMethod.getHolderKind(appView), itfContext, appView);
     }
     ClasspathOrLibraryClass context = itfContext.asClasspathOrLibraryClass();
     assert context != null;
@@ -217,7 +217,7 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
     return appView
         .getSyntheticItems()
         .ensureFixedClass(
-            ignore -> itfMethod.getHolderKind(),
+            ignore -> itfMethod.getHolderKind(appView),
             itfContext,
             appView,
             classBuilder -> buildInterfaceDispatchMethod(classBuilder, descriptor),

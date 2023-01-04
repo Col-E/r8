@@ -16,7 +16,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.Der
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedDispatchMethodDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedInterfaceDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineRewritingFlags;
-import com.android.tools.r8.synthesis.SyntheticNaming;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineSyntheticKind;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -68,8 +68,8 @@ public class HumanToMachineEmulatedInterfaceConverter {
 
   private EmulatedDispatchMethodDescriptor computeEmulatedDispatchDescriptor(
       DexMethod method, HumanRewritingFlags rewritingFlags, AppInfoWithClassHierarchy appInfo) {
-    SyntheticNaming syntheticNaming = appInfo.getSyntheticItems().getNaming();
-    DerivedMethod forwardingMethod = new DerivedMethod(method, syntheticNaming.COMPANION_CLASS);
+    DerivedMethod forwardingMethod =
+        new DerivedMethod(method, MachineSyntheticKind.Kind.COMPANION_CLASS);
     DexMethod itfDexMethod =
         appInfo
             .dexItemFactory()
@@ -79,7 +79,7 @@ public class HumanToMachineEmulatedInterfaceConverter {
                 method.getName());
     DerivedMethod interfaceMethod = new DerivedMethod(itfDexMethod);
     DerivedMethod dispatchMethod =
-        new DerivedMethod(method, syntheticNaming.EMULATED_INTERFACE_CLASS);
+        new DerivedMethod(method, MachineSyntheticKind.Kind.EMULATED_INTERFACE_CLASS);
     LinkedHashMap<DexType, DerivedMethod> dispatchCases = getDispatchCases(rewritingFlags, method);
     return new EmulatedDispatchMethodDescriptor(
         interfaceMethod, dispatchMethod, forwardingMethod, dispatchCases);
@@ -110,7 +110,6 @@ public class HumanToMachineEmulatedInterfaceConverter {
       }
     }
     if (subInterfaces != null) {
-      SyntheticNaming syntheticNaming = appInfo.getSyntheticItems().getNaming();
       for (int i = subInterfaces.size() - 1; i >= 0; i--) {
         DexClass subInterfaceClass = appInfo.definitionFor(subInterfaces.get(i));
         assert subInterfaceClass != null;
@@ -122,7 +121,7 @@ public class HumanToMachineEmulatedInterfaceConverter {
           DexMethod reference = result.getReference();
           extraDispatchCases.put(
               subInterfaceClass.type,
-              new DerivedMethod(reference, syntheticNaming.COMPANION_CLASS));
+              new DerivedMethod(reference, MachineSyntheticKind.Kind.COMPANION_CLASS));
         }
       }
     } else {

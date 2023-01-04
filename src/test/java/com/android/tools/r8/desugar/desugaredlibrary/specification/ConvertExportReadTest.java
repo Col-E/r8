@@ -36,7 +36,6 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.
 import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.HumanToMachineSpecificationConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.LegacyToHumanSpecificationConverter;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.InternalOptions;
@@ -102,11 +101,7 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
 
     MachineDesugaredLibrarySpecification machineSpecParsed =
         new MachineDesugaredLibrarySpecificationParser(
-                options.dexItemFactory(),
-                options.reporter,
-                true,
-                AndroidApiLevel.B.getLevel(),
-                new SyntheticNaming())
+                options.dexItemFactory(), options.reporter, true, AndroidApiLevel.B.getLevel())
             .parse(StringResource.fromString(json2.get(), Origin.unknown()));
     assertFalse(machineSpecParsed.getRewriteType().isEmpty());
   }
@@ -129,22 +124,6 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
     InternalOptions options = new InternalOptions();
 
     Path output = temp.newFile().toPath();
-    convertMultiLevelAnythingToMachineSpecification(spec, output, options);
-
-    MachineDesugaredLibrarySpecification machineSpecParsed =
-        new MachineDesugaredLibrarySpecificationParser(
-                options.dexItemFactory(),
-                options.reporter,
-                true,
-                AndroidApiLevel.B.getLevel(),
-                new SyntheticNaming())
-            .parse(StringResource.fromFile(output));
-    assertFalse(machineSpecParsed.getRewriteType().isEmpty());
-  }
-
-  public void convertMultiLevelAnythingToMachineSpecification(
-      LibraryDesugaringSpecification spec, Path output, InternalOptions options)
-      throws IOException {
 
     MultiAPILevelHumanDesugaredLibrarySpecification humanSpec =
         DesugaredLibraryConverter.convertMultiLevelAnythingToMachineSpecification(
@@ -153,6 +132,12 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
             spec.getLibraryFiles(),
             output,
             options);
+
+    MachineDesugaredLibrarySpecification machineSpecParsed =
+        new MachineDesugaredLibrarySpecificationParser(
+                options.dexItemFactory(), options.reporter, true, AndroidApiLevel.B.getLevel())
+            .parse(StringResource.fromFile(output));
+    assertFalse(machineSpecParsed.getRewriteType().isEmpty());
 
     if (humanSpec == null) {
       return;
@@ -167,6 +152,19 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
                 options.dexItemFactory(), options.reporter)
             .parseMultiLevelConfiguration(StringResource.fromString(json.get(), Origin.unknown()));
     assertSpecEquals(humanSpec, writtenHumanSpec);
+
+    // Validate converted machine spec is identical to the written one.
+    HumanDesugaredLibrarySpecification humanSimpleSpec =
+        new HumanDesugaredLibrarySpecificationParser(
+                options.dexItemFactory(), options.reporter, true, AndroidApiLevel.B.getLevel())
+            .parse(StringResource.fromString(json.get(), Origin.unknown()));
+    HumanToMachineSpecificationConverter converter =
+        new HumanToMachineSpecificationConverter(Timing.empty());
+    DexApplication app = spec.getAppForTesting(options, true);
+    MachineDesugaredLibrarySpecification machineSimpleSpec =
+        converter.convert(humanSimpleSpec, app);
+
+    assertSpecEquals(machineSimpleSpec, machineSpecParsed);
   }
 
   @Test
@@ -196,11 +194,7 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
         new AndroidApiLevel[] {AndroidApiLevel.B, AndroidApiLevel.N, AndroidApiLevel.O}) {
       MachineDesugaredLibrarySpecification machineSpecParsed =
           new MachineDesugaredLibrarySpecificationParser(
-                  options.dexItemFactory(),
-                  options.reporter,
-                  true,
-                  api.getLevel(),
-                  new SyntheticNaming())
+                  options.dexItemFactory(), options.reporter, true, api.getLevel())
               .parse(StringResource.fromString(json2.get(), Origin.unknown()));
 
       HumanDesugaredLibrarySpecification humanSpecB =

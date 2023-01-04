@@ -147,7 +147,7 @@ public class InterfaceDesugaringSyntheticHelper {
 
   public boolean verifyKind(DerivedMethod method, SyntheticKindSelector kindSelector) {
     SyntheticKind kind = kindSelector.select(appView.getSyntheticItems().getNaming());
-    assert method.getHolderKind().equals(kind);
+    assert method.getHolderKind(appView).equals(kind);
     return true;
   }
 
@@ -158,7 +158,7 @@ public class InterfaceDesugaringSyntheticHelper {
   }
 
   DexMethod emulatedInterfaceInterfaceMethod(DerivedMethod method) {
-    assert method.getHolderKind() == null;
+    assert method.getHolderKind(appView) == null;
     return method.getMethod();
   }
 
@@ -275,7 +275,7 @@ public class InterfaceDesugaringSyntheticHelper {
   }
 
   DexMethod ensureEmulatedInterfaceForwardingMethod(DerivedMethod method) {
-    if (method.getHolderKind() == null) {
+    if (method.getHolderKind(appView) == null) {
       return method.getMethod();
     }
     assert verifyKind(method, kinds -> kinds.COMPANION_CLASS);

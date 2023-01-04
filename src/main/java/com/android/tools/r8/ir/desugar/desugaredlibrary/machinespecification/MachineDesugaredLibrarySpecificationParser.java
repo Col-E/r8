@@ -42,8 +42,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.memberparser.MachineFieldParser;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.memberparser.MachineMethodParser;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.synthesis.SyntheticNaming;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
@@ -74,7 +72,6 @@ public class MachineDesugaredLibrarySpecificationParser {
   private final Reporter reporter;
   private final boolean libraryCompilation;
   private final int minAPILevel;
-  private final SyntheticNaming syntheticNaming;
 
   private Origin origin;
   private JsonObject jsonConfig;
@@ -84,14 +81,12 @@ public class MachineDesugaredLibrarySpecificationParser {
       DexItemFactory dexItemFactory,
       Reporter reporter,
       boolean libraryCompilation,
-      int minAPILevel,
-      SyntheticNaming syntheticNaming) {
+      int minAPILevel) {
     this.dexItemFactory = dexItemFactory;
     this.methodParser = new MachineMethodParser(dexItemFactory, this::stringDescriptorToDexType);
     this.fieldParser = new MachineFieldParser(dexItemFactory, this::stringDescriptorToDexType);
     this.reporter = reporter;
     this.minAPILevel = minAPILevel;
-    this.syntheticNaming = syntheticNaming;
     this.libraryCompilation = libraryCompilation;
   }
 
@@ -425,8 +420,7 @@ public class MachineDesugaredLibrarySpecificationParser {
     if (kind == -1) {
       return new DerivedMethod(dexMethod);
     }
-    SyntheticKind syntheticKind = syntheticNaming.fromId(kind);
-    return new DerivedMethod(dexMethod, syntheticKind);
+    return new DerivedMethod(dexMethod, MachineSyntheticKind.fromId(kind));
   }
 
   private List<DexMethod> parseMethodList(JsonArray array) {

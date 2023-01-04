@@ -10,7 +10,6 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.Human
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecificationParser;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecificationParser;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -58,7 +57,7 @@ public class DesugaredLibrarySpecificationParser {
     // It can hardly be written by hand and is always generated.
     if (isMachineSpecification(jsonConfig, reporter, origin)) {
       return new MachineDesugaredLibrarySpecificationParser(
-              dexItemFactory, reporter, libraryCompilation, minAPILevel, new SyntheticNaming())
+              dexItemFactory, reporter, libraryCompilation, minAPILevel)
           .parse(origin, jsonConfigString, jsonConfig);
     }
     // Human Specification is the easy to write format for developers and allows one to widely use

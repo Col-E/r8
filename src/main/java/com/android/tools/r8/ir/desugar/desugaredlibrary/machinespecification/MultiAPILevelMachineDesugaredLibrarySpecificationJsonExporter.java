@@ -315,7 +315,9 @@ public class MultiAPILevelMachineDesugaredLibrarySpecificationJsonExporter {
     String methodString = toString(derivedMethod.getMethod());
     String holderKindString =
         Integer.toString(
-            derivedMethod.getHolderKind() == null ? -1 : derivedMethod.getHolderKind().getId());
+            derivedMethod.getMachineHolderKind() == null
+                ? -1
+                : derivedMethod.getMachineHolderKind().getId());
     return new Object[] {methodString, holderKindString};
   }
 

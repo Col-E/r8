@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import java.util.Objects;
 
@@ -20,19 +22,27 @@ import java.util.Objects;
 public class DerivedMethod implements SpecificationDescriptor {
 
   private final DexMethod method;
-  private final SyntheticKind holderKind;
+  private final MachineSyntheticKind.Kind holderKind;
 
   public DerivedMethod(DexMethod method) {
     this(method, null);
   }
 
-  public DerivedMethod(DexMethod method, SyntheticKind holderKind) {
+  public DerivedMethod(DexMethod method, MachineSyntheticKind.Kind holderKind) {
     this.holderKind = holderKind;
     this.method = method;
   }
 
-  public SyntheticKind getHolderKind() {
+  public MachineSyntheticKind.Kind getMachineHolderKind() {
     return holderKind;
+  }
+
+  public SyntheticKind getHolderKind(AppView<?> appView) {
+    return getHolderKind(appView.getSyntheticItems().getNaming());
+  }
+
+  public SyntheticKind getHolderKind(SyntheticNaming naming) {
+    return holderKind == null ? null : holderKind.asSyntheticKind(naming);
   }
 
   public DexType getHolderContext() {
