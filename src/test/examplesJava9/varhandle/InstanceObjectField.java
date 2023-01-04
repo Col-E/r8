@@ -379,6 +379,90 @@ public class InstanceObjectField {
     System.out.println(varHandle.get(instance));
   }
 
+  // This test is not testing weakCompareAndSet behaviour, but assuming it behaves like
+  // compareAndSet, that is without any spurious failures. This is the desugaring behaviour, as
+  // as there is no weakCompareAndSet primitive in sun.misc.Unsafe, only compareAndSwapXXX.
+  public static void testWeakCompareAndSet(VarHandle varHandle) {
+    System.out.println("testWeakCompareAndSet");
+
+    InstanceObjectField instance = new InstanceObjectField();
+
+    A a1 = new A(1);
+    varHandle.compareAndSet(instance, 0, a1);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, null, a1);
+    System.out.println(varHandle.get(instance));
+    System.out.println(varHandle.get(instance) == a1);
+    A a2 = new A(2);
+    varHandle.compareAndSet(instance, a1, a2);
+    System.out.println(varHandle.get(instance));
+    System.out.println(varHandle.get(instance) == a2);
+
+    varHandle.compareAndSet(instance, a2, 1);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, Integer.valueOf(1), 2);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, Integer.valueOf(2), Integer.valueOf(3));
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, Integer.valueOf(3), 4);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, 4L, 5);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, (byte) 4, 5);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, (short) 4, 5);
+    System.out.println(varHandle.get(instance));
+
+    varHandle.compareAndSet(instance, 4, 5L);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, Long.valueOf(5), 6L);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, Long.valueOf(6), Long.valueOf(7));
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, Long.valueOf(7), 8L);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, 8, 9L);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, (byte) 8, 9);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, (short) 8, 9);
+    System.out.println(varHandle.get(instance));
+    System.out.println(varHandle.get(instance) == a1);
+    varHandle.compareAndSet(instance, a1, a2);
+    System.out.println(varHandle.get(instance));
+    System.out.println(varHandle.get(instance) == a2);
+
+    varHandle.compareAndSet(instance, a2, 1);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, Integer.valueOf(1), 2);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, Integer.valueOf(2), Integer.valueOf(3));
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, Integer.valueOf(3), 4);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, 4L, 5);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, (byte) 4, 5);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, (short) 4, 5);
+    System.out.println(varHandle.get(instance));
+
+    varHandle.compareAndSet(instance, 4, 5L);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, Long.valueOf(5), 6L);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, Long.valueOf(6), Long.valueOf(7));
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, Long.valueOf(7), 8L);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, 8, 9L);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, (byte) 8, 9);
+    System.out.println(varHandle.get(instance));
+    varHandle.compareAndSet(instance, (short) 8, 9);
+    System.out.println(varHandle.get(instance));
+  }
+
   public static void testReturnValueClassCastException(VarHandle varHandle) {
     System.out.println("testReturnValueClassCastException");
 
@@ -411,6 +495,7 @@ public class InstanceObjectField {
     testSetGet(varHandle);
     testSetVolatileGetVolatile(varHandle);
     testCompareAndSet(varHandle);
+    testWeakCompareAndSet(varHandle);
     testReturnValueClassCastException(varHandle);
   }
 }

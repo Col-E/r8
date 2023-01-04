@@ -230,7 +230,8 @@ public class GenerateVarHandleMethods extends MethodGenerationBase {
     Set<String> postfixes =
         ImmutableSet.of("InBox", "Int", "Long", "Array", "ArrayInBox", "ArrayInt", "ArrayLong");
     for (String prefix :
-        ImmutableList.of("get", "set", "compareAndSet", "getVolatile", "setVolatile")) {
+        ImmutableList.of(
+            "get", "set", "compareAndSet", "weakCompareAndSet", "getVolatile", "setVolatile")) {
       if (name.startsWith(prefix)) {
         String postfix = name.substring(prefix.length());
         if (postfixes.contains(postfix)) {

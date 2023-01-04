@@ -14,86 +14,32 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class VarHandleDesugaringInstanceIntFieldTest extends VarHandleDesugaringTestBase {
 
-  private static final String EXPECTED_OUTPUT =
+  private static final String TEST_GET_EXPECTED_OUTPUT =
+      StringUtils.lines("1", "1", "1", "1", "1.0", "1.0");
+
+  private static final String TEST_SET_EXPECTED_OUTPUT =
       StringUtils.lines(
-          "testGet",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1.0",
-          "1.0",
-          "testGetVolatile",
-          "1",
-          "1",
-          "1",
-          "1",
-          "1.0",
-          "1.0",
-          "testSet",
-          "0",
-          "1",
-          "2",
-          "3",
-          "4",
-          "48",
-          "49",
-          "5",
-          "6",
-          "6",
-          "6",
-          "6",
-          "6",
-          "6",
-          "6",
-          "testSetVolatile",
-          "0",
-          "1",
-          "2",
-          "3",
-          "4",
-          "48",
-          "49",
-          "5",
-          "6",
-          "6",
-          "6",
-          "6",
-          "6",
-          "6",
-          "6",
-          "testCompareAndSet",
-          "0",
-          "1",
-          "2",
-          "3",
-          "4",
-          "5",
-          "6",
-          "7",
-          "8",
-          "9",
-          "10",
-          "48",
-          "49",
-          "50",
-          "51",
-          "52",
-          "53",
-          "53",
-          "53",
-          "53",
-          "53",
-          "53",
-          "53",
-          "53",
-          "53",
-          "53",
-          "53",
-          "53",
-          "53",
-          "53",
-          "53");
+          "0", "1", "2", "3", "4", "48", "49", "5", "6", "6", "6", "6", "6", "6", "6");
+
+  private static final String TEST_COMPAREANDSET_EXPECTED_OUTPUT =
+      StringUtils.lines(
+          "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "48", "49", "50", "51", "52",
+          "53", "53", "53", "53", "53", "53", "53", "53", "53", "53", "53", "53", "53", "53", "53");
+
+  private static final String EXPECTED_OUTPUT =
+      "testGet\n"
+          + TEST_GET_EXPECTED_OUTPUT
+          + "testGetVolatile\n"
+          + TEST_GET_EXPECTED_OUTPUT
+          + "testSet\n"
+          + TEST_SET_EXPECTED_OUTPUT
+          + "testSetVolatile\n"
+          + TEST_SET_EXPECTED_OUTPUT
+          + "testCompareAndSet\n"
+          + TEST_COMPAREANDSET_EXPECTED_OUTPUT
+          + "testWeakCompareAndSet\n"
+          + TEST_COMPAREANDSET_EXPECTED_OUTPUT;
+
   private static final String MAIN_CLASS = VarHandle.InstanceIntField.typeName();
   private static final String JAR_ENTRY = "varhandle/InstanceIntField.class";
 

@@ -456,7 +456,9 @@ public class ArrayOfInt {
     }
   }
 
-  public void testCompareAndSet() {
+  public static void testCompareAndSet() {
+    System.out.println("testCompareAndSet");
+
     VarHandle arrayVarHandle = MethodHandles.arrayElementVarHandle(int[].class);
     int[] array = new int[2];
     arrayVarHandle.set(array, 0, 1);
@@ -471,6 +473,30 @@ public class ArrayOfInt {
     // TODO(b/247076137): Handle boxed.
     // arrayVarHandle.compareAndSet(array, 1, 2, box(3));
     arrayVarHandle.compareAndSet(array, 1, 2, 3);
+    System.out.println((int) arrayVarHandle.get(array, 0));
+    System.out.println((int) arrayVarHandle.get(array, 1));
+  }
+
+  // This test is not testing weakCompareAndSet behaviour, but assuming it behaves like
+  // compareAndSet, that is without any spurious failures. This is the desugaring behaviour, as
+  // as there is no weakCompareAndSet primitive in sun.misc.Unsafe, only compareAndSwapXXX.
+  public static void testWeakCompareAndSet() {
+    System.out.println("testWeakCompareAndSet");
+
+    VarHandle arrayVarHandle = MethodHandles.arrayElementVarHandle(int[].class);
+    int[] array = new int[2];
+    arrayVarHandle.set(array, 0, 1);
+    System.out.println((int) arrayVarHandle.get(array, 0));
+    System.out.println((int) arrayVarHandle.get(array, 1));
+    arrayVarHandle.weakCompareAndSet(array, 1, 1, 3);
+    System.out.println((int) arrayVarHandle.get(array, 0));
+    System.out.println((int) arrayVarHandle.get(array, 1));
+    arrayVarHandle.weakCompareAndSet(array, 1, 0, 2);
+    System.out.println((int) arrayVarHandle.get(array, 0));
+    System.out.println((int) arrayVarHandle.get(array, 1));
+    // TODO(b/247076137): Handle boxed.
+    // arrayVarHandle.waekCompareAndSet(array, 1, 2, box(3));
+    arrayVarHandle.weakCompareAndSet(array, 1, 2, 3);
     System.out.println((int) arrayVarHandle.get(array, 0));
     System.out.println((int) arrayVarHandle.get(array, 1));
   }
@@ -496,6 +522,8 @@ public class ArrayOfInt {
     testGetVolatile();
     testSet();
     testSetVolatile();
+    testCompareAndSet();
+    testWeakCompareAndSet();
     testArrayVarHandleForNonSingleDimension();
   }
 }

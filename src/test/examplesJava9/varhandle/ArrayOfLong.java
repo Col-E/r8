@@ -468,16 +468,61 @@ public class ArrayOfLong {
     }
   }
 
+  public static void testCompareAndSet() {
+    System.out.println("testCompareAndSet");
+
+    VarHandle arrayVarHandle = MethodHandles.arrayElementVarHandle(long[].class);
+    long[] array = new long[2];
+    arrayVarHandle.set(array, 0, 1L);
+    System.out.println((long) arrayVarHandle.get(array, 0));
+    System.out.println((long) arrayVarHandle.get(array, 1));
+    arrayVarHandle.compareAndSet(array, 1, 1L, 3L);
+    System.out.println((long) arrayVarHandle.get(array, 0));
+    System.out.println((long) arrayVarHandle.get(array, 1));
+    arrayVarHandle.compareAndSet(array, 1, 0, 2);
+    System.out.println((long) arrayVarHandle.get(array, 0));
+    System.out.println((long) arrayVarHandle.get(array, 1));
+    // TODO(b/247076137): Handle boxed.
+    // arrayVarHandle.compareAndSet(array, 1, 2, box(3));
+    arrayVarHandle.compareAndSet(array, 1, 2, 3);
+    System.out.println((long) arrayVarHandle.get(array, 0));
+    System.out.println((long) arrayVarHandle.get(array, 1));
+  }
+
+  // This test is not testing weakCompareAndSet behaviour, but assuming it behaves like
+  // compareAndSet, that is without any spurious failures. This is the desugaring behaviour, as
+  // as there is no weakCompareAndSet primitive in sun.misc.Unsafe, only compareAndSwapXXX.
+  public static void testWeakCompareAndSet() {
+    System.out.println("testWeakCompareAndSet");
+
+    VarHandle arrayVarHandle = MethodHandles.arrayElementVarHandle(long[].class);
+    long[] array = new long[2];
+    arrayVarHandle.set(array, 0, 1L);
+    System.out.println((long) arrayVarHandle.get(array, 0));
+    System.out.println((long) arrayVarHandle.get(array, 1));
+    arrayVarHandle.weakCompareAndSet(array, 1, 1L, 3L);
+    System.out.println((long) arrayVarHandle.get(array, 0));
+    System.out.println((long) arrayVarHandle.get(array, 1));
+    arrayVarHandle.weakCompareAndSet(array, 1, 0, 2);
+    System.out.println((long) arrayVarHandle.get(array, 0));
+    System.out.println((long) arrayVarHandle.get(array, 1));
+    // TODO(b/247076137): Handle boxed.
+    // arrayVarHandle.weakCompareAndSet(array, 1, 2, box(3));
+    arrayVarHandle.weakCompareAndSet(array, 1, 2, 3);
+    System.out.println((long) arrayVarHandle.get(array, 0));
+    System.out.println((long) arrayVarHandle.get(array, 1));
+  }
+
   public static void testArrayVarHandleForNonSingleDimension() {
     System.out.println("testArrayVarHandleForNonSingleDimension");
     try {
-      MethodHandles.arrayElementVarHandle(int.class);
+      MethodHandles.arrayElementVarHandle(long.class);
       System.out.println("Unexpected success");
     } catch (IllegalArgumentException e) {
       System.out.println("IllegalArgumentException");
     }
     try {
-      MethodHandles.arrayElementVarHandle(int[][].class);
+      MethodHandles.arrayElementVarHandle(long[][].class);
       System.out.println("Got array element VarHandle");
     } catch (UnsupportedOperationException e) {
       System.out.println("UnsupportedOperationException");
@@ -489,6 +534,8 @@ public class ArrayOfLong {
     testGetVolatile();
     testSet();
     testSetVolatile();
+    testCompareAndSet();
+    testWeakCompareAndSet();
     testArrayVarHandleForNonSingleDimension();
   }
 }

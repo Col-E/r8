@@ -287,7 +287,8 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
       assert invoke.isInvokeVirtual();
       DexString name = method.getName();
       int arity = method.getProto().getArity();
-      if (name.equals(factory.compareAndSetString)) {
+      if (name.equals(factory.compareAndSetString)
+          || name.equals(factory.weakCompareAndSetString)) {
         assert arity == 3 || arity == 4;
         return computeDesugarSignaturePolymorphicMethod(invoke, arity - 2);
       } else if (name.equals(factory.getString) || name.equals(factory.getVolatileString)) {

@@ -73,6 +73,9 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
 
   @Test
   public void testReference() throws Throwable {
+    // The tests for weakCompareAndSet might fail on the JVM, as the tests do not account for
+    // possible spurious failures but expect it to behave like compareAndSet (which is what the
+    // desugared implementation does.
     assumeTrue(parameters.isCfRuntime() && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK9));
     testForJvm()
         .addProgramFiles(VarHandle.jar())
@@ -162,8 +165,8 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
               });
         });
     if (willDesugarVarHandle()) {
-      assertEquals(4, unsafeCompareAndSwapInt.get());
-      assertEquals(5, unsafeCompareAndSwapLong.get());
+      assertEquals(8, unsafeCompareAndSwapInt.get());
+      assertEquals(10, unsafeCompareAndSwapLong.get());
       assertEquals(1, unsafeCompareAndSwapObject.get());
     } else {
       assertEquals(0, unsafeCompareAndSwapInt.get());

@@ -371,6 +371,41 @@ public final class DesugarVarHandle {
     return compareAndSet(ct1, expectedValue, newValue);
   }
 
+  // As there is no primitive for the weak behaviour in sun.misc.Unsafe this implementation
+  // behaves like compareAndSet.
+  boolean weakCompareAndSet(Object ct1, Object expectedValue, Object newValue) {
+    if (type == int.class) {
+      return U.compareAndSwapInt(
+          ct1, offset, toIntIfPossible(expectedValue, false), toIntIfPossible(newValue, false));
+    }
+    if (type == long.class) {
+      return U.compareAndSwapLong(
+          ct1, offset, toLongIfPossible(expectedValue, false), toLongIfPossible(newValue, false));
+    }
+    return U.compareAndSwapObject(ct1, offset, expectedValue, newValue);
+  }
+
+  // As there is no primitive for the weak behaviour in sun.misc.Unsafe this implementation
+  // behaves like compareAndSet.
+  boolean weakCompareAndSetInt(Object ct1, int expectedValue, int newValue) {
+    if (type == int.class) {
+      return U.compareAndSwapInt(ct1, offset, expectedValue, newValue);
+    } else if (type == long.class) {
+      return U.compareAndSwapLong(ct1, offset, expectedValue, newValue);
+    } else {
+      return compareAndSet(ct1, expectedValue, newValue);
+    }
+  }
+
+  // As there is no primitive for the weak behaviour in sun.misc.Unsafe this implementation
+  // behaves like compareAndSet.
+  boolean weakCompareAndSetLong(Object ct1, long expectedValue, long newValue) {
+    if (type == long.class) {
+      return U.compareAndSwapLong(ct1, offset, expectedValue, newValue);
+    }
+    return compareAndSet(ct1, expectedValue, newValue);
+  }
+
   // get array variants.
   Object getArray(Object ct1, int ct2) {
     if (!recv.isArray() || recv != ct1.getClass()) {
@@ -569,6 +604,51 @@ public final class DesugarVarHandle {
   }
 
   boolean compareAndSetArrayLong(long[] ct1, int ct2, long expetedValue, long newValue) {
+    if (recv != long[].class) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    return U.compareAndSwapLong(ct1, elementOffset, expetedValue, newValue);
+  }
+
+  // weakCompareAndSet array variants.
+  // As there is no primitive for the weak behaviour in sun.misc.Unsafe this implementation
+  // behaves like compareAndSet.
+  boolean weakCompareAndSetArray(Object ct1, int ct2, Object expetedValue, Object newValue) {
+    if (!recv.isArray() || recv != ct1.getClass()) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    if (recv == int[].class) {
+      return U.compareAndSwapInt(
+          ct1,
+          elementOffset,
+          toIntIfPossible(expetedValue, false),
+          toIntIfPossible(newValue, false));
+    } else if (recv == long[].class) {
+      return U.compareAndSwapLong(
+          ct1,
+          elementOffset,
+          toLongIfPossible(expetedValue, false),
+          toLongIfPossible(newValue, false));
+    } else {
+      return U.compareAndSwapObject(ct1, elementOffset, expetedValue, newValue);
+    }
+  }
+
+  // As there is no primitive for the weak behaviour in sun.misc.Unsafe this implementation
+  // behaves like compareAndSet.
+  boolean weakCompareAndSetArrayInt(int[] ct1, int ct2, int expetedValue, int newValue) {
+    if (recv != int[].class) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    return U.compareAndSwapInt(ct1, elementOffset, expetedValue, newValue);
+  }
+
+  // As there is no primitive for the weak behaviour in sun.misc.Unsafe this implementation
+  // behaves like compareAndSet.
+  boolean weakCompareAndSetArrayLong(long[] ct1, int ct2, long expetedValue, long newValue) {
     if (recv != long[].class) {
       throw new UnsupportedOperationException();
     }

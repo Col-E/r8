@@ -362,6 +362,7 @@ public class DexItemFactory {
   public final DexString getString = createString("get");
   public final DexString setString = createString("set");
   public final DexString compareAndSetString = createString("compareAndSet");
+  public final DexString weakCompareAndSetString = createString("weakCompareAndSet");
   public final DexString getVolatileString = createString("getVolatile");
   public final DexString setVolatileString = createString("setVolatile");
 
@@ -2296,7 +2297,7 @@ public class DexItemFactory {
     public final Set<DexString> varHandleCompareAndSetMethodNames =
         createStrings(
             compareAndSetString,
-            "weakCompareAndSet",
+            weakCompareAndSetString,
             "weakCompareAndSetAcquire",
             "weakCompareAndSetPlain",
             "weakCompareAndSetRelease");

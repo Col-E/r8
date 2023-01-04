@@ -584,6 +584,92 @@ public class ArrayOfObject {
     System.out.println(arrayVarHandle.get(array, index));
   }
 
+  // This test is not testing weakCompareAndSet behaviour, but assuming it behaves like
+  // compareAndSet, that is without any spurious failures. This is the desugaring behaviour, as
+  // as there is no weakCompareAndSet primitive in sun.misc.Unsafe, only compareAndSwapXXX.
+  public static void testWeakCompareAndSet() {
+    System.out.println("testWeakCompareAndSet");
+
+    VarHandle arrayVarHandle = MethodHandles.arrayElementVarHandle(Object[].class);
+    Object[] array = new Object[2];
+
+    int index = 0;
+    A a1 = new A(1);
+    arrayVarHandle.weakCompareAndSet(array, index, 0, a1);
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, null, a1);
+    System.out.println(arrayVarHandle.get(array, index));
+    System.out.println(arrayVarHandle.get(array, index) == a1);
+    A a2 = new A(2);
+    arrayVarHandle.weakCompareAndSet(array, index, a1, a2);
+    System.out.println(arrayVarHandle.get(array, index));
+    System.out.println(arrayVarHandle.get(array, index) == a2);
+
+    arrayVarHandle.weakCompareAndSet(array, index, a2, 1);
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, Integer.valueOf(1), 2);
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, Integer.valueOf(2), Integer.valueOf(3));
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, Integer.valueOf(3), 4);
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, 4L, 5);
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, (byte) 4, 5);
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, (short) 4, 5);
+    System.out.println(arrayVarHandle.get(array, index));
+
+    arrayVarHandle.weakCompareAndSet(array, index, 4, 5L);
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, Long.valueOf(5), 6L);
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, Long.valueOf(6), Long.valueOf(7));
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, Long.valueOf(7), 8L);
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, 8, 9L);
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, (byte) 8, 9);
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, (short) 8, 9);
+    System.out.println(arrayVarHandle.get(array, index));
+    System.out.println(arrayVarHandle.get(array, index) == a1);
+    arrayVarHandle.weakCompareAndSet(array, index, a1, a2);
+    System.out.println(arrayVarHandle.get(array, index));
+    System.out.println(arrayVarHandle.get(array, index) == a2);
+
+    arrayVarHandle.weakCompareAndSet(array, index, a2, 1);
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, Integer.valueOf(1), 2);
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, Integer.valueOf(2), Integer.valueOf(3));
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, Integer.valueOf(3), 4);
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, 4L, 5);
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, (byte) 4, 5);
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, (short) 4, 5);
+    System.out.println(arrayVarHandle.get(array, index));
+
+    arrayVarHandle.weakCompareAndSet(array, index, 4, 5L);
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, Long.valueOf(5), 6L);
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, Long.valueOf(6), Long.valueOf(7));
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, Long.valueOf(7), 8L);
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, 8, 9L);
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, (byte) 8, 9);
+    System.out.println(arrayVarHandle.get(array, index));
+    arrayVarHandle.weakCompareAndSet(array, index, (short) 8, 9);
+    System.out.println(arrayVarHandle.get(array, index));
+  }
+
   public static void testArrayVarHandleForNonSingleDimension() {
     System.out.println("testArrayVarHandleForNonSingleDimension");
     try {
@@ -606,6 +692,7 @@ public class ArrayOfObject {
     testSet();
     testSetVolatile();
     testCompareAndSet();
+    testWeakCompareAndSet();
     testArrayVarHandleForNonSingleDimension();
   }
 }

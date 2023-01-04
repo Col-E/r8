@@ -367,6 +367,140 @@ public class InstanceIntField {
     }
   }
 
+  // This test is not testing weakCompareAndSet behaviour, but assuming it behaves like
+  // compareAndSet, that is without any spurious failures. This is the desugaring behaviour, as
+  // as there is no weakCompareAndSet primitive in sun.misc.Unsafe, only compareAndSwapXXX.
+  public static void testWeakCompareAndSet(VarHandle varHandle) {
+    System.out.println("testWeakCompareAndSet");
+
+    InstanceIntField instance = new InstanceIntField();
+
+    // int and Integer values.
+    varHandle.weakCompareAndSet(instance, 1, 2);
+    System.out.println((int) varHandle.get(instance));
+    varHandle.weakCompareAndSet(instance, 0, 1);
+    System.out.println((int) varHandle.get(instance));
+    varHandle.weakCompareAndSet(instance, Integer.valueOf(1), 2);
+    System.out.println(varHandle.get(instance));
+    varHandle.weakCompareAndSet(instance, 2, Integer.valueOf(3));
+    System.out.println(varHandle.get(instance));
+    varHandle.weakCompareAndSet(instance, Integer.valueOf(3), Integer.valueOf(4));
+    System.out.println(varHandle.get(instance));
+
+    // int and Integer compatible values.
+    varHandle.weakCompareAndSet(instance, (byte) 4, 5);
+    System.out.println(varHandle.get(instance));
+    varHandle.weakCompareAndSet(instance, 5, (byte) 6);
+    System.out.println(varHandle.get(instance));
+    varHandle.weakCompareAndSet(instance, (byte) 6, (byte) 7);
+    System.out.println(varHandle.get(instance));
+    varHandle.weakCompareAndSet(instance, Byte.valueOf((byte) 7), (byte) 8);
+    System.out.println(varHandle.get(instance));
+    varHandle.weakCompareAndSet(instance, (byte) 8, Byte.valueOf((byte) 9));
+    System.out.println(varHandle.get(instance));
+    varHandle.weakCompareAndSet(instance, Byte.valueOf((byte) 9), Byte.valueOf((byte) 10));
+    System.out.println(varHandle.get(instance));
+    varHandle.weakCompareAndSet(instance, 10, '0');
+    System.out.println(varHandle.get(instance));
+    varHandle.weakCompareAndSet(instance, '0', 49);
+    System.out.println(varHandle.get(instance));
+    varHandle.weakCompareAndSet(instance, '1', '2');
+    System.out.println(varHandle.get(instance));
+    varHandle.weakCompareAndSet(instance, (byte) 50, '3');
+    System.out.println(varHandle.get(instance));
+    varHandle.weakCompareAndSet(instance, '3', (byte) 52);
+    System.out.println(varHandle.get(instance));
+    varHandle.weakCompareAndSet(instance, '4', '5');
+    System.out.println(varHandle.get(instance));
+
+    // int and Integer non-compatible values.
+    try {
+      varHandle.weakCompareAndSet(instance, 6L, 7L);
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+    try {
+      varHandle.weakCompareAndSet(instance, 6L, 7);
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+    try {
+      varHandle.weakCompareAndSet(instance, 6, Long.valueOf(7));
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+    try {
+      varHandle.weakCompareAndSet(instance, Long.valueOf(6), 7);
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+    try {
+      varHandle.weakCompareAndSet(instance, Long.valueOf(6), Long.valueOf(7));
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+    try {
+      varHandle.weakCompareAndSet(instance, 6, 7.0f);
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+    try {
+      varHandle.weakCompareAndSet(instance, 6.0f, 7);
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+    try {
+      varHandle.weakCompareAndSet(instance, 6.0f, 7.0f);
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+    try {
+      varHandle.weakCompareAndSet(instance, 6, 7.0);
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+    try {
+      varHandle.weakCompareAndSet(instance, 6.0, 7);
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+    try {
+      varHandle.weakCompareAndSet(instance, 6.0, 7.0);
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+
+    try {
+      varHandle.weakCompareAndSet(instance, 6, "7");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+    try {
+      varHandle.weakCompareAndSet(instance, "6", 7);
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+    try {
+      varHandle.weakCompareAndSet(instance, "6", "7");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+  }
+
   public static void main(String[] args) throws NoSuchFieldException, IllegalAccessException {
     VarHandle varHandle =
         MethodHandles.lookup().findVarHandle(InstanceIntField.class, "field", int.class);
@@ -375,5 +509,6 @@ public class InstanceIntField {
     testSet(varHandle);
     testSetVolatile(varHandle);
     testCompareAndSet(varHandle);
+    testWeakCompareAndSet(varHandle);
   }
 }
