@@ -40,7 +40,7 @@ public class VarHandleDesugaringInstanceObjectFieldTest extends VarHandleDesugar
           TEST_GET_SET_EXPECTED_OUTPUT,
           "testCompareAndSet",
           TEST_COMPAREANDSET_EXPECTED_OUTPUT,
-          "testWeakCompareAndSet\n",
+          "testWeakCompareAndSet",
           TEST_COMPAREANDSET_EXPECTED_OUTPUT,
           "testReturnValueClassCastException");
 
