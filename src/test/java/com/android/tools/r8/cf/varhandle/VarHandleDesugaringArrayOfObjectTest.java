@@ -16,39 +16,43 @@ public class VarHandleDesugaringArrayOfObjectTest extends VarHandleDesugaringTes
 
   private static final String TEST_GET_EXPECTED_OUTPUT =
       StringUtils.lines(
-          "1", "2", "1", "2", "1", "2", "1", "2", "1.0", "2.0", "1.0", "2.0", "3", "4", "3", "4",
-          "3", "4", "3.0", "4.0", "3.0", "4.0");
+              "1", "2", "1", "2", "1", "2", "1", "2", "1.0", "2.0", "1.0", "2.0", "3", "4", "3",
+              "4", "3", "4", "3.0", "4.0", "3.0", "4.0")
+          .trim();
 
   private static final String TEST_SET_EXPECTED_OUTPUT =
       StringUtils.lines(
-          "5", "5", "true", "true", "6", "6", "true", "true", "7", "7", "true", "true", "8", "8",
-          "true", "true", "9.0", "9.0", "true", "true", "10.0", "10.0", "true", "true", "11.0",
-          "11.0", "true", "true", "12.0", "12.0", "true", "true", "A", "A", "true", "true", "B",
-          "B", "true", "true");
+              "5", "5", "true", "true", "6", "6", "true", "true", "7", "7", "true", "true", "8",
+              "8", "true", "true", "9.0", "9.0", "true", "true", "10.0", "10.0", "true", "true",
+              "11.0", "11.0", "true", "true", "12.0", "12.0", "true", "true", "A", "A", "true",
+              "true", "B", "B", "true", "true")
+          .trim();
 
   private static final String TEST_COMPAREANDSET_EXPECTED_OUTPUT =
       StringUtils.lines(
-          "null", "A(1)", "true", "A(2)", "true", "1", "2", "3", "4", "4", "4", "4", "5", "6", "7",
-          "8", "8", "8", "8", "false", "8", "false", "8", "8", "8", "8", "8", "8", "8", "8", "8",
-          "8", "8", "8", "8", "8");
+              "null", "A(1)", "true", "A(2)", "true", "1", "2", "3", "4", "4", "4", "4", "5", "6",
+              "7", "8", "8", "8", "8", "false", "8", "false", "8", "8", "8", "8", "8", "8", "8",
+              "8", "8", "8", "8", "8", "8", "8")
+          .trim();
 
   private static final String EXPECTED_OUTPUT =
-      "testGet\n"
-          + TEST_GET_EXPECTED_OUTPUT
-          + "testGetVolatile\n"
-          + TEST_GET_EXPECTED_OUTPUT
-          + "testSet\n"
-          + TEST_SET_EXPECTED_OUTPUT
-          + "testSetVolatile\n"
-          + TEST_SET_EXPECTED_OUTPUT
-          + "testSetRelease\n"
-          + TEST_SET_EXPECTED_OUTPUT
-          + "testCompareAndSet\n"
-          + TEST_COMPAREANDSET_EXPECTED_OUTPUT
-          + "testWeakCompareAndSet\n"
-          + TEST_COMPAREANDSET_EXPECTED_OUTPUT
-          + StringUtils.lines(
-              "testArrayVarHandleForNonSingleDimension", "IllegalArgumentException");
+      StringUtils.lines(
+          "testGet",
+          TEST_GET_EXPECTED_OUTPUT,
+          "testGetVolatile",
+          TEST_GET_EXPECTED_OUTPUT,
+          "testSet",
+          TEST_SET_EXPECTED_OUTPUT,
+          "testSetVolatile",
+          TEST_SET_EXPECTED_OUTPUT,
+          "testSetRelease",
+          TEST_SET_EXPECTED_OUTPUT,
+          "testCompareAndSet",
+          TEST_COMPAREANDSET_EXPECTED_OUTPUT,
+          "testWeakCompareAndSet",
+          TEST_COMPAREANDSET_EXPECTED_OUTPUT,
+          "testArrayVarHandleForNonSingleDimension",
+          "IllegalArgumentException");
 
   private static final String MAIN_CLASS = VarHandle.ArrayOfObject.typeName();
   private static final List<String> JAR_ENTRIES =
