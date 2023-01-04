@@ -19,8 +19,10 @@ import com.android.tools.r8.retrace.internal.RetraceClassResultImpl.RetraceClass
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -51,7 +53,16 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
       return true;
     }
     List<MemberNamingWithMappedRangesOfName> mappedRangesOfNames = mappedRanges.get(0).getSecond();
-    return mappedRangesOfNames != null && mappedRangesOfNames.size() > 1;
+    if (mappedRangesOfNames == null || mappedRanges.size() < 2) {
+      return false;
+    }
+    MethodSignature outermostSignature = getMethodSignatureFromMapping(mappedRangesOfNames.get(0));
+    for (int i = 1; i < mappedRangesOfNames.size(); i++) {
+      if (!outermostSignature.equals(getMethodSignatureFromMapping(mappedRangesOfNames.get(i)))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override
@@ -181,28 +192,37 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
                                 classElement.getRetracedClass().getClassReference())),
                         null));
               }
-              return ListUtils.map(
-                  memberNamingsWithMappedRange,
+              Set<MethodSignature> seen = new HashSet<>();
+              List<ElementImpl> newElements = new ArrayList<>(memberNamingsWithMappedRange.size());
+              memberNamingsWithMappedRange.forEach(
                   memberNamingWithMappedRangesOfName -> {
-                    MemberNaming memberNaming =
-                        memberNamingWithMappedRangesOfName.getMemberNaming();
                     MethodSignature originalSignature =
-                        memberNaming != null
-                            ? memberNaming.getOriginalSignature().asMethodSignature()
-                            : ListUtils.last(memberNamingWithMappedRangesOfName.getMappedRanges())
-                                .getOriginalSignature()
-                                .asMethodSignature();
-                    MethodReference methodReference =
-                        RetraceUtils.methodReferenceFromMethodSignature(
-                            originalSignature, classElement.getRetracedClass().getClassReference());
-                    return new ElementImpl(
-                        this,
-                        classElement,
-                        RetracedMethodReferenceImpl.create(methodReference),
-                        memberNamingWithMappedRangesOfName);
-                  })
-                  .stream();
+                        getMethodSignatureFromMapping(memberNamingWithMappedRangesOfName);
+                    if (seen.add(originalSignature)) {
+                      MethodReference methodReference =
+                          RetraceUtils.methodReferenceFromMethodSignature(
+                              originalSignature,
+                              classElement.getRetracedClass().getClassReference());
+                      newElements.add(
+                          new ElementImpl(
+                              this,
+                              classElement,
+                              RetracedMethodReferenceImpl.create(methodReference),
+                              memberNamingWithMappedRangesOfName));
+                    }
+                  });
+              return newElements.stream();
             });
+  }
+
+  private MethodSignature getMethodSignatureFromMapping(
+      MemberNamingWithMappedRangesOfName memberNamingWithMappedRanges) {
+    MemberNaming memberNaming = memberNamingWithMappedRanges.getMemberNaming();
+    return memberNaming != null
+        ? memberNaming.getOriginalSignature().asMethodSignature()
+        : ListUtils.last(memberNamingWithMappedRanges.getMappedRanges())
+            .getOriginalSignature()
+            .asMethodSignature();
   }
 
   public static class ElementImpl implements RetraceMethodElement {
