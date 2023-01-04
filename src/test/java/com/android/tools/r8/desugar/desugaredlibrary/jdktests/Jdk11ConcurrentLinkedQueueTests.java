@@ -88,6 +88,31 @@ public class Jdk11ConcurrentLinkedQueueTests extends DesugaredLibraryTestBase {
         new Path[] {jdk11MathTestsDir.resolve(WHITEBOX + CLASS_EXTENSION)};
   }
 
+  private static void ranWithSuccessOrFailures(String testName, SingleTestRunResult result) {
+    // Tests use ThreadLocalRandom, so success or failure is random. Note this is only for
+    // VMs where the internal implementation is not based on JDK11.
+    assertTrue(
+        result.getStdOut().contains(StringUtils.lines(testName + ": SUCCESS"))
+            || result
+                .getStdOut()
+                .contains(StringUtils.lines("Tests result in " + testName + ": FAILURE")));
+    if (result.getStdOut().contains(StringUtils.lines(testName + ": SUCCESS"))) {
+      assertTrue(
+          result.toString(),
+          result.getStdOut().contains("Total tests run: 37, Failures: 0, Skips: 0"));
+    } else {
+      assertTrue(
+          result.toString(),
+          result.getStdOut().contains("Total tests run: 37, Failures: 1, Skips: 0")
+              || result.getStdOut().contains("Total tests run: 37, Failures: 2, Skips: 0")
+              || result.getStdOut().contains("Total tests run: 37, Failures: 3, Skips: 0")
+              || result.getStdOut().contains("Total tests run: 37, Failures: 4, Skips: 0")
+              || result.getStdOut().contains("Total tests run: 37, Failures: 5, Skips: 0")
+              || result.getStdOut().contains("Total tests run: 37, Failures: 6, Skips: 0")
+              || result.getStdOut().contains("Total tests run: 37, Failures: 7, Skips: 0"));
+    }
+  }
+
   void runTest(List<String> toRun) throws Exception {
     String verbosity = "2";
     DesugaredLibraryTestCompileResult<?> compileResult =
@@ -95,48 +120,29 @@ public class Jdk11ConcurrentLinkedQueueTests extends DesugaredLibraryTestBase {
                 parameters, libraryDesugaringSpecification, compilationSpecification)
             .addProgramFiles(JDK_11_CONCURRENT_LINKED_QUEUE_TEST_CLASS_FILES)
             .addProgramFiles(testNGSupportProgramFiles())
+            // The WhiteBox test is using VarHandle and MethodHandles.privateLookupIn to inspect the
+            // internal state of the implementation, so desugaring is needed for the program here.
+            .addOptionsModification(options -> options.enableVarHandleDesugaring = true)
             .compile()
             .withArt6Plus64BitsLib();
     for (String success : toRun) {
       SingleTestRunResult<?> result =
           compileResult.run(parameters.getRuntime(), "TestNGMainRunner", verbosity, success);
-      // The WhiteBox test is using VarHandle and MethodHandles.privateLookupIn to inspect the
-      // internal state of the implementation so running it fails for various reasons on all VMs
-      // before T.
-      if (parameters.asDexRuntime().getVersion().equals(Version.V5_1_1)
-          || parameters.asDexRuntime().getVersion().equals(Version.V6_0_1)) {
-        assertTrue(
-            result
-                .getStdErr()
-                .contains(
-                    "java.lang.ClassNotFoundException: Didn't find class"
-                        + " \"java.lang.invoke.MethodHandles\""));
-      } else if (parameters.asDexRuntime().getVersion().equals(Version.V7_0_0)) {
-        assertTrue(
-            result
-                .getStdErr()
-                .contains(
-                    "java.lang.NoClassDefFoundError: Failed resolution of:"
-                        + " Ljava/lang/invoke/MethodHandles;"));
+      if ((parameters.asDexRuntime().getVersion().equals(Version.V5_1_1)
+              || parameters.asDexRuntime().getVersion().equals(Version.V6_0_1))
+          && libraryDesugaringSpecification == JDK11_MINIMAL) {
+        // Some tests use streams, so which is not desugared with JDK11_MINIMAL. These tests are
+        // somehow skipped by the test runner used in the JDK11 tests.
+        assertTrue(result.getStdOut().contains("Total tests run: 9, Failures: 0, Skips: 7"));
+        assertTrue(result.getStdOut().contains(StringUtils.lines(success + ": SUCCESS")));
       } else if (parameters.asDexRuntime().getVersion().isOlderThanOrEqual(Version.V12_0_0)) {
-        if (parameters.getApiLevel() == AndroidApiLevel.O
-            || parameters.getApiLevel() == AndroidApiLevel.O_MR1) {
-          assertTrue(result.getStdErr().contains("Verification error"));
-        } else {
-          assertTrue(
-              result
-                  .getStdErr()
-                  .contains(
-                      "java.lang.NoSuchMethodError: No static method"
-                          + " privateLookupIn(Ljava/lang/Class;Ljava/lang/invoke/MethodHandles$Lookup;)Ljava/lang/invoke/MethodHandles$Lookup;"
-                          + " in class Ljava/lang/invoke/MethodHandles;"));
-        }
+        ranWithSuccessOrFailures(success, result);
       } else {
         assertTrue(parameters.asDexRuntime().getVersion().isNewerThanOrEqual(Version.V13_0_0));
-        if (parameters.getApiLevel() == AndroidApiLevel.B
-            || parameters.getApiLevel() == AndroidApiLevel.N) {
-          assertTrue(result.getStdOut().contains("Instruction is unrepresentable in DEX"));
+        if (parameters.getApiLevel() == AndroidApiLevel.B) {
+          ranWithSuccessOrFailures(success, result);
         } else {
+          // No desugaring and JDK11 based runtime implementation.
           assertTrue(
               "Failure in " + success + "\n" + result,
               result.getStdOut().contains(StringUtils.lines(success + ": SUCCESS")));
