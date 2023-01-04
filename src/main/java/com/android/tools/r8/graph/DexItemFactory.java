@@ -365,6 +365,7 @@ public class DexItemFactory {
   public final DexString weakCompareAndSetString = createString("weakCompareAndSet");
   public final DexString getVolatileString = createString("getVolatile");
   public final DexString setVolatileString = createString("setVolatile");
+  public final DexString setReleaseString = createString("setRelease");
 
   // Method names used on MethodHandles.
   public final DexString lookupString = createString("lookup");
@@ -2292,7 +2293,7 @@ public class DexItemFactory {
             "getVolatile");
 
     private final Set<DexString> varHandleSetMethods =
-        createStrings(setString, "setOpaque", "setRelease", "setVolatile");
+        createStrings(setString, "setOpaque", setReleaseString, setVolatileString);
 
     public final Set<DexString> varHandleCompareAndSetMethodNames =
         createStrings(

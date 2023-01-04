@@ -35,6 +35,8 @@ public class VarHandleDesugaringInstanceIntFieldTest extends VarHandleDesugaring
           + TEST_SET_EXPECTED_OUTPUT
           + "testSetVolatile\n"
           + TEST_SET_EXPECTED_OUTPUT
+          + "testSetRelease\n"
+          + TEST_SET_EXPECTED_OUTPUT
           + "testCompareAndSet\n"
           + TEST_COMPAREANDSET_EXPECTED_OUTPUT
           + "testWeakCompareAndSet\n"

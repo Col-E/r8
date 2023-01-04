@@ -33,6 +33,8 @@ public class VarHandleDesugaringInstanceObjectFieldTest extends VarHandleDesugar
           + TEST_GET_SET_EXPECTED_OUTPUT
           + "testSetVolatileGetVolatile\n"
           + TEST_GET_SET_EXPECTED_OUTPUT
+          + "testSetReleaseGet\n"
+          + TEST_GET_SET_EXPECTED_OUTPUT
           + "testCompareAndSet\n"
           + TEST_COMPAREANDSET_EXPECTED_OUTPUT
           + "testWeakCompareAndSet\n"

@@ -230,6 +230,63 @@ public class InstanceLongField {
     }
   }
 
+  public static void testSetRelease(VarHandle varHandle) {
+    System.out.println("testSetRelease");
+
+    InstanceLongField instance = new InstanceLongField();
+    System.out.println((long) varHandle.get(instance));
+
+    // Long value.
+    varHandle.setRelease(instance, (long) 1);
+    System.out.println((long) varHandle.get(instance));
+    varHandle.setRelease(instance, Long.valueOf(2));
+    System.out.println(varHandle.get(instance));
+
+    // Long compatible values.
+    varHandle.setRelease(instance, (byte) 3);
+    System.out.println((long) varHandle.get(instance));
+    varHandle.setRelease(instance, Byte.valueOf((byte) 4));
+    System.out.println((long) varHandle.get(instance));
+    varHandle.setRelease(instance, '0');
+    System.out.println((long) varHandle.get(instance));
+    varHandle.setRelease(instance, Character.valueOf('1'));
+    System.out.println((long) varHandle.get(instance));
+    varHandle.setRelease(instance, (short) 5);
+    System.out.println((long) varHandle.get(instance));
+    varHandle.setRelease(instance, Short.valueOf((short) 6));
+    System.out.println((long) varHandle.get(instance));
+    varHandle.setRelease(instance, (int) 7);
+    System.out.println((long) varHandle.get(instance));
+    varHandle.setRelease(instance, Integer.valueOf(8));
+    System.out.println((long) varHandle.get(instance));
+
+    // Long non-compatible values.
+    try {
+      varHandle.setRelease(instance, true);
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+    try {
+      varHandle.setRelease(instance, "3");
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+    try {
+      varHandle.setRelease(instance, 3.0f);
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+    try {
+      varHandle.setRelease(instance, 3.0);
+    } catch (RuntimeException e) {
+      checkJavaLangInvokeWrongMethodTypeException(e);
+      System.out.println(varHandle.get(instance));
+    }
+  }
+
   public static void testCompareAndSet(VarHandle varHandle) {
     System.out.println("testCompareAndSet");
 
@@ -458,6 +515,7 @@ public class InstanceLongField {
     testGetVolatile(varHandle);
     testSet(varHandle);
     testSetVolatile(varHandle);
+    testSetRelease(varHandle);
     testCompareAndSet(varHandle);
     testWeakCompareAndSet(varHandle);
   }

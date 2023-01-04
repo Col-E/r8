@@ -77,6 +77,18 @@ public final class DesugarVarHandle {
       throw new RuntimeException("Stub called.");
     }
 
+    public void putOrderedInt(Object obj, long offset, int newValue) {
+      throw new RuntimeException("Stub called.");
+    }
+
+    public void putOrderedLong(Object obj, long offset, long newValue) {
+      throw new RuntimeException("Stub called.");
+    }
+
+    public void putOrderedObject(Object obj, long offset, Object newValue) {
+      throw new RuntimeException("Stub called.");
+    }
+
     public int arrayBaseOffset(Class<?> clazz) {
       throw new RuntimeException("Stub called.");
     }
@@ -342,6 +354,37 @@ public final class DesugarVarHandle {
     }
   }
 
+  // setRelease variants.
+  void setRelease(Object ct1, Object newValue) {
+    if (type == int.class) {
+      setReleaseInt(ct1, toIntIfPossible(newValue, false));
+    } else if (type == long.class) {
+      setReleaseLong(ct1, toLongIfPossible(newValue, false));
+    } else {
+      U.putOrderedObject(ct1, offset, newValue);
+    }
+  }
+
+  void setReleaseInt(Object ct1, int newValue) {
+    if (type == int.class) {
+      U.putOrderedInt(ct1, offset, newValue);
+    } else if (type == long.class) {
+      U.putOrderedLong(ct1, offset, newValue);
+    } else {
+      setRelease(ct1, newValue);
+    }
+  }
+
+  void setReleaseLong(Object ct1, long newValue) {
+    if (type == long.class) {
+      U.putOrderedLong(ct1, offset, newValue);
+    } else if (type == int.class) {
+      throw desugarWrongMethodTypeException();
+    } else {
+      U.putOrderedObject(ct1, offset, Long.valueOf(newValue));
+    }
+  }
+
   boolean compareAndSet(Object ct1, Object expectedValue, Object newValue) {
     if (type == int.class) {
       return U.compareAndSwapInt(
@@ -570,6 +613,37 @@ public final class DesugarVarHandle {
     }
     long elementOffset = offset + ((long) ct2) * arrayIndexScale;
     U.putLongVolatile(ct1, elementOffset, newValue);
+  }
+
+  // setRelease array variants.
+  void setReleaseArray(Object ct1, int ct2, Object newValue) {
+    if (!recv.isArray() || recv != ct1.getClass()) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    if (recv == int[].class) {
+      U.putOrderedInt(ct1, elementOffset, toIntIfPossible(newValue, false));
+    } else if (recv == long[].class) {
+      U.putOrderedLong(ct1, elementOffset, toLongIfPossible(newValue, false));
+    } else {
+      U.putOrderedObject(ct1, elementOffset, newValue);
+    }
+  }
+
+  void setReleaseArrayInt(int[] ct1, int ct2, int newValue) {
+    if (recv != int[].class) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    U.putOrderedInt(ct1, elementOffset, newValue);
+  }
+
+  void setReleaseArrayLong(long[] ct1, int ct2, long newValue) {
+    if (recv != long[].class) {
+      throw new UnsupportedOperationException();
+    }
+    long elementOffset = offset + ((long) ct2) * arrayIndexScale;
+    U.putOrderedLong(ct1, elementOffset, newValue);
   }
 
   // compareAndSet array variants.
