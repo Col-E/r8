@@ -274,7 +274,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public void configureAndroidPlatformBuild(boolean isAndroidPlatformBuild) {
     assert !androidPlatformBuild;
-    if (isAndroidPlatformBuildOrMinApiPlatform()) {
+    if (isAndroidPlatformBuild || minApiLevel.isPlatform()) {
       apiModelingOptions().disableApiModeling();
     }
     if (!isAndroidPlatformBuild) {
@@ -288,10 +288,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public boolean isAndroidPlatformBuild() {
     return androidPlatformBuild;
-  }
-
-  public boolean isAndroidPlatformBuildOrMinApiPlatform() {
-    return androidPlatformBuild || minApiLevel.isPlatform();
   }
 
   public boolean printTimes = System.getProperty("com.android.tools.r8.printtimes") != null;

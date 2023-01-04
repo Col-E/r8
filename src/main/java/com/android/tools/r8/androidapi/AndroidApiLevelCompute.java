@@ -74,6 +74,9 @@ public abstract class AndroidApiLevelCompute {
     return new KnownApiLevel(options.getMinApiLevel());
   }
 
+  // TODO(b/213552119): This should not be necessary if we have an api computation that returns min
+  //  api if we have platform.
+  @Deprecated
   public ComputedApiLevel getPlatformApiLevelOrUnknown(AppView<?> appView) {
     if (appView.options().getMinApiLevel() == AndroidApiLevel.ANDROID_PLATFORM) {
       return ComputedApiLevel.platform();
