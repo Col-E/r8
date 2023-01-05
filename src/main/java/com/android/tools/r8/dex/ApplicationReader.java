@@ -302,7 +302,10 @@ public class ApplicationReader {
     private final Queue<DexClasspathClass> classpathClasses = new ConcurrentLinkedQueue<>();
     private final Queue<DexLibraryClass> libraryClasses = new ConcurrentLinkedQueue<>();
     // Jar application reader to share across all class readers.
-    private final JarApplicationReader application = new JarApplicationReader(options);
+    private final DexApplicationReadFlags.Builder readFlagsBuilder =
+        DexApplicationReadFlags.builder();
+    private final JarApplicationReader application =
+        new JarApplicationReader(options, readFlagsBuilder);
 
     // Flag of which input resource types have flown into the program classes.
     // Note that this is just at the level of the resources having been given.
@@ -317,12 +320,10 @@ public class ApplicationReader {
     }
 
     public DexApplicationReadFlags getDexApplicationReadFlags() {
-      return new DexApplicationReadFlags(
-          hasReadProgramResourceFromDex,
-          hasReadProgramResourceFromCf,
-          application.getRecordWitnesses(),
-          application.getVarHandleWitnesses(),
-          application.getMethodHandlesLookupWitnesses());
+      return readFlagsBuilder
+          .setHasReadProgramClassFromDex(hasReadProgramResourceFromDex)
+          .setHasReadProgramClassFromCf(hasReadProgramResourceFromCf)
+          .build();
     }
 
     private void readDexSources(List<ProgramResource> dexSources, Queue<DexProgramClass> classes)

@@ -8,9 +8,7 @@ import com.android.tools.r8.ir.desugar.records.RecordDesugaring;
 import com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaring;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.collect.Sets;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.objectweb.asm.Type;
 
@@ -28,15 +26,17 @@ public class JarApplicationReader {
   private final ConcurrentHashMap<String, Type> asmTypeCache = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, DexString> stringCache = new ConcurrentHashMap<>();
   private final ApplicationReaderMap applicationReaderMap;
-  private final Set<DexType> recordWitnesses = Sets.newConcurrentHashSet();
-  private final Set<DexType> varHandleWitnesses = Sets.newConcurrentHashSet();
-  private final Set<DexType> methodHandlesLookupWitnesses = Sets.newConcurrentHashSet();
+  private final DexApplicationReadFlags.Builder readFlagsBuilder;
 
-  private boolean hasReadRecordReferenceFromProgramClass = false;
+  public JarApplicationReader(
+      InternalOptions options, DexApplicationReadFlags.Builder readFlagsBuilder) {
+    this.options = options;
+    this.readFlagsBuilder = readFlagsBuilder;
+    applicationReaderMap = ApplicationReaderMap.getInstance(options);
+  }
 
   public JarApplicationReader(InternalOptions options) {
-    this.options = options;
-    applicationReaderMap = ApplicationReaderMap.getInstance(options);
+    this(options, DexApplicationReadFlags.builder());
   }
 
   public Type getAsmObjectType(String name) {
@@ -160,12 +160,8 @@ public class JarApplicationReader {
 
   public void addRecordWitness(DexType witness, ClassKind<?> classKind) {
     if (classKind == ClassKind.PROGRAM) {
-      recordWitnesses.add(witness);
+      readFlagsBuilder.addRecordWitness(witness);
     }
-  }
-
-  public Set<DexType> getRecordWitnesses() {
-    return recordWitnesses;
   }
 
   public void checkFieldForRecord(DexField dexField, ClassKind<?> classKind) {
@@ -183,12 +179,8 @@ public class JarApplicationReader {
 
   public void addVarHandleWitness(DexType witness, ClassKind<?> classKind) {
     if (classKind == ClassKind.PROGRAM) {
-      varHandleWitnesses.add(witness);
+      readFlagsBuilder.addVarHandleWitness(witness);
     }
-  }
-
-  public Set<DexType> getVarHandleWitnesses() {
-    return varHandleWitnesses;
   }
 
   public void checkFieldForVarHandle(DexField dexField, ClassKind<?> classKind) {
@@ -207,12 +199,8 @@ public class JarApplicationReader {
 
   public void addMethodHandlesLookupWitness(DexType witness, ClassKind<?> classKind) {
     if (classKind == ClassKind.PROGRAM) {
-      methodHandlesLookupWitnesses.add(witness);
+      readFlagsBuilder.addMethodHandlesLookupWitness(witness);
     }
-  }
-
-  public Set<DexType> getMethodHandlesLookupWitnesses() {
-    return methodHandlesLookupWitnesses;
   }
 
   public void checkClassForMethodHandlesLookup(DexClass dexClass, ClassKind<?> classKind) {
