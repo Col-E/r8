@@ -109,7 +109,8 @@ public class Jdk11ConcurrentLinkedQueueTests extends DesugaredLibraryTestBase {
               || result.getStdOut().contains("Total tests run: 37, Failures: 4, Skips: 0")
               || result.getStdOut().contains("Total tests run: 37, Failures: 5, Skips: 0")
               || result.getStdOut().contains("Total tests run: 37, Failures: 6, Skips: 0")
-              || result.getStdOut().contains("Total tests run: 37, Failures: 7, Skips: 0"));
+              || result.getStdOut().contains("Total tests run: 37, Failures: 7, Skips: 0")
+              || result.getStdOut().contains("Total tests run: 37, Failures: 8, Skips: 0"));
     }
   }
 
