@@ -93,7 +93,7 @@ public class ApiModelClassMergingPackagePrivateTest extends TestBase {
         .compile()
         .addBootClasspathClasses(Api1.class, Api2.class)
         .run(parameters.getRuntime(), Main.class)
-        .apply(result -> checkOutput(result, false));
+        .apply(this::checkOutput);
   }
 
   @Test
@@ -101,11 +101,12 @@ public class ApiModelClassMergingPackagePrivateTest extends TestBase {
     testForD8(parameters.getBackend())
         .setMode(CompilationMode.RELEASE)
         .apply(this::setupTestBuilder)
-        .addHorizontallyMergedClassesInspector(this::inspectHorizontallyMergedClasses)
+        .addHorizontallyMergedClassesInspector(
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .compile()
         .addBootClasspathClasses(Api1.class, Api2.class)
         .run(parameters.getRuntime(), Main.class)
-        .apply(result -> checkOutput(result, true));
+        .apply(this::checkOutput);
   }
 
   @Test
@@ -121,14 +122,13 @@ public class ApiModelClassMergingPackagePrivateTest extends TestBase {
         .compile()
         .addBootClasspathClasses(Api1.class, Api2.class)
         .run(parameters.getRuntime(), Main.class)
-        .apply(result -> checkOutput(result, false));
+        .apply(this::checkOutput);
   }
 
   private void inspectHorizontallyMergedClasses(HorizontallyMergedClassesInspector inspector) {
     if (isGreaterOrEqualToMockLevel()) {
       inspector.assertNoClassesMerged();
     } else {
-      // TODO(b/264390177): We should not merge the two api outlines.
       inspector.assertClassReferencesMerged(
           SyntheticItemsTestUtils.syntheticApiOutlineClass(Reference.classFromClass(Main.class), 0),
           SyntheticItemsTestUtils.syntheticApiOutlineClass(
@@ -136,16 +136,8 @@ public class ApiModelClassMergingPackagePrivateTest extends TestBase {
     }
   }
 
-  private void checkOutput(SingleTestRunResult<?> runResult, boolean isD8Release) {
-    if (!isD8Release || isGreaterOrEqualToMockLevel()) {
-      runResult.assertSuccessWithOutputLines("Api1::foo", "Api2::foo");
-    } else if (parameters.isDexRuntime() && !parameters.getDexRuntimeVersion().isDalvik()) {
-      // TODO(b/264523290): This should have been IllegalAccessError.
-      runResult.assertSuccessWithOutputLines("Api1::foo", "Api2::foo");
-    } else {
-      // TODO(b/264390177): This should not be an error.
-      runResult.assertFailureWithErrorThatThrows(IllegalAccessError.class);
-    }
+  private void checkOutput(SingleTestRunResult<?> runResult) {
+    runResult.assertSuccessWithOutputLines("Api1::foo", "Api2::foo");
   }
 
   public static class Api1 {
