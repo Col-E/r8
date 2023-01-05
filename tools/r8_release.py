@@ -562,30 +562,40 @@ def prepare_desugar_library(args):
     configuration_version = args.desugar_library[1]
 
     # TODO(b/237636871): Cleanup and generalize.
-    if (not (library_version.startswith('1.1') or library_version.startswith('1.2'))):
+    if (not (library_version.startswith('1.1')
+        or library_version.startswith('1.2')
+        or library_version.startswith('2.0'))):
       print("Release script does not support desugared library version %s"
         % library_version)
       sys.exit(1)
 
-    postfix = "" if library_version.startswith('1.1') else '_jdk11_legacy'
-    library_archive = DESUGAR_JDK_LIBS + postfix + '.zip'
-    library_jar = DESUGAR_JDK_LIBS + postfix + '.jar'
-
-    configuration_archive = DESUGAR_JDK_LIBS_CONFIGURATION + postfix + '.zip'
+    postfixes = ['']
+    if library_version.startswith('1.2'):
+      postfixes = ['_legacy']
+    if library_version.startswith('2.0'):
+      postfixes = ['_minimal', '', '_nio']
 
     with utils.TempDir() as temp:
       with utils.ChangedWorkingDirectory(temp):
-        library_gfile = ('/bigstore/r8-releases/raw/%s/%s/%s'
-              % (DESUGAR_JDK_LIBS, library_version, library_archive))
-        configuration_gfile = ('/bigstore/r8-releases/raw/main/%s/%s'
-              % (configuration_version, configuration_archive))
+        artifacts = []
+        for postfix in postfixes:
+          group_postfix = ('' if postfix == '_legacy' else postfix)
+          archive_postfix = (postfix if library_version.startswith('1.1') else '_jdk11' + postfix)
+          library_jar = DESUGAR_JDK_LIBS + postfix + '.jar'
+          library_archive = DESUGAR_JDK_LIBS + archive_postfix + '.zip'
+          configuration_archive = DESUGAR_JDK_LIBS_CONFIGURATION + archive_postfix + '.zip'
+          library_gfile = ('/bigstore/r8-releases/raw/%s/%s/%s'
+                % (DESUGAR_JDK_LIBS + group_postfix, library_version, library_archive))
+          configuration_gfile = ('/bigstore/r8-releases/raw/main/%s/%s'
+                % (configuration_version, configuration_archive))
 
-        download_gfile(library_gfile, library_archive)
-        download_gfile(configuration_gfile, configuration_archive)
-        check_configuration(configuration_archive)
+          download_gfile(library_gfile, library_archive)
+          download_gfile(configuration_gfile, configuration_archive)
+          check_configuration(configuration_archive, group_postfix)
+          artifacts.append(library_gfile)
+          artifacts.append(configuration_gfile)
 
-        release_id = gmaven_publisher_stage(
-            args, [library_gfile, configuration_gfile])
+        release_id = gmaven_publisher_stage(args, artifacts)
 
         print("Staged Release ID " + release_id + ".\n")
         library_artifact_id = \
@@ -610,11 +620,11 @@ def prepare_desugar_library(args):
   return make_release
 
 
-def check_configuration(configuration_archive):
+def check_configuration(configuration_archive, postfix):
   zip = zipfile.ZipFile(configuration_archive)
   zip.extractall()
   dirs = os.listdir(
-    os.path.join('com', 'android', 'tools', DESUGAR_JDK_LIBS_CONFIGURATION))
+    os.path.join('com', 'android', 'tools', DESUGAR_JDK_LIBS_CONFIGURATION + postfix))
   if len(dirs) != 1:
     print('Unexpected archive content, %s' + dirs)
     sys.exit(1)
@@ -624,9 +634,9 @@ def check_configuration(configuration_archive):
     'com',
     'android',
     'tools',
-    DESUGAR_JDK_LIBS_CONFIGURATION,
+    DESUGAR_JDK_LIBS_CONFIGURATION + postfix,
     version,
-    '%s-%s.pom' % (DESUGAR_JDK_LIBS_CONFIGURATION, version))
+    '%s-%s.pom' % (DESUGAR_JDK_LIBS_CONFIGURATION + postfix, version))
   version_from_pom = extract_version_from_pom(pom_file)
   if version != version_from_pom:
     print('Version mismatch, %s != %s' % (version, version_from_pom))
