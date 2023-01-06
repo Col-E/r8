@@ -19,29 +19,33 @@ public final class KeepCondition {
 
   public static class Builder {
 
-    private KeepItemPattern itemPattern;
+    private KeepItemReference item;
 
     private Builder() {}
 
-    public Builder setItem(KeepItemPattern itemPattern) {
-      this.itemPattern = itemPattern;
+    public Builder setItemReference(KeepItemReference item) {
+      this.item = item;
       return this;
     }
 
+    public Builder setItemPattern(KeepItemPattern itemPattern) {
+      return setItemReference(KeepItemReference.fromItemPattern(itemPattern));
+    }
+
     public KeepCondition build() {
-      return new KeepCondition(itemPattern);
+      return new KeepCondition(item);
     }
   }
 
-  private final KeepItemPattern itemPattern;
+  private final KeepItemReference item;
 
-  private KeepCondition(KeepItemPattern itemPattern) {
-    assert itemPattern != null;
-    this.itemPattern = itemPattern;
+  private KeepCondition(KeepItemReference item) {
+    assert item != null;
+    this.item = item;
   }
 
-  public KeepItemPattern getItemPattern() {
-    return itemPattern;
+  public KeepItemReference getItem() {
+    return item;
   }
 
   @Override
@@ -53,16 +57,16 @@ public final class KeepCondition {
       return false;
     }
     KeepCondition that = (KeepCondition) o;
-    return itemPattern.equals(that.itemPattern);
+    return item.equals(that.item);
   }
 
   @Override
   public int hashCode() {
-    return itemPattern.hashCode();
+    return item.hashCode();
   }
 
   @Override
   public String toString() {
-    return itemPattern.toString();
+    return item.toString();
   }
 }

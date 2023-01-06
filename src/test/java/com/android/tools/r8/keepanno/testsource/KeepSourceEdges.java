@@ -133,11 +133,11 @@ public class KeepSourceEdges {
   }
 
   static KeepTarget mkTarget(KeepItemPattern item) {
-    return KeepTarget.builder().setItem(item).build();
+    return KeepTarget.builder().setItemPattern(item).build();
   }
 
   static KeepCondition mkCondition(KeepItemPattern item) {
-    return KeepCondition.builder().setItem(item).build();
+    return KeepCondition.builder().setItemPattern(item).build();
   }
 
   static KeepConsequences mkConsequences(KeepTarget... targets) {

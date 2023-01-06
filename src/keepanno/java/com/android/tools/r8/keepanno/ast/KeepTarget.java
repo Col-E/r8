@@ -9,14 +9,18 @@ public class KeepTarget {
 
   public static class Builder {
 
-    private KeepItemPattern item;
+    private KeepItemReference item;
     private KeepOptions options = KeepOptions.keepAll();
 
     private Builder() {}
 
-    public Builder setItem(KeepItemPattern item) {
+    public Builder setItemReference(KeepItemReference item) {
       this.item = item;
       return this;
+    }
+
+    public Builder setItemPattern(KeepItemPattern itemPattern) {
+      return setItemReference(KeepItemReference.fromItemPattern(itemPattern));
     }
 
     public Builder setOptions(KeepOptions options) {
@@ -32,10 +36,10 @@ public class KeepTarget {
     }
   }
 
-  private final KeepItemPattern item;
+  private final KeepItemReference item;
   private final KeepOptions options;
 
-  private KeepTarget(KeepItemPattern item, KeepOptions options) {
+  private KeepTarget(KeepItemReference item, KeepOptions options) {
     assert item != null;
     assert options != null;
     this.item = item;
@@ -46,7 +50,7 @@ public class KeepTarget {
     return new Builder();
   }
 
-  public KeepItemPattern getItem() {
+  public KeepItemReference getItem() {
     return item;
   }
 

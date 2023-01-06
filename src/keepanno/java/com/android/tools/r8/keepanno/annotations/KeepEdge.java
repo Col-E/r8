@@ -13,6 +13,8 @@ import java.lang.annotation.Target;
 public @interface KeepEdge {
   String description() default "";
 
+  KeepBinding[] bindings() default {};
+
   KeepCondition[] preconditions() default {};
 
   KeepTarget[] consequences();

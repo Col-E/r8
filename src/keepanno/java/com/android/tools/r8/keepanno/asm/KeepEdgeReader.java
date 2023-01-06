@@ -4,11 +4,14 @@
 package com.android.tools.r8.keepanno.asm;
 
 import com.android.tools.r8.keepanno.annotations.KeepConstants;
+import com.android.tools.r8.keepanno.annotations.KeepConstants.Binding;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Condition;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Edge;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Item;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Option;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Target;
+import com.android.tools.r8.keepanno.ast.KeepBindings;
+import com.android.tools.r8.keepanno.ast.KeepClassReference;
 import com.android.tools.r8.keepanno.ast.KeepCondition;
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
@@ -278,6 +281,9 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     public AnnotationVisitor visitArray(String name) {
+      if (name.equals(Edge.bindings)) {
+        return new KeepBindingsVisitor(builder::setBindings);
+      }
       if (name.equals(Edge.preconditions)) {
         return new KeepPreconditionsVisitor(builder::setPreconditions);
       }
@@ -304,7 +310,7 @@ public class KeepEdgeReader implements Opcodes {
         Consumer<KeepEdgeMetaInfo.Builder> addContext,
         KeepItemPattern context) {
       this.parent = parent;
-      preconditions.addCondition(KeepCondition.builder().setItem(context).build());
+      preconditions.addCondition(KeepCondition.builder().setItemPattern(context).build());
       addContext.accept(metaInfoBuilder);
     }
 
@@ -338,6 +344,28 @@ public class KeepEdgeReader implements Opcodes {
               .setMetaInfo(metaInfoBuilder.build())
               .setPreconditions(preconditions.build())
               .build());
+    }
+  }
+
+  private static class KeepBindingsVisitor extends AnnotationVisitorBase {
+    private final Parent<KeepBindings> parent;
+    private final KeepBindings.Builder builder = KeepBindings.builder();
+
+    public KeepBindingsVisitor(Parent<KeepBindings> parent) {
+      this.parent = parent;
+    }
+
+    @Override
+    public AnnotationVisitor visitAnnotation(String name, String descriptor) {
+      if (descriptor.equals(KeepConstants.Binding.DESCRIPTOR)) {
+        return new KeepBindingVisitor(builder);
+      }
+      return super.visitAnnotation(name, descriptor);
+    }
+
+    @Override
+    public void visitEnd() {
+      parent.accept(builder.build());
     }
   }
 
@@ -461,24 +489,31 @@ public class KeepEdgeReader implements Opcodes {
     }
   }
 
-  private static class ClassDeclaration extends SingleDeclaration<KeepQualifiedClassNamePattern> {
+  private static class ClassDeclaration extends SingleDeclaration<KeepClassReference> {
     @Override
     String kind() {
       return "class";
     }
 
-    @Override
-    KeepQualifiedClassNamePattern getDefaultValue() {
-      return KeepQualifiedClassNamePattern.any();
+    KeepClassReference wrap(KeepQualifiedClassNamePattern namePattern) {
+      return KeepClassReference.fromClassNamePattern(namePattern);
     }
 
     @Override
-    KeepQualifiedClassNamePattern parse(String name, Object value) {
+    KeepClassReference getDefaultValue() {
+      return wrap(KeepQualifiedClassNamePattern.any());
+    }
+
+    @Override
+    KeepClassReference parse(String name, Object value) {
+      if (name.equals(Item.classFromBinding) && value instanceof String) {
+        return KeepClassReference.fromBindingReference((String) value);
+      }
       if (name.equals(Item.classConstant) && value instanceof Type) {
-        return KeepQualifiedClassNamePattern.exact(((Type) value).getClassName());
+        return wrap(KeepQualifiedClassNamePattern.exact(((Type) value).getClassName()));
       }
       if (name.equals(Item.className) && value instanceof String) {
-        return KeepQualifiedClassNamePattern.exact(((String) value));
+        return wrap(KeepQualifiedClassNamePattern.exact(((String) value)));
       }
       return null;
     }
@@ -659,12 +694,20 @@ public class KeepEdgeReader implements Opcodes {
   }
 
   private abstract static class KeepItemVisitorBase extends AnnotationVisitorBase {
-    private final Parent<KeepItemPattern> parent;
+    private Parent<KeepItemPattern> parent;
     private final ClassDeclaration classDeclaration = new ClassDeclaration();
     private final ExtendsDeclaration extendsDeclaration = new ExtendsDeclaration();
     private final MemberDeclaration memberDeclaration = new MemberDeclaration();
 
     public KeepItemVisitorBase(Parent<KeepItemPattern> parent) {
+      setParent(parent);
+    }
+
+    public KeepItemVisitorBase() {}
+
+    void setParent(Parent<KeepItemPattern> parent) {
+      assert parent != null;
+      assert this.parent == null;
       this.parent = parent;
     }
 
@@ -691,10 +734,37 @@ public class KeepEdgeReader implements Opcodes {
     public void visitEnd() {
       parent.accept(
           KeepItemPattern.builder()
-              .setClassPattern(classDeclaration.getValue())
+              .setClassReference(classDeclaration.getValue())
               .setExtendsPattern(extendsDeclaration.getValue())
               .setMemberPattern(memberDeclaration.getValue())
               .build());
+    }
+  }
+
+  private static class KeepBindingVisitor extends KeepItemVisitorBase {
+
+    private final KeepBindings.Builder builder;
+    private String bindingName;
+    private KeepItemPattern item;
+
+    public KeepBindingVisitor(KeepBindings.Builder builder) {
+      this.builder = builder;
+      setParent(item -> this.item = item);
+    }
+
+    @Override
+    public void visit(String name, Object value) {
+      if (name.equals(Binding.bindingName) && value instanceof String) {
+        bindingName = (String) value;
+        return;
+      }
+      super.visit(name, value);
+    }
+
+    @Override
+    public void visitEnd() {
+      super.visitEnd();
+      builder.addBinding(bindingName, item);
     }
   }
 
@@ -765,7 +835,7 @@ public class KeepEdgeReader implements Opcodes {
     }
 
     private KeepTargetVisitor(Parent<KeepTarget> parent, KeepTarget.Builder builder) {
-      super(item -> parent.accept(builder.setItem(item).build()));
+      super(item -> parent.accept(builder.setItemPattern(item).build()));
       this.builder = builder;
     }
 
@@ -782,7 +852,7 @@ public class KeepEdgeReader implements Opcodes {
   private static class KeepConditionVisitor extends KeepItemVisitorBase {
 
     public KeepConditionVisitor(Parent<KeepCondition> parent) {
-      super(item -> parent.accept(KeepCondition.builder().setItem(item).build()));
+      super(item -> parent.accept(KeepCondition.builder().setItemPattern(item).build()));
     }
   }
 

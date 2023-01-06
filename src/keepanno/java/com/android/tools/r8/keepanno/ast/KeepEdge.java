@@ -19,27 +19,40 @@ import java.util.Objects;
  * <p>TODO(b/248408342): Update the BNF and AST to be complete.
  *
  * <pre>
- *   EDGE ::= METAINFO PRECONDITIONS -> CONSEQUENCES
- *   METAINFO = [CONTEXT] [DESCRIPTION]
- *   CONTEXT = class-descriptor | method-descriptor | field-descriptor
- *   DESCRIPTION = string-content
+ *   EDGE ::= METAINFO BINDINGS PRECONDITIONS -> CONSEQUENCES
+ *   METAINFO ::= [CONTEXT] [DESCRIPTION]
+ *   CONTEXT ::= class-descriptor | method-descriptor | field-descriptor
+ *   DESCRIPTION ::= string-content
+ *
+ *   BINDINGS ::= (BINDING_NAME = ITEM_PATTERN)*
+ *   BINDING_NAME ::= string-content
+ *   BINDING_REFERENCE ::= BINDING_NAME
  *
  *   PRECONDITIONS ::= always | CONDITION+
- *   CONDITION ::= ITEM_PATTERN
+ *   CONDITION ::= ITEM_REFERENCE
  *
  *   CONSEQUENCES ::= TARGET+
- *   TARGET ::= OPTIONS ITEM_PATTERN
+ *   TARGET ::= OPTIONS ITEM_REFERENCE
  *   OPTIONS ::= keep-all | OPTION+
  *   OPTION ::= shrinking | optimizing | obfuscating | access-modification | annotation-removal
  *
+ *   ITEM_REFERENCE  ::= BINDING_REFERENCE | ITEM_PATTERN
+ *   CLASS_REFERENCE ::= BINDING_REFERENCE | QUALIFIED_CLASS_NAME_PATTERN
+ *
  *   ITEM_PATTERN
  *     ::= any
- *       | class QUALIFIED_CLASS_NAME_PATTERN extends EXTENDS_PATTERN { MEMBER_PATTERN }
+ *       | class CLASS_REFERENCE extends EXTENDS_PATTERN { MEMBER_PATTERN }
  *
  *   TYPE_PATTERN ::= any | exact type-descriptor
  *   PACKAGE_PATTERN ::= any | exact package-name
- *   QUALIFIED_CLASS_NAME_PATTERN ::= any | PACKAGE_PATTERN | UNQUALIFIED_CLASS_NAME_PATTERN
+ *
+ *   QUALIFIED_CLASS_NAME_PATTERN
+ *     ::= any
+ *       | PACKAGE_PATTERN UNQUALIFIED_CLASS_NAME_PATTERN
+ *       | BINDING_REFERENCE
+ *
  *   UNQUALIFIED_CLASS_NAME_PATTERN ::= any | exact simple-class-name
+ *
  *   EXTENDS_PATTERN ::= any | QUALIFIED_CLASS_NAME_PATTERN
  *
  *   MEMBER_PATTERN ::= none | all | FIELD_PATTERN | METHOD_PATTERN
@@ -65,10 +78,21 @@ public final class KeepEdge {
 
   public static class Builder {
     private KeepEdgeMetaInfo metaInfo = KeepEdgeMetaInfo.none();
+    private KeepBindings bindings = KeepBindings.none();
     private KeepPreconditions preconditions = KeepPreconditions.always();
     private KeepConsequences consequences;
 
     private Builder() {}
+
+    public Builder setMetaInfo(KeepEdgeMetaInfo metaInfo) {
+      this.metaInfo = metaInfo;
+      return this;
+    }
+
+    public Builder setBindings(KeepBindings bindings) {
+      this.bindings = bindings;
+      return this;
+    }
 
     public Builder setPreconditions(KeepPreconditions preconditions) {
       this.preconditions = preconditions;
@@ -80,16 +104,11 @@ public final class KeepEdge {
       return this;
     }
 
-    public Builder setMetaInfo(KeepEdgeMetaInfo metaInfo) {
-      this.metaInfo = metaInfo;
-      return this;
-    }
-
     public KeepEdge build() {
       if (consequences.isEmpty()) {
         throw new KeepEdgeException("KeepEdge must have non-empty set of consequences.");
       }
-      return new KeepEdge(preconditions, consequences, metaInfo);
+      return new KeepEdge(metaInfo, bindings, preconditions, consequences);
     }
   }
 
@@ -98,21 +117,31 @@ public final class KeepEdge {
   }
 
   private final KeepEdgeMetaInfo metaInfo;
+  private final KeepBindings bindings;
   private final KeepPreconditions preconditions;
   private final KeepConsequences consequences;
 
   private KeepEdge(
-      KeepPreconditions preconditions, KeepConsequences consequences, KeepEdgeMetaInfo metaInfo) {
+      KeepEdgeMetaInfo metaInfo,
+      KeepBindings bindings,
+      KeepPreconditions preconditions,
+      KeepConsequences consequences) {
+    assert metaInfo != null;
+    assert bindings != null;
     assert preconditions != null;
     assert consequences != null;
-    assert metaInfo != null;
+    this.metaInfo = metaInfo;
+    this.bindings = bindings;
     this.preconditions = preconditions;
     this.consequences = consequences;
-    this.metaInfo = metaInfo;
   }
 
   public KeepEdgeMetaInfo getMetaInfo() {
     return metaInfo;
+  }
+
+  public KeepBindings getBindings() {
+    return bindings;
   }
 
   public KeepPreconditions getPreconditions() {

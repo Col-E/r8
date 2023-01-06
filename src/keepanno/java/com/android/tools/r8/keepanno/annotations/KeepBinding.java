@@ -3,19 +3,19 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.annotations;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
 /**
- * A condition for a keep edge.
+ * A binding of a keep item.
+ *
+ * <p>A binding allows referencing the exact instance of a match from a condition in other
+ * conditions and/or targets. It can also be used to reduce duplication of targets by sharing
+ * patterns.
  *
  * <p>See KeepTarget for documentation on specifying an item pattern.
  */
-@Target(ElementType.ANNOTATION_TYPE)
-@Retention(RetentionPolicy.CLASS)
-public @interface KeepCondition {
+public @interface KeepBinding {
+
+  /** Name with which other bindings, conditions or targets can reference the bound item pattern. */
+  String bindingName();
 
   String classFromBinding() default "";
 
@@ -26,8 +26,6 @@ public @interface KeepCondition {
   String extendsClassName() default "";
 
   Class<?> extendsClassConstant() default Object.class;
-
-  String memberFromBinding() default "";
 
   String methodName() default "";
 

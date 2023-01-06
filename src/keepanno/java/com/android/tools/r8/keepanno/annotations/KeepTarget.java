@@ -14,9 +14,9 @@ import java.lang.annotation.Target;
  * <p>The target denotes a keep item along with options for what to keep:
  *
  * <ul>
- *   <li>a class, or pattern on classes;
- *   <li>a method, or pattern on methods; or
- *   <li>a field, or pattern on fields.
+ *   <li>a pattern on classes;
+ *   <li>a pattern on methods; or
+ *   <li>a pattern on fields.
  * </ul>
  *
  * <p>The structure of a target item is the same as for a condition item but has the additional keep
@@ -26,29 +26,119 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.CLASS)
 public @interface KeepTarget {
 
-  // KeepTarget only content (keep options) =========
-
+  /**
+   * Define the options that do not need to be preserved for the target.
+   *
+   * <p>Mutually exclusive with `disallow`.
+   *
+   * <p>If none are specified the default is "allow none" / "disallow all".
+   */
   KeepOption[] allow() default {};
 
+  /**
+   * Define the options that *must* be preserved for the target.
+   *
+   * <p>Mutually exclusive with `allow`.
+   *
+   * <p>If none are specified the default is "allow none" / "disallow all".
+   */
   KeepOption[] disallow() default {};
 
-  // Shared KeepItem content ========================
+  /**
+   * Define the class-name pattern by reference to a binding.
+   *
+   * <p>Mutually exclusive with `className` and `classConstant`.
+   *
+   * <p>If none are specified the default is to match any class.
+   */
+  String classFromBinding() default "";
 
+  /**
+   * Define the class-name pattern by fully qualified class name.
+   *
+   * <p>Mutually exclusive with `classFromBinding` and `classConstant`.
+   *
+   * <p>If none are specified the default is to match any class.
+   */
   String className() default "";
 
+  /**
+   * Define the class-name pattern by reference to a Class constant.
+   *
+   * <p>Mutually exclusive with `classFromBinding` and `className`.
+   *
+   * <p>If none are specified the default is to match any class.
+   */
   Class<?> classConstant() default Object.class;
 
+  /**
+   * Define the extends pattern by fully qualified class name.
+   *
+   * <p>Mutually exclusive with `extendsClassConstant`.
+   *
+   * <p>If none are specified the default is to match any extends clause.
+   */
   String extendsClassName() default "";
 
+  /**
+   * Define the extends pattern by Class constant.
+   *
+   * <p>Mutually exclusive with `extendsClassName`.
+   *
+   * <p>If none are specified the default is to match any extends clause.
+   */
   Class<?> extendsClassConstant() default Object.class;
 
+  /**
+   * Define the member pattern in full by a reference to a binding.
+   *
+   * <p>Mutually exclusive with all other pattern properties. When a member binding is referenced
+   * this item is defined to be that item, including its class and member patterns.
+   */
+  String memberFromBinding() default "";
+
+  /**
+   * Define the method-name pattern by an exact method name.
+   *
+   * <p>Mutually exclusive with any field properties.
+   *
+   * <p>If none and other properties define this as a method the default matches any method name.
+   */
   String methodName() default "";
 
+  /**
+   * Define the method return-type pattern by a fully qualified type or 'void'.
+   *
+   * <p>Mutually exclusive with any field properties.
+   *
+   * <p>If none and other properties define this as a method the default matches any return type.
+   */
   String methodReturnType() default "";
 
+  /**
+   * Define the method parameters pattern by a list of fully qualified types.
+   *
+   * <p>Mutually exclusive with any field properties.
+   *
+   * <p>If none and other properties define this as a method the default matches any parameters.
+   */
   String[] methodParameters() default {""};
 
+  /**
+   * Define the field-name pattern by an exact field name.
+   *
+   * <p>Mutually exclusive with any method properties.
+   *
+   * <p>If none and other properties define this as a field the default matches any field name.
+   */
   String fieldName() default "";
 
+  /**
+   * Define the field-type pattern by a fully qualified type.
+   *
+   * <p>Mutually exclusive with any method properties.
+   *
+   * <p>If none and other properties define this as a field the default matches any field type.
+   */
   String fieldType() default "";
 }

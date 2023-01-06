@@ -8,6 +8,7 @@ import com.android.tools.r8.keepanno.annotations.KeepConstants.Condition;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Edge;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Item;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Target;
+import com.android.tools.r8.keepanno.ast.KeepClassReference;
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
@@ -53,7 +54,10 @@ public class KeepEdgeWriter implements Opcodes {
         condition -> {
           AnnotationVisitor conditionVisitor =
               arrayVisitor.visitAnnotation(ignoredArrayValueName, Condition.DESCRIPTOR);
-          writeItem(conditionVisitor, condition.getItemPattern());
+          if (condition.getItem().isBindingReference()) {
+            throw new Unimplemented();
+          }
+          writeItem(conditionVisitor, condition.getItem().asItemPattern());
         });
     arrayVisitor.visitEnd();
   }
@@ -70,16 +74,26 @@ public class KeepEdgeWriter implements Opcodes {
           if (!target.getOptions().isKeepAll()) {
             throw new Unimplemented();
           }
-          writeItem(targetVisitor, target.getItem());
+          if (target.getItem().isBindingReference()) {
+            throw new Unimplemented();
+          }
+          writeItem(targetVisitor, target.getItem().asItemPattern());
         });
     arrayVisitor.visitEnd();
   }
 
   private void writeItem(AnnotationVisitor itemVisitor, KeepItemPattern item) {
-    if (item.isAny()) {
+    if (item.isAny(
+        binding -> {
+          throw new Unimplemented();
+        })) {
       throw new Unimplemented();
     }
-    KeepQualifiedClassNamePattern namePattern = item.getClassNamePattern();
+    KeepClassReference classReference = item.getClassReference();
+    if (classReference.isBindingReference()) {
+      throw new Unimplemented();
+    }
+    KeepQualifiedClassNamePattern namePattern = classReference.asClassNamePattern();
     if (namePattern.isExact()) {
       Type typeConstant = Type.getType(namePattern.getExactDescriptor());
       itemVisitor.visit(KeepConstants.Item.classConstant, typeConstant);

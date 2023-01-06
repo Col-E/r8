@@ -33,6 +33,7 @@ public final class KeepConstants {
     public static final Class<KeepEdge> CLASS = KeepEdge.class;
     public static final String DESCRIPTOR = getDescriptor(CLASS);
     public static final String description = "description";
+    public static final String bindings = "bindings";
     public static final String preconditions = "preconditions";
     public static final String consequences = "consequences";
   }
@@ -48,6 +49,9 @@ public final class KeepConstants {
 
   // Implicit hidden item which is "super type" of Condition and Target.
   public static final class Item {
+    public static final String classFromBinding = "classFromBinding";
+    public static final String memberFromBinding = "memberFromBinding";
+
     public static final String className = "className";
     public static final String classConstant = "classConstant";
 
@@ -76,6 +80,12 @@ public final class KeepConstants {
 
     public static final String fieldNameDefaultValue = "";
     public static final String fieldTypeDefaultValue = "";
+  }
+
+  public static final class Binding {
+    public static final Class<KeepBinding> CLASS = KeepBinding.class;
+    public static final String DESCRIPTOR = getDescriptor(CLASS);
+    public static final String bindingName = "bindingName";
   }
 
   public static final class Condition {

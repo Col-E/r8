@@ -165,13 +165,13 @@ public class KeepEdgeProcessor extends AbstractProcessor {
   private void processCondition(KeepCondition.Builder builder, AnnotationMirror mirror) {
     KeepItemPattern.Builder itemBuilder = KeepItemPattern.builder();
     processItem(itemBuilder, mirror);
-    builder.setItem(itemBuilder.build());
+    builder.setItemPattern(itemBuilder.build());
   }
 
   private void processTarget(KeepTarget.Builder builder, AnnotationMirror mirror) {
     KeepItemPattern.Builder itemBuilder = KeepItemPattern.builder();
     processItem(itemBuilder, mirror);
-    builder.setItem(itemBuilder.build());
+    builder.setItemPattern(itemBuilder.build());
   }
 
   private void processItem(KeepItemPattern.Builder builder, AnnotationMirror mirror) {
