@@ -433,8 +433,6 @@ def run1(out, args, otherargs, jdkhome=None):
     jar = args.r8_jar if args.r8_jar else download_distribution(version, args.nolib, temp)
     if ':' not in jar and not os.path.exists(jar):
       error("Distribution does not exist: " + jar)
-    prepare_r8_wrapper(jar, temp, jdkhome)
-    prepare_d8_wrapper(jar, temp, jdkhome)
     cmd = [jdk.GetJavaExecutable(jdkhome)]
     cmd.extend(jvmargs)
     if args.debug_agent:
@@ -456,10 +454,12 @@ def run1(out, args, otherargs, jdkhome=None):
     cmd.extend(determine_properties(build_properties))
     cmd.extend(['-cp', '%s:%s' % (temp, jar)])
     if compiler == 'd8':
+      prepare_d8_wrapper(jar, temp, jdkhome)
       cmd.append('com.android.tools.r8.utils.CompileDumpD8')
     if compiler == 'l8':
       cmd.append('com.android.tools.r8.L8')
     if compiler.startswith('r8'):
+      prepare_r8_wrapper(jar, temp, jdkhome)
       cmd.append('com.android.tools.r8.utils.CompileDumpCompatR8')
     if compiler == 'r8':
       cmd.append('--compat')
