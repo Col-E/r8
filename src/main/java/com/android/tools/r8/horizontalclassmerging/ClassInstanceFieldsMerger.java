@@ -7,6 +7,7 @@ package com.android.tools.r8.horizontalclassmerging;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeUtils;
@@ -14,6 +15,7 @@ import com.android.tools.r8.horizontalclassmerging.HorizontalClassMergerGraphLen
 import com.android.tools.r8.horizontalclassmerging.policies.SameInstanceFields.InstanceFieldInfo;
 import com.android.tools.r8.utils.IterableUtils;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -22,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 
 public interface ClassInstanceFieldsMerger {
 
@@ -135,6 +138,8 @@ public interface ClassInstanceFieldsMerger {
 
     private DexEncodedField classIdField;
 
+    private final Set<DexField> committedFields = Sets.newIdentityHashSet();
+
     private ClassInstanceFieldsMergerImpl(
         AppView<? extends AppInfoWithClassHierarchy> appView,
         HorizontalClassMergerGraphLens.Builder lensBuilder,
@@ -155,12 +160,17 @@ public interface ClassInstanceFieldsMerger {
       List<DexEncodedField> newFields = new ArrayList<>();
       if (classIdField != null) {
         newFields.add(classIdField);
+        committedFields.add(classIdField.getReference());
       }
       group
           .getInstanceFieldMap()
           .forEachManyToOneMapping(
-              (sourceFields, targetField) ->
-                  newFields.add(mergeSourceFieldsToTargetField(targetField, sourceFields)));
+              (sourceFields, targetField) -> {
+                DexEncodedField newField =
+                    mergeSourceFieldsToTargetField(targetField, sourceFields);
+                newFields.add(newField);
+                committedFields.add(newField.getReference());
+              });
       return newFields.toArray(DexEncodedField.EMPTY_ARRAY);
     }
 
@@ -182,6 +192,19 @@ public interface ClassInstanceFieldsMerger {
                 targetField.getReference().withType(newFieldType, appView.dexItemFactory()));
       } else {
         newField = targetField;
+      }
+
+      if (committedFields.contains(newField.getReference())) {
+        newField =
+            targetField.toTypeSubstitutedField(
+                appView,
+                appView
+                    .dexItemFactory()
+                    .createFreshFieldNameWithoutHolder(
+                        newField.getHolderType(),
+                        newField.getType(),
+                        newField.getName().toString(),
+                        Predicate.not(committedFields::contains)));
       }
 
       lensBuilder.recordNewFieldSignature(

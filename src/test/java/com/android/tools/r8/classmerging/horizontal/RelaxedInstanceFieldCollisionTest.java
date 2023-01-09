@@ -4,10 +4,6 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThrows;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -48,22 +44,16 @@ public class RelaxedInstanceFieldCollisionTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    assertThrows(
-        CompilationFailedException.class,
-        () ->
-            testForR8(parameters.getBackend())
-                .addProgramClasses(
-                    UnrelatedA.class, UnrelatedB.class, UnrelatedC.class, UnrelatedD.class)
-                .addProgramClassFileData(getTransformedClasses())
-                .setMinApi(parameters.getApiLevel())
-                .addKeepMainRule(Main.class)
-                .addKeepClassRules(
-                    UnrelatedA.class, UnrelatedB.class, UnrelatedC.class, UnrelatedD.class)
-                // TODO(b/263934503): We should not fail with a duplicate field message.
-                .compileWithExpectedDiagnostics(
-                    diagnostics ->
-                        diagnostics.assertErrorMessageThatMatches(
-                            containsString("Duplicate field"))));
+    testForR8(parameters.getBackend())
+        .addProgramClasses(UnrelatedA.class, UnrelatedB.class, UnrelatedC.class, UnrelatedD.class)
+        .addProgramClassFileData(getTransformedClasses())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Main.class)
+        .addKeepClassRules(UnrelatedA.class, UnrelatedB.class, UnrelatedC.class, UnrelatedD.class)
+        .addHorizontallyMergedClassesInspector(
+            inspector -> inspector.assertClassesMerged(A.class, B.class))
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   private Collection<byte[]> getTransformedClasses() throws Exception {
