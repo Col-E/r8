@@ -209,7 +209,7 @@ When a retracer retraces a frame that has the outline mapping information it
 should carry the reported position to the next frame and use the
 `outlineCallsite` to obtain the correct position.
 
-### Outline Call Site (Introduced at version 2.0)
+### Outline Call Site (Introduced at version 2.0, updated at 2.2)
 
 A position in an outline can correspond to multiple different positions
 depending on the context. The information can be stored in the mapping file with
@@ -221,9 +221,13 @@ the following format:
         'outline_pos_1': callsite_pos_1,
         'outline_pos_2': callsite_pos_2,
          ...
-     }
+     },
+     'outline': 'outline':'La;a()I'
   }
 ```
+
+The `outline` key was added in 2.2 and should be the residual descriptor of the
+outline.
 
 The retracer should when seeing the `outline` information carry the line number
 to the next frame. The position should be rewritten by using the positions map
@@ -240,7 +244,8 @@ some.Class -> b:
   5:5:int outlineCaller(int):100:100 -> s
   27:27:int outlineCaller(int):0:0 -> s
 # { 'id':'com.android.tools.r8.outlineCallsite',
-    'positions': { '1': 4, '2': 5 } }
+    'positions': { '1': 4, '2': 5 },
+    'outline':'La;a()I'}
 ```
 
 Retracing the following stack trace lines:
@@ -274,3 +279,29 @@ compatibility R8 emits a catch-all range `0:65535` as such:
 
 It does not matter if the mapping is an inline frame. Catch all ranges should
 never be used for overloads.
+
+### Residual signature (Introduced at 2.2)
+
+The residual signature information was added to mitigate the problem with no
+right hand side signature in mapping files. The information should be placed
+directly under the first occurrence of a field or method.
+
+```
+com.bar -> a:
+com.foo -> b:
+  com.bar m1(int) -> m2,
+  # { id: 'com.android.tools.r8.residualsignature', signature:'(Z)a' }
+```
+
+Similar for fields:
+```
+com.bar -> a:
+com.foo -> b:
+  com.bar f1 -> f2,
+  # { id: 'com.android.tools.r8.residualsignature', signature:'a' }
+```
+
+If the residual definition has changed arguments or return type then the
+signature should be emitted. The residual signature has no effect on retracing
+stack traces but they are necessary when interacting with residual signatures
+through the Retrace Api or for composing mapping files.
