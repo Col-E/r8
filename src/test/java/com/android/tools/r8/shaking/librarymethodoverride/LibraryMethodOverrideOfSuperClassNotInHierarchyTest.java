@@ -5,8 +5,6 @@
 package com.android.tools.r8.shaking.librarymethodoverride;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -16,6 +14,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.Enqueuer;
+import com.android.tools.r8.utils.OptionalBool;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -23,7 +22,9 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class LibraryMethodOverrideDefaultMethodTest extends TestBase {
+public class LibraryMethodOverrideOfSuperClassNotInHierarchyTest extends TestBase {
+
+  private final String[] EXPECTED = new String[] {"SecondProgramClass::foo"};
 
   @Parameter() public TestParameters parameters;
 
@@ -35,79 +36,85 @@ public class LibraryMethodOverrideDefaultMethodTest extends TestBase {
   @Test
   public void testRuntime() throws Exception {
     testForRuntime(parameters)
-        .addProgramClasses(ProgramI.class, ProgramClass.class, Main.class)
-        .addLibraryClasses(LibraryI.class, LibraryClass.class)
-        .addRunClasspathFiles(buildOnDexRuntime(parameters, LibraryI.class, LibraryClass.class))
+        .addProgramClasses(
+            FirstProgramClass.class, SecondProgramClass.class, ThirdProgramClass.class, Main.class)
+        .addLibraryClasses(LibraryClass.class, LibraryInterface.class)
+        .addRunClasspathFiles(
+            buildOnDexRuntime(parameters, LibraryClass.class, LibraryInterface.class))
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("ProgramI::foo");
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClasses(ProgramI.class, ProgramClass.class, Main.class)
+        .addProgramClasses(
+            FirstProgramClass.class, SecondProgramClass.class, ThirdProgramClass.class, Main.class)
         .addDefaultRuntimeLibrary(parameters)
+        .addLibraryClasses(LibraryClass.class, LibraryInterface.class)
         .addOptionsModification(
             options -> options.testing.enqueuerInspector = this::verifyLibraryOverrideInformation)
-        .addLibraryClasses(LibraryI.class, LibraryClass.class)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .compile()
-        .addBootClasspathClasses(LibraryI.class, LibraryClass.class)
+        .addBootClasspathClasses(LibraryClass.class, LibraryInterface.class)
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("ProgramI::foo");
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   private void verifyLibraryOverrideInformation(AppInfoWithLiveness appInfo, Enqueuer.Mode mode) {
-    DexItemFactory dexItemFactory = appInfo.dexItemFactory();
-    DexProgramClass programI =
-        appInfo
-            .definitionFor(dexItemFactory.createType(descriptor(ProgramI.class)))
-            .asProgramClass();
-    DexEncodedMethod programIFoo =
-        programI.lookupVirtualMethod(m -> m.getReference().name.toString().equals("foo"));
-    assertEquals(
-        parameters.canUseDefaultAndStaticInterfaceMethods(),
-        programIFoo.isLibraryMethodOverride().isTrue());
-    DexProgramClass programClass =
-        appInfo
-            .definitionFor(dexItemFactory.createType(descriptor(ProgramClass.class)))
-            .asProgramClass();
-    DexEncodedMethod programClassFoo =
-        programClass.lookupVirtualMethod(m -> m.getReference().name.toString().equals("foo"));
-    if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
-      assertNull(programClassFoo);
-    } else {
-      assertTrue(programClassFoo.isLibraryMethodOverride().isTrue());
+    if (!mode.isInitialTreeShaking()) {
+      return;
     }
+    DexItemFactory dexItemFactory = appInfo.dexItemFactory();
+    DexProgramClass clazz =
+        appInfo
+            .definitionFor(dexItemFactory.createType(descriptor(FirstProgramClass.class)))
+            .asProgramClass();
+    DexEncodedMethod method =
+        clazz.lookupVirtualMethod(m -> m.getReference().name.toString().equals("foo"));
+    assertEquals(OptionalBool.FALSE, method.isLibraryMethodOverride());
+    clazz =
+        appInfo
+            .definitionFor(dexItemFactory.createType(descriptor(SecondProgramClass.class)))
+            .asProgramClass();
+    method = clazz.lookupVirtualMethod(m -> m.getReference().name.toString().equals("foo"));
+    assertEquals(OptionalBool.TRUE, method.isLibraryMethodOverride());
   }
 
-  public interface LibraryI {
+  public interface LibraryInterface {
 
     void foo();
   }
 
   public static class LibraryClass {
 
-    public static void callI(LibraryI i) {
+    public static void callFoo(LibraryInterface i) {
       i.foo();
     }
   }
 
-  public interface ProgramI extends LibraryI {
+  public static class FirstProgramClass {
 
-    @Override
-    default void foo() {
-      System.out.println("ProgramI::foo");
+    public void foo() {
+      System.out.println("FirstProgramClass::foo");
     }
   }
 
-  public static class ProgramClass implements ProgramI {}
+  public static class SecondProgramClass extends FirstProgramClass {
+
+    @Override
+    public void foo() {
+      System.out.println("SecondProgramClass::foo");
+    }
+  }
+
+  public static class ThirdProgramClass extends SecondProgramClass implements LibraryInterface {}
 
   public static class Main {
 
     public static void main(String[] args) {
-      LibraryClass.callI(new ProgramClass());
+      LibraryClass.callFoo(new ThirdProgramClass());
     }
   }
 }

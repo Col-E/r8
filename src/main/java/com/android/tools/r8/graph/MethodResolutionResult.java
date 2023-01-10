@@ -183,6 +183,12 @@ public abstract class MethodResolutionResult
   public abstract LookupMethodTarget lookupVirtualDispatchTarget(
       DexClass dynamicInstance, AppInfoWithClassHierarchy appInfo);
 
+  public abstract LookupMethodTarget lookupVirtualDispatchTarget(
+      DexClass dynamicInstance,
+      AppInfoWithClassHierarchy appInfo,
+      Consumer<DexType> typeCausingFailureConsumer,
+      Consumer<? super DexEncodedMethod> methodCausingFailureConsumer);
+
   public abstract LookupTarget lookupVirtualDispatchTarget(
       LambdaDescriptor lambdaInstance,
       AppInfoWithClassHierarchy appInfo,
@@ -548,9 +554,9 @@ public abstract class MethodResolutionResult
                 lookupVirtualDispatchTarget(
                     subClass,
                     appInfo,
-                    resolvedHolder.type,
                     resultBuilder::addTypeCausingFailure,
-                    resultBuilder::addMethodCausingFailure);
+                    resultBuilder::addMethodCausingFailure,
+                    resolvedHolder.type);
             if (lookupTarget != null) {
               incompleteness.checkDexClassAndMethod(lookupTarget);
               addVirtualDispatchTarget(lookupTarget, resolvedHolder.isInterface(), resultBuilder);
@@ -698,7 +704,21 @@ public abstract class MethodResolutionResult
     public LookupMethodTarget lookupVirtualDispatchTarget(
         DexClass dynamicInstance, AppInfoWithClassHierarchy appInfo) {
       return lookupVirtualDispatchTarget(
-          dynamicInstance, appInfo, initialResolutionHolder.type, emptyConsumer(), emptyConsumer());
+          dynamicInstance, appInfo, emptyConsumer(), emptyConsumer());
+    }
+
+    @Override
+    public LookupMethodTarget lookupVirtualDispatchTarget(
+        DexClass dynamicInstance,
+        AppInfoWithClassHierarchy appInfo,
+        Consumer<DexType> typeCausingFailureConsumer,
+        Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
+      return lookupVirtualDispatchTarget(
+          dynamicInstance,
+          appInfo,
+          typeCausingFailureConsumer,
+          methodCausingFailureConsumer,
+          initialResolutionHolder.type);
     }
 
     @Override
@@ -724,9 +744,9 @@ public abstract class MethodResolutionResult
     private LookupMethodTarget lookupVirtualDispatchTarget(
         DexClass dynamicInstance,
         AppInfoWithClassHierarchy appInfo,
-        DexType resolutionHolder,
         Consumer<DexType> typeCausingFailureConsumer,
-        Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
+        Consumer<? super DexEncodedMethod> methodCausingFailureConsumer,
+        DexType resolutionHolder) {
       assert appInfo.isSubtype(dynamicInstance.type, resolutionHolder)
           : dynamicInstance.type + " is not a subtype of " + resolutionHolder;
       // TODO(b/148591377): Enable this assertion.
@@ -1026,6 +1046,15 @@ public abstract class MethodResolutionResult
     @Override
     public LookupMethodTarget lookupVirtualDispatchTarget(
         DexClass dynamicInstance, AppInfoWithClassHierarchy appInfo) {
+      return null;
+    }
+
+    @Override
+    public LookupMethodTarget lookupVirtualDispatchTarget(
+        DexClass dynamicInstance,
+        AppInfoWithClassHierarchy appInfo,
+        Consumer<DexType> typeCausingFailureConsumer,
+        Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
       return null;
     }
 
@@ -1407,6 +1436,15 @@ public abstract class MethodResolutionResult
     @Override
     public DexClassAndMethod lookupVirtualDispatchTarget(
         DexClass dynamicInstance, AppInfoWithClassHierarchy appInfo) {
+      throw new Unreachable("Should not be called on MultipleFieldResolutionResult");
+    }
+
+    @Override
+    public DexClassAndMethod lookupVirtualDispatchTarget(
+        DexClass dynamicInstance,
+        AppInfoWithClassHierarchy appInfo,
+        Consumer<DexType> typeCausingFailureConsumer,
+        Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
       throw new Unreachable("Should not be called on MultipleFieldResolutionResult");
     }
 
