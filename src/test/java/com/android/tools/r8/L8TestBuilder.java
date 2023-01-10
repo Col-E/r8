@@ -259,8 +259,9 @@ public class L8TestBuilder {
       // with R8 anyway.
       if (info instanceof UnusedProguardKeepRuleDiagnostic) {
         // The default keep rules on desugared library may be unused. They should all be defined
-        // with keepclassmembers.
-        if (info.getDiagnosticMessage().contains("keepclassmembers")) {
+        // with keepclassmembers or keep,allowshrinking.
+        if (info.getDiagnosticMessage().contains("keepclassmembers")
+            || info.getDiagnosticMessage().contains("keep,allowshrinking")) {
           continue;
         }
         // We allow info regarding the extended version of desugared library for JDK11 testing.
