@@ -57,7 +57,7 @@ public interface PositionToMappedRangeMapper {
         int pcEncodingCutoff) {
       return canUseDexPc
           ? pcMapper.optimizeDexCodePositionsForPc(method, positionRemapper, pcEncodingCutoff)
-          : noPcMapper.optimizeDexCodePositions(method, positionRemapper, hasOverloads);
+          : noPcMapper.optimizeDexCodePositions(method, positionRemapper);
     }
 
     @Override

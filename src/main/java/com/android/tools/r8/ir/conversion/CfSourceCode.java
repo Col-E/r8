@@ -252,7 +252,8 @@ public class CfSourceCode implements SourceCode {
             callerPosition,
             cfPositionCount,
             originalMethod,
-            method.getDefinition().isD8R8Synthesized());
+            method.getDefinition().isD8R8Synthesized(),
+            code.getPreamblePosition());
     internalOutputMode = appView.options().getInternalOutputMode();
 
     needsGeneratedMethodSynchronization =

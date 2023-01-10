@@ -97,7 +97,19 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
     return false;
   }
 
+  public boolean isAdvanceLine() {
+    return false;
+  }
+
   public SetPositionFrame asSetPositionFrame() {
+    return null;
+  }
+
+  public Default asDefaultEvent() {
+    return null;
+  }
+
+  public AdvanceLine asAdvanceLine() {
     return null;
   }
 
@@ -264,6 +276,16 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
     @Override
     boolean isWritableEvent() {
       return true;
+    }
+
+    @Override
+    public boolean isAdvanceLine() {
+      return true;
+    }
+
+    @Override
+    public AdvanceLine asAdvanceLine() {
+      return this;
     }
 
     @Override
@@ -645,6 +667,11 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
     @Override
     public boolean isDefaultEvent() {
       return true;
+    }
+
+    @Override
+    public Default asDefaultEvent() {
+      return this;
     }
 
     @Override

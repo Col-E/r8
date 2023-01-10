@@ -187,7 +187,7 @@ public abstract class Code extends CachedHashValueDexItem {
     throw new Unreachable();
   }
 
-  public Position newInlineePosition(
+  public static Position newInlineePosition(
       Position callerPosition, Position oldPosition, boolean isCalleeD8R8Synthesized) {
     Position outermostCaller = oldPosition.getOutermostCaller();
     if (!isCalleeD8R8Synthesized) {

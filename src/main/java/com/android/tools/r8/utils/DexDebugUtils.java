@@ -5,7 +5,13 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.graph.DexDebugEvent;
+import com.android.tools.r8.graph.DexDebugEvent.SetPositionFrame;
 import com.android.tools.r8.graph.DexDebugInfo;
+import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
+import com.android.tools.r8.graph.DexDebugPositionState;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.utils.DexDebugUtils.PositionInfo.PositionInfoBuilder;
 import java.util.List;
 
 public class DexDebugUtils {
@@ -28,5 +34,82 @@ public class DexDebugUtils {
       assert !events[i].isPositionFrame();
     }
     return true;
+  }
+
+  public static PositionInfo computePreamblePosition(
+      DexMethod method, EventBasedDebugInfo debugInfo) {
+    if (debugInfo == null) {
+      return PositionInfo.builder().build();
+    }
+    Box<Position> existingPositionFrame = new Box<>();
+    DexDebugPositionState visitor =
+        new DexDebugPositionState(debugInfo.startLine, method) {
+          @Override
+          public void visit(SetPositionFrame setPositionFrame) {
+            super.visit(setPositionFrame);
+            existingPositionFrame.set(setPositionFrame.getPosition());
+          }
+        };
+    PositionInfoBuilder builder = PositionInfo.builder();
+    for (DexDebugEvent event : debugInfo.events) {
+      event.accept(visitor);
+      if (visitor.getCurrentPc() > 0) {
+        break;
+      }
+      if (event.isDefaultEvent()) {
+        builder.setLinePositionAtPcZero(visitor.getCurrentLine());
+        builder.setFramePosition(existingPositionFrame.get());
+      }
+    }
+    return builder.build();
+  }
+
+  public static class PositionInfo {
+
+    private final Position framePosition;
+    private final int linePositionAtPcZero;
+
+    private PositionInfo(Position framePosition, int linePositionAtPcZero) {
+      this.framePosition = framePosition;
+      this.linePositionAtPcZero = linePositionAtPcZero;
+    }
+
+    public boolean hasFramePosition() {
+      return framePosition != null;
+    }
+
+    public boolean hasLinePositionAtPcZero() {
+      return linePositionAtPcZero > -1;
+    }
+
+    public Position getFramePosition() {
+      return framePosition;
+    }
+
+    public int getLinePositionAtPcZero() {
+      return linePositionAtPcZero;
+    }
+
+    public static PositionInfoBuilder builder() {
+      return new PositionInfoBuilder();
+    }
+
+    public static class PositionInfoBuilder {
+
+      private Position framePosition;
+      private int linePositionAtPcZero = -1;
+
+      public void setFramePosition(Position position) {
+        this.framePosition = position;
+      }
+
+      public void setLinePositionAtPcZero(int linePositionAtPcZero) {
+        this.linePositionAtPcZero = linePositionAtPcZero;
+      }
+
+      public PositionInfo build() {
+        return new PositionInfo(framePosition, linePositionAtPcZero);
+      }
+    }
   }
 }

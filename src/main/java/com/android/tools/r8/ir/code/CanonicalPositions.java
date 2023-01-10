@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.Position.SourcePosition;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
@@ -28,26 +29,23 @@ public class CanonicalPositions {
       Position callerPosition,
       int expectedPositionsCount,
       DexMethod method,
-      boolean methodIsSynthesized) {
+      boolean methodIsSynthesized,
+      Position preamblePosition) {
     canonicalPositions =
         new HashMap<>(1 + (callerPosition == null ? 0 : 1) + expectedPositionsCount);
+    if (preamblePosition == null) {
+      preamblePosition = SyntheticPosition.builder().setLine(0).setMethod(method).build();
+    }
     if (callerPosition != null) {
       this.callerPosition = getCanonical(callerPosition);
       isCompilerSynthesizedInlinee = methodIsSynthesized;
-      preamblePosition =
-          methodIsSynthesized
-              ? callerPosition
-              : getCanonical(
-                  SourcePosition.builder()
-                      .setLine(0)
-                      .setMethod(method)
-                      .setCallerPosition(callerPosition)
-                      .build());
+      this.preamblePosition =
+          getCanonical(
+              Code.newInlineePosition(callerPosition, preamblePosition, methodIsSynthesized));
     } else {
       this.callerPosition = null;
       isCompilerSynthesizedInlinee = false;
-      preamblePosition =
-          getCanonical(SyntheticPosition.builder().setLine(0).setMethod(method).build());
+      this.preamblePosition = getCanonical(preamblePosition);
     }
   }
 

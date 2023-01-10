@@ -44,6 +44,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.CanonicalPositions;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.utils.DexDebugUtils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -94,7 +95,8 @@ public class DexSourceCode implements SourceCode {
             callerPosition,
             debugEntries == null ? 0 : debugEntries.size(),
             originalMethod,
-            method.getDefinition().isD8R8Synthesized());
+            method.getDefinition().isD8R8Synthesized(),
+            DexDebugUtils.computePreamblePosition(originalMethod, info).getFramePosition());
   }
 
   @Override

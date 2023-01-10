@@ -399,6 +399,23 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
     return true;
   }
 
+  public Position getPreamblePosition() {
+    Position preamble = null;
+    for (CfInstruction instruction : instructions) {
+      if (instruction.isLabel()) {
+        continue;
+      }
+      if (instruction.isPosition()) {
+        Position candidate = instruction.asPosition().getPosition();
+        if (candidate.getLine() == 0) {
+          preamble = candidate;
+        }
+      }
+      break;
+    }
+    return preamble;
+  }
+
   private static class PrunePreambleMethodVisitor extends MethodVisitor {
 
     private final AppView<?> appView;

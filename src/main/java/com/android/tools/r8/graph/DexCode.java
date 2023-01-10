@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.graph.DexDebugEventBuilder.addDefaultEventWithAdvancePcIfNecessary;
+import static com.android.tools.r8.utils.DexDebugUtils.computePreamblePosition;
 import static com.android.tools.r8.utils.DexDebugUtils.verifySetPositionFramesFollowedByDefaultEvent;
 
 import com.android.tools.r8.dex.CodeToKeep;
@@ -15,6 +17,7 @@ import com.android.tools.r8.dex.code.DexMonitorEnter;
 import com.android.tools.r8.dex.code.DexReturnVoid;
 import com.android.tools.r8.dex.code.DexSwitchPayload;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
+import com.android.tools.r8.graph.DexDebugEvent.AdvanceLine;
 import com.android.tools.r8.graph.DexDebugEvent.Default;
 import com.android.tools.r8.graph.DexDebugEvent.SetPositionFrame;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
@@ -35,7 +38,7 @@ import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodC
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.ThrowingMethodConversionOptions;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.ArrayUtils;
-import com.android.tools.r8.utils.IntBox;
+import com.android.tools.r8.utils.DexDebugUtils.PositionInfo;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.structural.Equatable;
@@ -47,11 +50,13 @@ import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.base.Strings;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import java.nio.ShortBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -297,7 +302,8 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
 
   private DexDebugInfo debugInfoAsInlining(
       DexMethod caller, DexMethod callee, boolean isCalleeD8R8Synthesized, DexItemFactory factory) {
-    Position callerPosition = SyntheticPosition.builder().setLine(0).setMethod(caller).build();
+    Position callerPosition =
+        SyntheticPosition.builder().setLine(0).setMethod(caller).setIsD8R8Synthesized(true).build();
     EventBasedDebugInfo eventBasedInfo = DexDebugInfo.convertToEventBased(this, factory);
     if (eventBasedInfo == null) {
       // If the method has no debug info we generate a preamble position to denote the inlining.
@@ -318,55 +324,78 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
             factory.createPositionFrame(preamblePosition), factory.zeroChangeDefaultEvent
           });
     }
-    // The inline position should match the first actual callee position, so either its actual line
-    // at first instruction or it is a synthetic preamble.
-    int lineAtPcZero = findLineAtPcZero(callee, eventBasedInfo);
-    PositionBuilder<?, ?> frameBuilder =
-        lineAtPcZero == -1
-            ? SyntheticPosition.builder().setLine(0)
-            : SourcePosition.builder().setLine(lineAtPcZero);
+    // At this point we know we had existing debug information:
+    // 1) There is an already existing SET_POSITION_FRAME before a default event and the default
+    //    event sets a position for PC 0
+    //    => Nothing to do except append caller.
+    // 2) There is no SET_POSITION_FRAME before a default event and a default event covers PC 0.
+    //    => Insert a SET_POSITION_FRAME
+    // 3) There is a SET_POSITION_FRAME and no default event setting a position for PC 0.
+    //    => Insert a default event and potentially advance line.
+    // 4) There is no SET_POSITION_FRAME and no default event setting a position for PC 0..
+    //    => Insert a SET_POSITION_FRAME and a default event and potentially advance line.
+    PositionInfo positionInfo = computePreamblePosition(callee, eventBasedInfo);
     DexDebugEvent[] oldEvents = eventBasedInfo.events;
-    DexDebugEvent[] newEvents = new DexDebugEvent[oldEvents.length + 1];
-    int i = 0;
-    newEvents[i++] =
-        new SetPositionFrame(
-            isCalleeD8R8Synthesized
-                ? callerPosition
-                : frameBuilder.setMethod(callee).setCallerPosition(callerPosition).build());
+    boolean adjustStartPosition =
+        !positionInfo.hasLinePositionAtPcZero() && debugInfo.getStartLine() > 0;
+    List<DexDebugEvent> newEvents =
+        new ArrayList<>(
+            oldEvents.length
+                + (positionInfo.hasFramePosition() ? 0 : 1)
+                + (positionInfo.hasLinePositionAtPcZero() ? 0 : 1)
+                + (adjustStartPosition ? 1 : 0)); // Potentially an advance line.
+    if (!positionInfo.hasFramePosition()) {
+      PositionBuilder<?, ?> calleePositionBuilder =
+          isCalleeD8R8Synthesized ? SyntheticPosition.builder() : SourcePosition.builder();
+      newEvents.add(
+          factory.createPositionFrame(
+              newInlineePosition(
+                  callerPosition,
+                  calleePositionBuilder
+                      .setLine(
+                          positionInfo.hasLinePositionAtPcZero()
+                              ? positionInfo.getLinePositionAtPcZero()
+                              : 0)
+                      .setMethod(callee)
+                      .setIsD8R8Synthesized(isCalleeD8R8Synthesized)
+                      .build(),
+                  isCalleeD8R8Synthesized)));
+    }
+    if (!positionInfo.hasLinePositionAtPcZero()) {
+      newEvents.add(factory.zeroChangeDefaultEvent);
+    }
     for (DexDebugEvent event : oldEvents) {
-      if (event instanceof SetPositionFrame) {
-        SetPositionFrame oldFrame = (SetPositionFrame) event;
+      if (event.isAdvanceLine() && adjustStartPosition) {
+        AdvanceLine advanceLine = event.asAdvanceLine();
+        newEvents.add(factory.createAdvanceLine(debugInfo.getStartLine() + advanceLine.delta));
+        adjustStartPosition = false;
+      } else if (event.isDefaultEvent() && adjustStartPosition) {
+        Default oldDefaultEvent = event.asDefaultEvent();
+        addDefaultEventWithAdvancePcIfNecessary(
+            oldDefaultEvent.getLineDelta() + debugInfo.getStartLine(),
+            oldDefaultEvent.getPCDelta(),
+            newEvents,
+            factory);
+        adjustStartPosition = false;
+      } else if (event.isPositionFrame()) {
+        SetPositionFrame oldFrame = event.asSetPositionFrame();
         assert oldFrame.getPosition() != null;
-        newEvents[i++] =
+        newEvents.add(
             new SetPositionFrame(
                 newInlineePosition(
-                    callerPosition, oldFrame.getPosition(), isCalleeD8R8Synthesized));
+                    callerPosition, oldFrame.getPosition(), isCalleeD8R8Synthesized)));
       } else {
-        newEvents[i++] = event;
+        newEvents.add(event);
       }
     }
-    return new EventBasedDebugInfo(eventBasedInfo.startLine, eventBasedInfo.parameters, newEvents);
-  }
-
-  private static int findLineAtPcZero(DexMethod method, EventBasedDebugInfo debugInfo) {
-    IntBox lineAtPcZero = new IntBox(-1);
-    DexDebugPositionState visitor =
-        new DexDebugPositionState(debugInfo.startLine, method) {
-          @Override
-          public void visit(Default defaultEvent) {
-            super.visit(defaultEvent);
-            if (getCurrentPc() == 0) {
-              lineAtPcZero.set(getCurrentLine());
-            }
-          }
-        };
-    for (DexDebugEvent event : debugInfo.events) {
-      event.accept(visitor);
-      if (visitor.getCurrentPc() > 0) {
-        break;
-      }
+    if (adjustStartPosition) {
+      // This only happens if we have no default event and the debug start line is > 0.
+      newEvents.add(factory.createAdvanceLine(debugInfo.getStartLine()));
     }
-    return lineAtPcZero.get();
+    return new EventBasedDebugInfo(
+        positionInfo.hasLinePositionAtPcZero() ? eventBasedInfo.getStartLine() : 0,
+        eventBasedInfo.parameters,
+        newEvents.toArray(DexDebugEvent.EMPTY_ARRAY));
   }
 
   public static int getLargestPrefix(DexItemFactory factory, DexString name) {

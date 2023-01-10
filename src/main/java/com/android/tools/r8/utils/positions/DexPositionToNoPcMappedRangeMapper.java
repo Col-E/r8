@@ -87,9 +87,6 @@ public class DexPositionToNoPcMappedRangeMapper {
     private final List<MappedPosition> mappedPositions;
     private final PositionRemapper positionRemapper;
     private final List<DexDebugEvent> processedEvents;
-    private final DexItemFactory factory;
-
-    private final DexMethod startMethod;
 
     // Keep track of what PC has been emitted.
     private int emittedPc = 0;
@@ -109,8 +106,6 @@ public class DexPositionToNoPcMappedRangeMapper {
       this.mappedPositions = mappedPositions;
       this.positionRemapper = positionRemapper;
       this.processedEvents = processedEvents;
-      this.factory = factory;
-      this.startMethod = method;
     }
 
     // Force the current PC to emitted.
@@ -124,9 +119,6 @@ public class DexPositionToNoPcMappedRangeMapper {
     // A default event denotes a line table entry and must always be emitted. Remap its line.
     @Override
     public void visit(Default defaultEvent) {
-      if (hasPreamblePosition(defaultEvent)) {
-        emitPreamblePosition();
-      }
       super.visit(defaultEvent);
       assert getCurrentLine() >= 0;
       Position position = getPosition();
@@ -137,13 +129,6 @@ public class DexPositionToNoPcMappedRangeMapper {
         inlinedOriginalPosition = true;
       }
       emittedPc = getCurrentPc();
-    }
-
-    private boolean hasPreamblePosition(Default defaultEvent) {
-      return getCurrentPc() == 0
-          && defaultEvent.getPCDelta() > 0
-          && currentPosition != null
-          && currentPosition.getLine() != getCurrentLine();
     }
 
     // Non-materializing events use super, ie, AdvancePC, AdvanceLine and SetInlineFrame.
@@ -184,17 +169,6 @@ public class DexPositionToNoPcMappedRangeMapper {
       flushPc();
       processedEvents.add(restartLocal);
     }
-
-    public void emitPreamblePosition() {
-      if (currentPosition == null || positionEventEmitter.didEmitLineEvents()) {
-        return;
-      }
-      Position mappedPosition =
-          PositionUtils.remapAndAdd(currentPosition, positionRemapper, mappedPositions);
-      processedEvents.add(factory.createPositionFrame(mappedPosition));
-      currentPosition = null;
-      currentMethod = startMethod;
-    }
   }
 
   private final AppView<?> appView;
@@ -206,7 +180,7 @@ public class DexPositionToNoPcMappedRangeMapper {
   }
 
   public List<MappedPosition> optimizeDexCodePositions(
-      ProgramMethod method, PositionRemapper positionRemapper, boolean hasOverloads) {
+      ProgramMethod method, PositionRemapper positionRemapper) {
     List<MappedPosition> mappedPositions = new ArrayList<>();
     // Do the actual processing for each method.
     DexApplication application = appView.appInfo().app();
@@ -235,11 +209,6 @@ public class DexPositionToNoPcMappedRangeMapper {
     DexDebugEvent[] events = debugInfo.events;
     for (DexDebugEvent event : events) {
       event.accept(visitor);
-    }
-
-    // We still need to emit a preamble if we did not materialize any other instructions.
-    if (mappedPositions.isEmpty()) {
-      visitor.emitPreamblePosition();
     }
 
     EventBasedDebugInfo optimizedDebugInfo =
