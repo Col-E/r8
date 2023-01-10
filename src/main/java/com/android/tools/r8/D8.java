@@ -294,13 +294,6 @@ public final class D8 {
               appView.setNamingLens(
                   RecordRewritingNamingLens.createRecordRewritingNamingLens(appView)));
 
-      timing.time(
-          "Create MethodHandle.Lookup rewriting lens",
-          () ->
-              appView.setNamingLens(
-                  VarHandleDesugaringRewritingNamingLens
-                      .createVarHandleDesugaringRewritingNamingLens(appView)));
-
       if (options.isGeneratingDex()
           && hasDexResources
           && hasClassResources
@@ -335,6 +328,14 @@ public final class D8 {
       }
 
       finalizeApplication(appView, executor, timing);
+
+      // Add the VarHandle naming lens after synthetic finalization.
+      timing.time(
+          "Create MethodHandle.Lookup rewriting lens",
+          () ->
+              appView.setNamingLens(
+                  VarHandleDesugaringRewritingNamingLens
+                      .createVarHandleDesugaringRewritingNamingLens(appView)));
 
       timing.end(); // post-converter
 

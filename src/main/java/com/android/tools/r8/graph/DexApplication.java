@@ -219,6 +219,25 @@ public abstract class DexApplication implements DexDefinitionSupplier {
       assert newProgramClasses != null;
       this.programClasses.clear();
       this.programClasses.addAll(newProgramClasses);
+
+      DexApplicationReadFlags.Builder builder = DexApplicationReadFlags.builder();
+      builder.setHasReadProgramClassFromDex(this.flags.hasReadProgramClassFromDex());
+      builder.setHasReadProgramClassFromCf(this.flags.hasReadProgramClassFromCf());
+      this.programClasses.forEach(
+          clazz -> {
+            DexType type = clazz.getType();
+            if (flags.getRecordWitnesses().contains(type)) {
+              builder.addRecordWitness(type);
+            }
+            if (flags.getVarHandleWitnesses().contains(type)) {
+              builder.addVarHandleWitness(type);
+            }
+            if (flags.getMethodHandlesLookupWitnesses().contains(type)) {
+              builder.addMethodHandlesLookupWitness(type);
+            }
+          });
+      this.flags = builder.build();
+
       return self();
     }
 

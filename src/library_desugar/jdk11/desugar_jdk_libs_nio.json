@@ -34,7 +34,8 @@
         "java.net.URLDecoder": "j$.net.URLDecoder",
         "java.net.URLEncoder": "j$.net.URLEncoder",
         "java.io.DesugarInputStream": "j$.io.DesugarInputStream",
-        "java.util.concurrent.DesugarTimeUnit": "j$.util.concurrent.DesugarTimeUnit"
+        "java.util.concurrent.DesugarTimeUnit": "j$.util.concurrent.DesugarTimeUnit",
+        "java.util.concurrent.ConcurrentLinkedQueue": "j$.util.concurrent.ConcurrentLinkedQueue"
       },
       "retarget_method": {
         "java.util.concurrent.TimeUnit java.util.concurrent.TimeUnit#of(java.time.temporal.ChronoUnit)": "java.util.concurrent.DesugarTimeUnit",
@@ -476,7 +477,8 @@
       "rewrite_prefix": {
         "desugar.": "j$.desugar.",
         "libcore.": "j$.libcore.",
-        "sun.security.action.": "j$.sun.security.action."
+        "sun.security.action.": "j$.sun.security.action.",
+        "java.util.concurrent.Helpers": "j$.util.concurrent.Helpers"
       }
     },
     {
@@ -588,6 +590,9 @@
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap$TreeBin { int lockState; }",
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap { int sizeCtl; int transferIndex; long baseCount; int cellsBusy; }",
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap$CounterCell { long value; }",
+    "-keepclassmembers class j$.util.concurrent.ConcurrentLinkedQueue { j$.util.concurrent.ConcurrentLinkedQueue$Node head; j$.util.concurrent.ConcurrentLinkedQueue$Node tail; }",
+    "-keep,allowshrinking class j$.util.concurrent.ConcurrentLinkedQueue$Node",
+    "-keepclassmembers class j$.util.concurrent.ConcurrentLinkedQueue$Node { j$.util.concurrent.ConcurrentLinkedQueue$Node next; java.lang.Object item; }",
     "-keepclassmembers enum * { public static **[] values(); public static ** valueOf(java.lang.String); public static final !synthetic <fields>; }",
     "-keeppackagenames java.**",
     "-keeppackagenames j$.**",

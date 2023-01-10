@@ -80,6 +80,8 @@ public class DexItemFactory {
   public static final String varHandleDescriptorString = "Ljava/lang/invoke/VarHandle;";
   public static final String desugarMethodHandlesLookupDescriptorString =
       "Lcom/android/tools/r8/DesugarMethodHandlesLookup;";
+  public static final String methodHandlesLookupDescriptorString =
+      "Ljava/lang/invoke/MethodHandles$Lookup;";
   public static final String dalvikAnnotationOptimizationPrefixString =
       "Ldalvik/annotation/optimization/";
 
@@ -275,7 +277,7 @@ public class DexItemFactory {
   public final DexString methodHandleDescriptor = createString("Ljava/lang/invoke/MethodHandle;");
   public final DexString methodHandlesDescriptor = createString("Ljava/lang/invoke/MethodHandles;");
   public final DexString methodHandlesLookupDescriptor =
-      createString("Ljava/lang/invoke/MethodHandles$Lookup;");
+      createString(methodHandlesLookupDescriptorString);
   public final DexString methodTypeDescriptor = createString("Ljava/lang/invoke/MethodType;");
   public final DexString invocationHandlerDescriptor =
       createString("Ljava/lang/reflect/InvocationHandler;");
@@ -2708,9 +2710,10 @@ public class DexItemFactory {
     if (result == null) {
       result = new DexType(descriptor);
       assert result.isArrayType()
-          || result.isClassType()
-          || result.isPrimitiveType()
-          || result.isVoidType();
+              || result.isClassType()
+              || result.isPrimitiveType()
+              || result.isVoidType()
+          : descriptor.toString();
       assert !isInternalSentinel(result);
       types.put(descriptor, result);
     }

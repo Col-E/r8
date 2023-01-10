@@ -49,6 +49,7 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -205,6 +206,33 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   private final PendingSynthetics pending = new PendingSynthetics();
   private final ContextsForGlobalSynthetics globalContexts;
   private final GlobalSyntheticsStrategy globalSyntheticsStrategy;
+
+  public Set<DexType> collectSyntheticsFromContext(DexType context) {
+    Set<DexType> result = Sets.newIdentityHashSet();
+    committed
+        .getMethods()
+        .forEach(
+            (synthetic, methodReferences) -> {
+              methodReferences.forEach(
+                  methodReference -> {
+                    if (methodReference.getContext().getSynthesizingContextType() == context) {
+                      result.add(synthetic);
+                    }
+                  });
+            });
+    committed
+        .getClasses()
+        .forEach(
+            (synthetic, classReferences) -> {
+              classReferences.forEach(
+                  classReference -> {
+                    if (classReference.getContext().getSynthesizingContextType() == context) {
+                      result.add(synthetic);
+                    }
+                  });
+            });
+    return result;
+  }
 
   public SyntheticNaming getNaming() {
     return naming;

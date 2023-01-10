@@ -111,7 +111,7 @@ public abstract class VarHandleDesugaringTestBase extends TestBase {
     // forwarding of Unsafe.compareAndSwapObject.
     MethodReference firstBackportFromDesugarVarHandle =
         SyntheticItemsTestUtils.syntheticBackportWithForwardingMethod(
-            Reference.classFromDescriptor("Ljava/lang/invoke/VarHandle;"),
+            Reference.classFromDescriptor("Lcom/android/tools/r8/DesugarVarHandle;"),
             0,
             Reference.method(
                 Reference.classFromDescriptor("Lsun/misc/Unsafe;"),

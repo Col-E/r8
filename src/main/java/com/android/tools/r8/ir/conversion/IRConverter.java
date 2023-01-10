@@ -626,6 +626,14 @@ public class IRConverter {
         int limit = 11;
         for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {
           if (!clazz.type.descriptor.startsWith(neverMergePrefix)) {
+            boolean hasExceptionPrefix = false;
+            for (DexString exceptionPrefix : neverMerge.getExceptionPrefixes()) {
+              hasExceptionPrefix =
+                  hasExceptionPrefix | clazz.type.descriptor.startsWith(exceptionPrefix);
+            }
+            if (hasExceptionPrefix) {
+              continue;
+            }
             if (limit-- < 0) {
               message.append("..");
               break;

@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.desugar.TypeRewriter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAmender;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
+import com.android.tools.r8.naming.VarHandleDesugaringRewritingNamingLens;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.shaking.AnnotationRemover;
@@ -102,12 +103,15 @@ public class L8 {
             options.enableSwitchRewriting = false;
             assert options.enableStringSwitchConversion;
             options.enableStringSwitchConversion = false;
+            assert !options.enableVarHandleDesugaring;
+            options.enableVarHandleDesugaring = true;
 
             desugar(app, options, executorService);
 
             options.forceAnnotateSynthetics = false;
             options.enableSwitchRewriting = true;
             options.enableStringSwitchConversion = true;
+            options.enableVarHandleDesugaring = false;
           });
       if (shrink) {
         R8.run(r8Command, executorService);
@@ -140,6 +144,9 @@ public class L8 {
       SyntheticFinalization.finalize(appView, timing, executor);
 
       appView.setNamingLens(PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView));
+      appView.setNamingLens(
+          VarHandleDesugaringRewritingNamingLens.createVarHandleDesugaringRewritingNamingLens(
+              appView));
       new GenericSignatureRewriter(appView).run(appView.appInfo().classes(), executor);
 
       new CfApplicationWriter(appView, options.getMarker(Tool.L8))

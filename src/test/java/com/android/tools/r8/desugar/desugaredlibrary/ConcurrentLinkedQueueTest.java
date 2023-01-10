@@ -2,31 +2,19 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
+package com.android.tools.r8.desugar.desugaredlibrary;
 
-import static com.android.tools.r8.ToolHelper.JDK_TESTS_BUILD_DIR;
-import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.testNGSupportProgramFiles;
-import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
-import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8SHRINK;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.SPECIFICATIONS_WITH_CF2CF;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_MINIMAL;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
-import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
-import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRuntime;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
-import com.android.tools.r8.desugar.desugaredlibrary.test.DesugaredLibraryTestCompileResult;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.references.MethodReference;
@@ -34,15 +22,11 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.List;
-import org.junit.BeforeClass;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -50,17 +34,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class Jdk11ConcurrentLinkedQueueTests extends DesugaredLibraryTestBase {
-
-  private static final String WHITEBOX = "WhiteBox";
-
-  private static Path[] JDK_11_CONCURRENT_LINKED_QUEUE_TEST_CLASS_FILES;
-
-  // JDK 11 test constants.
-  private static final Path JDK_11_CONCURRENT_LINKED_QUEUE_JAVA_DIR =
-      Paths.get(ToolHelper.JDK_11_TESTS_DIR + "java/util/concurrent/ConcurrentLinkedQueue");
-  private static final Path[] JDK_11_CONCURRENT_LINKED_QUEUE_JAVA_FILES =
-      new Path[] {JDK_11_CONCURRENT_LINKED_QUEUE_JAVA_DIR.resolve(WHITEBOX + JAVA_EXTENSION)};
+public class ConcurrentLinkedQueueTest extends DesugaredLibraryTestBase {
 
   @Parameter(0)
   public static TestParameters parameters;
@@ -79,24 +53,9 @@ public class Jdk11ConcurrentLinkedQueueTests extends DesugaredLibraryTestBase {
         getTestParameters()
             .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
             .withAllApiLevels()
-            .withApiLevel(AndroidApiLevel.N)
             .build(),
         ImmutableList.of(JDK11_MINIMAL, JDK11, JDK11_PATH),
-        ImmutableSet.of(D8_L8DEBUG, D8_L8SHRINK));
-  }
-
-  @BeforeClass
-  public static void compileConcurrentLinkedQueueClasses() throws Exception {
-    // Build test constants.
-    Path jdk11MathTestsDir = getStaticTemp().newFolder("ConcurrentLinkedQueue").toPath();
-    javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
-        .addClasspathFiles(
-            Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))
-        .addSourceFiles(JDK_11_CONCURRENT_LINKED_QUEUE_JAVA_FILES)
-        .setOutputPath(jdk11MathTestsDir)
-        .compile();
-    JDK_11_CONCURRENT_LINKED_QUEUE_TEST_CLASS_FILES =
-        new Path[] {jdk11MathTestsDir.resolve(WHITEBOX + CLASS_EXTENSION)};
+        SPECIFICATIONS_WITH_CF2CF);
   }
 
   private void inspect(CodeInspector inspector) {
@@ -168,35 +127,23 @@ public class Jdk11ConcurrentLinkedQueueTests extends DesugaredLibraryTestBase {
             : isPresent());
   }
 
-  void runTest(List<String> toRun) throws Exception {
-    // Skip test with minimal configuration before API level 24, as the test use stream.
-    assumeTrue(
-        libraryDesugaringSpecification != JDK11_MINIMAL
-            || parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N));
-
-    String verbosity = "2";
-    DesugaredLibraryTestCompileResult<?> compileResult =
-        testForDesugaredLibrary(
-                parameters, libraryDesugaringSpecification, compilationSpecification)
-            .addProgramFiles(JDK_11_CONCURRENT_LINKED_QUEUE_TEST_CLASS_FILES)
-            .addProgramFiles(testNGSupportProgramFiles())
-            // The WhiteBox test is using VarHandle and MethodHandles.privateLookupIn to inspect the
-            // internal state of the implementation, so desugaring is needed for the program here.
-            .addOptionsModification(options -> options.enableVarHandleDesugaring = true)
-            .compile()
-            .inspectL8(this::inspect)
-            .withArt6Plus64BitsLib();
-    for (String success : toRun) {
-      SingleTestRunResult<?> result =
-          compileResult.run(parameters.getRuntime(), "TestNGMainRunner", verbosity, success);
-      assertTrue(
-          "Failure in " + success + "\n" + result,
-          result.getStdOut().contains(StringUtils.lines(success + ": SUCCESS")));
-    }
+  @Test
+  public void test() throws Exception {
+    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Executor.class)
+        .compile()
+        .inspectL8(this::inspect)
+        .run(parameters.getRuntime(), Executor.class)
+        .assertSuccessWithOutputLines("Hello, world!");
   }
 
-  @Test
-  public void testWhiteBox() throws Exception {
-    runTest(ImmutableList.of("WhiteBox"));
+  static class Executor {
+
+    public static void main(String[] args) {
+      Queue<String> queue = new ConcurrentLinkedQueue<>();
+      queue.add("Hello, world!");
+      System.out.println(queue.poll());
+    }
   }
 }

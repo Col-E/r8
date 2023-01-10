@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class L8TestBuilder {
 
@@ -247,6 +248,7 @@ public class L8TestBuilder {
     // in the vanilla desugared library.
     // Vanilla desugared library compilation should have no warnings.
     assertTrue(
+        warnings.stream().map(Diagnostic::getDiagnosticMessage).collect(Collectors.joining()),
         warnings.isEmpty()
             || warnings.stream()
                 .allMatch(warn -> warn.getDiagnosticMessage().contains("org.testng.Assert")));

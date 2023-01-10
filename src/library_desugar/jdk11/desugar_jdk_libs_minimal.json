@@ -6,6 +6,12 @@
   "support_all_callbacks_from_library": false,
   "common_flags": [
     {
+      "api_level_below_or_equal": 32,
+      "rewrite_prefix": {
+        "java.util.concurrent.ConcurrentLinkedQueue": "j$.util.concurrent.ConcurrentLinkedQueue"
+      }
+    },
+    {
       "api_level_below_or_equal": 23,
       "maintain_prefix": [
         "java.util.function.",
@@ -14,8 +20,19 @@
     }
   ],
   "program_flags": [],
-  "library_flags": [],
+  "library_flags": [
+    {
+      "api_level_below_or_equal": 32,
+      "rewrite_prefix": {
+        "java.util.concurrent.Helpers": "j$.util.concurrent.Helpers"
+      }
+    }
+  ],
   "shrinker_config": [
+    "-keepclassmembers class j$.** extends java.io.Serializable { void <init>(); private static final java.io.ObjectStreamField[] serialPersistentFields; static final long serialVersionUID; java.lang.Object readResolve(); java.lang.Object writeReplace(); private void readObject(java.io.ObjectInputStream); private void writeObject(java.io.ObjectOutputStream); private void readObjectNoData(); }",
+    "-keepclassmembers class j$.util.concurrent.ConcurrentLinkedQueue { j$.util.concurrent.ConcurrentLinkedQueue$Node head; j$.util.concurrent.ConcurrentLinkedQueue$Node tail; }",
+    "-keep,allowshrinking class j$.util.concurrent.ConcurrentLinkedQueue$Node",
+    "-keepclassmembers class j$.util.concurrent.ConcurrentLinkedQueue$Node { j$.util.concurrent.ConcurrentLinkedQueue$Node next; java.lang.Object item; }",
     "-keeppackagenames java.**",
     "-keeppackagenames j$.**",
     "-keepattributes Signature",

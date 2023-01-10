@@ -24,7 +24,8 @@
     {
       "api_level_below_or_equal": 32,
       "rewrite_prefix": {
-        "java.util.concurrent.DesugarTimeUnit": "j$.util.concurrent.DesugarTimeUnit"
+        "java.util.concurrent.DesugarTimeUnit": "j$.util.concurrent.DesugarTimeUnit",
+        "java.util.concurrent.ConcurrentLinkedQueue": "j$.util.concurrent.ConcurrentLinkedQueue"
       },
       "retarget_method": {
         "java.util.concurrent.TimeUnit java.util.concurrent.TimeUnit#of(java.time.temporal.ChronoUnit)": "java.util.concurrent.DesugarTimeUnit",
@@ -300,6 +301,12 @@
   ],
   "library_flags": [
     {
+      "api_level_below_or_equal": 32,
+      "rewrite_prefix": {
+        "java.util.concurrent.Helpers": "j$.util.concurrent.Helpers"
+      }
+    },
+    {
       "api_level_below_or_equal": 30,
       "rewrite_prefix": {
         "jdk.internal.": "j$.jdk.internal.",
@@ -342,7 +349,6 @@
         "java.util.KeyValueHolder": "j$.util.KeyValueHolder",
         "java.util.SortedSet$1": "j$.util.SortedSet$1",
         "java.util.Tripwire": "j$.util.Tripwire",
-        "java.util.concurrent.Helpers": "j$.util.concurrent.Helpers",
         "java.util.ConversionRuntimeException": "j$.util.ConversionRuntimeException"
       },
       "rewrite_derived_prefix": {
@@ -381,6 +387,9 @@
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap$TreeBin { int lockState; }",
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap { int sizeCtl; int transferIndex; long baseCount; int cellsBusy; }",
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap$CounterCell { long value; }",
+    "-keepclassmembers class j$.util.concurrent.ConcurrentLinkedQueue { j$.util.concurrent.ConcurrentLinkedQueue$Node head; j$.util.concurrent.ConcurrentLinkedQueue$Node tail; }",
+    "-keep,allowshrinking class j$.util.concurrent.ConcurrentLinkedQueue$Node",
+    "-keepclassmembers class j$.util.concurrent.ConcurrentLinkedQueue$Node { j$.util.concurrent.ConcurrentLinkedQueue$Node next; java.lang.Object item; }",
     "-keepclassmembers enum * { public static **[] values(); public static ** valueOf(java.lang.String); public static final !synthetic <fields>; }",
     "-keeppackagenames java.**",
     "-keeppackagenames j$.**",
