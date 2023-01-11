@@ -22,6 +22,7 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
+import java.nio.file.DirectoryStream.Filter;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.OpenOption;
@@ -59,6 +60,8 @@ public class FilesTest extends DesugaredLibraryTestBase {
           "/",
           "true",
           "tmpFile",
+          "%sclass java.nio.file.DirectoryIteratorException::java.io.IOException: Here",
+          "%s",
           "This",
           "is",
           "fun!",
@@ -104,21 +107,26 @@ public class FilesTest extends DesugaredLibraryTestBase {
     this.compilationSpecification = compilationSpecification;
   }
 
-  private static String computeExpectedResult(boolean supportPosix, boolean j$nioClasses) {
-    List<String> strings =
-        new ArrayList<>(
-            supportPosix ? EXPECTED_RESULT_POSIX : EXPECTED_RESULT_DESUGARING_NON_POSIX);
-    strings.add(j$nioClasses ? "j$.nio.file.attribute" : "java.nio.file.attribute");
-    return String.format(EXPECTED_RESULT_FORMAT, strings.toArray());
-  }
-
   private String getExpectedResult() {
-    if (libraryDesugaringSpecification.usesPlatformFileSystem(parameters)) {
-      return libraryDesugaringSpecification.hasNioFileDesugaring(parameters)
-          ? computeExpectedResult(true, true)
-          : computeExpectedResult(true, false);
-    }
-    return computeExpectedResult(false, true);
+    List<String> strings = new ArrayList<>();
+    strings.add(
+        libraryDesugaringSpecification.usesPlatformFileSystem(parameters)
+            ? "DirectoryStream created: "
+            : "");
+    strings.add(
+        libraryDesugaringSpecification.usesPlatformFileSystem(parameters)
+                && libraryDesugaringSpecification.hasNioFileDesugaring(parameters)
+            ? "fail"
+            : "npe caught");
+    strings.addAll(
+        libraryDesugaringSpecification.usesPlatformFileSystem(parameters)
+            ? EXPECTED_RESULT_POSIX
+            : EXPECTED_RESULT_DESUGARING_NON_POSIX);
+    strings.add(
+        libraryDesugaringSpecification.hasNioFileDesugaring(parameters)
+            ? "j$.nio.file.attribute"
+            : "java.nio.file.attribute");
+    return String.format(EXPECTED_RESULT_FORMAT, strings.toArray());
   }
 
   @Test
@@ -224,6 +232,28 @@ public class FilesTest extends DesugaredLibraryTestBase {
       Iterator<Path> theIterator = paths.iterator();
       System.out.println(theIterator.hasNext());
       System.out.println(theIterator.next().getFileName());
+      try {
+        // TODO(b/262190079): In desugared lib the filter is resolved eagerly which leads to the
+        // exception being thrown here and not later.
+        DirectoryStream<Path> pathExceptions =
+            Files.newDirectoryStream(
+                tmpDict,
+                x -> {
+                  throw new IOException("Here");
+                });
+        System.out.print("DirectoryStream created: ");
+        pathExceptions.iterator().next();
+        System.out.println("fail");
+      } catch (Throwable t) {
+        System.out.println(t.getClass() + "::" + t.getMessage());
+      }
+      try {
+        DirectoryStream<Path> thrown =
+            Files.newDirectoryStream(tmpDict, (Filter<? super Path>) null);
+        System.out.println("fail");
+      } catch (NullPointerException npe) {
+        System.out.println("npe caught");
+      }
     }
 
     private static void fspMethodsWithGeneric(Path path) throws IOException {
