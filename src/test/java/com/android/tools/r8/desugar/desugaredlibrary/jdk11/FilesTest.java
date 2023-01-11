@@ -60,7 +60,8 @@ public class FilesTest extends DesugaredLibraryTestBase {
           "/",
           "true",
           "tmpFile",
-          "%sclass java.nio.file.DirectoryIteratorException::java.io.IOException: Here",
+          "DirectoryStream created: class"
+              + " java.nio.file.DirectoryIteratorException::java.io.IOException: Here",
           "%s",
           "This",
           "is",
@@ -109,10 +110,6 @@ public class FilesTest extends DesugaredLibraryTestBase {
 
   private String getExpectedResult() {
     List<String> strings = new ArrayList<>();
-    strings.add(
-        libraryDesugaringSpecification.usesPlatformFileSystem(parameters)
-            ? "DirectoryStream created: "
-            : "");
     strings.add(
         libraryDesugaringSpecification.usesPlatformFileSystem(parameters)
                 && libraryDesugaringSpecification.hasNioFileDesugaring(parameters)
