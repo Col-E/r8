@@ -42,6 +42,10 @@ public class FilesInOutTest extends DesugaredLibraryTestBase {
       StringUtils.lines(
           "PRESENT FILE",
           "buffRead:cHello!",
+          "inStream[null]:class java.lang.NullPointerException :: npe",
+          "outStream[null]:class java.lang.NullPointerException :: npe",
+          "buffWrite[null]:class java.lang.NullPointerException :: npe",
+          "newByte[null]:class java.lang.NullPointerException :: npe",
           "inStream[READ]:cHello",
           "outStream[READ]:class java.lang.IllegalArgumentException :: READ not allowed",
           "buffWrite[READ]:class java.lang.IllegalArgumentException :: READ not allowed",
@@ -85,6 +89,10 @@ public class FilesInOutTest extends DesugaredLibraryTestBase {
           "newByte[DSYNC]:c6",
           "ABSENT FILE",
           "buffRead:class java.nio.file.NoSuchFileException :: notExisting",
+          "inStream[null]:class java.lang.NullPointerException :: npe",
+          "outStream[null]:class java.lang.NullPointerException :: npe",
+          "buffWrite[null]:class java.lang.NullPointerException :: npe",
+          "newByte[null]:class java.lang.NullPointerException :: npe",
           "inStream[READ]:class java.nio.file.NoSuchFileException :: notExisting",
           "outStream[READ]:class java.lang.IllegalArgumentException :: READ not allowed",
           "buffWrite[READ]:class java.lang.IllegalArgumentException :: READ not allowed",
@@ -233,6 +241,11 @@ public class FilesInOutTest extends DesugaredLibraryTestBase {
         // really relevant for the test.
         split = new String[] {"index 0, size 0"};
       }
+      if (t instanceof NullPointerException) {
+        // NullPointerException are printed slightly differently across platform and it's not
+        // really relevant for the test.
+        split = new String[] {"npe"};
+      }
       System.out.println(t.getClass() + " :: " + split[0]);
     }
 
@@ -246,50 +259,57 @@ public class FilesInOutTest extends DesugaredLibraryTestBase {
         printError(t);
       }
       Files.deleteIfExists(path);
-      for (StandardOpenOption value : StandardOpenOption.values()) {
-        path = pathSupplier.get();
-        System.out.print("inStream[" + value + "]:");
-        try (InputStream inputStream = Files.newInputStream(path, value)) {
-          System.out.print("c");
-          byte[] read = new byte[5];
-          inputStream.read(read);
-          System.out.println(new String(read));
-        } catch (Throwable t) {
-          printError(t);
-        }
-        Files.deleteIfExists(path);
-        path = pathSupplier.get();
-        System.out.print("outStream[" + value + "]:");
-        try (OutputStream outputStream = Files.newOutputStream(path, value)) {
-          System.out.print("c");
-          outputStream.write("Game over!".getBytes(StandardCharsets.UTF_8));
-          System.out.print("w");
-          System.out.println(Files.readAllLines(path).get(0));
-        } catch (Throwable t) {
-          printError(t);
-        }
-        Files.deleteIfExists(path);
-        path = pathSupplier.get();
-        System.out.print("buffWrite[" + value + "]:");
-        try (BufferedWriter bufferedWriter = Files.newBufferedWriter(path, value)) {
-          System.out.print("c");
-          bufferedWriter.write("Game over!");
-          System.out.print("w");
-          System.out.println(Files.readAllLines(path).get(0));
-        } catch (Throwable t) {
-          printError(t);
-        }
-        Files.deleteIfExists(path);
-        path = pathSupplier.get();
-        System.out.print("newByte[" + value + "]:");
-        try (SeekableByteChannel seekableByteChannel = Files.newByteChannel(path, value)) {
-          System.out.print("c");
-          System.out.println(seekableByteChannel.size());
-        } catch (Throwable t) {
-          printError(t);
-        }
-        Files.deleteIfExists(path);
+      testWithOpenOption(pathSupplier, null);
+      for (StandardOpenOption openOption : StandardOpenOption.values()) {
+        testWithOpenOption(pathSupplier, openOption);
       }
+    }
+
+    private static void testWithOpenOption(
+        Supplier<Path> pathSupplier, StandardOpenOption openOption) throws IOException {
+      Path path;
+      path = pathSupplier.get();
+      System.out.print("inStream[" + openOption + "]:");
+      try (InputStream inputStream = Files.newInputStream(path, openOption)) {
+        System.out.print("c");
+        byte[] read = new byte[5];
+        inputStream.read(read);
+        System.out.println(new String(read));
+      } catch (Throwable t) {
+        printError(t);
+      }
+      Files.deleteIfExists(path);
+      path = pathSupplier.get();
+      System.out.print("outStream[" + openOption + "]:");
+      try (OutputStream outputStream = Files.newOutputStream(path, openOption)) {
+        System.out.print("c");
+        outputStream.write("Game over!".getBytes(StandardCharsets.UTF_8));
+        System.out.print("w");
+        System.out.println(Files.readAllLines(path).get(0));
+      } catch (Throwable t) {
+        printError(t);
+      }
+      Files.deleteIfExists(path);
+      path = pathSupplier.get();
+      System.out.print("buffWrite[" + openOption + "]:");
+      try (BufferedWriter bufferedWriter = Files.newBufferedWriter(path, openOption)) {
+        System.out.print("c");
+        bufferedWriter.write("Game over!");
+        System.out.print("w");
+        System.out.println(Files.readAllLines(path).get(0));
+      } catch (Throwable t) {
+        printError(t);
+      }
+      Files.deleteIfExists(path);
+      path = pathSupplier.get();
+      System.out.print("newByte[" + openOption + "]:");
+      try (SeekableByteChannel seekableByteChannel = Files.newByteChannel(path, openOption)) {
+        System.out.print("c");
+        System.out.println(seekableByteChannel.size());
+      } catch (Throwable t) {
+        printError(t);
+      }
+      Files.deleteIfExists(path);
     }
   }
 }

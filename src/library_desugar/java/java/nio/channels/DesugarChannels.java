@@ -254,6 +254,11 @@ public class DesugarChannels {
 
   private static void validateOpenOptions(Path path, Set<? extends OpenOption> openOptions)
       throws IOException {
+    for (OpenOption openOption : openOptions) {
+      if (openOption == null) {
+        throw new NullPointerException();
+      }
+    }
     if (Files.exists(path)) {
       if (openOptions.contains(StandardOpenOption.CREATE_NEW)
           && openOptions.contains(StandardOpenOption.WRITE)) {

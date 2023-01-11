@@ -317,7 +317,7 @@ public class Jdk11NioFileTests extends DesugaredLibraryTestBase {
       // failures.
       int sevenOffset = parameters.getDexRuntimeVersion() == Version.V7_0_0 ? -1 : 0;
       int shrinkOffset = compilationSpecification.isL8Shrink() ? -1 : 0;
-      assertTrue(success >= 18 + sevenOffset + shrinkOffset);
+      assertTrue(success >= 20 + sevenOffset + shrinkOffset);
     } else if (parameters.getApiLevel().isLessThan(AndroidApiLevel.O)) {
       // Desugaring high api level.
       assertEquals(26, success);
