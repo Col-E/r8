@@ -21,7 +21,6 @@ import com.android.tools.r8.optimize.InvokeSingleTargetExtractor.InvokeKind;
 import com.android.tools.r8.optimize.redundantbridgeremoval.RedundantBridgeRemovalLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepMethodInfo;
-import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -141,7 +140,6 @@ public class RedundantBridgeRemover {
           ProgramMethodSet bridgesToRemoveForClass = ProgramMethodSet.create();
           clazz.forEachProgramMethod(
               method -> {
-                DexEncodedMethod definition = method.getDefinition();
                 KeepMethodInfo keepInfo = appView.getKeepInfo(method);
                 if (!keepInfo.isShrinkingAllowed(appView.options())
                     || !keepInfo.isOptimizationAllowed(appView.options())) {
@@ -156,12 +154,6 @@ public class RedundantBridgeRemover {
                 if (target != null) {
                   // Record that the redundant bridge should be removed.
                   bridgesToRemoveForClass.add(method);
-
-                  // When removing a bridge we have to mark if the target is a library override.
-                  if (definition.isLibraryMethodOverride().isTrue()) {
-                    target.getDefinition().clearLibraryOverride();
-                    target.getDefinition().setLibraryMethodOverride(OptionalBool.TRUE);
-                  }
 
                   // Rewrite invokes to the bridge to the target if it is accessible.
                   // TODO(b/173751869): Consider enabling this for constructors as well.

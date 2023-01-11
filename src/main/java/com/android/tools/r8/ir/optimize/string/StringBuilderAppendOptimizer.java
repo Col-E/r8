@@ -608,6 +608,11 @@ public class StringBuilderAppendOptimizer {
       }
 
       @Override
+      protected List<Void> getFinalStateForRoots(Collection<? extends StringBuilderNode> roots) {
+        return null;
+      }
+
+      @Override
       public TraversalContinuation<Void, Void> joiner(DFSNode<StringBuilderNode> node) {
         StringBuilderNode node1 = node.getNode();
         processingOrder.add(node1);

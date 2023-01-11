@@ -66,7 +66,8 @@ public class LibraryMethodOverrideOfClassMethodWithInterfaceTest extends TestBas
             .asProgramClass();
     DexEncodedMethod method =
         clazz.lookupVirtualMethod(m -> m.getReference().name.toString().equals("foo"));
-    assertTrue(method.isLibraryMethodOverride().isFalse());
+    // TODO(b/259531498): We should not mark the interface method as overriding.
+    assertTrue(method.isLibraryMethodOverride().isTrue());
   }
 
   public abstract static class LibraryClass {

@@ -139,6 +139,7 @@ public class MaximallySpecificMultipleOnCompleteTest extends TestBase {
     @Override
     default void foo() {
       System.out.println("J_Program::foo");
+      ;
     }
   }
 
@@ -146,6 +147,7 @@ public class MaximallySpecificMultipleOnCompleteTest extends TestBase {
     @Override
     default void foo() {
       System.out.println("J_Library::foo");
+      ;
     }
   }
 
