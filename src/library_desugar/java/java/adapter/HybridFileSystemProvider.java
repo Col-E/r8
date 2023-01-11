@@ -6,7 +6,7 @@ package java.adapter;
 
 import android.os.StrictMode;
 import android.os.StrictMode.ThreadPolicy;
-import desugar.sun.nio.fs.DesugarAndroidDefaultFileSystemProvider;
+import desugar.sun.nio.fs.DesugarDefaultFileSystemProvider;
 import j$.nio.file.FileSystems;
 import java.net.URI;
 import java.nio.file.FileSystem;
@@ -34,7 +34,7 @@ public final class HybridFileSystemProvider {
       // We cannot set the ThreadPolicy in headless and it should not matter.
       setThreadPolicy();
     }
-    return DesugarAndroidDefaultFileSystemProvider.instance();
+    return DesugarDefaultFileSystemProvider.instance();
   }
 
   private static void setThreadPolicy() {
