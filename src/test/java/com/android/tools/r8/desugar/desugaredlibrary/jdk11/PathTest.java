@@ -30,33 +30,24 @@ public class PathTest extends DesugaredLibraryTestBase {
   private final LibraryDesugaringSpecification libraryDesugaringSpecification;
   private final CompilationSpecification compilationSpecification;
 
+  private static final String EXPECTED_RESULT_FORMAT =
+      StringUtils.lines(
+          "x.txt",
+          "dir",
+          "dir/x.txt",
+          "/",
+          "%s",
+          "class java.nio.file.NoSuchFileException :: notExisting",
+          "class java.nio.file.NoSuchFileException :: notExisting",
+          "x.txt",
+          "",
+          "");
+
   private static final String EXPECTED_RESULT_DESUGARING =
-      StringUtils.lines(
-          "x.txt",
-          "dir",
-          "dir/x.txt",
-          "/",
-          "class j$.desugar.sun.nio.fs.DesugarLinuxFileSystem",
-          "class java.nio.file.NoSuchFileException :: notExisting",
-          "class java.nio.file.NoSuchFileException :: notExisting");
+      "class j$.desugar.sun.nio.fs.DesugarLinuxFileSystem";
   private static final String EXPECTED_RESULT_DESUGARING_PLATFORM_FILE_SYSTEM =
-      StringUtils.lines(
-          "x.txt",
-          "dir",
-          "dir/x.txt",
-          "/",
-          "class j$.nio.file.FileSystem$VivifiedWrapper",
-          "class java.nio.file.NoSuchFileException :: notExisting",
-          "class java.nio.file.NoSuchFileException :: notExisting");
-  private static final String EXPECTED_RESULT_NO_DESUGARING =
-      StringUtils.lines(
-          "x.txt",
-          "dir",
-          "dir/x.txt",
-          "/",
-          "class sun.nio.fs.LinuxFileSystem",
-          "class java.nio.file.NoSuchFileException :: notExisting",
-          "class java.nio.file.NoSuchFileException :: notExisting");
+      "class j$.nio.file.FileSystem$VivifiedWrapper";
+  private static final String EXPECTED_RESULT_NO_DESUGARING = "class sun.nio.fs.LinuxFileSystem";
 
   @Parameters(name = "{0}, spec: {1}, {2}")
   public static List<Object[]> data() {
@@ -77,11 +68,13 @@ public class PathTest extends DesugaredLibraryTestBase {
 
   private String getExpectedResult() {
     if (!libraryDesugaringSpecification.hasNioFileDesugaring(parameters)) {
-      return EXPECTED_RESULT_NO_DESUGARING;
+      return String.format(EXPECTED_RESULT_FORMAT, EXPECTED_RESULT_NO_DESUGARING);
     }
-    return libraryDesugaringSpecification.usesPlatformFileSystem(parameters)
-        ? EXPECTED_RESULT_DESUGARING_PLATFORM_FILE_SYSTEM
-        : EXPECTED_RESULT_DESUGARING;
+    return String.format(
+        EXPECTED_RESULT_FORMAT,
+        libraryDesugaringSpecification.usesPlatformFileSystem(parameters)
+            ? EXPECTED_RESULT_DESUGARING_PLATFORM_FILE_SYSTEM
+            : EXPECTED_RESULT_DESUGARING);
   }
 
   @Test
@@ -131,6 +124,11 @@ public class PathTest extends DesugaredLibraryTestBase {
       } catch (IOException e) {
         printError(e);
       }
+
+      System.out.println(path1.getFileName());
+      Path relativize = path1.relativize(path1);
+      System.out.println(relativize);
+      System.out.println(relativize.getFileName());
     }
   }
 }
