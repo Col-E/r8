@@ -36,7 +36,7 @@ import org.junit.runners.Parameterized.Parameters;
 public class FilesWatchEventTest extends DesugaredLibraryTestBase {
 
   private static final String EXPECTED_RESULT =
-      StringUtils.lines("true", "true", "true", "ENTRY_CREATE", "foo", "true");
+      StringUtils.lines("true", "true", "true", "ENTRY_CREATE", "Path", "foo", "foo", "true");
   private static final String EXPECTED_RESULT_DESUGARING =
       StringUtils.lines("class java.lang.UnsupportedOperationException :: null");
 
@@ -110,7 +110,9 @@ public class FilesWatchEventTest extends DesugaredLibraryTestBase {
 
         WatchEvent<?> event = myKey.pollEvents().iterator().next();
         System.out.println(event.kind());
+        System.out.println(event.kind().type().getSimpleName());
         System.out.println(event.context());
+        System.out.println(((Path) event.context()).getFileName());
 
         System.out.println(myKey.reset());
         Files.delete(file);
