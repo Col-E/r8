@@ -318,6 +318,7 @@ public class R8 {
 
       List<ProguardConfigurationRule> synthesizedProguardRules = new ArrayList<>();
       timing.begin("Strip unused code");
+      timing.begin("Before enqueuer");
       RuntimeTypeCheckInfo.Builder classMergingEnqueuerExtensionBuilder =
           new RuntimeTypeCheckInfo.Builder(appView);
       try {
@@ -356,6 +357,8 @@ public class R8 {
 
         AnnotationRemover.Builder annotationRemoverBuilder =
             options.isShrinking() ? AnnotationRemover.builder(Mode.INITIAL_TREE_SHAKING) : null;
+        timing.end();
+        timing.begin("Enqueuer");
         AppView<AppInfoWithLiveness> appViewWithLiveness =
             runEnqueuer(
                 annotationRemoverBuilder,
@@ -363,7 +366,8 @@ public class R8 {
                 appView,
                 subtypingInfo,
                 classMergingEnqueuerExtensionBuilder);
-
+        timing.end();
+        timing.begin("After enqueuer");
         assert appView.rootSet().verifyKeptFieldsAreAccessedAndLive(appViewWithLiveness);
         assert appView.rootSet().verifyKeptMethodsAreTargetedAndLive(appViewWithLiveness);
         assert appView.rootSet().verifyKeptTypesAreLive(appViewWithLiveness);
@@ -429,6 +433,7 @@ public class R8 {
 
           assert appView.checkForTesting(() -> allReferencesAssignedApiLevel(appViewWithLiveness));
         }
+        timing.end();
       } finally {
         timing.end();
       }
@@ -982,6 +987,7 @@ public class R8 {
       SubtypingInfo subtypingInfo,
       RuntimeTypeCheckInfo.Builder classMergingEnqueuerExtensionBuilder)
       throws ExecutionException {
+    timing.begin("Set up enqueuer");
     Enqueuer enqueuer =
         EnqueuerFactory.createForInitialTreeShaking(appView, executorService, subtypingInfo);
     enqueuer.setAnnotationRemoverBuilder(annotationRemoverBuilder);
@@ -999,9 +1005,12 @@ public class R8 {
     if (options.isClassMergingExtensionRequired(enqueuer.getMode())) {
       classMergingEnqueuerExtensionBuilder.attach(enqueuer);
     }
-
+    timing.end();
+    timing.begin("Trace application");
     EnqueuerResult enqueuerResult =
         enqueuer.traceApplication(appView.rootSet(), executorService, timing);
+    timing.end();
+    timing.begin("Finalize enqueuer result");
     AppView<AppInfoWithLiveness> appViewWithLiveness =
         appView.setAppInfo(enqueuerResult.getAppInfo());
     if (InternalOptions.assertionsEnabled()) {
@@ -1015,6 +1024,7 @@ public class R8 {
         shrinker ->
             shrinker.rewriteDeadBuilderReferencesFromDynamicMethods(
                 appViewWithLiveness, executorService, timing));
+    timing.end();
     return appViewWithLiveness;
   }
 

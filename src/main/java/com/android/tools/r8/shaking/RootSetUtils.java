@@ -71,6 +71,7 @@ import com.android.tools.r8.utils.PredicateSet;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.collections.ProgramMethodMap;
 import com.google.common.base.Equivalence.Wrapper;
@@ -1918,12 +1919,17 @@ public class RootSetUtils {
               minimumKeepInfoForDefinition -> !minimumKeepInfoForDefinition.isShrinkingAllowed());
     }
 
-    public void pruneDeadItems(DexDefinitionSupplier definitions, Enqueuer enqueuer) {
+    public void pruneDeadItems(
+        DexDefinitionSupplier definitions, Enqueuer enqueuer, Timing timing) {
+      timing.begin("Prune keep info");
       getDependentMinimumKeepInfo().pruneDeadItems(definitions, enqueuer);
+      timing.end();
+      timing.begin("Prune others");
       pruneDeadReferences(noUnusedInterfaceRemoval, definitions, enqueuer);
       pruneDeadReferences(noVerticalClassMerging, definitions, enqueuer);
       pruneDeadReferences(noHorizontalClassMerging, definitions, enqueuer);
       pruneDeadReferences(alwaysInline, definitions, enqueuer);
+      timing.end();
     }
 
     private static void pruneDeadReferences(

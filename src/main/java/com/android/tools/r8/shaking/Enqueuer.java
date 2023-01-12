@@ -3606,6 +3606,7 @@ public class Enqueuer {
     this.rootSet = rootSet;
     rootSet.pendingMethodMoveInverse.forEach(pendingMethodMoveInverse::put);
     // Translate the result of root-set computation into enqueuer actions.
+    timing.begin("Register analysis");
     if (mode.isTreeShaking()
         && appView.options().hasProguardConfiguration()
         && !options.kotlinOptimizationOptions().disableKotlinSpecificOptimizations) {
@@ -3620,14 +3621,20 @@ public class Enqueuer {
     if (options.apiModelingOptions().enableLibraryApiModeling) {
       registerAnalysis(new ApiModelAnalysis(appView));
     }
+    timing.end();
 
     // Transfer the minimum keep info from the root set into the Enqueuer state.
+    timing.begin("Transfer minimum keep info");
     includeMinimumKeepInfo(rootSet);
+    timing.end();
 
     if (mode.isInitialTreeShaking()) {
       // Amend library methods with covariant return types.
+      timing.begin("Model library");
       modelLibraryMethodsWithCovariantReturnTypes();
+      timing.end();
     } else if (appView.getKeepInfo() != null) {
+      timing.begin("Retain keep info");
       EnqueuerEvent preconditionEvent = UnconditionalKeepInfoEvent.get();
       appView
           .getKeepInfo()
@@ -3638,24 +3645,38 @@ public class Enqueuer {
               (field, minimumKeepInfo) ->
                   applyMinimumKeepInfoWhenLive(field, minimumKeepInfo, preconditionEvent),
               this::applyMinimumKeepInfoWhenLiveOrTargeted);
+      timing.end();
     }
+    timing.begin("Enqueue all");
     enqueueAllIfNotShrinking();
+    timing.end();
+    timing.begin("Trace");
     trace(executorService, timing);
+    timing.end();
     options.reporter.failIfPendingErrors();
+    timing.begin("Finalize library override");
     finalizeLibraryMethodOverrideInformation();
+    timing.end();
+    timing.begin("Finish analysis");
     analyses.forEach(analyses -> analyses.done(this));
+    timing.end();
     assert verifyKeptGraph();
+    timing.begin("Finish compat building");
     if (mode.isInitialTreeShaking() && forceProguardCompatibility) {
       appView.setProguardCompatibilityActions(proguardCompatibilityActionsBuilder.build());
     } else {
       assert proguardCompatibilityActionsBuilder == null;
     }
+    timing.end();
     if (mode.isWhyAreYouKeeping()) {
       // For why are you keeping the information is reported through the kept graph callbacks and
       // no AppInfo is returned.
       return null;
     }
-    return createEnqueuerResult(appInfo);
+    timing.begin("Create result");
+    EnqueuerResult result = createEnqueuerResult(appInfo, timing);
+    timing.end();
+    return result;
   }
 
   private void includeMinimumKeepInfo(RootSetBase rootSet) {
@@ -4163,38 +4184,47 @@ public class Enqueuer {
     return true;
   }
 
-  private EnqueuerResult createEnqueuerResult(AppInfoWithClassHierarchy appInfo)
+  private EnqueuerResult createEnqueuerResult(AppInfoWithClassHierarchy appInfo, Timing timing)
       throws ExecutionException {
+    timing.begin("Remove dead protos");
     // Compute the set of dead proto types.
     deadProtoTypeCandidates.removeIf(this::isTypeLive);
     Set<DexType> deadProtoTypes =
         SetUtils.newIdentityHashSet(deadProtoTypeCandidates.size() + initialDeadProtoTypes.size());
     deadProtoTypeCandidates.forEach(deadProtoType -> deadProtoTypes.add(deadProtoType.type));
     deadProtoTypes.addAll(initialDeadProtoTypes);
+    timing.end();
 
     // Remove the temporary mappings that have been inserted into the field access info collection
     // and verify that the mapping is then one-to-one.
+    timing.begin("Prune field access mappings");
     fieldAccessInfoCollection.removeIf(
         (field, info) -> field != info.getField() || info == MISSING_FIELD_ACCESS_INFO);
     assert fieldAccessInfoCollection.verifyMappingIsOneToOne();
+    timing.end();
 
     // Verify all references on the input app before synthesizing definitions.
     assert verifyReferences(appInfo.app());
 
     // Prune the root set items that turned out to be dead.
     // TODO(b/150736225): Pruning of dead root set items is still incomplete.
-    rootSet.pruneDeadItems(appView, this);
+    timing.begin("Prune dead items");
+    rootSet.pruneDeadItems(appView, this, timing);
     if (mode.isTreeShaking() && appView.hasMainDexRootSet()) {
       assert rootSet != appView.getMainDexRootSet();
-      appView.getMainDexRootSet().pruneDeadItems(appView, this);
+      appView.getMainDexRootSet().pruneDeadItems(appView, this, timing);
     }
+    timing.end();
 
     // Ensure references from all hard coded factory items.
+    timing.begin("Ensure static factory references");
     appView
         .dexItemFactory()
         .forEachPossiblyCompilerSynthesizedType(this::recordCompilerSynthesizedTypeReference);
+    timing.end();
 
     // Rebuild a new app only containing referenced types.
+    timing.begin("Rebuild application");
     Set<DexLibraryClass> libraryClasses = Sets.newIdentityHashSet();
     Set<DexClasspathClass> classpathClasses = Sets.newIdentityHashSet();
     // Ensure all referenced non program types have their hierarchy built as live.
@@ -4220,6 +4250,7 @@ public class Enqueuer {
             .replaceLibraryClasses(libraryClasses)
             .replaceClasspathClasses(classpathClasses)
             .build();
+    timing.end();
 
     // Verify the references on the pruned application after type synthesis.
     assert verifyReferences(app);
@@ -4232,7 +4263,10 @@ public class Enqueuer {
               : ImmutableSet.of(syntheticClass.getType());
         };
     amendKeepInfoWithCompanionMethods();
+    timing.begin("Rewrite with deferred results");
     deferredTracing.rewriteApplication(executorService);
+    timing.end();
+    timing.begin("Create app info with liveness");
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(
             appInfo.getSyntheticItems().commit(app),
@@ -4275,6 +4309,7 @@ public class Enqueuer {
             lockCandidates,
             initClassReferences,
             recordFieldValuesReferences);
+    timing.end();
     appInfo.markObsolete();
     if (options.testing.enqueuerInspector != null) {
       options.testing.enqueuerInspector.accept(appInfoWithLiveness, mode);
