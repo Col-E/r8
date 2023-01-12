@@ -14,8 +14,10 @@ import static org.hamcrest.core.StringContains.containsString;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.android.tools.r8.errors.UnusedProguardKeepRuleDiagnostic;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -95,7 +97,11 @@ public class DesugaredLibraryWarningTest extends DesugaredLibraryTestBase {
               } else {
                 diagnosticsHandler.assertNoWarnings();
               }
-              diagnosticsHandler.assertNoInfos();
+              // The L8 compilation has always the extra keep rules from the json files, which may
+              // be unused, leading to infos.
+              Assert.assertTrue(
+                  diagnosticsHandler.getInfos().stream()
+                      .allMatch(info -> info instanceof UnusedProguardKeepRuleDiagnostic));
             });
   }
 }

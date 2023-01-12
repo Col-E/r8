@@ -269,10 +269,10 @@ public class LibraryDesugaringSpecification {
         .applyIf(
             l8Shrink,
             builder -> {
-              if (keepRule != null && !keepRule.trim().isEmpty()) {
-                String totalKeepRules = keepRule + "\n" + getExtraKeepRules();
-                builder.addGeneratedKeepRules(totalKeepRules);
-              }
+              assert keepRule != null;
+              String totalKeepRules =
+                  keepRule + (getExtraKeepRules().isEmpty() ? "" : ("\n" + getExtraKeepRules()));
+              builder.addGeneratedKeepRules(totalKeepRules);
             },
             L8TestBuilder::setDebug);
   }

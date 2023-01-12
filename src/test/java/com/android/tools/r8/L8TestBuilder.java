@@ -191,7 +191,7 @@ public class L8TestBuilder {
           ImmutableList.<String>builder()
               .addAll(keepRules)
               .addAll(
-                  generatedKeepRules != null
+                  generatedKeepRules != null && !generatedKeepRules.isEmpty()
                       ? ImmutableList.of(generatedKeepRules)
                       : Collections.emptyList())
               .build();

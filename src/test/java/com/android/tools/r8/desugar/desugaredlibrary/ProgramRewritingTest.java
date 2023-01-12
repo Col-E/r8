@@ -109,7 +109,7 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
                   if (parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel()) {
                     keepRules.set(String.join("\n", kr));
                   } else {
-                    assert kr == null;
+                    assert kr == null || kr.isEmpty();
                     keepRules.set("");
                   }
                 })

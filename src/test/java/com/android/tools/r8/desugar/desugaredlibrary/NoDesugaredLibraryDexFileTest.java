@@ -19,7 +19,6 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.SortedSet;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -58,7 +57,7 @@ public class NoDesugaredLibraryDexFileTest extends DesugaredLibraryTestBase {
         .addKeepClassAndMembersRules(Executor.class)
         .compile()
         .inspect(this::assertNoForwardingStreamMethod)
-        .inspectKeepRules(Assert::assertNull)
+        .inspectKeepRules(kr -> assertTrue(kr == null || kr.isEmpty()))
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutputLines("1", "0");
   }
