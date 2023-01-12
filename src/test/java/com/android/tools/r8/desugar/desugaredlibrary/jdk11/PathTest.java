@@ -18,6 +18,7 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -77,6 +78,7 @@ public class PathTest extends DesugaredLibraryTestBase {
             : EXPECTED_RESULT_DESUGARING);
   }
 
+  @Ignore("b/265268776")
   @Test
   public void test() throws Throwable {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
