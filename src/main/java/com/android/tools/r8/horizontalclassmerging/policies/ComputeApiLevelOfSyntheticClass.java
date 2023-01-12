@@ -195,9 +195,7 @@ public class ComputeApiLevelOfSyntheticClass extends SingleClassPolicy {
 
     private void setMaxApiReferenceLevel(DexReference reference) {
       maxApiReferenceLevel =
-          maxApiReferenceLevel.max(
-              apiLevelCompute.computeApiLevelForLibraryReference(
-                  reference, apiLevelCompute.getPlatformApiLevelOrUnknown(appView)));
+          maxApiReferenceLevel.max(apiLevelCompute.computeApiLevelForLibraryReference(reference));
     }
 
     public ComputedApiLevel getMaxApiReferenceLevel() {

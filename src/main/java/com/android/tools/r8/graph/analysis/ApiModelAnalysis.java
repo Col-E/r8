@@ -97,8 +97,6 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
         .getDefinition()
         .setApiLevelForDefinition(
             apiCompute.computeApiLevelForDefinition(
-                member.getReference(),
-                appView.dexItemFactory(),
-                apiCompute.getPlatformApiLevelOrUnknown(appView)));
+                member.getReference(), appView.dexItemFactory(), ComputedApiLevel.unknown()));
   }
 }

@@ -68,9 +68,7 @@ public class AndroidApiLevelUtils {
       AppView<?> appView, AndroidApiLevelCompute apiLevelCompute, DexProgramClass clazz) {
     // The api level of a class is the max level of it's members, super class and interfaces.
     return getMembersApiReferenceLevelForMerging(
-        clazz,
-        apiLevelCompute.computeApiLevelForDefinition(
-            clazz.allImmediateSupertypes(), apiLevelCompute.getPlatformApiLevelOrUnknown(appView)));
+        clazz, apiLevelCompute.computeApiLevelForDefinition(clazz.allImmediateSupertypes()));
   }
 
   private static ComputedApiLevel getMembersApiReferenceLevelForMerging(

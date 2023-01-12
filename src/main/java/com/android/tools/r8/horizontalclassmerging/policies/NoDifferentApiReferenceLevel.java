@@ -16,7 +16,6 @@ public class NoDifferentApiReferenceLevel extends MultiClassSameReferencePolicy<
 
   private final AndroidApiLevelCompute apiLevelCompute;
   private final AppView<?> appView;
-  // TODO(b/188388130): Remove when stabilized.
   private final boolean enableApiCallerIdentification;
 
   public NoDifferentApiReferenceLevel(AppView<?> appView) {

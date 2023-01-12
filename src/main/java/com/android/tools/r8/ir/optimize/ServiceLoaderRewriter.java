@@ -207,8 +207,7 @@ public class ServiceLoaderRewriter {
                         .setApiLevelForDefinition(appView.computedMinApiLevel())
                         .setApiLevelForCode(
                             apiLevelCompute.computeApiLevelForDefinition(
-                                ListUtils.map(classes, clazz -> clazz.type),
-                                apiLevelCompute.getPlatformApiLevelOrUnknown(appView)))
+                                ListUtils.map(classes, clazz -> clazz.type)))
                         .setCode(
                             m ->
                                 ServiceLoaderSourceCode.generate(

@@ -43,6 +43,14 @@ public abstract class AndroidApiLevelCompute {
   public abstract ComputedApiLevel computeApiLevelForDefinition(
       Iterable<DexType> types, ComputedApiLevel unknownValue);
 
+  public ComputedApiLevel computeApiLevelForLibraryReference(DexReference reference) {
+    return computeApiLevelForLibraryReference(reference, ComputedApiLevel.unknown());
+  }
+
+  public ComputedApiLevel computeApiLevelForDefinition(Iterable<DexType> types) {
+    return computeApiLevelForDefinition(types, ComputedApiLevel.unknown());
+  }
+
   public abstract boolean isEnabled();
 
   public void reportUnknownApiReferences() {
@@ -72,16 +80,6 @@ public abstract class AndroidApiLevelCompute {
       return ComputedApiLevel.master();
     }
     return new KnownApiLevel(options.getMinApiLevel());
-  }
-
-  // TODO(b/213552119): This should not be necessary if we have an api computation that returns min
-  //  api if we have platform.
-  @Deprecated
-  public ComputedApiLevel getPlatformApiLevelOrUnknown(AppView<?> appView) {
-    if (appView.options().getMinApiLevel() == AndroidApiLevel.ANDROID_PLATFORM) {
-      return ComputedApiLevel.platform();
-    }
-    return ComputedApiLevel.unknown();
   }
 
   public static class NoAndroidApiLevelCompute extends AndroidApiLevelCompute {

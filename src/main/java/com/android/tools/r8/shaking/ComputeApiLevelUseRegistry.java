@@ -155,9 +155,7 @@ public class ComputeApiLevelUseRegistry extends UseRegistry<ProgramMethod> {
     if (isEnabled) {
       if (reference.isDexType()) {
         maxApiReferenceLevel =
-            maxApiReferenceLevel.max(
-                apiLevelCompute.computeApiLevelForLibraryReference(
-                    reference, apiLevelCompute.getPlatformApiLevelOrUnknown(appView)));
+            maxApiReferenceLevel.max(apiLevelCompute.computeApiLevelForLibraryReference(reference));
       } else if (!reference.getContextType().isClassType()) {
         maxApiReferenceLevel = maxApiReferenceLevel.max(appView.computedMinApiLevel());
       } else {
@@ -169,11 +167,7 @@ public class ComputeApiLevelUseRegistry extends UseRegistry<ProgramMethod> {
                       appView, appInfoWithClassHierarchy, holder, reference.asDexMember())
                   .getSecond();
         }
-        maxApiReferenceLevel =
-            maxApiReferenceLevel.max(
-                referenceApiLevel.isUnknownApiLevel()
-                    ? apiLevelCompute.getPlatformApiLevelOrUnknown(appView)
-                    : referenceApiLevel);
+        maxApiReferenceLevel = maxApiReferenceLevel.max(referenceApiLevel);
       }
     }
   }
