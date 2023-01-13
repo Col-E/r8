@@ -23,7 +23,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.TraversalContinuation;
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -32,7 +31,6 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -59,10 +57,7 @@ public abstract class DexClass extends DexDefinition
   private OptionalBool isResolvable = OptionalBool.unknown();
 
   /** Access has to be synchronized during concurrent collection/writing phase. */
-  protected DexEncodedField[] staticFields = DexEncodedField.EMPTY_ARRAY;
-
-  /** Access has to be synchronized during concurrent collection/writing phase. */
-  protected DexEncodedField[] instanceFields = DexEncodedField.EMPTY_ARRAY;
+  protected final FieldCollection fieldCollection;
 
   /** Access has to be synchronized during concurrent collection/writing phase. */
   protected final MethodCollection methodCollection;
@@ -112,8 +107,7 @@ public abstract class DexClass extends DexDefinition
     this.accessFlags = accessFlags;
     this.superType = superType;
     this.type = type;
-    setStaticFields(staticFields);
-    setInstanceFields(instanceFields);
+    this.fieldCollection = FieldCollection.create(this, staticFields, instanceFields);
     this.methodCollection = methodCollectionFactory.create(this);
     this.nestHost = nestHost;
     this.nestMembers = nestMembers;
@@ -222,9 +216,7 @@ public abstract class DexClass extends DexDefinition
   }
 
   public Iterable<DexEncodedField> fields(final Predicate<? super DexEncodedField> predicate) {
-    return Iterables.concat(
-        Iterables.filter(Arrays.asList(instanceFields), predicate::test),
-        Iterables.filter(Arrays.asList(staticFields), predicate::test));
+    return fieldCollection.fields(predicate);
   }
 
   public Iterable<DexEncodedMember<?, ?>> members() {
@@ -233,6 +225,10 @@ public abstract class DexClass extends DexDefinition
 
   public Iterable<DexEncodedMember<?, ?>> members(Predicate<DexEncodedMember<?, ?>> predicate) {
     return Iterables.concat(fields(predicate), methods(predicate));
+  }
+
+  public FieldCollection getFieldCollection() {
+    return fieldCollection;
   }
 
   @Override
@@ -326,6 +322,10 @@ public abstract class DexClass extends DexDefinition
     methodCollection.forEachMethod(consumer);
   }
 
+  public List<DexEncodedField> allFieldsSorted() {
+    return fieldCollection.allFieldsSorted();
+  }
+
   public List<DexEncodedMethod> allMethodsSorted() {
     return methodCollection.allMethodsSorted();
   }
@@ -387,11 +387,7 @@ public abstract class DexClass extends DexDefinition
   }
 
   public List<DexEncodedField> staticFields() {
-    assert staticFields != null;
-    if (InternalOptions.assertionsEnabled()) {
-      return Collections.unmodifiableList(Arrays.asList(staticFields));
-    }
-    return Arrays.asList(staticFields);
+    return fieldCollection.staticFieldsAsList();
   }
 
   public Iterable<DexEncodedField> staticFields(Predicate<DexEncodedField> predicate) {
@@ -399,159 +395,71 @@ public abstract class DexClass extends DexDefinition
   }
 
   public void appendStaticField(DexEncodedField field) {
-    DexEncodedField[] newFields = new DexEncodedField[staticFields.length + 1];
-    System.arraycopy(staticFields, 0, newFields, 0, staticFields.length);
-    newFields[staticFields.length] = field;
-    staticFields = newFields;
-    assert verifyCorrectnessOfFieldHolder(field);
-    assert verifyNoDuplicateFields();
+    fieldCollection.appendStaticField(field);
   }
 
   public void appendStaticFields(Collection<DexEncodedField> fields) {
-    DexEncodedField[] newFields = new DexEncodedField[staticFields.length + fields.size()];
-    System.arraycopy(staticFields, 0, newFields, 0, staticFields.length);
-    int i = staticFields.length;
-    for (DexEncodedField field : fields) {
-      newFields[i] = field;
-      i++;
-    }
-    staticFields = newFields;
-    assert verifyCorrectnessOfFieldHolders(fields);
-    assert verifyNoDuplicateFields();
+    fieldCollection.appendStaticFields(fields);
   }
 
   public DexEncodedField[] clearStaticFields() {
-    DexEncodedField[] previousFields = staticFields;
-    setStaticFields(DexEncodedField.EMPTY_ARRAY);
-    return previousFields;
-  }
-
-  public void removeStaticField(int index) {
-    DexEncodedField[] newFields = new DexEncodedField[staticFields.length - 1];
-    System.arraycopy(staticFields, 0, newFields, 0, index);
-    System.arraycopy(staticFields, index + 1, newFields, index, staticFields.length - index - 1);
-    staticFields = newFields;
-  }
-
-  public void setStaticField(int index, DexEncodedField field) {
-    staticFields[index] = field;
-    assert verifyCorrectnessOfFieldHolder(field);
-    assert verifyNoDuplicateFields();
+    List<DexEncodedField> previousFields = staticFields();
+    fieldCollection.clearStaticFields();
+    return previousFields.toArray(DexEncodedField.EMPTY_ARRAY);
   }
 
   public void setStaticFields(DexEncodedField[] fields) {
-    staticFields = MoreObjects.firstNonNull(fields, DexEncodedField.EMPTY_ARRAY);
-    assert verifyCorrectnessOfFieldHolders(staticFields());
-    assert verifyNoDuplicateFields();
+    fieldCollection.setStaticFields(fields);
   }
 
   public void setStaticFields(Collection<DexEncodedField> fields) {
     setStaticFields(fields.toArray(DexEncodedField.EMPTY_ARRAY));
   }
 
-  public boolean definesStaticField(DexField field) {
-    for (DexEncodedField encodedField : staticFields()) {
-      if (encodedField.getReference() == field) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   public List<DexEncodedField> instanceFields() {
-    assert instanceFields != null;
-    if (InternalOptions.assertionsEnabled()) {
-      return Collections.unmodifiableList(Arrays.asList(instanceFields));
-    }
-    return Arrays.asList(instanceFields);
+    return fieldCollection.instanceFieldsAsList();
   }
 
   public Iterable<DexEncodedField> instanceFields(Predicate<? super DexEncodedField> predicate) {
-    return Iterables.filter(Arrays.asList(instanceFields), predicate::test);
+    return Iterables.filter(instanceFields(), predicate::test);
   }
 
   public void appendInstanceField(DexEncodedField field) {
-    DexEncodedField[] newFields = new DexEncodedField[instanceFields.length + 1];
-    System.arraycopy(instanceFields, 0, newFields, 0, instanceFields.length);
-    newFields[instanceFields.length] = field;
-    instanceFields = newFields;
-    assert verifyCorrectnessOfFieldHolder(field);
-    assert verifyNoDuplicateFields();
+    fieldCollection.appendInstanceField(field);
   }
 
   public void appendInstanceFields(Collection<DexEncodedField> fields) {
-    DexEncodedField[] newFields = new DexEncodedField[instanceFields.length + fields.size()];
-    System.arraycopy(instanceFields, 0, newFields, 0, instanceFields.length);
-    int i = instanceFields.length;
-    for (DexEncodedField field : fields) {
-      newFields[i] = field;
-      i++;
-    }
-    instanceFields = newFields;
-    assert verifyCorrectnessOfFieldHolders(fields);
-    assert verifyNoDuplicateFields();
-  }
-
-  public void removeInstanceField(int index) {
-    DexEncodedField[] newFields = new DexEncodedField[instanceFields.length - 1];
-    System.arraycopy(instanceFields, 0, newFields, 0, index);
-    System.arraycopy(
-        instanceFields, index + 1, newFields, index, instanceFields.length - index - 1);
-    instanceFields = newFields;
-  }
-
-  public void setInstanceField(int index, DexEncodedField field) {
-    instanceFields[index] = field;
-    assert verifyCorrectnessOfFieldHolder(field);
-    assert verifyNoDuplicateFields();
+    fieldCollection.appendInstanceFields(fields);
   }
 
   public void setInstanceFields(DexEncodedField[] fields) {
-    instanceFields = MoreObjects.firstNonNull(fields, DexEncodedField.EMPTY_ARRAY);
-    assert verifyCorrectnessOfFieldHolders(instanceFields());
-    assert verifyNoDuplicateFields();
+    fieldCollection.setInstanceFields(fields);
   }
 
   public DexEncodedField[] clearInstanceFields() {
-    DexEncodedField[] previousFields = instanceFields;
-    instanceFields = DexEncodedField.EMPTY_ARRAY;
-    return previousFields;
+    List<DexEncodedField> previousFields = instanceFields();
+    fieldCollection.clearInstanceFields();
+    return previousFields.toArray(DexEncodedField.EMPTY_ARRAY);
   }
 
-  private boolean verifyCorrectnessOfFieldHolder(DexEncodedField field) {
-    assert field.getHolderType() == type
-        : "Expected field `"
-            + field.getReference().toSourceString()
-            + "` to have holder `"
-            + type.toSourceString()
-            + "`";
-    return true;
+  /** Find method in this class matching {@param method}. */
+  public DexClassAndField lookupClassField(DexField field) {
+    return toClassFieldOrNull(lookupField(field));
   }
 
-  private boolean verifyCorrectnessOfFieldHolders(Iterable<DexEncodedField> fields) {
-    for (DexEncodedField field : fields) {
-      assert verifyCorrectnessOfFieldHolder(field);
-    }
-    return true;
-  }
-
-  private boolean verifyNoDuplicateFields() {
-    Set<DexField> unique = Sets.newIdentityHashSet();
-    for (DexEncodedField field : fields()) {
-      boolean changed = unique.add(field.getReference());
-      assert changed : "Duplicate field `" + field.getReference().toSourceString() + "`";
-    }
-    return true;
+  /** Find field in this class matching {@param field}. */
+  public DexEncodedField lookupField(DexField field) {
+    return fieldCollection.lookupField(field);
   }
 
   /** Find static field in this class matching {@param field}. */
   public DexEncodedField lookupStaticField(DexField field) {
-    return lookupTarget(staticFields, field);
+    return fieldCollection.lookupStaticField(field);
   }
 
   /** Find instance field in this class matching {@param field}. */
   public DexEncodedField lookupInstanceField(DexField field) {
-    return lookupTarget(instanceFields, field);
+    return fieldCollection.lookupInstanceField(field);
   }
 
   public DexEncodedField lookupUniqueInstanceFieldWithName(DexString name) {
@@ -576,19 +484,8 @@ public abstract class DexClass extends DexDefinition
     return result;
   }
 
-  /** Find method in this class matching {@param method}. */
-  public DexClassAndField lookupClassField(DexField field) {
-    return toClassFieldOrNull(lookupField(field));
-  }
-
   private DexClassAndField toClassFieldOrNull(DexEncodedField field) {
     return field != null ? DexClassAndField.create(this, field) : null;
-  }
-
-  /** Find field in this class matching {@param field}. */
-  public DexEncodedField lookupField(DexField field) {
-    DexEncodedField result = lookupInstanceField(field);
-    return result == null ? lookupStaticField(field) : result;
   }
 
   /** Find direct method in this class matching {@param method}. */
@@ -674,16 +571,6 @@ public abstract class DexClass extends DexDefinition
         && method.accessFlags.isNative()
         && method.getReference().proto.parameters.size() == 1
         && method.getReference().proto.parameters.values[0] == factory.objectArrayType;
-  }
-
-  private <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>> D lookupTarget(
-      D[] items, R descriptor) {
-    for (D entry : items) {
-      if (descriptor.match(entry)) {
-        return entry;
-      }
-    }
-    return null;
   }
 
   public boolean canBeInstantiatedByNewInstance() {
@@ -1238,22 +1125,11 @@ public abstract class DexClass extends DexDefinition
   }
 
   public boolean hasStaticFields() {
-    return staticFields.length > 0;
+    return fieldCollection.hasStaticFields();
   }
 
   public boolean hasInstanceFields() {
-    return instanceFields.length > 0;
-  }
-
-  public boolean hasInstanceFieldsDirectlyOrIndirectly(AppView<?> appView) {
-    if (superType == null || type == appView.dexItemFactory().objectType) {
-      return false;
-    }
-    if (hasInstanceFields()) {
-      return true;
-    }
-    DexClass superClass = appView.definitionFor(superType);
-    return superClass == null || superClass.hasInstanceFieldsDirectlyOrIndirectly(appView);
+    return fieldCollection.hasInstanceFields();
   }
 
   public List<DexEncodedField> getDirectAndIndirectInstanceFields(AppView<?> appView) {
@@ -1269,8 +1145,7 @@ public abstract class DexClass extends DexDefinition
   public boolean isValid(InternalOptions options) {
     assert verifyNoAbstractMethodsOnNonAbstractClasses(virtualMethods(), options);
     assert !isInterface() || !getMethodCollection().hasVirtualMethods(DexEncodedMethod::isFinal);
-    assert verifyCorrectnessOfFieldHolders(fields());
-    assert verifyNoDuplicateFields();
+    assert fieldCollection.verify();
     assert methodCollection.verify();
     return true;
   }

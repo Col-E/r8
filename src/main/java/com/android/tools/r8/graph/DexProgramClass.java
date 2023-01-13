@@ -244,8 +244,7 @@ public class DexProgramClass extends DexClass
         .withItem(DexDefinition::annotations)
         // TODO(b/158159959): Make signatures structural.
         .withAssert(c -> c.classSignature == ClassSignature.noSignature())
-        .withItemArray(c -> c.staticFields)
-        .withItemArray(c -> c.instanceFields)
+        .withItemCollection(DexClass::allFieldsSorted)
         .withItemCollection(DexClass::allMethodsSorted);
   }
 
@@ -475,8 +474,7 @@ public class DexProgramClass extends DexClass
     if (hasMethodsOrFields()) {
       collector.add(this);
       methodCollection.forEachMethod(m -> m.collectMixedSectionItems(collector));
-      collectAll(collector, staticFields);
-      collectAll(collector, instanceFields);
+      fieldCollection.forEachField(f -> f.collectMixedSectionItems(collector));
     }
     annotations().collectMixedSectionItems(collector);
     if (interfaces != null) {
@@ -643,7 +641,7 @@ public class DexProgramClass extends DexClass
   }
 
   public boolean hasFields() {
-    return instanceFields.length + staticFields.length > 0;
+    return fieldCollection.size() > 0;
   }
 
   public boolean hasMethods() {
@@ -658,19 +656,16 @@ public class DexProgramClass extends DexClass
   public boolean hasClassOrMemberAnnotations() {
     return !annotations().isEmpty()
         || hasAnnotations(methodCollection)
-        || hasAnnotations(staticFields)
-        || hasAnnotations(instanceFields);
+        || hasAnnotations(fieldCollection);
   }
 
   boolean hasOnlyInternalizableAnnotations() {
-    return !hasAnnotations(methodCollection)
-        && !hasAnnotations(staticFields)
-        && !hasAnnotations(instanceFields);
+    return !hasAnnotations(methodCollection) && !hasAnnotations(fieldCollection);
   }
 
-  private boolean hasAnnotations(DexEncodedField[] fields) {
+  private boolean hasAnnotations(FieldCollection fields) {
     synchronized (fields) {
-      return Arrays.stream(fields).anyMatch(DexEncodedField::hasAnnotations);
+      return fields.hasAnnotations();
     }
   }
 
@@ -685,13 +680,12 @@ public class DexProgramClass extends DexClass
     if (!hasNonDefaultStaticFieldValues()) {
       return null;
     }
-    DexEncodedField[] fields = staticFields;
-    Arrays.sort(
-        fields, (a, b) -> a.getReference().compareToWithNamingLens(b.getReference(), namingLens));
+    List<DexEncodedField> fields = new ArrayList<>(staticFields());
+    fields.sort((a, b) -> a.getReference().compareToWithNamingLens(b.getReference(), namingLens));
     int length = 0;
-    List<DexValue> values = new ArrayList<>(fields.length);
-    for (int i = 0; i < fields.length; i++) {
-      DexEncodedField field = fields[i];
+    List<DexValue> values = new ArrayList<>(fields.size());
+    for (int i = 0; i < fields.size(); i++) {
+      DexEncodedField field = fields.get(i);
       DexValue staticValue = field.getStaticValue();
       assert staticValue != null;
       values.add(staticValue);
@@ -705,7 +699,7 @@ public class DexProgramClass extends DexClass
   }
 
   private boolean hasNonDefaultStaticFieldValues() {
-    for (DexEncodedField field : staticFields) {
+    for (DexEncodedField field : staticFields()) {
       DexValue value = field.getStaticValue();
       if (value != null && !value.isDefault(field.getReference().type)) {
         return true;

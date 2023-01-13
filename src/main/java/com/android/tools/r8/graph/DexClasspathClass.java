@@ -161,8 +161,7 @@ public class DexClasspathClass extends DexClass
         .withItem(DexDefinition::annotations)
         // TODO(b/158159959): Make signatures structural.
         .withAssert(c -> c.classSignature == ClassSignature.noSignature())
-        .withItemArray(c -> c.staticFields)
-        .withItemArray(c -> c.instanceFields)
+        .withItemCollection(DexClass::allFieldsSorted)
         .withItemCollection(DexClass::allMethodsSorted);
   }
 }

@@ -126,8 +126,7 @@ class EnumUnboxingTreeFixer {
         localUtilityClass.getDefinition().setStaticFields(localUtilityFields);
       } else {
         clazz.getMethodCollection().replaceMethods(this::fixupEncodedMethod);
-        fixupFields(clazz.staticFields(), clazz::setStaticField);
-        fixupFields(clazz.instanceFields(), clazz::setInstanceField);
+        clazz.getFieldCollection().replaceFields(this::fixupEncodedField);
       }
     }
 
@@ -613,32 +612,27 @@ class EnumUnboxingTreeFixer {
     return newMethod;
   }
 
-  private void fixupFields(List<DexEncodedField> fields, DexClass.FieldSetter setter) {
-    if (fields == null) {
-      return;
+  private DexEncodedField fixupEncodedField(DexEncodedField encodedField) {
+    DexField field = encodedField.getReference();
+    DexType newType = fixupType(field.type);
+    if (newType == field.type) {
+      return encodedField;
     }
-    for (int i = 0; i < fields.size(); i++) {
-      DexEncodedField encodedField = fields.get(i);
-      DexField field = encodedField.getReference();
-      DexType newType = fixupType(field.type);
-      if (newType != field.type) {
-        DexField newField = field.withType(newType, factory);
-        lensBuilder.move(field, newField);
-        DexEncodedField newEncodedField =
-            encodedField.toTypeSubstitutedField(
-                appView,
-                newField,
-                builder ->
-                    builder.setAbstractValue(
-                        encodedField.getOptimizationInfo().getAbstractValue(), appView));
-        setter.setField(i, newEncodedField);
-        if (encodedField.isStatic() && encodedField.hasExplicitStaticValue()) {
-          assert encodedField.getStaticValue() == DexValue.DexValueNull.NULL;
-          newEncodedField.setStaticValue(DexValue.DexValueInt.DEFAULT);
-          // TODO(b/150593449): Support conversion from DexValueEnum to DexValueInt.
-        }
-      }
+    DexField newField = field.withType(newType, factory);
+    lensBuilder.move(field, newField);
+    DexEncodedField newEncodedField =
+        encodedField.toTypeSubstitutedField(
+            appView,
+            newField,
+            builder ->
+                builder.setAbstractValue(
+                    encodedField.getOptimizationInfo().getAbstractValue(), appView));
+    if (encodedField.isStatic() && encodedField.hasExplicitStaticValue()) {
+      assert encodedField.getStaticValue() == DexValue.DexValueNull.NULL;
+      newEncodedField.setStaticValue(DexValue.DexValueInt.DEFAULT);
+      // TODO(b/150593449): Support conversion from DexValueEnum to DexValueInt.
     }
+    return newEncodedField;
   }
 
   private DexProto fixupProto(DexProto proto) {
