@@ -2918,8 +2918,7 @@ public class Enqueuer {
                                         instantiation.apply(subTypeConsumer, lambdaConsumer);
                                       },
                                       definition ->
-                                          keepInfo.isPinned(
-                                              definition.getReference(), appInfo, options));
+                                          keepInfo.isPinned(definition, options, appInfo));
                               lookupResult.forEach(
                                   target ->
                                       markVirtualDispatchTargetAsLive(
@@ -3422,7 +3421,7 @@ public class Enqueuer {
                       (type, subTypeConsumer, lambdaConsumer) ->
                           objectAllocationInfoCollection.forEachInstantiatedSubType(
                               type, subTypeConsumer, lambdaConsumer, appInfo),
-                      definition -> keepInfo.isPinned(definition.getReference(), appInfo, options))
+                      definition -> keepInfo.isPinned(definition, options, appInfo))
                   .forEach(
                       target ->
                           markVirtualDispatchTargetAsLive(
@@ -4328,7 +4327,7 @@ public class Enqueuer {
         (methodReference, companionReference) -> {
           ProgramMethod companion = appView.definitionFor(companionReference).asProgramMethod();
           KeepMethodInfo.Joiner minimumKeepInfoForCompanion =
-              keepInfo.getMethodInfo(methodReference, appInfo).joiner();
+              keepInfo.getMethodInfoSlow(methodReference, appInfo).joiner();
           KeepMethodInfo.Joiner extraMinimumKeepInfoForCompanion =
               dependentMinimumKeepInfo
                   .getUnconditionalMinimumKeepInfoOrDefault(MinimumKeepInfoCollection.empty())

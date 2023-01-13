@@ -223,7 +223,7 @@ public final class AccessModifier {
     boolean wasSeen = methodPoolCollection.markIfNotSeen(method.getHolder(), method.getReference());
     if (wasSeen) {
       // We can't do anything further because even renaming is not allowed due to the keep rule.
-      if (!appView.appInfo().isMinificationAllowed(method.getReference())) {
+      if (!appView.appInfo().isMinificationAllowed(method)) {
         return false;
       }
       // TODO(b/111118390): Renaming will enable more private instance methods to be publicized.

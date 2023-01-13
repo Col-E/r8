@@ -408,7 +408,7 @@ public class ProguardMapMinifier {
         return mappings.get(type);
       }
       if (clazz.isProgramClass()) {
-        if (appView.appInfo().isMinificationAllowed(type)) {
+        if (appView.appInfo().isMinificationAllowed(clazz.asProgramClass())) {
           return mappings.get(type);
         }
         // TODO(b/136694827): Report a warning here if in the mapping since the user may find this
@@ -454,7 +454,7 @@ public class ProguardMapMinifier {
         nextName = reservedName;
       } else {
         assert !mappedNames.containsKey(reference);
-        assert appView.appInfo().isMinificationAllowed(reference);
+        assert appView.appInfo().isMinificationAllowed(method);
         nextName = super.next(method, internalState, isAvailable);
       }
       assert nextName == reference.name || !method.isInitializer();
@@ -477,7 +477,7 @@ public class ProguardMapMinifier {
         return reservedName;
       }
       assert !mappedNames.containsKey(reference);
-      assert appView.appInfo().isMinificationAllowed(reference);
+      assert appView.appInfo().isMinificationAllowed(field);
       return super.next(field, internalState, isAvailable);
     }
 

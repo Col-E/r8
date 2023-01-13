@@ -6,13 +6,14 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
-import com.android.tools.r8.utils.IterableUtils;
-import com.android.tools.r8.utils.ListUtils;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Removes abstract methods if they only shadow methods of the same signature in a superclass.
@@ -43,39 +44,38 @@ public class AbstractMethodRemover {
     DexClass holder = appView.definitionFor(type);
     scope = scope.newNestedScope();
     if (holder != null && holder.isProgramClass()) {
-      DexEncodedMethod[] newVirtualMethods =
-          processMethods(IterableUtils.ensureUnmodifiableList(holder.virtualMethods()));
-      if (newVirtualMethods != null) {
-        holder.setVirtualMethods(newVirtualMethods);
-      }
+      processMethods(holder.asProgramClass());
     }
     // TODO(b/154881041): Does this need the full subtype hierarchy of referenced types!?
     subtypingInfo.forAllImmediateExtendsSubtypes(type, this::processClass);
     scope = scope.getParent();
   }
 
-  private DexEncodedMethod[] processMethods(List<DexEncodedMethod> virtualMethods) {
-    if (virtualMethods == null) {
-      return null;
+  private void processMethods(DexProgramClass clazz) {
+    Set<DexEncodedMethod> toRemove = null;
+    for (ProgramMethod method : clazz.virtualProgramMethods()) {
+      if (!isNonAbstractPinnedOrWideningVisibility(method)) {
+        if (toRemove == null) {
+          toRemove = new HashSet<>();
+        }
+        toRemove.add(method.getDefinition());
+      }
     }
-    // Removal of abstract methods is rare, ListUtils.filterOrElse does no copying if nothing is
-    // filtered out.
-    List<DexEncodedMethod> filteredMethods =
-        ListUtils.filterOrElse(virtualMethods, this::isNonAbstractPinnedOrWideningVisibility);
-    return filteredMethods == virtualMethods
-        ? null
-        : filteredMethods.toArray(DexEncodedMethod.EMPTY_ARRAY);
+    if (toRemove != null) {
+      clazz.getMethodCollection().removeMethods(toRemove);
+    }
   }
 
-  private boolean isNonAbstractPinnedOrWideningVisibility(DexEncodedMethod method) {
-    if (!method.accessFlags.isAbstract()) {
+  private boolean isNonAbstractPinnedOrWideningVisibility(ProgramMethod method) {
+    if (!method.getAccessFlags().isAbstract()) {
       return true;
     }
     // Check if the method widens visibility. Adding to the scope mutates it.
-    if (scope.addMethodIfMoreVisible(method) != AddMethodIfMoreVisibleResult.NOT_ADDED) {
+    if (scope.addMethodIfMoreVisible(method.getDefinition())
+        != AddMethodIfMoreVisibleResult.NOT_ADDED) {
       return true;
     }
-    if (appView.appInfo().isPinned(method.getReference())) {
+    if (appView.appInfo().isPinned(method)) {
       return true;
     }
     // We will filter the method out since it is not pinned.

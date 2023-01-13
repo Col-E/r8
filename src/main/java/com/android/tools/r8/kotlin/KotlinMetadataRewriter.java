@@ -110,7 +110,7 @@ public class KotlinMetadataRewriter {
           if (oldMeta == null
               || kotlinInfo == getNoKotlinInfo()
               || (appView.appInfo().hasLiveness()
-                  && !appView.withLiveness().appInfo().isPinned(clazz.type))) {
+                  && !appView.withLiveness().appInfo().isPinned(clazz))) {
             // Remove @Metadata in DexAnnotation when there is no kotlin info and the type is not
             // missing.
             if (oldMeta != null) {

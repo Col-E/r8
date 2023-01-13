@@ -918,7 +918,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       assert info.isRead() || info.isWritten();
       return true;
     }
-    assert getKeepInfo().getFieldInfo(reference, this).isShrinkingAllowed(options());
+    assert getKeepInfo().getFieldInfo(field, this).isShrinkingAllowed(options());
     return false;
   }
 
@@ -929,7 +929,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     if (info != null && info.isRead()) {
       return true;
     }
-    if (isPinned(field)) {
+    if (isPinned(encodedField)) {
       return true;
     }
     // For library classes we don't know whether a field is read.
@@ -938,8 +938,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   public boolean isFieldWritten(DexEncodedField encodedField) {
     assert checkIfObsolete();
-    return isFieldWrittenByFieldPutInstruction(encodedField)
-        || isPinned(encodedField.getReference());
+    return isFieldWrittenByFieldPutInstruction(encodedField) || isPinned(encodedField);
   }
 
   public boolean isFieldWrittenByFieldPutInstruction(DexEncodedField encodedField) {
@@ -957,7 +956,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   public boolean isFieldOnlyWrittenInMethod(DexEncodedField field, DexEncodedMethod method) {
     assert checkIfObsolete();
     assert isFieldWritten(field) : "Expected field `" + field.toSourceString() + "` to be written";
-    if (isPinned(field.getReference())) {
+    if (isPinned(field)) {
       return false;
     }
     return isFieldOnlyWrittenInMethodIgnoringPinning(field, method);
@@ -980,7 +979,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   public boolean isInstanceFieldWrittenOnlyInInstanceInitializers(DexEncodedField field) {
     assert checkIfObsolete();
     assert isFieldWritten(field) : "Expected field `" + field.toSourceString() + "` to be written";
-    if (isPinned(field.getReference())) {
+    if (isPinned(field)) {
       return false;
     }
     FieldAccessInfo fieldAccessInfo = getFieldAccessInfoCollection().get(field.getReference());
@@ -1027,7 +1026,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     if (neverPropagateValue.contains(field)) {
       return false;
     }
-    if (isPinned(field) && !field.getType().isAlwaysNull(appView)) {
+    if (isPinnedWithDefinitionLookup(field) && !field.getType().isAlwaysNull(appView)) {
       return false;
     }
     return true;
@@ -1039,7 +1038,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       return false;
     }
     if (!method.getReturnType().isAlwaysNull(appView)
-        && !getKeepInfo().getMethodInfo(method, this).isOptimizationAllowed(options())) {
+        && !getKeepInfo().getMethodInfoSlow(method, this).isOptimizationAllowed(options())) {
       return false;
     }
     return true;
@@ -1071,18 +1070,29 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return !isPinned(clazz) && !neverClassInline.contains(clazz.getType());
   }
 
-  public boolean isMinificationAllowed(DexReference reference) {
+  public boolean isMinificationAllowed(DexProgramClass clazz) {
     return options().isMinificationEnabled()
-        && keepInfo.getInfo(reference, this).isMinificationAllowed(options());
+        && keepInfo.getInfo(clazz).isMinificationAllowed(options());
+  }
+
+  public boolean isMinificationAllowed(ProgramDefinition definition) {
+    return options().isMinificationEnabled()
+        && keepInfo.getInfo(definition).isMinificationAllowed(options());
+  }
+
+  public boolean isMinificationAllowed(DexDefinition definition) {
+    return options().isMinificationEnabled()
+        && keepInfo.getInfo(definition, this).isMinificationAllowed(options());
+  }
+
+  public boolean isMinificationAllowed(DexType reference) {
+    return options().isMinificationEnabled()
+        && keepInfo.getClassInfo(reference, this).isMinificationAllowed(options());
   }
 
   public boolean isAccessModificationAllowed(ProgramDefinition definition) {
-    return isAccessModificationAllowed(definition.getReference());
-  }
-
-  public boolean isAccessModificationAllowed(DexReference reference) {
     assert options().getProguardConfiguration().isAccessModificationAllowed();
-    return keepInfo.getInfo(reference, this).isAccessModificationAllowed(options());
+    return keepInfo.getInfo(definition).isAccessModificationAllowed(options());
   }
 
   public boolean isRepackagingAllowed(DexProgramClass clazz, AppView<?> appView) {
@@ -1099,27 +1109,30 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return applyMappingSeedMapper == null || !applyMappingSeedMapper.hasMapping(clazz.type);
   }
 
-  public boolean isPinned(DexReference reference) {
+  public boolean isPinnedWithDefinitionLookup(DexReference reference) {
     assert checkIfObsolete();
-    return keepInfo.isPinned(reference, this, options());
+    return keepInfo.isPinnedWithDefinitionLookup(reference, options(), this);
   }
 
   public boolean isPinned(DexDefinition definition) {
-    assert definition != null;
-    return isPinned(definition.getReference());
+    return keepInfo.isPinned(definition, options(), this);
   }
 
-  public boolean isPinned(DexClassAndMember<?, ?> member) {
-    assert member != null;
-    return isPinned(member.getReference());
+  public boolean isPinned(DexProgramClass clazz) {
+    return keepInfo.isPinned(clazz, options());
+  }
+
+  public boolean isPinned(ProgramDefinition definition) {
+    assert definition != null;
+    return keepInfo.isPinned(definition, options());
   }
 
   public boolean hasPinnedInstanceInitializer(DexType type) {
     assert type.isClassType();
     DexProgramClass clazz = asProgramClassOrNull(definitionFor(type));
     if (clazz != null) {
-      for (DexEncodedMethod method : clazz.directMethods()) {
-        if (method.isInstanceInitializer() && isPinned(method.getReference())) {
+      for (ProgramMethod method : clazz.directProgramMethods()) {
+        if (method.getDefinition().isInstanceInitializer() && isPinned(method)) {
           return true;
         }
       }
@@ -1495,11 +1508,11 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   }
 
   private boolean isInstantiatedOrPinned(DexProgramClass clazz) {
-    return isInstantiatedDirectly(clazz) || isPinned(clazz.type) || isInstantiatedInterface(clazz);
+    return isInstantiatedDirectly(clazz) || isPinned(clazz) || isInstantiatedInterface(clazz);
   }
 
   public boolean isPinnedNotProgramOrLibraryOverride(DexDefinition definition) {
-    if (isPinned(definition.getReference())) {
+    if (isPinned(definition)) {
       return true;
     }
     if (definition.isDexEncodedMethod()) {
