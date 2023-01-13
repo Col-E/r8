@@ -96,8 +96,7 @@ public class FilesSymLinkTest extends DesugaredLibraryTestBase {
 
     public static void main(String[] args) throws Throwable {
       Path target = Files.createTempFile("guinea_pig_", ".txt");
-
-      Path link = Paths.get("link");
+      Path link = target.getParent().resolve("link");
       try {
         Files.createLink(link, target);
         System.out.println("link created.");
