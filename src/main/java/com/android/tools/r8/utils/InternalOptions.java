@@ -1966,6 +1966,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public static class TestingOptions {
 
+    // If false, use the desugared library implementation when desugared library is enabled.
+    public boolean alwaysBackportListSetMapMethods = true;
     public boolean neverReuseCfLocalRegisters = false;
     public boolean roundtripThroughLIR = false;
     public boolean checkReceiverAlwaysNullInCallSiteOptimization = true;
