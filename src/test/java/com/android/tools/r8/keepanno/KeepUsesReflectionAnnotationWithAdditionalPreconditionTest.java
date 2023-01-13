@@ -77,7 +77,6 @@ public class KeepUsesReflectionAnnotationWithAdditionalPreconditionTest extends 
   }
 
   private void checkOutput(CodeInspector inspector) {
-    assertThat(inspector.clazz(A.class), isPresent());
     assertThat(inspector.clazz(B.class), isPresent());
     assertThat(inspector.clazz(B.class).uniqueMethodWithOriginalName("<init>"), isPresent());
     assertThat(inspector.clazz(B.class).uniqueMethodWithOriginalName("bar"), isPresent());

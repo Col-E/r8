@@ -76,6 +76,11 @@ public abstract class KeepClassReference {
     public int hashCode() {
       return bindingReference.hashCode();
     }
+
+    @Override
+    public String toString() {
+      return bindingReference;
+    }
   }
 
   private static class SomeItem extends KeepClassReference {
@@ -111,6 +116,11 @@ public abstract class KeepClassReference {
     @Override
     public int hashCode() {
       return classNamePattern.hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return classNamePattern.toString();
     }
   }
 }

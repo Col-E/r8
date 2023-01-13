@@ -27,6 +27,14 @@ public class KeepItemPattern {
     return new Builder();
   }
 
+  public boolean isClassItemPattern() {
+    return memberPattern.isNone();
+  }
+
+  public boolean isMemberItemPattern() {
+    return !memberPattern.isNone();
+  }
+
   public static class Builder {
 
     private KeepClassReference classReference =
@@ -35,6 +43,12 @@ public class KeepItemPattern {
     private KeepMemberPattern memberPattern = KeepMemberPattern.none();
 
     private Builder() {}
+
+    public Builder copyFrom(KeepItemPattern pattern) {
+      return setClassReference(pattern.getClassReference())
+          .setExtendsPattern(pattern.getExtendsPattern())
+          .setMemberPattern(pattern.getMemberPattern());
+    }
 
     public Builder any() {
       classReference = KeepClassReference.fromClassNamePattern(KeepQualifiedClassNamePattern.any());
@@ -85,7 +99,7 @@ public class KeepItemPattern {
   }
 
   public boolean isAny(Predicate<String> onReference) {
-    return classReference.isAny(onReference) && extendsPattern.isAny() && memberPattern.isAll();
+    return extendsPattern.isAny() && memberPattern.isAll() && classReference.isAny(onReference);
   }
 
   public KeepClassReference getClassReference() {

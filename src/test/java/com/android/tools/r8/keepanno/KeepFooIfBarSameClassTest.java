@@ -51,7 +51,6 @@ public class KeepFooIfBarSameClassTest extends TestBase {
   @Test
   public void testWithRuleExtraction() throws Exception {
     List<String> rules = getExtractedKeepRules();
-    rules.forEach(System.out::println);
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getInputClassesWithoutAnnotations())
         .addKeepRules(rules)

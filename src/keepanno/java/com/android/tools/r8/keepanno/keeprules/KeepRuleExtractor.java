@@ -3,9 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.keeprules;
 
-import com.android.tools.r8.keepanno.ast.KeepBindings;
 import com.android.tools.r8.keepanno.ast.KeepClassReference;
-import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
 import com.android.tools.r8.keepanno.ast.KeepEdgeMetaInfo;
@@ -14,7 +12,6 @@ import com.android.tools.r8.keepanno.ast.KeepFieldAccessPattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
-import com.android.tools.r8.keepanno.ast.KeepItemReference;
 import com.android.tools.r8.keepanno.ast.KeepMemberPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodAccessPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern;
@@ -24,21 +21,16 @@ import com.android.tools.r8.keepanno.ast.KeepMethodReturnTypePattern;
 import com.android.tools.r8.keepanno.ast.KeepOptions;
 import com.android.tools.r8.keepanno.ast.KeepOptions.KeepOption;
 import com.android.tools.r8.keepanno.ast.KeepPackagePattern;
-import com.android.tools.r8.keepanno.ast.KeepPreconditions;
 import com.android.tools.r8.keepanno.ast.KeepQualifiedClassNamePattern;
-import com.android.tools.r8.keepanno.ast.KeepTarget;
 import com.android.tools.r8.keepanno.ast.KeepTypePattern;
 import com.android.tools.r8.keepanno.ast.KeepUnqualfiedClassNamePattern;
 import com.android.tools.r8.keepanno.utils.Unimplemented;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.Collection;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+/** Extract out a sequence of Proguard keep rules that give a conservative over-approximation. */
 public class KeepRuleExtractor {
 
   private final Consumer<String> ruleConsumer;
@@ -48,18 +40,16 @@ public class KeepRuleExtractor {
   }
 
   public void extract(KeepEdge edge) {
-    List<ItemRule> consequentRules = getConsequentRules(edge.getConsequences());
-    printConditionalRules(
-        consequentRules, edge.getPreconditions(), edge.getMetaInfo(), edge.getBindings());
+    Collection<PgRule> rules = KeepEdgeSplitter.split(edge);
+    StringBuilder builder = new StringBuilder();
+    for (PgRule rule : rules) {
+      rule.printRule(builder);
+      builder.append("\n");
+    }
+    ruleConsumer.accept(builder.toString());
   }
 
-  private List<ItemRule> getConsequentRules(KeepConsequences consequences) {
-    List<ItemRule> consequentItems = new ArrayList<>();
-    consequences.forEachTarget(target -> consequentItems.add(new ItemRule(target)));
-    return consequentItems;
-  }
-
-  private void printHeader(StringBuilder builder, KeepEdgeMetaInfo metaInfo) {
+  public static void printHeader(StringBuilder builder, KeepEdgeMetaInfo metaInfo) {
     if (metaInfo.hasContext()) {
       builder.append("# context: ").append(metaInfo.getContextDescriptorString()).append('\n');
     }
@@ -69,7 +59,7 @@ public class KeepRuleExtractor {
     }
   }
 
-  private String escapeChar(char c) {
+  public static String escapeChar(char c) {
     if (c == '\n') {
       return "\\n";
     }
@@ -79,7 +69,7 @@ public class KeepRuleExtractor {
     return null;
   }
 
-  private String escapeLineBreaks(String string) {
+  public static String escapeLineBreaks(String string) {
     char[] charArray = string.toCharArray();
     for (int i = 0; i < charArray.length; i++) {
       // We don't expect escape chars, so wait with constructing a new string until found.
@@ -100,120 +90,37 @@ public class KeepRuleExtractor {
     return string;
   }
 
-  private void printConditionalRules(
-      List<ItemRule> consequentRules,
-      KeepPreconditions preconditions,
-      KeepEdgeMetaInfo metaInfo,
-      KeepBindings bindings) {
-    boolean[] hasAtLeastOneConditionalClause = new boolean[1];
-    preconditions.forEach(
-        condition -> {
-          if (condition.getItem().isBindingReference()) {
-            throw new Unimplemented();
-          }
-          KeepItemPattern conditionItem = condition.getItem().asItemPattern();
-          // If the conditions is "any" then we ignore it for now (identity of conjunction).
-          if (conditionItem.isAny(
-              // TODO(b/248408342): This can still be an unconditional precondition if the binding
-              //  is just not used in the conclusion. Get some tests and support that case.
-              binding -> false)) {
-            return;
-          }
-          hasAtLeastOneConditionalClause[0] = true;
-          consequentRules.forEach(
-              consequentItem -> {
-                // Since conjunctions are not supported in keep rules, we expand them into
-                // disjunctions so conservatively we keep the consequences if any one of
-                // the preconditions hold.
-                StringBuilder builder = new StringBuilder();
-                printHeader(builder, metaInfo);
-                Map<String, Integer> bindingToBackReference = new HashMap<>();
-                if (!consequentItem.isMemberOnlyConsequent()
-                    || !conditionItem.getMemberPattern().isNone()
-                    || !conditionItem
-                        .getClassReference()
-                        .equals(consequentItem.getHolderReference())) {
-                  builder.append("-if ");
-                  printItem(
-                      builder,
-                      conditionItem,
-                      (builder1, classRef) -> {
-                        if (classRef.isClassNamePattern()) {
-                          printClassName(builder, classRef.asClassNamePattern());
-                        } else {
-                          String bindingName = classRef.asBindingReference();
-                          builder.append("*");
-                          Integer old =
-                              bindingToBackReference.put(
-                                  bindingName, bindingToBackReference.size() + 1);
-                          if (old != null) {
-                            throw new KeepEdgeException(
-                                "Failure to extract rules. Duplicate binding for '"
-                                    + bindingName
-                                    + "'");
-                          }
-                        }
-                      });
-                  builder.append(' ');
-                }
-                printConsequentRule(builder, consequentItem, bindingToBackReference);
-                ruleConsumer.accept(builder.toString());
-              });
-        });
-    assert !(preconditions.isAlways() && hasAtLeastOneConditionalClause[0]);
-    if (!hasAtLeastOneConditionalClause[0]) {
-      // If there are no preconditions, print each consequent as is.
-      consequentRules.forEach(
-          r -> {
-            StringBuilder builder = new StringBuilder();
-            printHeader(builder, metaInfo);
-            ruleConsumer.accept(printConsequentRule(builder, r, Collections.emptyMap()).toString());
-          });
-    }
-  }
-
-  private static StringBuilder printConsequentRule(
-      StringBuilder builder, ItemRule rule, Map<String, Integer> bindingToBackReference) {
-    if (rule.isMemberOnlyConsequent()) {
-      builder.append("-keepclassmembers");
-    } else {
-      builder.append("-keep");
-    }
+  public static void printKeepOptions(StringBuilder builder, KeepOptions options) {
     for (KeepOption option : KeepOption.values()) {
-      if (rule.options.isAllowed(option)) {
+      if (options.isAllowed(option)) {
         builder.append(",allow").append(getOptionString(option));
       }
     }
-    return builder.append(" ").append(rule.getKeepRuleForItem(bindingToBackReference));
   }
 
-  private static StringBuilder printItem(
+  public static StringBuilder printClassHeader(
       StringBuilder builder,
-      KeepItemPattern clazzPattern,
+      KeepItemPattern classPattern,
       BiConsumer<StringBuilder, KeepClassReference> printClassReference) {
     builder.append("class ");
-    printClassReference.accept(builder, clazzPattern.getClassReference());
-    KeepExtendsPattern extendsPattern = clazzPattern.getExtendsPattern();
+    printClassReference.accept(builder, classPattern.getClassReference());
+    KeepExtendsPattern extendsPattern = classPattern.getExtendsPattern();
     if (!extendsPattern.isAny()) {
       builder.append(" extends ");
       printClassName(builder, extendsPattern.asClassNamePattern());
     }
-    KeepMemberPattern member = clazzPattern.getMemberPattern();
-    if (member.isNone()) {
-      return builder;
-    }
+    return builder;
+  }
+
+  public static StringBuilder printMemberClause(StringBuilder builder, KeepMemberPattern member) {
     if (member.isAll()) {
-      return builder.append(" { *; }");
+      return builder.append("*;");
     }
     if (member.isMethod()) {
-      builder.append(" {");
-      printMethod(builder.append(' '), member.asMethod());
-      return builder.append(" }");
+      return printMethod(builder, member.asMethod());
     }
     if (member.isField()) {
-      builder.append(" {");
-      printField(builder.append(' '), member.asField());
-      return builder.append(" }");
+      return printField(builder, member.asField());
     }
     throw new Unimplemented();
   }
@@ -301,7 +208,7 @@ public class KeepRuleExtractor {
     throw new Unimplemented();
   }
 
-  private static StringBuilder printClassName(
+  public static StringBuilder printClassName(
       StringBuilder builder, KeepQualifiedClassNamePattern classNamePattern) {
     if (classNamePattern.isAny()) {
       return builder.append('*');
@@ -410,68 +317,5 @@ public class KeepRuleExtractor {
       }
     }
     throw new KeepEdgeException("Invalid array descriptor: " + descriptor);
-  }
-
-  private static class ItemRule {
-    private final KeepTarget target;
-    private final KeepOptions options;
-    private String ruleLine = null;
-
-    public ItemRule(KeepTarget target) {
-      this.target = target;
-      this.options = target.getOptions();
-    }
-
-    public boolean isMemberOnlyConsequent() {
-      KeepItemReference item = target.getItem();
-      if (item.isBindingReference()) {
-        throw new Unimplemented();
-      }
-      KeepItemPattern itemPattern = item.asItemPattern();
-      if (itemPattern.getMemberPattern().isNone()) {
-        return false;
-      }
-      // If the item's class is a binding then it is not an "any" pattern.
-      return !itemPattern.isAny(classBinding -> true);
-    }
-
-    public KeepClassReference getHolderReference() {
-      if (target.getItem().isBindingReference()) {
-        throw new Unimplemented();
-      }
-      return target.getItem().asItemPattern().getClassReference();
-    }
-
-    public String getKeepRuleForItem(Map<String, Integer> bindingToBackReference) {
-      if (ruleLine == null) {
-        if (target.getItem().isBindingReference()) {
-          throw new Unimplemented();
-        }
-        KeepItemPattern item = target.getItem().asItemPattern();
-        ruleLine =
-            item.isAny(classBinding -> false)
-                ? "class * { *; }"
-                : printItem(
-                        new StringBuilder(),
-                        item,
-                        (builder, classRef) -> {
-                          if (classRef.isClassNamePattern()) {
-                            printClassName(builder, classRef.asClassNamePattern());
-                          } else {
-                            String bindingReference = classRef.asBindingReference();
-                            Integer backReference = bindingToBackReference.get(bindingReference);
-                            if (backReference == null) {
-                              throw new KeepEdgeException(
-                                  "Undefined back reference for binding: '"
-                                      + bindingReference
-                                      + "'");
-                            }
-                            builder.append('<').append(backReference).append('>');
-                          }
-                        })
-                    .toString();
-      }
-      return ruleLine;
-    }
   }
 }
