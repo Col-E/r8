@@ -35,7 +35,7 @@ public class InitializedClassesInInstanceMethodsAnalysis extends EnqueuerAnalysi
       // If `subject` is kept, then it is instantiated by reflection, which means that the analysis
       // has not seen all allocation sites. In that case, we conservatively return false.
       AppInfoWithClassHierarchy appInfo = appView.appInfo();
-      if (appInfo.hasLiveness() && appInfo.withLiveness().isPinned(subject)) {
+      if (appInfo.hasLiveness() && appInfo.withLiveness().isPinned(subject.type)) {
         return false;
       }
 

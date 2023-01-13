@@ -312,7 +312,7 @@ public class Minifier {
       if (!allowMemberRenaming(holder)
           || holder.accessFlags.isAnnotation()
           || method.accessFlags.isConstructor()
-          || !appView.appInfo().isMinificationAllowed(method)) {
+          || !appView.appInfo().isMinificationAllowed(method.getReference())) {
         return method.getReference().name;
       }
       if (desugaredLibraryRenaming
@@ -327,7 +327,8 @@ public class Minifier {
 
     @Override
     public DexString getReservedName(DexEncodedField field, DexClass holder) {
-      if (holder.isLibraryClass() || !appView.appInfo().isMinificationAllowed(field)) {
+      if (holder.isLibraryClass()
+          || !appView.appInfo().isMinificationAllowed(field.getReference())) {
         return field.getReference().name;
       }
       return null;

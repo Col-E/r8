@@ -101,10 +101,10 @@ public final class EnclosingMethodAttribute {
 
   public boolean isEnclosingPinned(AppView<AppInfoWithLiveness> appView) {
     if (enclosingMethod != null) {
-      return appView.appInfo().isPinnedWithDefinitionLookup(enclosingMethod);
+      return appView.appInfo().isPinned(enclosingMethod);
     }
     if (enclosingClass != null) {
-      return appView.appInfo().isPinnedWithDefinitionLookup(enclosingClass);
+      return appView.appInfo().isPinned(enclosingClass);
     }
     return false;
   }

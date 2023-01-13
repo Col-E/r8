@@ -235,7 +235,7 @@ public class MethodOptimizationInfoCollector {
       IRCode code,
       OptimizationFeedback feedback,
       InstanceFieldInitializationInfoCollection instanceFieldInitializationInfos) {
-    assert !appView.appInfo().isPinned(method);
+    assert !appView.appInfo().isPinned(method.getReference());
 
     if (!method.isInstanceInitializer()) {
       return;

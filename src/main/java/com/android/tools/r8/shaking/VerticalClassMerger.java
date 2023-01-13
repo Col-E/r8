@@ -359,7 +359,7 @@ public class VerticalClassMerger {
 
   private void markTypeAsPinned(DexType type, AbortReason reason) {
     DexType baseType = type.toBaseType(appView.dexItemFactory());
-    if (!baseType.isClassType() || appInfo.isPinnedWithDefinitionLookup(baseType)) {
+    if (!baseType.isClassType() || appInfo.isPinned(baseType)) {
       // We check for the case where the type is pinned according to appInfo.isPinned,
       // so we only need to add it here if it is not the case.
       return;
@@ -380,13 +380,14 @@ public class VerticalClassMerger {
     if (allocationInfo.isInstantiatedDirectly(sourceClass)
         || allocationInfo.isInterfaceWithUnknownSubtypeHierarchy(sourceClass)
         || allocationInfo.isImmediateInterfaceOfInstantiatedLambda(sourceClass)
-        || appInfo.isPinned(sourceClass)
+        || appInfo.isPinned(sourceClass.type)
         || pinnedTypes.contains(sourceClass.type)
         || appInfo.isNoVerticalClassMergingOfType(sourceClass.type)) {
       return false;
     }
 
     assert Streams.stream(Iterables.concat(sourceClass.fields(), sourceClass.methods()))
+        .map(DexEncodedMember::getReference)
         .noneMatch(appInfo::isPinned);
 
     if (!FeatureSplitBoundaryOptimizationUtils.isSafeForVerticalClassMerging(
@@ -394,7 +395,7 @@ public class VerticalClassMerger {
       return false;
     }
     if (appView.appServices().allServiceTypes().contains(sourceClass.type)
-        && appInfo.isPinned(targetClass)) {
+        && appInfo.isPinned(targetClass.type)) {
       if (Log.ENABLED) {
         AbortReason.SERVICE_LOADER.printLogMessageForClass(sourceClass);
       }

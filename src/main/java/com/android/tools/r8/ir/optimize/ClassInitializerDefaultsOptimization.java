@@ -332,7 +332,7 @@ public class ClassInitializerDefaultsOptimization {
     }
 
     if (appView.enableWholeProgramOptimizations()
-        && appView.withLiveness().appInfo().isMinificationAllowed(clazz)) {
+        && appView.withLiveness().appInfo().isMinificationAllowed(holder)) {
       if (invokedMethod == dexItemFactory.classMethods.getName) {
         return new DexItemBasedValueString(holder, ClassNameComputationInfo.getInstance(NAME));
       }

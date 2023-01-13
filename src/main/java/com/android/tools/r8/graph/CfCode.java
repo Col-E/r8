@@ -392,7 +392,8 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
       return false;
     }
     // If tree shaking, only keep annotations on kept methods.
-    if (appView.appInfo().hasLiveness() && !appView.appInfo().withLiveness().isPinned(method)) {
+    if (appView.appInfo().hasLiveness()
+        && !appView.appInfo().withLiveness().isPinned(method.getReference())) {
       return false;
     }
     return true;
@@ -773,7 +774,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
     // The enqueuer might build IR to trace reflective behaviour. At that point liveness is not
     // known, so be conservative with collection parameter name information.
     if (appView.appInfo().hasLiveness()
-        && !appView.appInfo().withLiveness().isPinned(encodedMethod)) {
+        && !appView.appInfo().withLiveness().isPinned(encodedMethod.getReference())) {
       return DexEncodedMethod.NO_PARAMETER_INFO;
     }
 

@@ -275,8 +275,7 @@ public class ValueMayDependOnEnvironmentAnalysis {
     return root.isDefinedByInstructionSatisfying(Instruction::isConstClass)
         && !appView
             .getKeepInfo()
-            .isPinnedWithDefinitionLookup(
-                root.getDefinition().asConstClass().getType(), options, appView);
+            .isPinned(root.getDefinition().asConstClass().getType(), appView, options);
   }
 
   private boolean addLogicalBinopValueToValueGraph(
