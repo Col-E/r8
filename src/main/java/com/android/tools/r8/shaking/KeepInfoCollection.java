@@ -9,6 +9,8 @@ import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMember;
@@ -92,9 +94,14 @@ public abstract class KeepInfoCollection {
     return getMethodInfo(member.asDexEncodedMethod(), holder);
   }
 
+  public final KeepClassInfo getClassInfo(DexClass clazz) {
+    return clazz != null && clazz.isProgramClass()
+        ? getClassInfo(clazz.asProgramClass())
+        : keepInfoForNonProgramClass();
+  }
+
   public final KeepClassInfo getClassInfo(DexType type, DexDefinitionSupplier definitions) {
-    DexProgramClass clazz = asProgramClassOrNull(definitions.definitionFor(type));
-    return clazz == null ? keepInfoForNonProgramClass() : getClassInfo(clazz);
+    return getClassInfo(definitions.contextIndependentDefinitionFor(type));
   }
 
   public final KeepMemberInfo<?, ?> getMemberInfo(ProgramMember<?, ?> member) {
@@ -105,8 +112,21 @@ public abstract class KeepInfoCollection {
     return getMethodInfo(method.getDefinition(), method.getHolder());
   }
 
-  public final KeepMethodInfo getMethodInfo(DexMethod method, DexDefinitionSupplier definitions) {
-    DexProgramClass holder = asProgramClassOrNull(definitions.definitionFor(method.holder));
+  public final KeepMethodInfo getMethodInfo(
+      DexEncodedMethod method, DexDefinitionSupplier definitions) {
+    DexProgramClass holder =
+        asProgramClassOrNull(definitions.contextIndependentDefinitionFor(method.getHolderType()));
+    if (holder == null) {
+      return keepInfoForNonProgramMethod();
+    }
+    assert method == holder.lookupMethod(method.getReference());
+    return getMethodInfo(method, holder);
+  }
+
+  public final KeepMethodInfo getMethodInfoWithDefinitionLookup(
+      DexMethod method, DexDefinitionSupplier definitions) {
+    DexProgramClass holder =
+        asProgramClassOrNull(definitions.contextIndependentDefinitionFor(method.holder));
     if (holder == null) {
       return keepInfoForNonProgramMethod();
     }
@@ -118,7 +138,19 @@ public abstract class KeepInfoCollection {
     return getFieldInfo(field.getDefinition(), field.getHolder());
   }
 
-  public final KeepFieldInfo getFieldInfo(DexField field, DexDefinitionSupplier definitions) {
+  public final KeepFieldInfo getFieldInfo(
+      DexEncodedField field, DexDefinitionSupplier definitions) {
+    DexProgramClass holder =
+        asProgramClassOrNull(definitions.contextIndependentDefinitionFor(field.getHolderType()));
+    if (holder == null) {
+      return keepInfoForNonProgramField();
+    }
+    assert holder.lookupField(field.getReference()) == field;
+    return getFieldInfo(field, holder);
+  }
+
+  private KeepFieldInfo getFieldInfoWithDefinitionLookup(
+      DexField field, DexDefinitionSupplier definitions) {
     DexProgramClass holder = asProgramClassOrNull(definitions.definitionFor(field.holder));
     if (holder == null) {
       return keepInfoForNonProgramField();
@@ -127,15 +159,29 @@ public abstract class KeepInfoCollection {
     return definition == null ? KeepFieldInfo.bottom() : getFieldInfo(definition, holder);
   }
 
-  public final KeepInfo<?, ?> getInfo(DexReference reference, DexDefinitionSupplier definitions) {
+  private KeepInfo<?, ?> getInfoWithDefinitionLookup(
+      DexReference reference, DexDefinitionSupplier definitions) {
     if (reference.isDexType()) {
       return getClassInfo(reference.asDexType(), definitions);
     }
     if (reference.isDexMethod()) {
-      return getMethodInfo(reference.asDexMethod(), definitions);
+      return getMethodInfoWithDefinitionLookup(reference.asDexMethod(), definitions);
     }
     if (reference.isDexField()) {
-      return getFieldInfo(reference.asDexField(), definitions);
+      return getFieldInfoWithDefinitionLookup(reference.asDexField(), definitions);
+    }
+    throw new Unreachable();
+  }
+
+  public final KeepInfo<?, ?> getInfo(DexDefinition definition, DexDefinitionSupplier definitions) {
+    if (definition.isDexClass()) {
+      return getClassInfo(definition.asDexClass());
+    }
+    if (definition.isDexEncodedMethod()) {
+      return getMethodInfo(definition.asDexEncodedMethod(), definitions);
+    }
+    if (definition.isDexEncodedField()) {
+      return getFieldInfo(definition.asDexEncodedField(), definitions);
     }
     throw new Unreachable();
   }
@@ -158,37 +204,28 @@ public abstract class KeepInfoCollection {
   }
 
   public final boolean isPinned(
+      ProgramDefinition definition, GlobalKeepInfoConfiguration configuration) {
+    return getInfo(definition).isPinned(configuration);
+  }
+
+  public final boolean isPinned(
+      DexDefinition definition,
+      GlobalKeepInfoConfiguration configuration,
+      DexDefinitionSupplier definitions) {
+    return getInfo(definition, definitions).isPinned(configuration);
+  }
+
+  public final boolean isPinnedWithDefinitionLookup(
       DexReference reference,
-      DexDefinitionSupplier definitions,
-      GlobalKeepInfoConfiguration configuration) {
-    return getInfo(reference, definitions).isPinned(configuration);
-  }
-
-  public final boolean isPinned(
-      DexType type, DexDefinitionSupplier definitions, GlobalKeepInfoConfiguration configuration) {
-    return getClassInfo(type, definitions).isPinned(configuration);
-  }
-
-  public final boolean isPinned(
-      DexMethod method,
-      DexDefinitionSupplier definitions,
-      GlobalKeepInfoConfiguration configuration) {
-    return getMethodInfo(method, definitions).isPinned(configuration);
-  }
-
-  public final boolean isPinned(
-      DexField field,
-      DexDefinitionSupplier definitions,
-      GlobalKeepInfoConfiguration configuration) {
-    return getFieldInfo(field, definitions).isPinned(configuration);
+      GlobalKeepInfoConfiguration configuration,
+      DexDefinitionSupplier definitions) {
+    return getInfoWithDefinitionLookup(reference, definitions).isPinned(configuration);
   }
 
   public final boolean isMinificationAllowed(
-      DexReference reference,
-      DexDefinitionSupplier definitions,
-      GlobalKeepInfoConfiguration configuration) {
+      ProgramDefinition definition, GlobalKeepInfoConfiguration configuration) {
     return configuration.isMinificationEnabled()
-        && getInfo(reference, definitions).isMinificationAllowed(configuration);
+        && getInfo(definition).isMinificationAllowed(configuration);
   }
 
   public abstract boolean verifyPinnedTypesAreLive(Set<DexType> liveTypes, InternalOptions options);

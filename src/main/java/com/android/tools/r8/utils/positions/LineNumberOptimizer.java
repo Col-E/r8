@@ -170,7 +170,7 @@ public class LineNumberOptimizer {
       }
       allSeenAreInstanceInitializers = false;
       // If the method is pinned, we cannot minify it.
-      if (!keepInfo.isMinificationAllowed(method.getReference(), appView, appView.options())) {
+      if (!keepInfo.isMinificationAllowed(method, appView.options())) {
         continue;
       }
       // With desugared library, call-backs names are reserved here.

@@ -2083,12 +2083,14 @@ public class RootSetUtils {
               (reference, minimumKeepInfo) -> {
                 if (reference.isDexType()) {
                   DexType type = reference.asDexType();
-                  assert !appInfo.hasLiveness() || appInfo.withLiveness().isPinned(type)
+                  assert !appInfo.hasLiveness()
+                          || appInfo.withLiveness().isPinnedWithDefinitionLookup(type)
                       : "Expected reference `" + type.toSourceString() + "` to be pinned";
                   requiredMembersPerType.computeIfAbsent(type, key -> Sets.newIdentityHashSet());
                 } else {
                   DexMember<?, ?> member = reference.asDexMember();
-                  assert !appInfo.hasLiveness() || appInfo.withLiveness().isPinned(member)
+                  assert !appInfo.hasLiveness()
+                          || appInfo.withLiveness().isPinnedWithDefinitionLookup(member)
                       : "Expected reference `" + member.toSourceString() + "` to be pinned";
                   requiredMembersPerType
                       .computeIfAbsent(member.holder, key -> Sets.newIdentityHashSet())

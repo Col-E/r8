@@ -154,7 +154,7 @@ public class BridgeHoisting {
     // If the method is defined on the parent class, we cannot hoist the bridge.
     // TODO(b/153147967): If the declared method is abstract, we could replace it by the bridge.
     //  Add a test.
-    if (clazz.lookupMethod(method) != null) {
+    if (clazz.lookupProgramMethod(method) != null) {
       return;
     }
 
@@ -278,8 +278,8 @@ public class BridgeHoisting {
         representative.getReference());
 
     // Remove all of the bridges in the eligible subclasses.
+    assert !appView.appInfo().isPinnedWithDefinitionLookup(method);
     for (DexProgramClass subclass : eligibleSubclasses) {
-      assert !appView.appInfo().isPinned(method);
       DexEncodedMethod removed = subclass.removeMethod(method);
       assert removed != null;
     }
