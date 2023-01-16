@@ -272,18 +272,15 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     horizontalClassMergerOptions.setRestrictToSynthetics();
   }
 
+  // Configure options according to platform build assumptions.
+  // See go/r8platformflag and b/232073181.
   public void configureAndroidPlatformBuild(boolean isAndroidPlatformBuild) {
     assert !androidPlatformBuild;
     if (isAndroidPlatformBuild || minApiLevel.isPlatform()) {
       apiModelingOptions().disableApiModeling();
+      disableBackportsWithErrorDiagnostics = true;
+      androidPlatformBuild = isAndroidPlatformBuild;
     }
-    if (!isAndroidPlatformBuild) {
-      return;
-    }
-    // Configure options according to platform build assumptions.
-    // See go/r8platformflag and b/232073181.
-    androidPlatformBuild = isAndroidPlatformBuild;
-    enableBackportMethods = false;
   }
 
   public boolean isAndroidPlatformBuild() {
@@ -624,8 +621,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public DesugarState desugarState = DesugarState.ON;
   // Flag to turn on/off partial VarHandle desugaring.
   public boolean enableVarHandleDesugaring = false;
-  // Flag to turn on/off backport methods.
-  public boolean enableBackportMethods = true;
+  // Flag to turn off backport methods (and report errors if triggered).
+  public boolean disableBackportsWithErrorDiagnostics = false;
   // Flag to turn on/off reduction of nest to improve class merging optimizations.
   public boolean enableNestReduction = true;
   // Defines interface method rewriter behavior.
@@ -2390,14 +2387,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean enableBackportedMethodRewriting() {
-    // Disable rewriting if there are no methods to rewrite or if the API level is higher than
-    // the highest known API level when the compiler is built. This ensures that when this is used
-    // by the Android Platform build (which normally use an API level of 10000) there will be
-    // no rewriting of backported methods. See b/147480264.
-    return enableBackportMethods
-        && desugarState.isOn()
-        // TODO(b/232073181): This platform check should rather be controlled via the platform flag.
-        && getMinApiLevel().isLessThanOrEqualTo(AndroidApiLevel.LATEST);
+    return desugarState.isOn();
   }
 
   public boolean enableTryWithResourcesDesugaring() {

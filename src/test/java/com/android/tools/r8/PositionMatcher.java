@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.position.TextPosition;
 import org.hamcrest.Description;
@@ -21,6 +22,21 @@ public abstract class PositionMatcher extends TypeSafeMatcher<Position> {
       @Override
       public void describeTo(Description description) {
         description.appendText("with line " + line);
+      }
+    };
+  }
+
+  public static Matcher<Position> positionMethodName(String methodName) {
+    return new PositionMatcher() {
+      @Override
+      protected boolean matchesSafely(Position position) {
+        return position instanceof MethodPosition
+            && ((MethodPosition) position).getName().equals(methodName);
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("with method " + methodName);
       }
     };
   }

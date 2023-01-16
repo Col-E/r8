@@ -18,6 +18,7 @@ import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.errors.BackportDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
@@ -51,6 +52,7 @@ import com.android.tools.r8.ir.desugar.backports.ObjectsMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.OptionalMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.SparseArrayMethodRewrites;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeter;
+import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
@@ -102,7 +104,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     }
 
     CfInvoke invoke = instruction.asInvoke();
-    MethodProvider methodProvider = getMethodProviderOrNull(invoke.getMethod());
+    MethodProvider methodProvider = getMethodProviderOrNull(invoke.getMethod(), context);
     return methodProvider != null
         ? methodProvider.rewriteInvoke(
             invoke, appView, eventConsumer, methodProcessingContext, localStackAllocator)
@@ -112,7 +114,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
   @Override
   public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
     return instruction.isInvoke()
-        && getMethodProviderOrNull(instruction.asInvoke().getMethod()) != null
+        && getMethodProviderOrNull(instruction.asInvoke().getMethod(), context) != null
         && !appView
             .getSyntheticItems()
             .isSyntheticOfKind(context.getContextType(), kinds -> kinds.BACKPORT_WITH_FORWARDING);
@@ -146,7 +148,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     BackportedMethods.registerSynthesizedCodeReferences(options.itemFactory);
   }
 
-  private MethodProvider getMethodProviderOrNull(DexMethod method) {
+  private MethodProvider getMethodProviderOrNull(DexMethod method, ProgramMethod context) {
     DexMethod original = appView.graphLens().getOriginalMethodSignature(method);
     assert original != null;
     MethodProvider provider = rewritableMethods.getProvider(original);
@@ -163,6 +165,14 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       DexMethod backportedMethod =
           appView.dexItemFactory().createMethod(newHolder, method.proto, method.name);
       provider = rewritableMethods.getProvider(backportedMethod);
+    }
+    if (provider != null && appView.options().disableBackportsWithErrorDiagnostics) {
+      appView
+          .reporter()
+          .error(
+              new BackportDiagnostic(
+                  provider.method, context.getOrigin(), MethodPosition.create(context)));
+      return null;
     }
     return provider;
   }
