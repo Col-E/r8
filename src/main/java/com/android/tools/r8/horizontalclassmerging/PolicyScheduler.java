@@ -18,6 +18,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.LimitClassGroups;
 import com.android.tools.r8.horizontalclassmerging.policies.LimitInterfaceGroups;
 import com.android.tools.r8.horizontalclassmerging.policies.MinimizeInstanceFieldCasts;
 import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotationClasses;
+import com.android.tools.r8.horizontalclassmerging.policies.NoApiOutlineWithNonApiOutline;
 import com.android.tools.r8.horizontalclassmerging.policies.NoCheckDiscard;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassAnnotationCollisions;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassInitializerCycles;
@@ -265,6 +266,7 @@ public class PolicyScheduler {
         new SameNestHost(appView),
         new SameParentClass(),
         new SyntheticItemsPolicy(appView, mode),
+        new NoApiOutlineWithNonApiOutline(appView),
         new SamePackageForApiOutline(appView, mode),
         new NoDifferentApiReferenceLevel(appView),
         new LimitClassGroups(appView));
