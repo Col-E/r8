@@ -270,6 +270,10 @@ public class LibraryDesugaringSpecification {
     return ImmutableList.of(JDK8, JDK11);
   }
 
+  public static List<LibraryDesugaringSpecification> getJdk8AndAll3Jdk11() {
+    return ImmutableList.of(JDK8, JDK11, JDK11_MINIMAL, JDK11_PATH);
+  }
+
   public DexApplication getAppForTesting(InternalOptions options, boolean libraryCompilation)
       throws IOException {
     AndroidApp.Builder builder = AndroidApp.builder();

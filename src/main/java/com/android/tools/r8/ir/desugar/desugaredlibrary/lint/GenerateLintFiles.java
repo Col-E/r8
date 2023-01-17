@@ -36,6 +36,7 @@ import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
@@ -253,6 +254,11 @@ public class GenerateLintFiles {
     DirectMappedDexApplication implementationApplication =
         new ApplicationReader(implementation, options, Timing.empty()).read().toDirect();
 
+    options.setDesugaredLibrarySpecification(desugaredLibrarySpecification);
+    List<DexMethod> backports =
+        BackportedMethodRewriter.generateListOfBackportedMethods(
+            implementation, options, ThreadUtils.getExecutorService(1));
+
     // Collect all the methods that the library desugar configuration adds support for.
     Set<DexClass> classesWithAllMethodsSupported = Sets.newIdentityHashSet();
     Map<DexClass, List<DexEncodedMethod>> supportedMethods = new LinkedHashMap<>();
@@ -271,7 +277,8 @@ public class GenerateLintFiles {
           ProgramMethod implementationMethod =
               implementationClass.lookupProgramMethod(method.getReference());
           // Don't include methods which are not implemented by the desugared library.
-          if (supported.test(method) && implementationMethod != null) {
+          if (supported.test(method)
+              && (implementationMethod != null || backports.contains(method.getReference()))) {
             supportedMethods.computeIfAbsent(clazz, k -> new ArrayList<>()).add(method);
           } else {
             allMethodsAdded = false;
@@ -404,7 +411,7 @@ public class GenerateLintFiles {
 
   private void run() throws Exception {
     // Run over all the API levels that the desugared library can be compiled with.
-    for (int apiLevel = AndroidApiLevel.Sv2.getLevel();
+    for (int apiLevel = AndroidApiLevel.T.getLevel();
         apiLevel >= desugaredLibrarySpecification.getRequiredCompilationApiLevel().getLevel();
         apiLevel--) {
       System.out.println("Generating lint files for compile API " + apiLevel);

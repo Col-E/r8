@@ -4,8 +4,9 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_MINIMAL;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
-import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8Jdk11;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8AndAll3Jdk11;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -41,7 +42,7 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
 
   @Parameters(name = "{0}, spec: {1}")
   public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withNoneRuntime().build(), getJdk8Jdk11());
+    return buildParameters(getTestParameters().withNoneRuntime().build(), getJdk8AndAll3Jdk11());
   }
 
   public LintFilesTest(
@@ -62,6 +63,18 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
   private void checkFileContent(AndroidApiLevel minApiLevel, Path lintFile) throws Exception {
     // Just do some light probing in the generated lint files.
     lintContents = FileUtils.readAllLines(lintFile);
+
+    // All methods supported on CHM.
+    assertEquals(
+        libraryDesugaringSpecification != JDK8,
+        supportsAllMethodsOf("java/util/concurrent/ConcurrentHashMap"));
+
+    // All methods supported on BiFunction with maintain prefix.
+    assertTrue(supportsAllMethodsOf("java/util/function/BiFunction"));
+
+    if (libraryDesugaringSpecification == JDK11_MINIMAL) {
+      return;
+    }
 
     // All methods supported on Optional*.
     assertTrue(supportsAllMethodsOf("java/util/Optional"));
@@ -96,10 +109,6 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
         minApiLevel == AndroidApiLevel.B,
         supportsMethodButNotAllMethodsInClass(
             "java/util/stream/IntStream#allMatch(Ljava/util/function/IntPredicate;)Z"));
-
-    assertEquals(
-        libraryDesugaringSpecification != JDK8,
-        supportsAllMethodsOf("java/util/concurrent/ConcurrentHashMap"));
 
     // Checks specific methods are supported or not in JDK8, all is supported in JDK11.
     if (libraryDesugaringSpecification == JDK8) {
@@ -174,7 +183,7 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
             AndroidApiLevel.B.getLevel());
 
     for (AndroidApiLevel apiLevel : AndroidApiLevel.values()) {
-      if (apiLevel.isGreaterThan(AndroidApiLevel.Sv2)) {
+      if (apiLevel.isGreaterThan(AndroidApiLevel.T)) {
         continue;
       }
       Path compileApiLevelDirectory = directory.resolve("compile_api_level_" + apiLevel.getLevel());
