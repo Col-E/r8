@@ -29,10 +29,13 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.MethodResolutionResult;
+import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -123,10 +126,9 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
         AndroidApp.builder()
             .addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles())
             .build();
+    InternalOptions options = inspector.getApplication().options;
     DirectMappedDexApplication libHolder =
-        new ApplicationReader(build, inspector.getApplication().options, Timing.empty())
-            .read()
-            .toDirect();
+        new ApplicationReader(build, options, Timing.empty()).read().toDirect();
     DirectMappedDexApplication finalApp =
         inspector
             .getApplication()
@@ -139,6 +141,9 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
                 AppInfo.createInitialAppInfo(
                     finalApp, GlobalSyntheticsStrategy.forNonSynthesizing()))
             .appInfoForDesugaring();
+    List<DexMethod> backports =
+        BackportedMethodRewriter.generateListOfBackportedMethods(
+            build, options, ThreadUtils.getExecutorService(1));
     Map<DexMethod, Object> failures = new IdentityHashMap<>();
     for (FoundClassSubject clazz : inspector.allClasses()) {
       for (FoundMethodSubject method : clazz.allMethods()) {
@@ -153,6 +158,8 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
       if (ALLOWED_MISSING_HOLDER.contains(dexMethod.getHolderType().toString())) {
         failures.remove(dexMethod);
       } else if (ALLOWED_MISSING_METHOD.contains(dexMethod.toString())) {
+        failures.remove(dexMethod);
+      } else if (backports.contains(dexMethod)) {
         failures.remove(dexMethod);
       }
     }
