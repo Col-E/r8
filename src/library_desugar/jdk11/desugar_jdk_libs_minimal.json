@@ -13,9 +13,12 @@
     },
     {
       "api_level_below_or_equal": 23,
+      "rewrite_prefix": {
+        "java.util.concurrent.ConcurrentHashMap": "j$.util.concurrent.ConcurrentHashMap",
+        "java.util.concurrent.ThreadLocalRandom": "j$.util.concurrent.ThreadLocalRandom"
+      },
       "maintain_prefix": [
-        "java.util.function.",
-        "java.util.Optional"
+        "java.util.function."
       ]
     }
   ],
@@ -26,10 +29,25 @@
       "rewrite_prefix": {
         "java.util.concurrent.Helpers": "j$.util.concurrent.Helpers"
       }
+    },
+    {
+      "api_level_below_or_equal": 23,
+      "rewrite_prefix": {
+        "sun.misc.Desugar": "j$.sun.misc.Desugar"
+      },
+      "rewrite_derived_prefix": {
+        "sun.misc.DesugarUnsafe": {
+          "jdk.internal.misc.Unsafe": "j$.sun.misc.DesugarUnsafe"
+        }
+      }
     }
   ],
   "shrinker_config": [
     "-keepclassmembers class j$.** extends java.io.Serializable { void <init>(); private static final java.io.ObjectStreamField[] serialPersistentFields; static final long serialVersionUID; java.lang.Object readResolve(); java.lang.Object writeReplace(); private void readObject(java.io.ObjectInputStream); private void writeObject(java.io.ObjectOutputStream); private void readObjectNoData(); }",
+    "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap$TreeBin { int lockState; }",
+    "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap { int sizeCtl; int transferIndex; long baseCount; int cellsBusy; }",
+    "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap$CounterCell { long value; }",
+    "-keepclassmembers enum * { public static **[] values(); public static ** valueOf(java.lang.String); }",
     "-keepclassmembers class j$.util.concurrent.ConcurrentLinkedQueue { j$.util.concurrent.ConcurrentLinkedQueue$Node head; j$.util.concurrent.ConcurrentLinkedQueue$Node tail; }",
     "-keep,allowshrinking class j$.util.concurrent.ConcurrentLinkedQueue$Node",
     "-keepclassmembers class j$.util.concurrent.ConcurrentLinkedQueue$Node { j$.util.concurrent.ConcurrentLinkedQueue$Node next; java.lang.Object item; }",
@@ -37,6 +55,7 @@
     "-keeppackagenames j$.**",
     "-keepattributes Signature",
     "-keepattributes EnclosingMethod",
-    "-keepattributes InnerClasses"
+    "-keepattributes InnerClasses",
+    "-dontwarn sun.misc.Unsafe"
   ]
 }

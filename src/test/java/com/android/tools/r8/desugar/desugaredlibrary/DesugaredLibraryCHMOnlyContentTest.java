@@ -6,7 +6,6 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8SHRINK;
-import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_CHM_ONLY;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
@@ -29,7 +28,7 @@ public class DesugaredLibraryCHMOnlyContentTest extends DesugaredLibraryTestBase
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters().withNoneRuntime().build(),
-        ImmutableList.of(JDK11_CHM_ONLY),
+        ImmutableList.of(LibraryDesugaringSpecification.JDK11_MINIMAL),
         ImmutableList.of(D8_L8DEBUG, D8_L8SHRINK));
   }
 

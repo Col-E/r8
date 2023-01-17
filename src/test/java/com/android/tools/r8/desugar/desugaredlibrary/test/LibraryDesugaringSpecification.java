@@ -144,22 +144,6 @@ public class LibraryDesugaringSpecification {
           LATEST);
 
   // Legacy specifications.
-  public static LibraryDesugaringSpecification JDK11_PATH_ALTERNATIVE_3 =
-      new LibraryDesugaringSpecification(
-          "JDK11_PATH_ALTERNATIVE_3",
-          tempLibraryJDK11Undesugar,
-          "jdk11/desugar_jdk_libs_nio_alternative_3.json",
-          AndroidApiLevel.R,
-          JDK11_PATH_DESCRIPTOR,
-          LATEST);
-  public static LibraryDesugaringSpecification JDK11_CHM_ONLY =
-      new LibraryDesugaringSpecification(
-          "JDK11_CHM_ONLY",
-          tempLibraryJDK11Undesugar,
-          "jdk11/chm_only_desugar_jdk_libs.json",
-          AndroidApiLevel.R,
-          EMPTY_DESCRIPTOR_24,
-          LATEST);
   public static LibraryDesugaringSpecification JDK11_LEGACY =
       new LibraryDesugaringSpecification(
           "JDK11_LEGACY",
