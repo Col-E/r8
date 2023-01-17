@@ -1809,9 +1809,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         System.getProperty("com.android.tools.r8.disableApiModeling") == null;
     public boolean reportUnknownApiReferences =
         System.getProperty("com.android.tools.r8.reportUnknownApiReferences") != null;
-    // TODO(b/259076765): Remove when resolved.
-    public boolean stubNonThrowableClasses =
-        System.getProperty("com.android.tools.r8.stubNonThrowableClasses") != null;
 
     // TODO(b/232823652): Enable when we can compute the offset correctly.
     public boolean useMemoryMappedByteBuffer = false;
@@ -1876,28 +1873,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public void disableStubbingOfClasses() {
       enableStubbingOfClasses = false;
-    }
-
-    public boolean stubbingEnabledFor(AppView<?> appView, DexLibraryClass libraryClass) {
-      if (libraryClass.getType() == appView.dexItemFactory().objectType
-          || libraryClass
-              .getType()
-              .getDescriptor()
-              .startsWith(appView.dexItemFactory().javaDescriptorPrefix)) {
-        return false;
-      }
-      // Check if desugared library will bridge the type.
-      if (appView
-          .options()
-          .machineDesugaredLibrarySpecification
-          .isSupported(libraryClass.getType())) {
-        return false;
-      }
-      // We cannot reliably create a stub that will have the same throwing behavior for all VMs. We
-      // only create stubs for exceptions to allow them being present in catch handlers. See
-      // b/258270051 for more information. Note that throwables in the java namespace are not
-      // stubbed (bailout above).
-      return isThrowable(appView, libraryClass) || stubNonThrowableClasses;
     }
 
     private boolean isThrowable(AppView<?> appView, DexLibraryClass libraryClass) {

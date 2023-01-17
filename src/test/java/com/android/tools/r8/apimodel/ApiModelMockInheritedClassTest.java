@@ -6,8 +6,7 @@ package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
@@ -98,7 +97,7 @@ public class ApiModelMockInheritedClassTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    assertThat(inspector.clazz(LibraryClass.class), isAbsent());
+    verifyThat(inspector, parameters, LibraryClass.class).stubbedUntil(mockLevel);
   }
 
   private void checkOutput(SingleTestRunResult<?> runResult) {

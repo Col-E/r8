@@ -94,6 +94,9 @@ public class ApiReferenceStubber {
         .isSyntheticOfKind(clazz.getType(), kinds -> kinds.API_MODEL_OUTLINE)) {
       return;
     }
+    // We cannot reliably create a stub that will have the same throwing behavior for all VMs.
+    // Only create stubs for exceptions to allow them being present in catch handlers and super
+    // types of existing program classes. See b/258270051 and b/259076765 for more information.
     clazz
         .allImmediateSupertypes()
         .forEach(superType -> findReferencedLibraryClasses(superType, clazz));
@@ -141,7 +144,19 @@ public class ApiReferenceStubber {
       DexLibraryClass libraryClass,
       ThrowExceptionCode throwExceptionCode) {
     DexItemFactory factory = appView.dexItemFactory();
-    if (!appView.options().apiModelingOptions().stubbingEnabledFor(appView, libraryClass)) {
+    // Do not stub the anything starting with java (including the object type).
+    if (libraryClass.getType() == appView.dexItemFactory().objectType
+        || libraryClass
+            .getType()
+            .getDescriptor()
+            .startsWith(appView.dexItemFactory().javaDescriptorPrefix)) {
+      return;
+    }
+    // Check if desugared library will bridge the type.
+    if (appView
+        .options()
+        .machineDesugaredLibrarySpecification
+        .isSupported(libraryClass.getType())) {
       return;
     }
     Set<ProgramDefinition> contexts = referencingContexts.get(libraryClass);
