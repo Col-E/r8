@@ -211,5 +211,16 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
         }
       }
     }
+
+    Path directory2 = temp.newFolder().toPath();
+    GenerateLintFiles.main(
+        new String[] {
+          "--generate-api-docs",
+          libraryDesugaringSpecification.getSpecification().toString(),
+          jdkLibJar.toString(),
+          directory2.toString()
+        });
+    List<String> html = Files.readAllLines(directory2.resolve("apis.html"));
+    assertTrue(html.contains("  <td><code>java.util.function</code></td>"));
   }
 }
