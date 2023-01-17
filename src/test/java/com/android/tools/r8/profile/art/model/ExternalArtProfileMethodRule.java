@@ -38,6 +38,10 @@ public class ExternalArtProfileMethodRule extends ExternalArtProfileRule {
     return methodReference;
   }
 
+  public ArtProfileMethodRuleInfo getMethodRuleInfo() {
+    return methodRuleInfo;
+  }
+
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {
@@ -47,7 +51,8 @@ public class ExternalArtProfileMethodRule extends ExternalArtProfileRule {
       return false;
     }
     ExternalArtProfileMethodRule methodRule = (ExternalArtProfileMethodRule) obj;
-    return methodReference.equals(methodRule.methodReference);
+    return methodReference.equals(methodRule.methodReference)
+        && methodRuleInfo.equals(methodRule.methodRuleInfo);
   }
 
   @Override

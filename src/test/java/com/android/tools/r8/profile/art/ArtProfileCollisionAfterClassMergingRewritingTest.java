@@ -7,22 +7,24 @@ package com.android.tools.r8.profile.art;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.profile.art.model.ExternalArtProfile;
+import com.android.tools.r8.profile.art.model.ExternalArtProfileClassRule;
+import com.android.tools.r8.profile.art.model.ExternalArtProfileMethodRule;
+import com.android.tools.r8.profile.art.utils.ArtProfileTestingUtils;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.Lists;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -54,23 +56,36 @@ public class ArtProfileCollisionAfterClassMergingRewritingTest extends TestBase 
 
   @Test
   public void test() throws Exception {
-    MyArtProfileProvider artProfileProvider = new MyArtProfileProvider();
-    ArtProfileConsumerForTesting residualArtProfileConsumer = new ArtProfileConsumerForTesting();
+    Box<ExternalArtProfile> residualArtProfile = new Box<>();
     testForR8(Backend.DEX)
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addArtProfileForRewriting(artProfileProvider, residualArtProfileConsumer)
         .addHorizontallyMergedClassesInspector(
             inspector ->
                 inspector.assertMergedInto(Foo.class, Bar.class).assertNoOtherClassesMerged())
+        .apply(
+            testBuilder ->
+                ArtProfileTestingUtils.addArtProfileForRewriting(
+                    getArtProfile(), residualArtProfile::set, testBuilder))
         .enableInliningAnnotations()
         .setMinApi(AndroidApiLevel.LATEST)
         .compile()
-        .inspect(inspector -> inspect(inspector, residualArtProfileConsumer));
+        .inspect(inspector -> inspect(inspector, residualArtProfile.get()));
   }
 
-  private void inspect(
-      CodeInspector inspector, ArtProfileConsumerForTesting residualArtProfileConsumer) {
+  public ExternalArtProfile getArtProfile() {
+    return ExternalArtProfile.builder()
+        .addRules(
+            ExternalArtProfileClassRule.builder().setClassReference(mainClassReference).build(),
+            ExternalArtProfileMethodRule.builder().setMethodReference(mainMethodReference).build(),
+            ExternalArtProfileClassRule.builder().setClassReference(fooClassReference).build(),
+            ExternalArtProfileMethodRule.builder().setMethodReference(helloMethodReference).build(),
+            ExternalArtProfileClassRule.builder().setClassReference(barClassReference).build(),
+            ExternalArtProfileMethodRule.builder().setMethodReference(worldMethodReference).build())
+        .build();
+  }
+
+  public ExternalArtProfile getExpectedResidualArtProfile(CodeInspector inspector) {
     ClassSubject barClassSubject = inspector.clazz(Bar.class);
     assertThat(barClassSubject, isPresentAndRenamed());
 
@@ -80,45 +95,24 @@ public class ArtProfileCollisionAfterClassMergingRewritingTest extends TestBase 
     MethodSubject worldMethodSubject = barClassSubject.uniqueMethodWithOriginalName("world");
     assertThat(worldMethodSubject, isPresentAndRenamed());
 
-    assertTrue(residualArtProfileConsumer.finished);
-    assertEquals(
-        Lists.newArrayList(
-            mainClassReference,
-            mainMethodReference,
-            barClassSubject.getFinalReference(),
-            helloMethodSubject.getFinalReference(),
-            worldMethodSubject.getFinalReference()),
-        residualArtProfileConsumer.references);
-    assertEquals(
-        Lists.newArrayList(
-            ArtProfileClassRuleInfoImpl.empty(),
-            ArtProfileMethodRuleInfoImpl.empty(),
-            ArtProfileClassRuleInfoImpl.empty(),
-            ArtProfileMethodRuleInfoImpl.empty(),
-            ArtProfileMethodRuleInfoImpl.empty()),
-        residualArtProfileConsumer.infos);
+    return ExternalArtProfile.builder()
+        .addRules(
+            ExternalArtProfileClassRule.builder().setClassReference(mainClassReference).build(),
+            ExternalArtProfileMethodRule.builder().setMethodReference(mainMethodReference).build(),
+            ExternalArtProfileClassRule.builder()
+                .setClassReference(barClassSubject.getFinalReference())
+                .build(),
+            ExternalArtProfileMethodRule.builder()
+                .setMethodReference(helloMethodSubject.getFinalReference())
+                .build(),
+            ExternalArtProfileMethodRule.builder()
+                .setMethodReference(worldMethodSubject.getFinalReference())
+                .build())
+        .build();
   }
 
-  static class MyArtProfileProvider implements ArtProfileProvider {
-
-    @Override
-    public void getArtProfile(ArtProfileBuilder profileBuilder) {
-      profileBuilder
-          .addClassRule(classRuleBuilder -> classRuleBuilder.setClassReference(mainClassReference))
-          .addMethodRule(
-              methodRuleBuilder -> methodRuleBuilder.setMethodReference(mainMethodReference))
-          .addClassRule(classRuleBuilder -> classRuleBuilder.setClassReference(fooClassReference))
-          .addMethodRule(
-              methodRuleBuilder -> methodRuleBuilder.setMethodReference(helloMethodReference))
-          .addClassRule(classRuleBuilder -> classRuleBuilder.setClassReference(barClassReference))
-          .addMethodRule(
-              methodRuleBuilder -> methodRuleBuilder.setMethodReference(worldMethodReference));
-    }
-
-    @Override
-    public Origin getOrigin() {
-      return Origin.unknown();
-    }
+  private void inspect(CodeInspector inspector, ExternalArtProfile residualArtProfile) {
+    assertEquals(getExpectedResidualArtProfile(inspector), residualArtProfile);
   }
 
   static class Main {

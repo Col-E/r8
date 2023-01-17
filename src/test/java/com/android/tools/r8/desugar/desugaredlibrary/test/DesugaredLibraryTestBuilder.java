@@ -324,10 +324,15 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
+  public DesugaredLibraryTestBuilder<T> apply(Consumer<DesugaredLibraryTestBuilder<T>> consumer) {
+    consumer.accept(this);
+    return this;
+  }
+
   public DesugaredLibraryTestBuilder<T> applyIf(
       boolean apply, Consumer<DesugaredLibraryTestBuilder<T>> consumer) {
     if (apply) {
-      consumer.accept(this);
+      return apply(consumer);
     }
     return this;
   }

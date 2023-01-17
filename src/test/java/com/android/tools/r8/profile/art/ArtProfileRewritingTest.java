@@ -7,22 +7,24 @@ package com.android.tools.r8.profile.art;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.profile.art.model.ExternalArtProfile;
+import com.android.tools.r8.profile.art.model.ExternalArtProfileClassRule;
+import com.android.tools.r8.profile.art.model.ExternalArtProfileMethodRule;
+import com.android.tools.r8.profile.art.utils.ArtProfileTestingUtils;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.Lists;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -51,70 +53,64 @@ public class ArtProfileRewritingTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    ArtProfileProviderForTesting artProfileProvider = new ArtProfileProviderForTesting();
-    ArtProfileConsumerForTesting residualArtProfileConsumer = new ArtProfileConsumerForTesting();
+    Box<ExternalArtProfile> residualArtProfile = new Box<>();
     testForR8(Backend.DEX)
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addArtProfileForRewriting(artProfileProvider, residualArtProfileConsumer)
+        .apply(
+            testBuilder ->
+                ArtProfileTestingUtils.addArtProfileForRewriting(
+                    getArtProfile(), residualArtProfile::set, testBuilder))
         .enableInliningAnnotations()
         .setMinApi(AndroidApiLevel.LATEST)
         .compile()
-        .inspect(inspector -> inspect(inspector, residualArtProfileConsumer));
+        .inspect(inspector -> inspect(inspector, residualArtProfile.get()));
   }
 
-  private void inspect(
-      CodeInspector inspector, ArtProfileConsumerForTesting residualArtProfileConsumer) {
+  private ExternalArtProfile getArtProfile() {
+    return ExternalArtProfile.builder()
+        .addRules(
+            ExternalArtProfileClassRule.builder().setClassReference(mainClassReference).build(),
+            ExternalArtProfileMethodRule.builder()
+                .setMethodReference(mainMethodReference)
+                .setMethodRuleInfo(ArtProfileMethodRuleInfoImpl.builder().setIsStartup().build())
+                .build(),
+            ExternalArtProfileClassRule.builder().setClassReference(greeterClassReference).build(),
+            ExternalArtProfileMethodRule.builder()
+                .setMethodReference(greetMethodReference)
+                .setMethodRuleInfo(
+                    ArtProfileMethodRuleInfoImpl.builder().setIsHot().setIsPostStartup().build())
+                .build())
+        .build();
+  }
+
+  private ExternalArtProfile getExpectedResidualArtProfile(CodeInspector inspector) {
     ClassSubject greeterClassSubject = inspector.clazz(Greeter.class);
     assertThat(greeterClassSubject, isPresentAndRenamed());
 
     MethodSubject greetMethodSubject = greeterClassSubject.uniqueMethodWithOriginalName("greet");
     assertThat(greetMethodSubject, isPresentAndRenamed());
 
-    assertTrue(residualArtProfileConsumer.finished);
-    assertEquals(
-        Lists.newArrayList(
-            mainClassReference,
-            mainMethodReference,
-            greeterClassSubject.getFinalReference(),
-            greetMethodSubject.getFinalReference()),
-        residualArtProfileConsumer.references);
-    assertEquals(
-        Lists.newArrayList(
-            ArtProfileClassRuleInfoImpl.empty(),
-            ArtProfileMethodRuleInfoImpl.builder().setIsStartup().build(),
-            ArtProfileClassRuleInfoImpl.empty(),
-            ArtProfileMethodRuleInfoImpl.builder().setIsHot().setIsPostStartup().build()),
-        residualArtProfileConsumer.infos);
+    return ExternalArtProfile.builder()
+        .addRules(
+            ExternalArtProfileClassRule.builder().setClassReference(mainClassReference).build(),
+            ExternalArtProfileMethodRule.builder()
+                .setMethodReference(mainMethodReference)
+                .setMethodRuleInfo(ArtProfileMethodRuleInfoImpl.builder().setIsStartup().build())
+                .build(),
+            ExternalArtProfileClassRule.builder()
+                .setClassReference(greeterClassSubject.getFinalReference())
+                .build(),
+            ExternalArtProfileMethodRule.builder()
+                .setMethodReference(greetMethodSubject.getFinalReference())
+                .setMethodRuleInfo(
+                    ArtProfileMethodRuleInfoImpl.builder().setIsHot().setIsPostStartup().build())
+                .build())
+        .build();
   }
 
-  static class ArtProfileProviderForTesting implements ArtProfileProvider {
-
-    @Override
-    public void getArtProfile(ArtProfileBuilder profileBuilder) {
-      profileBuilder
-          .addClassRule(classRuleBuilder -> classRuleBuilder.setClassReference(mainClassReference))
-          .addMethodRule(
-              methodRuleBuilder ->
-                  methodRuleBuilder
-                      .setMethodReference(mainMethodReference)
-                      .setMethodRuleInfo(
-                          methodRuleInfoBuilder -> methodRuleInfoBuilder.setIsStartup(true)))
-          .addClassRule(
-              classRuleBuilder -> classRuleBuilder.setClassReference(greeterClassReference))
-          .addMethodRule(
-              methodRuleBuilder ->
-                  methodRuleBuilder
-                      .setMethodReference(greetMethodReference)
-                      .setMethodRuleInfo(
-                          methodRuleInfoBuilder ->
-                              methodRuleInfoBuilder.setIsHot(true).setIsPostStartup(true)));
-    }
-
-    @Override
-    public Origin getOrigin() {
-      return Origin.unknown();
-    }
+  private void inspect(CodeInspector inspector, ExternalArtProfile residualArtProfile) {
+    assertEquals(getExpectedResidualArtProfile(inspector), residualArtProfile);
   }
 
   static class Main {

@@ -5,6 +5,7 @@
 package com.android.tools.r8.profile.art.model;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -59,6 +60,11 @@ public class ExternalArtProfile {
 
     public Builder addRule(ExternalArtProfileRule rule) {
       rules.add(rule);
+      return this;
+    }
+
+    public Builder addRules(ExternalArtProfileRule... rules) {
+      Collections.addAll(this.rules, rules);
       return this;
     }
 
