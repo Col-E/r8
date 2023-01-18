@@ -14,7 +14,6 @@ import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfInstanceOf;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
-import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.contexts.CompilationContext.UniqueContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -31,10 +30,7 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.FreshLocalProvider;
-import com.android.tools.r8.ir.desugar.LocalStackAllocator;
+import com.android.tools.r8.ir.desugar.DesugarDescription;
 import com.android.tools.r8.ir.synthetic.CheckCastSourceCode;
 import com.android.tools.r8.ir.synthetic.ConstClassSourceCode;
 import com.android.tools.r8.ir.synthetic.FieldAccessorBuilder;
@@ -69,33 +65,28 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
   }
 
   @Override
-  public Collection<CfInstruction> desugarInstruction(
-      CfInstruction instruction,
-      FreshLocalProvider freshLocalProvider,
-      LocalStackAllocator localStackAllocator,
-      CfInstructionDesugaringEventConsumer eventConsumer,
-      ProgramMethod context,
-      MethodProcessingContext methodProcessingContext,
-      CfInstructionDesugaringCollection desugaringCollection,
-      DexItemFactory dexItemFactory) {
+  public DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
     ComputedApiLevel computedApiLevel =
         getComputedApiLevelInstructionOnHolderWithMinApi(instruction, context);
-    if (computedApiLevel.isGreaterThan(appView.computedMinApiLevel())) {
-      return desugarLibraryCall(
-          methodProcessingContext.createUniqueContext(),
-          instruction,
-          computedApiLevel,
-          dexItemFactory,
-          eventConsumer,
-          context);
+    if (appView.computedMinApiLevel().isGreaterThanOrEqualTo(computedApiLevel)) {
+      return DesugarDescription.nothing();
     }
-    return null;
-  }
-
-  @Override
-  public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    return getComputedApiLevelInstructionOnHolderWithMinApi(instruction, context)
-        .isGreaterThan(appView.computedMinApiLevel());
+    return DesugarDescription.builder()
+        .setDesugarRewrite(
+            (freshLocalProvider,
+                localStackAllocator,
+                eventConsumer,
+                context1,
+                methodProcessingContext,
+                dexItemFactory) ->
+                desugarLibraryCall(
+                    methodProcessingContext.createUniqueContext(),
+                    instruction,
+                    computedApiLevel,
+                    dexItemFactory,
+                    eventConsumer,
+                    context))
+        .build();
   }
 
   private ComputedApiLevel getComputedApiLevelInstructionOnHolderWithMinApi(

@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.ProgramMethod;
 import java.util.Collection;
@@ -33,7 +34,7 @@ public interface CfInstructionDesugaring {
    * Given an instruction, returns the list of instructions that the instruction should be desugared
    * to. If no desugaring is needed, {@code null} should be returned (for efficiency).
    */
-  Collection<CfInstruction> desugarInstruction(
+  default Collection<CfInstruction> desugarInstruction(
       CfInstruction instruction,
       FreshLocalProvider freshLocalProvider,
       LocalStackAllocator localStackAllocator,
@@ -41,14 +42,25 @@ public interface CfInstructionDesugaring {
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext,
       CfInstructionDesugaringCollection desugaringCollection,
-      DexItemFactory dexItemFactory);
+      DexItemFactory dexItemFactory) {
+    return compute(instruction, context)
+        .desugarInstruction(
+            freshLocalProvider,
+            localStackAllocator,
+            eventConsumer,
+            context,
+            methodProcessingContext,
+            dexItemFactory);
+  }
 
   /**
    * Returns true if the given instruction needs desugaring.
    *
    * <p>This should return true if-and-only-if {@link #desugarInstruction} returns non-null.
    */
-  boolean needsDesugaring(CfInstruction instruction, ProgramMethod context);
+  default boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
+    return compute(instruction, context).needsDesugaring();
+  }
 
   /**
    * Returns true if and only if needsDesugaring() answering true implies a desugaring is needed.
@@ -58,5 +70,9 @@ public interface CfInstructionDesugaring {
   // TODO(b/187913003): Fixing interface desugaring should eliminate the need for this.
   default boolean hasPreciseNeedsDesugaring() {
     return true;
+  }
+
+  default DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
+    throw new Unreachable();
   }
 }
