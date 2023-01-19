@@ -4,25 +4,19 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
 
-import static com.android.tools.r8.ToolHelper.JDK_TESTS_BUILD_DIR;
-import static com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11SupportFiles.testNGSupportProgramFiles;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8SHRINK;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_MINIMAL;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
-import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
-import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
@@ -34,14 +28,16 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,17 +46,10 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class Jdk11ConcurrentLinkedQueueTests extends DesugaredLibraryTestBase {
+public class Jdk11Jsr166Tests extends DesugaredLibraryTestBase {
 
-  private static final String WHITEBOX = "WhiteBox";
-
-  private static Path[] JDK_11_CONCURRENT_LINKED_QUEUE_TEST_CLASS_FILES;
-
-  // JDK 11 test constants.
-  private static final Path JDK_11_CONCURRENT_LINKED_QUEUE_JAVA_DIR =
-      Paths.get(ToolHelper.JDK_11_TESTS_DIR + "java/util/concurrent/ConcurrentLinkedQueue");
-  private static final Path[] JDK_11_CONCURRENT_LINKED_QUEUE_JAVA_FILES =
-      new Path[] {JDK_11_CONCURRENT_LINKED_QUEUE_JAVA_DIR.resolve(WHITEBOX + JAVA_EXTENSION)};
+  private static Path jsr166Suite;
+  private static Path jsr166SuitePreN;
 
   @Parameter(0)
   public static TestParameters parameters;
@@ -86,18 +75,49 @@ public class Jdk11ConcurrentLinkedQueueTests extends DesugaredLibraryTestBase {
   }
 
   @BeforeClass
-  public static void compileConcurrentLinkedQueueClasses() throws Exception {
-    // Build test constants.
-    Path jdk11ConcurrentLinkedQueueTestsDir =
-        getStaticTemp().newFolder("ConcurrentLinkedQueue").toPath();
+  public static void compileJsr166Suite() throws Exception {
+    // Build the JSR166 test suite.
+    Path jsr166SuiteClasses = getStaticTemp().newFolder("jsr166SuiteClasses").toPath();
+
     javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
-        .addClasspathFiles(
-            Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))
-        .addSourceFiles(JDK_11_CONCURRENT_LINKED_QUEUE_JAVA_FILES)
-        .setOutputPath(jdk11ConcurrentLinkedQueueTestsDir)
+        .addClasspathFiles(Paths.get("third_party/junit/junit-4.13-beta-2.jar"))
+        .addSourceFiles(
+            Files.walk(Paths.get("third_party/openjdk/jdk-11-test/java/util/concurrent/tck"))
+                .filter(path -> path.getFileName().toString().endsWith(".java"))
+                .collect(Collectors.toList()))
+        .setOutputPath(jsr166SuiteClasses)
         .compile();
-    JDK_11_CONCURRENT_LINKED_QUEUE_TEST_CLASS_FILES =
-        new Path[] {jdk11ConcurrentLinkedQueueTestsDir.resolve(WHITEBOX + CLASS_EXTENSION)};
+    Path jars = jsr166Suite = getStaticTemp().newFolder("jars").toPath();
+    jsr166Suite = jars.resolve("jsr166Suite.jar");
+    ZipUtils.zip(jsr166Suite, jsr166SuiteClasses);
+    // Transform the test suite to be able to run on pre N devices.
+    jsr166SuitePreN = jars.resolve("jsr166SuitePreN.jar");
+    makeTransformedJar(jsr166Suite, jsr166SuitePreN);
+  }
+
+  public static void makeTransformedJar(Path in, Path out) throws IOException {
+    ZipUtils.map(
+        in,
+        out,
+        (entry, bytes) ->
+            entry.getName().equals("ConcurrentLinkedDequeTest.class")
+                ? transformConcurrentLinkedDequeTestForPreN(bytes)
+                : bytes);
+  }
+
+  public static byte[] transformConcurrentLinkedDequeTestForPreN(
+      byte[] concurrentLinkedDequeTestClassBytes) {
+    // Remove methods using java.util.concurrent.CompletableFuture and
+    // java.util.concurrent.atomic.LongAdder introduced as API level 24.
+    return transformer(
+            concurrentLinkedDequeTestClassBytes,
+            Reference.classFromDescriptor("LConcurrentLinkedDequeTest;"))
+        .removeMethods(
+            (access, name, descriptor, signature, exceptions) ->
+                name.contains("testBug8188900")
+                    || name.contains("testBug8188900_reverse")
+                    || name.contains("testBug8189387"))
+        .transform();
   }
 
   private void inspect(CodeInspector inspector) {
@@ -169,35 +189,54 @@ public class Jdk11ConcurrentLinkedQueueTests extends DesugaredLibraryTestBase {
             : isPresent());
   }
 
-  void runTest(List<String> toRun) throws Exception {
-    // Skip test with minimal configuration before API level 24, as the test use stream.
-    assumeTrue(
-        libraryDesugaringSpecification != JDK11_MINIMAL
-            || parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N));
-
-    String verbosity = "2";
+  void runTest(List<TestInfo> toRun) throws Exception {
     DesugaredLibraryTestCompileResult<?> compileResult =
         testForDesugaredLibrary(
                 parameters, libraryDesugaringSpecification, compilationSpecification)
-            .addProgramFiles(JDK_11_CONCURRENT_LINKED_QUEUE_TEST_CLASS_FILES)
-            .addProgramFiles(testNGSupportProgramFiles())
-            // The WhiteBox test is using VarHandle and MethodHandles.privateLookupIn to inspect the
-            // internal state of the implementation, so desugaring is needed for the program here.
-            .addOptionsModification(options -> options.enableVarHandleDesugaring = true)
+            .addProgramFiles(Paths.get("third_party/junit/junit-4.13-beta-2.jar"))
+            .addProgramFiles(
+                parameters.getDexRuntimeVersion().isOlderThan(Version.V7_0_0)
+                    ? jsr166SuitePreN
+                    : jsr166Suite)
             .compile()
             .inspectL8(this::inspect)
             .withArt6Plus64BitsLib();
-    for (String success : toRun) {
+    for (TestInfo testInfo : toRun) {
       SingleTestRunResult<?> result =
-          compileResult.run(parameters.getRuntime(), "TestNGMainRunner", verbosity, success);
+          compileResult.run(parameters.getRuntime(), testInfo.getName());
       assertTrue(
-          "Failure in " + success + "\n" + result,
-          result.getStdOut().contains(StringUtils.lines(success + ": SUCCESS")));
+          "Failure in " + testInfo.getName() + "\n" + result,
+          result.getStdOut().startsWith(testInfo.getStartsWith()));
+    }
+  }
+
+  private static class TestInfo {
+    private final String name;
+    private final String startsWith;
+
+    public TestInfo(String name, String startsWith) {
+      this.name = name;
+      this.startsWith = startsWith;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public String getStartsWith() {
+      return startsWith;
     }
   }
 
   @Test
-  public void testWhiteBox() throws Exception {
-    runTest(ImmutableList.of("WhiteBox"));
+  public void test() throws Exception {
+    runTest(
+        ImmutableList.of(
+            new TestInfo("ConcurrentLinkedQueueTest", "OK (38 tests)"),
+            new TestInfo(
+                "ConcurrentLinkedDequeTest",
+                parameters.getDexRuntimeVersion().isOlderThan(Version.V7_0_0)
+                    ? "OK (62 tests)"
+                    : "OK (65 tests)")));
   }
 }

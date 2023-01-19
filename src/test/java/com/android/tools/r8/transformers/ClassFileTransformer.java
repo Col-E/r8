@@ -32,6 +32,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -610,6 +611,14 @@ public class ClassFileTransformer {
 
     static MethodPredicate onName(String name) {
       return (access, otherName, descriptor, signature, exceptions) -> name.equals(otherName);
+    }
+
+    static MethodPredicate onNames(Collection<String> names) {
+      return (access, otherName, descriptor, signature, exceptions) -> names.contains(otherName);
+    }
+
+    static MethodPredicate onNames(String... names) {
+      return onNames(Arrays.asList(names));
     }
 
     static MethodPredicate onReference(MethodReference reference) {
