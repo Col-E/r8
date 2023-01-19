@@ -51,7 +51,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class FilesMoveCopyTest extends DesugaredLibraryTestBase {
 
-  private static final String EXPECTED_RESULT_FORMAT =
+  private static final String EXPECTED_RESULT =
       StringUtils.lines(
           "Testing COPY_TO_OUTPUT_STREAM EXISTING NONE",
           "COPY_TO_OUTPUT_STREAM_NONE",
@@ -66,7 +66,7 @@ public class FilesMoveCopyTest extends DesugaredLibraryTestBase {
           "Testing COPY EXISTING NONE",
           "Failure: class java.nio.file.FileAlreadyExistsException :: dest",
           "Testing COPY_FROM_INPUT_STREAM EXISTING NONE",
-          "%s",
+          "Failure: class java.nio.file.FileAlreadyExistsException :: dest",
           "Testing MOVE NEW ATOMIC_MOVE",
           "MOVE_ATOMIC_MOVE",
           "Testing COPY NEW ATOMIC_MOVE",
@@ -108,7 +108,8 @@ public class FilesMoveCopyTest extends DesugaredLibraryTestBase {
         // Skip Android 4.4.4 due to missing libjavacrypto.
         getTestParameters()
             .withCfRuntime(CfVm.JDK11)
-            .withDexRuntimesStartingFromIncluding(Version.V8_1_0)
+            .withDexRuntime(Version.V4_0_4)
+            .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
             .withAllApiLevels()
             .build(),
         ImmutableList.of(JDK11_PATH),
@@ -124,19 +125,6 @@ public class FilesMoveCopyTest extends DesugaredLibraryTestBase {
     this.compilationSpecification = compilationSpecification;
   }
 
-  private String getExpectedResult() {
-    // TODO(b/260208125): Fix invalid behavior.
-    // When copying from the input stream into an existing file and no options,
-    // the desugared version succeeds by deleting the file while the regular version fails
-    // with FileAlreadyExistsException exception.
-    String result =
-        (parameters.isDexRuntime()
-                && !libraryDesugaringSpecification.usesPlatformFileSystem(parameters))
-            ? "COPY_FROM_INPUT_STREAM_NONE"
-            : "Failure: class java.nio.file.FileAlreadyExistsException :: dest";
-    return String.format(EXPECTED_RESULT_FORMAT, result);
-  }
-
   @Test
   public void test() throws Throwable {
     if (parameters.isCfRuntime()) {
@@ -146,7 +134,7 @@ public class FilesMoveCopyTest extends DesugaredLibraryTestBase {
       testForJvm()
           .addInnerClasses(getClass())
           .run(parameters.getRuntime(), TestClass.class)
-          .assertSuccessWithOutput(getExpectedResult());
+          .assertSuccessWithOutput(EXPECTED_RESULT);
       return;
     }
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
@@ -155,7 +143,7 @@ public class FilesMoveCopyTest extends DesugaredLibraryTestBase {
         .compile()
         .withArt6Plus64BitsLib()
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(getExpectedResult());
+        .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
   public static class TestClass {
