@@ -640,6 +640,15 @@ public class CfApplicationWriter {
     Code code = method.getDefinition().getCode();
     assert code.isCfWritableCode();
     assert code.estimatedDexCodeSizeUpperBoundInBytes() > 0;
+    if (!code.isCfWritableCode()) {
+      // This should never happen (see assertion above), but desugaring bugs may lead the
+      // CfApplicationWriter to try to write invalid code and we need the better error message.
+      throw new Unreachable(
+          "The CfApplicationWriter cannot write non cf writable code "
+              + code.getClass().getCanonicalName()
+              + " for method "
+              + method.getReference().toSourceString());
+    }
     code.asCfWritableCode()
         .writeCf(method, classFileVersion, appView, namingLens, rewriter, visitor);
   }
