@@ -34,25 +34,20 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+
 public class ProguardMapPartitionerOnClassNameToText implements ProguardMapPartitioner {
 
   private final ProguardMapProducer proguardMapProducer;
   private final Consumer<MappingPartition> mappingPartitionConsumer;
   private final DiagnosticsHandler diagnosticsHandler;
-  Private final boolean allowEmptyMappedRanges;
-  Private final boolean allowExperimentalMapping;
 
   private ProguardMapPartitionerOnClassNameToText(
       ProguardMapProducer proguardMapProducer,
       Consumer<MappingPartition> mappingPartitionConsumer,
-      DiagnosticsHandler diagnosticsHandler,
-      boolean allowEmptyMappedRanges,
-      boolean allowExperimentalMapping) {
+      DiagnosticsHandler diagnosticsHandler) {
     this.proguardMapProducer = proguardMapProducer;
     this.mappingPartitionConsumer = mappingPartitionConsumer;
     this.diagnosticsHandler = diagnosticsHandler;
-    this.allowEmptyMappedRanges = allowEmptyMappedRanges;
-    this.allowExperimentalMapping = allowExperimentalMapping;
   }
 
   @Override
@@ -74,7 +69,7 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
         (classMapping, entries) -> {
           try {
             String payload = StringUtils.join("\n", entries);
-            ClassNameMapper classNameMapper = ClassNameMapper.mapperFromString(payload, allowEmptyMappedRanges, allowExperimentalMapping);
+            ClassNameMapper classNameMapper = ClassNameMapper.mapperFromString(payload);
             if (classNameMapper.getClassNameMappings().size() != 1) {
               diagnosticsHandler.error(
                   new StringDiagnostic("Multiple class names in payload\n: " + payload));
@@ -166,8 +161,6 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
     private ProguardMapProducer proguardMapProducer;
     private Consumer<MappingPartition> mappingPartitionConsumer;
     private final DiagnosticsHandler diagnosticsHandler;
-    private boolean allowEmptyMappedRanges = false;
-    private boolean allowExperimentalMapping = false;
 
     public ProguardMapPartitionerBuilderImpl(DiagnosticsHandler diagnosticsHandler) {
       this.diagnosticsHandler = diagnosticsHandler;
@@ -188,21 +181,9 @@ public class ProguardMapPartitionerOnClassNameToText implements ProguardMapParti
     }
 
     @Override
-    public ProguardMapPartitionerBuilderImpl setAllowEmptyMappedRanges(boolean allowEmptyMappedRanges){
-      this.allowEmptyMappedRanges = allowEmptyMappedRanges;
-      return this;
-    }
-
-    @Override
-    public ProguardMapPartitionerBuilderImpl setAllowExperimentalMapping(boolean allowExperimental){
-      this.allowExperimentalMapping = allowExperimentalMapping;
-      return this;
-    }
-
-    @Override
     public ProguardMapPartitionerOnClassNameToText build() {
       return new ProguardMapPartitionerOnClassNameToText(
           proguardMapProducer, mappingPartitionConsumer, diagnosticsHandler);
     }
-  } 
+  }
 }

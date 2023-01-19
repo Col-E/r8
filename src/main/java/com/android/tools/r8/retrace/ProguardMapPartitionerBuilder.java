@@ -15,9 +15,5 @@ public interface ProguardMapPartitionerBuilder<
 
   B setPartitionConsumer(Consumer<MappingPartition> consumer);
 
-  B setAllowEmptyMappedRanges(boolean allowEmptyMappedRanges);
-  
-  B setAllowExperimentalMapping(boolean allowExperimentalMapping);
-
   P build();
 }
