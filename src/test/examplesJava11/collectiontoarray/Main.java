@@ -7,6 +7,7 @@ package collectiontoarray;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.IntFunction;
 
 public class Main {
   public static void main(String[] args) {
@@ -16,5 +17,20 @@ public class Main {
     // This default method was added in Android T.
     String[] toArray = list.toArray(String[]::new);
     System.out.println(Arrays.toString(toArray));
+
+    List<String> myList = new MyList<>();
+    myList.add("one");
+    myList.add("two");
+    // This default method was added in Android T.
+    String[] toArray2 = myList.toArray(String[]::new);
+    System.out.println(Arrays.toString(toArray2));
+  }
+
+  @SuppressWarnings("all")
+  public static class MyList<T> extends ArrayList<T> {
+    public <T> T[] toArray(IntFunction<T[]> generator) {
+      System.out.println("Override");
+      return super.toArray(generator);
+    }
   }
 }

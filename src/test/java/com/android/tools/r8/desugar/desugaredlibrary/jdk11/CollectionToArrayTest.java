@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.jdk11;
 
-import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.DEFAULT_SPECIFICATIONS;
+import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.SPECIFICATIONS_WITH_CF2CF;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
 
@@ -32,7 +32,8 @@ public class CollectionToArrayTest extends DesugaredLibraryTestBase {
 
   private static final Path INPUT_JAR =
       Paths.get(ToolHelper.EXAMPLES_JAVA11_JAR_DIR + "collectiontoarray.jar");
-  private static final String EXPECTED_OUTPUT = StringUtils.lines("[one, two]");
+  private static final String EXPECTED_OUTPUT =
+      StringUtils.lines("[one, two]", "Override", "[one, two]");
   private static final String MAIN_CLASS = "collectiontoarray.Main";
 
   @Parameters(name = "{0}, spec: {1}, {2}")
@@ -40,7 +41,7 @@ public class CollectionToArrayTest extends DesugaredLibraryTestBase {
     return buildParameters(
         getTestParameters().withDexRuntimes().withAllApiLevels().build(),
         ImmutableList.of(JDK11, JDK11_PATH),
-        DEFAULT_SPECIFICATIONS);
+        SPECIFICATIONS_WITH_CF2CF);
   }
 
   public CollectionToArrayTest(
