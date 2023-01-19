@@ -70,7 +70,7 @@ public class MetadataRewriteLocalDelegatedPropertyTest extends KotlinMetadataTes
             .compile()
             .inspect(
                 inspector ->
-                    assertEqualMetadataWithStringPoolValidation(
+                    assertEqualMetadata(
                         new CodeInspector(jars.getForConfiguration(kotlinc, targetVersion)),
                         inspector,
                         (addedStrings, addedNonInitStrings) -> {}))

@@ -69,7 +69,7 @@ public class MetadataRewriteKeepTest extends KotlinMetadataTestBase {
           || clazz.getFinalName().equals("kotlin.Metadata")
           || clazz.getFinalName().equals("kotlin.jvm.JvmName")) {
         assertNotNull(clazz.getKotlinClassMetadata());
-        assertNotNull(clazz.getKotlinClassMetadata().getAnnotationData().d2());
+        assertNotNull(clazz.getKotlinClassMetadata().getHeader().getData2());
       } else {
         assertNull(clazz.getKotlinClassMetadata());
       }

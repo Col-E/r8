@@ -94,7 +94,7 @@ public class KotlinxCoroutinesTestRunner extends KotlinMetadataTestBase {
             .compile()
             .inspect(
                 inspector ->
-                    assertEqualMetadataWithStringPoolValidation(
+                    assertEqualMetadata(
                         new CodeInspector(BASE_LIBRARY),
                         inspector,
                         (addedStrings, addedNonInitStrings) -> {}))

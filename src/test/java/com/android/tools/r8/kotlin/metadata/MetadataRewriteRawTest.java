@@ -96,7 +96,7 @@ public class MetadataRewriteRawTest extends KotlinMetadataTestBase {
             .compile()
             .inspect(
                 inspector ->
-                    assertEqualMetadataWithStringPoolValidation(
+                    assertEqualMetadata(
                         new CodeInspector(libJars.getForConfiguration(kotlinc, targetVersion)),
                         inspector,
                         (addedStrings, addedNonInitStrings) -> {}))

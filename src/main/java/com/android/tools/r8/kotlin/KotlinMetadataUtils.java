@@ -21,7 +21,6 @@ import com.android.tools.r8.shaking.ProguardKeepRuleType;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.base.Strings;
-import kotlin.Metadata;
 import kotlinx.metadata.KmExtensionType;
 import kotlinx.metadata.KmProperty;
 import kotlinx.metadata.KmPropertyExtensionVisitor;
@@ -29,7 +28,7 @@ import kotlinx.metadata.KmPropertyVisitor;
 import kotlinx.metadata.jvm.JvmFieldSignature;
 import kotlinx.metadata.jvm.JvmMethodSignature;
 import kotlinx.metadata.jvm.JvmPropertyExtensionVisitor;
-import kotlinx.metadata.jvm.KotlinClassMetadata;
+import kotlinx.metadata.jvm.KotlinClassHeader;
 
 public class KotlinMetadataUtils {
 
@@ -51,7 +50,7 @@ public class KotlinMetadataUtils {
     }
 
     @Override
-    public Pair<Metadata, Boolean> rewrite(DexClass clazz, AppView<?> appView) {
+    public Pair<KotlinClassHeader, Boolean> rewrite(DexClass clazz, AppView<?> appView) {
       throw new Unreachable("Should never be called");
     }
 
@@ -232,9 +231,5 @@ public class KotlinMetadataUtils {
       return "." + DescriptorUtils.getBinaryNameFromDescriptor(descriptor);
     }
     return DescriptorUtils.descriptorToKotlinClassifier(descriptor);
-  }
-
-  static int[] getCompatibleKotlinInfo() {
-    return KotlinClassMetadata.COMPATIBLE_METADATA_VERSION;
   }
 }
