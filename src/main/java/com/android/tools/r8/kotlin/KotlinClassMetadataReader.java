@@ -21,6 +21,7 @@ import com.android.tools.r8.kotlin.KotlinSyntheticClassInfo.Flavour;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import kotlin.Metadata;
 import kotlinx.metadata.InconsistentKotlinMetadataException;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
@@ -142,8 +143,9 @@ public final class KotlinClassMetadataReader {
       KotlinClassMetadata kMetadata,
       AppView<?> appView,
       Consumer<DexEncodedMethod> keepByteCode) {
-    String packageName = kMetadata.getHeader().getPackageName();
-    int[] metadataVersion = kMetadata.getHeader().getMetadataVersion();
+    Metadata annotationData = kMetadata.getAnnotationData();
+    String packageName = annotationData.pn();
+    int[] metadataVersion = annotationData.mv();
     if (kMetadata instanceof KotlinClassMetadata.Class) {
       return KotlinClassInfo.create(
           (KotlinClassMetadata.Class) kMetadata,
@@ -178,7 +180,7 @@ public final class KotlinClassMetadataReader {
           kotlin,
           appView);
     } else {
-      throw new MetadataError("unsupported 'k' value: " + kMetadata.getHeader().getKind());
+      throw new MetadataError("unsupported 'k' value: " + annotationData.k());
     }
   }
 

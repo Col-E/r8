@@ -4,7 +4,9 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getCompatibleKotlinInfo;
 import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
+import static kotlinx.metadata.jvm.KotlinClassMetadata.Companion;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -14,8 +16,7 @@ import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
-import kotlinx.metadata.jvm.KotlinClassHeader;
-import kotlinx.metadata.jvm.KotlinClassMetadata;
+import kotlin.Metadata;
 import kotlinx.metadata.jvm.KotlinClassMetadata.MultiFileClassFacade;
 
 // Holds information about Metadata.MultiFileClassFace
@@ -55,7 +56,7 @@ public class KotlinMultiFileClassFacadeInfo implements KotlinClassLevelInfo {
   }
 
   @Override
-  public Pair<KotlinClassHeader, Boolean> rewrite(DexClass clazz, AppView<?> appView) {
+  public Pair<Metadata, Boolean> rewrite(DexClass clazz, AppView<?> appView) {
     List<String> partClassNameStrings = new ArrayList<>(partClassNames.size());
     boolean rewritten = false;
     for (KotlinTypeReference partClassName : partClassNames) {
@@ -69,9 +70,10 @@ public class KotlinMultiFileClassFacadeInfo implements KotlinClassLevelInfo {
               appView,
               null);
     }
-    KotlinClassMetadata.MultiFileClassFacade.Writer writer =
-        new KotlinClassMetadata.MultiFileClassFacade.Writer();
-    return Pair.create(writer.write(partClassNameStrings).getHeader(), rewritten);
+    return Pair.create(
+        Companion.writeMultiFileClassFacade(partClassNameStrings, getCompatibleKotlinInfo(), 0)
+            .getAnnotationData(),
+        rewritten);
   }
 
   @Override

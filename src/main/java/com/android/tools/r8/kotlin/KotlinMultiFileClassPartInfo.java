@@ -4,15 +4,17 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getCompatibleKotlinInfo;
+import static kotlinx.metadata.jvm.KotlinClassMetadata.Companion;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.utils.Pair;
 import java.util.function.Consumer;
+import kotlin.Metadata;
 import kotlinx.metadata.KmPackage;
-import kotlinx.metadata.jvm.KotlinClassHeader;
-import kotlinx.metadata.jvm.KotlinClassMetadata;
 import kotlinx.metadata.jvm.KotlinClassMetadata.MultiFileClassPart;
 
 // Holds information about Metadata.MultiFileClassPartInfo
@@ -63,13 +65,13 @@ public class KotlinMultiFileClassPartInfo implements KotlinClassLevelInfo {
   }
 
   @Override
-  public Pair<KotlinClassHeader, Boolean> rewrite(DexClass clazz, AppView<?> appView) {
+  public Pair<Metadata, Boolean> rewrite(DexClass clazz, AppView<?> appView) {
     KmPackage kmPackage = new KmPackage();
     boolean rewritten = packageInfo.rewrite(kmPackage, clazz, appView);
-    KotlinClassMetadata.MultiFileClassPart.Writer writer =
-        new KotlinClassMetadata.MultiFileClassPart.Writer();
-    kmPackage.accept(writer);
-    return Pair.create(writer.write(facadeClassName).getHeader(), rewritten);
+    return Pair.create(
+        Companion.writeMultiFileClassPart(kmPackage, facadeClassName, getCompatibleKotlinInfo(), 0)
+            .getAnnotationData(),
+        rewritten);
   }
 
   @Override

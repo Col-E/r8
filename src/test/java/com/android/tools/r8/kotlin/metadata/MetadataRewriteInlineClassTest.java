@@ -5,24 +5,15 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_6_0;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.kotlin.KotlinMetadataWriter;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
-import junit.framework.TestCase;
-import kotlinx.metadata.jvm.KotlinClassHeader;
-import kotlinx.metadata.jvm.KotlinClassMetadata;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -84,7 +75,11 @@ public class MetadataRewriteInlineClassTest extends KotlinMetadataTestBase {
                 "-keep class " + PKG + ".inline_class_lib.LibKt { *** login-*(java.lang.String); }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .compile()
-            .inspect(this::inspect)
+            .inspect(
+                inspector ->
+                    assertEqualMetadata(
+                        inspector,
+                        new CodeInspector(libJars.getForConfiguration(kotlinc, targetVersion))))
             .writeToZip();
     Path main =
         kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
@@ -97,25 +92,5 @@ public class MetadataRewriteInlineClassTest extends KotlinMetadataTestBase {
         .addClasspath(main)
         .run(parameters.getRuntime(), PKG + ".inline_class_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
-  }
-
-  private void inspect(CodeInspector inspector) throws IOException {
-    CodeInspector stdLibInspector =
-        new CodeInspector(libJars.getForConfiguration(kotlinc, targetVersion));
-    ClassSubject clazzSubject = stdLibInspector.clazz(passwordTypeName);
-    ClassSubject r8Clazz = inspector.clazz(clazzSubject.getOriginalName());
-    assertThat(r8Clazz, isPresent());
-    KotlinClassMetadata originalMetadata = clazzSubject.getKotlinClassMetadata();
-    KotlinClassMetadata rewrittenMetadata = r8Clazz.getKotlinClassMetadata();
-    TestCase.assertNotNull(rewrittenMetadata);
-    KotlinClassHeader originalHeader = originalMetadata.getHeader();
-    KotlinClassHeader rewrittenHeader = rewrittenMetadata.getHeader();
-    TestCase.assertEquals(originalHeader.getKind(), rewrittenHeader.getKind());
-    TestCase.assertEquals(originalHeader.getPackageName(), rewrittenHeader.getPackageName());
-    Assert.assertArrayEquals(originalHeader.getData1(), rewrittenHeader.getData1());
-    Assert.assertArrayEquals(originalHeader.getData2(), rewrittenHeader.getData2());
-    String expected = KotlinMetadataWriter.kotlinMetadataToString("", originalMetadata);
-    String actual = KotlinMetadataWriter.kotlinMetadataToString("", rewrittenMetadata);
-    TestCase.assertEquals(expected, actual);
   }
 }

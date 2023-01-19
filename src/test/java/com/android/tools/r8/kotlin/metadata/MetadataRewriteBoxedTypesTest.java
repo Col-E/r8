@@ -4,26 +4,13 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertNotNull;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNull;
-
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.kotlin.KotlinMetadataWriter;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.concurrent.ExecutionException;
-import kotlinx.metadata.jvm.KotlinClassHeader;
-import kotlinx.metadata.jvm.KotlinClassMetadata;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -97,7 +84,13 @@ public class MetadataRewriteBoxedTypesTest extends KotlinMetadataTestBase {
                 ProguardKeepAttributes.INNER_CLASSES,
                 ProguardKeepAttributes.ENCLOSING_METHOD)
             .compile()
-            .inspect(this::inspect)
+            // Since this has a keep-all classes rule, we should just assert that the meta-data is
+            // equal to the original one.
+            .inspect(
+                inspector ->
+                    assertEqualDeserializedMetadata(
+                        inspector,
+                        new CodeInspector(libJars.getForConfiguration(kotlinc, targetVersion))))
             .writeToZip();
     Path main =
         kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
@@ -110,33 +103,6 @@ public class MetadataRewriteBoxedTypesTest extends KotlinMetadataTestBase {
         .addClasspath(main)
         .run(parameters.getRuntime(), PKG + ".box_primitives_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
-  }
-
-  private void inspect(CodeInspector inspector) throws IOException, ExecutionException {
-    // Since this has a keep-all classes rule, we should just assert that the meta-data is equal to
-    // the original one.
-    CodeInspector stdLibInspector =
-        new CodeInspector(libJars.getForConfiguration(kotlinc, targetVersion));
-    for (FoundClassSubject clazzSubject : stdLibInspector.allClasses()) {
-      ClassSubject r8Clazz = inspector.clazz(clazzSubject.getOriginalName());
-      assertThat(r8Clazz, isPresent());
-      KotlinClassMetadata originalMetadata = clazzSubject.getKotlinClassMetadata();
-      KotlinClassMetadata rewrittenMetadata = r8Clazz.getKotlinClassMetadata();
-      if (originalMetadata == null) {
-        assertNull(rewrittenMetadata);
-        continue;
-      }
-      assertNotNull(rewrittenMetadata);
-      KotlinClassHeader originalHeader = originalMetadata.getHeader();
-      KotlinClassHeader rewrittenHeader = rewrittenMetadata.getHeader();
-      assertEquals(originalHeader.getKind(), rewrittenHeader.getKind());
-      assertEquals(originalHeader.getPackageName(), rewrittenHeader.getPackageName());
-      // We cannot assert equality of the data since it may be ordered differently. Instead we use
-      // the KotlinMetadataWriter.
-      String expected = KotlinMetadataWriter.kotlinMetadataToString("", originalMetadata);
-      String actual = KotlinMetadataWriter.kotlinMetadataToString("", rewrittenMetadata);
-      assertEquals(expected, actual);
-    }
   }
 
   @Test
