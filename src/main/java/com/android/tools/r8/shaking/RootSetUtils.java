@@ -1965,6 +1965,9 @@ public class RootSetUtils {
       if (graphLens.isIdentityLens()) {
         return this;
       }
+      // TODO(b/164019179): If rules can now reference dead items. These should be pruned or
+      //  rewritten
+      ifRules.forEach(ProguardIfRule::canReferenceDeadTypes);
       return new RootSet(
           getDependentMinimumKeepInfo().rewrittenWithLens(graphLens),
           reasonAsked,

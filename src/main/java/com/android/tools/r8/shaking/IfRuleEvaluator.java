@@ -118,9 +118,13 @@ public class IfRuleEvaluator {
                 // `sourceType` is still available until the second round of tree shaking. This
                 // way we can still retrieve the access flags of `sourceType`.
                 DexProgramClass sourceClass =
-                    asProgramClassOrNull(appView.definitionFor(sourceType));
+                    asProgramClassOrNull(
+                        appView.appInfo().definitionForWithoutExistenceAssert(sourceType));
                 if (sourceClass == null) {
-                  assert false;
+                  // TODO(b/266049507): The evaluation of -if rules in the final round of tree
+                  //  shaking and during -whyareyoukeeping should be the same. Currently the pruning
+                  //  of classes changes behavior.
+                  assert enqueuer.getMode().isWhyAreYouKeeping();
                   continue;
                 }
                 if (appView.options().testing.measureProguardIfRuleEvaluations) {
