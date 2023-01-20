@@ -169,6 +169,9 @@ public final class AccessModifier {
     if (accessFlags.isPublic()) {
       return false;
     }
+    if (accessFlags.isConstructor() && accessFlags.isStatic()) {
+      return false;
+    }
     // If this method is mentioned in keep rules, do not transform (rule applications changed).
     DexEncodedMethod definition = method.getDefinition();
     if (!appView.appInfo().isAccessModificationAllowed(method)) {
@@ -180,6 +183,15 @@ public final class AccessModifier {
     }
 
     if (method.getDefinition().isInstanceInitializer() || accessFlags.isProtected()) {
+      doPublicize(method);
+      return false;
+    }
+
+    if (accessFlags.isStatic()) {
+      // For static methods we can just relax the access to public, since
+      // even though JLS prevents from declaring static method in derived class if
+      // an instance method with same signature exists in superclass, JVM actually
+      // does not take into account access of the static methods.
       doPublicize(method);
       return false;
     }
@@ -203,15 +215,6 @@ public final class AccessModifier {
     }
 
     assert accessFlags.isPrivate();
-
-    if (accessFlags.isStatic()) {
-      // For private static methods we can just relax the access to public, since
-      // even though JLS prevents from declaring static method in derived class if
-      // an instance method with same signature exists in superclass, JVM actually
-      // does not take into account access of the static methods.
-      doPublicize(method);
-      return false;
-    }
 
     // We can't publicize private instance methods in interfaces or methods that are copied from
     // interfaces to lambda-desugared classes because this will be added as a new default method.
