@@ -388,6 +388,7 @@ def cloudDependencies = [
                 "kotlin/kotlin-compiler-1.5.0",
                 "kotlin/kotlin-compiler-1.6.0",
                 "kotlin/kotlin-compiler-1.7.0",
+                "kotlin/kotlin-compiler-1.8.0",
                 "kotlinx-coroutines-1.3.6",
                 "multidex",
                 "openjdk/openjdk-rt-1.8",
