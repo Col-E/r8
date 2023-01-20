@@ -23,13 +23,6 @@ import java.util.function.Predicate;
 // *) in vertical class merger,
 //   before moving a default interface method to its subtype, check if it does not collide with one
 //   in the given class hierarchy.
-// *) in uninstantiated type optimizer,
-//   to avoid signature collisions while discarding unused return type or parameters.
-// *) in unused argument removal,
-//   to avoid removing unused arguments from a virtual method if it is overriding another method or
-//   being overridden by a method in a subtype, and to check that a virtual method after unused
-//   argument removal does not collide with one in the existing class hierarchy.
-// TODO(b/66369976): to determine if a certain method can be made `final`.
 public class MethodPoolCollection extends MemberPoolCollection<DexMethod> {
 
   private final Predicate<DexEncodedMethod> methodTester;
