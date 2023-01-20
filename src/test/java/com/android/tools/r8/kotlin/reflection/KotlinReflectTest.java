@@ -5,6 +5,7 @@
 package com.android.tools.r8.kotlin.reflection;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_8_0;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
@@ -100,7 +101,7 @@ public class KotlinReflectTest extends KotlinTestBase {
         .allowDiagnosticMessages()
         .allowUnusedDontWarnKotlinReflectJvmInternal(kotlinc.isNot(KOTLINC_1_3_72))
         .applyIf(
-            parameters.isCfRuntime() && kotlinParameters.isKotlinDev(),
+            parameters.isCfRuntime() && kotlinParameters.isNewerThanOrEqualTo(KOTLINC_1_8_0),
             TestShrinkerBuilder::addDontWarnJavaLangInvokeLambdaMetadataFactory)
         .compile()
         .assertNoErrorMessages()

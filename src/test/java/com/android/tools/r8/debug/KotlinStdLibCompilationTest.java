@@ -10,6 +10,7 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.DiagnosticsMatcher;
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -50,7 +51,7 @@ public class KotlinStdLibCompilationTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .compileWithExpectedDiagnostics(
             diagnostics -> {
-              if (kotlinTestParameters.isKotlinDev()
+              if (kotlinTestParameters.isNewerThanOrEqualTo(KotlinCompilerVersion.KOTLINC_1_8_0)
                   && parameters.isDexRuntime()
                   && parameters.getApiLevel().isLessThan(AndroidApiLevel.N)) {
                 diagnostics.assertWarningsCount(2);
@@ -75,7 +76,8 @@ public class KotlinStdLibCompilationTest extends TestBase {
         .setMode(CompilationMode.DEBUG)
         .setMinApi(parameters.getApiLevel())
         .applyIf(
-            parameters.isCfRuntime() && kotlinTestParameters.isKotlinDev(),
+            parameters.isCfRuntime()
+                && kotlinTestParameters.isNewerThanOrEqualTo(KotlinCompilerVersion.KOTLINC_1_8_0),
             TestShrinkerBuilder::addDontWarnJavaLangInvokeLambdaMetadataFactory)
         .compile()
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."));

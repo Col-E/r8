@@ -5,6 +5,7 @@ package com.android.tools.r8.kotlin;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
@@ -41,7 +42,9 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.LATEST))
         .addKeepRules(rules)
         .applyIf(
-            notShrinking && kotlinParameters.isKotlinDev() && parameters.isCfRuntime(),
+            notShrinking
+                && kotlinParameters.isNewerThanOrEqualTo(KotlinCompilerVersion.KOTLINC_1_8_0)
+                && parameters.isCfRuntime(),
             TestShrinkerBuilder::addDontWarnJavaLangInvokeLambdaMetadataFactory)
         .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
         .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
