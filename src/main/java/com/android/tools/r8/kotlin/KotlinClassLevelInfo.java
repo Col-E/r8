@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Pair;
-import kotlinx.metadata.jvm.KotlinClassHeader;
+import kotlin.Metadata;
 
 public interface KotlinClassLevelInfo extends EnqueuerMetadataTraceable {
 
@@ -56,7 +56,7 @@ public interface KotlinClassLevelInfo extends EnqueuerMetadataTraceable {
     return null;
   }
 
-  Pair<KotlinClassHeader, Boolean> rewrite(DexClass clazz, AppView<?> appView);
+  Pair<Metadata, Boolean> rewrite(DexClass clazz, AppView<?> appView);
 
   String getPackageName();
 
