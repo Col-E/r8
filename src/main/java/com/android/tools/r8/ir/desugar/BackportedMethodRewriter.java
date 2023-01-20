@@ -166,12 +166,14 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
           appView.dexItemFactory().createMethod(newHolder, method.proto, method.name);
       provider = rewritableMethods.getProvider(backportedMethod);
     }
-    if (provider != null && appView.options().disableBackportsWithErrorDiagnostics) {
-      appView
-          .reporter()
-          .error(
-              new BackportDiagnostic(
-                  provider.method, context.getOrigin(), MethodPosition.create(context)));
+    if (provider != null && appView.options().disableBackports) {
+      if (appView.options().disableBackportsWithErrorDiagnostics) {
+        appView
+            .reporter()
+            .error(
+                new BackportDiagnostic(
+                    provider.method, context.getOrigin(), MethodPosition.create(context)));
+      }
       return null;
     }
     return provider;

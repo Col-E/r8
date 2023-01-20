@@ -68,6 +68,7 @@ public class BackportPlatformTest extends TestBase {
   public void testPlatformR8() throws Exception {
     testForR8(parameters.getBackend())
         .apply(b -> b.getBuilder().setAndroidPlatformBuild(true))
+        .addOptionsModification(o -> o.disableBackportsWithErrorDiagnostics = true)
         .addProgramClasses(CLASSES)
         .addKeepMainRule(TestClass.class)
         .addKeepClassAndMembersRules(MiniAssert.class)
@@ -79,6 +80,7 @@ public class BackportPlatformTest extends TestBase {
   public void testPlatformD8() throws Exception {
     testForD8(parameters.getBackend())
         .apply(b -> b.getBuilder().setAndroidPlatformBuild(true))
+        .addOptionsModification(o -> o.disableBackportsWithErrorDiagnostics = true)
         .addProgramClasses(CLASSES)
         .setMinApi(parameters.getApiLevel())
         .compileWithExpectedDiagnostics(this::checkDiagnostics);
