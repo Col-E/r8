@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
@@ -86,7 +85,6 @@ public class KotlinTypeInfo implements EnqueuerMetadataTraceable {
   boolean rewrite(KmVisitorProviders.KmTypeVisitorProvider visitorProvider, AppView<?> appView) {
     // TODO(b/154348683): Check for correct flags
     KmTypeVisitor kmTypeVisitor = visitorProvider.get(flags);
-    NamingLens namingLens = appView.getNamingLens();
     boolean rewritten = classifier.rewrite(kmTypeVisitor, appView);
     if (abbreviatedType != null) {
       rewritten |= abbreviatedType.rewrite(kmTypeVisitor::visitAbbreviatedType, appView);

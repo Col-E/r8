@@ -161,8 +161,18 @@ public class PrunedItems {
       return this;
     }
 
+    public Builder addRemovedFields(Collection<DexField> removedFields) {
+      this.removedFields.addAll(removedFields);
+      return this;
+    }
+
     public Builder addRemovedMethod(DexMethod removedMethod) {
       removedMethods.add(removedMethod);
+      return this;
+    }
+
+    public Builder addRemovedMethods(Collection<DexMethod> removedMethods) {
+      this.removedMethods.addAll(removedMethods);
       return this;
     }
 

@@ -52,6 +52,11 @@ public class ExternalArtProfileClassRule extends ExternalArtProfileRule {
     return classReference.hashCode();
   }
 
+  @Override
+  public String toString() {
+    return classReference.getDescriptor();
+  }
+
   public static class Builder {
 
     private ClassReference classReference;

@@ -475,19 +475,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       futures.add(
           ThreadUtils.processAsynchronously(
               () -> {
-                Set<DexField> removedFields = prunedItems.getRemovedFields();
-                Set<DexMethod> removedMethods = prunedItems.getRemovedMethods();
-                if (map.size() <= removedFields.size() + removedMethods.size()) {
-                  map.keySet()
-                      .removeIf(
-                          member ->
-                              member.isDexField()
-                                  ? removedFields.contains(member.asDexField())
-                                  : removedMethods.contains(member.asDexMethod()));
-                } else {
-                  removedFields.forEach(map::remove);
-                  removedMethods.forEach(map::remove);
-                }
+                prunedItems.getRemovedFields().forEach(map::removeBoolean);
+                prunedItems.getRemovedMethods().forEach(map::removeBoolean);
               },
               executorService));
     }

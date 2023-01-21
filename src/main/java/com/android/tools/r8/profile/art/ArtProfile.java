@@ -34,7 +34,6 @@ public class ArtProfile {
   private final List<ArtProfileRule> rules;
 
   ArtProfile(List<ArtProfileRule> rules) {
-    assert !rules.isEmpty();
     this.rules = rules;
   }
 

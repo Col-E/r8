@@ -4,6 +4,10 @@
 
 package com.android.tools.r8.profile.art.model;
 
+import com.android.tools.r8.profile.art.ArtProfileMethodRuleInfo;
+import com.android.tools.r8.profile.art.ArtProfileMethodRuleInfoImpl;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -54,9 +58,27 @@ public class ExternalArtProfile {
     return rules.hashCode();
   }
 
+  @Override
+  public String toString() {
+    return StringUtils.join(System.lineSeparator(), rules, ExternalArtProfileRule::toString);
+  }
+
   public static class Builder {
 
     private final List<ExternalArtProfileRule> rules = new ArrayList<>();
+
+    public Builder addMethodRule(MethodReference methodReference) {
+      return addMethodRule(methodReference, ArtProfileMethodRuleInfoImpl.empty());
+    }
+
+    public Builder addMethodRule(
+        MethodReference methodReference, ArtProfileMethodRuleInfo methodRuleInfo) {
+      return addRule(
+          ExternalArtProfileMethodRule.builder()
+              .setMethodReference(methodReference)
+              .setMethodRuleInfo(methodRuleInfo)
+              .build());
+    }
 
     public Builder addRule(ExternalArtProfileRule rule) {
       rules.add(rule);

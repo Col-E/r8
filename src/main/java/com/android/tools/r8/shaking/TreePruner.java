@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -19,12 +20,14 @@ import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
@@ -46,6 +49,8 @@ public class TreePruner {
   private final AppView<AppInfoWithLiveness> appView;
   private final TreePrunerConfiguration configuration;
   private final UnusedItemsPrinter unusedItemsPrinter;
+  private final Set<DexField> prunedFields = Sets.newIdentityHashSet();
+  private final Set<DexMethod> prunedMethods = Sets.newIdentityHashSet();
   private final Set<DexType> prunedTypes = Sets.newIdentityHashSet();
   private final Set<DexMethod> methodsToKeepForConfigurationDebugging = Sets.newIdentityHashSet();
 
@@ -66,21 +71,32 @@ public class TreePruner {
             : UnusedItemsPrinter.DONT_PRINT;
   }
 
-  public DirectMappedDexApplication run(ExecutorService executorService) throws ExecutionException {
+  public PrunedItems run(ExecutorService executorService, Timing timing) throws ExecutionException {
+    return run(executorService, timing, Collections.emptySet());
+  }
+
+  public PrunedItems run(ExecutorService executorService, Timing timing, Set<DexType> prunedTypes)
+      throws ExecutionException {
+    return timing.time("Pruning application...", () -> internalRun(executorService, prunedTypes));
+  }
+
+  private PrunedItems internalRun(
+      ExecutorService executorService, Set<DexType> previouslyPrunedTypes)
+      throws ExecutionException {
     DirectMappedDexApplication application = appView.appInfo().app().asDirect();
-    Timing timing = application.timing;
-    timing.begin("Pruning application...");
-    try {
       DirectMappedDexApplication.Builder builder = removeUnused(application);
       DirectMappedDexApplication newApplication =
           prunedTypes.isEmpty() && !appView.options().configurationDebugging
               ? application
               : builder.build();
       fixupOptimizationInfo(newApplication, executorService);
-      return newApplication;
-    } finally {
-      timing.end();
-    }
+    return PrunedItems.builder()
+        .setPrunedApp(newApplication)
+        .addRemovedClasses(CollectionUtils.mergeSets(previouslyPrunedTypes, prunedTypes))
+        .addRemovedFields(prunedFields)
+        .addRemovedMethods(prunedMethods)
+        .addAdditionalPinnedItems(methodsToKeepForConfigurationDebugging)
+        .build();
   }
 
   private DirectMappedDexApplication.Builder removeUnused(DirectMappedDexApplication application) {
@@ -342,6 +358,7 @@ public class TreePruner {
           Log.debug(getClass(), "Removing method %s.", method.getReference());
         }
         unusedItemsPrinter.registerUnusedMethod(method);
+        prunedMethods.add(method.getReference());
       }
     }
     return reachableMethods.isEmpty()
@@ -367,7 +384,9 @@ public class TreePruner {
     if (Log.ENABLED) {
       Log.debug(getClass(), "Removing field %s.", fields.get(firstUnreachable));
     }
-    unusedItemsPrinter.registerUnusedField(fields.get(firstUnreachable));
+    DexEncodedField firstUnreachableField = fields.get(firstUnreachable);
+    unusedItemsPrinter.registerUnusedField(firstUnreachableField);
+    prunedFields.add(firstUnreachableField.getReference());
     ArrayList<DexEncodedField> reachableOrReferencedFields = new ArrayList<>(fields.size());
     for (int i = 0; i < firstUnreachable; i++) {
       reachableOrReferencedFields.add(fields.get(i));
@@ -381,19 +400,12 @@ public class TreePruner {
           Log.debug(getClass(), "Removing field %s.", field.getReference());
         }
         unusedItemsPrinter.registerUnusedField(field);
+        prunedFields.add(field.getReference());
       }
     }
     return reachableOrReferencedFields.isEmpty()
         ? DexEncodedField.EMPTY_ARRAY
         : reachableOrReferencedFields.toArray(DexEncodedField.EMPTY_ARRAY);
-  }
-
-  public Set<DexType> getRemovedClasses() {
-    return Collections.unmodifiableSet(prunedTypes);
-  }
-
-  public Collection<DexMethod> getMethodsToKeepForConfigurationDebugging() {
-    return Collections.unmodifiableCollection(methodsToKeepForConfigurationDebugging);
   }
 
   private void fixupOptimizationInfo(

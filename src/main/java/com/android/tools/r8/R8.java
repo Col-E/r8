@@ -102,7 +102,6 @@ import com.android.tools.r8.synthesis.SyntheticFinalization;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
-import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SelfRetraceTest;
@@ -409,24 +408,16 @@ public class R8 {
           }
 
           TreePruner pruner = new TreePruner(appViewWithLiveness);
-          DirectMappedDexApplication prunedApp = pruner.run(executorService);
+          PrunedItems prunedItems = pruner.run(executorService, timing);
 
           // Recompute the subtyping information.
-          Set<DexType> removedClasses = pruner.getRemovedClasses();
-          appView.pruneItems(
-              PrunedItems.builder()
-                  .setPrunedApp(prunedApp)
-                  .addRemovedClasses(removedClasses)
-                  .addAdditionalPinnedItems(pruner.getMethodsToKeepForConfigurationDebugging())
-                  .build(),
-              executorService);
+          appView.pruneItems(prunedItems, executorService);
           new AbstractMethodRemover(
                   appViewWithLiveness, appViewWithLiveness.appInfo().computeSubtypingInfo())
               .run();
 
           AnnotationRemover annotationRemover =
-              annotationRemoverBuilder
-                  .build(appViewWithLiveness, removedClasses);
+              annotationRemoverBuilder.build(appViewWithLiveness, prunedItems.getRemovedClasses());
           annotationRemover.ensureValid().run(executorService);
           new GenericSignatureRewriter(appView, genericContextBuilder)
               .run(appView.appInfo().classes(), executorService);
@@ -608,21 +599,14 @@ public class R8 {
                 GenericSignatureContextBuilder.create(appView);
 
             TreePruner pruner = new TreePruner(appViewWithLiveness, treePrunerConfiguration);
-            DirectMappedDexApplication application = pruner.run(executorService);
-            Set<DexType> removedClasses = pruner.getRemovedClasses();
+            PrunedItems prunedItems = pruner.run(executorService, timing, prunedTypes);
 
             if (options.usageInformationConsumer != null) {
               ExceptionUtils.withFinishedResourceHandler(
                   options.reporter, options.usageInformationConsumer);
             }
 
-            appView.pruneItems(
-                PrunedItems.builder()
-                    .setPrunedApp(application)
-                    .addRemovedClasses(CollectionUtils.mergeSets(prunedTypes, removedClasses))
-                    .addAdditionalPinnedItems(pruner.getMethodsToKeepForConfigurationDebugging())
-                    .build(),
-                executorService);
+            appView.pruneItems(prunedItems, executorService);
 
             new BridgeHoisting(appViewWithLiveness).run();
 
@@ -646,7 +630,7 @@ public class R8 {
 
             // Remove annotations that refer to types that no longer exist.
             AnnotationRemover.builder(Mode.FINAL_TREE_SHAKING)
-                .build(appView.withLiveness(), removedClasses)
+                .build(appView.withLiveness(), prunedItems.getRemovedClasses())
                 .run(executorService);
             new GenericSignatureRewriter(appView, genericContextBuilder)
                 .run(appView.appInfo().classes(), executorService);

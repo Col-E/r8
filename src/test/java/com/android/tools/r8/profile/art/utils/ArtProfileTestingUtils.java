@@ -6,6 +6,7 @@ package com.android.tools.r8.profile.art.utils;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.R8TestBuilder;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.desugar.desugaredlibrary.test.DesugaredLibraryTestBuilder;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.profile.art.ArtProfileBuilder;
@@ -22,6 +23,14 @@ import com.android.tools.r8.references.MethodReference;
 import java.util.function.Consumer;
 
 public class ArtProfileTestingUtils {
+
+  public static <B extends R8TestBuilder<?>> ThrowableConsumer<B> addArtProfileForRewriting(
+      ExternalArtProfile artProfile, Consumer<ExternalArtProfile> residualArtProfileInspector) {
+    return testBuilder ->
+        testBuilder.addArtProfileForRewriting(
+            createArtProfileProvider(artProfile),
+            createResidualArtProfileConsumer(residualArtProfileInspector));
+  }
 
   /**
    * Adds the given {@param artProfile} as an ART profile for rewriting. The residual ART profile
