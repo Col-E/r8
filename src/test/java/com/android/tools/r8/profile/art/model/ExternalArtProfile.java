@@ -6,6 +6,7 @@ package com.android.tools.r8.profile.art.model;
 
 import com.android.tools.r8.profile.art.ArtProfileMethodRuleInfo;
 import com.android.tools.r8.profile.art.ArtProfileMethodRuleInfoImpl;
+import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.ArrayList;
@@ -66,6 +67,11 @@ public class ExternalArtProfile {
   public static class Builder {
 
     private final List<ExternalArtProfileRule> rules = new ArrayList<>();
+
+    public Builder addClassRule(ClassReference classReference) {
+      return addRule(
+          ExternalArtProfileClassRule.builder().setClassReference(classReference).build());
+    }
 
     public Builder addMethodRule(MethodReference methodReference) {
       return addMethodRule(methodReference, ArtProfileMethodRuleInfoImpl.empty());
