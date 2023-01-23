@@ -1,0 +1,46 @@
+// Copyright (c) 2023, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
+package com.android.tools.r8.kotlin.metadata.context_receiver_app
+
+import com.android.tools.r8.kotlin.metadata.context_receiver_lib.Bar
+import com.android.tools.r8.kotlin.metadata.context_receiver_lib.Foo
+import com.android.tools.r8.kotlin.metadata.context_receiver_lib.Baz
+import com.android.tools.r8.kotlin.metadata.context_receiver_lib.Printer
+import com.android.tools.r8.kotlin.metadata.context_receiver_lib.callFooBar
+
+class FooImpl : Foo {
+
+  override fun m1(): String {
+    println("FooImpl::m1")
+    return "Hello "
+  }
+}
+
+class BarImpl : Bar {
+  override fun m2(): String {
+    println("BarImpl::m2")
+    return "World!"
+  }
+}
+
+class BazImpl : Baz {
+  override fun m3(): String {
+    println("BazImpl::m3")
+    return "BazImpl::m3"
+  }
+}
+
+fun main() {
+  with (FooImpl()) {
+    with (BarImpl()) {
+      val printer = Printer()
+      printer.fooBar()
+      with (BazImpl()) {
+        println(printer.getValue)
+        println(callFooBar())
+      }
+    }
+  }
+}
