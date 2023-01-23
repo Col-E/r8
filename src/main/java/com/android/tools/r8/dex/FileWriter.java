@@ -66,6 +66,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -292,8 +293,7 @@ public class FileWriter {
         this::writeAnnotationDirectory,
         4);
 
-    // Add the map at the end
-    layout.setMapOffset(dest.align(4));
+    // Add the map at the end.
     writeMap(layout);
     layout.setEndOfFile(dest.position());
 
@@ -315,8 +315,10 @@ public class FileWriter {
 
     // Fill in the header information.
     writeHeader(layout);
-    writeSignature(layout);
-    writeChecksum(layout);
+    if (includeStringData) {
+      writeSignature(layout);
+      writeChecksum(layout);
+    }
 
     // Wrap backing buffer with actual length.
     return new DexContainerSection(this, dest, layout);
@@ -777,70 +779,15 @@ public class FileWriter {
     }
   }
 
-  private int writeMapItem(int type, int offset, int length) {
-    if (length == 0) {
-      return 0;
-    }
-    if (Log.ENABLED) {
-      Log.debug(getClass(), "Map entry 0x%04x @ 0x%08x # %08d.", type, offset, length);
-    }
-    dest.putShort((short) type);
-    dest.putShort((short) 0);
-    dest.putInt(length);
-    dest.putInt(offset);
-    return 1;
-  }
-
-  private void writeMap(Layout layout) {
+  public void writeMap(Layout layout) {
     int startOfMap = dest.align(4);
+    layout.setMapOffset(startOfMap);
     dest.forward(4); // Leave space for size;
+    List<MapItem> mapItems = layout.generateMapInfo(this);
     int size = 0;
-    size += writeMapItem(Constants.TYPE_HEADER_ITEM, 0, 1);
-    size += writeMapItem(Constants.TYPE_STRING_ID_ITEM, layout.stringIdsOffset,
-        mapping.getStrings().size());
-    size += writeMapItem(Constants.TYPE_TYPE_ID_ITEM, layout.typeIdsOffset,
-        mapping.getTypes().size());
-    size += writeMapItem(Constants.TYPE_PROTO_ID_ITEM, layout.protoIdsOffset,
-        mapping.getProtos().size());
-    size += writeMapItem(Constants.TYPE_FIELD_ID_ITEM, layout.fieldIdsOffset,
-        mapping.getFields().size());
-    size += writeMapItem(Constants.TYPE_METHOD_ID_ITEM, layout.methodIdsOffset,
-        mapping.getMethods().size());
-    size += writeMapItem(Constants.TYPE_CLASS_DEF_ITEM, layout.classDefsOffset,
-        mapping.getClasses().length);
-    size += writeMapItem(Constants.TYPE_CALL_SITE_ID_ITEM, layout.callSiteIdsOffset,
-        mapping.getCallSites().size());
-    size += writeMapItem(Constants.TYPE_METHOD_HANDLE_ITEM, layout.methodHandleIdsOffset,
-        mapping.getMethodHandles().size());
-    size += writeMapItem(Constants.TYPE_CODE_ITEM, layout.getCodesOffset(),
-        mixedSectionOffsets.getCodes().size());
-    size += writeMapItem(Constants.TYPE_DEBUG_INFO_ITEM, layout.getDebugInfosOffset(),
-        mixedSectionOffsets.getDebugInfos().size());
-    size += writeMapItem(Constants.TYPE_TYPE_LIST, layout.getTypeListsOffset(),
-        mixedSectionOffsets.getTypeLists().size());
-    size +=
-        writeMapItem(
-            Constants.TYPE_STRING_DATA_ITEM,
-            layout.getStringDataOffsets(),
-            layout.getStringDataOffsets() == 0 ? 0 : mixedSectionOffsets.getStringData().size());
-    size += writeMapItem(Constants.TYPE_ANNOTATION_ITEM, layout.getAnnotationsOffset(),
-        mixedSectionOffsets.getAnnotations().size());
-    size += writeMapItem(Constants.TYPE_CLASS_DATA_ITEM, layout.getClassDataOffset(),
-        mixedSectionOffsets.getClassesWithData().size());
-    size +=
-        writeMapItem(
-            Constants.TYPE_ENCODED_ARRAY_ITEM,
-            layout.getEncodedArraysOffset(),
-            mixedSectionOffsets.getEncodedArrays().size());
-    size += writeMapItem(Constants.TYPE_ANNOTATION_SET_ITEM, layout.getAnnotationSetsOffset(),
-        mixedSectionOffsets.getAnnotationSets().size());
-    size += writeMapItem(Constants.TYPE_ANNOTATION_SET_REF_LIST,
-        layout.getAnnotationSetRefListsOffset(),
-        mixedSectionOffsets.getAnnotationSetRefLists().size());
-    size += writeMapItem(Constants.TYPE_ANNOTATIONS_DIRECTORY_ITEM,
-        layout.getAnnotationDirectoriesOffset(),
-        mixedSectionOffsets.getAnnotationDirectories().size());
-    size += writeMapItem(Constants.TYPE_MAP_LIST, layout.getMapOffset(), 1);
+    for (MapItem mapItem : mapItems) {
+      size += includeStringData ? mapItem.write(dest) : mapItem.size();
+    }
     dest.moveTo(startOfMap);
     dest.putInt(size);
     dest.forward(size * Constants.TYPE_MAP_LIST_ITEM_SIZE);
@@ -892,31 +839,81 @@ public class FileWriter {
   }
 
   private void writeSignature(Layout layout) {
+    writeSignature(layout, dest);
+  }
+
+  public void writeSignature(Layout layout, DexOutputBuffer dexOutputBuffer) {
     try {
       MessageDigest md = MessageDigest.getInstance("SHA-1");
       md.update(
-          dest.asArray(),
+          dexOutputBuffer.asArray(),
           layout.headerOffset + Constants.FILE_SIZE_OFFSET,
           layout.getEndOfFile() - layout.headerOffset - Constants.FILE_SIZE_OFFSET);
-      md.digest(dest.asArray(), layout.headerOffset + Constants.SIGNATURE_OFFSET, 20);
+      md.digest(dexOutputBuffer.asArray(), layout.headerOffset + Constants.SIGNATURE_OFFSET, 20);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
 
   private void writeChecksum(Layout layout) {
+    writeChecksum(layout, dest);
+  }
+
+  public void writeChecksum(Layout layout, DexOutputBuffer dexOutputBuffer) {
     Adler32 adler = new Adler32();
     adler.update(
-        dest.asArray(),
+        dexOutputBuffer.asArray(),
         layout.headerOffset + Constants.SIGNATURE_OFFSET,
         layout.getEndOfFile() - layout.headerOffset - Constants.SIGNATURE_OFFSET);
-    dest.moveTo(layout.headerOffset + Constants.CHECKSUM_OFFSET);
-    dest.putInt((int) adler.getValue());
+    dexOutputBuffer.moveTo(layout.headerOffset + Constants.CHECKSUM_OFFSET);
+    dexOutputBuffer.putInt((int) adler.getValue());
   }
 
   private static int alignSize(int bytes, int value) {
     int mask = bytes - 1;
     return (value + mask) & ~mask;
+  }
+
+  public static class MapItem {
+    final int type;
+    final int offset;
+    final int length;
+
+    public MapItem(int type, int offset, int size) {
+      this.type = type;
+      this.offset = offset;
+      this.length = size;
+    }
+
+    public int getType() {
+      return type;
+    }
+
+    public int getOffset() {
+      return offset;
+    }
+
+    public int getLength() {
+      return length;
+    }
+
+    public int write(DexOutputBuffer dest) {
+      if (length == 0) {
+        return 0;
+      }
+      if (Log.ENABLED) {
+        Log.debug(getClass(), "Map entry 0x%04x @ 0x%08x # %08d.", type, offset, length);
+      }
+      dest.putShort((short) type);
+      dest.putShort((short) 0);
+      dest.putInt(length);
+      dest.putInt(offset);
+      return 1;
+    }
+
+    public int size() {
+      return length == 0 ? 0 : 1;
+    }
   }
 
   public static class Layout {
@@ -1122,6 +1119,104 @@ public class FileWriter {
 
     public void setMapOffset(int mapOffset) {
       this.mapOffset = mapOffset;
+    }
+
+    public List<MapItem> generateMapInfo(FileWriter fileWriter) {
+      return generateMapInfo(
+          fileWriter, fileWriter.mixedSectionOffsets.getStringData().size(), stringIdsOffset);
+    }
+
+    public List<MapItem> generateMapInfo(
+        FileWriter fileWriter, int stringIdsSize, int stringIdsOffset) {
+      List<MapItem> mapItems = new ArrayList<>();
+      mapItems.add(new MapItem(Constants.TYPE_HEADER_ITEM, 0, 1));
+      mapItems.add(
+          new MapItem(
+              Constants.TYPE_STRING_ID_ITEM,
+              stringIdsOffset,
+              fileWriter.mapping.getStrings().size()));
+      mapItems.add(
+          new MapItem(
+              Constants.TYPE_TYPE_ID_ITEM, typeIdsOffset, fileWriter.mapping.getTypes().size()));
+      mapItems.add(
+          new MapItem(
+              Constants.TYPE_PROTO_ID_ITEM, protoIdsOffset, fileWriter.mapping.getProtos().size()));
+      mapItems.add(
+          new MapItem(
+              Constants.TYPE_FIELD_ID_ITEM, fieldIdsOffset, fileWriter.mapping.getFields().size()));
+      mapItems.add(
+          new MapItem(
+              Constants.TYPE_METHOD_ID_ITEM,
+              methodIdsOffset,
+              fileWriter.mapping.getMethods().size()));
+      mapItems.add(
+          new MapItem(
+              Constants.TYPE_CLASS_DEF_ITEM,
+              classDefsOffset,
+              fileWriter.mapping.getClasses().length));
+      mapItems.add(
+          new MapItem(
+              Constants.TYPE_CALL_SITE_ID_ITEM,
+              callSiteIdsOffset,
+              fileWriter.mapping.getCallSites().size()));
+      mapItems.add(
+          new MapItem(
+              Constants.TYPE_METHOD_HANDLE_ITEM,
+              methodHandleIdsOffset,
+              fileWriter.mapping.getMethodHandles().size()));
+      mapItems.add(
+          new MapItem(
+              Constants.TYPE_CODE_ITEM,
+              getCodesOffset(),
+              fileWriter.mixedSectionOffsets.getCodes().size()));
+      mapItems.add(
+          new MapItem(
+              Constants.TYPE_DEBUG_INFO_ITEM,
+              getDebugInfosOffset(),
+              fileWriter.mixedSectionOffsets.getDebugInfos().size()));
+      mapItems.add(
+          new MapItem(
+              Constants.TYPE_TYPE_LIST,
+              getTypeListsOffset(),
+              fileWriter.mixedSectionOffsets.getTypeLists().size()));
+      mapItems.add(
+          new MapItem(
+              Constants.TYPE_STRING_DATA_ITEM,
+              getStringDataOffsets(),
+              getStringDataOffsets() == 0 ? 0 : stringIdsSize));
+      mapItems.add(
+          new MapItem(
+              Constants.TYPE_ANNOTATION_ITEM,
+              getAnnotationsOffset(),
+              fileWriter.mixedSectionOffsets.getAnnotations().size()));
+      mapItems.add(
+          new MapItem(
+              Constants.TYPE_CLASS_DATA_ITEM,
+              getClassDataOffset(),
+              fileWriter.mixedSectionOffsets.getClassesWithData().size()));
+      mapItems.add(
+          new MapItem(
+              Constants.TYPE_ENCODED_ARRAY_ITEM,
+              getEncodedArraysOffset(),
+              fileWriter.mixedSectionOffsets.getEncodedArrays().size()));
+      mapItems.add(
+          new MapItem(
+              Constants.TYPE_ANNOTATION_SET_ITEM,
+              getAnnotationSetsOffset(),
+              fileWriter.mixedSectionOffsets.getAnnotationSets().size()));
+      mapItems.add(
+          new MapItem(
+              Constants.TYPE_ANNOTATION_SET_REF_LIST,
+              getAnnotationSetRefListsOffset(),
+              fileWriter.mixedSectionOffsets.getAnnotationSetRefLists().size()));
+      mapItems.add(
+          new MapItem(
+              Constants.TYPE_ANNOTATIONS_DIRECTORY_ITEM,
+              getAnnotationDirectoriesOffset(),
+              fileWriter.mixedSectionOffsets.getAnnotationDirectories().size()));
+      mapItems.add(new MapItem(Constants.TYPE_MAP_LIST, getMapOffset(), 1));
+      mapItems.sort(Comparator.comparingInt(MapItem::getOffset));
+      return mapItems;
     }
 
     public int getEndOfFile() {

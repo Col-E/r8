@@ -3,13 +3,17 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex.container;
 
+import static com.android.tools.r8.dex.Constants.CHECKSUM_OFFSET;
 import static com.android.tools.r8.dex.Constants.DATA_OFF_OFFSET;
 import static com.android.tools.r8.dex.Constants.DATA_SIZE_OFFSET;
+import static com.android.tools.r8.dex.Constants.FILE_SIZE_OFFSET;
 import static com.android.tools.r8.dex.Constants.MAP_OFF_OFFSET;
+import static com.android.tools.r8.dex.Constants.SIGNATURE_OFFSET;
 import static com.android.tools.r8.dex.Constants.STRING_IDS_OFF_OFFSET;
 import static com.android.tools.r8.dex.Constants.STRING_IDS_SIZE_OFFSET;
 import static com.android.tools.r8.dex.Constants.TYPE_STRING_ID_ITEM;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
@@ -31,8 +35,10 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import java.io.IOException;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.Adler32;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -74,7 +80,7 @@ public class DexContainerFormatBasicTest extends TestBase {
             .setMinApi(AndroidApiLevel.L)
             .compile()
             .writeToZip();
-    assertEquals(2, unzipContent(outputA).size());
+    validateDex(outputA, 2);
 
     Path outputB =
         testForD8(Backend.DEX)
@@ -82,7 +88,7 @@ public class DexContainerFormatBasicTest extends TestBase {
             .setMinApi(AndroidApiLevel.L)
             .compile()
             .writeToZip();
-    assertEquals(2, unzipContent(outputB).size());
+    validateDex(outputB, 2);
 
     Path outputMerged =
         testForD8(Backend.DEX)
@@ -90,7 +96,7 @@ public class DexContainerFormatBasicTest extends TestBase {
             .setMinApi(AndroidApiLevel.L)
             .compile()
             .writeToZip();
-    assertEquals(4, unzipContent(outputMerged).size());
+    validateDex(outputMerged, 4);
   }
 
   @Test
@@ -129,13 +135,21 @@ public class DexContainerFormatBasicTest extends TestBase {
     validateSingleContainerDex(outputB);
   }
 
-  private void validateSingleContainerDex(Path output) throws IOException {
+  private void validateDex(Path output, int expectedDexes) throws Exception {
     List<byte[]> dexes = unzipContent(output);
-    assertEquals(1, dexes.size());
-    validateStringIdsSizeAndOffsets(dexes.get(0));
+    assertEquals(expectedDexes, dexes.size());
+    for (byte[] dex : dexes) {
+      validate(dex);
+    }
   }
 
-  private void validateStringIdsSizeAndOffsets(byte[] dex) {
+  private void validateSingleContainerDex(Path output) throws Exception {
+    List<byte[]> dexes = unzipContent(output);
+    assertEquals(1, dexes.size());
+    validate(dexes.get(0));
+  }
+
+  private void validate(byte[] dex) throws Exception {
     CompatByteBuffer buffer = CompatByteBuffer.wrap(dex);
     setByteOrder(buffer);
 
@@ -158,7 +172,51 @@ public class DexContainerFormatBasicTest extends TestBase {
       assertEquals(stringIdsOffset, buffer.getInt(sectionOffset + STRING_IDS_OFF_OFFSET));
       assertEquals(stringIdsSize, getSizeFromMap(TYPE_STRING_ID_ITEM, buffer, sectionOffset));
       assertEquals(stringIdsOffset, getOffsetFromMap(TYPE_STRING_ID_ITEM, buffer, sectionOffset));
+      validateMap(buffer, sectionOffset);
+      validateSignature(buffer, sectionOffset);
+      validateChecksum(buffer, sectionOffset);
     }
+  }
+
+  private void validateMap(CompatByteBuffer buffer, int offset) {
+    int mapOffset = buffer.getInt(offset + MAP_OFF_OFFSET);
+    buffer.position(mapOffset);
+    int mapSize = buffer.getInt();
+    int previousOffset = Integer.MAX_VALUE;
+    for (int i = 0; i < mapSize; i++) {
+      buffer.getShort(); // Skip section type.
+      buffer.getShort(); // Skip unused.
+      buffer.getInt(); // Skip section size.
+      int o = buffer.getInt();
+      if (i > 0) {
+        assertTrue("" + i + ": " + o + " " + previousOffset, o > previousOffset);
+      }
+      previousOffset = o;
+    }
+  }
+
+  private void validateSignature(CompatByteBuffer buffer, int offset) throws Exception {
+    int sectionSize = buffer.getInt(offset + FILE_SIZE_OFFSET);
+    MessageDigest md = MessageDigest.getInstance("SHA-1");
+    md.update(
+        buffer.asByteBuffer().array(),
+        offset + FILE_SIZE_OFFSET,
+        sectionSize - offset - FILE_SIZE_OFFSET);
+    byte[] expectedSignature = new byte[20];
+    md.digest(expectedSignature, 0, 20);
+    for (int i = 0; i < expectedSignature.length; i++) {
+      assertEquals(expectedSignature[i], buffer.get(offset + SIGNATURE_OFFSET + i));
+    }
+  }
+
+  private void validateChecksum(CompatByteBuffer buffer, int offset) {
+    int sectionSize = buffer.getInt(offset + FILE_SIZE_OFFSET);
+    Adler32 adler = new Adler32();
+    adler.update(
+        buffer.asByteBuffer().array(),
+        offset + SIGNATURE_OFFSET,
+        sectionSize - offset - SIGNATURE_OFFSET);
+    assertEquals((int) adler.getValue(), buffer.getInt(offset + CHECKSUM_OFFSET));
   }
 
   private int getSizeFromMap(int type, CompatByteBuffer buffer, int offset) {

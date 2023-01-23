@@ -11,6 +11,7 @@ import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.debuginfo.DebugRepresentation;
 import com.android.tools.r8.dex.FileWriter.ByteBufferResult;
 import com.android.tools.r8.dex.FileWriter.DexContainerSection;
+import com.android.tools.r8.dex.FileWriter.MapItem;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
@@ -176,31 +177,31 @@ class ApplicationWriterExperimental extends ApplicationWriter {
       DexOutputBuffer dexOutputBuffer, List<DexContainerSection> sections) {
     // The last section has the shared string_ids table. Now it is written the final size and
     // offset is known and the remaining sections can be updated to point to the shared table.
-    // This updates both the size and offset in the header and in the map.
     DexContainerSection lastSection = ListUtils.last(sections);
     int stringIdsSize = lastSection.getFileWriter().getMixedSectionOffsets().getStringData().size();
     int stringIdsOffset = lastSection.getLayout().stringIdsOffset;
     for (DexContainerSection section : sections) {
       if (section != lastSection) {
+        // Update the string_ids size and offset in the header.
         dexOutputBuffer.moveTo(section.getLayout().headerOffset + Constants.STRING_IDS_SIZE_OFFSET);
         dexOutputBuffer.putInt(stringIdsSize);
         dexOutputBuffer.putInt(stringIdsOffset);
+        // Write the map. The map is sorted by offset, so write all entries after setting
+        // string_ids and sorting.
         dexOutputBuffer.moveTo(section.getLayout().getMapOffset());
-        // Skip size.
-        dexOutputBuffer.getInt();
-        while (dexOutputBuffer.position() < section.getLayout().getEndOfFile()) {
-          int sectionType = dexOutputBuffer.getShort();
-          dexOutputBuffer.getShort(); // Skip unused.
-          if (sectionType == Constants.TYPE_STRING_ID_ITEM) {
-            dexOutputBuffer.putInt(stringIdsSize);
-            dexOutputBuffer.putInt(stringIdsOffset);
-            break;
-          } else {
-            // Skip size and offset for this type.
-            dexOutputBuffer.getInt();
-            dexOutputBuffer.getInt();
-          }
+        List<MapItem> mapItems =
+            section
+                .getLayout()
+                .generateMapInfo(section.getFileWriter(), stringIdsSize, stringIdsOffset);
+        int originalSize = dexOutputBuffer.getInt();
+        int size = 0;
+        for (MapItem mapItem : mapItems) {
+          size += mapItem.write(dexOutputBuffer);
         }
+        assert originalSize == size;
+        // Calculate signature and checksum after the map is written.
+        section.getFileWriter().writeSignature(section.getLayout(), dexOutputBuffer);
+        section.getFileWriter().writeChecksum(section.getLayout(), dexOutputBuffer);
       }
     }
   }
