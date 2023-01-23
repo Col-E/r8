@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar.varhandle;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 
 // Template class for desugaring VarHandle into com.android.tools.r8.DesugarVarHandle.
 public final class DesugarVarHandle {
@@ -106,7 +107,7 @@ public final class DesugarVarHandle {
 
   DesugarVarHandle(Class<?> recv, String name, Class<?> type)
       throws NoSuchFieldException, IllegalAccessException {
-    Field theUnsafe = UnsafeStub.class.getDeclaredField("theUnsafe");
+    Field theUnsafe = getUnsafeField();
     theUnsafe.setAccessible(true);
     U = (UnsafeStub) theUnsafe.get(null);
     this.recv = recv;
@@ -125,7 +126,7 @@ public final class DesugarVarHandle {
   }
 
   DesugarVarHandle(Class<?> arrayType) throws Exception {
-    Field theUnsafe = UnsafeStub.class.getDeclaredField("theUnsafe");
+    Field theUnsafe = getUnsafeField();
     theUnsafe.setAccessible(true);
     U = (UnsafeStub) theUnsafe.get(null);
     if (!arrayType.isArray()) {
@@ -150,6 +151,20 @@ public final class DesugarVarHandle {
   }
 
   // Helpers.
+  private Field getUnsafeField() {
+    try {
+      return UnsafeStub.class.getDeclaredField("theUnsafe");
+    } catch (NoSuchFieldException e) {
+      for (Field field : UnsafeStub.class.getDeclaredFields()) {
+        if (Modifier.isStatic(field.getModifiers())
+            && UnsafeStub.class.isAssignableFrom(field.getType())) {
+          return field;
+        }
+      }
+      throw new UnsupportedOperationException("Couldn't find the Unsafe", e);
+    }
+  }
+
   String arrayRequiringNativeSupport() {
     return "requires native VarHandle support available from Android 13. "
         + "VarHandle desugaring only supports single dimensional arrays of primitive types"
