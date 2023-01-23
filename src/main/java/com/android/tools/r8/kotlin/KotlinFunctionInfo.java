@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Reporter;
 import java.util.List;
 import kotlinx.metadata.KmFunction;
@@ -41,6 +42,8 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
   private final KotlinContractInfo contract;
   // A value describing if any of the parameters are crossinline.
   private final boolean crossInlineParameter;
+  // Collection of context receiver types
+  private final List<KotlinTypeInfo> contextReceiverTypes;
 
   private KotlinFunctionInfo(
       int flags,
@@ -53,7 +56,8 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
       KotlinTypeReference lambdaClassOrigin,
       KotlinVersionRequirementInfo versionRequirements,
       KotlinContractInfo contract,
-      boolean crossInlineParameter) {
+      boolean crossInlineParameter,
+      List<KotlinTypeInfo> contextReceiverTypes) {
     this.flags = flags;
     this.name = name;
     this.returnType = returnType;
@@ -65,6 +69,7 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
     this.versionRequirements = versionRequirements;
     this.contract = contract;
     this.crossInlineParameter = crossInlineParameter;
+    this.contextReceiverTypes = contextReceiverTypes;
   }
 
   public boolean hasCrossInlineParameter() {
@@ -98,7 +103,10 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
         getlambdaClassOrigin(kmFunction, factory),
         KotlinVersionRequirementInfo.create(kmFunction.getVersionRequirements()),
         KotlinContractInfo.create(kmFunction.getContract(), factory, reporter),
-        isCrossInline);
+        isCrossInline,
+        ListUtils.map(
+            kmFunction.getContextReceiverTypes(),
+            contextRecieverType -> KotlinTypeInfo.create(contextRecieverType, factory, reporter)));
   }
 
   private static KotlinTypeReference getlambdaClassOrigin(
@@ -140,6 +148,9 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
     }
     for (KotlinTypeParameterInfo typeParameterInfo : typeParameters) {
       rewritten |= typeParameterInfo.rewrite(kmFunction::visitTypeParameter, appView);
+    }
+    for (KotlinTypeInfo contextReceiverType : contextReceiverTypes) {
+      rewritten |= contextReceiverType.rewrite(kmFunction::visitContextReceiverType, appView);
     }
     if (receiverParameterType != null) {
       rewritten |= receiverParameterType.rewrite(kmFunction::visitReceiverParameterType, appView);
@@ -187,6 +198,7 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
       receiverParameterType.trace(definitionSupplier);
     }
     forEachApply(typeParameters, param -> param::trace, definitionSupplier);
+    forEachApply(contextReceiverTypes, type -> type::trace, definitionSupplier);
     if (signature != null) {
       signature.trace(definitionSupplier);
     }

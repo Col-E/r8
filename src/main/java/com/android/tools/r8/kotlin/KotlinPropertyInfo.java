@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.utils.Box;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Reporter;
 import java.util.List;
 import kotlinx.metadata.KmProperty;
@@ -58,6 +59,8 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
   private final KotlinJvmMethodSignatureInfo syntheticMethodForAnnotations;
 
   private final KotlinJvmMethodSignatureInfo syntheticMethodForDelegate;
+  // Collection of context receiver types
+  private final List<KotlinTypeInfo> contextReceiverTypes;
 
   private KotlinPropertyInfo(
       int flags,
@@ -74,7 +77,8 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
       KotlinJvmMethodSignatureInfo getterSignature,
       KotlinJvmMethodSignatureInfo setterSignature,
       KotlinJvmMethodSignatureInfo syntheticMethodForAnnotations,
-      KotlinJvmMethodSignatureInfo syntheticMethodForDelegate) {
+      KotlinJvmMethodSignatureInfo syntheticMethodForDelegate,
+      List<KotlinTypeInfo> contextReceiverTypes) {
     this.flags = flags;
     this.getterFlags = getterFlags;
     this.setterFlags = setterFlags;
@@ -90,6 +94,7 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
     this.setterSignature = setterSignature;
     this.syntheticMethodForAnnotations = syntheticMethodForAnnotations;
     this.syntheticMethodForDelegate = syntheticMethodForDelegate;
+    this.contextReceiverTypes = contextReceiverTypes;
   }
 
   public static KotlinPropertyInfo create(
@@ -113,7 +118,10 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
         KotlinJvmMethodSignatureInfo.create(
             JvmExtensionsKt.getSyntheticMethodForAnnotations(kmProperty), factory),
         KotlinJvmMethodSignatureInfo.create(
-            JvmExtensionsKt.getSyntheticMethodForDelegate(kmProperty), factory));
+            JvmExtensionsKt.getSyntheticMethodForDelegate(kmProperty), factory),
+        ListUtils.map(
+            kmProperty.getContextReceiverTypes(),
+            contextRecieverType -> KotlinTypeInfo.create(contextRecieverType, factory, reporter)));
   }
 
   @Override
@@ -159,6 +167,9 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
     }
     for (KotlinTypeParameterInfo typeParameter : typeParameters) {
       rewritten |= typeParameter.rewrite(kmProperty::visitTypeParameter, appView);
+    }
+    for (KotlinTypeInfo contextReceiverType : contextReceiverTypes) {
+      rewritten |= contextReceiverType.rewrite(kmProperty::visitContextReceiverType, appView);
     }
     rewritten |= versionRequirements.rewrite(kmProperty::visitVersionRequirement);
     JvmPropertyExtensionVisitor extensionVisitor =
@@ -207,6 +218,7 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
       setterParameter.trace(definitionSupplier);
     }
     forEachApply(typeParameters, param -> param::trace, definitionSupplier);
+    forEachApply(contextReceiverTypes, type -> type::trace, definitionSupplier);
     if (fieldSignature != null) {
       fieldSignature.trace(definitionSupplier);
     }

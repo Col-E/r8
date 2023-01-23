@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
@@ -59,6 +60,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
   private final KotlinTypeInfo inlineClassUnderlyingType;
   private final int jvmFlags;
   private final String companionObjectName;
+  // Collection of context receiver types
+  private final List<KotlinTypeInfo> contextReceiverTypes;
 
   // List of tracked assignments of kotlin metadata.
   private final KotlinMetadataMembersTracker originalMembersWithKotlinInfo;
@@ -84,7 +87,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       KotlinTypeInfo inlineClassUnderlyingType,
       KotlinMetadataMembersTracker originalMembersWithKotlinInfo,
       int jvmFlags,
-      String companionObjectName) {
+      String companionObjectName,
+      List<KotlinTypeInfo> contextReceiverTypes) {
     this.flags = flags;
     this.name = name;
     this.nameCanBeSynthesizedFromClassOrAnonymousObjectOrigin =
@@ -107,6 +111,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     this.originalMembersWithKotlinInfo = originalMembersWithKotlinInfo;
     this.jvmFlags = jvmFlags;
     this.companionObjectName = companionObjectName;
+    this.contextReceiverTypes = contextReceiverTypes;
   }
 
   public static KotlinClassInfo create(
@@ -190,7 +195,10 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
         KotlinTypeInfo.create(kmClass.getInlineClassUnderlyingType(), factory, reporter),
         originalMembersWithKotlinInfo,
         JvmExtensionsKt.getJvmFlags(kmClass),
-        setCompanionObject(kmClass, hostClass, reporter));
+        setCompanionObject(kmClass, hostClass, reporter),
+        ListUtils.map(
+            kmClass.getContextReceiverTypes(),
+            contextRecieverType -> KotlinTypeInfo.create(contextRecieverType, factory, reporter)));
   }
 
   private static KotlinTypeReference getAnonymousObjectOrigin(
@@ -416,6 +424,9 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       rewritten |=
           inlineClassUnderlyingType.rewrite(kmClass::visitInlineClassUnderlyingType, appView);
     }
+    for (KotlinTypeInfo contextReceiverType : contextReceiverTypes) {
+      rewritten |= contextReceiverType.rewrite(kmClass::visitContextReceiverType, appView);
+    }
     JvmClassExtensionVisitor extensionVisitor =
         (JvmClassExtensionVisitor) kmClass.visitExtensions(JvmClassExtensionVisitor.TYPE);
     extensionVisitor.visitJvmFlags(jvmFlags);
@@ -457,6 +468,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     forEachApply(superTypes, type -> type::trace, definitionSupplier);
     forEachApply(sealedSubClasses, sealedClass -> sealedClass::trace, definitionSupplier);
     forEachApply(nestedClasses, nested -> nested::trace, definitionSupplier);
+    forEachApply(contextReceiverTypes, nested -> nested::trace, definitionSupplier);
     localDelegatedProperties.trace(definitionSupplier);
     // TODO(b/154347404): trace enum entries.
     if (anonymousObjectOrigin != null) {

@@ -109,7 +109,13 @@ public class MetadataRewriteContextReceiverTest extends KotlinMetadataTestBase {
             .addOptionsModification(
                 options -> options.testing.keepMetadataInR8IfNotRewritten = false)
             .compile()
-            // TODO(b/266396725): Assert equivalence of metadata.
+            // Since this has a keep-all classes rule assert that the meta-data is equal to the
+            // original one.
+            .inspect(
+                inspector ->
+                    assertEqualDeserializedMetadata(
+                        inspector,
+                        new CodeInspector(libJars.getForConfiguration(kotlinc, targetVersion))))
             .writeToZip();
     Path main =
         kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
@@ -122,8 +128,7 @@ public class MetadataRewriteContextReceiverTest extends KotlinMetadataTestBase {
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), libJar)
         .addClasspath(main)
         .run(parameters.getRuntime(), MAIN)
-        // TODO(b/266396725): Rewrite context receivers in metadata.
-        .assertFailureWithErrorThatThrows(NoSuchMethodError.class);
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
@@ -183,7 +188,6 @@ public class MetadataRewriteContextReceiverTest extends KotlinMetadataTestBase {
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), MAIN)
-        // TODO(b/266396725): Rewrite context receivers in metadata.
-        .assertFailureWithErrorThatThrows(NoSuchMethodError.class);
+        .assertSuccessWithOutput(EXPECTED);
   }
 }

@@ -379,20 +379,31 @@ public class KotlinMetadataWriter {
         indent,
         "constructors",
         sb,
-        newIndent -> {
-          appendKmList(
-              newIndent,
-              "KmConstructor",
-              sb,
-              kmClass.getConstructors().stream()
-                  .sorted(
-                      Comparator.comparing(
-                          kmConstructor -> JvmExtensionsKt.getSignature(kmConstructor).asString()))
-                  .collect(Collectors.toList()),
-              (nextIndent, constructor) -> {
-                appendKmConstructor(nextIndent, sb, constructor);
-              });
-        });
+        newIndent ->
+            appendKmList(
+                newIndent,
+                "KmConstructor",
+                sb,
+                kmClass.getConstructors().stream()
+                    .sorted(
+                        Comparator.comparing(
+                            kmConstructor ->
+                                JvmExtensionsKt.getSignature(kmConstructor).asString()))
+                    .collect(Collectors.toList()),
+                (nextIndent, constructor) -> {
+                  appendKmConstructor(nextIndent, sb, constructor);
+                }));
+    appendKeyValue(
+        indent,
+        "contextReceiverTypes",
+        sb,
+        newIndent ->
+            appendKmList(
+                newIndent,
+                "KmType",
+                sb,
+                kmClass.getContextReceiverTypes(),
+                (nextIndent, kmType) -> appendKmType(nextIndent, sb, kmType)));
     appendKmDeclarationContainer(indent, sb, kmClass);
   }
 
@@ -458,6 +469,17 @@ public class KotlinMetadataWriter {
                   appendKmContract(nextIndent, sb, contract);
                 });
           }
+          appendKeyValue(
+              newIndent,
+              "contextReceiverTypes",
+              sb,
+              newNewIndent ->
+                  appendKmList(
+                      newNewIndent,
+                      "KmType",
+                      sb,
+                      function.getContextReceiverTypes(),
+                      (nextIndent, kmType) -> appendKmType(nextIndent, sb, kmType)));
           JvmMethodSignature signature = JvmExtensionsKt.getSignature(function);
           appendKeyValue(
               newIndent, "signature", sb, signature != null ? signature.asString() : "null");
@@ -500,6 +522,17 @@ public class KotlinMetadataWriter {
               sb,
               nextIndent -> appendValueParameter(nextIndent, sb, kmProperty.getSetterParameter()));
           appendKmVersionRequirement(newIndent, sb, kmProperty.getVersionRequirements());
+          appendKeyValue(
+              newIndent,
+              "contextReceiverTypes",
+              sb,
+              newNewIndent ->
+                  appendKmList(
+                      newNewIndent,
+                      "KmType",
+                      sb,
+                      kmProperty.getContextReceiverTypes(),
+                      (nextIndent, kmType) -> appendKmType(nextIndent, sb, kmType)));
           appendKeyValue(newIndent, "jvmFlags", sb, JvmExtensionsKt.getJvmFlags(kmProperty) + "");
           JvmFieldSignature fieldSignature = JvmExtensionsKt.getFieldSignature(kmProperty);
           appendKeyValue(
