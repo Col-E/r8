@@ -93,16 +93,6 @@
     {
       "api_level_below_or_equal": 32,
       "api_level_greater_or_equal": 24,
-      "emulate_interface": {
-        "java.util.Collection": "j$.util.Collection"
-      },
-      "dont_rewrite": [
-        "boolean java.util.Collection#removeIf(java.util.function.Predicate)",
-        "java.util.Spliterator java.util.Collection#spliterator()",
-        "java.util.stream.Stream java.util.Collection#parallelStream()",
-        "java.util.stream.Stream java.util.Collection#stream()",
-        "void java.util.Collection#forEach(java.util.function.Consumer)"
-      ],
       "rewrite_prefix": {
         "java.util.stream.DesugarCollectors": "j$.util.stream.DesugarCollectors"
       },
