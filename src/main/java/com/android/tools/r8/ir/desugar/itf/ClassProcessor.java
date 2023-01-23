@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.desugar.itf;
 
-import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.InterfaceMethodDesugaringMode.ALL;
 import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.InterfaceMethodDesugaringMode.EMULATED_INTERFACE_ONLY;
 import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.InterfaceMethodDesugaringMode.NONE;
 
@@ -388,8 +387,6 @@ final class ClassProcessor {
     this.dexItemFactory = appView.dexItemFactory();
     this.helper = new InterfaceDesugaringSyntheticHelper(appView);
     assert desugaringMode != NONE;
-    assert desugaringMode == ALL
-        || !appView.options().machineDesugaredLibrarySpecification.isEmpty();
     needsLibraryInfo = !appView.options().machineDesugaredLibrarySpecification.isEmpty();
     this.isLiveMethod = isLiveMethod;
     this.desugaringMode = desugaringMode;
