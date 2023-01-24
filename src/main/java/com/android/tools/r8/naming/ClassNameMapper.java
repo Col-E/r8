@@ -142,14 +142,6 @@ public class ClassNameMapper implements ProguardMap {
         CharSource.wrap(contents).openBufferedStream(), diagnosticsHandler);
   }
 
-  // TODO(b/241763080): Remove when 2.2 is stable.
-  @Deprecated
-  public static ClassNameMapper mapperFromStringWithExperimental(String contents)
-      throws IOException {
-    return mapperFromBufferedReader(
-        CharSource.wrap(contents).openBufferedStream(), null, false, true, true);
-  }
-
   public static ClassNameMapper mapperFromString(
       String contents,
       DiagnosticsHandler diagnosticsHandler,

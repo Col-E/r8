@@ -31,26 +31,26 @@ public class ComposeDifferentMethodTest extends TestBase {
 
   private static final String mappingFoo =
       StringUtils.unixLines(
-          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
+          "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
           "com.foo -> a:",
           "    void f1(int) -> f2",
           "    # { id: 'com.android.tools.r8.residualsignature', signature:'(Z)I' }");
   private static final String mappingBar =
       StringUtils.unixLines(
-          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
+          "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
           "a -> b:",
           "    int f2(boolean) -> f3");
   private static final String mappingResult =
       StringUtils.unixLines(
-          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
+          "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
           "com.foo -> b:",
           "    void f1(int) -> f3",
           "    # {'id':'com.android.tools.r8.residualsignature','signature':'(Z)I'}");
 
   @Test
   public void testCompose() throws Exception {
-    ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromStringWithExperimental(mappingFoo);
-    ClassNameMapper mappingForBar = ClassNameMapper.mapperFromStringWithExperimental(mappingBar);
+    ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromStringWithPreamble(mappingFoo);
+    ClassNameMapper mappingForBar = ClassNameMapper.mapperFromStringWithPreamble(mappingBar);
     String composed = MappingComposer.compose(mappingForFoo, mappingForBar);
     assertEquals(mappingResult, doubleToSingleQuote(composed));
   }

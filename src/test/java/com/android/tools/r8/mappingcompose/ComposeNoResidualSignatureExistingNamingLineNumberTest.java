@@ -31,34 +31,34 @@ public class ComposeNoResidualSignatureExistingNamingLineNumberTest extends Test
 
   private static final String mappingFoo =
       StringUtils.unixLines(
-          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
+          "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
           "com.Class1 -> A:",
           "    1:1:com.Class1 m(com.Class2[][]):42:42 -> a",
           "com.Class2 -> B:");
   private static final String mappingBar =
       StringUtils.unixLines(
-          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
+          "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
           "A -> B:",
           "    2:2:A a(B[][]):1:1 -> b",
           "B -> C:");
   private static final String mappingBaz =
       StringUtils.unixLines(
-          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
+          "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
           "B -> C:",
           "    3:3:B b(C[][]):2:2 -> c",
           "C -> D:");
   private static final String mappingResult =
       StringUtils.unixLines(
-          "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
+          "# {'id':'com.android.tools.r8.mapping','version':'2.2'}",
           "com.Class1 -> C:",
           "    3:3:com.Class1 m(com.Class2[][]):42:42 -> c",
           "com.Class2 -> D:");
 
   @Test
   public void testCompose() throws Exception {
-    ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromStringWithExperimental(mappingFoo);
-    ClassNameMapper mappingForBar = ClassNameMapper.mapperFromStringWithExperimental(mappingBar);
-    ClassNameMapper mappingForBaz = ClassNameMapper.mapperFromStringWithExperimental(mappingBaz);
+    ClassNameMapper mappingForFoo = ClassNameMapper.mapperFromStringWithPreamble(mappingFoo);
+    ClassNameMapper mappingForBar = ClassNameMapper.mapperFromStringWithPreamble(mappingBar);
+    ClassNameMapper mappingForBaz = ClassNameMapper.mapperFromStringWithPreamble(mappingBaz);
     String composed = MappingComposer.compose(mappingForFoo, mappingForBar, mappingForBaz);
     assertEquals(mappingResult, doubleToSingleQuote(composed));
   }

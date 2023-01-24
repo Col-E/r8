@@ -57,7 +57,7 @@ public class LineNumberOptimizer {
       timing.begin("Proguard map composition");
       try {
         mapper =
-            ClassNameMapper.mapperFromStringWithExperimental(
+            ClassNameMapper.mapperFromStringWithPreamble(
                 MappingComposer.compose(
                     appView.options(), appView.appInfo().app().getProguardMap(), mapper));
       } catch (IOException | MappingComposeException e) {
