@@ -221,6 +221,9 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
           directory2.toString()
         });
     List<String> html = Files.readAllLines(directory2.resolve("apis.html"));
-    assertTrue(html.contains("  <td><code>java.util.function</code></td>"));
+    // The doc has the same content than the lint data that is tested above, this is just a sanity
+    // check that the doc generation ran without error and looks sane.
+    assertEquals("<tr>", html.get(0));
+    assertEquals("</tr>", html.get(html.size() - 2));
   }
 }
