@@ -97,8 +97,19 @@ public final class KeepConstants {
     public static final Class<KeepTarget> CLASS = KeepTarget.class;
     public static final String DESCRIPTOR = getDescriptor(CLASS);
 
+    public static final String kind = "kind";
     public static final String allow = "allow";
     public static final String disallow = "disallow";
+  }
+
+  public static final class Kind {
+    public static final Class<KeepItemKind> CLASS = KeepItemKind.class;
+    public static final String DESCRIPTOR = getDescriptor(CLASS);
+
+    public static final String DEFAULT = "DEFAULT";
+    public static final String ONLY_CLASS = "ONLY_CLASS";
+    public static final String ONLY_MEMBER = "ONLY_MEMBER";
+    public static final String CLASS_AND_MEMBERS = "CLASS_AND_MEMBERS";
   }
 
   public static final class Option {

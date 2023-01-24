@@ -29,7 +29,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiConsumer;
 
 /** Split a keep edge into multiple PG rules that over-approximate it. */
 public class KeepEdgeSplitter {
@@ -143,6 +142,9 @@ public class KeepEdgeSplitter {
               users.targetRefs.forEach(
                   ((options, targets) -> {
                     // Note that here we iterate over *all* non-empty conditions and create rules.
+                    // Doing so over-approximates the matching instances of the edge, but gives
+                    // better stability of the extraction as it avoids picking a particular
+                    // precondition as the "primary" one to act on.
                     bindingUsers.forEach(
                         (conditionBindingName, conditionUsers) -> {
                           if (!conditionUsers.conditionRefs.isEmpty()) {
@@ -183,29 +185,50 @@ public class KeepEdgeSplitter {
     return conditionMembers;
   }
 
+  @FunctionalInterface
+  private interface OnKeepMembers {
+    void accept(
+        Map<String, KeepMemberPattern> memberPatterns,
+        List<String> targets,
+        boolean classAndMembers);
+  }
+
   private static void computeTargets(
       Set<String> targets,
       KeepBindings bindings,
       Map<String, KeepMemberPattern> memberPatterns,
       Runnable onKeepClass,
-      BiConsumer<Map<String, KeepMemberPattern>, List<String>> onKeepMembers) {
+      OnKeepMembers onKeepMembers) {
     List<String> targetMembers = new ArrayList<>();
     boolean keepClassTarget = false;
     for (String targetReference : targets) {
       KeepItemPattern item = bindings.get(targetReference).getItem();
-      if (item.isClassItemPattern() || bindings.isAny(item)) {
-        keepClassTarget = true;
+      if (bindings.isAny(item)) {
+        // If the target is "any item" then it contains any other target pattern so just emit the
+        // single "any item" targets: class and members both.
+        onKeepClass.run();
+        memberPatterns.put(targetReference, item.getMemberPattern());
+        onKeepMembers.accept(memberPatterns, Collections.singletonList(targetReference), false);
+        return;
       }
-      if (item.isMemberItemPattern()) {
+      if (item.isClassItemPattern()) {
+        keepClassTarget = true;
+      } else {
         memberPatterns.putIfAbsent(targetReference, item.getMemberPattern());
-        targetMembers.add(targetReference);
+        if (item.isClassAndMemberPattern()) {
+          // If a target is a "class and member" target then it must be added as a separate rule.
+          onKeepMembers.accept(memberPatterns, Collections.singletonList(targetReference), true);
+        } else {
+          assert item.isMemberItemPattern();
+          targetMembers.add(targetReference);
+        }
       }
     }
     if (keepClassTarget) {
       onKeepClass.run();
     }
     if (!targetMembers.isEmpty()) {
-      onKeepMembers.accept(memberPatterns, targetMembers);
+      onKeepMembers.accept(memberPatterns, targetMembers, false);
     }
   }
 
@@ -223,7 +246,7 @@ public class KeepEdgeSplitter {
         () -> {
           rules.add(new PgUnconditionalClassRule(metaInfo, options, holder));
         },
-        (memberPatterns, targetMembers) -> {
+        (memberPatterns, targetMembers, classAndMembers) -> {
           // Members are still dependent on the class, so they go to the implicitly dependent rule.
           rules.add(
               new PgDependentMembersRule(
@@ -232,7 +255,8 @@ public class KeepEdgeSplitter {
                   options,
                   memberPatterns,
                   Collections.emptyList(),
-                  targetMembers));
+                  targetMembers,
+                  classAndMembers));
         });
   }
 
@@ -262,7 +286,7 @@ public class KeepEdgeSplitter {
                     targetHolder,
                     memberPatterns,
                     conditionMembers)),
-        (ignore, targetMembers) ->
+        (ignore, targetMembers, classAndMembers) ->
             rules.add(
                 new PgConditionalMemberRule(
                     metaInfo,
@@ -271,7 +295,8 @@ public class KeepEdgeSplitter {
                     targetHolder,
                     memberPatterns,
                     conditionMembers,
-                    targetMembers)));
+                    targetMembers,
+                    classAndMembers)));
   }
 
   // For a conditional and dependent edge (e.g., the condition and target both reference holder X),
@@ -320,10 +345,16 @@ public class KeepEdgeSplitter {
             rules.add(
                 new PgDependentClassRule(
                     metaInfo, holder, options, memberPatterns, conditionMembers)),
-        (ignore, targetMembers) ->
+        (ignore, targetMembers, classAndMembers) ->
             rules.add(
                 new PgDependentMembersRule(
-                    metaInfo, holder, options, memberPatterns, conditionMembers, targetMembers)));
+                    metaInfo,
+                    holder,
+                    options,
+                    memberPatterns,
+                    conditionMembers,
+                    targetMembers,
+                    classAndMembers)));
   }
 
   private static KeepQualifiedClassNamePattern getClassNamePattern(

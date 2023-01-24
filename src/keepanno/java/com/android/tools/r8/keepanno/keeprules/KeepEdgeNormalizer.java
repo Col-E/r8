@@ -8,6 +8,7 @@ import com.android.tools.r8.keepanno.ast.KeepClassReference;
 import com.android.tools.r8.keepanno.ast.KeepCondition;
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
+import com.android.tools.r8.keepanno.ast.KeepItemKind;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemReference;
 import com.android.tools.r8.keepanno.ast.KeepPreconditions;
@@ -156,7 +157,10 @@ public class KeepEdgeNormalizer {
 
   private KeepItemPattern getMemberItemPattern(
       KeepItemPattern fromPattern, KeepClassReference classReference) {
+    assert fromPattern.getKind().equals(KeepItemKind.ONLY_MEMBERS)
+        || fromPattern.getKind().equals(KeepItemKind.CLASS_AND_MEMBERS);
     return KeepItemPattern.builder()
+        .setKind(fromPattern.getKind())
         .setClassReference(classReference)
         .setMemberPattern(fromPattern.getMemberPattern())
         .build();

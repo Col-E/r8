@@ -26,6 +26,8 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.CLASS)
 public @interface KeepTarget {
 
+  KeepItemKind kind() default KeepItemKind.DEFAULT;
+
   /**
    * Define the options that do not need to be preserved for the target.
    *

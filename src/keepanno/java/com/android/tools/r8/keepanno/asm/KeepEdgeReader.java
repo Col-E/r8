@@ -8,6 +8,7 @@ import com.android.tools.r8.keepanno.annotations.KeepConstants.Binding;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Condition;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Edge;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Item;
+import com.android.tools.r8.keepanno.annotations.KeepConstants.Kind;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Option;
 import com.android.tools.r8.keepanno.annotations.KeepConstants.Target;
 import com.android.tools.r8.keepanno.ast.KeepBindings;
@@ -21,6 +22,7 @@ import com.android.tools.r8.keepanno.ast.KeepExtendsPattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldTypePattern;
+import com.android.tools.r8.keepanno.ast.KeepItemKind;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemReference;
 import com.android.tools.r8.keepanno.ast.KeepMemberPattern;
@@ -697,6 +699,7 @@ public class KeepEdgeReader implements Opcodes {
   private abstract static class KeepItemVisitorBase extends AnnotationVisitorBase {
     private Parent<KeepItemReference> parent;
     private String memberBindingReference = null;
+    private KeepItemKind kind = null;
     private final ClassDeclaration classDeclaration = new ClassDeclaration();
     private final ExtendsDeclaration extendsDeclaration = new ExtendsDeclaration();
     private final MemberDeclaration memberDeclaration = new MemberDeclaration();
@@ -711,6 +714,29 @@ public class KeepEdgeReader implements Opcodes {
       assert parent != null;
       assert this.parent == null;
       this.parent = parent;
+    }
+
+    @Override
+    public void visitEnum(String name, String descriptor, String value) {
+      if (!descriptor.equals(KeepConstants.Kind.DESCRIPTOR)) {
+        super.visitEnum(name, descriptor, value);
+      }
+      switch (value) {
+        case Kind.DEFAULT:
+          // The default value is obtained by not assigning a kind (e.g., null in the builder).
+          break;
+        case Kind.ONLY_CLASS:
+          kind = KeepItemKind.ONLY_CLASS;
+          break;
+        case Kind.ONLY_MEMBER:
+          kind = KeepItemKind.ONLY_MEMBERS;
+          break;
+        case Kind.CLASS_AND_MEMBERS:
+          kind = KeepItemKind.CLASS_AND_MEMBERS;
+          break;
+        default:
+          super.visitEnum(name, descriptor, value);
+      }
     }
 
     @Override
@@ -741,18 +767,24 @@ public class KeepEdgeReader implements Opcodes {
       if (memberBindingReference != null) {
         if (!classDeclaration.getValue().equals(classDeclaration.getDefaultValue())
             || !memberDeclaration.getValue().isNone()
-            || !extendsDeclaration.getValue().isAny()) {
+            || !extendsDeclaration.getValue().isAny()
+            || kind != null) {
           throw new KeepEdgeException(
               "Cannot define an item explicitly and via a member-binding reference");
         }
         parent.accept(KeepItemReference.fromBindingReference(memberBindingReference));
       } else {
+        KeepMemberPattern memberPattern = memberDeclaration.getValue();
+        if (kind == null) {
+          kind = memberPattern.isNone() ? KeepItemKind.ONLY_CLASS : KeepItemKind.ONLY_MEMBERS;
+        }
         parent.accept(
             KeepItemReference.fromItemPattern(
                 KeepItemPattern.builder()
+                    .setKind(kind)
                     .setClassReference(classDeclaration.getValue())
                     .setExtendsPattern(extendsDeclaration.getValue())
-                    .setMemberPattern(memberDeclaration.getValue())
+                    .setMemberPattern(memberPattern)
                     .build()));
       }
     }

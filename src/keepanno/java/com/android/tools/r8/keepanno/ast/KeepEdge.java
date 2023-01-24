@@ -41,7 +41,9 @@ import java.util.Objects;
  *
  *   ITEM_PATTERN
  *     ::= any
- *       | class CLASS_REFERENCE extends EXTENDS_PATTERN { MEMBER_PATTERN }
+ *       | ITEM_KIND class CLASS_REFERENCE extends EXTENDS_PATTERN { MEMBER_PATTERN }
+ *
+ *   ITEM_KIND ::= ONLY_CLASS | ONLY_MEMBERS | CLASS_AND_MEMBERS
  *
  *   TYPE_PATTERN ::= any | exact type-descriptor
  *   PACKAGE_PATTERN ::= any | exact package-name

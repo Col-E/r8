@@ -27,16 +27,21 @@ public class KeepItemPattern {
     return new Builder();
   }
 
+  public boolean isClassAndMemberPattern() {
+    return kind == KeepItemKind.CLASS_AND_MEMBERS;
+  }
+
   public boolean isClassItemPattern() {
-    return memberPattern.isNone();
+    return kind == KeepItemKind.ONLY_CLASS;
   }
 
   public boolean isMemberItemPattern() {
-    return !memberPattern.isNone();
+    return kind == KeepItemKind.ONLY_MEMBERS;
   }
 
   public static class Builder {
 
+    private KeepItemKind kind = null;
     private KeepClassReference classReference =
         KeepClassReference.fromClassNamePattern(KeepQualifiedClassNamePattern.any());
     private KeepExtendsPattern extendsPattern = KeepExtendsPattern.any();
@@ -45,15 +50,22 @@ public class KeepItemPattern {
     private Builder() {}
 
     public Builder copyFrom(KeepItemPattern pattern) {
-      return setClassReference(pattern.getClassReference())
+      return setKind(pattern.getKind())
+          .setClassReference(pattern.getClassReference())
           .setExtendsPattern(pattern.getExtendsPattern())
           .setMemberPattern(pattern.getMemberPattern());
     }
 
     public Builder any() {
+      kind = KeepItemKind.CLASS_AND_MEMBERS;
       classReference = KeepClassReference.fromClassNamePattern(KeepQualifiedClassNamePattern.any());
       extendsPattern = KeepExtendsPattern.any();
       memberPattern = KeepMemberPattern.all();
+      return this;
+    }
+
+    public Builder setKind(KeepItemKind kind) {
+      this.kind = kind;
       return this;
     }
 
@@ -77,29 +89,54 @@ public class KeepItemPattern {
     }
 
     public KeepItemPattern build() {
-      return new KeepItemPattern(classReference, extendsPattern, memberPattern);
+      if (kind == null) {
+        kind = memberPattern.isNone() ? KeepItemKind.ONLY_CLASS : KeepItemKind.ONLY_MEMBERS;
+      }
+      if (kind == KeepItemKind.ONLY_CLASS && !memberPattern.isNone()) {
+        throw new KeepEdgeException(
+            "Invalid kind ONLY_CLASS for item with member pattern: " + memberPattern);
+      }
+      if (kind == KeepItemKind.ONLY_MEMBERS && memberPattern.isNone()) {
+        throw new KeepEdgeException("Invalid kind ONLY_MEMBERS for item with no member pattern");
+      }
+      if (kind == KeepItemKind.CLASS_AND_MEMBERS && memberPattern.isNone()) {
+        throw new KeepEdgeException(
+            "Invalid kind CLASS_AND_MEMBERS for item with no member pattern");
+      }
+      return new KeepItemPattern(kind, classReference, extendsPattern, memberPattern);
     }
   }
 
+  private final KeepItemKind kind;
   private final KeepClassReference classReference;
   private final KeepExtendsPattern extendsPattern;
   private final KeepMemberPattern memberPattern;
   // TODO: class annotations
 
   private KeepItemPattern(
+      KeepItemKind kind,
       KeepClassReference classReference,
       KeepExtendsPattern extendsPattern,
       KeepMemberPattern memberPattern) {
+    assert kind != null;
     assert classReference != null;
     assert extendsPattern != null;
     assert memberPattern != null;
+    this.kind = kind;
     this.classReference = classReference;
     this.extendsPattern = extendsPattern;
     this.memberPattern = memberPattern;
   }
 
   public boolean isAny(Predicate<String> onReference) {
-    return extendsPattern.isAny() && memberPattern.isAll() && classReference.isAny(onReference);
+    return kind.equals(KeepItemKind.CLASS_AND_MEMBERS)
+        && extendsPattern.isAny()
+        && memberPattern.isAll()
+        && classReference.isAny(onReference);
+  }
+
+  public KeepItemKind getKind() {
+    return kind;
   }
 
   public KeepClassReference getClassReference() {
@@ -127,20 +164,23 @@ public class KeepItemPattern {
       return false;
     }
     KeepItemPattern that = (KeepItemPattern) obj;
-    return classReference.equals(that.classReference)
+    return kind.equals(that.kind)
+        && classReference.equals(that.classReference)
         && extendsPattern.equals(that.extendsPattern)
         && memberPattern.equals(that.memberPattern);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(classReference, extendsPattern, memberPattern);
+    return Objects.hash(kind, classReference, extendsPattern, memberPattern);
   }
 
   @Override
   public String toString() {
     return "KeepClassPattern{"
-        + "classReference="
+        + "kind="
+        + kind
+        + ", classReference="
         + classReference
         + ", extendsPattern="
         + extendsPattern

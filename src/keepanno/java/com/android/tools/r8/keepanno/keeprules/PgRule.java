@@ -243,7 +243,7 @@ public abstract class PgRule {
    *
    * <pre>
    *   -if class <class-condition> { <member-conditions> }
-   *   -keep[classmembers] class <class-target> { <member-targets> }
+   *   -keepclassmembers class <class-target> { <member-targets> }
    * </pre>
    *
    * and with no dependencies / back-references.
@@ -251,6 +251,7 @@ public abstract class PgRule {
   static class PgConditionalMemberRule extends PgConditionalRuleBase {
 
     private final List<String> memberTargets;
+    private final boolean classAndMembers;
 
     public PgConditionalMemberRule(
         KeepEdgeMetaInfo metaInfo,
@@ -259,14 +260,16 @@ public abstract class PgRule {
         Holder classTarget,
         Map<String, KeepMemberPattern> memberPatterns,
         List<String> memberConditions,
-        List<String> memberTargets) {
+        List<String> memberTargets,
+        boolean classAndMembers) {
       super(metaInfo, options, classCondition, classTarget, memberPatterns, memberConditions);
       this.memberTargets = memberTargets;
+      this.classAndMembers = classAndMembers;
     }
 
     @Override
     String getConsequenceKeepType() {
-      return "-keepclassmembers";
+      return classAndMembers ? "-keepclasseswithmembers" : "-keepclassmembers";
     }
 
     @Override
@@ -440,6 +443,7 @@ public abstract class PgRule {
   static class PgDependentMembersRule extends PgDependentRuleBase {
 
     final List<String> memberTargets;
+    final boolean classAndMembers;
 
     public PgDependentMembersRule(
         KeepEdgeMetaInfo metaInfo,
@@ -447,20 +451,22 @@ public abstract class PgRule {
         KeepOptions options,
         Map<String, KeepMemberPattern> memberPatterns,
         List<String> memberConditions,
-        List<String> memberTargets) {
+        List<String> memberTargets,
+        boolean classAndMembers) {
       super(metaInfo, holder, options, memberPatterns, memberConditions);
       assert !memberTargets.isEmpty();
       this.memberTargets = memberTargets;
+      this.classAndMembers = classAndMembers;
     }
 
     @Override
     boolean hasCondition() {
-      return !memberConditions.isEmpty();
+      return !memberConditions.isEmpty() && !classAndMembers;
     }
 
     @Override
     String getConsequenceKeepType() {
-      return "-keepclassmembers";
+      return classAndMembers ? "-keepclasseswithmembers" : "-keepclassmembers";
     }
 
     @Override
