@@ -86,6 +86,15 @@ public class DesugaredLibraryArtProfileRewritingTest extends DesugaredLibraryTes
         .build();
   }
 
+  private ExternalArtProfile getExpectedResidualArtProfile(MethodSubject forEachMethodSubject) {
+    return ExternalArtProfile.builder()
+        .addRule(
+            ExternalArtProfileMethodRule.builder()
+                .setMethodReference(forEachMethodSubject.getFinalReference())
+                .build())
+        .build();
+  }
+
   private void inspect(ArtProfileInspector profileInspector, CodeInspector inspector) {
     ClassSubject consumerClassSubject =
         inspector.clazz(
@@ -103,7 +112,7 @@ public class DesugaredLibraryArtProfileRewritingTest extends DesugaredLibraryTes
                 && libraryDesugaringSpecification == LibraryDesugaringSpecification.JDK8));
     assertEquals(consumerClassSubject.asTypeSubject(), forEachMethodSubject.getParameter(0));
 
-    profileInspector.assertContainsMethodRule(forEachMethodSubject).assertContainsNoOtherRules();
+    profileInspector.assertEqualTo(getExpectedResidualArtProfile(forEachMethodSubject));
   }
 
   static class Main {

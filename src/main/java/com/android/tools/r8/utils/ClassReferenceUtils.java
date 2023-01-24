@@ -45,10 +45,6 @@ public class ClassReferenceUtils {
     }
   }
 
-  public static String toSmaliString(ClassReference classReference) {
-    return classReference.getDescriptor();
-  }
-
   public static DexType toDexType(ClassReference classReference, DexItemFactory dexItemFactory) {
     return dexItemFactory.createType(classReference.getDescriptor());
   }

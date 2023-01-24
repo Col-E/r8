@@ -6,7 +6,6 @@ package com.android.tools.r8.profile.art.model;
 
 import com.android.tools.r8.references.ClassReference;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 
 /**
  * Represents a class rule from an ART baseline profile, backed by {@link ClassReference}. Class
@@ -34,13 +33,6 @@ public class ExternalArtProfileClassRule extends ExternalArtProfileRule {
 
   public ClassReference getClassReference() {
     return classReference;
-  }
-
-  @Override
-  public boolean test(
-      Predicate<ExternalArtProfileClassRule> classRuleConsumer,
-      Predicate<ExternalArtProfileMethodRule> methodRuleConsumer) {
-    return classRuleConsumer.test(this);
   }
 
   @Override

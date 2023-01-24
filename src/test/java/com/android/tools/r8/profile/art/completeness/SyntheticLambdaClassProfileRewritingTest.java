@@ -69,11 +69,14 @@ public class SyntheticLambdaClassProfileRewritingTest extends TestBase {
   }
 
   private void inspectResidualArtProfile(ArtProfileInspector profileInspector) {
-    // TODO(b/265729283): Since Main.main() is in the art profile, so should the two synthetic
-    //  lambdas be when compiling to dex.
-    profileInspector
-        .assertContainsMethodRule(MethodReferenceUtils.mainMethod(Main.class))
-        .assertContainsNoOtherRules();
+    if (parameters.isCfRuntime()) {
+      profileInspector.assertEqualTo(getArtProfile());
+    } else {
+      assert parameters.isDexRuntime();
+      // TODO(b/265729283): Since Main.main() is in the art profile, so should the two synthetic
+      //  lambdas be.
+      profileInspector.assertEqualTo(getArtProfile());
+    }
   }
 
   static class Main {

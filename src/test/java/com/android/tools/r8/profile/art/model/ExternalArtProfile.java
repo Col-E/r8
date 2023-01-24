@@ -9,8 +9,9 @@ import com.android.tools.r8.profile.art.ArtProfileMethodRuleInfoImpl;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.StringUtils;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -23,49 +24,9 @@ import java.util.function.Consumer;
  */
 public class ExternalArtProfile {
 
-  private abstract static class ReferenceBox<R> {
+  private final List<ExternalArtProfileRule> rules;
 
-    private final R reference;
-
-    ReferenceBox(R reference) {
-      this.reference = reference;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      ReferenceBox<?> that = (ReferenceBox<?>) o;
-      return reference.equals(that.reference);
-    }
-
-    @Override
-    public int hashCode() {
-      return reference.hashCode();
-    }
-  }
-
-  private static class ClassReferenceBox extends ReferenceBox<ClassReference> {
-
-    ClassReferenceBox(ClassReference reference) {
-      super(reference);
-    }
-  }
-
-  private static class MethodReferenceBox extends ReferenceBox<MethodReference> {
-
-    MethodReferenceBox(MethodReference reference) {
-      super(reference);
-    }
-  }
-
-  private final Map<ReferenceBox<?>, ExternalArtProfileRule> rules;
-
-  ExternalArtProfile(Map<ReferenceBox<?>, ExternalArtProfileRule> rules) {
+  ExternalArtProfile(List<ExternalArtProfileRule> rules) {
     this.rules = rules;
   }
 
@@ -73,28 +34,12 @@ public class ExternalArtProfile {
     return new Builder();
   }
 
-  public boolean containsClassRule(ClassReference classReference) {
-    return rules.containsKey(new ClassReferenceBox(classReference));
-  }
-
-  public boolean containsMethodRule(MethodReference methodReference) {
-    return rules.containsKey(new MethodReferenceBox(methodReference));
-  }
-
   public void forEach(
       Consumer<ExternalArtProfileClassRule> classRuleConsumer,
       Consumer<ExternalArtProfileMethodRule> methodRuleConsumer) {
-    for (ExternalArtProfileRule rule : rules.values()) {
+    for (ExternalArtProfileRule rule : rules) {
       rule.accept(classRuleConsumer, methodRuleConsumer);
     }
-  }
-
-  public ExternalArtProfileClassRule getClassRule(ClassReference classReference) {
-    return (ExternalArtProfileClassRule) rules.get(new ClassReferenceBox(classReference));
-  }
-
-  public ExternalArtProfileMethodRule getMethodRule(MethodReference methodReference) {
-    return (ExternalArtProfileMethodRule) rules.get(new MethodReferenceBox(methodReference));
   }
 
   public int size() {
@@ -120,13 +65,12 @@ public class ExternalArtProfile {
 
   @Override
   public String toString() {
-    return StringUtils.join(
-        System.lineSeparator(), rules.values(), ExternalArtProfileRule::toString);
+    return StringUtils.join(System.lineSeparator(), rules, ExternalArtProfileRule::toString);
   }
 
   public static class Builder {
 
-    private final Map<ReferenceBox<?>, ExternalArtProfileRule> rules = new LinkedHashMap<>();
+    private final List<ExternalArtProfileRule> rules = new ArrayList<>();
 
     public Builder addClassRule(ClassReference classReference) {
       return addRule(
@@ -147,17 +91,12 @@ public class ExternalArtProfile {
     }
 
     public Builder addRule(ExternalArtProfileRule rule) {
-      rule.accept(
-          classRule -> rules.put(new ClassReferenceBox(classRule.getClassReference()), classRule),
-          methodRule ->
-              rules.put(new MethodReferenceBox(methodRule.getMethodReference()), methodRule));
+      rules.add(rule);
       return this;
     }
 
     public Builder addRules(ExternalArtProfileRule... rules) {
-      for (ExternalArtProfileRule rule : rules) {
-        addRule(rule);
-      }
+      Collections.addAll(this.rules, rules);
       return this;
     }
 

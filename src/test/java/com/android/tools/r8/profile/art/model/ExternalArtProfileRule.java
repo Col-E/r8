@@ -5,15 +5,10 @@
 package com.android.tools.r8.profile.art.model;
 
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 
 public abstract class ExternalArtProfileRule {
 
   public abstract void accept(
       Consumer<ExternalArtProfileClassRule> classRuleConsumer,
       Consumer<ExternalArtProfileMethodRule> methodRuleConsumer);
-
-  public abstract boolean test(
-      Predicate<ExternalArtProfileClassRule> classRuleConsumer,
-      Predicate<ExternalArtProfileMethodRule> methodRuleConsumer);
 }
