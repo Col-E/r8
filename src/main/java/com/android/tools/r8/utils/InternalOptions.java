@@ -1800,9 +1800,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public static class MappingComposeOptions {
-    public boolean enableExperimentalMappingComposition =
-        !parseSystemPropertyForDevelopmentOrDefault(
-            "com.android.tools.r8.disableMapComposition", false);
+    // TODO(b/241763080): Remove when enabled.
+    public boolean enableExperimentalMappingComposition = false;
     // TODO(b/247136434): Disable for internal builds.
     public boolean allowNonExistingOriginalRanges = true;
     public Consumer<ClassNameMapper> generatedClassNameMapperConsumer = null;
