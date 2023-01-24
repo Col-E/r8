@@ -9,6 +9,7 @@ import com.android.tools.r8.profile.art.ArtProfileMethodRuleInfoImpl;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /** Represents a method rule from an ART baseline profile, backed by {@link MethodReference}. */
 public class ExternalArtProfileMethodRule extends ExternalArtProfileRule {
@@ -41,6 +42,13 @@ public class ExternalArtProfileMethodRule extends ExternalArtProfileRule {
 
   public ArtProfileMethodRuleInfo getMethodRuleInfo() {
     return methodRuleInfo;
+  }
+
+  @Override
+  public boolean test(
+      Predicate<ExternalArtProfileClassRule> classRuleConsumer,
+      Predicate<ExternalArtProfileMethodRule> methodRuleConsumer) {
+    return methodRuleConsumer.test(this);
   }
 
   @Override

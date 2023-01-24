@@ -78,33 +78,22 @@ public class ArtProfileRewritingTest extends TestBase {
         .build();
   }
 
-  private ExternalArtProfile getExpectedResidualArtProfile(CodeInspector inspector) {
+  private void inspect(ArtProfileInspector profileInspector, CodeInspector inspector) {
     ClassSubject greeterClassSubject = inspector.clazz(Greeter.class);
     assertThat(greeterClassSubject, isPresentAndRenamed());
 
     MethodSubject greetMethodSubject = greeterClassSubject.uniqueMethodWithOriginalName("greet");
     assertThat(greetMethodSubject, isPresentAndRenamed());
 
-    return ExternalArtProfile.builder()
-        .addRules(
-            ExternalArtProfileClassRule.builder().setClassReference(mainClassReference).build(),
-            ExternalArtProfileMethodRule.builder()
-                .setMethodReference(mainMethodReference)
-                .setMethodRuleInfo(ArtProfileMethodRuleInfoImpl.builder().setIsStartup().build())
-                .build(),
-            ExternalArtProfileClassRule.builder()
-                .setClassReference(greeterClassSubject.getFinalReference())
-                .build(),
-            ExternalArtProfileMethodRule.builder()
-                .setMethodReference(greetMethodSubject.getFinalReference())
-                .setMethodRuleInfo(
-                    ArtProfileMethodRuleInfoImpl.builder().setIsHot().setIsPostStartup().build())
-                .build())
-        .build();
-  }
-
-  private void inspect(ArtProfileInspector profileInspector, CodeInspector inspector) {
-    profileInspector.assertEqualTo(getExpectedResidualArtProfile(inspector));
+    profileInspector
+        .assertContainsClassRules(mainClassReference, greeterClassSubject.getFinalReference())
+        .inspectMethodRule(
+            mainMethodReference,
+            ruleInspector -> ruleInspector.assertIsStartup().assertNotHot().assertNotPostStartup())
+        .inspectMethodRule(
+            greetMethodSubject.getFinalReference(),
+            ruleInspector -> ruleInspector.assertIsHot().assertIsPostStartup().assertNotStartup())
+        .assertContainsNoOtherRules();
   }
 
   static class Main {
