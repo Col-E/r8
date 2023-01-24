@@ -68,6 +68,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecific
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.nest.Nest;
 import com.android.tools.r8.ir.optimize.Inliner;
+import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MapVersion;
@@ -819,7 +820,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       new CallSiteOptimizationOptions();
   private final CfCodeAnalysisOptions cfCodeAnalysisOptions = new CfCodeAnalysisOptions();
   private final ClassInlinerOptions classInlinerOptions = new ClassInlinerOptions();
-  private final InlinerOptions inlinerOptions = new InlinerOptions();
+  private final InlinerOptions inlinerOptions = new InlinerOptions(this);
   private final HorizontalClassMergerOptions horizontalClassMergerOptions =
       new HorizontalClassMergerOptions();
   private final OpenClosedInterfacesOptions openClosedInterfacesOptions =
@@ -1528,7 +1529,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     boolean test(AppView<?> appView, ProgramMethod method, int inliningDepth);
   }
 
-  public class InlinerOptions {
+  public static class InlinerOptions {
 
     public boolean enableInlining =
         !parseSystemPropertyForDevelopmentOrDefault("com.android.tools.r8.disableinlining", false);
@@ -1559,17 +1560,31 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public ApplyInliningToInlineePredicate applyInliningToInlineePredicateForTesting = null;
 
+    private final InternalOptions options;
+
+    public InlinerOptions(InternalOptions options) {
+      this.options = options;
+    }
+
+    public static void disableInlining(InternalOptions options) {
+      options.inlinerOptions().enableInlining = false;
+    }
+
+    public static void setOnlyForceInlining(InternalOptions options) {
+      options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
+    }
+
     public int getSimpleInliningInstructionLimit() {
       // If a custom simple inlining instruction limit is set, then use that.
       if (simpleInliningInstructionLimit >= 0) {
         return simpleInliningInstructionLimit;
       }
       // Allow 3 instructions when generating to class files.
-      if (isGeneratingClassFiles()) {
+      if (options.isGeneratingClassFiles()) {
         return 3;
       }
       // Allow the size of the dex code to be up to 5 bytes.
-      assert isGeneratingDex();
+      assert options.isGeneratingDex();
       return 5;
     }
 
@@ -1578,7 +1593,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       if (applyInliningToInlineePredicateForTesting != null) {
         return applyInliningToInlineePredicateForTesting.test(appView, inlinee, inliningDepth);
       }
-      if (protoShrinking.shouldApplyInliningToInlinee(appView, inlinee, inliningDepth)) {
+      if (options.protoShrinking().shouldApplyInliningToInlinee(appView, inlinee, inliningDepth)) {
         return true;
       }
       return false;

@@ -205,7 +205,7 @@ public abstract class ApiModelingTestHelper {
     };
   }
 
-  static ApiModelingClassVerificationHelper verifyThat(
+  public static ApiModelingClassVerificationHelper verifyThat(
       CodeInspector inspector, TestParameters parameters, Class<?> clazz) {
     return new ApiModelingClassVerificationHelper(inspector, parameters, clazz);
   }
@@ -295,7 +295,7 @@ public abstract class ApiModelingTestHelper {
       hasNotOulinedInstructionWithClassReference(method, CodeMatchers::containsInstanceOf);
     }
 
-    void hasConstClassOutlinedFromUntil(Method method, AndroidApiLevel apiLevel) {
+    public void hasConstClassOutlinedFromUntil(Method method, AndroidApiLevel apiLevel) {
       if (parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(apiLevel)) {
         hasConstClassOutlinedFrom(method);
       } else {
