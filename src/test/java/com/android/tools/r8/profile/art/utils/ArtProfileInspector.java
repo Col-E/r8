@@ -63,13 +63,20 @@ public class ArtProfileInspector {
     return this;
   }
 
+  public ArtProfileInspector assertContainsMethodRules(MethodReference... methodReferences) {
+    for (MethodReference methodReference : methodReferences) {
+      assertContainsMethodRule(methodReference);
+    }
+    return this;
+  }
+
   public ArtProfileInspector assertContainsMethodRule(MethodSubject methodSubject) {
     return assertContainsMethodRule(methodSubject.getFinalReference());
   }
 
-  public ArtProfileInspector assertContainsMethodRules(MethodReference... methodReferences) {
-    for (MethodReference methodReference : methodReferences) {
-      assertContainsMethodRule(methodReference);
+  public ArtProfileInspector assertContainsMethodRules(MethodSubject... methodSubjects) {
+    for (MethodSubject methodSubject : methodSubjects) {
+      assertContainsMethodRule(methodSubject);
     }
     return this;
   }

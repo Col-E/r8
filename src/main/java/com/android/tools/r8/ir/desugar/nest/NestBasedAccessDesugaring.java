@@ -56,14 +56,13 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
 
   // Short names to avoid creating long strings
   public static final String NEST_ACCESS_NAME_PREFIX = "-$$Nest$";
-  private static final String NEST_ACCESS_METHOD_NAME_PREFIX = NEST_ACCESS_NAME_PREFIX + "m";
-  private static final String NEST_ACCESS_STATIC_METHOD_NAME_PREFIX =
-      NEST_ACCESS_NAME_PREFIX + "sm";
-  private static final String NEST_ACCESS_FIELD_GET_NAME_PREFIX = NEST_ACCESS_NAME_PREFIX + "fget";
-  private static final String NEST_ACCESS_STATIC_GET_FIELD_NAME_PREFIX =
+  public static final String NEST_ACCESS_METHOD_NAME_PREFIX = NEST_ACCESS_NAME_PREFIX + "m";
+  public static final String NEST_ACCESS_STATIC_METHOD_NAME_PREFIX = NEST_ACCESS_NAME_PREFIX + "sm";
+  public static final String NEST_ACCESS_FIELD_GET_NAME_PREFIX = NEST_ACCESS_NAME_PREFIX + "fget";
+  public static final String NEST_ACCESS_STATIC_GET_FIELD_NAME_PREFIX =
       NEST_ACCESS_NAME_PREFIX + "sfget";
-  private static final String NEST_ACCESS_FIELD_PUT_NAME_PREFIX = NEST_ACCESS_NAME_PREFIX + "fput";
-  private static final String NEST_ACCESS_STATIC_PUT_FIELD_NAME_PREFIX =
+  public static final String NEST_ACCESS_FIELD_PUT_NAME_PREFIX = NEST_ACCESS_NAME_PREFIX + "fput";
+  public static final String NEST_ACCESS_STATIC_PUT_FIELD_NAME_PREFIX =
       NEST_ACCESS_NAME_PREFIX + "sfput";
 
   protected final AppView<?> appView;

@@ -3,18 +3,28 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.synthesis;
 
+import static com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring.NEST_ACCESS_FIELD_GET_NAME_PREFIX;
+import static com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring.NEST_ACCESS_FIELD_PUT_NAME_PREFIX;
+import static com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring.NEST_ACCESS_METHOD_NAME_PREFIX;
+import static com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring.NEST_ACCESS_STATIC_GET_FIELD_NAME_PREFIX;
+import static com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring.NEST_ACCESS_STATIC_METHOD_NAME_PREFIX;
+import static com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring.NEST_ACCESS_STATIC_PUT_FIELD_NAME_PREFIX;
 import static com.android.tools.r8.synthesis.SyntheticNaming.EXTERNAL_SYNTHETIC_CLASS_SEPARATOR;
 import static org.hamcrest.CoreMatchers.containsString;
 
+import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialToSelfDesugaring;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting;
 import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.synthesis.SyntheticNaming.Phase;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.google.common.collect.ImmutableList;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Collections;
 import org.hamcrest.Matcher;
 
 public class SyntheticItemsTestUtils {
@@ -51,6 +61,15 @@ public class SyntheticItemsTestUtils {
         syntheticHolder.getDescriptor(),
         syntheticMethodName(),
         originalMethod.getMethodDescriptor());
+  }
+
+  public static MethodReference syntheticInvokeSpecialMethod(Method method) {
+    MethodReference originalMethod = Reference.methodFromMethod(method);
+    return Reference.method(
+        originalMethod.getHolderClass(),
+        InvokeSpecialToSelfDesugaring.INVOKE_SPECIAL_BRIDGE_PREFIX + method.getName(),
+        originalMethod.getFormalTypes(),
+        originalMethod.getReturnType());
   }
 
   public static MethodReference syntheticBackportWithForwardingMethod(
@@ -125,6 +144,68 @@ public class SyntheticItemsTestUtils {
         syntheticHolder.getDescriptor(),
         originalMethod.getMethodName(),
         originalMethod.getMethodDescriptor());
+  }
+
+  public static MethodReference syntheticNestInstanceFieldGetter(Field field) {
+    FieldReference fieldReference = Reference.fieldFromField(field);
+    return Reference.method(
+        fieldReference.getHolderClass(),
+        NEST_ACCESS_FIELD_GET_NAME_PREFIX + field.getName(),
+        Collections.emptyList(),
+        fieldReference.getFieldType());
+  }
+
+  public static MethodReference syntheticNestInstanceFieldSetter(Field field) {
+    FieldReference fieldReference = Reference.fieldFromField(field);
+    return Reference.method(
+        fieldReference.getHolderClass(),
+        NEST_ACCESS_FIELD_PUT_NAME_PREFIX + field.getName(),
+        ImmutableList.of(fieldReference.getFieldType()),
+        null);
+  }
+
+  public static MethodReference syntheticNestInstanceMethodAccessor(Method method) {
+    MethodReference originalMethod = Reference.methodFromMethod(method);
+    return Reference.methodFromDescriptor(
+        originalMethod.getHolderClass(),
+        NEST_ACCESS_METHOD_NAME_PREFIX + method.getName(),
+        originalMethod.getMethodDescriptor());
+  }
+
+  public static MethodReference syntheticNestStaticFieldGetter(Field field) {
+    FieldReference fieldReference = Reference.fieldFromField(field);
+    return Reference.method(
+        fieldReference.getHolderClass(),
+        NEST_ACCESS_STATIC_GET_FIELD_NAME_PREFIX + field.getName(),
+        Collections.emptyList(),
+        fieldReference.getFieldType());
+  }
+
+  public static MethodReference syntheticNestStaticFieldSetter(Field field) {
+    FieldReference fieldReference = Reference.fieldFromField(field);
+    return Reference.method(
+        fieldReference.getHolderClass(),
+        NEST_ACCESS_STATIC_PUT_FIELD_NAME_PREFIX + field.getName(),
+        ImmutableList.of(fieldReference.getFieldType()),
+        null);
+  }
+
+  public static MethodReference syntheticNestStaticMethodAccessor(Method method) {
+    MethodReference originalMethod = Reference.methodFromMethod(method);
+    return Reference.methodFromDescriptor(
+        originalMethod.getHolderClass(),
+        NEST_ACCESS_STATIC_METHOD_NAME_PREFIX + method.getName(),
+        originalMethod.getMethodDescriptor());
+  }
+
+  public static ClassReference syntheticEnumUnboxingLocalUtilityClass(Class<?> clazz) {
+    return Reference.classFromTypeName(
+        clazz.getTypeName() + naming.ENUM_UNBOXING_LOCAL_UTILITY_CLASS.getDescriptor());
+  }
+
+  public static ClassReference syntheticEnumUnboxingSharedUtilityClass(Class<?> clazz) {
+    return Reference.classFromTypeName(
+        clazz.getTypeName() + naming.ENUM_UNBOXING_SHARED_UTILITY_CLASS.getDescriptor());
   }
 
   public static boolean isEnumUnboxingSharedUtilityClass(ClassReference reference) {
