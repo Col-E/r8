@@ -36,7 +36,6 @@ import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.D8CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer.D8CfPostProcessingDesugaringEventConsumer;
@@ -488,7 +487,7 @@ public class IRConverter {
 
   void convertMethods(
       DexProgramClass clazz,
-      D8CfInstructionDesugaringEventConsumer desugaringEventConsumer,
+      CfInstructionDesugaringEventConsumer desugaringEventConsumer,
       D8MethodProcessor methodProcessor,
       InterfaceProcessor interfaceProcessor) {
     // When converting all methods on a class always convert <clinit> first.

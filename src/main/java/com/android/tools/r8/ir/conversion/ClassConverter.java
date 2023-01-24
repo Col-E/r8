@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.D8CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.InterfaceProcessor;
 import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -145,8 +144,8 @@ public abstract class ClassConverter {
         methodProcessor.addScheduled(clazz);
       }
 
-      D8CfInstructionDesugaringEventConsumer instructionDesugaringEventConsumer =
-          CfInstructionDesugaringEventConsumer.createForD8(methodProcessor);
+      CfInstructionDesugaringEventConsumer instructionDesugaringEventConsumer =
+          CfInstructionDesugaringEventConsumer.createForD8(appView, resultBuilder, methodProcessor);
 
       // Process the wave and wait for all IR processing to complete.
       methodProcessor.newWave();
@@ -157,8 +156,7 @@ public abstract class ClassConverter {
 
       // Finalize the desugaring of the processed classes. This may require processing (and
       // reprocessing) of some methods.
-      List<ProgramMethod> needsProcessing =
-          instructionDesugaringEventConsumer.finalizeDesugaring(appView, resultBuilder);
+      List<ProgramMethod> needsProcessing = instructionDesugaringEventConsumer.finalizeDesugaring();
       if (!needsProcessing.isEmpty()) {
         // Create a new processor context to ensure unique method processing contexts.
         methodProcessor.newWave();
@@ -212,10 +210,10 @@ public abstract class ClassConverter {
   }
 
   abstract void convertClass(
-      DexProgramClass clazz, D8CfInstructionDesugaringEventConsumer desugaringEventConsumer);
+      DexProgramClass clazz, CfInstructionDesugaringEventConsumer desugaringEventConsumer);
 
   void convertMethods(
-      DexProgramClass clazz, D8CfInstructionDesugaringEventConsumer desugaringEventConsumer) {
+      DexProgramClass clazz, CfInstructionDesugaringEventConsumer desugaringEventConsumer) {
     converter.convertMethods(clazz, desugaringEventConsumer, methodProcessor, interfaceProcessor);
   }
 
@@ -233,7 +231,7 @@ public abstract class ClassConverter {
 
     @Override
     void convertClass(
-        DexProgramClass clazz, D8CfInstructionDesugaringEventConsumer desugaringEventConsumer) {
+        DexProgramClass clazz, CfInstructionDesugaringEventConsumer desugaringEventConsumer) {
       convertMethods(clazz, desugaringEventConsumer);
     }
 
@@ -257,7 +255,7 @@ public abstract class ClassConverter {
 
     @Override
     void convertClass(
-        DexProgramClass clazz, D8CfInstructionDesugaringEventConsumer desugaringEventConsumer) {
+        DexProgramClass clazz, CfInstructionDesugaringEventConsumer desugaringEventConsumer) {
       // Classes which has already been through library desugaring will not go through IR
       // processing again.
       LibraryDesugaredChecker libraryDesugaredChecker = new LibraryDesugaredChecker(appView);

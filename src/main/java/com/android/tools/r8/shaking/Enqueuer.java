@@ -111,7 +111,6 @@ import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.R8CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer.R8PostProcessingDesugaringEventConsumer;
@@ -4084,7 +4083,7 @@ public class Enqueuer {
               });
     }
 
-    R8CfInstructionDesugaringEventConsumer eventConsumer =
+    CfInstructionDesugaringEventConsumer eventConsumer =
         CfInstructionDesugaringEventConsumer.createForR8(
             appView,
             lambdaCallback,
@@ -4129,7 +4128,8 @@ public class Enqueuer {
       additions.addMethodWithDesugaredCodeForTracing(companion);
     }
 
-    eventConsumer.finalizeDesugaring();
+    List<ProgramMethod> needsProcessing = eventConsumer.finalizeDesugaring();
+    assert needsProcessing.isEmpty();
 
     pendingMethodMove.clear();
     pendingCodeDesugaring.clear();

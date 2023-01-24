@@ -29,6 +29,7 @@ import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaringEventConsum
 import com.android.tools.r8.ir.desugar.records.RecordDesugaringEventConsumer.RecordInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.twr.TwrCloseResourceDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaringEventConsumer;
+import com.android.tools.r8.profile.art.rewriting.ArtProfileRewritingCfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.shaking.Enqueuer.SyntheticAdditions;
 import com.android.tools.r8.shaking.KeepMethodInfo.Joiner;
 import com.google.common.collect.Sets;
@@ -63,30 +64,43 @@ public abstract class CfInstructionDesugaringEventConsumer
         ApiInvokeOutlinerDesugaringEventConsumer,
         VarHandleDesugaringEventConsumer {
 
-  public static D8CfInstructionDesugaringEventConsumer createForD8(
+  public static CfInstructionDesugaringEventConsumer createForD8(
+      AppView<?> appView,
+      ClassConverterResult.Builder classConverterResultBuilder,
       D8MethodProcessor methodProcessor) {
-    return new D8CfInstructionDesugaringEventConsumer(methodProcessor);
+    CfInstructionDesugaringEventConsumer eventConsumer =
+        new D8CfInstructionDesugaringEventConsumer(
+            appView, classConverterResultBuilder, methodProcessor);
+    return ArtProfileRewritingCfInstructionDesugaringEventConsumer.attachIfNeeded(eventConsumer);
   }
 
-  public static R8CfInstructionDesugaringEventConsumer createForR8(
+  public static CfInstructionDesugaringEventConsumer createForR8(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       BiConsumer<LambdaClass, ProgramMethod> lambdaClassConsumer,
       BiConsumer<ConstantDynamicClass, ProgramMethod> constantDynamicClassConsumer,
       BiConsumer<ProgramMethod, ProgramMethod> twrCloseResourceMethodConsumer,
       SyntheticAdditions additions,
       BiConsumer<ProgramMethod, ProgramMethod> companionMethodConsumer) {
-    return new R8CfInstructionDesugaringEventConsumer(
-        appView,
-        lambdaClassConsumer,
-        constantDynamicClassConsumer,
-        twrCloseResourceMethodConsumer,
-        additions,
-        companionMethodConsumer);
+    CfInstructionDesugaringEventConsumer eventConsumer =
+        new R8CfInstructionDesugaringEventConsumer(
+            appView,
+            lambdaClassConsumer,
+            constantDynamicClassConsumer,
+            twrCloseResourceMethodConsumer,
+            additions,
+            companionMethodConsumer);
+    return ArtProfileRewritingCfInstructionDesugaringEventConsumer.attachIfNeeded(eventConsumer);
   }
+
+  public abstract List<ProgramMethod> finalizeDesugaring();
+
+  public abstract boolean verifyNothingToFinalize();
 
   public static class D8CfInstructionDesugaringEventConsumer
       extends CfInstructionDesugaringEventConsumer {
 
+    private final AppView<?> appView;
+    private final ClassConverterResult.Builder classConverterResultBuilder;
     private final D8MethodProcessor methodProcessor;
 
     private final Map<DexReference, InvokeSpecialBridgeInfo> pendingInvokeSpecialBridges =
@@ -94,7 +108,12 @@ public abstract class CfInstructionDesugaringEventConsumer
     private final List<LambdaClass> synthesizedLambdaClasses = new ArrayList<>();
     private final List<ConstantDynamicClass> synthesizedConstantDynamicClasses = new ArrayList<>();
 
-    private D8CfInstructionDesugaringEventConsumer(D8MethodProcessor methodProcessor) {
+    private D8CfInstructionDesugaringEventConsumer(
+        AppView<?> appView,
+        ClassConverterResult.Builder classConverterResultBuilder,
+        D8MethodProcessor methodProcessor) {
+      this.appView = appView;
+      this.classConverterResultBuilder = classConverterResultBuilder;
       this.methodProcessor = methodProcessor;
     }
 
@@ -231,17 +250,16 @@ public abstract class CfInstructionDesugaringEventConsumer
       methodProcessor.scheduleDesugaredMethodForProcessing(method);
     }
 
-    public List<ProgramMethod> finalizeDesugaring(
-        AppView<?> appView, ClassConverterResult.Builder classConverterResultBuilder) {
+    @Override
+    public List<ProgramMethod> finalizeDesugaring() {
       List<ProgramMethod> needsProcessing = new ArrayList<>();
-      finalizeInvokeSpecialDesugaring(appView, needsProcessing::add);
+      finalizeInvokeSpecialDesugaring(needsProcessing::add);
       finalizeLambdaDesugaring(classConverterResultBuilder, needsProcessing::add);
       finalizeConstantDynamicDesugaring(needsProcessing::add);
       return needsProcessing;
     }
 
-    private void finalizeInvokeSpecialDesugaring(
-        AppView<?> appView, Consumer<ProgramMethod> needsProcessing) {
+    private void finalizeInvokeSpecialDesugaring(Consumer<ProgramMethod> needsProcessing) {
       // Fixup the code of the new private methods have that been synthesized.
       pendingInvokeSpecialBridges
           .values()
@@ -288,6 +306,7 @@ public abstract class CfInstructionDesugaringEventConsumer
       synthesizedConstantDynamicClasses.clear();
     }
 
+    @Override
     public boolean verifyNothingToFinalize() {
       assert pendingInvokeSpecialBridges.isEmpty();
       assert synthesizedLambdaClasses.isEmpty();
@@ -473,10 +492,19 @@ public abstract class CfInstructionDesugaringEventConsumer
       twrCloseResourceMethodConsumer.accept(closeMethod, context);
     }
 
-    public void finalizeDesugaring() {
+    @Override
+    public List<ProgramMethod> finalizeDesugaring() {
       finalizeInvokeSpecialDesugaring();
       finalizeLambdaDesugaring();
       // TODO(b/210485236): Finalize constant dynamic desugaring by rewriting signature if needed.
+      return Collections.emptyList();
+    }
+
+    @Override
+    public boolean verifyNothingToFinalize() {
+      // Currently only used in D8.
+      assert false;
+      return true;
     }
 
     private void finalizeInvokeSpecialDesugaring() {
