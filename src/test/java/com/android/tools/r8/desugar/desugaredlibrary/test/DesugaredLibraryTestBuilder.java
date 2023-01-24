@@ -27,6 +27,8 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecific
 import com.android.tools.r8.profile.art.ArtProfileConsumer;
 import com.android.tools.r8.profile.art.ArtProfileForRewriting;
 import com.android.tools.r8.profile.art.ArtProfileProvider;
+import com.android.tools.r8.profile.art.model.ExternalArtProfile;
+import com.android.tools.r8.profile.art.utils.ArtProfileTestingUtils;
 import com.android.tools.r8.tracereferences.TraceReferences;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.FileUtils;
@@ -58,6 +60,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
 
   private CustomLibrarySpecification customLibrarySpecification = null;
   private TestingKeepRuleConsumer keepRuleConsumer = null;
+  private List<ExternalArtProfile> l8ResidualArtProfiles = new ArrayList<>();
 
   public DesugaredLibraryTestBuilder(
       T test,
@@ -378,7 +381,8 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
         libraryDesugaringSpecification,
         compilationSpecification,
         customLibCompile,
-        l8Compile);
+        l8Compile,
+        l8ResidualArtProfiles);
   }
 
   private D8TestCompileResult compileCustomLib() throws CompilationFailedException {
@@ -501,7 +505,18 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
-  public DesugaredLibraryTestBuilder<?> addL8ArtProfileForRewriting(
+  public DesugaredLibraryTestBuilder<T> addL8ArtProfileForRewriting(
+      ArtProfileProvider artProfileProvider) {
+    return addL8ArtProfileForRewriting(
+        artProfileProvider,
+        ArtProfileTestingUtils.createResidualArtProfileConsumer(l8ResidualArtProfiles::add));
+  }
+
+  public DesugaredLibraryTestBuilder<T> addL8ArtProfileForRewriting(ExternalArtProfile artProfile) {
+    return addL8ArtProfileForRewriting(ArtProfileTestingUtils.createArtProfileProvider(artProfile));
+  }
+
+  public DesugaredLibraryTestBuilder<T> addL8ArtProfileForRewriting(
       ArtProfileProvider artProfileProvider, ArtProfileConsumer residualArtProfileConsumer) {
     l8ArtProfilesForRewriting.add(
         new ArtProfileForRewriting(artProfileProvider, residualArtProfileConsumer));

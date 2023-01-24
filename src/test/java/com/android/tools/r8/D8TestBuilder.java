@@ -9,12 +9,16 @@ import com.android.tools.r8.benchmarks.BenchmarkResults;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.profile.art.ArtProfileConsumer;
 import com.android.tools.r8.profile.art.ArtProfileProvider;
+import com.android.tools.r8.profile.art.model.ExternalArtProfile;
+import com.android.tools.r8.profile.art.utils.ArtProfileTestingUtils;
 import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -32,6 +36,7 @@ public class D8TestBuilder
 
   private StringBuilder proguardMapOutputBuilder = null;
   private boolean enableMissingLibraryApiModeling = true;
+  private List<ExternalArtProfile> residualArtProfiles = new ArrayList<>();
 
   @Override
   public boolean isD8TestBuilder() {
@@ -132,6 +137,16 @@ public class D8TestBuilder
     proguardMapOutputBuilder = new StringBuilder();
     getBuilder().setProguardMapConsumer((s, h) -> proguardMapOutputBuilder.append(s));
     return self();
+  }
+
+  public D8TestBuilder addArtProfileForRewriting(ArtProfileProvider artProfileProvider) {
+    return addArtProfileForRewriting(
+        artProfileProvider,
+        ArtProfileTestingUtils.createResidualArtProfileConsumer(residualArtProfiles::add));
+  }
+
+  public D8TestBuilder addArtProfileForRewriting(ExternalArtProfile artProfile) {
+    return addArtProfileForRewriting(ArtProfileTestingUtils.createArtProfileProvider(artProfile));
   }
 
   public D8TestBuilder addArtProfileForRewriting(

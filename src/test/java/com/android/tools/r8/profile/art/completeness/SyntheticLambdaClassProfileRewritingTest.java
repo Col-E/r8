@@ -7,14 +7,13 @@ package com.android.tools.r8.profile.art.completeness;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.profile.art.model.ExternalArtProfile;
 import com.android.tools.r8.profile.art.model.ExternalArtProfileMethodRule;
-import com.android.tools.r8.profile.art.utils.ArtProfileTestingUtils;
+import com.android.tools.r8.profile.art.utils.ArtProfileInspector;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -40,14 +39,12 @@ public class SyntheticLambdaClassProfileRewritingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .apply(
-            testBuilder ->
-                ArtProfileTestingUtils.addArtProfileForRewriting(
-                    getArtProfile(), this::inspectResidualArtProfile, testBuilder))
+        .addArtProfileForRewriting(getArtProfile())
         .noHorizontalClassMergingOfSynthetics()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
+        .inspectResidualArtProfile(this::inspectResidualArtProfile)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello, world!");
   }
@@ -71,14 +68,14 @@ public class SyntheticLambdaClassProfileRewritingTest extends TestBase {
         onlyIf(parameters.isDexRuntime(), isPresent()));
   }
 
-  private void inspectResidualArtProfile(ExternalArtProfile residualArtProfile) {
+  private void inspectResidualArtProfile(ArtProfileInspector profileInspector) {
     if (parameters.isCfRuntime()) {
-      assertEquals(getArtProfile(), residualArtProfile);
+      profileInspector.assertEqualTo(getArtProfile());
     } else {
       assert parameters.isDexRuntime();
       // TODO(b/265729283): Since Main.main() is in the art profile, so should the two synthetic
       //  lambdas be.
-      assertEquals(getArtProfile(), residualArtProfile);
+      profileInspector.assertEqualTo(getArtProfile());
     }
   }
 

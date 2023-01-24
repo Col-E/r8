@@ -9,11 +9,14 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.SplitRunner;
+import com.android.tools.r8.profile.art.model.ExternalArtProfile;
+import com.android.tools.r8.profile.art.utils.ArtProfileInspector;
 import com.android.tools.r8.shaking.CollectingGraphConsumer;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.ThrowingBiConsumer;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -22,6 +25,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, R8TestRunResult> {
@@ -31,6 +35,7 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
   private final String proguardMap;
   private final CollectingGraphConsumer graphConsumer;
   private final List<Path> features;
+  private final List<ExternalArtProfile> residualArtProfiles;
 
   R8TestCompileResult(
       TestState state,
@@ -42,13 +47,15 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
       String proguardMap,
       CollectingGraphConsumer graphConsumer,
       int minApiLevel,
-      List<Path> features) {
+      List<Path> features,
+      List<ExternalArtProfile> residualArtProfiles) {
     super(state, app, minApiLevel, outputMode, libraryDesugaringTestConfiguration);
     this.proguardConfiguration = proguardConfiguration;
     this.syntheticProguardRules = syntheticProguardRules;
     this.proguardMap = proguardMap;
     this.graphConsumer = graphConsumer;
     this.features = features;
+    this.residualArtProfiles = residualArtProfiles;
   }
 
   @Override
@@ -121,6 +128,19 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
   public final <E extends Throwable> R8TestCompileResult inspectGraph(
       ThrowingConsumer<GraphInspector, E> consumer) throws IOException, E {
     consumer.accept(graphInspector());
+    return self();
+  }
+
+  public <E extends Throwable> R8TestCompileResult inspectResidualArtProfile(
+      ThrowingConsumer<ArtProfileInspector, E> consumer) throws E, IOException, ExecutionException {
+    return inspectResidualArtProfile(
+        (rewrittenArtProfile, inspector) -> consumer.accept(rewrittenArtProfile));
+  }
+
+  public <E extends Throwable> R8TestCompileResult inspectResidualArtProfile(
+      ThrowingBiConsumer<ArtProfileInspector, CodeInspector, E> consumer) throws E, IOException {
+    assertEquals(1, residualArtProfiles.size());
+    consumer.accept(new ArtProfileInspector(residualArtProfiles.iterator().next()), inspector());
     return self();
   }
 

@@ -10,20 +10,13 @@ import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.profile.art.ArtProfileBuilder;
-import com.android.tools.r8.profile.art.ArtProfileClassRuleInfo;
-import com.android.tools.r8.profile.art.ArtProfileConsumer;
-import com.android.tools.r8.profile.art.ArtProfileMethodRuleInfo;
 import com.android.tools.r8.profile.art.ArtProfileProvider;
-import com.android.tools.r8.profile.art.ArtProfileRuleConsumer;
-import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.UTF8TextInputStream;
@@ -49,7 +42,7 @@ public class HumanReadableArtProfileParserErrorDiagnosticFromArtProfileTest exte
   public void testD8() throws Exception {
     testForD8()
         .addProgramClasses(Main.class)
-        .addArtProfileForRewriting(createArtProfileProvider(), createArtProfileConsumer())
+        .addArtProfileForRewriting(createArtProfileProvider())
         .release()
         .setMinApi(AndroidApiLevel.LATEST)
         .compileWithExpectedDiagnostics(this::inspectDiagnostics);
@@ -60,7 +53,7 @@ public class HumanReadableArtProfileParserErrorDiagnosticFromArtProfileTest exte
     testForR8(Backend.DEX)
         .addProgramClasses(Main.class)
         .addKeepMainRule(Main.class)
-        .addArtProfileForRewriting(createArtProfileProvider(), createArtProfileConsumer())
+        .addArtProfileForRewriting(createArtProfileProvider())
         .release()
         .setMinApi(AndroidApiLevel.LATEST)
         .compileWithExpectedDiagnostics(this::inspectDiagnostics);
@@ -79,34 +72,6 @@ public class HumanReadableArtProfileParserErrorDiagnosticFromArtProfileTest exte
       @Override
       public Origin getOrigin() {
         return Origin.unknown();
-      }
-    };
-  }
-
-  private ArtProfileConsumer createArtProfileConsumer() {
-    return new ArtProfileConsumer() {
-
-      @Override
-      public ArtProfileRuleConsumer getRuleConsumer() {
-        return new ArtProfileRuleConsumer() {
-
-          @Override
-          public void acceptClassRule(
-              ClassReference classReference, ArtProfileClassRuleInfo classRuleInfo) {
-            // Ignore.
-          }
-
-          @Override
-          public void acceptMethodRule(
-              MethodReference methodReference, ArtProfileMethodRuleInfo methodRuleInfo) {
-            // Ignore.
-          }
-        };
-      }
-
-      @Override
-      public void finished(DiagnosticsHandler handler) {
-        // Ignore.
       }
     };
   }

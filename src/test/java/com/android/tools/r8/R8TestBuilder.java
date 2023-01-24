@@ -17,6 +17,8 @@ import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.profile.art.ArtProfileConsumer;
 import com.android.tools.r8.profile.art.ArtProfileProvider;
+import com.android.tools.r8.profile.art.model.ExternalArtProfile;
+import com.android.tools.r8.profile.art.utils.ArtProfileTestingUtils;
 import com.android.tools.r8.shaking.CheckEnumUnboxedRule;
 import com.android.tools.r8.shaking.CollectingGraphConsumer;
 import com.android.tools.r8.shaking.KeepUnusedReturnValueRule;
@@ -68,6 +70,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   private boolean allowUnusedProguardConfigurationRules = false;
   private boolean enableMissingLibraryApiModeling = true;
   private CollectingGraphConsumer graphConsumer = null;
+  private List<ExternalArtProfile> residualArtProfiles = new ArrayList<>();
   private List<String> keepRules = new ArrayList<>();
   private List<Path> mainDexRulesFiles = new ArrayList<>();
   private List<String> applyMappingMaps = new ArrayList<>();
@@ -158,7 +161,8 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
             createDefaultProguardMapConsumer ? proguardMapBuilder.toString() : null,
             graphConsumer,
             getMinApiLevel(),
-            features);
+            features,
+            residualArtProfiles);
     switch (allowedDiagnosticMessages) {
       case ALL:
         compileResult.getDiagnosticMessages().assertAllDiagnosticsMatch(new IsAnything<>());
@@ -780,6 +784,16 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   public T noDefaultProguardMapConsumer() {
     createDefaultProguardMapConsumer = false;
     return self();
+  }
+
+  public T addArtProfileForRewriting(ArtProfileProvider artProfileProvider) {
+    return addArtProfileForRewriting(
+        artProfileProvider,
+        ArtProfileTestingUtils.createResidualArtProfileConsumer(residualArtProfiles::add));
+  }
+
+  public T addArtProfileForRewriting(ExternalArtProfile artProfile) {
+    return addArtProfileForRewriting(ArtProfileTestingUtils.createArtProfileProvider(artProfile));
   }
 
   public T addArtProfileForRewriting(
