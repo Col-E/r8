@@ -28,7 +28,7 @@ import org.objectweb.asm.Opcodes;
 /** This class defines the desugaring of a single invoke-special instruction. */
 public class InvokeSpecialToSelfDesugaring implements CfInstructionDesugaring {
 
-  public static final String INVOKE_SPECIAL_BRIDGE_PREFIX = "$invoke$special$";
+  private static final String INVOKE_SPECIAL_BRIDGE_PREFIX = "$invoke$special$";
 
   private final DexItemFactory dexItemFactory;
 
