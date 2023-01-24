@@ -6,6 +6,7 @@ package com.android.tools.r8.profile.art;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
@@ -14,11 +15,12 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.profile.art.model.ExternalArtProfile;
 import com.android.tools.r8.profile.art.model.ExternalArtProfileClassRule;
 import com.android.tools.r8.profile.art.model.ExternalArtProfileMethodRule;
-import com.android.tools.r8.profile.art.utils.ArtProfileInspector;
+import com.android.tools.r8.profile.art.utils.ArtProfileTestingUtils;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -51,14 +53,18 @@ public class ArtProfileRewritingTest extends TestBase {
 
   @Test
   public void test() throws Exception {
+    Box<ExternalArtProfile> residualArtProfile = new Box<>();
     testForR8(Backend.DEX)
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addArtProfileForRewriting(getArtProfile())
+        .apply(
+            testBuilder ->
+                ArtProfileTestingUtils.addArtProfileForRewriting(
+                    getArtProfile(), residualArtProfile::set, testBuilder))
         .enableInliningAnnotations()
         .setMinApi(AndroidApiLevel.LATEST)
         .compile()
-        .inspectResidualArtProfile(this::inspect);
+        .inspect(inspector -> inspect(inspector, residualArtProfile.get()));
   }
 
   private ExternalArtProfile getArtProfile() {
@@ -103,8 +109,8 @@ public class ArtProfileRewritingTest extends TestBase {
         .build();
   }
 
-  private void inspect(ArtProfileInspector profileInspector, CodeInspector inspector) {
-    profileInspector.assertEqualTo(getExpectedResidualArtProfile(inspector));
+  private void inspect(CodeInspector inspector, ExternalArtProfile residualArtProfile) {
+    assertEquals(getExpectedResidualArtProfile(inspector), residualArtProfile);
   }
 
   static class Main {

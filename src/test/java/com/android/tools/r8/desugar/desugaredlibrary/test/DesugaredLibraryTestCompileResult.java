@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.test;
 
-import static org.junit.Assert.assertEquals;
-
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.L8TestCompileResult;
@@ -15,9 +13,6 @@ import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
-import com.android.tools.r8.profile.art.model.ExternalArtProfile;
-import com.android.tools.r8.profile.art.utils.ArtProfileInspector;
-import com.android.tools.r8.utils.ThrowingBiConsumer;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
@@ -35,7 +30,6 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
   private final CompilationSpecification compilationSpecification;
   private final D8TestCompileResult customLibCompile;
   private final L8TestCompileResult l8Compile;
-  private final List<ExternalArtProfile> l8ResidualArtProfiles;
   // In case of Cf2Cf desugaring the run on dex, the compileResult is the Cf desugaring result
   // while the runnableCompiledResult is the dexed compiledResult used to run on dex.
   private final TestCompileResult<?, ? extends SingleTestRunResult<?>> runnableCompiledResult;
@@ -47,8 +41,7 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
       LibraryDesugaringSpecification libraryDesugaringSpecification,
       CompilationSpecification compilationSpecification,
       D8TestCompileResult customLibCompile,
-      L8TestCompileResult l8Compile,
-      List<ExternalArtProfile> l8ResidualArtProfiles)
+      L8TestCompileResult l8Compile)
       throws CompilationFailedException, IOException {
     this.test = test;
     this.compileResult = compileResult;
@@ -57,7 +50,6 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
     this.compilationSpecification = compilationSpecification;
     this.customLibCompile = customLibCompile;
     this.l8Compile = l8Compile;
-    this.l8ResidualArtProfiles = l8ResidualArtProfiles;
     this.runnableCompiledResult = computeRunnableCompiledResult();
   }
 
@@ -71,20 +63,6 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
   public <E extends Throwable> DesugaredLibraryTestCompileResult<T> inspectL8(
       ThrowingConsumer<CodeInspector, E> consumer) throws IOException, E {
     l8Compile.inspect(consumer);
-    return this;
-  }
-
-  public <E extends Throwable> DesugaredLibraryTestCompileResult<T> inspectL8ResidualArtProfile(
-      ThrowingConsumer<ArtProfileInspector, E> consumer) throws E, IOException, ExecutionException {
-    return inspectL8ResidualArtProfile(
-        (rewrittenArtProfile, inspector) -> consumer.accept(rewrittenArtProfile));
-  }
-
-  public <E extends Throwable> DesugaredLibraryTestCompileResult<T> inspectL8ResidualArtProfile(
-      ThrowingBiConsumer<ArtProfileInspector, CodeInspector, E> consumer) throws E, IOException {
-    assertEquals(1, l8ResidualArtProfiles.size());
-    consumer.accept(
-        new ArtProfileInspector(l8ResidualArtProfiles.iterator().next()), l8Inspector());
     return this;
   }
 

@@ -7,12 +7,13 @@ package com.android.tools.r8.profile.art;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.profile.art.model.ExternalArtProfile;
-import com.android.tools.r8.profile.art.utils.ArtProfileInspector;
+import com.android.tools.r8.profile.art.utils.ArtProfileTestingUtils;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -38,11 +39,12 @@ public class NonEmptyToEmptyProfileRewritingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addArtProfileForRewriting(getArtProfile())
+        .apply(
+            ArtProfileTestingUtils.addArtProfileForRewriting(
+                getArtProfile(), this::inspectResidualArtProfile))
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
-        .inspectResidualArtProfile(this::inspectResidualArtProfile)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello, world!");
   }
@@ -60,9 +62,9 @@ public class NonEmptyToEmptyProfileRewritingTest extends TestBase {
     assertThat(mainClassSubject.uniqueMethodWithOriginalName("dead"), isAbsent());
   }
 
-  private void inspectResidualArtProfile(ArtProfileInspector profileInspector) {
+  private void inspectResidualArtProfile(ExternalArtProfile residualArtProfile) {
     // After shaking of Main.dead() the ART profile should become empty.
-    profileInspector.assertEmpty();
+    assertEquals(ExternalArtProfile.builder().build(), residualArtProfile);
   }
 
   static class Main {

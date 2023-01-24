@@ -4,13 +4,14 @@
 
 package com.android.tools.r8.profile.art;
 
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.profile.art.model.ExternalArtProfile;
-import com.android.tools.r8.profile.art.utils.ArtProfileInspector;
+import com.android.tools.r8.profile.art.utils.ArtProfileTestingUtils;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import org.junit.Test;
@@ -35,11 +36,12 @@ public class NoSuchClassAndMethodProfileRewritingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addArtProfileForRewriting(getArtProfile())
+        .apply(
+            ArtProfileTestingUtils.addArtProfileForRewriting(
+                getArtProfile(), this::inspectResidualArtProfile))
         .setMinApi(parameters.getApiLevel())
         // TODO(b/266178791): Emit a warning for each discarded item.
         .compileWithExpectedDiagnostics(TestDiagnosticMessages::assertNoMessages)
-        .inspectResidualArtProfile(this::inspectResidualArtProfile)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello, world!");
   }
@@ -52,10 +54,10 @@ public class NoSuchClassAndMethodProfileRewritingTest extends TestBase {
         .build();
   }
 
-  private void inspectResidualArtProfile(ArtProfileInspector profileInspector) {
+  private void inspectResidualArtProfile(ExternalArtProfile residualArtProfile) {
     // None of the items in the profile exist in the input.
     // TODO(b/266178791): Discard items from profile that is not in the input app.
-    profileInspector.assertNotEmpty();
+    assertEquals(getArtProfile(), residualArtProfile);
   }
 
   static class Main {
