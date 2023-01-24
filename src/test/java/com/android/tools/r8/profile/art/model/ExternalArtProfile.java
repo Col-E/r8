@@ -42,6 +42,10 @@ public class ExternalArtProfile {
     }
   }
 
+  public int size() {
+    return rules.size();
+  }
+
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {
