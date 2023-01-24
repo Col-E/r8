@@ -59,6 +59,10 @@ public class ProguardTestCompileResult
     return result.stderr;
   }
 
+  public String getProguardMap() {
+    return proguardMap;
+  }
+
   @Override
   public CodeInspector inspector() throws IOException {
     return new CodeInspector(app, proguardMap);

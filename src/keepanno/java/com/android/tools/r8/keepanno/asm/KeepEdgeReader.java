@@ -728,7 +728,7 @@ public class KeepEdgeReader implements Opcodes {
         case Kind.ONLY_CLASS:
           kind = KeepItemKind.ONLY_CLASS;
           break;
-        case Kind.ONLY_MEMBER:
+        case Kind.ONLY_MEMBERS:
           kind = KeepItemKind.ONLY_MEMBERS;
           break;
         case Kind.CLASS_AND_MEMBERS:
@@ -775,8 +775,13 @@ public class KeepEdgeReader implements Opcodes {
         parent.accept(KeepItemReference.fromBindingReference(memberBindingReference));
       } else {
         KeepMemberPattern memberPattern = memberDeclaration.getValue();
+        // If the kind is not set (default) then the content of the members determines the kind.
         if (kind == null) {
           kind = memberPattern.isNone() ? KeepItemKind.ONLY_CLASS : KeepItemKind.ONLY_MEMBERS;
+        }
+        // If the kind is a member kind and no member pattern is set then set members to all.
+        if (!kind.equals(KeepItemKind.ONLY_CLASS) && memberPattern.isNone()) {
+          memberPattern = KeepMemberPattern.allMembers();
         }
         parent.accept(
             KeepItemReference.fromItemPattern(

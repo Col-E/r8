@@ -3,17 +3,20 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.keeprules;
 
+import static com.android.tools.r8.keepanno.keeprules.RulePrintingUtils.printClassHeader;
+import static com.android.tools.r8.keepanno.keeprules.RulePrintingUtils.printMemberClause;
+
 import com.android.tools.r8.keepanno.ast.KeepClassReference;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
 import com.android.tools.r8.keepanno.ast.KeepEdgeMetaInfo;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepMemberPattern;
 import com.android.tools.r8.keepanno.ast.KeepOptions;
-import com.android.tools.r8.keepanno.ast.KeepPackagePattern;
 import com.android.tools.r8.keepanno.ast.KeepQualifiedClassNamePattern;
-import com.android.tools.r8.keepanno.ast.KeepUnqualfiedClassNamePattern;
 import com.android.tools.r8.keepanno.keeprules.KeepRuleExtractor.Holder;
+import com.android.tools.r8.keepanno.keeprules.RulePrinter.BackReferencePrinter;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -33,10 +36,11 @@ public abstract class PgRule {
   // without a binding indirection).
   public static BiConsumer<StringBuilder, KeepClassReference> classReferencePrinter(
       KeepQualifiedClassNamePattern classNamePattern) {
-    return (StringBuilder builder, KeepClassReference classReference) -> {
+    return (builder, classReference) -> {
       assert classReference.isBindingReference()
           || classReference.asClassNamePattern().equals(classNamePattern);
-      RulePrintingUtils.printClassName(builder, classNamePattern);
+      RulePrintingUtils.printClassName(
+          classNamePattern, RulePrinter.withoutBackReferences(builder));
     };
   }
 
@@ -52,7 +56,7 @@ public abstract class PgRule {
 
   void printCondition(StringBuilder builder) {
     if (hasCondition()) {
-      builder.append("-if ");
+      builder.append(RulePrintingUtils.IF).append(' ');
       printConditionHolder(builder);
       List<String> members = getConditionMembers();
       if (!members.isEmpty()) {
@@ -86,7 +90,6 @@ public abstract class PgRule {
   boolean hasCondition() {
     return false;
   }
-  ;
 
   List<String> getConditionMembers() {
     throw new KeepEdgeException("Unreachable");
@@ -139,8 +142,7 @@ public abstract class PgRule {
 
     @Override
     void printTargetHolder(StringBuilder builder) {
-      RulePrintingUtils.printClassHeader(
-          builder, holderPattern, classReferencePrinter(holderNamePattern));
+      printClassHeader(builder, holderPattern, classReferencePrinter(holderNamePattern));
     }
 
     @Override
@@ -181,22 +183,23 @@ public abstract class PgRule {
 
     @Override
     void printConditionHolder(StringBuilder builder) {
-      RulePrintingUtils.printClassHeader(builder, classCondition, this::printClassName);
+      printClassHeader(builder, classCondition, this::printClassName);
     }
 
     @Override
     void printConditionMember(StringBuilder builder, String member) {
       KeepMemberPattern memberPattern = memberPatterns.get(member);
-      RulePrintingUtils.printMemberClause(builder, memberPattern);
+      printMemberClause(memberPattern, RulePrinter.withoutBackReferences(builder));
     }
 
     @Override
     void printTargetHolder(StringBuilder builder) {
-      RulePrintingUtils.printClassHeader(builder, classTarget, this::printClassName);
+      printClassHeader(builder, classTarget, this::printClassName);
     }
 
     void printClassName(StringBuilder builder, KeepClassReference clazz) {
-      RulePrintingUtils.printClassName(builder, clazz.asClassNamePattern());
+      RulePrintingUtils.printClassName(
+          clazz.asClassNamePattern(), RulePrinter.withoutBackReferences(builder));
     }
   }
 
@@ -282,7 +285,7 @@ public abstract class PgRule {
     @Override
     void printTargetMember(StringBuilder builder, String member) {
       KeepMemberPattern memberPattern = memberPatterns.get(member);
-      RulePrintingUtils.printMemberClause(builder, memberPattern);
+      printMemberClause(memberPattern, RulePrinter.withoutBackReferences(builder));
     }
   }
 
@@ -307,12 +310,9 @@ public abstract class PgRule {
     }
 
     int nextBackReferenceNumber = 1;
-    String holderBackReferencePattern;
-    // TODO(b/248408342): Support back-ref to members too.
 
-    private StringBuilder addBackRef(StringBuilder backReferenceBuilder) {
-      return backReferenceBuilder.append('<').append(nextBackReferenceNumber++).append('>');
-    }
+    String holderBackReferencePattern;
+    Map<String, String> membersBackReferencePatterns = new HashMap<>();
 
     @Override
     List<String> getConditionMembers() {
@@ -321,32 +321,29 @@ public abstract class PgRule {
 
     @Override
     void printConditionHolder(StringBuilder b) {
-      RulePrintingUtils.printClassHeader(
+      printClassHeader(
           b,
           holderPattern,
           (builder, classReference) -> {
-            StringBuilder backReference = new StringBuilder();
-            if (holderNamePattern.isAny()) {
-              addBackRef(backReference);
-              builder.append('*');
-            } else {
-              printPackagePrefix(builder, holderNamePattern.getPackagePattern(), backReference);
-              printSimpleClassName(builder, holderNamePattern.getNamePattern(), backReference);
-            }
-            holderBackReferencePattern = backReference.toString();
+            BackReferencePrinter printer =
+                RulePrinter.withBackReferences(b, () -> nextBackReferenceNumber++);
+            RulePrintingUtils.printClassName(holderNamePattern, printer);
+            holderBackReferencePattern = printer.getBackReference();
           });
     }
 
     @Override
     void printConditionMember(StringBuilder builder, String member) {
-      // TODO(b/248408342): Support back-ref to member instances too.
       KeepMemberPattern memberPattern = memberPatterns.get(member);
-      RulePrintingUtils.printMemberClause(builder, memberPattern);
+      BackReferencePrinter printer =
+          RulePrinter.withBackReferences(builder, () -> nextBackReferenceNumber++);
+      printMemberClause(memberPattern, printer);
+      membersBackReferencePatterns.put(member, printer.getBackReference());
     }
 
     @Override
     void printTargetHolder(StringBuilder builder) {
-      RulePrintingUtils.printClassHeader(
+      printClassHeader(
           builder,
           holderPattern,
           (b, reference) -> {
@@ -354,37 +351,6 @@ public abstract class PgRule {
                 || reference.asClassNamePattern().equals(holderNamePattern);
             b.append(holderBackReferencePattern);
           });
-    }
-
-    private StringBuilder printPackagePrefix(
-        StringBuilder builder,
-        KeepPackagePattern packagePattern,
-        StringBuilder backReferenceBuilder) {
-      if (packagePattern.isAny()) {
-        addBackRef(backReferenceBuilder).append('.');
-        return builder.append("**.");
-      }
-      if (packagePattern.isTop()) {
-        return builder;
-      }
-      assert packagePattern.isExact();
-      String exactPackage = packagePattern.getExactPackageAsString();
-      backReferenceBuilder.append(exactPackage).append('.');
-      return builder.append(exactPackage).append('.');
-    }
-
-    private StringBuilder printSimpleClassName(
-        StringBuilder builder,
-        KeepUnqualfiedClassNamePattern namePattern,
-        StringBuilder backReferenceBuilder) {
-      if (namePattern.isAny()) {
-        addBackRef(backReferenceBuilder);
-        return builder.append('*');
-      }
-      assert namePattern.isExact();
-      String exactName = namePattern.asExact().getExactNameAsString();
-      backReferenceBuilder.append(exactName);
-      return builder.append(exactName);
     }
   }
 
@@ -483,16 +449,22 @@ public abstract class PgRule {
       if (hasCondition()) {
         super.printTargetHolder(builder);
       } else {
-        RulePrintingUtils.printClassHeader(
-            builder, holderPattern, classReferencePrinter(holderNamePattern));
+        printClassHeader(builder, holderPattern, classReferencePrinter(holderNamePattern));
       }
     }
 
     @Override
     void printTargetMember(StringBuilder builder, String member) {
-      // TODO(b/248408342): Support back-ref to member instances too.
+      if (hasCondition()) {
+        String backref = membersBackReferencePatterns.get(member);
+        if (backref != null) {
+          builder.append(backref);
+          return;
+        }
+      }
       KeepMemberPattern memberPattern = memberPatterns.get(member);
-      RulePrintingUtils.printMemberClause(builder, memberPattern);
+      printMemberClause(memberPattern, RulePrinter.withoutBackReferences(builder));
     }
   }
+
 }

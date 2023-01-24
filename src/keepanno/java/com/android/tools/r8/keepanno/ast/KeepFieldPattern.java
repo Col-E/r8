@@ -11,6 +11,10 @@ public final class KeepFieldPattern extends KeepMemberPattern {
     return new Builder();
   }
 
+  public static KeepFieldPattern allFields() {
+    return builder().build();
+  }
+
   public static class Builder {
 
     private KeepFieldAccessPattern accessPattern = KeepFieldAccessPattern.any();

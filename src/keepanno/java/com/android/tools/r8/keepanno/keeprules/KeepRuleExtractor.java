@@ -8,9 +8,11 @@ import com.android.tools.r8.keepanno.ast.KeepCondition;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
 import com.android.tools.r8.keepanno.ast.KeepEdgeMetaInfo;
+import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemReference;
 import com.android.tools.r8.keepanno.ast.KeepMemberPattern;
+import com.android.tools.r8.keepanno.ast.KeepMethodPattern;
 import com.android.tools.r8.keepanno.ast.KeepOptions;
 import com.android.tools.r8.keepanno.ast.KeepQualifiedClassNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepTarget;
@@ -193,7 +195,7 @@ public class KeepRuleExtractor {
     conditions.forEach(
         conditionReference -> {
           KeepItemPattern item = bindings.get(conditionReference).getItem();
-          if (item.isMemberItemPattern()) {
+          if (!item.isClassItemPattern()) {
             KeepMemberPattern old = memberPatterns.put(conditionReference, item.getMemberPattern());
             conditionMembers.add(conditionReference);
             assert old == null;
@@ -362,7 +364,41 @@ public class KeepRuleExtractor {
             rules.add(
                 new PgDependentClassRule(
                     metaInfo, holder, options, memberPatterns, conditionMembers)),
-        (ignore, targetMembers, classAndMembers) ->
+        (ignore, targetMembers, classAndMembers) -> {
+          List<String> typedTargets = new ArrayList<>(targetMembers.size());
+          for (String targetMember : targetMembers) {
+            KeepMemberPattern memberPattern = memberPatterns.get(targetMember);
+            if (memberPattern.isAllMembers() && conditionMembers.contains(targetMember)) {
+              // This pattern is a pattern for "any member" and it is bound by a condition.
+              // Since backrefs can't reference a *-member we split this target in two, one for
+              // fields and one for methods.
+              HashMap<String, KeepMemberPattern> copyWithMethod = new HashMap<>(memberPatterns);
+              copyWithMethod.put(targetMember, KeepMethodPattern.allMethods());
+              rules.add(
+                  new PgDependentMembersRule(
+                      metaInfo,
+                      holder,
+                      options,
+                      copyWithMethod,
+                      conditionMembers,
+                      Collections.singletonList(targetMember),
+                      classAndMembers));
+              HashMap<String, KeepMemberPattern> copyWithField = new HashMap<>(memberPatterns);
+              copyWithField.put(targetMember, KeepFieldPattern.allFields());
+              rules.add(
+                  new PgDependentMembersRule(
+                      metaInfo,
+                      holder,
+                      options,
+                      copyWithField,
+                      conditionMembers,
+                      Collections.singletonList(targetMember),
+                      classAndMembers));
+            } else {
+              typedTargets.add(targetMember);
+            }
+          }
+          if (!typedTargets.isEmpty()) {
             rules.add(
                 new PgDependentMembersRule(
                     metaInfo,
@@ -370,8 +406,10 @@ public class KeepRuleExtractor {
                     options,
                     memberPatterns,
                     conditionMembers,
-                    targetMembers,
-                    classAndMembers)));
+                    typedTargets,
+                    classAndMembers));
+          }
+        });
   }
 
   private static KeepQualifiedClassNamePattern getClassNamePattern(

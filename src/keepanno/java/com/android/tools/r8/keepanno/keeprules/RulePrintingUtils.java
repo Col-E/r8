@@ -24,8 +24,8 @@ import com.android.tools.r8.keepanno.ast.KeepQualifiedClassNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepTypePattern;
 import com.android.tools.r8.keepanno.ast.KeepUnqualfiedClassNamePattern;
 import com.android.tools.r8.keepanno.utils.Unimplemented;
+import java.util.List;
 import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
 
 public abstract class RulePrintingUtils {
 
@@ -92,89 +92,90 @@ public abstract class RulePrintingUtils {
     KeepExtendsPattern extendsPattern = classPattern.getExtendsPattern();
     if (!extendsPattern.isAny()) {
       builder.append(" extends ");
-      printClassName(builder, extendsPattern.asClassNamePattern());
+      printClassName(
+          extendsPattern.asClassNamePattern(), RulePrinter.withoutBackReferences(builder));
     }
     return builder;
   }
 
-  public static StringBuilder printMemberClause(StringBuilder builder, KeepMemberPattern member) {
-    if (member.isAll()) {
-      return builder.append("*;");
+  public static RulePrinter printMemberClause(KeepMemberPattern member, RulePrinter printer) {
+    if (member.isAllMembers()) {
+      // Note: the rule language does not allow backref to a full member. A rule matching all
+      // members via a binding must be split in two up front: one for methods and one for fields.
+      return printer.appendWithoutBackReferenceAssert("*").append(";");
     }
     if (member.isMethod()) {
-      return printMethod(builder, member.asMethod());
+      return printMethod(member.asMethod(), printer);
     }
     if (member.isField()) {
-      return printField(builder, member.asField());
+      return printField(member.asField(), printer);
     }
     throw new Unimplemented();
   }
 
-  private static StringBuilder printField(StringBuilder builder, KeepFieldPattern fieldPattern) {
-    if (fieldPattern.isAnyField()) {
-      return builder.append("<fields>;");
-    }
-    printAccess(builder, " ", fieldPattern.getAccessPattern());
+  private static RulePrinter printField(KeepFieldPattern fieldPattern, RulePrinter builder) {
+    printFieldAccess(builder, " ", fieldPattern.getAccessPattern());
     printType(builder, fieldPattern.getTypePattern().asType());
-    builder.append(' ');
+    builder.append(" ");
     printFieldName(builder, fieldPattern.getNamePattern());
-    return builder.append(';');
+    return builder.append(";");
   }
 
-  private static StringBuilder printMethod(StringBuilder builder, KeepMethodPattern methodPattern) {
-    if (methodPattern.isAnyMethod()) {
-      return builder.append("<methods>;");
-    }
-    printAccess(builder, " ", methodPattern.getAccessPattern());
+  private static RulePrinter printMethod(KeepMethodPattern methodPattern, RulePrinter builder) {
+    printMethodAccess(builder, " ", methodPattern.getAccessPattern());
     printReturnType(builder, methodPattern.getReturnTypePattern());
-    builder.append(' ');
+    builder.append(" ");
     printMethodName(builder, methodPattern.getNamePattern());
     printParameters(builder, methodPattern.getParametersPattern());
-    return builder.append(';');
+    return builder.append(";");
   }
 
-  private static StringBuilder printParameters(
-      StringBuilder builder, KeepMethodParametersPattern parametersPattern) {
+  private static RulePrinter printParameters(
+      RulePrinter builder, KeepMethodParametersPattern parametersPattern) {
     if (parametersPattern.isAny()) {
-      return builder.append("(...)");
+      return builder.appendAnyParameters();
     }
-    return builder
-        .append('(')
-        .append(
-            parametersPattern.asList().stream()
-                .map(RulePrintingUtils::getTypePatternString)
-                .collect(Collectors.joining(", ")))
-        .append(')');
+    builder.append("(");
+    List<KeepTypePattern> patterns = parametersPattern.asList();
+    for (int i = 0; i < patterns.size(); i++) {
+      if (i > 0) {
+        builder.append(", ");
+      }
+      printType(builder, patterns.get(i));
+    }
+    return builder.append(")");
   }
 
-  private static StringBuilder printFieldName(
-      StringBuilder builder, KeepFieldNamePattern namePattern) {
+  private static RulePrinter printFieldName(RulePrinter builder, KeepFieldNamePattern namePattern) {
     return namePattern.isAny()
-        ? builder.append("*")
+        ? builder.appendStar()
         : builder.append(namePattern.asExact().getName());
   }
 
-  private static StringBuilder printMethodName(
-      StringBuilder builder, KeepMethodNamePattern namePattern) {
+  private static RulePrinter printMethodName(
+      RulePrinter builder, KeepMethodNamePattern namePattern) {
     return namePattern.isAny()
-        ? builder.append("*")
+        ? builder.appendStar()
         : builder.append(namePattern.asExact().getName());
   }
 
-  private static StringBuilder printReturnType(
-      StringBuilder builder, KeepMethodReturnTypePattern returnTypePattern) {
+  private static RulePrinter printReturnType(
+      RulePrinter builder, KeepMethodReturnTypePattern returnTypePattern) {
     if (returnTypePattern.isVoid()) {
       return builder.append("void");
     }
     return printType(builder, returnTypePattern.asType());
   }
 
-  private static StringBuilder printType(StringBuilder builder, KeepTypePattern typePattern) {
-    return builder.append(getTypePatternString(typePattern));
+  private static RulePrinter printType(RulePrinter builder, KeepTypePattern typePattern) {
+    if (typePattern.isAny()) {
+      return builder.appendTripleStar();
+    }
+    return builder.append(descriptorToJavaType(typePattern.getDescriptor()));
   }
 
-  private static StringBuilder printAccess(
-      StringBuilder builder, String indent, KeepMethodAccessPattern accessPattern) {
+  private static RulePrinter printMethodAccess(
+      RulePrinter builder, String indent, KeepMethodAccessPattern accessPattern) {
     if (accessPattern.isAny()) {
       // No text will match any access pattern.
       // Don't print the indent in this case.
@@ -183,8 +184,8 @@ public abstract class RulePrintingUtils {
     throw new Unimplemented();
   }
 
-  private static StringBuilder printAccess(
-      StringBuilder builder, String indent, KeepFieldAccessPattern accessPattern) {
+  private static RulePrinter printFieldAccess(
+      RulePrinter builder, String indent, KeepFieldAccessPattern accessPattern) {
     if (accessPattern.isAny()) {
       // No text will match any access pattern.
       // Don't print the indent in this case.
@@ -193,31 +194,31 @@ public abstract class RulePrintingUtils {
     throw new Unimplemented();
   }
 
-  public static StringBuilder printClassName(
-      StringBuilder builder, KeepQualifiedClassNamePattern classNamePattern) {
+  public static RulePrinter printClassName(
+      KeepQualifiedClassNamePattern classNamePattern, RulePrinter printer) {
     if (classNamePattern.isAny()) {
-      return builder.append('*');
+      return printer.appendStar();
     }
-    printPackagePrefix(builder, classNamePattern.getPackagePattern());
-    return printSimpleClassName(builder, classNamePattern.getNamePattern());
+    printPackagePrefix(classNamePattern.getPackagePattern(), printer);
+    return printSimpleClassName(classNamePattern.getNamePattern(), printer);
   }
 
-  private static StringBuilder printPackagePrefix(
-      StringBuilder builder, KeepPackagePattern packagePattern) {
+  private static RulePrinter printPackagePrefix(
+      KeepPackagePattern packagePattern, RulePrinter builder) {
     if (packagePattern.isAny()) {
-      return builder.append("**.");
+      return builder.appendDoubleStar().append(".");
     }
     if (packagePattern.isTop()) {
       return builder;
     }
     assert packagePattern.isExact();
-    return builder.append(packagePattern.getExactPackageAsString()).append('.');
+    return builder.append(packagePattern.getExactPackageAsString()).append(".");
   }
 
-  private static StringBuilder printSimpleClassName(
-      StringBuilder builder, KeepUnqualfiedClassNamePattern namePattern) {
+  private static RulePrinter printSimpleClassName(
+      KeepUnqualfiedClassNamePattern namePattern, RulePrinter builder) {
     if (namePattern.isAny()) {
-      return builder.append('*');
+      return builder.appendStar();
     }
     assert namePattern.isExact();
     return builder.append(namePattern.asExact().getExactNameAsString());

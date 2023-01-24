@@ -60,7 +60,7 @@ public class KeepItemPattern {
       kind = KeepItemKind.CLASS_AND_MEMBERS;
       classReference = KeepClassReference.fromClassNamePattern(KeepQualifiedClassNamePattern.any());
       extendsPattern = KeepExtendsPattern.any();
-      memberPattern = KeepMemberPattern.all();
+      memberPattern = KeepMemberPattern.allMembers();
       return this;
     }
 
@@ -131,7 +131,7 @@ public class KeepItemPattern {
   public boolean isAny(Predicate<String> onReference) {
     return kind.equals(KeepItemKind.CLASS_AND_MEMBERS)
         && extendsPattern.isAny()
-        && memberPattern.isAll()
+        && memberPattern.isAllMembers()
         && classReference.isAny(onReference);
   }
 

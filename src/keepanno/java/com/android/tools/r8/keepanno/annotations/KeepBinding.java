@@ -17,6 +17,8 @@ public @interface KeepBinding {
   /** Name with which other bindings, conditions or targets can reference the bound item pattern. */
   String bindingName();
 
+  KeepItemKind kind() default KeepItemKind.DEFAULT;
+
   String classFromBinding() default "";
 
   String className() default "";

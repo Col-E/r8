@@ -9,7 +9,7 @@ public abstract class KeepMemberPattern {
     return None.getInstance();
   }
 
-  public static KeepMemberPattern all() {
+  public static KeepMemberPattern allMembers() {
     return All.getInstance();
   }
 
@@ -22,7 +22,7 @@ public abstract class KeepMemberPattern {
     }
 
     @Override
-    public boolean isAll() {
+    public boolean isAllMembers() {
       return true;
     }
 
@@ -73,7 +73,7 @@ public abstract class KeepMemberPattern {
 
   KeepMemberPattern() {}
 
-  public boolean isAll() {
+  public boolean isAllMembers() {
     return false;
   }
 

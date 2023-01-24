@@ -12,10 +12,14 @@ public final class KeepMethodPattern extends KeepMemberPattern {
     return new Builder();
   }
 
+  public static KeepMemberPattern allMethods() {
+    return builder().build();
+  }
+
   public static class Builder {
 
     private KeepMethodAccessPattern accessPattern = KeepMethodAccessPattern.any();
-    private KeepMethodNamePattern namePattern = null;
+    private KeepMethodNamePattern namePattern = KeepMethodNamePattern.any();
     private KeepMethodReturnTypePattern returnTypePattern = KeepMethodReturnTypePattern.any();
     private KeepMethodParametersPattern parametersPattern = KeepMethodParametersPattern.any();
 
@@ -50,9 +54,6 @@ public final class KeepMethodPattern extends KeepMemberPattern {
     }
 
     public KeepMethodPattern build() {
-      if (namePattern == null) {
-        throw new KeepEdgeException("Method pattern must declar a name pattern");
-      }
       KeepMethodReturnTypePattern returnTypePattern = this.returnTypePattern;
       KeepMethodNameExactPattern exactName = namePattern.asExact();
       if (exactName != null

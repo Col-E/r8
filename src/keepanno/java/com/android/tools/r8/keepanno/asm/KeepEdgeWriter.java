@@ -112,7 +112,7 @@ public class KeepEdgeWriter implements Opcodes {
       // Default is "no methods".
       return;
     }
-    if (memberPattern.isAll()) {
+    if (memberPattern.isAllMembers()) {
       throw new Unimplemented();
     }
     if (memberPattern.isMethod()) {
