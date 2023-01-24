@@ -9,7 +9,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.keepanno.ast.KeepOptions.KeepOption;
-import com.android.tools.r8.keepanno.keeprules.KeepEdgeSplitter;
+import com.android.tools.r8.keepanno.keeprules.KeepRuleExtractor;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -33,7 +33,7 @@ public class KeepEdgeAstTest extends TestBase {
 
   public static String extract(KeepEdge edge) {
     StringBuilder builder = new StringBuilder();
-    KeepEdgeSplitter extractor = new KeepEdgeSplitter(builder::append);
+    KeepRuleExtractor extractor = new KeepRuleExtractor(builder::append);
     extractor.extract(edge);
     return builder.toString();
   }

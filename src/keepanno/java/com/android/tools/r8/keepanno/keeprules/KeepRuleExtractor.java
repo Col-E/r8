@@ -31,12 +31,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
-/** Split a keep edge into multiple PG rules that over-approximate it. */
-public class KeepEdgeSplitter {
+/** Extract the PG keep rules that over-approximate a keep edge. */
+public class KeepRuleExtractor {
 
   private final Consumer<String> ruleConsumer;
 
-  public KeepEdgeSplitter(Consumer<String> ruleConsumer) {
+  public KeepRuleExtractor(Consumer<String> ruleConsumer) {
     this.ruleConsumer = ruleConsumer;
   }
 

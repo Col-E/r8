@@ -19,7 +19,7 @@ import com.android.tools.r8.keepanno.annotations.KeepConstants.Edge;
 import com.android.tools.r8.keepanno.asm.KeepEdgeReader;
 import com.android.tools.r8.keepanno.asm.KeepEdgeWriter;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
-import com.android.tools.r8.keepanno.keeprules.KeepEdgeSplitter;
+import com.android.tools.r8.keepanno.keeprules.KeepRuleExtractor;
 import com.android.tools.r8.keepanno.processor.KeepEdgeProcessor;
 import com.android.tools.r8.keepanno.testsource.KeepClassAndDefaultConstructorSource;
 import com.android.tools.r8.keepanno.testsource.KeepDependentFieldSource;
@@ -204,7 +204,7 @@ public class KeepEdgeAnnotationsTest extends TestBase {
   public static List<String> getKeepRulesForClass(Class<?> clazz) throws IOException {
     Set<KeepEdge> keepEdges = KeepEdgeReader.readKeepEdges(ToolHelper.getClassAsBytes(clazz));
     List<String> rules = new ArrayList<>();
-    KeepEdgeSplitter extractor = new KeepEdgeSplitter(rules::add);
+    KeepRuleExtractor extractor = new KeepRuleExtractor(rules::add);
     keepEdges.forEach(extractor::extract);
     return rules;
   }

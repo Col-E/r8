@@ -12,7 +12,7 @@ import com.android.tools.r8.keepanno.ast.KeepOptions;
 import com.android.tools.r8.keepanno.ast.KeepPackagePattern;
 import com.android.tools.r8.keepanno.ast.KeepQualifiedClassNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepUnqualfiedClassNamePattern;
-import com.android.tools.r8.keepanno.keeprules.KeepEdgeSplitter.Holder;
+import com.android.tools.r8.keepanno.keeprules.KeepRuleExtractor.Holder;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
